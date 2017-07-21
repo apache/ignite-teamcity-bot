@@ -30,9 +30,10 @@ public class DownloadBuildLog implements Supplier<File> {
         this.archive = archive;
     }
 
-    public File get()  {
+    public File get() {
         String buildIdStr = Integer.toString(buildId);
-        String url = host + "downloadBuildLog.html" +
+        String hostWithSlash = host + (host.endsWith("/") ? "" : "/");
+        String url = hostWithSlash + "downloadBuildLog.html" +
             "?buildId=" + buildIdStr
             + (archive ? "&archived=true" : "");
         final File buildDirectory = ensureDirExist(new File(dir, "buildId" + buildIdStr));
