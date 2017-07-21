@@ -1,9 +1,11 @@
 package org.apache.ignite.ci;
 
+import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.MoreExecutors;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -56,5 +58,17 @@ public class IgniteTeamcityHelper {
         catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    public CompletableFuture<List<File>> unzip(CompletableFuture<File> zipFileFuture) {
+        return zipFileFuture.thenApplyAsync(ZipUtil::unZipToSameFolder, executor);
+    }
+
+    public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> future) {
+        final CompletableFuture<List<File>> clearFileF = unzip(future);
+        return clearFileF.thenApplyAsync(files -> {
+            Preconditions.checkState(!files.isEmpty(), "ZIP file can't be empty");
+            return files.get(0);
+        }, executor);
     }
 }

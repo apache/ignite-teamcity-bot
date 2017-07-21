@@ -2,6 +2,7 @@ import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import org.apache.ignite.ci.HttpUtil;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.ThreadDumpSearch;
 
 /**
  * Created by Дмитрий on 20.07.2017
@@ -11,14 +12,20 @@ public class DownloadBuildLogTest {
         final IgniteTeamcityHelper helper = new IgniteTeamcityHelper();
 
         for (int i = 0; i < 1; i++) {
-            helper.triggerBuild("Ignite20Tests_IgniteCache5", "pull/2335/head");
+            //helper.triggerBuild("Ignite20Tests_IgniteCache5", "pull/2335/head");
         }
 
         final int buildId = 734334;
         final CompletableFuture<File> future = helper.downloadBuildLogZip(buildId);
-        final File log = future.get();
-        System.out.println("Cached locally: [" + log.getCanonicalPath()
-            + "], " + log.toURI().toURL());
+
+        ThreadDumpSearch search = new ThreadDumpSearch();
+        CompletableFuture<File> future1 = helper.unzipFirstFile(future);
+        CompletableFuture<File> future2 = future1.thenApplyAsync(search);
+        File file = future2.get();
+
+        System.out.println("Cached locally: [" + file.getCanonicalPath()
+            + "], " + file.toURI().toURL());
+
 
     }
 
