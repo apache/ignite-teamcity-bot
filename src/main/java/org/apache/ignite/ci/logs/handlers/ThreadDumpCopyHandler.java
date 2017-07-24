@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.apache.ignite.ci.logs.ILineHandler;
 
-;
-
 /**
  * Created by Дмитрий on 21.07.2017
  *

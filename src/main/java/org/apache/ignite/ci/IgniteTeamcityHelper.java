@@ -11,6 +11,7 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
+import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
 
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
@@ -81,7 +82,7 @@ public class IgniteTeamcityHelper {
             final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
             final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
             final ThreadDumpCopyHandler search = new ThreadDumpCopyHandler();
-            final LogsAnalyzer analyzer = new LogsAnalyzer(search);
+            final LogsAnalyzer analyzer = new LogsAnalyzer(search, new LastTestLogCopyHandler());
             final CompletableFuture<File> future2 = clearLogFut.thenApplyAsync(analyzer);
             futures.add(future2);
         }
