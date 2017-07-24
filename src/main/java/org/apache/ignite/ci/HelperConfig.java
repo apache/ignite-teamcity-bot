@@ -1,5 +1,7 @@
 package org.apache.ignite.ci;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -13,11 +15,14 @@ import static com.google.common.base.Preconditions.checkState;
  * Created by Дмитрий on 21.07.2017
  */
 public class HelperConfig {
+    public static final String CONFIG_FILE_NAME = "auth.properties";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
 
     public static Properties loadAuthProperties(File workDir) throws IOException {
-        String configFileName = "auth.properties";
+        String configFileName = CONFIG_FILE_NAME;
+
+
         File file = new File(workDir, configFileName);
         if (!(file.exists())) {
 
@@ -49,17 +54,23 @@ public class HelperConfig {
 
     public static File resolveWorkDir() {
         String conf = ".ignite-teamcity-helper";
-        String property = System.getProperty("user.home");
-        File workDir = new File(property, conf);
+        String prop = System.getProperty("user.home");
+        File workDir = new File(prop, conf);
 
         return ensureDirExist(workDir);
     }
 
-    public static String prepareBasicHttpAuthToken(Properties properties) {
-        String user = properties.getProperty(USERNAME);
-        String password = properties.getProperty(PASSWORD);
+    public static String prepareBasicHttpAuthToken(Properties props) {
+        final String user = getMandatoryProperty(props, USERNAME);
+        final String pwd = getMandatoryProperty(props, PASSWORD);
         return new String(Base64.getEncoder().encode((user +
             ":" +
-            password).getBytes()));
+            pwd).getBytes()));
+    }
+
+    private static String getMandatoryProperty(Properties props, String key) {
+        final String user = props.getProperty(key);
+        Preconditions.checkState(!Strings.isNullOrEmpty(user), key + " property should be filled in " + CONFIG_FILE_NAME);
+        return user;
     }
 }

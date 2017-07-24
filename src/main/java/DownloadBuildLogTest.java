@@ -1,8 +1,12 @@
+import com.google.common.base.Throwables;
 import java.io.File;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import org.apache.ignite.ci.HttpUtil;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
-import org.apache.ignite.ci.ThreadDumpSearch;
 
 /**
  * Created by Дмитрий on 20.07.2017
@@ -15,18 +19,30 @@ public class DownloadBuildLogTest {
             //helper.triggerBuild("Ignite20Tests_IgniteCache5", "pull/2335/head");
         }
 
-        final int buildId = 734334;
-        final CompletableFuture<File> future = helper.downloadBuildLogZip(buildId);
+        final int buildId = 737181;
 
-        ThreadDumpSearch search = new ThreadDumpSearch();
-        CompletableFuture<File> future1 = helper.unzipFirstFile(future);
-        CompletableFuture<File> future2 = future1.thenApplyAsync(search);
-        File file = future2.get();
+        List<CompletableFuture<File>> fileFutureList = helper.standardProcessLogs(737181, 737186);
 
-        System.out.println("Cached locally: [" + file.getCanonicalPath()
-            + "], " + file.toURI().toURL());
+        List<File> collect = fileFutureList.stream().map(DownloadBuildLogTest::getFutureResult).collect(Collectors.toList());
 
+        for (File next : collect) {
+            System.out.println("Cached locally: [" + next.getCanonicalPath()
+                + "], " + next.toURI().toURL());
+        }
 
+    }
+
+    private static <T> T getFutureResult(CompletableFuture<T> fut) {
+        try {
+            return fut.get();
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw Throwables.propagate(e);
+        }
+        catch (ExecutionException e) {
+            throw Throwables.propagate(e.getCause());
+        }
     }
 
     // HTTP GET request

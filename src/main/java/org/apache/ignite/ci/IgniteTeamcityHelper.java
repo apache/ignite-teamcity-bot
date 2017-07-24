@@ -5,6 +5,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -60,15 +61,29 @@ public class IgniteTeamcityHelper {
         }
     }
 
-    public CompletableFuture<List<File>> unzip(CompletableFuture<File> zipFileFuture) {
-        return zipFileFuture.thenApplyAsync(ZipUtil::unZipToSameFolder, executor);
+    public CompletableFuture<List<File>> unzip(CompletableFuture<File> zipFileFut) {
+        return zipFileFut.thenApplyAsync(ZipUtil::unZipToSameFolder, executor);
     }
 
-    public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> future) {
-        final CompletableFuture<List<File>> clearFileF = unzip(future);
+    public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
+        final CompletableFuture<List<File>> clearFileF = unzip(fut);
         return clearFileF.thenApplyAsync(files -> {
             Preconditions.checkState(!files.isEmpty(), "ZIP file can't be empty");
             return files.get(0);
         }, executor);
+    }
+
+    public List<CompletableFuture<File>> standardProcessLogs(int... buildIds) {
+        List<CompletableFuture<File>> futures =new ArrayList<>();
+        for (int buildId : buildIds) {
+            final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
+            final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
+
+            final ThreadDumpSearch search = new ThreadDumpSearch();
+            final CompletableFuture<File> future2 = clearLogFut.thenApplyAsync(search);
+
+            futures.add(future2);
+        }
+        return futures;
     }
 }
