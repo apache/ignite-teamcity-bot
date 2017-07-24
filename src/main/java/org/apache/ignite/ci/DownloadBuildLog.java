@@ -32,17 +32,18 @@ public class DownloadBuildLog implements Supplier<File> {
 
     public File get() {
         String buildIdStr = Integer.toString(buildId);
-        String hostWithSlash = host + (host.endsWith("/") ? "" : "/");
-        String url = hostWithSlash + "downloadBuildLog.html" +
-            "?buildId=" + buildIdStr
-            + (archive ? "&archived=true" : "");
         final File buildDirectory = ensureDirExist(new File(dir, "buildId" + buildIdStr));
         final File file = new File(buildDirectory,
             "build.log" + (archive ? ".zip" : ""));
         if (file.exists() && file.canRead() && file.length() > 0) {
-            System.err.println("Nothing to do, file is cached " + file);
+            System.out.println("Nothing to do, file is cached locally: [" + file + "]");
             return file;
         }
+        String hostWithSlash = host + (host.endsWith("/") ? "" : "/");
+        String url = hostWithSlash + "downloadBuildLog.html" +
+            "?buildId=" + buildIdStr
+            + (archive ? "&archived=true" : "");
+
         try {
             HttpUtil.sendGetCopyToFile(token, url, file);
         }

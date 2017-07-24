@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import org.apache.ignite.ci.logs.LogsAnalyzer;
+import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
 
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 
@@ -78,10 +80,9 @@ public class IgniteTeamcityHelper {
         for (int buildId : buildIds) {
             final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
             final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
-
-            final ThreadDumpSearch search = new ThreadDumpSearch();
-            final CompletableFuture<File> future2 = clearLogFut.thenApplyAsync(search);
-
+            final ThreadDumpCopyHandler search = new ThreadDumpCopyHandler();
+            final LogsAnalyzer analyzer = new LogsAnalyzer(search);
+            final CompletableFuture<File> future2 = clearLogFut.thenApplyAsync(analyzer);
             futures.add(future2);
         }
         return futures;
