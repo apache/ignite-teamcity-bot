@@ -1,29 +1,28 @@
 import com.google.common.base.Throwables;
 import java.io.File;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-import org.apache.ignite.ci.HttpUtil;
+import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
 
 /**
  * Created by Дмитрий on 20.07.2017
  */
-public class DownloadBuildLogTest {
+public class IgniteTeamcityHelperRunnerExample {
     public static void main(String[] args) throws Exception {
-        final IgniteTeamcityHelper helper = new IgniteTeamcityHelper();
+        final IgniteTeamcityHelper helper = new IgniteTeamcityHelper("public"); //public_auth_properties
 
         for (int i = 0; i < 1; i++) {
             //helper.triggerBuild("Ignite20Tests_IgniteCache5", "pull/2335/head");
         }
+        //737831, 738387
 
-        final int buildId = 737181;
+        List<CompletableFuture<File>> fileFutureList = helper.standardProcessLogs(1006981);
 
-        List<CompletableFuture<File>> fileFutureList = helper.standardProcessLogs(737181, 737186);
-
-        List<File> collect = fileFutureList.stream().map(DownloadBuildLogTest::getFutureResult).collect(Collectors.toList());
+        List<File> collect = getFuturesResults(fileFutureList);
 
         for (File next : collect) {
             System.out.println("Cached locally: [" + next.getCanonicalPath()
@@ -32,7 +31,11 @@ public class DownloadBuildLogTest {
 
     }
 
-    private static <T> T getFutureResult(CompletableFuture<T> fut) {
+    private static <T> List<T> getFuturesResults(List<? extends Future<T>> fileFutList) {
+        return fileFutList.stream().map(IgniteTeamcityHelperRunnerExample::getFutureResult).collect(Collectors.toList());
+    }
+
+    private static <T> T getFutureResult(Future<T> fut) {
         try {
             return fut.get();
         }
@@ -46,7 +49,7 @@ public class DownloadBuildLogTest {
     }
 
     // HTTP GET request
-    private static void sendGet(String basicAuthToken) throws Exception {
+    private static void sendGet(String basicAuthTok) throws Exception {
         //&archived=true
         //https://confluence.jetbrains.com/display/TCD10/REST+API
         String url = "http://ci.ignite.apache.org/downloadBuildLogZip.html?buildId=735562";
@@ -59,7 +62,7 @@ public class DownloadBuildLogTest {
         String particularInvocation = "http://ci.ignite.apache.org/app/rest/testOccurrences/id:108126,build:(id:735392)";
         String searchTest = "http://ci.ignite.apache.org/app/rest/tests/id:586327933473387239";
 
-        String response = HttpUtil.sendGetAsString(basicAuthToken, url);
+        String response = HttpUtil.sendGetAsString(basicAuthTok, url);
 
         //print result
         System.out.println(response);

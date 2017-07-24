@@ -16,24 +16,19 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public class HelperConfig {
     public static final String CONFIG_FILE_NAME = "auth.properties";
+    public static final String HOST = "host";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
+    public static final String ENDL = String.format("%n");
 
-    public static Properties loadAuthProperties(File workDir) throws IOException {
-        String configFileName = CONFIG_FILE_NAME;
-
-
+    public static Properties loadAuthProperties(File workDir, String configFileName) throws IOException {
         File file = new File(workDir, configFileName);
         if (!(file.exists())) {
 
-            String endl = String.format("%n");
             try (FileWriter writer = new FileWriter(file)) {
-                writer.write(USERNAME +
-                    "=" );
-                writer.write(endl);
-                writer.write(PASSWORD +
-                    "=");
-                writer.write(endl);
+                writer.write(HOST + "=" + "http://ci.ignite.apache.org/" + ENDL);
+                writer.write(USERNAME + "=" + ENDL);
+                writer.write(PASSWORD + "=" + ENDL);
             }
             throw new IllegalStateException("Please setup username and password in config file [" +
                 file.getCanonicalPath() + "]");
@@ -43,6 +38,10 @@ public class HelperConfig {
             properties.load(reader);
         }
         return properties;
+    }
+
+    static String prepareConfigName(String tcName) {
+        return Strings.isNullOrEmpty(tcName) ? CONFIG_FILE_NAME : (tcName + "." + CONFIG_FILE_NAME);
     }
 
     public static File ensureDirExist(File workDir) {
@@ -60,17 +59,17 @@ public class HelperConfig {
         return ensureDirExist(workDir);
     }
 
-    public static String prepareBasicHttpAuthToken(Properties props) {
-        final String user = getMandatoryProperty(props, USERNAME);
-        final String pwd = getMandatoryProperty(props, PASSWORD);
+    public static String prepareBasicHttpAuthToken(Properties props, String configName) {
+        final String user = getMandatoryProperty(props, USERNAME, configName);
+        final String pwd = getMandatoryProperty(props, PASSWORD, configName);
         return new String(Base64.getEncoder().encode((user +
             ":" +
             pwd).getBytes()));
     }
 
-    private static String getMandatoryProperty(Properties props, String key) {
+    private static String getMandatoryProperty(Properties props, String key, String configName) {
         final String user = props.getProperty(key);
-        Preconditions.checkState(!Strings.isNullOrEmpty(user), key + " property should be filled in " + CONFIG_FILE_NAME);
+        Preconditions.checkState(!Strings.isNullOrEmpty(user), key + " property should be filled in " + configName);
         return user;
     }
 }

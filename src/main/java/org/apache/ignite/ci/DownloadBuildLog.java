@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.function.Supplier;
+import org.apache.ignite.ci.util.HttpUtil;
 
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 

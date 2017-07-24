@@ -10,9 +10,11 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
 import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
+import org.apache.ignite.ci.util.HttpUtil;
 
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 
@@ -28,18 +30,24 @@ public class IgniteTeamcityHelper {
     private final File logsDir;
     private final String host;
     private final String basicAuthToken;
+    private final String configName; //main properties file name
 
     public IgniteTeamcityHelper() throws IOException {
+        this(null);
+    }
+
+    public IgniteTeamcityHelper(String tcName) throws IOException {
         final File workDir = HelperConfig.resolveWorkDir();
-        final Properties properties = HelperConfig.loadAuthProperties(workDir);
-        this.host = properties.getProperty("host", "http://ci.ignite.apache.org/");
-        basicAuthToken = HelperConfig.prepareBasicHttpAuthToken(properties);
+        this.configName = HelperConfig.prepareConfigName(tcName);
+        final Properties props = HelperConfig.loadAuthProperties(workDir, configName);
+        this.host = props.getProperty(HelperConfig.HOST, "http://ci.ignite.apache.org/");
+        basicAuthToken = HelperConfig.prepareBasicHttpAuthToken(props, configName);
         logsDir = ensureDirExist(new File(workDir, "logs"));
         this.executor = MoreExecutors.directExecutor();
     }
 
     public CompletableFuture<File> downloadBuildLogZip(int buildId) {
-        final DownloadBuildLog buildLog = new DownloadBuildLog(buildId,
+        final Supplier<File> buildLog = new DownloadBuildLog(buildId,
             host, basicAuthToken, logsDir, true);
         return CompletableFuture.supplyAsync(buildLog, executor);
     }
@@ -48,11 +56,11 @@ public class IgniteTeamcityHelper {
         String parameter = "<build  branchName=\"" + branchName +
             "\">\n" +
             "    <buildType id=\"" +
-            buildTypeId +  "\"/>\n" +
+            buildTypeId + "\"/>\n" +
             "    <comment><text>Build triggered from [" + this.getClass().getSimpleName() + "]</text></comment>\n" +
             //some fake property to avoid merging build in queue
             "    <properties>\n" +
-            "        <property name=\"build.query.ts\" value=\""+System.currentTimeMillis()+"\"/>\n" +
+            "        <property name=\"build.query.ts\" value=\"" + System.currentTimeMillis() + "\"/>\n" +
             "    </properties>\n" +
             "</build>";
         String url = host + "/app/rest/buildQueue";
@@ -77,7 +85,7 @@ public class IgniteTeamcityHelper {
     }
 
     public List<CompletableFuture<File>> standardProcessLogs(int... buildIds) {
-        List<CompletableFuture<File>> futures =new ArrayList<>();
+        List<CompletableFuture<File>> futures = new ArrayList<>();
         for (int buildId : buildIds) {
             final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
             final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
