@@ -42,7 +42,11 @@ public class IgniteTeamcityHelper {
         final Properties props = HelperConfig.loadAuthProperties(workDir, configName);
         this.host = props.getProperty(HelperConfig.HOST, "http://ci.ignite.apache.org/");
         basicAuthToken = HelperConfig.prepareBasicHttpAuthToken(props, configName);
-        logsDir = ensureDirExist(new File(workDir, "logs"));
+
+        final String logsProp = props.getProperty(HelperConfig.LOGS, "logs");
+        final File logsDirFileConfigured = new File(logsProp);
+        final File logsDirFile = logsDirFileConfigured.isAbsolute() ? logsDirFileConfigured : new File(workDir, logsProp);
+        logsDir = ensureDirExist(logsDirFile);
         this.executor = MoreExecutors.directExecutor();
     }
 

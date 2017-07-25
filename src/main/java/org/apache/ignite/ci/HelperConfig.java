@@ -19,6 +19,7 @@ public class HelperConfig {
     public static final String HOST = "host";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
+    public static final String LOGS = "logs";
     public static final String ENDL = String.format("%n");
 
     public static Properties loadAuthProperties(File workDir, String configFileName) throws IOException {

@@ -15,14 +15,14 @@ public class IgniteTeamcityHelperRunnerExample {
     public static void main(String[] args) throws Exception {
         final IgniteTeamcityHelper helper = new IgniteTeamcityHelper("public"); //public_auth_properties
 
-        for (int i = 0; i < 1; i++) {
-            //helper.triggerBuild("Ignite20Tests_IgniteCache5", "pull/2335/head");
+        for (int i = 0; i < 20; i++) {
+           //helper.triggerBuild("Ignite20Tests_IgniteCache5", "pull/2335/head");
         }
         //737831, 738387
 
-        List<CompletableFuture<File>> fileFutureList = helper.standardProcessLogs(1006981);
+        List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(738874, 738869, 738865, 738863, 738862);
 
-        List<File> collect = getFuturesResults(fileFutureList);
+        List<File> collect = getFuturesResults(fileFutList);
 
         for (File next : collect) {
             System.out.println("Cached locally: [" + next.getCanonicalPath()
