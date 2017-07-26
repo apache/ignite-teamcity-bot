@@ -26,34 +26,58 @@ public class LastTestLogCopyHandler implements ILineHandler {
             workFolder = fromLogFile.getParentFile();
 
         if (line.contains(STARTING_TEST) && line.contains(TEST_NAME_END)) {
-            if (currentTestName != null)
+            if (currentTestName != null) {
+                currentTestName = null;
                 lastTestLog.clear();
+            }
             String startTest = line.substring(line.indexOf(STARTING_TEST) + STARTING_TEST.length(), line.indexOf(TEST_NAME_END));
             this.currentTestName = startTest;
-
+        }
+        else if (currentTestName != null && line.contains(">>> Stopping test: ")) {
+            //currentTestName = null;
+            //lastTestLog.clear();
         }
 
         if (currentTestName != null)
             lastTestLog.add(line);
 
+        if (currentTestName != null) {
+            if (line.contains("Test has been timed out [")) {
+                dumpCurrentToFile("timedOut_");
+                currentTestName = null;
+                lastTestLog.clear();
+            }
+        }
+
     }
 
     @Override public void close() throws Exception {
-        if (currentTestName != null && !lastTestLog.isEmpty()) {
-            String name = currentTestName.replaceAll("#", ".");
-            try (FileWriter writer = new FileWriter(new File(workFolder, "lastStartedTest_" + name + ".log"))) {
-                lastTestLog.forEach(line -> {
-                    try {
-                        writer.write(line);
-                        writer.write(ENDL);
-                    }
-                    catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                });
+        if (currentTestName != null && !lastTestLog.isEmpty())
+            dumpCurrentToFile("lastStartedTest_");
+    }
 
-            }
-
+    private void dumpCurrentToFile(String logPrefix) {
+        try {
+            dumpCurrentToFileX(logPrefix);
         }
+        catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private void dumpCurrentToFileX(String logPrefix) throws IOException {
+        String name = currentTestName.replaceAll("#", ".");
+        try (FileWriter writer = new FileWriter(new File(workFolder, logPrefix + name + ".log"))) {
+            lastTestLog.forEach(line -> {
+                try {
+                    writer.write(line);
+                    writer.write(ENDL);
+                }
+                catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
+        }
+        lastTestLog.clear();
     }
 }

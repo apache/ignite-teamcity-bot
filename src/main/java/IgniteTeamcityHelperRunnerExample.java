@@ -20,7 +20,7 @@ public class IgniteTeamcityHelperRunnerExample {
         }
         //737831, 738387
 
-        List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(738874, 738869, 738865, 738863, 738862);
+        List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(740686);
 
         List<File> collect = getFuturesResults(fileFutList);
 
