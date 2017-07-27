@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.model;
 
+import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -21,8 +22,8 @@ public class Project {
     @XmlElement(name="buildType")
     private List<BuildType> buildTypes;
 
-    public List<BuildType> getBuildTypes() {
-        return buildTypes;
+    public List<BuildType> getBuildTypesNonNull() {
+        return buildTypes == null ? Collections.emptyList() : buildTypes;
     }
 }
 

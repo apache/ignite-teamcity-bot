@@ -1,6 +1,7 @@
 package org.apache.ignite.ci;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.MoreExecutors;
 import java.io.File;
 import java.io.IOException;
@@ -11,10 +12,16 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
+import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
 import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
+import org.apache.ignite.ci.model.Build;
+import org.apache.ignite.ci.model.BuildType;
+import org.apache.ignite.ci.model.Builds;
+import org.apache.ignite.ci.model.Project;
 import org.apache.ignite.ci.util.HttpUtil;
+import org.apache.ignite.ci.util.XmlUtil;
 
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 
@@ -28,6 +35,7 @@ public class IgniteTeamcityHelper {
 
     private final Executor executor;
     private final File logsDir;
+    /** Normalized Host address, ends with '/'. */
     private final String host;
     private final String basicAuthTok;
     private final String configName; //main properties file name
@@ -38,14 +46,19 @@ public class IgniteTeamcityHelper {
 
     public IgniteTeamcityHelper(String tcName) throws IOException {
         final File workDir = HelperConfig.resolveWorkDir();
+
         this.configName = HelperConfig.prepareConfigName(tcName);
+
         final Properties props = HelperConfig.loadAuthProperties(workDir, configName);
-        this.host = props.getProperty(HelperConfig.HOST, "http://ci.ignite.apache.org/");
+        final String hostConf = props.getProperty(HelperConfig.HOST, "http://ci.ignite.apache.org/");
+
+        this.host = hostConf + (hostConf.endsWith("/") ? "" : "/");
         basicAuthTok = HelperConfig.prepareBasicHttpAuthToken(props, configName);
 
         final String logsProp = props.getProperty(HelperConfig.LOGS, "logs");
         final File logsDirFileConfigured = new File(logsProp);
         final File logsDirFile = logsDirFileConfigured.isAbsolute() ? logsDirFileConfigured : new File(workDir, logsProp);
+
         logsDir = ensureDirExist(logsDirFile);
         this.executor = MoreExecutors.directExecutor();
     }
@@ -95,8 +108,8 @@ public class IgniteTeamcityHelper {
             final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
             final ThreadDumpCopyHandler search = new ThreadDumpCopyHandler();
             final LogsAnalyzer analyzer = new LogsAnalyzer(search, new LastTestLogCopyHandler());
-            final CompletableFuture<File> future2 = clearLogFut.thenApplyAsync(analyzer);
-            futures.add(future2);
+            final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
+            futures.add(fut2);
         }
         return futures;
     }
@@ -113,5 +126,36 @@ public class IgniteTeamcityHelper {
      */
     public String host() {
         return host;
+    }
+
+    public List<BuildType> getProjectSuites(String projectId) {
+        return sendGetXmlParseJaxb(host + "app/rest/latest/projects/" + projectId, Project.class)
+            .getBuildTypesNonNull();
+    }
+
+    private <T> T sendGetXmlParseJaxb(String url, Class<T> rootElem) {
+        try {
+            String response = HttpUtil.sendGetAsString(basicAuthTok, url);
+            return XmlUtil.load(response, rootElem);
+        }
+        catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        catch (JAXBException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    public List<Build> getBuildHistory(BuildType type, String branchName) {
+        return sendGetXmlParseJaxb(host + "app/rest/latest/builds" +
+            "?locator=buildType:" + type.getId()
+            + ",branch:" + branchName, Builds.class)
+            .getBuildsNonNull();
+
+    }
+
+    public int[] getBuildNumbersFromHistory(BuildType bt, String branchNameForHist) {
+        List<Build> history = getBuildHistory(bt, branchNameForHist);
+        return history.stream().map(Build::getId).mapToInt(Integer::parseInt).toArray();
     }
 }

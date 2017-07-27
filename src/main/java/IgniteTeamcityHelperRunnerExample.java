@@ -16,7 +16,29 @@ import org.apache.ignite.ci.util.XmlUtil;
  */
 public class IgniteTeamcityHelperRunnerExample {
     public static void main(String[] args) throws Exception {
-        final IgniteTeamcityHelper helper = new IgniteTeamcityHelper("private"); //public_auth_properties
+        String serverIdPriv = "private";
+        String serverIdPub = "public";
+        final IgniteTeamcityHelper helper = new IgniteTeamcityHelper(serverIdPub); //public_auth_properties
+
+        //branch example: "pull/2335/head"
+        String branchNameForHist = "pull/2296/head";
+        List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests");
+        for (BuildType bt : buildTypes) {
+            System.err.println(bt.getId());
+
+            if(bt.getName().toLowerCase().contains("pds")
+               // || bt.getName().toLowerCase().contains("cache")
+                ) {
+                int[] ints = helper.getBuildNumbersFromHistory(bt, branchNameForHist);
+
+                List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(ints);
+                List<File> collect = getFuturesResults(fileFutList);
+                for (File logfile : collect) {
+                    System.out.println("Cached locally: [" + logfile.getCanonicalPath()
+                        + "], " + logfile.toURI().toURL());
+                }
+            }
+        }
 
         for (int i = 0; i < 0; i++) {
             //branch example: "pull/2335/head"
@@ -26,7 +48,8 @@ public class IgniteTeamcityHelperRunnerExample {
 
         int j = 0;
         if (j > 0) {
-            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(742081);
+            // int[] ints = IntStream.range(742325, 742325 + 20).toArray();
+            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(1008057);
             List<File> collect = getFuturesResults(fileFutList);
             for (File next : collect) {
                 System.out.println("Cached locally: [" + next.getCanonicalPath()
@@ -35,7 +58,7 @@ public class IgniteTeamcityHelperRunnerExample {
 
         }
 
-        sendGet(helper.host(), helper.basicAuthToken());
+        //sendGet(helper.host(), helper.basicAuthToken());
 
     }
 
@@ -69,7 +92,12 @@ public class IgniteTeamcityHelperRunnerExample {
         String particularInvocation = "http://ci.ignite.apache.org/app/rest/testOccurrences/id:108126,build:(id:735392)";
         String searchTest = "http://ci.ignite.apache.org/app/rest/tests/id:586327933473387239";
 
-        String projects = host + "app/rest/latest/projects/id8xIgniteGridGainTests";
+
+        // http://ci.ignite.apache.org/app/rest/latest/builds/buildType:(id:Ignite20Tests_IgniteZooKeeper)
+        String projectId = "id8xIgniteGridGainTests";
+        String projects = host + "app/rest/latest/projects/" + projectId;
+
+        String s = "http://ci.ignite.apache.org/app/rest/latest/builds?locator=buildType:Ignite20Tests_IgniteZooKeeper,branch:pull/2296/head";
 
         String response = HttpUtil.sendGetAsString(basicAuthTok, projects);
 
@@ -79,7 +107,7 @@ public class IgniteTeamcityHelperRunnerExample {
         //print result
         System.out.println(load);
 
-        for(BuildType bt: load.getBuildTypes()) {
+        for(BuildType bt: load.getBuildTypesNonNull()) {
             System.err.println(bt.getName());
         }
 

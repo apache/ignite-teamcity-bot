@@ -13,21 +13,18 @@ import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
  */
 public class DownloadBuildLog implements Supplier<File> {
     private int buildId;
-    private final String token;
+    private final String tok;
     private final File dir;
-    private String host;
+    private String hostNormalized;
     private boolean archive;
 
-    public DownloadBuildLog(int buildId, String host, String basicAuthToken, File logsDir) {
-        this(buildId, host, basicAuthToken, logsDir, false);
-    }
 
-    public DownloadBuildLog(int buildId, String host, String basicAuthToken,
+    public DownloadBuildLog(int buildId, String hostNormalized, String tok,
         File logsDir, boolean archive) {
         this.buildId = buildId;
-        this.token = basicAuthToken;
+        this.tok = tok;
         this.dir = logsDir;
-        this.host = host;
+        this.hostNormalized = hostNormalized;
         this.archive = archive;
     }
 
@@ -40,13 +37,13 @@ public class DownloadBuildLog implements Supplier<File> {
             System.out.println("Nothing to do, file is cached locally: [" + file + "]");
             return file;
         }
-        String hostWithSlash = host + (host.endsWith("/") ? "" : "/");
+        String hostWithSlash = hostNormalized;
         String url = hostWithSlash + "downloadBuildLog.html" +
             "?buildId=" + buildIdStr
             + (archive ? "&archived=true" : "");
 
         try {
-            HttpUtil.sendGetCopyToFile(token, url, file);
+            HttpUtil.sendGetCopyToFile(tok, url, file);
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
