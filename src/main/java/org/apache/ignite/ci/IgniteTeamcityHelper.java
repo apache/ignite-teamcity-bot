@@ -29,7 +29,7 @@ public class IgniteTeamcityHelper {
     private final Executor executor;
     private final File logsDir;
     private final String host;
-    private final String basicAuthToken;
+    private final String basicAuthTok;
     private final String configName; //main properties file name
 
     public IgniteTeamcityHelper() throws IOException {
@@ -41,7 +41,7 @@ public class IgniteTeamcityHelper {
         this.configName = HelperConfig.prepareConfigName(tcName);
         final Properties props = HelperConfig.loadAuthProperties(workDir, configName);
         this.host = props.getProperty(HelperConfig.HOST, "http://ci.ignite.apache.org/");
-        basicAuthToken = HelperConfig.prepareBasicHttpAuthToken(props, configName);
+        basicAuthTok = HelperConfig.prepareBasicHttpAuthToken(props, configName);
 
         final String logsProp = props.getProperty(HelperConfig.LOGS, "logs");
         final File logsDirFileConfigured = new File(logsProp);
@@ -52,7 +52,7 @@ public class IgniteTeamcityHelper {
 
     public CompletableFuture<File> downloadBuildLogZip(int buildId) {
         final Supplier<File> buildLog = new DownloadBuildLog(buildId,
-            host, basicAuthToken, logsDir, true);
+            host, basicAuthTok, logsDir, true);
         return CompletableFuture.supplyAsync(buildLog, executor);
     }
 
@@ -69,7 +69,7 @@ public class IgniteTeamcityHelper {
             "</build>";
         String url = host + "/app/rest/buildQueue";
         try {
-            HttpUtil.sendPostAsString(basicAuthToken, url, parameter);
+            HttpUtil.sendPostAsString(basicAuthTok, url, parameter);
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -99,5 +99,19 @@ public class IgniteTeamcityHelper {
             futures.add(future2);
         }
         return futures;
+    }
+
+    /**
+     * @return Basic auth token.
+     */
+    public String basicAuthToken() {
+        return basicAuthTok;
+    }
+
+    /**
+     * @return Host.
+     */
+    public String host() {
+        return host;
     }
 }
