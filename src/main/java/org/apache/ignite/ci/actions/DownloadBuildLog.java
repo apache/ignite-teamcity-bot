@@ -1,4 +1,4 @@
-package org.apache.ignite.ci;
+package org.apache.ignite.ci.actions;
 
 import java.io.File;
 import java.io.IOException;

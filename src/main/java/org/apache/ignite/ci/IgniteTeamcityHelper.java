@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 import javax.xml.bind.JAXBException;
+import org.apache.ignite.ci.actions.DownloadBuildLog;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
 import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
@@ -22,6 +23,7 @@ import org.apache.ignite.ci.model.Builds;
 import org.apache.ignite.ci.model.Project;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.XmlUtil;
+import org.apache.ignite.ci.util.ZipUtil;
 
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 
@@ -31,7 +33,7 @@ import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
  *
  * https://confluence.jetbrains.com/display/TCD10/REST+API
  */
-public class IgniteTeamcityHelper {
+public class IgniteTeamcityHelper implements ITeamcity {
 
     private final Executor executor;
     private final File logsDir;
@@ -89,11 +91,11 @@ public class IgniteTeamcityHelper {
         }
     }
 
-    public CompletableFuture<List<File>> unzip(CompletableFuture<File> zipFileFut) {
+    private CompletableFuture<List<File>> unzip(CompletableFuture<File> zipFileFut) {
         return zipFileFut.thenApplyAsync(ZipUtil::unZipToSameFolder, executor);
     }
 
-    public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
+    private CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
         final CompletableFuture<List<File>> clearFileF = unzip(fut);
         return clearFileF.thenApplyAsync(files -> {
             Preconditions.checkState(!files.isEmpty(), "ZIP file can't be empty");
@@ -128,7 +130,12 @@ public class IgniteTeamcityHelper {
         return host;
     }
 
-    public List<BuildType> getProjectSuites(String projectId) {
+    /** {@inheritDoc} */
+    public CompletableFuture<List<BuildType>> getProjectSuites(String projectId) {
+        return CompletableFuture.supplyAsync(() -> getProjectSuitesSync(projectId), executor);
+    }
+
+    public List<BuildType> getProjectSuitesSync(String projectId) {
         return sendGetXmlParseJaxb(host + "app/rest/latest/projects/" + projectId, Project.class)
             .getBuildTypesNonNull();
     }
@@ -157,5 +164,9 @@ public class IgniteTeamcityHelper {
     public int[] getBuildNumbersFromHistory(BuildType bt, String branchNameForHist) {
         List<Build> history = getBuildHistory(bt, branchNameForHist);
         return history.stream().map(Build::getId).mapToInt(Integer::parseInt).toArray();
+    }
+
+    @Override public void close() throws Exception {
+
     }
 }

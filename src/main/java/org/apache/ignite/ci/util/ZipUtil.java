@@ -1,4 +1,4 @@
-package org.apache.ignite.ci;
+package org.apache.ignite.ci.util;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -10,10 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import org.apache.ignite.ci.HelperConfig;
 
-/**
- * Created by Дмитрий on 21.07.2017.
- */
+/** Unzips files to specified folder */
 public class ZipUtil {
 
     public static List<File> unZipToSameFolder(File zipFile) {

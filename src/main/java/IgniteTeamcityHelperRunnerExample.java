@@ -22,7 +22,7 @@ public class IgniteTeamcityHelperRunnerExample {
 
         //branch example: "pull/2335/head"
         String branchNameForHist = "pull/2296/head";
-        List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests");
+        List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests").get();
         for (BuildType bt : buildTypes) {
             System.err.println(bt.getId());
 
@@ -31,12 +31,12 @@ public class IgniteTeamcityHelperRunnerExample {
                 ) {
                 int[] ints = helper.getBuildNumbersFromHistory(bt, branchNameForHist);
 
-                List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(ints);
+                /*List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(ints);
                 List<File> collect = getFuturesResults(fileFutList);
                 for (File logfile : collect) {
                     System.out.println("Cached locally: [" + logfile.getCanonicalPath()
                         + "], " + logfile.toURI().toURL());
-                }
+                }  */
             }
         }
 
