@@ -1,13 +1,20 @@
-package org.apache.ignite.ci;
+package org.apache.ignite.ci.runners;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
+import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.model.BuildType;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -16,6 +23,8 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  * Generates html with status builds
  */
 public class GenerateStatusHtml {
+
+    public static final String ENDL = String.format("%n");
 
     static class Branch {
         final String idForRest;
@@ -39,20 +48,31 @@ public class GenerateStatusHtml {
         }
     }
 
-    static class BuildStatusInBranches {
+    static class SuiteStatus {
         Map<String, BuildStatusHref> branchIdToStatusUrl = new TreeMap<>();
+        String suiteId;
+
+        public SuiteStatus(String suiteId) {
+
+            this.suiteId = suiteId;
+        }
+    }
+
+    static class ProjectStatus {
+        Map<String, SuiteStatus> suiteIdToStatusUrl = new TreeMap<>();
+
+        public SuiteStatus suite(String id, String name) {
+            return suiteIdToStatusUrl.computeIfAbsent(name, suiteId -> new SuiteStatus(id));
+        }
     }
 
     public static void main(String[] args) throws Exception {
-
-
         final List<Branch> branchesPriv = Lists.newArrayList(
             new Branch("", "<default>", "master"),
-            new Branch( "ignite-2.1.3", "ignite-2.1.3", "ignite-2.1.3"));
-        String tcPrivId = "private";
-        String privProjectId = "id8xIgniteGridGainTests";
-        Map<String, BuildStatusInBranches> privStatuses = getBuildStatuses(tcPrivId, privProjectId, branchesPriv);
-
+            new Branch("ignite-2.1.3", "ignite-2.1.3", "ignite-2.1.3"));
+        final String tcPrivId = "private";
+        final String privProjectId = "id8xIgniteGridGainTests";
+        final ProjectStatus privStatuses = getBuildStatuses(tcPrivId, privProjectId, branchesPriv);
 
         final List<Branch> branchesPub = Lists.newArrayList(
             new Branch("", "<default>", "master"),
@@ -60,25 +80,72 @@ public class GenerateStatusHtml {
                 //"pull%2F2296%Ffhead",
                 "ignite-2.1.3",
                 "pull/2296/head", "ignite-2.1.3"));
-        String tcId = "public";
-        String projectId = "Ignite20Tests";
-        Map<String, BuildStatusInBranches> statuses = getBuildStatuses(tcId, projectId, branchesPub);
+        final String pubTcId = "public";
+        final String projectId = "Ignite20Tests";
+        ProjectStatus pubStatus = getBuildStatuses(pubTcId, projectId, branchesPub);
 
-        String endl = String.format("%n");
+        Properties privResp = HelperConfig.loadPrefixedProperties(tcPrivId, HelperConfig.RESP_FILE_NAME);
+        Properties pubResp = HelperConfig.loadPrefixedProperties(pubTcId, HelperConfig.RESP_FILE_NAME);
+
+        TreeSet<String> respPersons = allRespPersons(privResp, pubResp);
+        System.err.println(respPersons);
+
         try (FileWriter writer = new FileWriter("status.html")) {
-            writer.write("<html>" + endl);
+            line(writer, "<html>");
             header(writer);
-            writer.write("<body>" + endl);
-            
-            writeBuildsTable(branchesPriv, privStatuses, writer);
+            line(writer, "<body>");
 
-            writeBuildsTable(branchesPub, statuses, writer);
+            line(writer, "<div id=\"tabs\">");
+            line(writer, "<ul>");
 
-            writer.write("</body>" + endl);
-            writer.write("</html>" + endl);
+            for (String resp : respPersons) {
+                String dispId = getDivId(resp);
+                line(writer, "<li><a href=\"#" + dispId + "\">" + dispId + "</a></li>");
+            }
+            line(writer, "</ul>");
 
+            for (String resp : respPersons) {
+                line(writer, "<div id='" + getDivId(resp) + "'>");
+                Predicate<String> filterPub = buildId -> {
+                    return resp.equals(normalize(pubResp.getProperty(normalize(buildId))));
+                };
+                Predicate<String> filterPriv = buildId -> {
+                    return resp.equals(normalize(privResp.getProperty(normalize(buildId))));
+                };
+                writeBuildsTable(branchesPriv, privStatuses, writer, filterPriv);
+
+                writeBuildsTable(branchesPub, pubStatus, writer, filterPub);
+
+                line(writer, "</div>");
+            }
+            line(writer, "</div>");
+            line(writer, "\n");
+            line(writer, "</body>");
+            line(writer, "</html>");
         }
+    }
 
+    private static String normalize(String property) {
+        return Strings.nullToEmpty(property).trim();
+    }
+
+    private static String getDivId(String resp) {
+        return Strings.isNullOrEmpty(resp) ? "unassigned" : resp;
+    }
+
+    private static void line(FileWriter writer, String str) throws IOException {
+        writer.write(str + ENDL);
+    }
+
+    private static TreeSet<String> allRespPersons(Properties privResp, Properties pubResp) {
+        TreeSet<String> respPerson = new TreeSet<>();
+        for (Object next : privResp.values()) {
+            respPerson.add(Objects.toString(next));
+        }
+        for (Object next : pubResp.values()) {
+            respPerson.add(Objects.toString(next));
+        }
+        return respPerson;
     }
 
     private static void header(FileWriter writer) throws IOException {
@@ -87,7 +154,6 @@ public class GenerateStatusHtml {
             "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
             "  <title>Ignite Teamcity Build status</title>\n" +
             "  <link rel=\"stylesheet\" href=\"https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css\">\n" +
-            "  <link rel=\"stylesheet\" href=\"https://code.jquery.com/ui/resources/demos/style.css\">\n" +
             "  <script src=\"https://code.jquery.com/jquery-1.12.4.js\"></script>\n" +
             "  <script src=\"https://code.jquery.com/ui/1.12.1/jquery-ui.js\"></script>\n" +
             "  <script>\n" +
@@ -99,12 +165,12 @@ public class GenerateStatusHtml {
     }
 
     private static void writeBuildsTable(List<Branch> branchesPriv,
-        Map<String, BuildStatusInBranches> statuses,
-        FileWriter writer) throws IOException {
-
+        ProjectStatus projectStatus,
+        FileWriter writer,
+        Predicate<String> includeBuildId) throws IOException {
 
         String endl = String.format("%n");
-        writer.write("<table>" + endl);
+        line(writer, "<table>");
 
         writer.write("<tr>\n");
         writer.write("   <th>");
@@ -116,34 +182,38 @@ public class GenerateStatusHtml {
         }
         writer.write(" </tr>");
 
-        Set<Map.Entry<String, BuildStatusInBranches>> entries = statuses.entrySet();
-        for (Map.Entry<String, BuildStatusInBranches> next : entries) {
-            writer.write("<tr>" + endl);
-            writer.write("<td>" + endl);
+        Set<Map.Entry<String, SuiteStatus>> entries = projectStatus.suiteIdToStatusUrl.entrySet();
+        for (Map.Entry<String, SuiteStatus> next : entries) {
+            if(!includeBuildId.apply(next.getValue().suiteId)) {
+                continue;
+            }
+            line(writer, "<tr>");
+            line(writer, "<td>");
             writer.write(next.getKey());
-            writer.write("</td>" + endl);
+            line(writer, "</td>");
 
-            BuildStatusInBranches branches1 = next.getValue();
+            SuiteStatus branches1 = next.getValue();
             for (Map.Entry<String, BuildStatusHref> entry : branches1.branchIdToStatusUrl.entrySet()) {
-                writer.write("<td>" + endl);
-                BuildStatusHref statusHref = entry.getValue();
+                line(writer, "<td>");
+
+                final BuildStatusHref statusHref = entry.getValue();
                 writer.write("<a href='" + statusHref.hrefToBuild + "'/>" + endl);
                 writer.write("<img src='" + statusHref.statusImageSrc + "'/>" + endl);
-                writer.write("</a>" + endl);
-                writer.write("</td>" + endl);
+                line(writer, "</a>");
+                line(writer, "</td>");
             }
 
-            writer.write("</tr>" + endl);
+            line(writer, "</tr>");
         }
-        writer.write("</table>" + endl);
+        line(writer, "</table>");
     }
 
-    private static Map<String, BuildStatusInBranches> getBuildStatuses(
+    private static ProjectStatus getBuildStatuses(
         final String tcId,
         final String projectId,
         final List<Branch> branchesPriv) throws Exception {
 
-        final Map<String, BuildStatusInBranches> buildIdToStatus = new TreeMap<>();
+        ProjectStatus projStatus = new ProjectStatus();
         try (IgniteTeamcityHelper teamcityHelper = new IgniteTeamcityHelper(tcId)) {
             List<BuildType> suites = teamcityHelper.getProjectSuites(projectId).get();
 
@@ -163,10 +233,9 @@ public class GenerateStatusHtml {
                         (isNullOrEmpty(branchIdRest) ? "" :
                             (",branch:(name:" + branchIdRest + ")")) +
                         "/statusIcon.svg";
-                    System.out.println(url);
+                    //System.out.println(url);
 
-                    //_Ignite20Tests
-                    BuildStatusInBranches statusInBranches = buildIdToStatus.computeIfAbsent(buildType.getName(), k -> new BuildStatusInBranches());
+                    SuiteStatus statusInBranches = projStatus.suite(buildType.getId(), buildType.getName());
                     final String href = teamcityHelper.host() +
                         "viewType.html" +
                         "?buildTypeId=" + buildType.getId() +
@@ -177,6 +246,6 @@ public class GenerateStatusHtml {
                 }
             }
         }
-        return buildIdToStatus;
+        return projStatus;
     }
 }
