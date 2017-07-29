@@ -1,10 +1,10 @@
 package org.apache.ignite.ci.runners;
 
-import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +13,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.model.BuildType;
@@ -95,34 +96,41 @@ public class GenerateStatusHtml {
             header(writer);
             line(writer, "<body>");
 
-            line(writer, "<div id=\"tabs\">");
-            line(writer, "<ul>");
 
+
+            HtmlBuilder builder = new HtmlBuilder(writer);
+            builder.line("<div id=\"tabs\">");
+
+            HtmlBuilder list = builder.start("ul");
             for (String resp : respPersons) {
                 String dispId = getDivId(resp);
-                line(writer, "<li><a href=\"#" + dispId + "\">" + dispId + "</a></li>");
+                list.line("<li><a href=\"#" + dispId + "\">" + dispId + "</a></li>");
             }
-            line(writer, "</ul>");
+            builder.end("ul");
+            
+            for (String curResponsiblePerson : respPersons) {
+                line(writer, "<div id='" + getDivId(curResponsiblePerson) + "'>");
 
-            for (String resp : respPersons) {
-                line(writer, "<div id='" + getDivId(resp) + "'>");
-                Predicate<String> filterPub = buildId -> {
-                    return resp.equals(normalize(pubResp.getProperty(normalize(buildId))));
-                };
-                Predicate<String> filterPriv = buildId -> {
-                    return resp.equals(normalize(privResp.getProperty(normalize(buildId))));
-                };
-                writeBuildsTable(branchesPriv, privStatuses, writer, filterPriv);
+                line(writer, "Private TC status");
+                writeBuildsTable(branchesPriv, privStatuses, builder,
+                    buildId -> isPropertyValueEquals(privResp, buildId, curResponsiblePerson));
 
-                writeBuildsTable(branchesPub, pubStatus, writer, filterPub);
+                line(writer, "Public TC status");
+                writeBuildsTable(branchesPub, pubStatus, builder,
+                    buildId -> isPropertyValueEquals(pubResp, buildId, curResponsiblePerson));
 
                 line(writer, "</div>");
             }
             line(writer, "</div>");
-            line(writer, "\n");
             line(writer, "</body>");
             line(writer, "</html>");
         }
+    }
+
+    private static boolean isPropertyValueEquals(Properties privResp, String code, String valueExpected) {
+
+        String normalize = normalize(code);
+        return valueExpected.equals(normalize(privResp.getProperty(normalize)));
     }
 
     private static String normalize(String property) {
@@ -136,6 +144,7 @@ public class GenerateStatusHtml {
     private static void line(FileWriter writer, String str) throws IOException {
         writer.write(str + ENDL);
     }
+
 
     private static TreeSet<String> allRespPersons(Properties privResp, Properties pubResp) {
         TreeSet<String> respPerson = new TreeSet<>();
@@ -166,46 +175,38 @@ public class GenerateStatusHtml {
 
     private static void writeBuildsTable(List<Branch> branchesPriv,
         ProjectStatus projectStatus,
-        FileWriter writer,
+        HtmlBuilder writer,
         Predicate<String> includeBuildId) throws IOException {
 
-        String endl = String.format("%n");
-        line(writer, "<table>");
-
-        writer.write("<tr>\n");
-        writer.write("   <th>");
-        writer.write("Build");
-        writer.write("</th>\n");
-
+        HtmlBuilder table = writer.start("table");
+        final HtmlBuilder header = table.start("tr");
+        header.start("th").line("Build").end("th");
         for (Branch next : branchesPriv) {
-            writer.write("   <th>" + next.displayName + "</th>\n");
+            header.start("th").line(next.displayName).end("th");
         }
-        writer.write(" </tr>");
+        header.end("tr");
 
         Set<Map.Entry<String, SuiteStatus>> entries = projectStatus.suiteIdToStatusUrl.entrySet();
         for (Map.Entry<String, SuiteStatus> next : entries) {
-            if(!includeBuildId.apply(next.getValue().suiteId)) {
+            if(!includeBuildId.test(next.getValue().suiteId)) {
                 continue;
             }
-            line(writer, "<tr>");
-            line(writer, "<td>");
-            writer.write(next.getKey());
-            line(writer, "</td>");
+            HtmlBuilder row = table.start("tr");
+
+            row.start("td").line(next.getKey()).end("td");
 
             SuiteStatus branches1 = next.getValue();
             for (Map.Entry<String, BuildStatusHref> entry : branches1.branchIdToStatusUrl.entrySet()) {
-                line(writer, "<td>");
-
+                HtmlBuilder cell = row.start("td");
                 final BuildStatusHref statusHref = entry.getValue();
-                writer.write("<a href='" + statusHref.hrefToBuild + "'/>" + endl);
-                writer.write("<img src='" + statusHref.statusImageSrc + "'/>" + endl);
-                line(writer, "</a>");
-                line(writer, "</td>");
+                cell.line("<a href='" + statusHref.hrefToBuild + "'>" );
+                cell.line("<img src='" + statusHref.statusImageSrc + "'/>");
+                cell.line("</a>");
+                cell.end("td");
             }
-
-            line(writer, "</tr>");
+            row.end("tr");
         }
-        line(writer, "</table>");
+        table.end("table");
     }
 
     private static ProjectStatus getBuildStatuses(
@@ -247,5 +248,54 @@ public class GenerateStatusHtml {
             }
         }
         return projStatus;
+    }
+
+    public static class HtmlBuilder {
+
+        private final String prefix;
+        private int spacing;
+        private FileWriter writer;
+
+        public HtmlBuilder(FileWriter writer, int spacing) {
+            this.writer = writer;
+            prefix = Strings.repeat(" ", spacing);
+            this.spacing = spacing;
+        }
+
+        public HtmlBuilder(FileWriter writer) {
+            this(writer, 0);
+        }
+
+        public HtmlBuilder line(String str) {
+            write(prefix + str + ENDL);
+            return this;
+        }
+
+        public void write(String str1) {
+            try {
+                writer.write(str1);
+            }
+            catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
+        private HtmlBuilder start(String tag) {
+            String text = "<" + tag + ">";
+            line(text);
+            return new HtmlBuilder(writer, spacing + 4);
+        }
+
+        private HtmlBuilder end(String tag) {
+            int newSpacing = this.spacing - 4;
+            HtmlBuilder builder = new HtmlBuilder(writer, newSpacing > 0 ? newSpacing : 0);
+            builder.line("</" + tag + ">");
+            return builder;
+        }
+
+        public HtmlBuilder text(String txt) {
+            write(txt);
+            return this;
+        }
     }
 }
