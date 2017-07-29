@@ -16,6 +16,7 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public class HelperConfig {
     public static final String CONFIG_FILE_NAME = "auth.properties";
+    public static final String RESP_FILE_NAME = "resp.properties";
     public static final String HOST = "host";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
@@ -34,6 +35,10 @@ public class HelperConfig {
             throw new IllegalStateException("Please setup username and password in config file [" +
                 file.getCanonicalPath() + "]");
         }
+        return loadProps(file);
+    }
+
+    private static Properties loadProps(File file) throws IOException {
         Properties properties = new Properties();
         try (FileReader reader = new FileReader(file)) {
             properties.load(reader);
@@ -42,7 +47,11 @@ public class HelperConfig {
     }
 
     static String prepareConfigName(String tcName) {
-        return Strings.isNullOrEmpty(tcName) ? CONFIG_FILE_NAME : (tcName + "." + CONFIG_FILE_NAME);
+        return prefixedWithServerName(tcName, CONFIG_FILE_NAME);
+    }
+
+    private static String prefixedWithServerName(String tcName, String name) {
+        return Strings.isNullOrEmpty(tcName) ? name : (tcName + "." + name);
     }
 
     public static File ensureDirExist(File workDir) {
@@ -72,5 +81,12 @@ public class HelperConfig {
         final String user = props.getProperty(key);
         Preconditions.checkState(!Strings.isNullOrEmpty(user), key + " property should be filled in " + configName);
         return user;
+    }
+
+    public static Properties loadPrefixedProperties(String tcName, String name) throws IOException {
+        String respConf = prefixedWithServerName(tcName, name);
+        final File workDir = resolveWorkDir();
+        File file = new File(workDir, respConf);
+        return loadProps(file);
     }
 }
