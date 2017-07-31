@@ -20,23 +20,26 @@ public class IgniteTeamcityHelperRunnerExample {
         String serverIdPub = "public";
         final IgniteTeamcityHelper helper = new IgniteTeamcityHelper(serverIdPub); //public_auth_properties
 
+        int k = 0;
+        if (k > 0) {
         //branch example: "pull/2335/head"
         String branchNameForHist = "pull/2296/head";
         List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests").get();
         for (BuildType bt : buildTypes) {
             System.err.println(bt.getId());
 
-            if(bt.getName().toLowerCase().contains("pds")
-               // || bt.getName().toLowerCase().contains("cache")
-                ) {
-                int[] ints = helper.getBuildNumbersFromHistory(bt, branchNameForHist);
+                if (bt.getName().toLowerCase().contains("pds")
+                    // || bt.getName().toLowerCase().contains("cache")
+                    ) {
+                    int[] ints = helper.getBuildNumbersFromHistory(bt, branchNameForHist);
 
-                /*List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(ints);
-                List<File> collect = getFuturesResults(fileFutList);
-                for (File logfile : collect) {
-                    System.out.println("Cached locally: [" + logfile.getCanonicalPath()
-                        + "], " + logfile.toURI().toURL());
-                }  */
+                    List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(ints);
+                    List<File> collect = getFuturesResults(fileFutList);
+                    for (File logfile : collect) {
+                        System.out.println("Cached locally: [" + logfile.getCanonicalPath()
+                            + "], " + logfile.toURI().toURL());
+                    }
+                }
             }
         }
 

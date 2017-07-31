@@ -78,8 +78,8 @@ public class GenerateStatusHtml {
         final List<Branch> branchesPub = Lists.newArrayList(
             new Branch("", "<default>", "master"),
             new Branch(
-                //"pull%2F2296%Ffhead",
-                "ignite-2.1.3",
+                 "pull/2296/head",
+                //"ignite-2.1.3",
                 "pull/2296/head", "ignite-2.1.3"));
         final String pubTcId = "public";
         final String projectId = "Ignite20Tests";
@@ -109,17 +109,17 @@ public class GenerateStatusHtml {
             builder.end("ul");
             
             for (String curResponsiblePerson : respPersons) {
-                line(writer, "<div id='" + getDivId(curResponsiblePerson) + "'>");
+                builder.line("<div id='" + getDivId(curResponsiblePerson) + "'>");
 
-                line(writer, "Private TC status");
+                builder.line("Private TC status");
                 writeBuildsTable(branchesPriv, privStatuses, builder,
                     buildId -> isPropertyValueEquals(privResp, buildId, curResponsiblePerson));
 
-                line(writer, "Public TC status");
+                builder.line("<br><br>Public TC status");
                 writeBuildsTable(branchesPub, pubStatus, builder,
                     buildId -> isPropertyValueEquals(pubResp, buildId, curResponsiblePerson));
 
-                line(writer, "</div>");
+                builder.line("</div>");
             }
             line(writer, "</div>");
             line(writer, "</body>");
@@ -170,35 +170,41 @@ public class GenerateStatusHtml {
             "    $( \"#tabs\" ).tabs();\n" +
             "  } );\n" +
             "  </script>\n" +
+            "  <style>\n" +
+                "        td {\n" +
+                "         font-size: 10pt;\n" +
+                "        }\n" +
+                "    </style>" +
             "</head>");
     }
 
-    private static void writeBuildsTable(List<Branch> branchesPriv,
-        ProjectStatus projectStatus,
-        HtmlBuilder writer,
-        Predicate<String> includeBuildId) throws IOException {
+    private static void writeBuildsTable(
+        final List<Branch> branches,
+        final ProjectStatus projectStatus,
+        final HtmlBuilder writer,
+        final Predicate<String> includeBuildId) {
 
         HtmlBuilder table = writer.start("table");
         final HtmlBuilder header = table.start("tr");
         header.start("th").line("Build").end("th");
-        for (Branch next : branchesPriv) {
+        for (Branch next : branches) {
             header.start("th").line(next.displayName).end("th");
         }
         header.end("tr");
 
-        Set<Map.Entry<String, SuiteStatus>> entries = projectStatus.suiteIdToStatusUrl.entrySet();
-        for (Map.Entry<String, SuiteStatus> next : entries) {
-            if(!includeBuildId.test(next.getValue().suiteId)) {
+        for (Map.Entry<String, SuiteStatus> suiteStatusEntry : projectStatus.suiteIdToStatusUrl.entrySet()) {
+            if(!includeBuildId.test(suiteStatusEntry.getValue().suiteId))
                 continue;
-            }
-            HtmlBuilder row = table.start("tr");
 
-            row.start("td").line(next.getKey()).end("td");
+            final HtmlBuilder row = table.start("tr");
 
-            SuiteStatus branches1 = next.getValue();
-            for (Map.Entry<String, BuildStatusHref> entry : branches1.branchIdToStatusUrl.entrySet()) {
+            row.start("td").line(suiteStatusEntry.getKey()).end("td");
+
+            SuiteStatus branches1 = suiteStatusEntry.getValue();
+
+            for (Branch branch : branches) {
+                BuildStatusHref statusHref = branches1.branchIdToStatusUrl.get(branch.idForRest);
                 HtmlBuilder cell = row.start("td");
-                final BuildStatusHref statusHref = entry.getValue();
                 cell.line("<a href='" + statusHref.hrefToBuild + "'>" );
                 cell.line("<img src='" + statusHref.statusImageSrc + "'/>");
                 cell.line("</a>");

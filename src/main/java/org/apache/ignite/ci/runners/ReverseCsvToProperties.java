@@ -21,7 +21,7 @@ public class ReverseCsvToProperties {
         List<BuildType> tests = getTests(tcId, "Ignite20Tests");
 
         int indexValue = 2;
-        reverseCsvByConfName("PublicTC.csv", tcId, tests, indexValue);
+        reverseCsvByConfName("Public TC.csv", tcId, tests, indexValue);
 
         String tcPrivId = "private";
         List<BuildType> privTests = getTests(tcPrivId, "id8xIgniteGridGainTests");
