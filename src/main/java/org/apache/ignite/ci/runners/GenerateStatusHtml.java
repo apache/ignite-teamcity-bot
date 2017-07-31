@@ -2,10 +2,12 @@ package org.apache.ignite.ci.runners;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URLEncoder;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -68,6 +70,7 @@ public class GenerateStatusHtml {
     }
 
     public static void main(String[] args) throws Exception {
+        boolean groupByResponsible = false;
         final List<Branch> branchesPriv = Lists.newArrayList(
             new Branch("", "<default>", "master"),
             new Branch("ignite-2.1.3", "ignite-2.1.3", "ignite-2.1.3"));
@@ -78,46 +81,59 @@ public class GenerateStatusHtml {
         final List<Branch> branchesPub = Lists.newArrayList(
             new Branch("", "<default>", "master"),
             new Branch(
-                 "pull/2296/head",
+                "pull/2296/head",
                 //"ignite-2.1.3",
                 "pull/2296/head", "ignite-2.1.3"));
         final String pubTcId = "public";
         final String projectId = "Ignite20Tests";
         ProjectStatus pubStatus = getBuildStatuses(pubTcId, projectId, branchesPub);
 
-        Properties privResp = HelperConfig.loadPrefixedProperties(tcPrivId, HelperConfig.RESP_FILE_NAME);
-        Properties pubResp = HelperConfig.loadPrefixedProperties(pubTcId, HelperConfig.RESP_FILE_NAME);
+        TreeSet<String> respPersons;
+        Properties privResp;
+        Properties pubResp;
+        if (groupByResponsible) {
+            privResp = HelperConfig.loadPrefixedProperties(tcPrivId, HelperConfig.RESP_FILE_NAME);
+            pubResp = HelperConfig.loadPrefixedProperties(pubTcId, HelperConfig.RESP_FILE_NAME);
 
-        TreeSet<String> respPersons = allRespPersons(privResp, pubResp);
-        System.err.println(respPersons);
+            respPersons = allRespPersons(privResp, pubResp);
+            System.err.println(respPersons);
+        }
+        else {
+            respPersons = Sets.newTreeSet();
+            respPersons.add("all");
+            pubResp = null;
+            privResp = null;
+        }
 
-        try (FileWriter writer = new FileWriter("status.html")) {
+        final String fileName = "status" + (groupByResponsible ? "" : "_all") + ".html";
+        try (FileWriter writer = new FileWriter(fileName)) {
             line(writer, "<html>");
-            header(writer);
+            header(writer, groupByResponsible);
             line(writer, "<body>");
 
-
-
             HtmlBuilder builder = new HtmlBuilder(writer);
-            builder.line("<div id=\"tabs\">");
+            if (groupByResponsible) {
+                builder.line("<div id=\"tabs\">");
 
-            HtmlBuilder list = builder.start("ul");
-            for (String resp : respPersons) {
-                String dispId = getDivId(resp);
-                list.line("<li><a href=\"#" + dispId + "\">" + dispId + "</a></li>");
+                HtmlBuilder list = builder.start("ul");
+                for (String resp : respPersons) {
+                    String dispId = getDivId(resp);
+                    list.line("<li><a href=\"#" + dispId + "\">" + dispId + "</a></li>");
+                }
+                builder.end("ul");
             }
-            builder.end("ul");
             
             for (String curResponsiblePerson : respPersons) {
                 builder.line("<div id='" + getDivId(curResponsiblePerson) + "'>");
 
                 builder.line("Private TC status");
+                boolean includeAll = !groupByResponsible;
                 writeBuildsTable(branchesPriv, privStatuses, builder,
-                    buildId -> isPropertyValueEquals(privResp, buildId, curResponsiblePerson));
+                    buildId -> includeAll || isPropertyValueEquals(privResp, buildId, curResponsiblePerson));
 
                 builder.line("<br><br>Public TC status");
                 writeBuildsTable(branchesPub, pubStatus, builder,
-                    buildId -> isPropertyValueEquals(pubResp, buildId, curResponsiblePerson));
+                    buildId ->  includeAll || isPropertyValueEquals(pubResp, buildId, curResponsiblePerson));
 
                 builder.line("</div>");
             }
@@ -157,19 +173,23 @@ public class GenerateStatusHtml {
         return respPerson;
     }
 
-    private static void header(FileWriter writer) throws IOException {
+    private static void header(FileWriter writer, boolean groupByResponsible) throws IOException {
         writer.write("<head>\n" +
             "  <meta charset=\"utf-8\">\n" +
             "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
             "  <title>Ignite Teamcity Build status</title>\n" +
             "  <link rel=\"stylesheet\" href=\"https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css\">\n" +
             "  <script src=\"https://code.jquery.com/jquery-1.12.4.js\"></script>\n" +
-            "  <script src=\"https://code.jquery.com/ui/1.12.1/jquery-ui.js\"></script>\n" +
-            "  <script>\n" +
-            "  $( function() {\n" +
-            "    $( \"#tabs\" ).tabs();\n" +
-            "  } );\n" +
-            "  </script>\n" +
+            "  <script src=\"https://code.jquery.com/ui/1.12.1/jquery-ui.js\"></script>\n");
+        if(groupByResponsible) {
+            writer.write(
+                "  <script>\n" +
+                    "  $( function() {\n" +
+                    "    $( \"#tabs\" ).tabs();\n" +
+                    "  } );\n" +
+                    "  </script>\n");
+        }
+        writer.write(
             "  <style>\n" +
                 "        td {\n" +
                 "         font-size: 10pt;\n" +
