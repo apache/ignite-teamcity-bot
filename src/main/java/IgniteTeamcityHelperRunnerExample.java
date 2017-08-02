@@ -43,17 +43,17 @@ public class IgniteTeamcityHelperRunnerExample {
             }
         }
 
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 0; i++) {
             //branch example:
             final String branchName = "pull/2373/head";
             //String branchName = "refs/heads/master";
             helper.triggerBuild("Ignite20Tests_IgniteCache6", branchName);
         }
 
-        int j = 0;
+        int j = 1;
         if (j > 0) {
             // int[] ints = IntStream.range(742325, 742325 + 20).toArray();
-            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(749680);
+            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(751222);
             List<File> collect = getFuturesResults(fileFutList);
             for (File next : collect) {
                 System.out.println("Cached locally: [" + next.getCanonicalPath()

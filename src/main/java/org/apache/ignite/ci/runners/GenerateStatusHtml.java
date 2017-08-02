@@ -1,24 +1,24 @@
 package org.apache.ignite.ci.runners;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URLEncoder;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.model.BuildType;
+import org.apache.ignite.ci.util.Base64Util;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -26,8 +26,8 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  * Generates html with status builds
  */
 public class GenerateStatusHtml {
-
-    public static final String ENDL = String.format("%n");
+    private static final String ENDL = String.format("%n");
+    private static final String ENC = "UTF-8";
 
     static class Branch {
         final String idForRest;
@@ -70,7 +70,8 @@ public class GenerateStatusHtml {
     }
 
     public static void main(String[] args) throws Exception {
-        boolean groupByResponsible = false;
+        boolean groupByResponsible = true;
+        boolean includeTabAll = groupByResponsible && true;
         final List<Branch> branchesPriv = Lists.newArrayList(
             new Branch("", "<default>", "master"),
             new Branch("ignite-2.1.3", "ignite-2.1.3", "ignite-2.1.3"));
@@ -82,7 +83,6 @@ public class GenerateStatusHtml {
             new Branch("", "<default>", "master"),
             new Branch(
                 "pull/2296/head",
-                //"ignite-2.1.3",
                 "pull/2296/head", "ignite-2.1.3"));
         final String pubTcId = "public";
         final String projectId = "Ignite20Tests";
@@ -112,30 +112,36 @@ public class GenerateStatusHtml {
             line(writer, "<body>");
 
             HtmlBuilder builder = new HtmlBuilder(writer);
+
+            String tabAllId = "all";
+            Iterable<String> tabs = includeTabAll ? Iterables.concat(Lists.newArrayList(tabAllId), respPersons) : respPersons;
             if (groupByResponsible) {
                 builder.line("<div id=\"tabs\">");
 
                 HtmlBuilder list = builder.start("ul");
-                for (String resp : respPersons) {
+                for (String resp : tabs) {
                     String dispId = getDivId(resp);
                     list.line("<li><a href=\"#" + dispId + "\">" + dispId + "</a></li>");
                 }
                 builder.end("ul");
             }
-            
-            for (String curResponsiblePerson : respPersons) {
+
+            boolean isFirst = true;
+            for (String curResponsiblePerson : tabs) {
                 builder.line("<div id='" + getDivId(curResponsiblePerson) + "'>");
 
                 builder.line("Private TC status");
-                boolean includeAll = !groupByResponsible;
+                boolean includeAll = !groupByResponsible || (isFirst & includeTabAll);
                 writeBuildsTable(branchesPriv, privStatuses, builder,
                     buildId -> includeAll || isPropertyValueEquals(privResp, buildId, curResponsiblePerson));
 
                 builder.line("<br><br>Public TC status");
                 writeBuildsTable(branchesPub, pubStatus, builder,
-                    buildId ->  includeAll || isPropertyValueEquals(pubResp, buildId, curResponsiblePerson));
+                    buildId -> includeAll || isPropertyValueEquals(pubResp, buildId, curResponsiblePerson));
 
                 builder.line("</div>");
+
+                isFirst = false;
             }
             line(writer, "</div>");
             line(writer, "</body>");
@@ -182,18 +188,43 @@ public class GenerateStatusHtml {
             "  <script src=\"https://code.jquery.com/jquery-1.12.4.js\"></script>\n" +
             "  <script src=\"https://code.jquery.com/ui/1.12.1/jquery-ui.js\"></script>\n");
         if(groupByResponsible) {
-            writer.write(
-                "  <script>\n" +
-                    "  $( function() {\n" +
-                    "    $( \"#tabs\" ).tabs();\n" +
-                    "  } );\n" +
-                    "  </script>\n");
+            writer.write("  <script>\n");
+
+            writer.write("$( function() {\n" +
+                "    var index = 'tcStatus_lastOpenedTab';  //  Define friendly index name\n" +
+                "    var dataStore = window.sessionStorage;  //  Define friendly data store name\n" +
+                "    try {\n" +
+                "        // getter: Fetch previous value\n" +
+                "        var oldIndex = dataStore.getItem(index);\n" +
+                "    } catch(e) {\n" +
+                "        // getter: Always default to first tab in error state\n" +
+                "        var oldIndex = 0;\n" +
+                "    }\n" +
+                "    $('#tabs').tabs({\n" +
+                "        // The zero-based index of the panel that is active (open)\n" +
+                "        active : oldIndex,\n" +
+                "        // Triggered after a tab has been activated\n" +
+                "        activate : function( event, ui ){\n" +
+                "            //  Get future value\n" +
+                "            var newIndex = ui.newTab.parent().children().index(ui.newTab);\n" +
+                "            //  Set future value\n" +
+                "            dataStore.setItem( index, newIndex )\n" +
+                "        }\n" +
+                "    });\n" +
+                "  });");
+            writer.write("  </script>\n");
         }
         writer.write(
             "  <style>\n" +
                 "        td {\n" +
                 "         font-size: 10pt;\n" +
                 "        }\n" +
+                "table tr:nth-child(odd) td{\n" +
+                "\n" +
+                "  background-color: #EEEEEE;" +
+                "}\n" +
+                "table tr:nth-child(even) td{\n" +
+                "}" +
                 "    </style>" +
             "</head>");
     }
@@ -245,14 +276,19 @@ public class GenerateStatusHtml {
             List<BuildType> suites = teamcityHelper.getProjectSuites(projectId).get();
 
             for (BuildType buildType : suites) {
-                String id = buildType.getId();
                 if (buildType.getName().startsWith("->"))
                     continue;
 
                 for (Branch branch : branchesPriv) {
-                    String branchIdRest = URLEncoder.encode(branch.idForRest, "UTF-8");
-                    String branchIdUrl = URLEncoder.encode(branch.idForUrl, "UTF-8");
-                    String url = teamcityHelper.host() +
+                    String branchIdRest = URLEncoder.encode(branch.idForRest, ENC);
+                    String branchIdUrl = URLEncoder.encode(branch.idForUrl, ENC);
+
+                    if(Strings.nullToEmpty(branch.idForRest).contains("/")) {
+                        String idForRestEncoded = Base64Util.encodeUtf8String(branch.idForRest);
+                        branchIdRest = "($base64:" + idForRestEncoded + ")";
+                    }
+
+                    String imgSrc = teamcityHelper.host() +
                         "app/rest/builds/" +
                         "buildType:(id:" +
                         buildType.getId() +
@@ -269,7 +305,7 @@ public class GenerateStatusHtml {
                         (isNullOrEmpty(branchIdUrl) ? "" : "&branch=" + branchIdUrl) +
                         "&tab=buildTypeStatusDiv";
                     statusInBranches.branchIdToStatusUrl.computeIfAbsent(branch.idForRest, k ->
-                        new BuildStatusHref(url, href));
+                        new BuildStatusHref(imgSrc, href));
                 }
             }
         }

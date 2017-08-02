@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Properties;
+import org.apache.ignite.ci.util.Base64Util;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -72,9 +73,8 @@ public class HelperConfig {
     public static String prepareBasicHttpAuthToken(Properties props, String configName) {
         final String user = getMandatoryProperty(props, USERNAME, configName);
         final String pwd = getMandatoryProperty(props, PASSWORD, configName);
-        return new String(Base64.getEncoder().encode((user +
-            ":" +
-            pwd).getBytes()));
+        String str = user + ":" + pwd;
+        return Base64Util.encodeUtf8String(str);
     }
 
     private static String getMandatoryProperty(Properties props, String key, String configName) {
