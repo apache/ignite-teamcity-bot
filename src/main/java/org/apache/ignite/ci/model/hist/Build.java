@@ -9,17 +9,15 @@ import javax.xml.bind.annotation.XmlAttribute;
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Build {
-    @XmlAttribute
-    private String id;
+    @XmlAttribute private String id;
 
-    @XmlAttribute
-    private String buildTypeId;
+    @XmlAttribute private String buildTypeId;
 
-    @XmlAttribute
-    private String status;
+    @XmlAttribute public String branchName;
 
-    @XmlAttribute
-    private String state;
+    @XmlAttribute public String status;
+
+    @XmlAttribute private String state;
 
     @XmlAttribute public String href;
 

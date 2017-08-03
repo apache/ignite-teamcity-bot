@@ -23,6 +23,7 @@ import org.apache.ignite.ci.model.conf.BuildType;
 import org.apache.ignite.ci.model.hist.Builds;
 import org.apache.ignite.ci.model.conf.Project;
 import org.apache.ignite.ci.model.result.FullBuildInfo;
+import org.apache.ignite.ci.model.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
@@ -174,7 +175,15 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     public FullBuildInfo getBuildResults(String href) {
-        return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), FullBuildInfo.class);
+        return getJaxbUsingHref(href, FullBuildInfo.class);
+    }
+
+    public ProblemOccurrences getProblems(String href) {
+        return getJaxbUsingHref(href, ProblemOccurrences.class);
+    }
+
+    private <T> T getJaxbUsingHref(String href, Class<T> elem) {
+        return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), elem);
     }
 
     public int[] getBuildNumbersFromHistory(BuildType bt, String branchNameForHist) {
