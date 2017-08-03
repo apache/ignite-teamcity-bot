@@ -18,7 +18,7 @@ public class XmlUtil {
 
         Marshaller marshaller = jc.createMarshaller();
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-        marshaller.marshal(fosterHome, System.out);
+        // marshaller.marshal(fosterHome, System.out);
         return fosterHome;
     }
 }

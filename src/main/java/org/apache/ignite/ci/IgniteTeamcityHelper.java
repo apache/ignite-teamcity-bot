@@ -6,12 +6,15 @@ import com.google.common.util.concurrent.MoreExecutors;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.actions.DownloadBuildLog;
@@ -193,5 +196,17 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     @Override public void close() throws Exception {
 
+    }
+
+    public List<Build> getFinishedBuildsIncludeFailed(String suite,
+        String branch) {
+        String name = URLEncoder.encode(branch);
+        List<Build> finished = getBuildHistory(suite,
+            name,
+            false,
+            "finished");
+
+        List<Build> nonCancelled = finished.stream().filter(build -> !"UNKNOWN".equals(build.status)).collect(Collectors.toList());
+        return nonCancelled;
     }
 }

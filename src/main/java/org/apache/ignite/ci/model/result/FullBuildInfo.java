@@ -1,6 +1,9 @@
 package org.apache.ignite.ci.model.result;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -35,5 +38,17 @@ public class FullBuildInfo extends Build {
 
     public String suiteName() {
         return buildType == null ? null : buildType.getName();
+    }
+
+
+    public String getFinishDateDdMmYyyy() throws ParseException {
+        Date parse = getFinishDate();
+        return new SimpleDateFormat("dd.MM.yyyy").format(parse);
+    }
+
+    public Date getFinishDate() throws ParseException {
+        String date = finishDate;
+        SimpleDateFormat f = new SimpleDateFormat("yyyyMMdd'T'HHmmssZ");
+        return f.parse(date);
     }
 }
