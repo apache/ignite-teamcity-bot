@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.model;
+package org.apache.ignite.ci.model.conf;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;

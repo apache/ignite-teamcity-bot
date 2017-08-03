@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.model;
+package org.apache.ignite.ci.model.conf;
 
 import java.util.Collections;
 import java.util.List;

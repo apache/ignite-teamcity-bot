@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.model;
+package org.apache.ignite.ci.model.hist;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -16,9 +16,15 @@ public class Build {
     private String buildTypeId;
 
     @XmlAttribute
-    private String href;
+    private String status;
+
+    @XmlAttribute
+    private String state;
+
+    @XmlAttribute public String href;
 
     public String getId() {
         return id;
     }
+
 }

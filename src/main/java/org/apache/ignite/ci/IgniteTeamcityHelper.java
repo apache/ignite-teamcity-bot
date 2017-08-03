@@ -12,15 +12,17 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.actions.DownloadBuildLog;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
 import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
-import org.apache.ignite.ci.model.Build;
-import org.apache.ignite.ci.model.BuildType;
-import org.apache.ignite.ci.model.Builds;
-import org.apache.ignite.ci.model.Project;
+import org.apache.ignite.ci.model.hist.Build;
+import org.apache.ignite.ci.model.conf.BuildType;
+import org.apache.ignite.ci.model.hist.Builds;
+import org.apache.ignite.ci.model.conf.Project;
+import org.apache.ignite.ci.model.result.FullBuildInfo;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
@@ -154,11 +156,25 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     public List<Build> getBuildHistory(BuildType type, String branchName) {
+        return getBuildHistory(type.getId(), branchName, true, null);
+
+    }
+
+    public List<Build> getBuildHistory(String buildTypeId,
+        String branchName,
+        boolean dfltFilter,
+        @Nullable String state) {
         return sendGetXmlParseJaxb(host + "app/rest/latest/builds" +
-            "?locator=buildType:" + type.getId()
+            "?locator=" +
+            "buildType:" + buildTypeId
+            + ",defaultFilter:" + dfltFilter
+            + (state == null ? "" : (",state:" + state))
             + ",branch:" + branchName, Builds.class)
             .getBuildsNonNull();
+    }
 
+    public FullBuildInfo getBuildResults(String href) {
+        return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), FullBuildInfo.class);
     }
 
     public int[] getBuildNumbersFromHistory(BuildType bt, String branchNameForHist) {

@@ -2,7 +2,7 @@ package org.apache.ignite.ci;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import org.apache.ignite.ci.model.BuildType;
+import org.apache.ignite.ci.model.conf.BuildType;
 
 /** API for calling methods from REST service:
  * https://confluence.jetbrains.com/display/TCD10/REST+API */
