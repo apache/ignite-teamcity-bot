@@ -6,6 +6,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.PersistentStoreConfiguration;
+import org.apache.ignite.logger.java.JavaLogger;
 
 /**
  * Created by dpavlov on 03.08.2017.
@@ -15,6 +16,8 @@ public class IgnitePersistRunner {
         final IgniteConfiguration cfg = new IgniteConfiguration();
         cfg.setIgniteHome(new File(".").getAbsolutePath());
         cfg.setConsistentId("TcHelper");
+        cfg.setGridLogger(new JavaLogger());
+
         PersistentStoreConfiguration psCfg = new PersistentStoreConfiguration();
         cfg.setPersistentStoreConfiguration(psCfg);
 
@@ -29,8 +32,10 @@ public class IgnitePersistRunner {
             for (int i = 0; i < 1000; i++) {
                 if (i % 100 == 0)
                     System.out.println("Total " + i + " keys saved");
-                cache.put("Key_" + i, "Value" + i);
+                cache.put("Key-" + i, "Value" + i);
             }
+
+            //Ignition.stop(ignite.name(), false);
         }
     }
 }
