@@ -28,10 +28,20 @@ public class Launcher {
         Preconditions.checkState(webResDir.exists(),
             "Resource directory [" + webResDir.getAbsolutePath() + "] does not exist");
 
-        WebAppContext webapp = new WebAppContext();
-        webapp.setContextPath("/");
-        webapp.setWar("build/libs/ignite-teamcity-helper.war");
-        server.setHandler(webapp);
+        WebAppContext context = new WebAppContext();
+
+        boolean dev = true;
+        if(dev) {
+            context.setDescriptor(context+"/WEB-INF/web.xml");
+            context.setResourceBase("./src/main/webapp");
+            context.setContextPath("/");
+            context.setParentLoaderPriority(true);
+        } else {
+
+            context.setContextPath("/");
+            context.setWar("build/libs/ignite-teamcity-helper.war");
+        }
+        server.setHandler(context);
 
         System.out.println("Starting server at [" + port + "]");
 
