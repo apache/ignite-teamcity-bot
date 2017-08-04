@@ -26,7 +26,7 @@ public class CheckBuildChainResults {
 
     private static class ChainContext {
         private FullBuildInfo results;
-        List<FullSuiteContext> list = new ArrayList<>();
+        private List<FullSuiteContext> list = new ArrayList<>();
 
         public ChainContext(FullBuildInfo results, List<FullSuiteContext> list) {
             this.results = results;
@@ -35,6 +35,10 @@ public class CheckBuildChainResults {
 
         public int buildProblems() {
             return (int)list.stream().filter(FullSuiteContext::hasNontestBuildProblem).count();
+        }
+
+        public List<FullSuiteContext> suites() {
+            return list;
         }
 
         public String suiteName() {
@@ -60,6 +64,10 @@ public class CheckBuildChainResults {
 
         public String suiteName() {
             return buildInfo.suiteName();
+        }
+
+        public String suiteId() {
+            return buildInfo.getId();
         }
 
         public boolean hasNontestBuildProblem() {
@@ -123,19 +131,39 @@ public class CheckBuildChainResults {
         }
     }
 
-
     private static class BuildHistory {
         Map<String, ChainContext> map = new TreeMap<>();
     }
 
+    private static class FailuresHistory {
+        int success = 0;
+        int totalRun = 0;
+
+        public void addRun(boolean ok) {
+            totalRun++;
+            if (ok)
+                success++;
+        }
+
+        public String passRateStr() {
+            return String.format("%.2f", passRate());
+        }
+
+        private double passRate() {
+            return (double)(success) / totalRun;
+        }
+    }
+
     private static class BuildMetricsHistory {
         private Map<BuildFullId, BuildHistory> map = new TreeMap<>();
-        private LinkedHashSet<BuildFullId> keys = new LinkedHashSet<BuildFullId>();
+        private LinkedHashSet<BuildFullId> keys = new LinkedHashSet<>();
+        private Map<String, FailuresHistory> failuresHistoryMap = new TreeMap<>();
 
         public BuildHistory history(BuildFullId id) {
-            keys.add(id);
-            BuildHistory history = map.computeIfAbsent(id, k -> new BuildHistory());
-            return history;
+            return map.computeIfAbsent(id, k -> {
+                keys.add(k);
+                return new BuildHistory();
+            });
         }
 
         public Set<BuildFullId> builds() {
@@ -151,9 +179,14 @@ public class CheckBuildChainResults {
 
         public ChainContext build(BuildFullId next, String date) {
             BuildHistory hist = map.get(next);
-            if(hist ==null)
+            if (hist == null)
                 return null;
             return hist.map.get(date);
+        }
+
+        public void addSuiteResult(String suiteName, boolean ok) {
+            failuresHistoryMap.computeIfAbsent(suiteName, k -> new FailuresHistory())
+                .addRun(ok);
         }
     }
 
@@ -173,10 +206,17 @@ public class CheckBuildChainResults {
             collectHistory(history, teamcity, "Ignite20Tests_RunAll", "refs/heads/master");
         }
         try (IgniteTeamcityHelper teamcity = new IgniteTeamcityHelper("private")) {
-            collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "refs/heads/master");;
+            collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "refs/heads/master");
         }
 
         printTable(history);
+
+        history.failuresHistoryMap.forEach(
+            (k, v) -> {
+                if (v.passRate() < 0.2)
+                    System.out.println(k + " " + v.passRateStr());
+            }
+        );
     }
 
     private static void printTable(BuildMetricsHistory history) throws ParseException {
@@ -186,7 +226,7 @@ public class CheckBuildChainResults {
         }
         System.out.print("\n");
 
-        for (String date:history.dates()) {
+        for (String date : history.dates()) {
             Date mddd = new SimpleDateFormat("yyyyMMdd").parse(date);
             String dispDate = new SimpleDateFormat("dd.MM.yyyy").format(mddd);
             System.out.print(dispDate + "\t");
@@ -205,9 +245,9 @@ public class CheckBuildChainResults {
 
     private static void collectHistory(BuildMetricsHistory history,
         IgniteTeamcityHelper teamcity, String id, String branch) throws ParseException {
-        BuildFullId id1 = new BuildFullId(id, branch);
+        BuildFullId branchId = new BuildFullId(id, branch);
 
-        BuildHistory suiteHistory = history.history(id1);
+        BuildHistory suiteHistory = history.history(branchId);
         List<Build> all = teamcity.getFinishedBuildsIncludeFailed(id, branch);
         List<FullBuildInfo> fullBuildInfoList = all.stream().map(b -> teamcity.getBuildResults(b.href)).collect(Collectors.toList());
         for (FullBuildInfo next : fullBuildInfoList) {
@@ -217,8 +257,12 @@ public class CheckBuildChainResults {
 
             String dateForMap = new SimpleDateFormat("yyyyMMdd").format(parse);
             suiteHistory.map.computeIfAbsent(dateForMap, k -> {
-                ChainContext context = loadChainContext(teamcity, next);
-                return context;
+                ChainContext ctx = loadChainContext(teamcity, next);
+                for (FullSuiteContext suite : ctx.suites()) {
+                    boolean suiteOk = suite.failedTests() == 0 && !suite.hasNontestBuildProblem();
+                    history.addSuiteResult(teamcity.serverId() + "\t" + suite.suiteName(), suiteOk);
+                }
+                return ctx;
             });
         }
     }

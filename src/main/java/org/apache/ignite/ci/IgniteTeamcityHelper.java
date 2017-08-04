@@ -47,12 +47,14 @@ public class IgniteTeamcityHelper implements ITeamcity {
     private final String host;
     private final String basicAuthTok;
     private final String configName; //main properties file name
+    private final String tcName;
 
     public IgniteTeamcityHelper() throws IOException {
         this(null);
     }
 
     public IgniteTeamcityHelper(String tcName) throws IOException {
+        this.tcName=tcName;
         final File workDir = HelperConfig.resolveWorkDir();
 
         this.configName = HelperConfig.prepareConfigName(tcName);
@@ -208,5 +210,9 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
         List<Build> nonCancelled = finished.stream().filter(build -> !"UNKNOWN".equals(build.status)).collect(Collectors.toList());
         return nonCancelled;
+    }
+
+    public String serverId() {
+        return tcName;
     }
 }
