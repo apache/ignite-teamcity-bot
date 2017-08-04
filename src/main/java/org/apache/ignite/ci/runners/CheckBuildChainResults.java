@@ -12,7 +12,11 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.model.hist.Build;
 import org.apache.ignite.ci.model.result.FullBuildInfo;
 import org.apache.ignite.ci.model.result.TestOccurrencesRef;
@@ -88,11 +92,11 @@ public class CheckBuildChainResults {
         }
     }
 
-    private static class BuildFullId implements Comparable<BuildFullId> {
+    private static class SuiteInBranch implements Comparable<SuiteInBranch> {
         String id;
         String branch;
 
-        public BuildFullId(String id, String branch) {
+        public SuiteInBranch(String id, String branch) {
             this.id = id;
             this.branch = branch;
         }
@@ -103,7 +107,7 @@ public class CheckBuildChainResults {
             if (o == null || getClass() != o.getClass())
                 return false;
 
-            BuildFullId id = (BuildFullId)o;
+            SuiteInBranch id = (SuiteInBranch)o;
 
             if (this.id != null ? !this.id.equals(id.id) : id.id != null)
                 return false;
@@ -116,7 +120,7 @@ public class CheckBuildChainResults {
             return result;
         }
 
-        @Override public int compareTo(BuildFullId o) {
+        @Override public int compareTo(SuiteInBranch o) {
             int runConfCompare = id.compareTo(o.id);
             if (runConfCompare != 0)
                 return runConfCompare;
@@ -155,18 +159,18 @@ public class CheckBuildChainResults {
     }
 
     private static class BuildMetricsHistory {
-        private Map<BuildFullId, BuildHistory> map = new TreeMap<>();
-        private LinkedHashSet<BuildFullId> keys = new LinkedHashSet<>();
+        private Map<SuiteInBranch, BuildHistory> map = new TreeMap<>();
+        private LinkedHashSet<SuiteInBranch> keys = new LinkedHashSet<>();
         private Map<String, FailuresHistory> failuresHistoryMap = new TreeMap<>();
 
-        public BuildHistory history(BuildFullId id) {
+        public BuildHistory history(SuiteInBranch id) {
             return map.computeIfAbsent(id, k -> {
                 keys.add(k);
                 return new BuildHistory();
             });
         }
 
-        public Set<BuildFullId> builds() {
+        public Set<SuiteInBranch> builds() {
             return keys;
         }
 
@@ -177,7 +181,7 @@ public class CheckBuildChainResults {
             return dates;
         }
 
-        public ChainContext build(BuildFullId next, String date) {
+        public ChainContext build(SuiteInBranch next, String date) {
             BuildHistory hist = map.get(next);
             if (hist == null)
                 return null;
@@ -192,21 +196,29 @@ public class CheckBuildChainResults {
 
     public static void main(String[] args) throws Exception {
 
-        BuildMetricsHistory history = new BuildMetricsHistory();
+        Ignite ignite = TcHelperDb.start();
+        BuildMetricsHistory history;
+        try {
+            history = new BuildMetricsHistory();
 
-        try (IgniteTeamcityHelper teamcity = new IgniteTeamcityHelper("public")) {
-            collectHistory(history, teamcity, "Ignite20Tests_RunAll", "pull/2296/head");
-        }
 
-        try (IgniteTeamcityHelper teamcity = new IgniteTeamcityHelper("private")) {
-            collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "ignite-2.1.3");
-        }
+            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
+                collectHistory(history, teamcity, "Ignite20Tests_RunAll", "pull/2296/head");
+            }
 
-        try (IgniteTeamcityHelper teamcity = new IgniteTeamcityHelper("public")) {
-            collectHistory(history, teamcity, "Ignite20Tests_RunAll", "refs/heads/master");
+            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
+                collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "ignite-2.1.3");
+            }
+
+            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
+                collectHistory(history, teamcity, "Ignite20Tests_RunAll", "refs/heads/master");
+            }
+            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
+                collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "refs/heads/master");
+            }
         }
-        try (IgniteTeamcityHelper teamcity = new IgniteTeamcityHelper("private")) {
-            collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "refs/heads/master");
+        finally {
+            TcHelperDb.stop(ignite);
         }
 
         printTable(history);
@@ -221,7 +233,7 @@ public class CheckBuildChainResults {
 
     private static void printTable(BuildMetricsHistory history) throws ParseException {
         System.out.print("Date\t");
-        for (BuildFullId next : history.builds()) {
+        for (SuiteInBranch next : history.builds()) {
             System.out.print(next.id + "\t" + next.branch + "\t \t");
         }
         System.out.print("\n");
@@ -230,7 +242,7 @@ public class CheckBuildChainResults {
             Date mddd = new SimpleDateFormat("yyyyMMdd").parse(date);
             String dispDate = new SimpleDateFormat("dd.MM.yyyy").format(mddd);
             System.out.print(dispDate + "\t");
-            for (BuildFullId next : history.builds()) {
+            for (SuiteInBranch next : history.builds()) {
                 ChainContext suiteCtx = history.build(next, date);
 
                 System.out.print(
@@ -244,9 +256,8 @@ public class CheckBuildChainResults {
     }
 
     private static void collectHistory(BuildMetricsHistory history,
-        IgniteTeamcityHelper teamcity, String id, String branch) throws ParseException {
-        BuildFullId branchId = new BuildFullId(id, branch);
-
+        ITeamcity teamcity, String id, String branch) throws ParseException {
+        SuiteInBranch branchId = new SuiteInBranch(id, branch);
         BuildHistory suiteHistory = history.history(branchId);
         List<Build> all = teamcity.getFinishedBuildsIncludeFailed(id, branch);
         List<FullBuildInfo> fullBuildInfoList = all.stream().map(b -> teamcity.getBuildResults(b.href)).collect(Collectors.toList());
@@ -273,13 +284,12 @@ public class CheckBuildChainResults {
         return all.isEmpty() ? null : loadChainContext(teamcity, all.get(0));
     }
 
-    private static ChainContext loadChainContext(IgniteTeamcityHelper teamcity, Build latest) {
+    private static ChainContext loadChainContext(ITeamcity teamcity, Build latest) {
         FullBuildInfo results = teamcity.getBuildResults(latest.href);
         return loadChainContext(teamcity, results);
     }
 
-    private static ChainContext loadChainContext(IgniteTeamcityHelper teamcity,
-        FullBuildInfo results) {
+    private static ChainContext loadChainContext(ITeamcity teamcity, FullBuildInfo results) {
         List<Build> builds = results.getSnapshotDependenciesNonNull();
 
         List<FullSuiteContext> fullBuildInfoList = new ArrayList<>();

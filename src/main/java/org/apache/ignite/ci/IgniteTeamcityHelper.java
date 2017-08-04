@@ -53,7 +53,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         this(null);
     }
 
-    public IgniteTeamcityHelper(String tcName) throws IOException {
+    public IgniteTeamcityHelper(String tcName)  {
         this.tcName=tcName;
         final File workDir = HelperConfig.resolveWorkDir();
 

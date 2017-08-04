@@ -6,7 +6,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Base64;
+import java.io.UncheckedIOException;
 import java.util.Properties;
 import org.apache.ignite.ci.util.Base64Util;
 
@@ -24,7 +24,16 @@ public class HelperConfig {
     public static final String LOGS = "logs";
     public static final String ENDL = String.format("%n");
 
-    public static Properties loadAuthProperties(File workDir, String configFileName) throws IOException {
+    public static Properties loadAuthProperties(File workDir, String configFileName) {
+        try {
+            return loadAuthPropertiesX(workDir, configFileName);
+        }
+        catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static Properties loadAuthPropertiesX(File workDir, String configFileName) throws IOException {
         File file = new File(workDir, configFileName);
         if (!(file.exists())) {
 
