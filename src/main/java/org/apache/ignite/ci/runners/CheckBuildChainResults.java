@@ -52,6 +52,10 @@ public class CheckBuildChainResults {
         public int failedTests() {
             return list.stream().mapToInt(FullSuiteContext::failedTests).sum();
         }
+
+        public int mutedTests() {
+            return list.stream().mapToInt(FullSuiteContext::mutedTests).sum();
+        }
     }
 
     private static class FullSuiteContext {
@@ -88,6 +92,14 @@ public class CheckBuildChainResults {
             if (testOccurrences == null)
                 return 0;
             Integer failed = testOccurrences.failed;
+            return failed == null ? 0 : failed;
+        }
+
+        public int mutedTests() {
+            TestOccurrencesRef testOccurrences = buildInfo.testOccurrences;
+            if (testOccurrences == null)
+                return 0;
+            Integer failed = testOccurrences.muted;
             return failed == null ? 0 : failed;
         }
     }
@@ -234,7 +246,7 @@ public class CheckBuildChainResults {
     private static void printTable(BuildMetricsHistory history) throws ParseException {
         System.out.print("Date\t");
         for (SuiteInBranch next : history.builds()) {
-            System.out.print(next.id + "\t" + next.branch + "\t \t");
+            System.out.print(next.id + "\t" + next.branch + "\t \t \t");
         }
         System.out.print("\n");
 
@@ -247,7 +259,9 @@ public class CheckBuildChainResults {
 
                 System.out.print(
                     (suiteCtx == null ? " " : suiteCtx.buildProblems()) + "\t"
-                        + (suiteCtx == null ? " " : suiteCtx.failedTests()) + "\t \t");
+                        + (suiteCtx == null ? " " : suiteCtx.failedTests()) + "\t"
+                        + (suiteCtx == null ? " " : suiteCtx.mutedTests()) + "\t"
+                        + " \t");
             }
 
             System.out.print("\n");

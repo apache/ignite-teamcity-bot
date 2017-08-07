@@ -23,25 +23,25 @@ public class Launcher {
         server.addConnector(connector);
 
         //working directory is expected to be module dir
-        String webApp = "./src/main/resources";
+        String webApp = "./src/main/webapp";
         File webResDir = new File(webApp);
         Preconditions.checkState(webResDir.exists(),
             "Resource directory [" + webResDir.getAbsolutePath() + "] does not exist");
 
-        WebAppContext context = new WebAppContext();
+        WebAppContext ctx = new WebAppContext();
 
         boolean dev = true;
         if(dev) {
-            context.setDescriptor(context+"/WEB-INF/web.xml");
-            context.setResourceBase("./src/main/webapp");
-            context.setContextPath("/");
-            context.setParentLoaderPriority(true);
+            ctx.setDescriptor(ctx +"/WEB-INF/web.xml");
+            ctx.setResourceBase(webResDir.getAbsolutePath());
+            ctx.setContextPath("/");
+            ctx.setParentLoaderPriority(true);
         } else {
 
-            context.setContextPath("/");
-            context.setWar("build/libs/ignite-teamcity-helper.war");
+            ctx.setContextPath("/");
+            ctx.setWar("build/libs/ignite-teamcity-helper.war");
         }
-        server.setHandler(context);
+        server.setHandler(ctx);
 
         System.out.println("Starting server at [" + port + "]");
 
