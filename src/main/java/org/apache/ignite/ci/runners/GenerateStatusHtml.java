@@ -83,7 +83,10 @@ public class GenerateStatusHtml {
             new Branch("", "<default>", "master"),
             new Branch(
                 "pull/2296/head",
-                "pull/2296/head", "ignite-2.1.3"));
+                "pull/2296/head", "ignite-2.1.3"),
+            new Branch(
+                "pull/2400/head",
+                "pull/2400/head", "make-teamсity-green-again"));
         final String pubTcId = "public";
         final String projectId = "Ignite20Tests";
         ProjectStatus pubStatus = getBuildStatuses(pubTcId, projectId, branchesPub);
@@ -144,6 +147,8 @@ public class GenerateStatusHtml {
                 isFirst = false;
             }
             line(writer, "</div>");
+
+            line(writer, "<p>Version 5. New branch MCGA added</p>");
             line(writer, "</body>");
             line(writer, "</html>");
         }
