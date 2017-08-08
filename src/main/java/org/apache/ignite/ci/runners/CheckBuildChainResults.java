@@ -228,6 +228,10 @@ public class CheckBuildChainResults {
             try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
                 collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "refs/heads/master");
             }
+
+            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
+                collectHistory(history, teamcity, "Ignite20Tests_RunAll", "pull/2400/head");
+            }
         }
         finally {
             TcHelperDb.stop(ignite);
