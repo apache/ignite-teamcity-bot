@@ -1,12 +1,14 @@
 package org.apache.ignite.ci;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
@@ -32,7 +34,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         this.serverId = teamcity.serverId();
     }
 
-    public IgnitePersistentTeamcity(Ignite ignite, String serverId) throws IOException {
+    public IgnitePersistentTeamcity(Ignite ignite, String serverId) {
         this(ignite, new IgniteTeamcityHelper(serverId));
     }
 
@@ -44,49 +46,64 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         return serverId;
     }
 
-    @Override public List<Build> getFinishedBuildsIncludeFailed(String id, String branch) {
-        final SuiteInBranch suiteInBranch = new SuiteInBranch(id, branch);
-        final IgniteCache<SuiteInBranch, Expirable<List<Build>>> hist = ignite.getOrCreateCache(serverId + "." + "finishedBuildsIncludeFailed");
-        @Nullable final Expirable<List<Build>> persistedBuilds = hist.get(suiteInBranch);
-        if (persistedBuilds != null) {
-            long ageTs = System.currentTimeMillis() - persistedBuilds.getTs();
-            if (ageTs < TimeUnit.MINUTES.toMillis(1))
-                return persistedBuilds.getData();
-        }
+    public <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction) {
+        return loadIfAbsent(cacheName, key, loadFunction, (V v) -> true);
+    }
 
-        final List<Build> finished = teamcity.getFinishedBuildsIncludeFailed(id, branch);
-        final SortedMap<Integer, Build> merge = new TreeMap<>();
+    public <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction, Predicate<V> saveValueFilter) {
+        final IgniteCache<K, V> cache = ignite.getOrCreateCache(serverId + "." + cacheName);
+
+        @Nullable final V persistedBuilds = cache.get(key);
 
         if (persistedBuilds != null)
-            persistedBuilds.getData().forEach(b -> merge.put(b.getIdAsInt(), b));
-        //to overwrite data from persistence
-        finished.forEach(b -> merge.put(b.getIdAsInt(), b));
+            return persistedBuilds;
+        final V loaded = loadFunction.apply(key);
 
-        final List<Build> builds = new ArrayList<>(merge.values());
-        final Expirable<List<Build>> newVal = new Expirable<>(System.currentTimeMillis(), builds);
-        hist.put(suiteInBranch, newVal);
-        return builds;
+        if (saveValueFilter == null || saveValueFilter.test(loaded))
+            cache.put(key, loaded);
+        return loaded;
+    }
+
+    public <K, V> V timedLoadIfAbsentOrMerge(String cacheName, int seconds, K key, BiFunction<K, V, V> loadWithMerge) {
+        final IgniteCache<K, Expirable<V>> hist = ignite.getOrCreateCache(serverId + "." + cacheName);
+        @Nullable final Expirable<V> persistedBuilds = hist.get(key);
+        if (persistedBuilds != null) {
+            long ageTs = System.currentTimeMillis() - persistedBuilds.getTs();
+            if (ageTs < TimeUnit.SECONDS.toMillis(seconds))
+                return persistedBuilds.getData();
+        }
+        V apply = loadWithMerge.apply(key, persistedBuilds != null ? persistedBuilds.getData() : null);
+        final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), apply);
+        hist.put(key, newVal);
+        return apply;
+    }
+
+    //loads build history with following parameter: defaultFilter:false,state:finished
+    @Override public List<Build> getFinishedBuildsIncludeFailed(String id, String branch) {
+        final SuiteInBranch suiteInBranch = new SuiteInBranch(id, branch);
+        return timedLoadIfAbsentOrMerge("finishedBuildsIncludeFailed", 60, suiteInBranch,
+            (key, persistedValue) -> {
+                final List<Build> finished = teamcity.getFinishedBuildsIncludeFailed(id, branch);
+                final SortedMap<Integer, Build> merge = new TreeMap<>();
+                if (persistedValue != null)
+                    persistedValue.forEach(b -> merge.put(b.getIdAsInt(), b));
+                finished.forEach(b -> merge.put(b.getIdAsInt(), b)); //to overwrite data from persistence by values from REST
+                return new ArrayList<>(merge.values());
+            });
     }
 
     @Override public FullBuildInfo getBuildResults(String href) {
-        IgniteCache<String, FullBuildInfo> cache = ignite.getOrCreateCache(serverId + "." + "buildResults");
-        FullBuildInfo info = cache.get(href);
-        if (info != null)
-            return info;
-        FullBuildInfo results = teamcity.getBuildResults(href);
-        if (results.finishDate != null) //only completed builds are saved
-            cache.put(href, results);
-        return results;
+        return loadIfAbsent("buildResults",
+            href,
+            teamcity::getBuildResults,
+            FullBuildInfo::hasFinishDate); //only completed builds are saved
     }
 
     @Override public ProblemOccurrences getProblems(String href) {
-        IgniteCache<String, ProblemOccurrences> cache = ignite.getOrCreateCache(serverId + "." + "problems");
-        ProblemOccurrences info = cache.get(href);
-        if (info != null)
-            return info;
-        ProblemOccurrences results = teamcity.getProblems(href);
-        cache.put(href, results);
-        return results;
+        return loadIfAbsent("problems",
+            href,
+            teamcity::getProblems);
+
     }
 
     @Override public void close() throws Exception {

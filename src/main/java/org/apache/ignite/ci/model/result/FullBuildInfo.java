@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.model.result;
 
+import com.google.common.base.Strings;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
@@ -52,5 +53,9 @@ public class FullBuildInfo extends Build {
         String date = finishDate;
         SimpleDateFormat f = new SimpleDateFormat("yyyyMMdd'T'HHmmssZ");
         return f.parse(date);
+    }
+
+    public boolean hasFinishDate() {
+        return !Strings.isNullOrEmpty(finishDate);
     }
 }
