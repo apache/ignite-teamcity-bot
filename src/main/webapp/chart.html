@@ -8,7 +8,6 @@
     <link rel="stylesheet"
           href="http://cdn.jsdelivr.net/chartist.js/latest/chartist.min.css">
 
- 
 
     <script src="http://cdn.jsdelivr.net/chartist.js/latest/chartist.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartist-plugin-legend/0.6.2/chartist-plugin-legend.js"></script>
@@ -66,6 +65,7 @@
         background-color: #453d3f;
         border-color: #453d3f;
     }
+
     </style>
 
 </head>
@@ -74,7 +74,10 @@
   $(function() {
      $("#tabs").tabs();
 
-     load();
+     //load();
+
+     setTimeout(load, 300);
+     setInterval(load, 30000);
  });
 
  function load() {
@@ -82,20 +85,31 @@
         url: " /rest/metrics/failures",
 
         success: function(result) {
-            showChart('.ct-chart-failed', result.failed);
-            showChart('.ct-chart-notrun', result.notrun);
-            showChart('.ct-chart-muted', result.muted);
-            showChart('.ct-chart-total', result.total);
+            showChart('.ct-chart-failed', result.failed, 'legend');
+            showChart('.ct-chart-notrun', result.notrun, 'legend');
+            showChart('.ct-chart-muted', result.muted, 'legend');
+            showChart('.ct-chart-total', result.total, 'legend');
+        }
+     })
+
+     $.ajax({
+        url: " /rest/metrics/failuresPrivate",
+
+        success: function(result) {
+            showChart('.ct-chart-failed-private', result.failed, 'legend-private');
+            showChart('.ct-chart-notrun-private', result.notrun, 'legend-private');
+            showChart('.ct-chart-muted-private', result.muted, 'legend-private');
+            showChart('.ct-chart-total-private', result.total, 'legend-private');
         }
      })
  }
 
- function showChart(element, chartData) {
+ function showChart(element, chartData, legendId) {
      var data = [];
      for(i=0; i<chartData.lines.length; i++) {
         data[i]=chartData.lines[i].values;
      }
-     var legendDiv = document.getElementById('legend');
+     var legendDiv = document.getElementById(legendId);
      legendDiv.innerHTML = '';
      new Chartist.Line(element, {
          labels: chartData.axisX,
@@ -118,21 +132,59 @@
          ]
      });
  } 
+
 </script>
 
 <!-- Site content goes here !-->
 
-Branch:
-<div id="legend"></div>
-Failed tests:
-<div class="ct-chart-failed" style="width: 50%; height: 20%;"></div>
-Not runned suites:
-<div class="ct-chart-notrun" style="width: 50%; height: 20%;"></div>
-Muted failures:
-<div class="ct-chart-muted" style="width: 50%; height: 20%;"></div>
-Total tests:
-<div class="ct-chart-total" style="width: 50%; height: 20%;"></div>
+<table style="width: 100%; height: 100%">
+    <tr>
+        <th> <div id="legend"></div>
+        </th>
+        <th><div id="legend-private"></div>
+        </th>
+    </tr>
+    <tr>
+        <td>
+            Failed tests:
+            <div class="ct-chart-failed" style="width: 100%; height: 20%;"></div>
+        </td>
+        <td>
+            Failed tests:
+            <div class="ct-chart-failed-private" style="width: 100%; height: 20%;"></div>
+        </td>
+    </tr>
 
-
+    <tr>
+        <td>
+            Not runned suites:
+            <div class="ct-chart-notrun" style="width: 100%; height: 20%;"></div>
+        </td>
+        <td>
+            Not runned suites:
+            <div class="ct-chart-notrun-private" style="width: 100%; height: 20%;"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            Muted failures:
+            <div class="ct-chart-muted" style="width: 100%; height: 20%;"></div>
+        </td>
+        <td>
+            Muted failures:
+            <div class="ct-chart-muted-private" style="width: 100%; height: 20%;"></div>
+        </td>
+    </tr>
+    <tr>
+    <td>
+        Total tests:
+        <div class="ct-chart-total" style="width: 100%; height: 20%;"></div>
+    </td>
+    <td>
+        Total tests:
+        <div class="ct-chart-total-private" style="width: 100%; height: 20%;"></div>
+    </td>
+</tr>
+</table> 
 </body>
 </html>

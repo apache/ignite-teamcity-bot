@@ -17,7 +17,10 @@ import org.apache.ignite.ci.model.SuiteInBranch;
 import org.apache.ignite.ci.runners.CheckBuildChainResults;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.TestsMetrics;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static org.apache.ignite.ci.runners.CheckBuildChainResults.collectHistory;
 
 @Path("metrics")
 @Produces("application/json")
@@ -28,25 +31,37 @@ public class Metrics {
     @GET
     @Path("failures")
     public TestsMetrics getFailures(@Nullable @QueryParam("param") String msg) throws ParseException {
-
         Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
-
         CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
-
         try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
-            CheckBuildChainResults.collectHistory(history, teamcity,
+            collectHistory(history, teamcity,
                 "Ignite20Tests_RunAll", "pull/2296/head");
 
-            CheckBuildChainResults.collectHistory(history, teamcity,
+            collectHistory(history, teamcity,
                 "Ignite20Tests_RunAll", "refs/heads/master");
 
-            CheckBuildChainResults.collectHistory(history, teamcity,
+            collectHistory(history, teamcity,
                 "Ignite20Tests_RunAll", "pull/2400/head");
         }
+        return convertToChart(history);
+    }
 
+    @GET
+    @Path("failuresPrivate")
+    public TestsMetrics getFailuresPrivate(@Nullable @QueryParam("param") String msg) throws ParseException {
+        Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
+        CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
+        try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
+            collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "ignite-2.1.3");
+            collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "refs/heads/master");
+        }
+        return convertToChart(history);
+    }
+
+    @NotNull
+    private TestsMetrics convertToChart(CheckBuildChainResults.BuildMetricsHistory history) throws ParseException {
         TestsMetrics testsMetrics = new TestsMetrics();
         Set<SuiteInBranch> builds = history.builds();
-
         testsMetrics.initBuilds(builds);//to initialize internal mapping build->idx
 
         for (String date : history.dates()) {
@@ -61,21 +76,9 @@ public class Metrics {
                     testsMetrics.notrun.addMeasurement(next, axisXIdx, (double)suiteCtx.buildProblems());
                     testsMetrics.total.addMeasurement(next, axisXIdx, (double)suiteCtx.totalTests());
                 }
-
-                System.out.print(
-                    (suiteCtx == null ? " " : suiteCtx.buildProblems()) + "\t"
-                        + (suiteCtx == null ? " " : suiteCtx.failedTests()) + "\t"
-                        + (suiteCtx == null ? " " : suiteCtx.mutedTests()) + "\t"
-                        + (suiteCtx == null ? " " : suiteCtx.totalTests()) + "\t"
-                        + " \t");
             }
-
-            System.out.print("\n");
         }
-        System.out.println();
-  
         return testsMetrics;
-
     }
 
 }
