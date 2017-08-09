@@ -43,16 +43,20 @@ public class FullBuildInfo extends Build {
         return buildType == null ? null : buildType.getName();
     }
 
-
     public String getFinishDateDdMmYyyy() throws ParseException {
         Date parse = getFinishDate();
         return new SimpleDateFormat("dd.MM.yyyy").format(parse);
     }
 
-    public Date getFinishDate() throws ParseException {
-        String date = finishDate;
-        SimpleDateFormat f = new SimpleDateFormat("yyyyMMdd'T'HHmmssZ");
-        return f.parse(date);
+    public Date getFinishDate() {
+        try {
+            String date = finishDate;
+            SimpleDateFormat f = new SimpleDateFormat("yyyyMMdd'T'HHmmssZ");
+            return f.parse(date);
+        }
+        catch (ParseException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     public boolean hasFinishDate() {

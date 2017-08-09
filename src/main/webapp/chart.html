@@ -1,0 +1,138 @@
+<html>
+<head>
+    <title>Ignite Teamcity Build Status metrics</title>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <link rel="stylesheet"
+          href="http://cdn.jsdelivr.net/chartist.js/latest/chartist.min.css">
+
+ 
+
+    <script src="http://cdn.jsdelivr.net/chartist.js/latest/chartist.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartist-plugin-legend/0.6.2/chartist-plugin-legend.js"></script>
+
+
+    <style>
+    .ct-chart {
+        position: relative;
+    }
+    .ct-legend {
+        position: relative;
+        z-index: 10;
+        list-style: none;
+    }
+    .ct-legend li {
+        position: relative;
+        padding-left: 23px;
+        margin-bottom: 3px;
+        cursor: pointer;
+    }
+    .ct-legend li:before {
+        width: 12px;
+        height: 12px;
+        position: absolute;
+        left: 0;
+        content: '';
+        border: 3px solid transparent;
+        border-radius: 2px;
+    }
+    .ct-legend li.inactive:before {
+        background: transparent;
+    }
+    .ct-legend.ct-legend-inside {
+        position: absolute;
+        top: 0;
+        right: 0;
+    }
+    .ct-legend .ct-series-0:before {
+        background-color: #d70206;
+        border-color: #d70206;
+    }
+    .ct-legend .ct-series-1:before {
+        background-color: #f05b4f;
+        border-color: #f05b4f;
+    }
+    .ct-legend .ct-series-2:before {
+        background-color: #f4c63d;
+        border-color: #f4c63d;
+    }
+    .ct-legend .ct-series-3:before {
+        background-color: #d17905;
+        border-color: #d17905;
+    }
+    .ct-legend .ct-series-4:before {
+        background-color: #453d3f;
+        border-color: #453d3f;
+    }
+    </style>
+
+</head>
+<body>
+<script>
+  $(function() {
+     $("#tabs").tabs();
+
+     load();
+ });
+
+ function load() {
+     $.ajax({
+        url: " /rest/metrics/failures",
+
+        success: function(result) {
+            showChart('.ct-chart-failed', result.failed);
+            showChart('.ct-chart-notrun', result.notrun);
+            showChart('.ct-chart-muted', result.muted);
+            showChart('.ct-chart-total', result.total);
+        }
+     })
+ }
+
+ function showChart(element, chartData) {
+     var data = [];
+     for(i=0; i<chartData.lines.length; i++) {
+        data[i]=chartData.lines[i].values;
+     }
+     var legendDiv = document.getElementById('legend');
+     legendDiv.innerHTML = '';
+     new Chartist.Line(element, {
+         labels: chartData.axisX,
+         series: data
+     }, {
+         fullWidth: true,
+         lineSmooth: Chartist.Interpolation.cardinal({
+            fillHoles: true,
+         }),
+
+         showArea: true,
+         chartPadding: {
+             right: 30
+         },
+        plugins: [
+            Chartist.plugins.legend({
+                legendNames: chartData.legendLabels,
+                position: legendDiv
+            })
+         ]
+     });
+ } 
+</script>
+
+<!-- Site content goes here !-->
+
+Branch:
+<div id="legend"></div>
+Failed tests:
+<div class="ct-chart-failed" style="width: 50%; height: 20%;"></div>
+Not runned suites:
+<div class="ct-chart-notrun" style="width: 50%; height: 20%;"></div>
+Muted failures:
+<div class="ct-chart-muted" style="width: 50%; height: 20%;"></div>
+Total tests:
+<div class="ct-chart-total" style="width: 50%; height: 20%;"></div>
+
+
+</body>
+</html>

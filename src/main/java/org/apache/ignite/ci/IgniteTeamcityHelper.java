@@ -195,7 +195,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return history.stream().mapToInt(Build::getIdAsInt).toArray();
     }
 
-    @Override public void close() throws Exception {
+    @Override public void close()  {
 
     }
 

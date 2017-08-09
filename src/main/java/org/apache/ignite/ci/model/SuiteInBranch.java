@@ -1,7 +1,5 @@
 package org.apache.ignite.ci.model;
 
-import org.apache.ignite.ci.runners.CheckBuildChainResults;
-
 /**
  * Created by dpavlov on 09.08.2017.
  */
@@ -45,5 +43,9 @@ public class SuiteInBranch implements Comparable<SuiteInBranch> {
             "id='" + id + '\'' +
             ", branch='" + branch + '\'' +
             '}';
+    }
+
+    public String getBranch() {
+        return branch;
     }
 }

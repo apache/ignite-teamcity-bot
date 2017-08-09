@@ -106,7 +106,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
     }
 
-    @Override public void close() throws Exception {
+    @Override public void close() {
 
     }
 }

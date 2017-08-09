@@ -29,7 +29,7 @@ import org.apache.ignite.ci.model.result.problems.ProblemOccurrences;
  */
 public class CheckBuildChainResults {
 
-    private static class ChainContext {
+    public static class ChainContext {
         private FullBuildInfo results;
         private List<FullSuiteContext> list = new ArrayList<>();
 
@@ -145,7 +145,7 @@ public class CheckBuildChainResults {
         }
     }
 
-    private static class BuildMetricsHistory {
+    public static class BuildMetricsHistory {
         private Map<SuiteInBranch, BuildHistory> map = new TreeMap<>();
         private LinkedHashSet<SuiteInBranch> keys = new LinkedHashSet<>();
         private Map<String, FailuresHistory> failuresHistoryMap = new TreeMap<>();
@@ -249,8 +249,8 @@ public class CheckBuildChainResults {
         System.out.println();
     }
 
-    private static void collectHistory(BuildMetricsHistory history,
-        ITeamcity teamcity, String id, String branch) throws ParseException {
+    public static void collectHistory(BuildMetricsHistory history,
+        ITeamcity teamcity, String id, String branch)  {
         SuiteInBranch branchId = new SuiteInBranch(id, branch);
         BuildHistory suiteHistory = history.history(branchId);
         List<Build> all = teamcity.getFinishedBuildsIncludeFailed(id, branch);

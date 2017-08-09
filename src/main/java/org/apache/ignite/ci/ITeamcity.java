@@ -19,4 +19,6 @@ public interface ITeamcity extends AutoCloseable {
     FullBuildInfo getBuildResults(String href);
 
     ProblemOccurrences getProblems(String href);
+
+    @Override void close() ;
 }
