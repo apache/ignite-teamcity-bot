@@ -25,4 +25,7 @@ public class Build {
         return id;
     }
 
+    public int getIdAsInt() {
+        return Integer.parseInt(getId());
+    }
 }

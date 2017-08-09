@@ -17,6 +17,7 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.model.SuiteInBranch;
 import org.apache.ignite.ci.model.hist.Build;
 import org.apache.ignite.ci.model.result.FullBuildInfo;
 import org.apache.ignite.ci.model.result.TestOccurrencesRef;
@@ -56,6 +57,10 @@ public class CheckBuildChainResults {
         public int mutedTests() {
             return list.stream().mapToInt(FullSuiteContext::mutedTests).sum();
         }
+
+        public int totalTests() {
+            return list.stream().mapToInt(FullSuiteContext::totalTests).sum();
+        }
     }
 
     private static class FullSuiteContext {
@@ -88,10 +93,12 @@ public class CheckBuildChainResults {
         }
 
         public int failedTests() {
-            TestOccurrencesRef testOccurrences = buildInfo.testOccurrences;
+            final TestOccurrencesRef testOccurrences = buildInfo.testOccurrences;
+
             if (testOccurrences == null)
                 return 0;
-            Integer failed = testOccurrences.failed;
+            final Integer failed = testOccurrences.failed;
+
             return failed == null ? 0 : failed;
         }
 
@@ -99,51 +106,19 @@ public class CheckBuildChainResults {
             TestOccurrencesRef testOccurrences = buildInfo.testOccurrences;
             if (testOccurrences == null)
                 return 0;
-            Integer failed = testOccurrences.muted;
-            return failed == null ? 0 : failed;
-        }
-    }
+            final Integer muted = testOccurrences.muted;
 
-    private static class SuiteInBranch implements Comparable<SuiteInBranch> {
-        String id;
-        String branch;
-
-        public SuiteInBranch(String id, String branch) {
-            this.id = id;
-            this.branch = branch;
+            return muted == null ? 0 : muted;
         }
 
-        @Override public boolean equals(Object o) {
-            if (this == o)
-                return true;
-            if (o == null || getClass() != o.getClass())
-                return false;
+        public int totalTests() {
+            final TestOccurrencesRef testOccurrences = buildInfo.testOccurrences;
 
-            SuiteInBranch id = (SuiteInBranch)o;
+            if (testOccurrences == null)
+                return 0;
+            final Integer cnt = testOccurrences.count;
 
-            if (this.id != null ? !this.id.equals(id.id) : id.id != null)
-                return false;
-            return branch != null ? branch.equals(id.branch) : id.branch == null;
-        }
-
-        @Override public int hashCode() {
-            int result = id != null ? id.hashCode() : 0;
-            result = 31 * result + (branch != null ? branch.hashCode() : 0);
-            return result;
-        }
-
-        @Override public int compareTo(SuiteInBranch o) {
-            int runConfCompare = id.compareTo(o.id);
-            if (runConfCompare != 0)
-                return runConfCompare;
-            return branch.compareTo(o.branch);
-        }
-
-        @Override public String toString() {
-            return "{" +
-                "id='" + id + '\'' +
-                ", branch='" + branch + '\'' +
-                '}';
+            return cnt == null ? 0 : cnt;
         }
     }
 
@@ -250,7 +225,7 @@ public class CheckBuildChainResults {
     private static void printTable(BuildMetricsHistory history) throws ParseException {
         System.out.print("Date\t");
         for (SuiteInBranch next : history.builds()) {
-            System.out.print(next.id + "\t" + next.branch + "\t \t \t");
+            System.out.print(next.id + "\t" + next.branch + "\t \t \t \t");
         }
         System.out.print("\n");
 
@@ -265,6 +240,7 @@ public class CheckBuildChainResults {
                     (suiteCtx == null ? " " : suiteCtx.buildProblems()) + "\t"
                         + (suiteCtx == null ? " " : suiteCtx.failedTests()) + "\t"
                         + (suiteCtx == null ? " " : suiteCtx.mutedTests()) + "\t"
+                        + (suiteCtx == null ? " " : suiteCtx.totalTests()) + "\t"
                         + " \t");
             }
 

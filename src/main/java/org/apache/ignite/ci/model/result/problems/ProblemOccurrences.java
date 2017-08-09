@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.ignite.ci.model.hist.Build;
 import org.apache.ignite.ci.model.result.ProblemOccurrencesRef;
 
 /**

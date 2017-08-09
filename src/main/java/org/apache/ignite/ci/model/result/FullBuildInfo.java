@@ -22,6 +22,8 @@ import org.apache.ignite.ci.model.result.problems.ProblemOccurrences;
 public class FullBuildInfo extends Build {
     @XmlElement(name = "buildType") BuildType buildType;
 
+    @XmlElement public String queuedDate;
+    @XmlElement public String startDate;
     @XmlElement public String finishDate;
 
     @XmlElement(name = "build")

@@ -1,7 +1,6 @@
 package org.apache.ignite.ci.model.result.problems;
 
 import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * Created by dpavlov on 03.08.2017

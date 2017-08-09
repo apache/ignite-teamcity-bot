@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -53,8 +52,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
         this(null);
     }
 
-    public IgniteTeamcityHelper(String tcName)  {
-        this.tcName=tcName;
+    public IgniteTeamcityHelper(String tcName) {
+        this.tcName = tcName;
         final File workDir = HelperConfig.resolveWorkDir();
 
         this.configName = HelperConfig.prepareConfigName(tcName);
@@ -193,7 +192,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     public int[] getBuildNumbersFromHistory(BuildType bt, String branchNameForHist) {
         List<Build> history = getBuildHistory(bt, branchNameForHist);
-        return history.stream().map(Build::getId).mapToInt(Integer::parseInt).toArray();
+        return history.stream().mapToInt(Build::getIdAsInt).toArray();
     }
 
     @Override public void close() throws Exception {

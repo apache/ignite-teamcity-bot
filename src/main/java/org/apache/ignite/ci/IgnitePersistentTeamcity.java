@@ -1,10 +1,17 @@
 package org.apache.ignite.ci;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.ci.model.Expirable;
+import org.apache.ignite.ci.model.SuiteInBranch;
 import org.apache.ignite.ci.model.conf.BuildType;
 import org.apache.ignite.ci.model.hist.Build;
 import org.apache.ignite.ci.model.result.FullBuildInfo;
@@ -38,8 +45,27 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     @Override public List<Build> getFinishedBuildsIncludeFailed(String id, String branch) {
-        //todo may persist this
-        return teamcity.getFinishedBuildsIncludeFailed(id, branch);
+        final SuiteInBranch suiteInBranch = new SuiteInBranch(id, branch);
+        final IgniteCache<SuiteInBranch, Expirable<List<Build>>> hist = ignite.getOrCreateCache(serverId + "." + "finishedBuildsIncludeFailed");
+        @Nullable final Expirable<List<Build>> persistedBuilds = hist.get(suiteInBranch);
+        if (persistedBuilds != null) {
+            long ageTs = System.currentTimeMillis() - persistedBuilds.getTs();
+            if (ageTs < TimeUnit.MINUTES.toMillis(1))
+                return persistedBuilds.getData();
+        }
+
+        final List<Build> finished = teamcity.getFinishedBuildsIncludeFailed(id, branch);
+        final SortedMap<Integer, Build> merge = new TreeMap<>();
+
+        if (persistedBuilds != null)
+            persistedBuilds.getData().forEach(b -> merge.put(b.getIdAsInt(), b));
+        //to overwrite data from persistence
+        finished.forEach(b -> merge.put(b.getIdAsInt(), b));
+
+        final List<Build> builds = new ArrayList<>(merge.values());
+        final Expirable<List<Build>> newVal = new Expirable<>(System.currentTimeMillis(), builds);
+        hist.put(suiteInBranch, newVal);
+        return builds;
     }
 
     @Override public FullBuildInfo getBuildResults(String href) {
@@ -48,7 +74,8 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         if (info != null)
             return info;
         FullBuildInfo results = teamcity.getBuildResults(href);
-        cache.put(href, results);
+        if (results.finishDate != null) //only completed builds are saved
+            cache.put(href, results);
         return results;
     }
 
