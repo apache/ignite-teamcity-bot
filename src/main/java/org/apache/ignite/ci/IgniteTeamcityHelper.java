@@ -89,7 +89,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             "        <property name=\"build.query.ts\" value=\"" + System.currentTimeMillis() + "\"/>\n" +
             "    </properties>\n" +
             "</build>";
-        String url = host + "/app/rest/buildQueue";
+        String url = host + "app/rest/buildQueue";
         try {
             HttpUtil.sendPostAsString(basicAuthTok, url, parameter);
         }
