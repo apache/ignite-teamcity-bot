@@ -12,6 +12,7 @@
 
 # IDEA project
 .idea/
+*.iml
 
 # Package Files #
 *.jar

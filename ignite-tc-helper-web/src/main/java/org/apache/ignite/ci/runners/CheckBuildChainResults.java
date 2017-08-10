@@ -251,17 +251,15 @@ public class CheckBuildChainResults {
 
     public static void collectHistory(BuildMetricsHistory history,
         ITeamcity teamcity, String id, String branch)  {
-        SuiteInBranch branchId = new SuiteInBranch(id, branch);
-        BuildHistory suiteHistory = history.history(branchId);
-        List<Build> all = teamcity.getFinishedBuildsIncludeFailed(id, branch);
-        List<FullBuildInfo> fullBuildInfoList = all.stream().map(b -> teamcity.getBuildResults(b.href)).collect(Collectors.toList());
+        final SuiteInBranch branchId = new SuiteInBranch(id, branch);
+        final BuildHistory suiteHist = history.history(branchId);
+        final List<Build> all = teamcity.getFinishedBuildsIncludeFailed(id, branch);
+        final List<FullBuildInfo> fullBuildInfoList = all.stream().map(b -> teamcity.getBuildResults(b.href)).collect(Collectors.toList());
+
         for (FullBuildInfo next : fullBuildInfoList) {
             Date parse = next.getFinishDate();
-            String dateForTable = new SimpleDateFormat("dd.MM.yyyy").format(parse);
-            System.err.println(dateForTable);
-
             String dateForMap = new SimpleDateFormat("yyyyMMdd").format(parse);
-            suiteHistory.map.computeIfAbsent(dateForMap, k -> {
+            suiteHist.map.computeIfAbsent(dateForMap, k -> {
                 ChainContext ctx = loadChainContext(teamcity, next);
                 for (FullSuiteContext suite : ctx.suites()) {
                     boolean suiteOk = suite.failedTests() == 0 && !suite.hasNontestBuildProblem();

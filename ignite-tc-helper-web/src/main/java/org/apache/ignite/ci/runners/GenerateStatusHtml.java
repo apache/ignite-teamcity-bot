@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -108,8 +109,8 @@ public class GenerateStatusHtml {
             privResp = null;
         }
 
-        final String fileName = "status" + (groupByResponsible ? "" : "_all") + ".html";
-        try (FileWriter writer = new FileWriter(fileName)) {
+        final String fileName = "./ignite-tc-helper-web/src/main/webapp/status/index" + (groupByResponsible ? "" : "_all") + ".html";
+        try (FileWriter writer = new FileWriter(new File(fileName))) {
             line(writer, "<html>");
             header(writer, groupByResponsible);
             line(writer, "<body>");

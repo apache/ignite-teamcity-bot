@@ -10,6 +10,7 @@ import java.io.UncheckedIOException;
 import java.util.Properties;
 import org.apache.ignite.ci.util.Base64Util;
 
+import static com.google.common.base.Preconditions.checkPositionIndex;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
@@ -72,9 +73,16 @@ public class HelperConfig {
     }
 
     public static File resolveWorkDir() {
-        String conf = ".ignite-teamcity-helper";
-        String prop = System.getProperty("user.home");
-        File workDir = new File(prop, conf);
+        File workDir = null;
+        String property = System.getProperty(IgniteTeamcityHelper.TEAMCITY_HELPER_HOME);
+        if (Strings.isNullOrEmpty(property)) {
+            String conf = ".ignite-teamcity-helper";
+            String prop = System.getProperty("user.home");
+            //relative in work dir
+            workDir = Strings.isNullOrEmpty(prop) ? new File(conf) : new File(prop, conf);
+        }
+        else
+            workDir = new File(property);
 
         return ensureDirExist(workDir);
     }

@@ -40,6 +40,7 @@ import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
  */
 public class IgniteTeamcityHelper implements ITeamcity {
 
+    public static final String TEAMCITY_HELPER_HOME = "teamcity.helper.home";
     private final Executor executor;
     private final File logsDir;
     /** Normalized Host address, ends with '/'. */

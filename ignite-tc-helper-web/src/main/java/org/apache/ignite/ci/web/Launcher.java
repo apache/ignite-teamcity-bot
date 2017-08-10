@@ -15,6 +15,11 @@ import org.eclipse.jetty.webapp.WebAppContext;
 public class Launcher {
 
     public static void main(String[] args) throws Exception {
+        boolean dev = true;
+        runServer(dev);
+    }
+
+    public static void runServer(boolean dev) throws Exception {
         Server server = new Server();
 
         ServerConnector connector = new ServerConnector(server);
@@ -23,23 +28,21 @@ public class Launcher {
         server.addConnector(connector);
 
         //working directory is expected to be module dir
-        String webApp = "./src/main/webapp";
-        File webResDir = new File(webApp);
-        Preconditions.checkState(webResDir.exists(),
-            "Resource directory [" + webResDir.getAbsolutePath() + "] does not exist");
 
         WebAppContext ctx = new WebAppContext();
 
-        boolean dev = true;
         if(dev) {
-            ctx.setDescriptor(ctx +"/WEB-INF/web.xml");
+            String webApp = "./src/main/webapp";
+            File webResDir = new File(webApp);
+            Preconditions.checkState(webResDir.exists(),
+                "Resource directory [" + webResDir.getAbsolutePath() + "] does not exist");
+             ctx.setDescriptor(ctx +"/WEB-INF/web.xml");
             ctx.setResourceBase(webResDir.getAbsolutePath());
             ctx.setContextPath("/");
             ctx.setParentLoaderPriority(true);
         } else {
-
             ctx.setContextPath("/");
-            ctx.setWar("build/libs/ignite-teamcity-helper.war");
+            ctx.setWar("../war/ignite-tc-helper-web.war");
         }
         server.setHandler(ctx);
 

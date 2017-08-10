@@ -1,0 +1,37 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+mainClassName = 'org.apache.ignite.ci.TcHelperJettyLauncher'
+applicationDefaultJvmArgs = ["-Dteamcity.helper.home=../work"]
+
+distributions {
+    main {
+        contents {
+            into('war') {
+                from { new File(project(':ignite-tc-helper-web').getBuildDir(), "libs/ignite-tc-helper-web.war")}
+
+                fileMode = 0755
+            }
+        }
+    }
+}
+
+dependencies {
+    compile (project(":ignite-tc-helper-web"))  {
+        transitive = false
+    }
+    def jettyVer = '9.4.6.v20170531'
+    compile group: 'org.eclipse.jetty', name: 'jetty-util', version: jettyVer
+    compile group: 'org.eclipse.jetty', name: 'jetty-server', version: jettyVer
+    compile group: 'org.eclipse.jetty', name: 'jetty-webapp', version: jettyVer
+
+    compile group: 'com.google.guava', name: 'guava', version: '22.0'
+}

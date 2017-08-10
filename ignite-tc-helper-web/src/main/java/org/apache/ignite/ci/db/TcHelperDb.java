@@ -9,7 +9,10 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.configuration.IgniteConfiguration;
+import org.apache.ignite.configuration.MemoryConfiguration;
+import org.apache.ignite.configuration.MemoryPolicyConfiguration;
 import org.apache.ignite.configuration.PersistentStoreConfiguration;
+import org.apache.ignite.configuration.WALMode;
 import org.apache.ignite.logger.java.JavaLogger;
 import org.apache.ignite.spi.IgniteSpiContext;
 import org.apache.ignite.spi.IgniteSpiException;
@@ -35,7 +38,14 @@ public class TcHelperDb {
         cfg.setConsistentId("TcHelper");
         cfg.setGridLogger(new JavaLogger());
 
+        final MemoryConfiguration memCfg = new MemoryConfiguration();
+        final MemoryPolicyConfiguration configuration = new MemoryPolicyConfiguration();
+        configuration.setMaxSize(512 * 1024 * 1024);
+        memCfg.setMemoryPolicies(configuration);
+        cfg.setMemoryConfiguration(memCfg);
+
         PersistentStoreConfiguration psCfg = new PersistentStoreConfiguration();
+        psCfg.setWalMode(WALMode.LOG_ONLY);
         cfg.setPersistentStoreConfiguration(psCfg);
 
         Ignite ignite = Ignition.start(cfg);

@@ -1,3 +1,5 @@
+package org.apache.ignite.ci.runners;
+
 import com.google.common.base.Throwables;
 import java.io.File;
 import java.util.List;
