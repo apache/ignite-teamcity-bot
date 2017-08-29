@@ -75,7 +75,8 @@ public class GenerateStatusHtml {
         boolean includeTabAll = groupByResponsible && true;
         final List<Branch> branchesPriv = Lists.newArrayList(
             new Branch("", "<default>", "master"),
-            new Branch("ignite-2.1.3", "ignite-2.1.3", "ignite-2.1.3"));
+            new Branch("ignite-2.1.4", "ignite-2.1.4", "ignite-2.1.4"),
+            new Branch("ignite-2.1.5", "ignite-2.1.5", "ignite-2.1.5"));
         final String tcPrivId = "private";
         final String privProjectId = "id8xIgniteGridGainTests";
         final ProjectStatus privStatuses = getBuildStatuses(tcPrivId, privProjectId, branchesPriv);
@@ -83,11 +84,14 @@ public class GenerateStatusHtml {
         final List<Branch> branchesPub = Lists.newArrayList(
             new Branch("", "<default>", "master"),
             new Branch(
-                "pull/2296/head",
-                "pull/2296/head", "ignite-2.1.3"),
-            new Branch(
                 "pull/2400/head",
-                "pull/2400/head", "make-teamсity-green-again"));
+                "pull/2400/head", "make-teamсity-green-again"),
+            new Branch(
+                "pull/2380/head",
+                "pull/2380/head", "ignite-2.1.4"),
+            new Branch(
+                "pull/2508/head",
+                "pull/2508/head", "ignite-2.1.5"));
         final String pubTcId = "public";
         final String projectId = "Ignite20Tests";
         ProjectStatus pubStatus = getBuildStatuses(pubTcId, projectId, branchesPub);
@@ -110,7 +114,8 @@ public class GenerateStatusHtml {
         }
 
         final String fileName = "./ignite-tc-helper-web/src/main/webapp/status/index" + (groupByResponsible ? "" : "_all") + ".html";
-        try (FileWriter writer = new FileWriter(new File(fileName))) {
+        File file = new File("./status.html");
+        try (FileWriter writer = new FileWriter(file)) {
             line(writer, "<html>");
             header(writer, groupByResponsible);
             line(writer, "<body>");
@@ -153,6 +158,7 @@ public class GenerateStatusHtml {
             line(writer, "</body>");
             line(writer, "</html>");
         }
+        System.out.println("Page was saved to " + file.getAbsolutePath());
     }
 
     private static boolean isPropertyValueEquals(Properties privResp, String code, String valueExpected) {
