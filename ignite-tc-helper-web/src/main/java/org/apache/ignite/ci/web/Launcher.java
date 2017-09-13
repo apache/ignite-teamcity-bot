@@ -32,7 +32,7 @@ public class Launcher {
         WebAppContext ctx = new WebAppContext();
 
         if(dev) {
-            String webApp = "./src/main/webapp";
+            String webApp = "./ignite-tc-helper-web/src/main/webapp";
             File webResDir = new File(webApp);
             Preconditions.checkState(webResDir.exists(),
                 "Resource directory [" + webResDir.getAbsolutePath() + "] does not exist");

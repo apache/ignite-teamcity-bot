@@ -24,11 +24,11 @@ public class IgniteTeamcityHelperRunnerExample {
 
         int k = 0;
         if (k > 0) {
-        //branch example: "pull/2335/head"
-        String branchNameForHist = "pull/2296/head";
-        List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests").get();
-        for (BuildType bt : buildTypes) {
-            System.err.println(bt.getId());
+            //branch example: "pull/2335/head"
+            String branchNameForHist = "pull/2296/head";
+            List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests").get();
+            for (BuildType bt : buildTypes) {
+                System.err.println(bt.getId());
 
                 if (bt.getName().toLowerCase().contains("pds")
                     // || bt.getName().toLowerCase().contains("cache")
@@ -55,7 +55,7 @@ public class IgniteTeamcityHelperRunnerExample {
         int j = 1;
         if (j > 0) {
             // int[] ints = IntStream.range(742325, 742325 + 20).toArray();
-            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(759912);
+            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(788848);
             List<File> collect = getFuturesResults(fileFutList);
             for (File next : collect) {
                 System.out.println("Cached locally: [" + next.getCanonicalPath()
