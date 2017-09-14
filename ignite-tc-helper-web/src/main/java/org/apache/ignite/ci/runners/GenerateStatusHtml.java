@@ -75,7 +75,7 @@ public class GenerateStatusHtml {
         boolean includeTabAll = groupByResponsible && true;
         final List<Branch> branchesPriv = Lists.newArrayList(
             new Branch("", "<default>", "master"),
-            new Branch("ignite-2.1.4", "ignite-2.1.4", "ignite-2.1.4"),
+            //new Branch("ignite-2.1.4", "ignite-2.1.4", "ignite-2.1.4"),
             new Branch("ignite-2.1.5", "ignite-2.1.5", "ignite-2.1.5"));
         final String tcPrivId = "private";
         final String privProjectId = "id8xIgniteGridGainTests";
@@ -83,12 +83,14 @@ public class GenerateStatusHtml {
 
         final List<Branch> branchesPub = Lists.newArrayList(
             new Branch("", "<default>", "master"),
+            /*
             new Branch(
                 "pull/2400/head",
                 "pull/2400/head", "make-teamсity-green-again"),
             new Branch(
                 "pull/2380/head",
                 "pull/2380/head", "ignite-2.1.4"),
+                */
             new Branch(
                 "pull/2508/head",
                 "pull/2508/head", "ignite-2.1.5"),
@@ -158,7 +160,9 @@ public class GenerateStatusHtml {
             }
             line(writer, "</div>");
 
-            line(writer, "<p>Version 7. New versions 2.1.4 & 2.1.5 & 2.2 were added</p>");
+            line(writer, "<p>" +
+                "Version 8. Responsibilities were changed" +
+                "</p>");
             line(writer, "</body>");
             line(writer, "</html>");
         }
