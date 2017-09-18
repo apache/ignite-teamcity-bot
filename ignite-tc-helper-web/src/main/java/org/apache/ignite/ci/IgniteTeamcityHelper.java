@@ -124,6 +124,14 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return futures;
     }
 
+
+    public List<CompletableFuture<File>> standardProcessAllBuildHistory(String buildTypeId, String branch) {
+        List<Build> failed = this.getFinishedBuildsIncludeFailed(buildTypeId, branch);
+        List<CompletableFuture<File>> fileFutList = standardProcessLogs(
+            failed.stream().mapToInt(Build::getIdAsInt).toArray());
+        return fileFutList;
+    }
+
     /**
      * @return Basic auth token.
      */
@@ -200,10 +208,10 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     }
 
-    public List<Build> getFinishedBuildsIncludeFailed(String suite,
+    public List<Build> getFinishedBuildsIncludeFailed(String buildTypeId,
         String branch) {
         String name = URLEncoder.encode(branch);
-        List<Build> finished = getBuildHistory(suite,
+        List<Build> finished = getBuildHistory(buildTypeId,
             name,
             false,
             "finished");

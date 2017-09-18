@@ -2,6 +2,7 @@ package org.apache.ignite.ci.runners;
 
 import com.google.common.base.Throwables;
 import java.io.File;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -9,6 +10,7 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import org.apache.ignite.ci.model.conf.BuildType;
 import org.apache.ignite.ci.model.conf.Project;
+import org.apache.ignite.ci.model.hist.Build;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.util.XmlUtil;
@@ -45,23 +47,31 @@ public class IgniteTeamcityHelperRunnerExample {
             }
         }
 
-        for (int i = 0; i < 0; i++) {
+        for (int i = 0; i < 29; i++) {
             //branch example:
-            final String branchName = "pull/2422/head";
+            final String branchName = "pull/2690/head";
             //String branchName = "refs/heads/master";
-            helper.triggerBuild("Ignite20Tests_IgniteCache6", branchName);
+            helper.triggerBuild("Ignite20Tests_IgnitePdsIndexing", branchName);
         }
 
-        int j = 1;
+        int j = 0;
         if (j > 0) {
             // int[] ints = IntStream.range(742325, 742325 + 20).toArray();
-            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(788848);
+            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(836279);
             List<File> collect = getFuturesResults(fileFutList);
             for (File next : collect) {
-                System.out.println("Cached locally: [" + next.getCanonicalPath()
-                    + "], " + next.toURI().toURL());
+                System.out.println("Cached locally: [" + next.getCanonicalPath() + "], " + next.toURI().toURL());
             }
+        }
 
+        int h = 0;
+        if(h>0) {
+            List<CompletableFuture<File>> futures = helper.standardProcessAllBuildHistory("Ignite20Tests_IgnitePdsIndexing", "<default>");
+
+            List<File> collect = getFuturesResults(futures);
+            for (File next : collect) {
+                System.out.println("Cached locally: [" + next.getCanonicalPath() + "], " + next.toURI().toURL());
+            }
         }
 
         //sendGet(helper.host(), helper.basicAuthToken());

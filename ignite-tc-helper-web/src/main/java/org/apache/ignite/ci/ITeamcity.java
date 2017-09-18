@@ -7,8 +7,10 @@ import org.apache.ignite.ci.model.hist.Build;
 import org.apache.ignite.ci.model.result.FullBuildInfo;
 import org.apache.ignite.ci.model.result.problems.ProblemOccurrences;
 
-/** API for calling methods from REST service:
- * https://confluence.jetbrains.com/display/TCD10/REST+API */
+/**
+ * API for calling methods from REST service:
+ * https://confluence.jetbrains.com/display/TCD10/REST+API
+ */
 public interface ITeamcity extends AutoCloseable {
     CompletableFuture<List<BuildType>> getProjectSuites(String projectId);
 
@@ -20,5 +22,5 @@ public interface ITeamcity extends AutoCloseable {
 
     ProblemOccurrences getProblems(String href);
 
-    @Override void close() ;
+    @Override void close();
 }
