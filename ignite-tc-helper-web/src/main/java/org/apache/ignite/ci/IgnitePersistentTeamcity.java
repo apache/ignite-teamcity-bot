@@ -18,6 +18,7 @@ import org.apache.ignite.ci.model.conf.BuildType;
 import org.apache.ignite.ci.model.hist.Build;
 import org.apache.ignite.ci.model.result.FullBuildInfo;
 import org.apache.ignite.ci.model.result.problems.ProblemOccurrences;
+import org.apache.ignite.ci.model.result.tests.TestOccurrences;
 
 /**
  * Created by dpavlov on 03.08.2017
@@ -79,11 +80,11 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     //loads build history with following parameter: defaultFilter:false,state:finished
-    @Override public List<Build> getFinishedBuildsIncludeFailed(String id, String branch) {
-        final SuiteInBranch suiteInBranch = new SuiteInBranch(id, branch);
+    @Override public List<Build> getFinishedBuildsIncludeFailed(String projectId, String branch) {
+        final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
         return timedLoadIfAbsentOrMerge("finishedBuildsIncludeFailed", 60, suiteInBranch,
             (key, persistedValue) -> {
-                final List<Build> finished = teamcity.getFinishedBuildsIncludeFailed(id, branch);
+                final List<Build> finished = teamcity.getFinishedBuildsIncludeFailed(projectId, branch);
                 final SortedMap<Integer, Build> merge = new TreeMap<>();
                 if (persistedValue != null)
                     persistedValue.forEach(b -> merge.put(b.getIdAsInt(), b));
@@ -107,6 +108,13 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         return loadIfAbsent("problems",
             href,
             teamcity::getProblems);
+
+    }
+
+    @Override public TestOccurrences getTests(String href) {
+        return loadIfAbsent("tests",
+            href,
+            teamcity::getTests);
 
     }
 

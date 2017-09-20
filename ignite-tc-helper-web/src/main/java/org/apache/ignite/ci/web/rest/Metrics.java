@@ -15,6 +15,7 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.model.SuiteInBranch;
 import org.apache.ignite.ci.runners.CheckBuildChainResults;
+import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.TestsMetrics;
 import org.jetbrains.annotations.NotNull;
@@ -69,7 +70,7 @@ public class Metrics {
             String dispDate = new SimpleDateFormat("dd.MM.yyyy").format(mddd);
             int axisXIdx = testsMetrics.addAxisXLabel(dispDate);
             for (SuiteInBranch next : history.builds()) {
-                CheckBuildChainResults.ChainContext suiteCtx = history.build(next, date);
+                FullChainRunCtx suiteCtx = history.build(next, date);
                 if (suiteCtx != null) {
                     testsMetrics.failed.addMeasurement(next, axisXIdx, (double)suiteCtx.failedTests());
                     testsMetrics.muted.addMeasurement(next, axisXIdx, (double)suiteCtx.mutedTests());

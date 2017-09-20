@@ -16,6 +16,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.FullSuiteRunContext;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.model.SuiteInBranch;
@@ -28,42 +29,8 @@ import org.apache.ignite.ci.model.result.problems.ProblemOccurrences;
  */
 public class CheckBuildChainResults {
 
-    public static class ChainContext {
-        private FullBuildInfo results;
-        private List<FullSuiteRunContext> list = new ArrayList<>();
-
-        public ChainContext(FullBuildInfo results, List<FullSuiteRunContext> list) {
-            this.results = results;
-            this.list = list;
-        }
-
-        public int buildProblems() {
-            return (int)list.stream().filter(FullSuiteRunContext::hasNontestBuildProblem).count();
-        }
-
-        public List<FullSuiteRunContext> suites() {
-            return list;
-        }
-
-        public String suiteName() {
-            return results.suiteName();
-        }
-
-        public int failedTests() {
-            return list.stream().mapToInt(FullSuiteRunContext::failedTests).sum();
-        }
-
-        public int mutedTests() {
-            return list.stream().mapToInt(FullSuiteRunContext::mutedTests).sum();
-        }
-
-        public int totalTests() {
-            return list.stream().mapToInt(FullSuiteRunContext::totalTests).sum();
-        }
-    }
-
     private static class BuildHistory {
-        Map<String, ChainContext> map = new TreeMap<>();
+        Map<String, FullChainRunCtx> map = new TreeMap<>();
     }
 
     private static class FailuresHistory {
@@ -108,7 +75,7 @@ public class CheckBuildChainResults {
             return dates;
         }
 
-        public ChainContext build(SuiteInBranch next, String date) {
+        public FullChainRunCtx build(SuiteInBranch next, String date) {
             BuildHistory hist = map.get(next);
             if (hist == null)
                 return null;
@@ -194,7 +161,7 @@ public class CheckBuildChainResults {
             String dispDate = new SimpleDateFormat("dd.MM.yyyy").format(mddd);
             System.out.print(dispDate + "\t");
             for (SuiteInBranch next : history.builds()) {
-                ChainContext suiteCtx = history.build(next, date);
+                FullChainRunCtx suiteCtx = history.build(next, date);
 
                 System.out.print(
                     (suiteCtx == null ? " " : suiteCtx.buildProblems()) + "\t"
@@ -220,7 +187,7 @@ public class CheckBuildChainResults {
             Date parse = next.getFinishDate();
             String dateForMap = new SimpleDateFormat("yyyyMMdd").format(parse);
             suiteHist.map.computeIfAbsent(dateForMap, k -> {
-                ChainContext ctx = loadChainContext(teamcity, next);
+                FullChainRunCtx ctx = loadChainContext(teamcity, next);
                 for (FullSuiteRunContext suite : ctx.suites()) {
                     boolean suiteOk = suite.failedTests() == 0 && !suite.hasNontestBuildProblem();
                     history.addSuiteResult(teamcity.serverId() + "\t" + suite.suiteName(), suiteOk);
@@ -230,18 +197,18 @@ public class CheckBuildChainResults {
         }
     }
 
-    private static ChainContext getLatestSuiteRunStatus(IgniteTeamcityHelper teamcity,
+    private static FullChainRunCtx getLatestSuiteRunStatus(ITeamcity teamcity,
         String suite, String branch) {
         List<Build> all = teamcity.getFinishedBuildsIncludeFailed(suite, branch);
         return all.isEmpty() ? null : loadChainContext(teamcity, all.get(0));
     }
 
-    private static ChainContext loadChainContext(ITeamcity teamcity, Build latest) {
+    public static FullChainRunCtx loadChainContext(ITeamcity teamcity, Build latest) {
         FullBuildInfo results = teamcity.getBuildResults(latest.href);
         return loadChainContext(teamcity, results);
     }
 
-    private static ChainContext loadChainContext(ITeamcity teamcity, FullBuildInfo results) {
+    private static FullChainRunCtx loadChainContext(ITeamcity teamcity, FullBuildInfo results) {
         List<Build> builds = results.getSnapshotDependenciesNonNull();
 
         List<FullSuiteRunContext> fullBuildInfoList = new ArrayList<>();
@@ -249,13 +216,15 @@ public class CheckBuildChainResults {
             FullBuildInfo dep = teamcity.getBuildResults(next.href);
 
             FullSuiteRunContext ctx = new FullSuiteRunContext(dep);
-            if (dep.problemOccurrences != null) {
-                ProblemOccurrences problems = teamcity.getProblems(dep.problemOccurrences.href);
-                ctx.setProblems(problems.getProblemsNonNull());
-            }
+            if (dep.problemOccurrences != null)
+                ctx.setProblems(teamcity.getProblems(dep.problemOccurrences.href).getProblemsNonNull());
+
+            if (dep.testOccurrences != null)
+                ctx.setTests(teamcity.getTests(dep.testOccurrences.href + ",count:7500").getTests());
+
             fullBuildInfoList.add(ctx);
         }
 
-        return new ChainContext(results, fullBuildInfoList);
+        return new FullChainRunCtx(results, fullBuildInfoList);
     }
 }

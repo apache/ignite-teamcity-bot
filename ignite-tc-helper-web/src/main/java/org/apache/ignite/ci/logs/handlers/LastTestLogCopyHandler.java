@@ -69,7 +69,7 @@ public class LastTestLogCopyHandler implements ILineHandler {
     }
 
     private void dumpCurrentToFileX(String logPrefix) throws IOException {
-        String name = currentTestName.replaceAll("#", ".");
+        String name = getLastTestName();
         try (FileWriter writer = new FileWriter(new File(workFolder, logPrefix + name + ".log"))) {
             lastTestLog.forEach(line -> {
                 try {
@@ -84,7 +84,14 @@ public class LastTestLogCopyHandler implements ILineHandler {
         lastTestLog.clear();
     }
 
+    public String getLastTestName() {
+        if (currentTestName == null)
+            return null;
+        return currentTestName.replaceAll("#", ".");
+    }
+
     public void setDumpLastTest(boolean dumpLastTest) {
         this.dumpLastTest = dumpLastTest;
     }
+
 }

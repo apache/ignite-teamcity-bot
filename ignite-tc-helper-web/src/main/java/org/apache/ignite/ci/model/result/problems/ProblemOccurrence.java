@@ -10,4 +10,12 @@ public class ProblemOccurrence {
     @XmlAttribute public String identity;
     @XmlAttribute public String type;
     @XmlAttribute public String href;
+
+    public boolean isExecutionTimeout() {
+        return "TC_EXECUTION_TIMEOUT".equals(type);
+    }
+
+    public boolean isFailedTests() {
+        return "TC_FAILED_TESTS".equals(type);
+    }
 }

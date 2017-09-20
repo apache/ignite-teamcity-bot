@@ -27,6 +27,7 @@ import org.apache.ignite.ci.model.hist.Builds;
 import org.apache.ignite.ci.model.conf.Project;
 import org.apache.ignite.ci.model.result.FullBuildInfo;
 import org.apache.ignite.ci.model.result.problems.ProblemOccurrences;
+import org.apache.ignite.ci.model.result.tests.TestOccurrences;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
@@ -115,33 +116,48 @@ public class IgniteTeamcityHelper implements ITeamcity {
     public List<CompletableFuture<File>> standardProcessLogs(int... buildIds) {
         List<CompletableFuture<File>> futures = new ArrayList<>();
         for (int buildId : buildIds) {
-            final FullBuildInfo results = getBuildResults(buildId);
-            final FullSuiteRunContext ctx = new FullSuiteRunContext(results);
-            if (results.problemOccurrences != null) {
-                ProblemOccurrences problems = getProblems(results.problemOccurrences.href);
-                ctx.setProblems(problems.getProblemsNonNull());
-            }
-            final boolean timeout = ctx.hasTimeoutProblem();
-            if (timeout)
-                System.err.println(ctx.suiteName() + " failed with timeout " + buildId);
+            CompletableFuture<File> future = standardProcessOfBuildLog(buildId);
+            futures.add(future);
 
-            final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
-            final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
-            final ThreadDumpCopyHandler search = new ThreadDumpCopyHandler();
-            final LastTestLogCopyHandler lastTestCp = new LastTestLogCopyHandler();
-            lastTestCp.setDumpLastTest(timeout);
-            final LogsAnalyzer analyzer = new LogsAnalyzer(search, lastTestCp);
-            final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
-            futures.add(fut2);
         }
         return futures;
     }
 
+    private CompletableFuture<File> standardProcessOfBuildLog(int buildId) {
+        final FullBuildInfo results = getBuildResults(buildId);
+        final FullSuiteRunContext ctx = new FullSuiteRunContext(results);
+        if (results.problemOccurrences != null) {
+            ProblemOccurrences problems = getProblems(results.problemOccurrences.href);
+            ctx.setProblems(problems.getProblemsNonNull());
+        }
+        if (results.testOccurrences != null)
+            ctx.setTests(getTests(results.testOccurrences.href + ",count:7500").getTests());
+
+        final boolean timeout = ctx.hasTimeoutProblem();
+        if (timeout)
+            System.err.println(ctx.suiteName() + " failed with timeout " + buildId);
+
+        final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
+        final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
+        final ThreadDumpCopyHandler search = new ThreadDumpCopyHandler();
+        final LastTestLogCopyHandler lastTestCp = new LastTestLogCopyHandler();
+        lastTestCp.setDumpLastTest(timeout);
+        final LogsAnalyzer analyzer = new LogsAnalyzer(search, lastTestCp);
+        final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
+        return fut2.thenApplyAsync(file -> {
+            if(timeout) {
+                String name = lastTestCp.getLastTestName();
+                ctx.setLastStartedTest(name);
+            }
+            System.err.println(ctx.getPrintableStatusString());
+            return file;
+        });
+    }
 
     public List<CompletableFuture<File>> standardProcessAllBuildHistory(String buildTypeId, String branch) {
-        List<Build> failed = this.getFinishedBuildsIncludeFailed(buildTypeId, branch);
+        List<Build> allBuilds = this.getFinishedBuildsIncludeFailed(buildTypeId, branch);
         List<CompletableFuture<File>> fileFutList = standardProcessLogs(
-            failed.stream().mapToInt(Build::getIdAsInt).toArray());
+            allBuilds.stream().mapToInt(Build::getIdAsInt).toArray());
         return fileFutList;
     }
 
@@ -208,6 +224,10 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return getJaxbUsingHref(href, ProblemOccurrences.class);
     }
 
+    public TestOccurrences getTests(String href) {
+        return getJaxbUsingHref(href, TestOccurrences.class);
+    }
+
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {
         return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), elem);
     }
@@ -221,10 +241,10 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     }
 
-    public List<Build> getFinishedBuildsIncludeFailed(String buildTypeId,
+    public List<Build> getFinishedBuildsIncludeFailed(String projectId,
         String branch) {
         String name = URLEncoder.encode(branch);
-        List<Build> finished = getBuildHistory(buildTypeId,
+        List<Build> finished = getBuildHistory(projectId,
             name,
             false,
             "finished");
