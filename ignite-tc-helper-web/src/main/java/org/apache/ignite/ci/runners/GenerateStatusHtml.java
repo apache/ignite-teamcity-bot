@@ -73,6 +73,7 @@ public class GenerateStatusHtml {
     public static void main(String[] args) throws Exception {
         boolean groupByResponsible = true;
         boolean includeTabAll = groupByResponsible && true;
+        final String verComments = "Version 9. Ignite 2.2 was removed";
         final List<Branch> branchesPriv = Lists.newArrayList(
             new Branch("", "<default>", "master"),
             //new Branch("ignite-2.1.4", "ignite-2.1.4", "ignite-2.1.4"),
@@ -93,10 +94,11 @@ public class GenerateStatusHtml {
                 */
             new Branch(
                 "pull/2508/head",
-                "pull/2508/head", "ignite-2.1.5"),
+                "pull/2508/head", "ignite-2.1.5")
+            /*,
             new Branch(
                 "ignite-2.2",
-                "ignite-2.2", "ignite-2.2")
+                "ignite-2.2", "ignite-2.2")*/
         );
         final String pubTcId = "public";
         final String projectId = "Ignite20Tests";
@@ -161,7 +163,7 @@ public class GenerateStatusHtml {
             line(writer, "</div>");
 
             line(writer, "<p>" +
-                "Version 8. Responsibilities were changed" +
+                verComments +
                 "</p>");
             line(writer, "</body>");
             line(writer, "</html>");

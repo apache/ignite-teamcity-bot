@@ -99,6 +99,10 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             FullBuildInfo::hasFinishDate); //only completed builds are saved
     }
 
+    @Override public String host() {
+        return teamcity.host();
+    }
+
     @Override public ProblemOccurrences getProblems(String href) {
         return loadIfAbsent("problems",
             href,

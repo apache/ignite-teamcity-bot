@@ -47,17 +47,16 @@ public class IgniteTeamcityHelperRunnerExample {
             }
         }
 
-        for (int i = 0; i < 29; i++) {
+        for (int i = 0; i < 0; i++) {
             //branch example:
-            final String branchName = "pull/2690/head";
+            final String branchName = "pull/2704/head";
             //String branchName = "refs/heads/master";
-            helper.triggerBuild("Ignite20Tests_IgnitePdsIndexing", branchName);
+            helper.triggerBuild("Ignite20Tests_IgniteDataStrucutures", branchName);
         }
 
-        int j = 0;
+        int j = 1;
         if (j > 0) {
-            // int[] ints = IntStream.range(742325, 742325 + 20).toArray();
-            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(836279);
+            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(834867);
             List<File> collect = getFuturesResults(fileFutList);
             for (File next : collect) {
                 System.out.println("Cached locally: [" + next.getCanonicalPath() + "], " + next.toURI().toURL());
@@ -65,8 +64,10 @@ public class IgniteTeamcityHelperRunnerExample {
         }
 
         int h = 0;
-        if(h>0) {
-            List<CompletableFuture<File>> futures = helper.standardProcessAllBuildHistory("Ignite20Tests_IgnitePdsIndexing", "<default>");
+        if (h > 0) {
+            List<CompletableFuture<File>> futures = helper.standardProcessAllBuildHistory(
+                "Ignite20Tests_IgniteDataStructures",
+                "<default>");
 
             List<File> collect = getFuturesResults(futures);
             for (File next : collect) {

@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.actions.DownloadBuildLog;
+import org.apache.ignite.ci.analysis.FullSuiteRunContext;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
 import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
@@ -114,10 +115,22 @@ public class IgniteTeamcityHelper implements ITeamcity {
     public List<CompletableFuture<File>> standardProcessLogs(int... buildIds) {
         List<CompletableFuture<File>> futures = new ArrayList<>();
         for (int buildId : buildIds) {
+            final FullBuildInfo results = getBuildResults(buildId);
+            final FullSuiteRunContext ctx = new FullSuiteRunContext(results);
+            if (results.problemOccurrences != null) {
+                ProblemOccurrences problems = getProblems(results.problemOccurrences.href);
+                ctx.setProblems(problems.getProblemsNonNull());
+            }
+            final boolean timeout = ctx.hasTimeoutProblem();
+            if (timeout)
+                System.err.println(ctx.suiteName() + " failed with timeout " + buildId);
+
             final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
             final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
             final ThreadDumpCopyHandler search = new ThreadDumpCopyHandler();
-            final LogsAnalyzer analyzer = new LogsAnalyzer(search, new LastTestLogCopyHandler());
+            final LastTestLogCopyHandler lastTestCp = new LastTestLogCopyHandler();
+            lastTestCp.setDumpLastTest(timeout);
+            final LogsAnalyzer analyzer = new LogsAnalyzer(search, lastTestCp);
             final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
             futures.add(fut2);
         }
@@ -140,7 +153,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /**
-     * @return Host.
+     * @return Normalized Host address, ends with '/'.
      */
     public String host() {
         return host;

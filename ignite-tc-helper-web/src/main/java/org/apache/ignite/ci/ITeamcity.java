@@ -20,6 +20,15 @@ public interface ITeamcity extends AutoCloseable {
 
     FullBuildInfo getBuildResults(String href);
 
+    default FullBuildInfo getBuildResults(int id) {
+        return getBuildResults( "app/rest/latest/builds/id:" + Integer.toString(id));
+    }
+
+    /**
+     * @return Normalized Host address, ends with '/'.
+     */
+    public String host();
+
     ProblemOccurrences getProblems(String href);
 
     @Override void close();

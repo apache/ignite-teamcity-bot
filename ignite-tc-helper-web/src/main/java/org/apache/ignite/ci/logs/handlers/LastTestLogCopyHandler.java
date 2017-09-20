@@ -20,6 +20,9 @@ public class LastTestLogCopyHandler implements ILineHandler {
     private String currentTestName = null;
     private File workFolder;
 
+    /** Dump last test. This mode is enabled if suite was timed out */
+    private boolean dumpLastTest;
+
     @Override public void accept(String line, File fromLogFile) {
 
         if (workFolder == null)
@@ -52,7 +55,7 @@ public class LastTestLogCopyHandler implements ILineHandler {
     }
 
     @Override public void close() throws Exception {
-        if (currentTestName != null && !lastTestLog.isEmpty())
+        if (dumpLastTest && currentTestName != null && !lastTestLog.isEmpty())
             dumpCurrentToFile("lastStartedTest_");
     }
 
@@ -79,5 +82,9 @@ public class LastTestLogCopyHandler implements ILineHandler {
             });
         }
         lastTestLog.clear();
+    }
+
+    public void setDumpLastTest(boolean dumpLastTest) {
+        this.dumpLastTest = dumpLastTest;
     }
 }

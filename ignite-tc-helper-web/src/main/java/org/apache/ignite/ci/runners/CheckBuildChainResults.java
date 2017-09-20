@@ -16,12 +16,11 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.analysis.FullSuiteRunContext;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.model.SuiteInBranch;
 import org.apache.ignite.ci.model.hist.Build;
 import org.apache.ignite.ci.model.result.FullBuildInfo;
-import org.apache.ignite.ci.model.result.TestOccurrencesRef;
-import org.apache.ignite.ci.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.model.result.problems.ProblemOccurrences;
 
 /**
@@ -31,18 +30,18 @@ public class CheckBuildChainResults {
 
     public static class ChainContext {
         private FullBuildInfo results;
-        private List<FullSuiteContext> list = new ArrayList<>();
+        private List<FullSuiteRunContext> list = new ArrayList<>();
 
-        public ChainContext(FullBuildInfo results, List<FullSuiteContext> list) {
+        public ChainContext(FullBuildInfo results, List<FullSuiteRunContext> list) {
             this.results = results;
             this.list = list;
         }
 
         public int buildProblems() {
-            return (int)list.stream().filter(FullSuiteContext::hasNontestBuildProblem).count();
+            return (int)list.stream().filter(FullSuiteRunContext::hasNontestBuildProblem).count();
         }
 
-        public List<FullSuiteContext> suites() {
+        public List<FullSuiteRunContext> suites() {
             return list;
         }
 
@@ -51,74 +50,15 @@ public class CheckBuildChainResults {
         }
 
         public int failedTests() {
-            return list.stream().mapToInt(FullSuiteContext::failedTests).sum();
+            return list.stream().mapToInt(FullSuiteRunContext::failedTests).sum();
         }
 
         public int mutedTests() {
-            return list.stream().mapToInt(FullSuiteContext::mutedTests).sum();
+            return list.stream().mapToInt(FullSuiteRunContext::mutedTests).sum();
         }
 
         public int totalTests() {
-            return list.stream().mapToInt(FullSuiteContext::totalTests).sum();
-        }
-    }
-
-    private static class FullSuiteContext {
-        private FullBuildInfo buildInfo;
-        private List<ProblemOccurrence> problems;
-
-        public FullSuiteContext(FullBuildInfo buildInfo) {
-            this.buildInfo = buildInfo;
-        }
-
-        public void setProblems(List<ProblemOccurrence> problems) {
-            this.problems = problems;
-        }
-
-        public String suiteName() {
-            return buildInfo.suiteName();
-        }
-
-        public String suiteId() {
-            return buildInfo.getId();
-        }
-
-        public boolean hasNontestBuildProblem() {
-            return problems != null && problems.stream().anyMatch(problem ->
-                !"TC_FAILED_TESTS".equals(problem.type)
-                    && !"SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE".equals(problem.type)
-                    && !"BuildFailureOnMessage".equals(problem.type));
-
-            //todo what to do with BuildFailureOnMessage, now it is ignored
-        }
-
-        public int failedTests() {
-            final TestOccurrencesRef testOccurrences = buildInfo.testOccurrences;
-
-            if (testOccurrences == null)
-                return 0;
-            final Integer failed = testOccurrences.failed;
-
-            return failed == null ? 0 : failed;
-        }
-
-        public int mutedTests() {
-            TestOccurrencesRef testOccurrences = buildInfo.testOccurrences;
-            if (testOccurrences == null)
-                return 0;
-            final Integer muted = testOccurrences.muted;
-
-            return muted == null ? 0 : muted;
-        }
-
-        public int totalTests() {
-            final TestOccurrencesRef testOccurrences = buildInfo.testOccurrences;
-
-            if (testOccurrences == null)
-                return 0;
-            final Integer cnt = testOccurrences.count;
-
-            return cnt == null ? 0 : cnt;
+            return list.stream().mapToInt(FullSuiteRunContext::totalTests).sum();
         }
     }
 
@@ -281,7 +221,7 @@ public class CheckBuildChainResults {
             String dateForMap = new SimpleDateFormat("yyyyMMdd").format(parse);
             suiteHist.map.computeIfAbsent(dateForMap, k -> {
                 ChainContext ctx = loadChainContext(teamcity, next);
-                for (FullSuiteContext suite : ctx.suites()) {
+                for (FullSuiteRunContext suite : ctx.suites()) {
                     boolean suiteOk = suite.failedTests() == 0 && !suite.hasNontestBuildProblem();
                     history.addSuiteResult(teamcity.serverId() + "\t" + suite.suiteName(), suiteOk);
                 }
@@ -304,11 +244,11 @@ public class CheckBuildChainResults {
     private static ChainContext loadChainContext(ITeamcity teamcity, FullBuildInfo results) {
         List<Build> builds = results.getSnapshotDependenciesNonNull();
 
-        List<FullSuiteContext> fullBuildInfoList = new ArrayList<>();
+        List<FullSuiteRunContext> fullBuildInfoList = new ArrayList<>();
         for (Build next : builds) {
             FullBuildInfo dep = teamcity.getBuildResults(next.href);
 
-            FullSuiteContext ctx = new FullSuiteContext(dep);
+            FullSuiteRunContext ctx = new FullSuiteRunContext(dep);
             if (dep.problemOccurrences != null) {
                 ProblemOccurrences problems = teamcity.getProblems(dep.problemOccurrences.href);
                 ctx.setProblems(problems.getProblemsNonNull());

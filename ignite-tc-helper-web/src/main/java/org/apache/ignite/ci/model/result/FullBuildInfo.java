@@ -31,7 +31,7 @@ public class FullBuildInfo extends Build {
     @XmlElementWrapper(name = "snapshot-dependencies")
     private List<Build> snapshotDependencies;
 
-    @XmlElement(name = "problemOccurrences") public ProblemOccurrences problemOccurrences;
+    @XmlElement(name = "problemOccurrences") public ProblemOccurrencesRef problemOccurrences;
 
     @XmlElement(name = "testOccurrences") public TestOccurrencesRef testOccurrences;
 
