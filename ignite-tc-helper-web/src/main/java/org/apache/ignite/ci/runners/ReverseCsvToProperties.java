@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.Properties;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
-import org.apache.ignite.ci.model.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
 
 /**
  * Created by Дмитрий on 29.07.2017

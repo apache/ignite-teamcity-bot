@@ -17,17 +17,17 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.actions.DownloadBuildLog;
-import org.apache.ignite.ci.analysis.FullSuiteRunContext;
+import org.apache.ignite.ci.analysis.FullBuildRunContext;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
 import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
-import org.apache.ignite.ci.model.hist.Build;
-import org.apache.ignite.ci.model.conf.BuildType;
-import org.apache.ignite.ci.model.hist.Builds;
-import org.apache.ignite.ci.model.conf.Project;
-import org.apache.ignite.ci.model.result.FullBuildInfo;
-import org.apache.ignite.ci.model.result.problems.ProblemOccurrences;
-import org.apache.ignite.ci.model.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.hist.Builds;
+import org.apache.ignite.ci.tcmodel.conf.Project;
+import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
@@ -124,8 +124,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     private CompletableFuture<File> standardProcessOfBuildLog(int buildId) {
-        final FullBuildInfo results = getBuildResults(buildId);
-        final FullSuiteRunContext ctx = new FullSuiteRunContext(results);
+        final Build results = getBuildResults(buildId);
+        final FullBuildRunContext ctx = new FullBuildRunContext(results);
         if (results.problemOccurrences != null) {
             ProblemOccurrences problems = getProblems(results.problemOccurrences.href);
             ctx.setProblems(problems.getProblemsNonNull());
@@ -155,9 +155,9 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     public List<CompletableFuture<File>> standardProcessAllBuildHistory(String buildTypeId, String branch) {
-        List<Build> allBuilds = this.getFinishedBuildsIncludeFailed(buildTypeId, branch);
+        List<BuildRef> allBuilds = this.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branch);
         List<CompletableFuture<File>> fileFutList = standardProcessLogs(
-            allBuilds.stream().mapToInt(Build::getIdAsInt).toArray());
+            allBuilds.stream().mapToInt(BuildRef::getId).toArray());
         return fileFutList;
     }
 
@@ -198,12 +198,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         }
     }
 
-    public List<Build> getBuildHistory(BuildType type, String branchName) {
-        return getBuildHistory(type.getId(), branchName, true, null);
-
-    }
-
-    public List<Build> getBuildHistory(String buildTypeId,
+    public List<BuildRef> getBuildHistory(String buildTypeId,
         String branchName,
         boolean dfltFilter,
         @Nullable String state) {
@@ -216,8 +211,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
             .getBuildsNonNull();
     }
 
-    public FullBuildInfo getBuildResults(String href) {
-        return getJaxbUsingHref(href, FullBuildInfo.class);
+    public Build getBuildResults(String href) {
+        return getJaxbUsingHref(href, Build.class);
     }
 
     public ProblemOccurrences getProblems(String href) {
@@ -232,24 +227,33 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), elem);
     }
 
-    public int[] getBuildNumbersFromHistory(BuildType bt, String branchNameForHist) {
-        List<Build> history = getBuildHistory(bt, branchNameForHist);
-        return history.stream().mapToInt(Build::getIdAsInt).toArray();
-    }
-
     @Override public void close()  {
-
     }
 
-    public List<Build> getFinishedBuildsIncludeFailed(String projectId,
+    /** {@inheritDoc} */
+    public List<BuildRef> getFinishedBuilds(String projectId,
         String branch) {
         String name = URLEncoder.encode(branch);
-        List<Build> finished = getBuildHistory(projectId,
+        List<BuildRef> finished = getBuildHistory(projectId,
+            name,
+            true,
+            null);
+
+        List<BuildRef> nonCancelled = finished.stream().filter(build -> build.isNotCancelled(this)).collect(Collectors.toList());
+        return nonCancelled;
+    }
+
+
+    /** {@inheritDoc} */
+    public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId,
+        String branch) {
+        String name = URLEncoder.encode(branch);
+        List<BuildRef> finished = getBuildHistory(projectId,
             name,
             false,
             "finished");
 
-        List<Build> nonCancelled = finished.stream().filter(build -> !"UNKNOWN".equals(build.status)).collect(Collectors.toList());
+        List<BuildRef> nonCancelled = finished.stream().filter(build -> build.isNotCancelled(this)).collect(Collectors.toList());
         return nonCancelled;
     }
 

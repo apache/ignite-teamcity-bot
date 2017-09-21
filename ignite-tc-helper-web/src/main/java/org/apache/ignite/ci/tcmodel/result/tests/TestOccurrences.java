@@ -1,11 +1,11 @@
-package org.apache.ignite.ci.model.result.tests;
+package org.apache.ignite.ci.tcmodel.result.tests;
 
 import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.ignite.ci.model.result.TestOccurrencesRef;
+import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 
 /**
  * Created by dpavlov on 03.08.2017

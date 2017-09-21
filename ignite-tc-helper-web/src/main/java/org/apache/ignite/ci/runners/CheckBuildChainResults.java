@@ -2,11 +2,11 @@ package org.apache.ignite.ci.runners;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -15,14 +15,12 @@ import java.util.stream.Stream;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
-import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.FullSuiteRunContext;
+import org.apache.ignite.ci.analysis.FullBuildRunContext;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.model.SuiteInBranch;
-import org.apache.ignite.ci.model.hist.Build;
-import org.apache.ignite.ci.model.result.FullBuildInfo;
-import org.apache.ignite.ci.model.result.problems.ProblemOccurrences;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.Build;
 
 /**
  * Created by dpavlov on 03.08.2017
@@ -180,15 +178,15 @@ public class CheckBuildChainResults {
         ITeamcity teamcity, String id, String branch)  {
         final SuiteInBranch branchId = new SuiteInBranch(id, branch);
         final BuildHistory suiteHist = history.history(branchId);
-        final List<Build> all = teamcity.getFinishedBuildsIncludeFailed(id, branch);
-        final List<FullBuildInfo> fullBuildInfoList = all.stream().map(b -> teamcity.getBuildResults(b.href)).collect(Collectors.toList());
+        final List<BuildRef> all = teamcity.getFinishedBuildsIncludeSnDepFailed(id, branch);
+        final List<Build> fullBuildInfoList = all.stream().map(b -> teamcity.getBuildResults(b.href)).collect(Collectors.toList());
 
-        for (FullBuildInfo next : fullBuildInfoList) {
+        for (Build next : fullBuildInfoList) {
             Date parse = next.getFinishDate();
             String dateForMap = new SimpleDateFormat("yyyyMMdd").format(parse);
             suiteHist.map.computeIfAbsent(dateForMap, k -> {
-                FullChainRunCtx ctx = loadChainContext(teamcity, next);
-                for (FullSuiteRunContext suite : ctx.suites()) {
+                FullChainRunCtx ctx = loadChainContext(teamcity, next, false);
+                for (FullBuildRunContext suite : ctx.suites()) {
                     boolean suiteOk = suite.failedTests() == 0 && !suite.hasNontestBuildProblem();
                     history.addSuiteResult(teamcity.serverId() + "\t" + suite.suiteName(), suiteOk);
                 }
@@ -197,34 +195,31 @@ public class CheckBuildChainResults {
         }
     }
 
-    private static FullChainRunCtx getLatestSuiteRunStatus(ITeamcity teamcity,
-        String suite, String branch) {
-        List<Build> all = teamcity.getFinishedBuildsIncludeFailed(suite, branch);
-        return all.isEmpty() ? null : loadChainContext(teamcity, all.get(0));
-    }
+    public static FullChainRunCtx loadChainContext(ITeamcity teamcity, Build results,
+        boolean includeLatestRebuild) {
 
-    public static FullChainRunCtx loadChainContext(ITeamcity teamcity, Build latest) {
-        FullBuildInfo results = teamcity.getBuildResults(latest.href);
-        return loadChainContext(teamcity, results);
-    }
+        List<FullBuildRunContext> suiteCtx = results.getSnapshotDependenciesNonNull().stream()
+            .parallel()
+            .map((BuildRef buildRef) -> {
+                Optional<Build> recentFullInfo;
+                if(includeLatestRebuild) {
+                    Optional<BuildRef> recentRef = teamcity.getLastFinishedBuild(buildRef.buildTypeId, buildRef.branchName);
+                    recentFullInfo = recentRef.map(ref -> teamcity.getBuildResults(ref.href));
+                }
+                else
+                    recentFullInfo = Optional.empty();
 
-    private static FullChainRunCtx loadChainContext(ITeamcity teamcity, FullBuildInfo results) {
-        List<Build> builds = results.getSnapshotDependenciesNonNull();
+                Build fullBuildInfo = recentFullInfo.orElseGet(() -> teamcity.getBuildResults(buildRef.href));
 
-        List<FullSuiteRunContext> fullBuildInfoList = new ArrayList<>();
-        for (Build next : builds) {
-            FullBuildInfo dep = teamcity.getBuildResults(next.href);
+                FullBuildRunContext ctx = new FullBuildRunContext(fullBuildInfo);
+                if (fullBuildInfo.problemOccurrences != null)
+                    ctx.setProblems(teamcity.getProblems(fullBuildInfo.problemOccurrences.href).getProblemsNonNull());
 
-            FullSuiteRunContext ctx = new FullSuiteRunContext(dep);
-            if (dep.problemOccurrences != null)
-                ctx.setProblems(teamcity.getProblems(dep.problemOccurrences.href).getProblemsNonNull());
+                if (fullBuildInfo.testOccurrences != null)
+                    ctx.setTests(teamcity.getTests(fullBuildInfo.testOccurrences.href + ",count:7500").getTests());
+                return ctx;
+            }).collect(Collectors.toList());
 
-            if (dep.testOccurrences != null)
-                ctx.setTests(teamcity.getTests(dep.testOccurrences.href + ",count:7500").getTests());
-
-            fullBuildInfoList.add(ctx);
-        }
-
-        return new FullChainRunCtx(results, fullBuildInfoList);
+        return new FullChainRunCtx(results, suiteCtx);
     }
 }

@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.model.conf;
+package org.apache.ignite.ci.tcmodel.conf;
 
 import java.util.Collections;
 import java.util.List;

@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.model.result;
+package org.apache.ignite.ci.tcmodel.result;
 
 import com.google.common.base.Strings;
 import java.text.ParseException;
@@ -11,16 +11,15 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.ignite.ci.model.conf.BuildType;
-import org.apache.ignite.ci.model.hist.Build;
-import org.apache.ignite.ci.model.result.problems.ProblemOccurrences;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
 /**
- * Created by dpavlov on 27.07.2017
+ * Build from history with test and problems references
  */
 @XmlRootElement(name = "build")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class FullBuildInfo extends Build {
+public class Build extends BuildRef {
     @XmlElement(name = "buildType") BuildType buildType;
 
     @XmlElement public String queuedDate;
@@ -29,13 +28,13 @@ public class FullBuildInfo extends Build {
 
     @XmlElement(name = "build")
     @XmlElementWrapper(name = "snapshot-dependencies")
-    private List<Build> snapshotDependencies;
+    private List<BuildRef> snapshotDependencies;
 
     @XmlElement(name = "problemOccurrences") public ProblemOccurrencesRef problemOccurrences;
 
     @XmlElement(name = "testOccurrences") public TestOccurrencesRef testOccurrences;
 
-    public List<Build> getSnapshotDependenciesNonNull() {
+    public List<BuildRef> getSnapshotDependenciesNonNull() {
         return snapshotDependencies == null ? Collections.emptyList() : snapshotDependencies;
     }
 

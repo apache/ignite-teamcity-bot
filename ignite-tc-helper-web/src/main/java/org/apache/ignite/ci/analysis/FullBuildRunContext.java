@@ -3,23 +3,23 @@ package org.apache.ignite.ci.analysis;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.apache.ignite.ci.model.result.FullBuildInfo;
-import org.apache.ignite.ci.model.result.TestOccurrencesRef;
-import org.apache.ignite.ci.model.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.model.result.tests.TestOccurrence;
+import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Run configuration execution results loaded from different API URLs
  */
-public class FullSuiteRunContext {
-    private FullBuildInfo buildInfo;
+public class FullBuildRunContext {
+    private Build buildInfo;
     private List<ProblemOccurrence> problems;
     @Nullable private List<TestOccurrence> tests;
 
     private String lastStartedTest;
 
-    public FullSuiteRunContext(FullBuildInfo buildInfo) {
+    public FullBuildRunContext(Build buildInfo) {
         this.buildInfo = buildInfo;
     }
 
@@ -31,26 +31,23 @@ public class FullSuiteRunContext {
         return buildInfo.suiteName();
     }
 
-    public String suiteId() {
-        return buildInfo.getId();
-    }
 
     public boolean hasNontestBuildProblem() {
         return problems != null && problems.stream().anyMatch(problem ->
             !problem.isFailedTests()
-                && !"SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE".equals(problem.type)
+                && !problem.isShaphotDepProblem()
                 && !"BuildFailureOnMessage".equals(problem.type));
         //todo what to do with BuildFailureOnMessage, now it is ignored
     }
 
-    public boolean hasAnyBuildProblemExceptTest() {
-        return getBuildProblemExceptTest().isPresent();
+    public boolean hasAnyBuildProblemExceptTestOrSnapshot() {
+        return getBuildProblemExceptTestOrSnapshot().isPresent();
     }
 
-    private Optional<ProblemOccurrence> getBuildProblemExceptTest() {
+    private Optional<ProblemOccurrence> getBuildProblemExceptTestOrSnapshot() {
         if (problems == null)
             return Optional.empty();
-        return problems.stream().filter(p -> !p.isFailedTests()).findAny();
+        return problems.stream().filter(p -> !p.isFailedTests() && !p.isShaphotDepProblem()).findAny();
     }
 
     public boolean hasTimeoutProblem() {
@@ -92,11 +89,11 @@ public class FullSuiteRunContext {
 
     public String getPrintableStatusString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("[").append(suiteName()).append("]\t");
+        builder.append("\t[").append(suiteName()).append("]\t");
         if (hasTimeoutProblem())
             builder.append("TIMEOUT ");
         else {
-            Optional<ProblemOccurrence> bpOpt = getBuildProblemExceptTest();
+            Optional<ProblemOccurrence> bpOpt = getBuildProblemExceptTestOrSnapshot();
             if (bpOpt.isPresent())
                 builder.append(bpOpt.get().type + " ");
         }

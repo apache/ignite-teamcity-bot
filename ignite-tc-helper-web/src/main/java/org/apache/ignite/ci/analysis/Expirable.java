@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.model;
+package org.apache.ignite.ci.analysis;
 
 /**
  * Created by dpavlov on 09.08.2017.

@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.model.result.problems;
+package org.apache.ignite.ci.tcmodel.result.problems;
 
 import javax.xml.bind.annotation.XmlAttribute;
 
@@ -17,5 +17,9 @@ public class ProblemOccurrence {
 
     public boolean isFailedTests() {
         return "TC_FAILED_TESTS".equals(type);
+    }
+
+    public boolean isShaphotDepProblem() {
+        return "SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE".equals(type);
     }
 }

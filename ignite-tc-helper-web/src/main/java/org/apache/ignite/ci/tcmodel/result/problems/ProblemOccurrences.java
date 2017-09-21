@@ -1,10 +1,10 @@
-package org.apache.ignite.ci.model.result.problems;
+package org.apache.ignite.ci.tcmodel.result.problems;
 
 import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.ignite.ci.model.result.ProblemOccurrencesRef;
+import org.apache.ignite.ci.tcmodel.result.ProblemOccurrencesRef;
 
 /**
  * Created by dpavlov on 03.08.2017

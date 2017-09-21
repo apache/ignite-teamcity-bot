@@ -18,7 +18,7 @@ import java.util.TreeSet;
 import java.util.function.Predicate;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
-import org.apache.ignite.ci.model.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.util.Base64Util;
 
 import static com.google.common.base.Strings.isNullOrEmpty;

@@ -12,13 +12,14 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.model.Expirable;
-import org.apache.ignite.ci.model.SuiteInBranch;
-import org.apache.ignite.ci.model.conf.BuildType;
-import org.apache.ignite.ci.model.hist.Build;
-import org.apache.ignite.ci.model.result.FullBuildInfo;
-import org.apache.ignite.ci.model.result.problems.ProblemOccurrences;
-import org.apache.ignite.ci.model.result.tests.TestOccurrences;
+import org.apache.ignite.ci.analysis.Expirable;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Created by dpavlov on 03.08.2017
@@ -79,25 +80,40 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         return apply;
     }
 
-    //loads build history with following parameter: defaultFilter:false,state:finished
-    @Override public List<Build> getFinishedBuildsIncludeFailed(String projectId, String branch) {
+    /** {@inheritDoc} */
+    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
-        return timedLoadIfAbsentOrMerge("finishedBuildsIncludeFailed", 60, suiteInBranch,
+        return timedLoadIfAbsentOrMerge("finishedBuilds", 60, suiteInBranch,
             (key, persistedValue) -> {
-                final List<Build> finished = teamcity.getFinishedBuildsIncludeFailed(projectId, branch);
-                final SortedMap<Integer, Build> merge = new TreeMap<>();
-                if (persistedValue != null)
-                    persistedValue.forEach(b -> merge.put(b.getIdAsInt(), b));
-                finished.forEach(b -> merge.put(b.getIdAsInt(), b)); //to overwrite data from persistence by values from REST
-                return new ArrayList<>(merge.values());
+                return mergeByIdToHistoricalOrder(persistedValue,
+                    teamcity.getFinishedBuilds(projectId, branch));
             });
     }
 
-    @Override public FullBuildInfo getBuildResults(String href) {
+    @NotNull private List<BuildRef> mergeByIdToHistoricalOrder(List<BuildRef> persistedVal, List<BuildRef> mostActualVal) {
+        final SortedMap<Integer, BuildRef> merge = new TreeMap<>();
+        if (persistedVal != null)
+            persistedVal.forEach(b -> merge.put(b.getId(), b));
+        mostActualVal.forEach(b -> merge.put(b.getId(), b)); //to overwrite data from persistence by values from REST
+        return new ArrayList<>(merge.values());
+    }
+
+    //loads build history with following parameter: defaultFilter:false,state:finished
+    /** {@inheritDoc} */
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
+        final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
+        return timedLoadIfAbsentOrMerge("finishedBuildsIncludeFailed", 60, suiteInBranch,
+            (key, persistedValue) -> {
+                return mergeByIdToHistoricalOrder(persistedValue,
+                    teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch));
+            });
+    }
+
+    @Override public Build getBuildResults(String href) {
         return loadIfAbsent("buildResults",
             href,
             teamcity::getBuildResults,
-            FullBuildInfo::hasFinishDate); //only completed builds are saved
+            Build::hasFinishDate); //only completed builds are saved
     }
 
     @Override public String host() {

@@ -2,7 +2,7 @@ package org.apache.ignite.ci.web.rest.model;
 
 import com.google.common.base.Preconditions;
 import java.util.Set;
-import org.apache.ignite.ci.model.SuiteInBranch;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
 
 /**
  * Created by Дмитрий on 09.08.2017

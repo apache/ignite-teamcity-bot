@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.model.result.tests;
+package org.apache.ignite.ci.tcmodel.result.tests;
 
 import javax.xml.bind.annotation.XmlAttribute;
 

@@ -2,15 +2,13 @@ package org.apache.ignite.ci.runners;
 
 import com.google.common.base.Throwables;
 import java.io.File;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-import org.apache.ignite.ci.model.conf.BuildType;
-import org.apache.ignite.ci.model.conf.Project;
-import org.apache.ignite.ci.model.hist.Build;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.util.XmlUtil;
@@ -35,7 +33,7 @@ public class IgniteTeamcityHelperRunnerExample {
                 if (bt.getName().toLowerCase().contains("pds")
                     // || bt.getName().toLowerCase().contains("cache")
                     ) {
-                    int[] ints = helper.getBuildNumbersFromHistory(bt, branchNameForHist);
+                    int[] ints = helper.getBuildNumbersFromHistory(bt.getName(), branchNameForHist);
 
                     List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(ints);
                     List<File> collect = getFuturesResults(fileFutList);
@@ -51,10 +49,10 @@ public class IgniteTeamcityHelperRunnerExample {
             //branch example:
             final String branchName = "pull/2704/head";
             //String branchName = "refs/heads/master";
-            helper.triggerBuild("Ignite20Tests_IgniteDataStrucutures", branchName);
+            helper.triggerBuild("Ignite20Tests_IgniteDataStructures", branchName);
         }
 
-        int j = 1;
+        int j = 0;
         if (j > 0) {
             List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(840602);
             List<File> collect = getFuturesResults(fileFutList);
@@ -65,9 +63,11 @@ public class IgniteTeamcityHelperRunnerExample {
 
         int h = 0;
         if (h > 0) {
+            String branch = "<default>";
+            final String branchName = "pull/2704/head";
             List<CompletableFuture<File>> futures = helper.standardProcessAllBuildHistory(
                 "Ignite20Tests_IgniteDataStructures",
-                "<default>");
+                branchName);
 
             List<File> collect = getFuturesResults(futures);
             for (File next : collect) {

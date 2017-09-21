@@ -46,6 +46,7 @@ public class TcHelperDb {
 
         PersistentStoreConfiguration psCfg = new PersistentStoreConfiguration();
         psCfg.setWalMode(WALMode.LOG_ONLY);
+        psCfg.setWalHistorySize(1);
         cfg.setPersistentStoreConfiguration(psCfg);
 
         Ignite ignite = Ignition.start(cfg);

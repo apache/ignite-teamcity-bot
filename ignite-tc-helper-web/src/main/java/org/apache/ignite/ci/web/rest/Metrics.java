@@ -13,7 +13,7 @@ import javax.ws.rs.core.Context;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
-import org.apache.ignite.ci.model.SuiteInBranch;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.runners.CheckBuildChainResults;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.web.CtxListener;
