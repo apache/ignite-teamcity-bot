@@ -10,7 +10,8 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Run configuration execution results loaded from different API URLs
+ * Run configuration execution results loaded from different API URLs.
+ * Includes tests and problem occurrences; if logs processing is done also contains last started test
  */
 public class FullBuildRunContext {
     private Build buildInfo;
@@ -54,6 +55,10 @@ public class FullBuildRunContext {
         return problems != null && problems.stream().anyMatch(ProblemOccurrence::isExecutionTimeout);
     }
 
+    public boolean hasJvmCrashProblem() {
+        return problems != null && problems.stream().anyMatch(ProblemOccurrence::isJvmCrash);
+    }
+
     public int failedTests() {
         final TestOccurrencesRef testOccurrences = buildInfo.testOccurrences;
 
@@ -92,6 +97,8 @@ public class FullBuildRunContext {
         builder.append("\t[").append(suiteName()).append("]\t");
         if (hasTimeoutProblem())
             builder.append("TIMEOUT ");
+        else if (hasJvmCrashProblem())
+            builder.append("JVM CRASH");
         else {
             Optional<ProblemOccurrence> bpOpt = getBuildProblemExceptTestOrSnapshot();
             if (bpOpt.isPresent())
@@ -120,5 +127,9 @@ public class FullBuildRunContext {
 
     public void setLastStartedTest(String lastStartedTest) {
         this.lastStartedTest = lastStartedTest;
+    }
+
+    public int getBuildId() {
+        return buildInfo.getId();
     }
 }

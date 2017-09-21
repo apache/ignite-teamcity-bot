@@ -36,13 +36,19 @@ public class PrintChainResults {
             TcHelperDb.stop(ignite);
         }
 
-        System.err.println("<Public>");
-        printChainResults(pubCtx);
-        System.err.println("<Private>");
-        printChainResults(privCtx);
+        printTwoChains(pubCtx, privCtx);
     }
 
-    @Nullable private static Optional<FullChainRunCtx> loadChainContext(
+    private static void printTwoChains(Optional<FullChainRunCtx> pubCtx,
+                                        Optional<FullChainRunCtx> privCtx) {
+
+        String s = printChainResults(pubCtx);
+        System.err.println("<Public>\n" + s);
+        String results = printChainResults(privCtx);
+        System.err.println("<Private>\n" + results);
+    }
+
+    @Nullable public static Optional<FullChainRunCtx> loadChainContext(
         ITeamcity teamcity,
         String suiteId,
         String branch, boolean includeLatestRebuild) {
@@ -51,23 +57,20 @@ public class PrintChainResults {
 
         return buildRef.map(build -> {
             System.err.println("ID: " + build.getId());
-
             Build results = teamcity.getBuildResults(build.href);
             return CheckBuildChainResults.loadChainContext(teamcity, results, includeLatestRebuild);
         });
     }
 
-    private static void printChainResults(Optional<FullChainRunCtx> ctx) {
-        if (!ctx.isPresent()) {
-            System.err.println("No builds were found ");
-            return;
-        }
+    public static String printChainResults(Optional<FullChainRunCtx> ctx) {
+        if (!ctx.isPresent())
+            return "No builds were found ";
         StringBuilder builder = new StringBuilder();
         ctx.get().failedChildSuites().forEach(runResult -> {
             String str = runResult.getPrintableStatusString();
             builder.append(str).append("\n");
         });
-        System.err.println(builder.toString());
+        return (builder.toString());
     }
 
 }

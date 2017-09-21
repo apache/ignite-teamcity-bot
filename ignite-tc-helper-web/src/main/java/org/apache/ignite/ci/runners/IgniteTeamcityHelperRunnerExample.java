@@ -52,9 +52,9 @@ public class IgniteTeamcityHelperRunnerExample {
             helper.triggerBuild("Ignite20Tests_IgniteDataStructures", branchName);
         }
 
-        int j = 0;
+        int j = 1;
         if (j > 0) {
-            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(840602);
+            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(828414);
             List<File> collect = getFuturesResults(fileFutList);
             for (File next : collect) {
                 System.out.println("Cached locally: [" + next.getCanonicalPath() + "], " + next.toURI().toURL());

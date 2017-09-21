@@ -6,10 +6,10 @@ import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.ignite.Ignite;
@@ -195,28 +195,24 @@ public class CheckBuildChainResults {
         }
     }
 
-    public static FullChainRunCtx loadChainContext(ITeamcity teamcity, Build results,
+    public static FullChainRunCtx loadChainContext(
+        ITeamcity teamcity,
+        Build results,
         boolean includeLatestRebuild) {
 
         List<FullBuildRunContext> suiteCtx = results.getSnapshotDependenciesNonNull().stream()
             .parallel()
             .map((BuildRef buildRef) -> {
-                Optional<Build> recentFullInfo;
-                if(includeLatestRebuild) {
-                    Optional<BuildRef> recentRef = teamcity.getLastFinishedBuild(buildRef.buildTypeId, buildRef.branchName);
-                    recentFullInfo = recentRef.map(ref -> teamcity.getBuildResults(ref.href));
+                final BuildRef recentRef = includeLatestRebuild ? teamcity.tryReplaceBuildRefByRecent(buildRef) : buildRef;
+                FullBuildRunContext ctx = teamcity.loadTestsAndProblems(recentRef);
+                if(ctx.hasJvmCrashProblem() || ctx.hasTimeoutProblem()) {
+                    try {
+                        teamcity.processBuildLog(ctx).get();
+                    }
+                    catch (InterruptedException | ExecutionException e) {
+                        e.printStackTrace();
+                    }
                 }
-                else
-                    recentFullInfo = Optional.empty();
-
-                Build fullBuildInfo = recentFullInfo.orElseGet(() -> teamcity.getBuildResults(buildRef.href));
-
-                FullBuildRunContext ctx = new FullBuildRunContext(fullBuildInfo);
-                if (fullBuildInfo.problemOccurrences != null)
-                    ctx.setProblems(teamcity.getProblems(fullBuildInfo.problemOccurrences.href).getProblemsNonNull());
-
-                if (fullBuildInfo.testOccurrences != null)
-                    ctx.setTests(teamcity.getTests(fullBuildInfo.testOccurrences.href + ",count:7500").getTests());
                 return ctx;
             }).collect(Collectors.toList());
 

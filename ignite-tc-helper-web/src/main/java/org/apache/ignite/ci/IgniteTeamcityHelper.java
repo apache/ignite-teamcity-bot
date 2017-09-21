@@ -105,53 +105,30 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return zipFileFut.thenApplyAsync(ZipUtil::unZipToSameFolder, executor);
     }
 
-    private CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
-        final CompletableFuture<List<File>> clearFileF = unzip(fut);
-        return clearFileF.thenApplyAsync(files -> {
-            Preconditions.checkState(!files.isEmpty(), "ZIP file can't be empty");
-            return files.get(0);
-        }, executor);
-    }
-
     public List<CompletableFuture<File>> standardProcessLogs(int... buildIds) {
         List<CompletableFuture<File>> futures = new ArrayList<>();
         for (int buildId : buildIds) {
-            CompletableFuture<File> future = standardProcessOfBuildLog(buildId);
-            futures.add(future);
-
+            futures.add(standardProcessOfBuildLog(buildId));
         }
         return futures;
     }
 
     private CompletableFuture<File> standardProcessOfBuildLog(int buildId) {
         final Build results = getBuildResults(buildId);
-        final FullBuildRunContext ctx = new FullBuildRunContext(results);
-        if (results.problemOccurrences != null) {
-            ProblemOccurrences problems = getProblems(results.problemOccurrences.href);
-            ctx.setProblems(problems.getProblemsNonNull());
-        }
-        if (results.testOccurrences != null)
-            ctx.setTests(getTests(results.testOccurrences.href + ",count:7500").getTests());
+        final FullBuildRunContext ctx = loadTestsAndProblems(results);
 
-        final boolean timeout = ctx.hasTimeoutProblem();
-        if (timeout)
+        if (ctx.hasTimeoutProblem())
             System.err.println(ctx.suiteName() + " failed with timeout " + buildId);
 
-        final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
-        final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
-        final ThreadDumpCopyHandler search = new ThreadDumpCopyHandler();
-        final LastTestLogCopyHandler lastTestCp = new LastTestLogCopyHandler();
-        lastTestCp.setDumpLastTest(timeout);
-        final LogsAnalyzer analyzer = new LogsAnalyzer(search, lastTestCp);
-        final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
-        return fut2.thenApplyAsync(file -> {
-            if(timeout) {
-                String name = lastTestCp.getLastTestName();
-                ctx.setLastStartedTest(name);
-            }
-            System.err.println(ctx.getPrintableStatusString());
-            return file;
-        });
+        return processBuildLog(ctx);
+    }
+
+    public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
+        final CompletableFuture<List<File>> clearFileF = unzip(fut);
+        return clearFileF.thenApplyAsync(files -> {
+            Preconditions.checkState(!files.isEmpty(), "ZIP file can't be empty");
+            return files.get(0);
+        }, executor);
     }
 
     public List<CompletableFuture<File>> standardProcessAllBuildHistory(String buildTypeId, String branch) {
@@ -227,7 +204,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), elem);
     }
 
-    @Override public void close()  {
+    @Override public void close() {
     }
 
     /** {@inheritDoc} */
@@ -242,7 +219,6 @@ public class IgniteTeamcityHelper implements ITeamcity {
         List<BuildRef> nonCancelled = finished.stream().filter(build -> build.isNotCancelled(this)).collect(Collectors.toList());
         return nonCancelled;
     }
-
 
     /** {@inheritDoc} */
     public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId,

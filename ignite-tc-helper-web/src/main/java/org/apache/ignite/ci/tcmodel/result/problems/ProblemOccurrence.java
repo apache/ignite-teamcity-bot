@@ -22,4 +22,8 @@ public class ProblemOccurrence {
     public boolean isShaphotDepProblem() {
         return "SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE".equals(type);
     }
+
+    public boolean isJvmCrash() {
+        return "TC_JVM_CRASH".equals(type);
+    }
 }

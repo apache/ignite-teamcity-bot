@@ -1,5 +1,6 @@
 package org.apache.ignite.ci;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedMap;
@@ -136,5 +137,13 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
     @Override public void close() {
 
+    }
+
+    @Override public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
+        return teamcity.unzipFirstFile(fut);
+    }
+
+    @Override public CompletableFuture<File> downloadBuildLogZip(int id) {
+        return teamcity.downloadBuildLogZip(id);
     }
 }
