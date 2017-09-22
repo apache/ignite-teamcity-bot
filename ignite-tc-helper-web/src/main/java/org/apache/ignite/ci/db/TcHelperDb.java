@@ -18,6 +18,7 @@ import org.apache.ignite.spi.IgniteSpiContext;
 import org.apache.ignite.spi.IgniteSpiException;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Created by dpavlov on 04.08.2017
@@ -28,13 +29,7 @@ public class TcHelperDb {
         final IgniteConfiguration cfg = new IgniteConfiguration();
         setWork(cfg, HelperConfig.resolveWorkDir());
 
-        TcpDiscoverySpi spi = new TcpDiscoverySpi();
-        int locPort = 10000;
-        spi.setLocalPort(locPort);
-        spi.setLocalPortRange(locPort);
-        spi.setIpFinder(new LocalOnlyTcpDiscoveryIpFinder(locPort));
-
-        cfg.setDiscoverySpi(spi);
+        setupDisco(cfg);
         cfg.setConsistentId("TcHelper");
         cfg.setGridLogger(new JavaLogger());
 
@@ -49,9 +44,20 @@ public class TcHelperDb {
         psCfg.setWalHistorySize(1);
         cfg.setPersistentStoreConfiguration(psCfg);
 
-        Ignite ignite = Ignition.start(cfg);
+        final Ignite ignite = Ignition.start(cfg);
         ignite.active(true);
         return ignite;
+    }
+
+    private static void setupDisco(IgniteConfiguration cfg) {
+        final TcpDiscoverySpi spi1 = new TcpDiscoverySpi();
+        final int locPort = 54433;
+        spi1.setLocalPort(locPort);
+        spi1.setLocalPortRange(1);
+        spi1.setIpFinder(new LocalOnlyTcpDiscoveryIpFinder(locPort));
+        final TcpDiscoverySpi spi = spi1;
+
+        cfg.setDiscoverySpi(spi);
     }
 
     private static void setWork(IgniteConfiguration cfg, File workDir) {

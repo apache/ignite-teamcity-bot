@@ -2,6 +2,8 @@ package org.apache.ignite.ci.runners;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -9,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.ignite.Ignite;
@@ -185,7 +186,7 @@ public class CheckBuildChainResults {
             Date parse = next.getFinishDate();
             String dateForMap = new SimpleDateFormat("yyyyMMdd").format(parse);
             suiteHist.map.computeIfAbsent(dateForMap, k -> {
-                FullChainRunCtx ctx = loadChainContext(teamcity, next, false);
+                FullChainRunCtx ctx = loadChainContext(teamcity, next, false, false);
                 for (FullBuildRunContext suite : ctx.suites()) {
                     boolean suiteOk = suite.failedTests() == 0 && !suite.hasNontestBuildProblem();
                     history.addSuiteResult(teamcity.serverId() + "\t" + suite.suiteName(), suiteOk);
@@ -198,23 +199,26 @@ public class CheckBuildChainResults {
     public static FullChainRunCtx loadChainContext(
         ITeamcity teamcity,
         Build results,
-        boolean includeLatestRebuild) {
+        boolean includeLatestRebuild,
+        boolean procLog) {
 
         List<FullBuildRunContext> suiteCtx = results.getSnapshotDependenciesNonNull().stream()
             .parallel()
             .map((BuildRef buildRef) -> {
                 final BuildRef recentRef = includeLatestRebuild ? teamcity.tryReplaceBuildRefByRecent(buildRef) : buildRef;
                 FullBuildRunContext ctx = teamcity.loadTestsAndProblems(recentRef);
-                if(ctx.hasJvmCrashProblem() || ctx.hasTimeoutProblem()) {
+                if(procLog && (ctx.hasJvmCrashProblem() || ctx.hasTimeoutProblem())) {
                     try {
                         teamcity.processBuildLog(ctx).get();
                     }
-                    catch (InterruptedException | ExecutionException e) {
+                    catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
                 return ctx;
             }).collect(Collectors.toList());
+
+        Collections.sort(suiteCtx, Comparator.comparing(FullBuildRunContext::suiteName));
 
         return new FullChainRunCtx(results, suiteCtx);
     }

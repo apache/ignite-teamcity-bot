@@ -51,14 +51,16 @@ public class PrintChainResults {
     @Nullable public static Optional<FullChainRunCtx> loadChainContext(
         ITeamcity teamcity,
         String suiteId,
-        String branch, boolean includeLatestRebuild) {
+        String branch,
+        boolean includeLatestRebuild) {
 
         Optional<BuildRef> buildRef = teamcity.getLastBuildIncludeSnDepFailed(suiteId, branch);
 
         return buildRef.map(build -> {
             System.err.println("ID: " + build.getId());
             Build results = teamcity.getBuildResults(build.href);
-            return CheckBuildChainResults.loadChainContext(teamcity, results, includeLatestRebuild);
+            return CheckBuildChainResults.loadChainContext(teamcity, results, includeLatestRebuild,
+                true);
         });
     }
 

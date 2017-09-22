@@ -1,6 +1,7 @@
 package org.apache.ignite.ci.web;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
@@ -31,18 +32,22 @@ public class Launcher {
 
         WebAppContext ctx = new WebAppContext();
 
-        if(dev) {
+        if (dev) {
             String webApp = "./ignite-tc-helper-web/src/main/webapp";
             File webResDir = new File(webApp);
             Preconditions.checkState(webResDir.exists(),
                 "Resource directory [" + webResDir.getAbsolutePath() + "] does not exist");
-             ctx.setDescriptor(ctx +"/WEB-INF/web.xml");
+            ctx.setDescriptor(ctx + "/WEB-INF/web.xml");
             ctx.setResourceBase(webResDir.getAbsolutePath());
             ctx.setContextPath("/");
             ctx.setParentLoaderPriority(true);
-        } else {
+        }
+        else {
             ctx.setContextPath("/");
-            ctx.setWar("../war/ignite-tc-helper-web.war");
+            String war = "../war/ignite-tc-helper-web.war";
+            File file = new File(war);
+            Preconditions.checkState(file.exists(), "War file can not be found [" + file.getCanonicalPath() + "]");
+            ctx.setWar(war);
         }
         server.setHandler(ctx);
 
@@ -64,7 +69,7 @@ public class Launcher {
         server.start();
     }
 
-    private static boolean waitStopSignal()  {
+    private static boolean waitStopSignal() {
         Console cons = System.console();
         if (cons != null) {
             Reader unbuffered = cons.reader();
@@ -73,17 +78,20 @@ public class Launcher {
                 System.out.flush();
                 int x = unbuffered.read();
                 System.out.println(String.format("%08x", x));
-                return x>1;
-            } catch (IOException e) {
+                return x > 1;
+            }
+            catch (IOException e) {
                 e.printStackTrace();
                 return false;
             }
-        } else {
+        }
+        else {
             try {
                 System.out.println("Press any key and Enter to stop");
                 System.out.flush();
-                return  System.in.read() > 0;
-            } catch (IOException e) {
+                return System.in.read() > 0;
+            }
+            catch (IOException e) {
                 e.printStackTrace();
                 return false;
             }
