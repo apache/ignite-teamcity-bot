@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.io.Writer;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
@@ -71,9 +72,17 @@ public class GenerateStatusHtml {
     }
 
     public static void main(String[] args) throws Exception {
+        File file = new File("./status.html");
+        try (FileWriter writer = new FileWriter(file)) {
+            generate(writer);
+        }
+        System.out.println("Page was saved to " + file.getAbsolutePath());
+    }
+
+    public static void generate(Writer writer) throws Exception {
         boolean groupByResponsible = true;
         boolean includeTabAll = groupByResponsible && true;
-        final String verComments = "Version 9. Ignite 2.2 was removed";
+        final String verComments = "Version 10. Responsibilities loaded from config";
         final List<Branch> branchesPriv = Lists.newArrayList(
             new Branch("", "<default>", "master"),
             //new Branch("ignite-2.1.4", "ignite-2.1.4", "ignite-2.1.4"),
@@ -94,7 +103,11 @@ public class GenerateStatusHtml {
                 */
             new Branch(
                 "pull/2508/head",
-                "pull/2508/head", "ignite-2.1.5")
+                "pull/2508/head", "ignite-2.1.5"),
+
+            new Branch(
+                "ignite-2.3",
+                "ignite-2.3", "ignite-2.3")
             /*,
             new Branch(
                 "ignite-2.2",
@@ -121,54 +134,49 @@ public class GenerateStatusHtml {
             privResp = null;
         }
 
-        final String fileName = "./ignite-tc-helper-web/src/main/webapp/status/index" + (groupByResponsible ? "" : "_all") + ".html";
-        File file = new File("./status.html");
-        try (FileWriter writer = new FileWriter(file)) {
-            line(writer, "<html>");
-            header(writer, groupByResponsible);
-            line(writer, "<body>");
+        line(writer, "<html>");
+        header(writer, groupByResponsible);
+        line(writer, "<body>");
 
-            HtmlBuilder builder = new HtmlBuilder(writer);
+        HtmlBuilder builder = new HtmlBuilder(writer);
 
-            String tabAllId = "all";
-            Iterable<String> tabs = includeTabAll ? Iterables.concat(Lists.newArrayList(tabAllId), respPersons) : respPersons;
-            if (groupByResponsible) {
-                builder.line("<div id=\"tabs\">");
+        String tabAllId = "all";
+        Iterable<String> tabs = includeTabAll ? Iterables.concat(Lists.newArrayList(tabAllId), respPersons) : respPersons;
+        if (groupByResponsible) {
+            builder.line("<div id=\"tabs\">");
 
-                HtmlBuilder list = builder.start("ul");
-                for (String resp : tabs) {
-                    String dispId = getDivId(resp);
-                    list.line("<li><a href=\"#" + dispId + "\">" + dispId + "</a></li>");
-                }
-                builder.end("ul");
+            HtmlBuilder list = builder.start("ul");
+            for (String resp : tabs) {
+                String dispId = getDivId(resp);
+                list.line("<li><a href=\"#" + dispId + "\">" + dispId + "</a></li>");
             }
-
-            boolean isFirst = true;
-            for (String curResponsiblePerson : tabs) {
-                builder.line("<div id='" + getDivId(curResponsiblePerson) + "'>");
-
-                builder.line("Private TC status");
-                boolean includeAll = !groupByResponsible || (isFirst & includeTabAll);
-                writeBuildsTable(branchesPriv, privStatuses, builder,
-                    buildId -> includeAll || isPropertyValueEquals(privResp, buildId, curResponsiblePerson));
-
-                builder.line("<br><br>Public TC status");
-                writeBuildsTable(branchesPub, pubStatus, builder,
-                    buildId -> includeAll || isPropertyValueEquals(pubResp, buildId, curResponsiblePerson));
-
-                builder.line("</div>");
-
-                isFirst = false;
-            }
-            line(writer, "</div>");
-
-            line(writer, "<p>" +
-                verComments +
-                "</p>");
-            line(writer, "</body>");
-            line(writer, "</html>");
+            builder.end("ul");
         }
-        System.out.println("Page was saved to " + file.getAbsolutePath());
+
+        boolean isFirst = true;
+        for (String curResponsiblePerson : tabs) {
+            builder.line("<div id='" + getDivId(curResponsiblePerson) + "'>");
+
+            builder.line("Private TC status");
+            boolean includeAll = !groupByResponsible || (isFirst & includeTabAll);
+            writeBuildsTable(branchesPriv, privStatuses, builder,
+                buildId -> includeAll || isPropertyValueEquals(privResp, buildId, curResponsiblePerson));
+
+            builder.line("<br><br>Public TC status");
+            writeBuildsTable(branchesPub, pubStatus, builder,
+                buildId -> includeAll || isPropertyValueEquals(pubResp, buildId, curResponsiblePerson));
+
+            builder.line("</div>");
+
+            isFirst = false;
+        }
+        line(writer, "</div>");
+
+        line(writer, "<p>" +
+            verComments +
+            "</p>");
+        line(writer, "</body>");
+        line(writer, "</html>");
     }
 
     private static boolean isPropertyValueEquals(Properties privResp, String code, String valueExpected) {
@@ -185,7 +193,7 @@ public class GenerateStatusHtml {
         return Strings.isNullOrEmpty(resp) ? "unassigned" : resp;
     }
 
-    private static void line(FileWriter writer, String str) throws IOException {
+    private static void line(Writer writer, String str) throws IOException {
         writer.write(str + ENDL);
     }
 
@@ -201,7 +209,7 @@ public class GenerateStatusHtml {
         return respPerson;
     }
 
-    private static void header(FileWriter writer, boolean groupByResponsible) throws IOException {
+    private static void header(Writer writer, boolean groupByResponsible) throws IOException {
         writer.write("<head>\n" +
             "  <meta charset=\"utf-8\">\n" +
             "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n" +
@@ -338,15 +346,15 @@ public class GenerateStatusHtml {
 
         private final String prefix;
         private int spacing;
-        private FileWriter writer;
+        private Writer writer;
 
-        public HtmlBuilder(FileWriter writer, int spacing) {
+        public HtmlBuilder(Writer writer, int spacing) {
             this.writer = writer;
             prefix = Strings.repeat(" ", spacing);
             this.spacing = spacing;
         }
 
-        public HtmlBuilder(FileWriter writer) {
+        public HtmlBuilder(Writer writer) {
             this(writer, 0);
         }
 
