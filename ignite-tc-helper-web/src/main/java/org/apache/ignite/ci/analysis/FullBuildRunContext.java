@@ -20,6 +20,9 @@ public class FullBuildRunContext {
 
     private String lastStartedTest;
 
+    /** Extended comment. May be used for associating build info with extended info, e.g. contact person */
+    private String extendedComment;
+
     public FullBuildRunContext(Build buildInfo) {
         this.buildInfo = buildInfo;
     }
@@ -28,10 +31,13 @@ public class FullBuildRunContext {
         this.problems = problems;
     }
 
+    public String suiteId() {
+        return buildInfo.suiteId();
+    }
+
     public String suiteName() {
         return buildInfo.suiteName();
     }
-
 
     public boolean hasNontestBuildProblem() {
         return problems != null && problems.stream().anyMatch(problem ->
@@ -103,8 +109,11 @@ public class FullBuildRunContext {
             Optional<ProblemOccurrence> bpOpt = getBuildProblemExceptTestOrSnapshot();
             bpOpt.ifPresent(occurrence -> builder.append(occurrence.type).append(" "));
         }
-
         builder.append(failedTests());
+
+        if (extendedComment != null)
+            builder.append("\t").append(extendedComment);
+
         builder.append("\n");
         if (lastStartedTest != null)
             builder.append("\t").append(lastStartedTest).append(" (Last started) \n");
@@ -130,5 +139,9 @@ public class FullBuildRunContext {
 
     public int getBuildId() {
         return buildInfo.getId();
+    }
+
+    public void setExtendedComment(String extendedComment) {
+        this.extendedComment = extendedComment;
     }
 }

@@ -1,7 +1,10 @@
 package org.apache.ignite.ci.runners;
 
+import java.io.IOException;
 import java.util.Optional;
+import java.util.Properties;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -23,6 +26,7 @@ public class PrintChainResults {
             try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite,"public")) {
                 String suiteId = "Ignite20Tests_RunAll";
                 String branch = "<default>";
+
                 pubCtx = loadChainContext(teamcity, suiteId, branch, includeLatestRebuild);
             }
 
@@ -54,11 +58,21 @@ public class PrintChainResults {
 
         Optional<BuildRef> buildRef = teamcity.getLastBuildIncludeSnDepFailed(suiteId, branch);
 
+        Properties properties;
+        try {
+            properties = HelperConfig.loadPrefixedProperties(teamcity.serverId(), HelperConfig.RESP_FILE_NAME);
+        }
+        catch (IOException e) {
+            properties = new Properties();
+        }
+
+        Properties responsible = properties;
         return buildRef.map(build -> {
             System.err.println("ID: " + build.getId());
             Build results = teamcity.getBuildResults(build.href);
+
             return CheckBuildChainResults.loadChainContext(teamcity, results, includeLatestRebuild,
-                true);
+                true, responsible);
         });
     }
 

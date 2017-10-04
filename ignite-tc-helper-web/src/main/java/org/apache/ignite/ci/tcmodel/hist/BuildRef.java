@@ -34,4 +34,8 @@ public class BuildRef {
     private boolean hasUnknownStatus() {
         return "UNKNOWN".equals(status);
     }
+
+    public String suiteId() {
+        return buildTypeId;
+    }
 }

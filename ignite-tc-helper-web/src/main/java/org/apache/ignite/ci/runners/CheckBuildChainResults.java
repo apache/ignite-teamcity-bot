@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -22,6 +23,7 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Created by dpavlov on 03.08.2017
@@ -186,7 +188,7 @@ public class CheckBuildChainResults {
             Date parse = next.getFinishDate();
             String dateForMap = new SimpleDateFormat("yyyyMMdd").format(parse);
             suiteHist.map.computeIfAbsent(dateForMap, k -> {
-                FullChainRunCtx ctx = loadChainContext(teamcity, next, false, false);
+                FullChainRunCtx ctx = loadChainContext(teamcity, next, false, false, null);
                 for (FullBuildRunContext suite : ctx.suites()) {
                     boolean suiteOk = suite.failedTests() == 0 && !suite.hasNontestBuildProblem();
                     history.addSuiteResult(teamcity.serverId() + "\t" + suite.suiteName(), suiteOk);
@@ -200,7 +202,8 @@ public class CheckBuildChainResults {
         ITeamcity teamcity,
         Build results,
         boolean includeLatestRebuild,
-        boolean procLog) {
+        boolean procLog,
+        @Nullable Properties properties) {
 
         List<FullBuildRunContext> suiteCtx = results.getSnapshotDependenciesNonNull().stream()
             .parallel()
@@ -215,10 +218,14 @@ public class CheckBuildChainResults {
                         e.printStackTrace();
                     }
                 }
+                if(properties!=null && properties.containsKey(ctx.suiteId())) {
+                    final String extComment = properties.getProperty(ctx.suiteId());
+                    ctx.setExtendedComment(extComment);
+                }
                 return ctx;
             }).collect(Collectors.toList());
 
-        Collections.sort(suiteCtx, Comparator.comparing(FullBuildRunContext::suiteName));
+        suiteCtx.sort(Comparator.comparing(FullBuildRunContext::suiteName));
 
         return new FullChainRunCtx(results, suiteCtx);
     }
