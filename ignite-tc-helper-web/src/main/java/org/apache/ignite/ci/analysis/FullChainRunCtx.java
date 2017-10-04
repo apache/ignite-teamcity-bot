@@ -21,6 +21,9 @@ public class FullChainRunCtx {
         return (int)list.stream().filter(FullBuildRunContext::hasNontestBuildProblem).count();
     }
 
+    public int timeoutsAndCrashBuildProblems() {
+        return (int)list.stream().filter(context -> context.hasJvmCrashProblem() || context.hasTimeoutProblem()).count();
+    }
     public List<FullBuildRunContext> suites() {
         return list;
     }

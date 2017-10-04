@@ -13,6 +13,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.runners.PrintChainResults;
 import org.apache.ignite.ci.web.CtxListener;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,7 +35,7 @@ public class Failures {
         boolean includeLatestRebuild = true;
         try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
             String suiteId = "Ignite20Tests_RunAll";
-            //todo config
+            //todo config branches and its names
             String branchPub =
                 (isNullOrEmpty(branch) || "master".equals(branch)) ? "<default>" : "pull/2508/head";
             pubCtx = loadChainContext(teamcity, suiteId, branchPub, includeLatestRebuild);
@@ -48,13 +49,10 @@ public class Failures {
             privCtx = loadChainContext(teamcity, suiteId, branchPriv, includeLatestRebuild);
         }
 
-        StringBuilder builder = new StringBuilder();
-        builder.append("<Public>\n");
-        builder.append(printChainResults(pubCtx));
-        builder.append("<Private>\n");
-        builder.append(printChainResults(privCtx));
+        String builder = printChainResults(pubCtx, "<Public>") +
+            printChainResults(pubCtx, "<Private>");
 
-        return Response.status(200).entity(builder.toString()).build();
+        return Response.status(200).entity(builder).build();
 
     }
 

@@ -101,8 +101,7 @@ public class FullBuildRunContext {
             builder.append("JVM CRASH");
         else {
             Optional<ProblemOccurrence> bpOpt = getBuildProblemExceptTestOrSnapshot();
-            if (bpOpt.isPresent())
-                builder.append(bpOpt.get().type + " ");
+            bpOpt.ifPresent(occurrence -> builder.append(occurrence.type).append(" "));
         }
 
         builder.append(failedTests());
