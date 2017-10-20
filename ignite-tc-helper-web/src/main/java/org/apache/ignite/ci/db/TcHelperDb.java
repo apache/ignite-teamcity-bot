@@ -35,7 +35,7 @@ public class TcHelperDb {
 
         final MemoryConfiguration memCfg = new MemoryConfiguration();
         final MemoryPolicyConfiguration configuration = new MemoryPolicyConfiguration();
-        configuration.setMaxSize(512 * 1024 * 1024);
+        configuration.setMaxSize(2L * 1024 * 1024 * 1024);
         memCfg.setMemoryPolicies(configuration);
         cfg.setMemoryConfiguration(memCfg);
 

@@ -54,7 +54,7 @@ public class IgniteTeamcityHelperRunnerExample {
 
         int j = 1;
         if (j > 0) {
-            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(828414);
+            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(899046);
             List<File> collect = getFuturesResults(fileFutList);
             for (File next : collect) {
                 System.out.println("Cached locally: [" + next.getCanonicalPath() + "], " + next.toURI().toURL());
