@@ -12,7 +12,7 @@ repositories {
 dependencies {
     compile group: 'com.google.guava', name: 'guava', version: '22.0'
 
-    compile group: 'org.apache.ignite', name: 'ignite-core', version: '2.1.0'
+    compile group: 'org.apache.ignite', name: 'ignite-core', version: '2.2.0'
 
     def jettyVer = '9.4.6.v20170531'
     compile group: 'org.eclipse.jetty', name: 'jetty-util', version: jettyVer
