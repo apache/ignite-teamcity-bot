@@ -5,7 +5,7 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 
 /**
- * Created by dpavlov on 27.07.2017.
+ * Build type reference
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class BuildType {

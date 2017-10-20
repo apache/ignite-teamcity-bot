@@ -18,9 +18,7 @@ import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.actions.DownloadBuildLog;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
-import org.apache.ignite.ci.logs.LogsAnalyzer;
-import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
-import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
+import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.Builds;
@@ -186,6 +184,11 @@ public class IgniteTeamcityHelper implements ITeamcity {
             + (state == null ? "" : (",state:" + state))
             + ",branch:" + branchName, Builds.class)
             .getBuildsNonNull();
+    }
+
+    public BuildTypeFull getBuildType(String buildTypeId) {
+        return sendGetXmlParseJaxb(host + "app/rest/latest/buildTypes/id:" +
+            buildTypeId, BuildTypeFull.class);
     }
 
     public Build getBuildResults(String href) {

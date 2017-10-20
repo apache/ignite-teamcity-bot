@@ -10,7 +10,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * Created by dpavlov on 27.07.2017.
+ * Content of poject
  */
 @XmlRootElement(name="project")
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -26,15 +26,4 @@ public class Project {
         return buildTypes == null ? Collections.emptyList() : buildTypes;
     }
 }
-
-/*
-
-    @XmlElementWrapper(name="Families")
-    @XmlElement(name="Family")
-    private List<Family> families;
-
-    @XmlElementWrapper(name="RemainingChildList")
-    @XmlElement(name="ChildID")
-    private List<BuildType> remainingChildren;
-*/
 

@@ -3,14 +3,20 @@ package org.apache.ignite.ci.runners;
 import com.google.common.base.Throwables;
 import java.io.File;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.Project;
+import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.util.HttpUtil;
-import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.util.XmlUtil;
 
 /**
@@ -45,6 +51,10 @@ public class IgniteTeamcityHelperRunnerExample {
             }
         }
 
+        int b = 1;
+        if (b > 0)
+            checkBuildTypes(helper);
+
         for (int i = 0; i < 0; i++) {
             //branch example:
             final String branchName = "pull/2704/head";
@@ -52,7 +62,7 @@ public class IgniteTeamcityHelperRunnerExample {
             helper.triggerBuild("Ignite20Tests_IgniteDataStructures", branchName);
         }
 
-        int j = 1;
+        int j = 0;
         if (j > 0) {
             List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(899046);
             List<File> collect = getFuturesResults(fileFutList);
@@ -77,6 +87,47 @@ public class IgniteTeamcityHelperRunnerExample {
 
         //sendGet(helper.host(), helper.basicAuthToken());
 
+    }
+
+    private static void checkBuildTypes(
+        IgniteTeamcityHelper helper) throws InterruptedException, ExecutionException {
+        Map<String, Set<String>> duplicates = new TreeMap<>();
+        Map<String, String> suiteToBt = new TreeMap<>();
+        List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests").get();
+        for (BuildType bt : buildTypes) {
+            final BuildTypeFull type = helper.getBuildType(bt.getId());
+            final String suite = type.getParameter("TEST_SUITE");
+
+            if (suite == null)
+                continue;
+
+            for (StringTokenizer strTokenizer = new StringTokenizer(suite, ",;"); strTokenizer.hasMoreTokens(); ) {
+                String s = strTokenizer.nextToken();
+                final String suiteJava = s.trim();
+
+                final String btName = bt.getName();
+                final String oldBtName = suiteToBt.put(suiteJava, btName);
+                if (oldBtName != null) {
+                    System.err.println(suite + " for " + btName
+                        + " and for " + oldBtName);
+
+                    final Set<String> duplicatesSet = duplicates.computeIfAbsent(suiteJava, k -> new TreeSet<>());
+                    duplicatesSet.add(btName);
+                    duplicatesSet.add(oldBtName);
+                }
+            }
+        }
+
+        suiteToBt.forEach((key, v) -> {
+            System.out.println(key + "\t" + v);
+        });
+
+        if(!duplicates.isEmpty()) {
+            System.err.println("********************* Duplicates **************************");
+            duplicates.forEach((k,v)->{
+                System.err.println(k + "\t" + v);
+            });;
+        }
     }
 
     private static <T> List<T> getFuturesResults(List<? extends Future<T>> fileFutList) {
@@ -109,7 +160,6 @@ public class IgniteTeamcityHelperRunnerExample {
         String particularInvocation = "http://ci.ignite.apache.org/app/rest/testOccurrences/id:108126,build:(id:735392)";
         String searchTest = "http://ci.ignite.apache.org/app/rest/tests/id:586327933473387239";
 
-
         // http://ci.ignite.apache.org/app/rest/latest/builds/buildType:(id:Ignite20Tests_IgniteZooKeeper)
         String projectId = "id8xIgniteGridGainTests";
         String projects = host + "app/rest/latest/projects/" + projectId;
@@ -124,7 +174,7 @@ public class IgniteTeamcityHelperRunnerExample {
         //print result
         System.out.println(load);
 
-        for(BuildType bt: load.getBuildTypesNonNull()) {
+        for (BuildType bt : load.getBuildTypesNonNull()) {
             System.err.println(bt.getName());
         }
 
