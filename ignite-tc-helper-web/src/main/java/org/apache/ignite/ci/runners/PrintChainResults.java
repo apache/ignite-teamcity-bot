@@ -87,11 +87,11 @@ public class PrintChainResults {
         return (builder.toString());
     }
 
-    public static String printChainResults(Optional<FullChainRunCtx> chainCtx,String srvName) {
-        StringBuilder builder= new StringBuilder();
+    public static String printChainResults(Optional<FullChainRunCtx> chainCtx, String srvName) {
+        final StringBuilder builder = new StringBuilder();
         final String srvAdditionalInfo = chainCtx.map(res -> {
-            final int critical = res.timeoutsAndCrashBuildProblems();
-            final String criticalTxt = critical == 0 ? "" : (", Timeouts/JvmCrashes: " + critical);
+            final int critical = res.timeoutsOomeCrashBuildProblems();
+            final String criticalTxt = critical == 0 ? "" : (", Timeouts/OOMEs/JvmCrashes: " + critical);
             return Integer.toString(res.failedTests()) + criticalTxt;
 
         }).orElse("?");

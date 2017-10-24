@@ -8,7 +8,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 
 /**
- * Created by dpavlov on 03.08.2017
+ * Full tests occurrences, may have reference to next occurrences
  */
 @XmlRootElement(name = "testOccurrences")
 public class TestOccurrences extends TestOccurrencesRef {
