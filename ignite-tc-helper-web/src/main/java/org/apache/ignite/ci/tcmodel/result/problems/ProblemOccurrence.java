@@ -26,4 +26,8 @@ public class ProblemOccurrence {
     public boolean isJvmCrash() {
         return "TC_JVM_CRASH".equals(type);
     }
+
+    public boolean isOome() {
+        return "TC_OOME".equals(type);
+    }
 }

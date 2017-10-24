@@ -57,9 +57,9 @@ public class IgniteTeamcityHelperRunnerExample {
 
         for (int i = 0; i < 0; i++) {
             //branch example:
-            final String branchName = "pull/2704/head";
+            final String branchName = "pull/2907/head";
             //String branchName = "refs/heads/master";
-            helper.triggerBuild("Ignite20Tests_IgniteDataStructures", branchName);
+            helper.triggerBuild("Ignite20Tests_IgniteCache5", branchName);
         }
 
         int j = 0;

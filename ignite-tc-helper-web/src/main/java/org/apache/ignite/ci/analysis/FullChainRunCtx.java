@@ -22,8 +22,12 @@ public class FullChainRunCtx {
     }
 
     public int timeoutsAndCrashBuildProblems() {
-        return (int)list.stream().filter(context -> context.hasJvmCrashProblem() || context.hasTimeoutProblem()).count();
+        return (int)list.stream().filter(context ->
+            context.hasJvmCrashProblem()
+                || context.hasTimeoutProblem()
+                || context.hasOomeProblem()).count();
     }
+
     public List<FullBuildRunContext> suites() {
         return list;
     }

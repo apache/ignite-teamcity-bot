@@ -210,7 +210,7 @@ public class CheckBuildChainResults {
             .map((BuildRef buildRef) -> {
                 final BuildRef recentRef = includeLatestRebuild ? teamcity.tryReplaceBuildRefByRecent(buildRef) : buildRef;
                 FullBuildRunContext ctx = teamcity.loadTestsAndProblems(recentRef);
-                if(procLog && (ctx.hasJvmCrashProblem() || ctx.hasTimeoutProblem())) {
+                if(procLog && (ctx.hasJvmCrashProblem() || ctx.hasTimeoutProblem() || ctx.hasOomeProblem())) {
                     try {
                         teamcity.processBuildLog(ctx).get();
                     }

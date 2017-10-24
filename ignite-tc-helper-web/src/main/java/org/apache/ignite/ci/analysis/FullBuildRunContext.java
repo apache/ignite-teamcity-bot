@@ -65,6 +65,10 @@ public class FullBuildRunContext {
         return problems != null && problems.stream().anyMatch(ProblemOccurrence::isJvmCrash);
     }
 
+    public boolean hasOomeProblem() {
+        return problems != null && problems.stream().anyMatch(ProblemOccurrence::isOome);
+    }
+
     public int failedTests() {
         final TestOccurrencesRef testOccurrences = buildInfo.testOccurrences;
 
@@ -104,7 +108,9 @@ public class FullBuildRunContext {
         if (hasTimeoutProblem())
             builder.append("TIMEOUT ");
         else if (hasJvmCrashProblem())
-            builder.append("JVM CRASH");
+            builder.append("JVM CRASH ");
+        else if (hasOomeProblem())
+            builder.append("Out Of Memory Error ");
         else {
             Optional<ProblemOccurrence> bpOpt = getBuildProblemExceptTestOrSnapshot();
             bpOpt.ifPresent(occurrence -> builder.append(occurrence.type).append(" "));
