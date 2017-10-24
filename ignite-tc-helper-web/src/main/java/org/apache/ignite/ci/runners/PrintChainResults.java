@@ -67,12 +67,15 @@ public class PrintChainResults {
         }
 
         Properties responsible = properties;
-        return buildRef.map(build -> {
+        return buildRef.flatMap(build -> {
             System.err.println("ID: " + build.getId());
             Build results = teamcity.getBuildResults(build.href);
+            if (results == null)
+                return Optional.empty();
 
-            return CheckBuildChainResults.loadChainContext(teamcity, results, includeLatestRebuild,
+            final FullChainRunCtx val = CheckBuildChainResults.loadChainContext(teamcity, results, includeLatestRebuild,
                 true, responsible);
+            return Optional.of(val);
         });
     }
 

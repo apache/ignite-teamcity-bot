@@ -1,6 +1,7 @@
 package org.apache.ignite.ci;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedMap;
@@ -110,11 +111,28 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             });
     }
 
+    /** {@inheritDoc} */
+    @Nullable
     @Override public Build getBuildResults(String href) {
-        return loadIfAbsent("buildResults",
-            href,
-            teamcity::getBuildResults,
-            Build::hasFinishDate); //only completed builds are saved
+        try {
+            return loadIfAbsent("buildResults",
+                href,
+                teamcity::getBuildResults,
+                Build::hasFinishDate); //only completed builds are saved
+        }
+        catch (Exception e) {
+            if(e instanceof FileNotFoundException) {
+                //404 error from REST api
+                final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(serverId + "." + "buildResults");
+                e.printStackTrace();
+                //todo log error
+
+                final Build fakeBuild = new Build();
+                cache.put(href, fakeBuild); // save null result, because persistence may refer to some unexistent build on TC
+                return fakeBuild;
+            } else
+                throw e;
+        }
     }
 
     @Override public String host() {

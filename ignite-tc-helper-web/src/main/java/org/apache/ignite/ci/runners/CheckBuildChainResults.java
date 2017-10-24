@@ -2,12 +2,12 @@ package org.apache.ignite.ci.runners;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -17,10 +17,10 @@ import java.util.stream.Stream;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
-import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
-import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.jetbrains.annotations.Nullable;
@@ -182,7 +182,10 @@ public class CheckBuildChainResults {
         final SuiteInBranch branchId = new SuiteInBranch(id, branch);
         final BuildHistory suiteHist = history.history(branchId);
         final List<BuildRef> all = teamcity.getFinishedBuildsIncludeSnDepFailed(id, branch);
-        final List<Build> fullBuildInfoList = all.stream().map(b -> teamcity.getBuildResults(b.href)).collect(Collectors.toList());
+        final List<Build> fullBuildInfoList = all.stream()
+            .map(b -> teamcity.getBuildResults(b.href))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
 
         for (Build next : fullBuildInfoList) {
             Date parse = next.getFinishDate();
@@ -210,7 +213,9 @@ public class CheckBuildChainResults {
             .map((BuildRef buildRef) -> {
                 final BuildRef recentRef = includeLatestRebuild ? teamcity.tryReplaceBuildRefByRecent(buildRef) : buildRef;
                 FullBuildRunContext ctx = teamcity.loadTestsAndProblems(recentRef);
-                if(procLog && (ctx.hasJvmCrashProblem() || ctx.hasTimeoutProblem() || ctx.hasOomeProblem())) {
+                if (ctx == null)
+                    return null;
+                if (procLog && (ctx.hasJvmCrashProblem() || ctx.hasTimeoutProblem() || ctx.hasOomeProblem())) {
                     try {
                         teamcity.processBuildLog(ctx).get();
                     }
@@ -218,7 +223,7 @@ public class CheckBuildChainResults {
                         e.printStackTrace();
                     }
                 }
-                if(properties!=null && properties.containsKey(ctx.suiteId())) {
+                if (properties != null && properties.containsKey(ctx.suiteId())) {
                     final String extComment = properties.getProperty(ctx.suiteId());
                     ctx.setExtendedComment(extComment);
                 }

@@ -89,8 +89,12 @@ public interface ITeamcity extends AutoCloseable {
             buildRef.branchName == null ? DEFAULT : buildRef.branchName).orElse(buildRef);
     }
 
-    @NotNull default FullBuildRunContext loadTestsAndProblems(BuildRef recentRef) {
+    default FullBuildRunContext loadTestsAndProblems(BuildRef recentRef) {
         Build build = getBuildResults(recentRef.href);
+
+        if (build == null)
+            return null;
+
         return loadTestsAndProblems(build);
     }
 
