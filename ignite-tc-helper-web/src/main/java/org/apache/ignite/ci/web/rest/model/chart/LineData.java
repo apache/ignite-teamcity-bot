@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.web.rest.model;
+package org.apache.ignite.ci.web.rest.model.chart;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,15 +15,14 @@ public class LineData {
     }
 
     public void addMeasurementAt(int idx, Double value) {
-        if (idx == values.size()) {
+        if (idx == values.size())
             values.add(value);
-        }
         else {
             if (values.size() < idx) {
                 int add = idx - values.size();
-                for (int i = 0; i < add; i++) {
+
+                for (int i = 0; i < add; i++)
                     values.add(null);
-                }
             }
             values.add(idx, value);
         }

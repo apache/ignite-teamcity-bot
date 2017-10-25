@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.web.rest.model;
+package org.apache.ignite.ci.web.rest.model.chart;
 
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
@@ -21,7 +21,6 @@ public class ChartData<K> {
 
     transient Map<K, Integer> keyToLineMapping = new HashMap<>();
 
-
     public ChartData(String... axisX) {
         this.axisX = new ArrayList<>(Arrays.asList(axisX));
     }
@@ -34,7 +33,7 @@ public class ChartData<K> {
         keyToLineMapping.computeIfAbsent(key, (k) -> {
             int index = lines.size();
             addLine(new LineData());
-            if(legendFunction!=null) {
+            if (legendFunction != null) {
                 legendLabels.add(legendFunction.apply(k));
             }
             return index;
@@ -53,9 +52,9 @@ public class ChartData<K> {
 
     public void addMeasurement(K mappedKey, int idx, Double value) {
         Integer lineId = keyToLineMapping.get(mappedKey);
-        Preconditions.checkState(lineId!=null, "Error key [" + mappedKey + "] has no mapped line");
+        Preconditions.checkState(lineId != null, "Error key [" + mappedKey + "] has no mapped line");
         LineData data = lines.get(lineId);
-        Preconditions.checkState(data!=null, "Error key [" + mappedKey + "] has null mapped line");
+        Preconditions.checkState(data != null, "Error key [" + mappedKey + "] has null mapped line");
 
         data.addMeasurementAt(idx, value);
     }

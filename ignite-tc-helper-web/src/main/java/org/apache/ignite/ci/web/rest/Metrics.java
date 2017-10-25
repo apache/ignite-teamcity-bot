@@ -3,7 +3,6 @@ package org.apache.ignite.ci.web.rest;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import javax.servlet.ServletContext;
@@ -19,8 +18,8 @@ import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.runners.CheckBuildChainResults;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.model.ChartData;
-import org.apache.ignite.ci.web.rest.model.TestsMetrics;
+import org.apache.ignite.ci.web.rest.model.chart.ChartData;
+import org.apache.ignite.ci.web.rest.model.chart.TestsMetrics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.web.rest.model;
+package org.apache.ignite.ci.web.rest.model.chart;
 
 import com.google.common.base.Preconditions;
 import java.util.Set;

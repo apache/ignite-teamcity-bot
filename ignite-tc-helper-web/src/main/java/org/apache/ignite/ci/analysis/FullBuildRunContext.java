@@ -105,16 +105,8 @@ public class FullBuildRunContext {
     public String getPrintableStatusString() {
         StringBuilder builder = new StringBuilder();
         builder.append("\t[").append(suiteName()).append("]\t");
-        if (hasTimeoutProblem())
-            builder.append("TIMEOUT ");
-        else if (hasJvmCrashProblem())
-            builder.append("JVM CRASH ");
-        else if (hasOomeProblem())
-            builder.append("Out Of Memory Error ");
-        else {
-            Optional<ProblemOccurrence> bpOpt = getBuildProblemExceptTestOrSnapshot();
-            bpOpt.ifPresent(occurrence -> builder.append(occurrence.type).append(" "));
-        }
+        builder.append(getResult());
+        builder.append(" ");
         builder.append(failedTests());
 
         if (extendedComment != null)
@@ -130,6 +122,27 @@ public class FullBuildRunContext {
             }
         );
         return builder.toString();
+    }
+
+    /**
+     * Suite Run Result (filled if failed)
+     *
+     * @return printable result
+     */
+    public String getResult() {
+        String result;
+        if (hasTimeoutProblem())
+            result = ("TIMEOUT ");
+        else if (hasJvmCrashProblem())
+            result = ("JVM CRASH ");
+        else if (hasOomeProblem())
+            result = ("Out Of Memory Error ");
+        else {
+            Optional<ProblemOccurrence> bpOpt = getBuildProblemExceptTestOrSnapshot();
+            result = bpOpt.map(occurrence -> occurrence.type)
+                .orElse("");
+        }
+        return result;
     }
 
     public Stream<TestOccurrence> getFailedTests() {
@@ -149,5 +162,9 @@ public class FullBuildRunContext {
 
     public void setExtendedComment(String extendedComment) {
         this.extendedComment = extendedComment;
+    }
+
+    boolean isFailed() {
+        return failedTests() != 0 || hasAnyBuildProblemExceptTestOrSnapshot();
     }
 }

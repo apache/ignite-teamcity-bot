@@ -49,8 +49,7 @@ public class FullChainRunCtx {
     }
 
     public Stream<FullBuildRunContext> failedChildSuites() {
-        return suites().stream().filter(context -> {
-            return context.failedTests() != 0 || context.hasAnyBuildProblemExceptTestOrSnapshot();
-        });
+        return suites().stream().filter(FullBuildRunContext::isFailed);
     }
+
 }
