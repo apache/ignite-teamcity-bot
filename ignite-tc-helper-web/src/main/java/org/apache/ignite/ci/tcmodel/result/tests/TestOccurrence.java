@@ -15,6 +15,7 @@ public class TestOccurrence {
     @XmlAttribute public Boolean muted;
     @XmlAttribute public Boolean currentlyMuted;
     @XmlAttribute public Boolean currentlyInvestigated;
+    @XmlAttribute public Boolean ignored;
 
     public String getName() {
         return name;
@@ -28,7 +29,11 @@ public class TestOccurrence {
         return (muted != null && muted) || (currentlyMuted != null && currentlyMuted);
     }
 
-    public boolean isNotMutedTest() {
+    public boolean isIgnoredTest() {
+        return (ignored != null && ignored);
+    }
+
+    public boolean isNotMutedOrIgnoredTest() {
         return !isMutedTest();
     }
 }
