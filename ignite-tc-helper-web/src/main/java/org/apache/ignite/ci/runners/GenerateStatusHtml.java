@@ -21,8 +21,11 @@ import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.util.Base64Util;
+import org.apache.ignite.ci.util.UrlUtil;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.apache.ignite.ci.util.UrlUtil.escape;
+import static org.apache.ignite.ci.util.UrlUtil.escapeOrB64;
 
 /**
  * Generates html with status builds
@@ -310,14 +313,8 @@ public class GenerateStatusHtml {
                     continue;
 
                 for (Branch branch : branchesPriv) {
-                    String branchIdRest = URLEncoder.encode(branch.idForRest, ENC);
-                    String branchIdUrl = URLEncoder.encode(branch.idForUrl, ENC);
-
-                    if(Strings.nullToEmpty(branch.idForRest).contains("/")) {
-                        String idForRestEncoded = Base64Util.encodeUtf8String(branch.idForRest);
-                        branchIdRest = "($base64:" + idForRestEncoded + ")";
-                    }
-
+                    String branchIdRest = escapeOrB64(branch.idForRest);
+                    String branchIdUrl = escape(branch.idForUrl);
                     String imgSrc = teamcityHelper.host() +
                         "app/rest/builds/" +
                         "buildType:(id:" +

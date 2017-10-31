@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.web.rest;
 
+import java.util.Map;
 import java.util.Optional;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
@@ -38,8 +39,7 @@ public class CurrentFailures {
         Optional<FullChainRunCtx> privCtx;
 
         boolean includeLatestRebuild = true;
-        try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
-
+        try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
             String suiteId = "Ignite20Tests_RunAll";
             //todo config branches and its names
             String branchPub =
@@ -48,12 +48,15 @@ public class CurrentFailures {
 
             final ChainCurrentStatus chainStatus = new ChainCurrentStatus();
             chainStatus.serverName = teamcity.serverId();
-            pubCtx.ifPresent(chainStatus::initFromContext);
+
+            final Map<String, IgnitePersistentTeamcity.RunStat> map = teamcity.runTestAnalysis();
+
+            pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
 
             res.servers.add(chainStatus);
         }
 
-        try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
+        try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
             String suiteId = "id8xIgniteGridGainTests_RunAll";
             //todo config
             String branchPriv =
@@ -62,7 +65,8 @@ public class CurrentFailures {
 
             final ChainCurrentStatus chainStatus = new ChainCurrentStatus();
             chainStatus.serverName = teamcity.serverId();
-            privCtx.ifPresent(chainStatus::initFromContext);
+            final Map<String, IgnitePersistentTeamcity.RunStat> map = teamcity.runTestAnalysis();
+            privCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
             res.servers.add(chainStatus);
         }
 

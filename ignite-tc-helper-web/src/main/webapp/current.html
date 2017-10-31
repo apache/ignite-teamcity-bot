@@ -1,0 +1,114 @@
+<html>
+<head>
+    <title>Ignite Teamcity - current failures</title>
+    <link rel="icon" href="https://pbs.twimg.com/profile_images/568493154500747264/xTBxO73F.png">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+
+    <style>
+        body {
+	font-family: Arial;
+	font-size: 12px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: 500;
+}
+    </style>
+</head>
+<body>
+<script>
+$(document).ready(function() {
+    loadData();
+});
+
+function loadData() {
+    $("#loadStatus").html("please wait");
+    $.ajax({
+        url: "rest/current",
+        success: function(result) {
+            $("#loadStatus").html("");
+            showData(result);
+        },
+        error: function(jqXHR, exception) {
+            if (jqXHR.status === 0) {
+                $("#loadStatus").html('Not connect.\n Verify Network.');
+            } else if (jqXHR.status == 404) {
+                $("#loadStatus").html('Requested page not found. [404]');
+            } else if (jqXHR.status == 500) {
+                $("#loadStatus").html('Internal Server Error [500].');
+            } else if (exception === 'parsererror') {
+                $("#loadStatus").html('Requested JSON parse failed.');
+            } else if (exception === 'timeout') {
+                $("#loadStatus").html('Time out error.');
+            } else if (exception === 'abort') {
+                $("#loadStatus").html('Ajax request aborted.');
+            } else {
+                $("#loadStatus").html('Uncaught Error.\n' + jqXHR.responseText);
+            }
+        }
+
+    }, );
+}
+
+function showData(result) {
+    var arrayLength = result.servers.length;
+    for (var i = 0; i < arrayLength; i++) {
+        var server = result.servers[i];
+        $("#divFailures").append(showServerData(server));
+        //Do something
+    }
+}
+
+function showServerData(server) {
+    var res = "";
+    res += "<p>" + server.serverName + "[tests " + server.failedTests + " suites " + server.failedToFinish + "]</p>";
+
+    var arrayLength = server.suites.length;
+    for (var i = 0; i < arrayLength; i++) {
+        var suite = server.suites[i];
+        res += showSuiteData(suite);
+    }
+
+    return res;
+}
+
+function showSuiteData(suite) {
+    var res = "";
+    res += "<a href=" + suite.web + ">" + suite.name + "</a> " +
+        "[ tests " + suite.failedTests + " " + suite.result + "]" +
+        " " + suite.contactPerson + "" +
+        " <br>";
+
+    var arrayLength = suite.testFailures.length;
+    for (var i = 0; i < arrayLength; i++) {
+        var testFail = suite.testFailures[i];
+        res += showTestFailData(testFail);
+    }
+    res += " <br>";
+    return res;
+}
+
+function showTestFailData(testFail) {
+    var res = "";
+    res += "&nbsp; " + testFail.name;
+    if (testFail.failures != null && testFail.runs != null) {
+        res += " (fails: " + testFail.failures + "/" + testFail.runs + ")";
+    }
+    res += " <br>";
+    return res;
+}
+</script>
+
+<div id="divFailures">
+</div>
+
+
+<div id="loadStatus">
+</div>
+
+</body>
+</html>

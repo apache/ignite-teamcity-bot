@@ -6,4 +6,8 @@ package org.apache.ignite.ci.web.rest.model.current;
 public class TestFailure {
     /** test Name */
     public String name;
+
+    public Integer runs;
+
+    public Integer failures;
 }

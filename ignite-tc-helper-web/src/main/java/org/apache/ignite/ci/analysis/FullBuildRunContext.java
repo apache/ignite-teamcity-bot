@@ -18,6 +18,7 @@ public class FullBuildRunContext {
     private List<ProblemOccurrence> problems;
     @Nullable private List<TestOccurrence> tests;
 
+    /** Last started test. Optionally filled from log post processor */
     private String lastStartedTest;
 
     /** Extended comment. May be used for associating build info with extended info, e.g. contact person */
@@ -149,7 +150,7 @@ public class FullBuildRunContext {
         if (tests == null)
             return Stream.empty();
         return tests.stream()
-            .filter(TestOccurrence::isFailedTest).filter(TestOccurrence::isNotMutedTest);
+            .filter(TestOccurrence::isFailedTest).filter(TestOccurrence::isNotMutedOrIgnoredTest);
     }
 
     public void setLastStartedTest(String lastStartedTest) {
@@ -166,5 +167,17 @@ public class FullBuildRunContext {
 
     boolean isFailed() {
         return failedTests() != 0 || hasAnyBuildProblemExceptTestOrSnapshot();
+    }
+
+    public String branchName() {
+        return buildInfo.branchName;
+    }
+
+    public String getExtendedComment() {
+        return extendedComment;
+    }
+
+    public String getLastStartedTest() {
+        return lastStartedTest;
     }
 }

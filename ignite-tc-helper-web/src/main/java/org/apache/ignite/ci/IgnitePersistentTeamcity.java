@@ -1,9 +1,12 @@
 package org.apache.ignite.ci;
 
+import com.google.common.base.Strings;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
@@ -12,6 +15,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
+import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.analysis.Expirable;
@@ -20,6 +24,7 @@ import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,6 +33,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class IgnitePersistentTeamcity implements ITeamcity {
 
+    public static final String TESTS = "tests";
     private final Ignite ignite;
     private final IgniteTeamcityHelper teamcity;
     private final String serverId;
@@ -147,10 +153,34 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     @Override public TestOccurrences getTests(String href) {
-        return loadIfAbsent("tests",
+        return loadIfAbsent(TESTS,
             href,
             teamcity::getTests);
+    }
 
+    public class RunStat {
+        public int runs;
+        public int failures;
+
+        public void addRun(boolean failed) {
+            runs++;
+            if (failed)
+                failures++;
+        }
+    }
+
+    public Map<String, RunStat> runTestAnalysis() {
+        Map<String, RunStat> map = new HashMap<>();
+        final IgniteCache<Object, TestOccurrences> cache = ignite.getOrCreateCache(serverId + "." + TESTS);
+        for (Cache.Entry<Object, TestOccurrences> next : cache) {
+            final TestOccurrences val = next.getValue();
+            for (TestOccurrence occurrence : val.getTests()) {
+                final String name = occurrence.getName();
+                if (!Strings.isNullOrEmpty(name) && occurrence.isNotMutedOrIgnoredTest())
+                    map.computeIfAbsent(name, k -> new RunStat()).addRun(occurrence.isFailedTest());
+            }
+        }
+        return map;
     }
 
     @Override public void close() {

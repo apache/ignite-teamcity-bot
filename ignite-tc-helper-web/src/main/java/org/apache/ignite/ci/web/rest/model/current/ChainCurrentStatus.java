@@ -2,7 +2,9 @@ package org.apache.ignite.ci.web.rest.model.current;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.ignite.ci.analysis.FullBuildRunContext;
+import java.util.Map;
+import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 
 /**
@@ -13,11 +15,20 @@ public class ChainCurrentStatus extends AbstractTestMetrics {
 
     public List<SuiteCurrentStatus> suites = new ArrayList<>();
 
-    public void initFromContext(FullChainRunCtx ctx) {
+    public void initFromContext(ITeamcity teamcity,
+        FullChainRunCtx ctx,
+        Map<String, IgnitePersistentTeamcity.RunStat> runStatMap) {
+        failedTests = 0;
+        failedToFinish = 0;
         ctx.failedChildSuites().forEach(
             suite -> {
                 final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
-                suiteCurStatus.initFromContext(suite);
+                suiteCurStatus.initFromContext(teamcity, suite, runStatMap);
+
+                failedTests += suiteCurStatus.failedTests;
+                if(suite.hasAnyBuildProblemExceptTestOrSnapshot())
+                    failedToFinish++;
+
                 this.suites.add(suiteCurStatus);
             }
         );
