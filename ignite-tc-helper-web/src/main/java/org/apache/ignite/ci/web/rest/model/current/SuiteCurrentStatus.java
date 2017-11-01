@@ -1,6 +1,5 @@
 package org.apache.ignite.ci.web.rest.model.current;
 
-import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,9 +34,7 @@ public class SuiteCurrentStatus extends AbstractTestMetrics {
         result = suite.getResult();
         failedTests = suite.failedTests();
         contactPerson = suite.getExtendedComment();
-        web = teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
-            + "&branch=" + escape(suite.branchName())
-            + "&tab=buildTypeStatusDiv";
+        web = buildWebLink(teamcity, suite);
         suite.getFailedTests().forEach(occurrence -> {
             final TestFailure failure = new TestFailure();
             final String name = occurrence.getName();
@@ -54,5 +51,16 @@ public class SuiteCurrentStatus extends AbstractTestMetrics {
             e.name = suite.getLastStartedTest() + " (last started)";
             testFailures.add(e);
         }
+    }
+
+    private String buildWebLink(ITeamcity teamcity, FullBuildRunContext suite) {
+        final String branch  ;
+        if ("refs/heads/master".equals(suite.branchName()))
+            branch = "<default>";
+        else
+            branch = suite.branchName();
+        return teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
+            + "&branch=" + escape(branch)
+            + "&tab=buildTypeStatusDiv";
     }
 }

@@ -2,6 +2,7 @@ package org.apache.ignite.ci.runners;
 
 import com.google.common.base.Throwables;
 import java.io.File;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +17,7 @@ import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
+import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.XmlUtil;
 
@@ -89,44 +91,67 @@ public class IgniteTeamcityHelperRunnerExample {
 
     }
 
-    private static void checkBuildTypes(
-        IgniteTeamcityHelper helper) throws InterruptedException, ExecutionException {
+    private static void checkBuildTypes(IgniteTeamcityHelper helper) throws InterruptedException, ExecutionException {
         Map<String, Set<String>> duplicates = new TreeMap<>();
         Map<String, String> suiteToBt = new TreeMap<>();
         List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests").get();
         for (BuildType bt : buildTypes) {
             final BuildTypeFull type = helper.getBuildType(bt.getId());
-            final String suite = type.getParameter("TEST_SUITE");
-
-            if (suite == null)
+            if ("Ignite20Tests_RunAll".equals(type.getId())
+                || "IgniteTests_RunAllPds".equals(type.getId())
+                || "Ignite20Tests_RunBasicTests".equals(type.getId())) {
+                checkRunAll(type);
                 continue;
-
-            for (StringTokenizer strTokenizer = new StringTokenizer(suite, ",;"); strTokenizer.hasMoreTokens(); ) {
-                String s = strTokenizer.nextToken();
-                final String suiteJava = s.trim();
-
-                final String btName = bt.getName();
-                final String oldBtName = suiteToBt.put(suiteJava, btName);
-                if (oldBtName != null) {
-                    System.err.println(suite + " for " + btName
-                        + " and for " + oldBtName);
-
-                    final Set<String> duplicatesSet = duplicates.computeIfAbsent(suiteJava, k -> new TreeSet<>());
-                    duplicatesSet.add(btName);
-                    duplicatesSet.add(oldBtName);
-                }
             }
+            checkSuite(duplicates, suiteToBt, bt, type);
         }
 
         suiteToBt.forEach((key, v) -> {
             System.out.println(key + "\t" + v);
         });
 
-        if(!duplicates.isEmpty()) {
+        if (!duplicates.isEmpty()) {
             System.err.println("********************* Duplicates **************************");
-            duplicates.forEach((k,v)->{
+            duplicates.forEach((k, v) -> {
                 System.err.println(k + "\t" + v);
-            });;
+            });
+            ;
+        }
+    }
+
+    private static void checkSuite(Map<String, Set<String>> duplicates, Map<String, String> suiteToBt, BuildType bt,
+        BuildTypeFull type) {
+        final String suite = type.getParameter("TEST_SUITE");
+
+        if (suite == null)
+            return;
+
+        for (StringTokenizer strTokenizer = new StringTokenizer(suite, ",;"); strTokenizer.hasMoreTokens(); ) {
+            String s = strTokenizer.nextToken();
+            final String suiteJava = s.trim();
+
+            final String btName = bt.getName();
+            final String oldBtName = suiteToBt.put(suiteJava, btName);
+            if (oldBtName != null) {
+                System.err.println(suite + " for " + btName
+                    + " and for " + oldBtName);
+
+                final Set<String> duplicatesSet = duplicates.computeIfAbsent(suiteJava, k -> new TreeSet<>());
+                duplicatesSet.add(btName);
+                duplicatesSet.add(oldBtName);
+            }
+        }
+    }
+
+    private static void checkRunAll(BuildTypeFull type) {
+        System.err.println(type);
+        final List<SnapshotDependency> dependencies = type.dependencies();
+        for (Iterator<SnapshotDependency> iterator = dependencies.iterator(); iterator.hasNext(); ) {
+            SnapshotDependency next = iterator.next();
+            final String runBuild = next.getProperty("run-build-if-dependency-failed");
+            if (!"RUN_ADD_PROBLEM".equals(runBuild)) {
+                System.err.println("Incorrect configuration for dependency from [" + next.bt().getName() + "]");
+            }
         }
     }
 

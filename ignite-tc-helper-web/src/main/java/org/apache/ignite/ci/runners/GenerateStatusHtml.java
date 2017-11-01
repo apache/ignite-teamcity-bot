@@ -9,7 +9,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
-import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -20,8 +19,6 @@ import java.util.function.Predicate;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
-import org.apache.ignite.ci.util.Base64Util;
-import org.apache.ignite.ci.util.UrlUtil;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
@@ -268,19 +265,19 @@ public class GenerateStatusHtml {
         final HtmlBuilder writer,
         final Predicate<String> includeBuildId) {
 
-        HtmlBuilder table = writer.start("table");
-        final HtmlBuilder header = table.start("tr");
-        header.start("th").line("Build").end("th");
+        HtmlBuilder tbl = writer.start("table");
+        final HtmlBuilder hdr = tbl.start("tr");
+        hdr.start("th").line("Build").end("th");
         for (Branch next : branches) {
-            header.start("th").line(next.displayName).end("th");
+            hdr.start("th").line(next.displayName).end("th");
         }
-        header.end("tr");
+        hdr.end("tr");
 
         for (Map.Entry<String, SuiteStatus> suiteStatusEntry : projectStatus.suiteIdToStatusUrl.entrySet()) {
             if(!includeBuildId.test(suiteStatusEntry.getValue().suiteId))
                 continue;
 
-            final HtmlBuilder row = table.start("tr");
+            final HtmlBuilder row = tbl.start("tr");
 
             row.start("td").line(suiteStatusEntry.getKey()).end("td");
 
@@ -296,7 +293,7 @@ public class GenerateStatusHtml {
             }
             row.end("tr");
         }
-        table.end("table");
+        tbl.end("table");
     }
 
     private static ProjectStatus getBuildStatuses(
@@ -309,7 +306,8 @@ public class GenerateStatusHtml {
             List<BuildType> suites = teamcityHelper.getProjectSuites(projectId).get();
 
             for (BuildType buildType : suites) {
-                if (buildType.getName().startsWith("->"))
+                if (!"-> Run All".equals(buildType.getName())
+                    && buildType.getName().startsWith("->"))
                     continue;
 
                 for (Branch branch : branchesPriv) {
@@ -323,7 +321,6 @@ public class GenerateStatusHtml {
                         (isNullOrEmpty(branchIdRest) ? "" :
                             (",branch:(name:" + branchIdRest + ")")) +
                         "/statusIcon.svg";
-                    //System.out.println(url);
 
                     SuiteStatus statusInBranches = projStatus.suite(buildType.getId(), buildType.getName());
                     final String href = teamcityHelper.host() +
