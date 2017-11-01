@@ -203,12 +203,12 @@ public class CheckBuildChainResults {
 
     public static FullChainRunCtx loadChainContext(
         ITeamcity teamcity,
-        Build results,
+        Build chainRoot,
         boolean includeLatestRebuild,
         boolean procLog,
         @Nullable Properties properties) {
 
-        List<FullBuildRunContext> suiteCtx = results.getSnapshotDependenciesNonNull().stream()
+        List<FullBuildRunContext> suiteCtx = chainRoot.getSnapshotDependenciesNonNull().stream()
             .parallel()
             .map((BuildRef buildRef) -> {
                 final BuildRef recentRef = includeLatestRebuild ? teamcity.tryReplaceBuildRefByRecent(buildRef) : buildRef;
@@ -223,6 +223,7 @@ public class CheckBuildChainResults {
                         e.printStackTrace();
                     }
                 }
+
                 if (properties != null && properties.containsKey(ctx.suiteId())) {
                     final String extComment = properties.getProperty(ctx.suiteId());
                     ctx.setExtendedComment(extComment);
@@ -232,6 +233,6 @@ public class CheckBuildChainResults {
 
         suiteCtx.sort(Comparator.comparing(FullBuildRunContext::suiteName));
 
-        return new FullChainRunCtx(results, suiteCtx);
+        return new FullChainRunCtx(chainRoot, suiteCtx);
     }
 }

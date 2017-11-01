@@ -3,6 +3,7 @@ package org.apache.ignite.ci.runners;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.Properties;
+import javax.annotation.Nonnull;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITeamcity;
@@ -11,7 +12,6 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Created by dpavlov on 20.09.2017
@@ -50,7 +50,7 @@ public class PrintChainResults {
         System.err.println(printChainResults(privCtx, "<Private>"));
     }
 
-    @Nullable public static Optional<FullChainRunCtx> loadChainContext(
+    @Nonnull public static Optional<FullChainRunCtx> loadChainContext(
         ITeamcity teamcity,
         String suiteId,
         String branch,

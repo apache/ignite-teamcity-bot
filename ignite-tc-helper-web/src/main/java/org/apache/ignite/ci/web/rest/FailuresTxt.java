@@ -10,11 +10,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.runners.PrintChainResults;
 import org.apache.ignite.ci.web.CtxListener;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,7 +22,7 @@ import static org.apache.ignite.ci.runners.PrintChainResults.printChainResults;
 
 @Path("failures")
 @Produces(MediaType.TEXT_PLAIN)
-public class Failures {
+public class FailuresTxt {
     @Context
     private ServletContext context;
 
@@ -35,8 +33,6 @@ public class Failures {
         Optional<FullChainRunCtx> privCtx;
         boolean includeLatestRebuild = true;
         try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
-
-
             String suiteId = "Ignite20Tests_RunAll";
             //todo config branches and its names
             String branchPub =
@@ -56,7 +52,5 @@ public class Failures {
             printChainResults(privCtx, "<Private>");
 
         return Response.status(200).entity(builder).build();
-
     }
-
 }

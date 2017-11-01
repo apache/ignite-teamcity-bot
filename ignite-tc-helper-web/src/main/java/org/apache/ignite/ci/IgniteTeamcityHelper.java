@@ -25,6 +25,7 @@ import org.apache.ignite.ci.tcmodel.hist.Builds;
 import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.XmlUtil;
@@ -201,6 +202,10 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     public TestOccurrences getTests(String href) {
         return getJaxbUsingHref(href, TestOccurrences.class);
+    }
+
+    public Statistics getBuildStat(String href) {
+        return getJaxbUsingHref(href, Statistics.class);
     }
 
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {

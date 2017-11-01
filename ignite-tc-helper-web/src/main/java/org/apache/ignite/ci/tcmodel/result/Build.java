@@ -34,6 +34,8 @@ public class Build extends BuildRef {
 
     @XmlElement(name = "testOccurrences") public TestOccurrencesRef testOccurrences;
 
+    @XmlElement(name = "statistics") public StatisticsRef statisticsRef;
+
     public List<BuildRef> getSnapshotDependenciesNonNull() {
         return snapshotDependencies == null ? Collections.emptyList() : snapshotDependencies;
     }

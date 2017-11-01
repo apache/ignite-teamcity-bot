@@ -1,11 +1,13 @@
 package org.apache.ignite.ci.analysis;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,6 +25,8 @@ public class FullBuildRunContext {
 
     /** Extended comment. May be used for associating build info with extended info, e.g. contact person */
     private String extendedComment;
+
+    private Statistics stat;
 
     public FullBuildRunContext(Build buildInfo) {
         this.buildInfo = buildInfo;
@@ -110,6 +114,10 @@ public class FullBuildRunContext {
         builder.append(" ");
         builder.append(failedTests());
 
+        if (stat != null && stat.getBuildDuration() != null) {
+            builder.append(Duration.ofMillis(stat.getBuildDuration()));
+        }
+
         if (extendedComment != null)
             builder.append("\t").append(extendedComment);
 
@@ -179,5 +187,9 @@ public class FullBuildRunContext {
 
     public String getLastStartedTest() {
         return lastStartedTest;
+    }
+
+    public void setStat(Statistics stat) {
+        this.stat = stat;
     }
 }

@@ -24,6 +24,7 @@ import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.jetbrains.annotations.NotNull;
@@ -34,6 +35,7 @@ import org.jetbrains.annotations.NotNull;
 public class IgnitePersistentTeamcity implements ITeamcity {
 
     public static final String TESTS = "tests";
+    public static final String STAT = "stat";
     private final Ignite ignite;
     private final IgniteTeamcityHelper teamcity;
     private final String serverId;
@@ -156,6 +158,12 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         return loadIfAbsent(TESTS,
             href,
             teamcity::getTests);
+    }
+
+    @Override public Statistics getBuildStat(String href) {
+        return loadIfAbsent(STAT,
+            href,
+            teamcity::getBuildStat);
     }
 
     public class RunStat {

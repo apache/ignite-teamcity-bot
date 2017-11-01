@@ -12,6 +12,7 @@ import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.jetbrains.annotations.NotNull;
 
@@ -72,6 +73,8 @@ public interface ITeamcity extends AutoCloseable {
 
     TestOccurrences getTests(String href);
 
+    Statistics getBuildStat(String href);
+
     @NotNull default FullBuildRunContext loadTestsAndProblems(Build build) {
         FullBuildRunContext ctx = new FullBuildRunContext(build);
         if (build.problemOccurrences != null)
@@ -79,6 +82,10 @@ public interface ITeamcity extends AutoCloseable {
 
         if (build.testOccurrences != null)
             ctx.setTests(getTests(build.testOccurrences.href + ",count:7500").getTests());
+
+        if(true && build.statisticsRef!=null) {
+            ctx.setStat(getBuildStat(build.statisticsRef.href));
+        }
         return ctx;
     }
 
