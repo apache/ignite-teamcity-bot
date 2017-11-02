@@ -70,20 +70,15 @@ public class FullChainRunCtx {
      * @return may return less time than actual duration if not all statistic is provided
      */
     public Long getTotalDuration() {
-        final long result = getDurations()
-            .filter(Objects::nonNull)
-            .mapToLong(t -> t).sum();
-        return result;
+        return getDurations().filter(Objects::nonNull).mapToLong(t -> t).sum();
     }
 
     public boolean hasFullDurationInfo() {
         return getDurations().noneMatch(Objects::isNull);
     }
 
-
     private Stream<Long> getDurations() {
-        return suites().stream()
-            .map(FullBuildRunContext::getBuildDuration);
+        return suites().stream().map(FullBuildRunContext::getBuildDuration);
     }
 
     @NotNull public String getDurationPrintable() {
@@ -91,4 +86,16 @@ public class FullChainRunCtx {
             + (hasFullDurationInfo() ? "" : "+");
     }
 
+    private Stream<Long> getSourceUpdateDurations() {
+        return suites().stream().map(FullBuildRunContext::getSourceUpdateDuration);
+    }
+
+    public Long getTotalSourceUpdateDuration() {
+        return getSourceUpdateDurations().filter(Objects::nonNull).mapToLong(t -> t).sum();
+    }
+
+    @NotNull public String getSourceUpdateDurationPrintable() {
+        return (TimeUtil.getDurationPrintable(getTotalSourceUpdateDuration()))
+            + (hasFullDurationInfo() ? "" : "+");
+    }
 }

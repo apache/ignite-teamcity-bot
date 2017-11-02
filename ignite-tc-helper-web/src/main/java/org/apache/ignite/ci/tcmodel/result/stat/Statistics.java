@@ -19,4 +19,11 @@ public class Statistics extends Parameters {
             return null;
         return Long.parseLong(duration);
     }
+
+    @Nullable public Long getSourceUpdateDuration() {
+        String duration = getParameter(  "buildStageDuration:sourcesUpdate");
+        if (duration == null)
+            return null;
+        return Long.parseLong(duration);
+    }
 }

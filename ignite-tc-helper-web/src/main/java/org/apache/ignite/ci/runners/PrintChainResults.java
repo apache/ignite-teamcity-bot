@@ -96,7 +96,7 @@ public class PrintChainResults {
             final int critical = chainCtx.timeoutsOomeCrashBuildProblems();
             final String criticalTxt = critical == 0 ? "" : (", Timeouts/OOMEs/JvmCrashes: " + critical);
             return Integer.toString(chainCtx.failedTests()) + criticalTxt + " "
-                + (" ") + chainCtx.getDurationPrintable();
+                + (" ") + chainCtx.getDurationPrintable() + " src update: " + chainCtx.getSourceUpdateDurationPrintable();
 
         }).orElse("?");
         builder.append(srvName).append("\t").append(srvAdditionalInfo).append("\n");

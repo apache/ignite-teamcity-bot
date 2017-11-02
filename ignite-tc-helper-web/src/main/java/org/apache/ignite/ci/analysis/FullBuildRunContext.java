@@ -199,4 +199,9 @@ public class FullBuildRunContext {
     public Long getBuildDuration() {
         return stat == null ? null : stat.getBuildDuration();
     }
+
+    @Nullable
+    public Long getSourceUpdateDuration() {
+        return stat == null ? null : stat.getSourceUpdateDuration();
+    }
 }
