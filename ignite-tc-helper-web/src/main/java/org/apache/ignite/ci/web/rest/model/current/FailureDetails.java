@@ -10,6 +10,8 @@ import java.util.List;
  */
 public class FailureDetails extends AbstractTestMetrics {
 
-    public List<ChainCurrentStatus> servers = new ArrayList<>();
+    public boolean updateRequired = false;
+
+    public List<ChainAtServerCurrentStatus> servers = new ArrayList<>();
 
 }

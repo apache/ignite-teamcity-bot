@@ -7,8 +7,11 @@ public class Expirable<D> {
     private final long ts;
     private final D data;
 
-    public Expirable(long ts, D data) {
+    public Expirable(D data) {
+        this(System.currentTimeMillis(), data);
+    }
 
+    public Expirable(long ts, D data) {
         this.ts = ts;
         this.data = data;
     }

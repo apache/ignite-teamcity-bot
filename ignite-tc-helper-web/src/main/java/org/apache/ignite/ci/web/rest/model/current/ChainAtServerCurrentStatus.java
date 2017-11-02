@@ -13,7 +13,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
 /**
  * Represent Run All chain results/ or RunAll+latest re-runs
  */
-public class ChainCurrentStatus extends AbstractTestMetrics {
+public class ChainAtServerCurrentStatus extends AbstractTestMetrics {
     public String serverName;
 
     /** Web Href. to suite runs history*/

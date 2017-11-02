@@ -24,6 +24,7 @@
 $(document).ready(function() {
     $( document ).tooltip();
     loadData();
+    setInterval(loadData, 60000)
 });
 
 function loadData() {
@@ -32,6 +33,9 @@ function loadData() {
         url: "rest/current",
         success: function(result) {
             $("#loadStatus").html("");
+            if(result.updateRequired) {
+                setTimeout(loadData, 1000)
+            }
             showData(result);
         },
         error: function(jqXHR, exception) {
@@ -56,6 +60,7 @@ function loadData() {
 }
 
 function showData(result) {
+    $("#divFailures").html("");
     var arrayLength = result.servers.length;
     for (var i = 0; i < arrayLength; i++) {
         var server = result.servers[i];
