@@ -22,11 +22,12 @@
 <body>
 <script>
 $(document).ready(function() {
+    $( document ).tooltip();
     loadData();
 });
 
 function loadData() {
-    $("#loadStatus").html("please wait");
+    $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
     $.ajax({
         url: "rest/current",
         success: function(result) {
@@ -63,9 +64,18 @@ function showData(result) {
     }
 }
 
+//see ChainCurrentStatus
 function showServerData(server) {
     var res = "";
-    res += "<p>" + server.serverName + "[tests " + server.failedTests + " suites " + server.failedToFinish + "]</p>";
+    var altTxt = "duration: " + server.durationPrintable;
+
+    res += "<b><a href='" + server.webToHist + "'>" + server.serverName + "</a> ";
+    res += "[";
+    res += " <a href='" + server.webToBuild + "' title='"+altTxt+"'>"
+    res += "tests " + server.failedTests + " suites " + server.failedToFinish + "";
+    res += " </a>"
+    res += "]";
+    res += "</b><br><br>";
 
     var arrayLength = server.suites.length;
     for (var i = 0; i < arrayLength; i++) {
@@ -78,8 +88,9 @@ function showServerData(server) {
 
 function showSuiteData(suite) {
     var res = "";
-    res += "<a href=" + suite.web + ">" + suite.name + "</a> " +
-        "[ tests " + suite.failedTests + " " + suite.result + "]" +
+    var altTxt = "duration: " + suite.durationPrintable;
+    res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
+        "[ "+ "<a href='" + suite.webToBuild + "' title='"+altTxt+"'> " + "tests " + suite.failedTests + " " + suite.result + "</a> ]" +
         " " + suite.contactPerson + "" +
         " <br>";
 

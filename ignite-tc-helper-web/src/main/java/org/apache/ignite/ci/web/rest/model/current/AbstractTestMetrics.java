@@ -6,4 +6,6 @@ package org.apache.ignite.ci.web.rest.model.current;
 public abstract class AbstractTestMetrics {
     public Integer failedTests;
     public Integer failedToFinish;
+
+    public String durationPrintable;
 }

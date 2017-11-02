@@ -8,6 +8,7 @@ import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.apache.ignite.ci.util.TimeUtil.getDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 
 /**
@@ -20,8 +21,11 @@ public class SuiteCurrentStatus extends AbstractTestMetrics {
     /** Suite Run Result (filled if failed) */
     public String result;
 
-    /** Web Href. */
-    public String web;
+    /** Web Href. to suite runs history*/
+    public String webToHist = "";
+
+    /** Web Href. to suite particular run */
+    public String webToBuild = "";
 
     /** Contact person. */
     public String contactPerson;
@@ -33,8 +37,10 @@ public class SuiteCurrentStatus extends AbstractTestMetrics {
         name = suite.suiteName();
         result = suite.getResult();
         failedTests = suite.failedTests();
-        contactPerson = suite.getExtendedComment();
-        web = buildWebLink(teamcity, suite);
+        durationPrintable = getDurationPrintable(suite.getBuildDuration());
+        contactPerson = suite.getContactPerson();
+        webToHist = buildWebLink(teamcity, suite);
+        webToBuild = buildWebLinkToBuild(teamcity, suite);
         suite.getFailedTests().forEach(occurrence -> {
             final TestFailure failure = new TestFailure();
             final String name = occurrence.getName();
@@ -53,14 +59,18 @@ public class SuiteCurrentStatus extends AbstractTestMetrics {
         }
     }
 
-    private String buildWebLink(ITeamcity teamcity, FullBuildRunContext suite) {
-        final String branch  ;
-        if ("refs/heads/master".equals(suite.branchName()))
-            branch = "<default>";
-        else
-            branch = suite.branchName();
+    private static String buildWebLinkToBuild(ITeamcity teamcity, FullBuildRunContext suite) {
+        return teamcity.host() + "viewLog.html?buildId=" + Integer.toString(suite.getBuildId());
+    }
+
+    private static String buildWebLink(ITeamcity teamcity, FullBuildRunContext suite) {
+        final String branch = branchForLink(suite.branchName());
         return teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
             + "&branch=" + escape(branch)
             + "&tab=buildTypeStatusDiv";
+    }
+
+    public static String branchForLink(String branchName) {
+        return "refs/heads/master".equals(branchName) ? "<default>" : branchName;
     }
 }

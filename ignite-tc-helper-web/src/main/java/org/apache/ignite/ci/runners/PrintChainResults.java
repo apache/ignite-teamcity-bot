@@ -22,8 +22,8 @@ public class PrintChainResults {
         Optional<FullChainRunCtx> privCtx;
         Ignite ignite = TcHelperDb.start();
         try {
-            boolean includeLatestRebuild =true;
-            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite,"public")) {
+            boolean includeLatestRebuild = true;
+            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
                 String suiteId = "Ignite20Tests_RunAll";
                 String branch = "<default>";
 
@@ -44,7 +44,7 @@ public class PrintChainResults {
     }
 
     private static void printTwoChains(Optional<FullChainRunCtx> pubCtx,
-                                        Optional<FullChainRunCtx> privCtx) {
+        Optional<FullChainRunCtx> privCtx) {
 
         System.err.println(printChainResults(pubCtx, "<Public>"));
         System.err.println(printChainResults(privCtx, "<Private>"));
@@ -90,17 +90,19 @@ public class PrintChainResults {
         return (builder.toString());
     }
 
-    public static String printChainResults(Optional<FullChainRunCtx> chainCtx, String srvName) {
+    public static String printChainResults(Optional<FullChainRunCtx> chainCtxOpt, String srvName) {
         final StringBuilder builder = new StringBuilder();
-        final String srvAdditionalInfo = chainCtx.map(res -> {
-            final int critical = res.timeoutsOomeCrashBuildProblems();
+        final String srvAdditionalInfo = chainCtxOpt.map(chainCtx -> {
+            final int critical = chainCtx.timeoutsOomeCrashBuildProblems();
             final String criticalTxt = critical == 0 ? "" : (", Timeouts/OOMEs/JvmCrashes: " + critical);
-            return Integer.toString(res.failedTests()) + criticalTxt;
+            return Integer.toString(chainCtx.failedTests()) + criticalTxt + " "
+                + (" ") + chainCtx.getDurationPrintable();
 
         }).orElse("?");
         builder.append(srvName).append("\t").append(srvAdditionalInfo).append("\n");
-        builder.append(printChainResults(chainCtx));
+        builder.append(printChainResults(chainCtxOpt));
         return builder.toString();
 
     }
+
 }

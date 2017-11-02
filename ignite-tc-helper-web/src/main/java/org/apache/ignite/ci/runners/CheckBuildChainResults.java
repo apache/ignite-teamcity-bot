@@ -226,7 +226,7 @@ public class CheckBuildChainResults {
 
                 if (properties != null && properties.containsKey(ctx.suiteId())) {
                     final String extComment = properties.getProperty(ctx.suiteId());
-                    ctx.setExtendedComment(extComment);
+                    ctx.setContactPerson(extComment);
                 }
                 return ctx;
             }).collect(Collectors.toList());
