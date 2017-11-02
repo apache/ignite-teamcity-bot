@@ -1,6 +1,7 @@
 package org.apache.ignite.ci;
 
 import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -129,7 +130,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
                 Build::hasFinishDate); //only completed builds are saved
         }
         catch (Exception e) {
-            if(e instanceof FileNotFoundException) {
+            if(Throwables.getRootCause(e) instanceof FileNotFoundException) {
                 //404 error from REST api
                 final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(serverId + "." + "buildResults");
                 e.printStackTrace();

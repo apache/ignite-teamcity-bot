@@ -30,7 +30,7 @@ $(document).ready(function() {
 function loadData() {
     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
     $.ajax({
-        url: "rest/current",
+        url: "rest/current/failures",
         success: function(result) {
             $("#loadStatus").html("");
             if(result.updateRequired) {

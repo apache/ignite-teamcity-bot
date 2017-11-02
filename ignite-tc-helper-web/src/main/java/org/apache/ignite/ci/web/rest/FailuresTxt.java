@@ -22,6 +22,7 @@ import static org.apache.ignite.ci.runners.PrintChainResults.printChainResults;
 
 @Path("failures")
 @Produces(MediaType.TEXT_PLAIN)
+@Deprecated
 public class FailuresTxt {
     @Context
     private ServletContext context;

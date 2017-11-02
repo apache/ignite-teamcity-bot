@@ -42,7 +42,9 @@ public class HttpUtil {
 
         con.setRequestProperty("Authorization", "Basic " + basicAuthToken);
         int resCode = con.getResponseCode();
-        System.out.println("\nSending 'GET' request to URL : " + url);
+        //todo log instead
+        System.out.println("Sending 'GET' request to URL : " + url);
+
         boolean ok = 200 == (resCode);
         if (!ok) {
             throw new IllegalStateException("Invalid Response Code : " + resCode + ":\n"

@@ -23,4 +23,8 @@ public class Expirable<D> {
     public D getData() {
         return data;
     }
+
+    public long getAgeMs() {
+        return System.currentTimeMillis() - ts;
+    }
 }

@@ -3,7 +3,6 @@ package org.apache.ignite.ci.web.rest;
 import com.google.common.base.Strings;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -12,69 +11,34 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
-import org.apache.ignite.IgniteScheduler;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
-import org.apache.ignite.ci.analysis.Expirable;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.FailureDetails;
-import org.apache.ignite.lang.IgniteFuture;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.ignite.ci.runners.PrintChainResults.loadChainContext;
-import static org.apache.ignite.ci.runners.PrintChainResults.printChainResults;
 
-@Path(CurrentFailures.CURRENT)
+@Path(GetCurrTestFailures.CURRENT)
 @Produces(MediaType.APPLICATION_JSON)
-public class CurrentFailures {
+public class GetCurrTestFailures {
     public static final String CURRENT = "current";
     @Context
     private ServletContext context;
 
     @GET
+    @Path("failures")
     public FailureDetails getTestFails(@Nullable @QueryParam("branch") String branchOrNull) {
         Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
         final String key = Strings.nullToEmpty(branchOrNull);
-        final IgniteCache<String, Expirable<FailureDetails>> currCache = ignite.getOrCreateCache(CURRENT);
-        final Expirable<FailureDetails> expirable = currCache.get(key);
-        if (expirable != null) {
-            final long ts = getAgeTs(expirable);
-            if (ts > TimeUnit.MINUTES.toMillis(1)) {
-                //need update but can return current
-                final IgniteScheduler scheduler = ignite.scheduler();
-                //todo some locking and check if it is already scheduled
-
-                final IgniteFuture<FailureDetails> fut = scheduler.callLocal(() -> {
-                    System.err.println("Running background upload");
-                    final FailureDetails res = getTestFailsNoCache(branchOrNull, ignite);
-                    currCache.put(key, new Expirable<>(res));
-                    return res;
-                });
-
-
-                final FailureDetails curData = expirable.getData();
-                curData.updateRequired = true;
-                return curData;
-            }
-            else {
-                final FailureDetails data = expirable.getData();
-                data.updateRequired = false;
-                return data; // return and do nothing
-            }
-        }
-        final FailureDetails res = getTestFailsNoCache(branchOrNull, ignite);
-        currCache.put(key, new Expirable<>(res));
-        res.updateRequired = false;
-        return res;
+        final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
+        return updater.get(CURRENT, key, k -> getTestFailsNoCache(k, ignite));
     }
 
-    private long getAgeTs(Expirable<FailureDetails> expirable) {
-        return System.currentTimeMillis() - expirable.getTs();
-    }
 
     @NotNull private FailureDetails getTestFailsNoCache(@Nullable @QueryParam("branch") String branch, Ignite ignite) {
         final FailureDetails res = new FailureDetails();

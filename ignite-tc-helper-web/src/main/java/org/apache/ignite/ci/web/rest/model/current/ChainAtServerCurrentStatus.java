@@ -47,7 +47,7 @@ public class ChainAtServerCurrentStatus extends AbstractTestMetrics {
     }
 
     private static String buildWebLinkToBuild(ITeamcity teamcity, FullChainRunCtx chain) {
-        return teamcity.host() + "viewLog.html?buildId=" + Integer.toString(chain.getSuiteBuildId());
+        return teamcity.host() + "viewLog.html?buildId=" + chain.getSuiteBuildId() ;
     }
 
     private static String buildWebLink(ITeamcity teamcity, FullChainRunCtx suite) {

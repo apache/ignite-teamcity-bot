@@ -35,7 +35,7 @@ public class FullChainRunCtx {
         return list;
     }
 
-    public int getSuiteBuildId() {
+    public Integer getSuiteBuildId() {
         return results.getId();
     }
 

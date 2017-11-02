@@ -77,8 +77,8 @@
 
      //load();
 
-     setTimeout(load, 300);
-     setInterval(load, 30000);
+     setTimeout(load, 100);
+     setInterval(load, 60000);
  });
 
  function load() {
@@ -86,6 +86,9 @@
         url: " /rest/metrics/failures",
 
         success: function(result) {
+            if(result.updateRequired) {
+                 setTimeout(load, 2000);
+            }
             showChart('.ct-chart-failed', result.failed, 'legend');
             showChart('.ct-chart-notrun', result.notrun, 'legend');
             showChart('.ct-chart-muted', result.muted, 'legend');
@@ -94,9 +97,12 @@
      })
 
      $.ajax({
-        url: " /rest/metrics/failuresPrivate",
+        url: "/rest/metrics/failuresPrivate",
 
         success: function(result) {
+            if(result.updateRequired) {
+                 setTimeout(load, 2000);
+            }
             showChart('.ct-chart-failed-private', result.failed, 'legend-private');
             showChart('.ct-chart-notrun-private', result.notrun, 'legend-private');
             showChart('.ct-chart-muted-private', result.muted, 'legend-private');

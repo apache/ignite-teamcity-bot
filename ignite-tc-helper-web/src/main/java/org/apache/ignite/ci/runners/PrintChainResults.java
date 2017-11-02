@@ -55,9 +55,25 @@ public class PrintChainResults {
         String suiteId,
         String branch,
         boolean includeLatestRebuild) {
-
         Optional<BuildRef> buildRef = teamcity.getLastBuildIncludeSnDepFailed(suiteId, branch);
+        return buildRef.flatMap(build -> processChainByRef(teamcity, includeLatestRebuild, build, true));
+    }
 
+    public static Optional<FullChainRunCtx> processChainByRef(ITeamcity teamcity, boolean includeLatestRebuild,
+        BuildRef build, boolean processLogs) {
+
+        Build results = teamcity.getBuildResults(build.href);
+        if (results == null)
+            return Optional.empty();
+
+        final Properties responsible = getContactPersonProperties(teamcity);
+
+        final FullChainRunCtx val = CheckBuildChainResults.loadChainContext(teamcity, results, includeLatestRebuild,
+            processLogs, responsible);
+        return Optional.of(val);
+    }
+
+    private static Properties getContactPersonProperties(ITeamcity teamcity) {
         Properties properties;
         try {
             properties = HelperConfig.loadPrefixedProperties(teamcity.serverId(), HelperConfig.RESP_FILE_NAME);
@@ -66,17 +82,7 @@ public class PrintChainResults {
             properties = new Properties();
         }
 
-        Properties responsible = properties;
-        return buildRef.flatMap(build -> {
-            System.err.println("ID: " + build.getId());
-            Build results = teamcity.getBuildResults(build.href);
-            if (results == null)
-                return Optional.empty();
-
-            final FullChainRunCtx val = CheckBuildChainResults.loadChainContext(teamcity, results, includeLatestRebuild,
-                true, responsible);
-            return Optional.of(val);
-        });
+        return properties;
     }
 
     public static String printChainResults(Optional<FullChainRunCtx> ctx) {

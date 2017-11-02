@@ -14,9 +14,10 @@ import javax.ws.rs.core.Context;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
+import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.runners.CheckBuildChainResults;
-import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.chart.ChartData;
 import org.apache.ignite.ci.web.rest.model.chart.TestsMetrics;
@@ -32,8 +33,8 @@ public class Metrics {
     private ServletContext context;
 
     @GET
-    @Path("failures")
-    public TestsMetrics getFailures(@Nullable @QueryParam("param") String msg) throws ParseException {
+    @Path("failuresNoCache")
+    public TestsMetrics getFailuresNoCache(){
         Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
         CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
         try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
@@ -46,8 +47,24 @@ public class Metrics {
     }
 
     @GET
+    @Path("failures")
+    public TestsMetrics getFailures() throws ParseException {
+        final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
+        return updater.get("failures.public", "", k -> getFailuresNoCache());
+
+    }
+
+    @GET
     @Path("failuresPrivate")
-    public TestsMetrics getFailuresPrivate(@Nullable @QueryParam("param") String msg) throws ParseException {
+    public TestsMetrics getFailuresPrivate(@Nullable @QueryParam("param") String msg)  {
+        final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
+        return updater.get("failures.private", "", k -> getFailuresPrivateNoCache());
+    }
+
+
+    @GET
+    @Path("failuresPrivateNoCache")
+    @NotNull public TestsMetrics getFailuresPrivateNoCache() {
         Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
         CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
         try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
@@ -59,13 +76,19 @@ public class Metrics {
     }
 
     @NotNull
-    private TestsMetrics convertToChart(CheckBuildChainResults.BuildMetricsHistory history) throws ParseException {
+    private TestsMetrics convertToChart(CheckBuildChainResults.BuildMetricsHistory history)   {
         TestsMetrics testsMetrics = new TestsMetrics();
         Set<SuiteInBranch> builds = history.builds();
         testsMetrics.initBuilds(builds);//to initialize internal mapping build->idx
 
         for (String date : history.dates()) {
-            Date mddd = new SimpleDateFormat("yyyyMMdd").parse(date);
+            Date mddd;
+            try {
+                mddd = new SimpleDateFormat("yyyyMMdd").parse(date);
+            }
+            catch (ParseException e) {
+                continue;
+            }
             String dispDate = new SimpleDateFormat("dd.MM").format(mddd);
             int axisXIdx = testsMetrics.addAxisXLabel(dispDate);
             for (SuiteInBranch next : history.builds()) {
