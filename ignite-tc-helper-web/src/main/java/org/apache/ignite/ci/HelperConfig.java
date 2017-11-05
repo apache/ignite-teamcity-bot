@@ -2,15 +2,18 @@ package org.apache.ignite.ci;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.gson.Gson;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Properties;
+import jersey.repackaged.com.google.common.base.Throwables;
+import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.util.Base64Util;
 
-import static com.google.common.base.Preconditions.checkPositionIndex;
 import static com.google.common.base.Preconditions.checkState;
 
 /**
@@ -105,5 +108,28 @@ public class HelperConfig {
         final File workDir = resolveWorkDir();
         File file = new File(workDir, respConf);
         return loadProps(file);
+    }
+
+    public static BranchesTracked getTrackedBranches() {
+        final File workDir = resolveWorkDir();
+        final File file = new File(workDir, "branches.json");
+        final FileReader json;
+        try {
+            json = new FileReader(file);
+        }
+        catch (FileNotFoundException e) {
+            throw Throwables.propagate(e);
+        }
+        return new Gson().fromJson(json, BranchesTracked.class);
+    }
+
+    public static Properties loadContactPersons(String tcName) throws IOException {
+        try {
+            return loadPrefixedProperties(tcName, RESP_FILE_NAME);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            return new Properties();
+        }
     }
 }

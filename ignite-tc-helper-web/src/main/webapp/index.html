@@ -2,12 +2,66 @@
 <head>
     <title>Ignite Teamcity Helper</title>
     <link rel="icon" href="https://pbs.twimg.com/profile_images/568493154500747264/xTBxO73F.png">
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 </head>
 <body>
 <a href="chart.html">Build metrics daily history</a><br>
 <a href="./status">Current Build Status</a><br>
 <a href="current.html">Current Failed Tests (master)</a><br>
+<div id="branchesStatus"></div>
 <br>
-<a href="./rest/failures?branch=master">Txt Current Failed Tests (master)</a><br>
+<!--<a href="./rest/failures?branch=master">Txt Current Failed Tests (master)</a><br>-->
+
+<div id="loadStatus"></div>
+
+
+<script>
+$(document).ready(function() {
+    $( document ).tooltip();
+    loadData();
+    setInterval(loadData, 60000)
+});
+
+function loadData() {
+    $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+    $.ajax({
+        url: "rest/branches/getIds",
+        success: function(result) {
+            $("#loadStatus").html("");
+            showData(result);
+        },
+        error: function(jqXHR, exception) {
+            if (jqXHR.status === 0) {
+                $("#loadStatus").html('Not connect.\n Verify Network.');
+            } else if (jqXHR.status == 404) {
+                $("#loadStatus").html('Requested page not found. [404]');
+            } else if (jqXHR.status == 500) {
+                $("#loadStatus").html('Internal Server Error [500].');
+            } else if (exception === 'parsererror') {
+                $("#loadStatus").html('Requested JSON parse failed.');
+            } else if (exception === 'timeout') {
+                $("#loadStatus").html('Time out error.');
+            } else if (exception === 'abort') {
+                $("#loadStatus").html('Ajax request aborted.');
+            } else {
+                $("#loadStatus").html('Uncaught Error.\n' + jqXHR.responseText);
+            }
+        }
+
+    }, );
+}
+
+function showData(result) {
+    var res = "";
+    for (var i = 0; i < result.length; i++) {
+        var id = result[i];
+        res+="<a href='current.html?branch="+id+"'>Current Failed Tests ("+id+")</a><br>";
+    } 
+    $("#branchesStatus").html(res);
+}
+</script>
 </body>
 </html>

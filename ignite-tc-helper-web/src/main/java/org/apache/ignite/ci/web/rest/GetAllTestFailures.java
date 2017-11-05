@@ -13,8 +13,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.conf.BranchTracked;
+import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.runners.PrintChainResults;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.web.BackgroundUpdater;
@@ -44,55 +47,32 @@ public class GetAllTestFailures {
 
     @GET
     @Path("failuresNoCache")
-    @NotNull public FailureDetails getAllTestFailsNoCache(@Nullable @QueryParam("branch") String branch ) {
+    @NotNull public FailureDetails getAllTestFailsNoCache(@Nullable @QueryParam("branch") String branchOpt ) {
         Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
         final FailureDetails res = new FailureDetails();
+        final String branch = isNullOrEmpty(branchOpt) ? "master" : branchOpt;
+        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
+        for (ChainAtServerTracked chainAtServerTracked : tracked.chains) {
+            try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainAtServerTracked.serverId)) {
+                final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
+                    chainAtServerTracked.getSuiteIdMandatory(),
+                    chainAtServerTracked.getBranchForRestMandatory());
+                Stream<Optional<FullChainRunCtx>> stream
+                    = builds.stream().parallel()
+                    .filter(b -> b.getId() != null)
+                    .map(build -> PrintChainResults.processChainByRef(teamcity, false, build, false));
 
-        boolean includeLatestRebuild = true;
-        try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
-            String suiteId = "Ignite20Tests_RunAll";
-            //todo config branches and its names
-            String branchPub =
-                (isNullOrEmpty(branch) || "master".equals(branch)) ? "<default>" : "pull/2508/head";
-            final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(suiteId, branchPub);
-            Stream<Optional<FullChainRunCtx>> stream
-                = builds.stream().parallel()
-                .filter(b->b.getId()!=null)
-                .map(build -> PrintChainResults.processChainByRef(teamcity, false, build, false));
+                final Map<String, IgnitePersistentTeamcity.RunStat> map = teamcity.runTestAnalysis();
+                stream.forEach(
+                    pubCtx -> {
+                        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
+                        chainStatus.serverName = teamcity.serverId();
+                        pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
+                        res.servers.add(chainStatus);
+                    }
+                );
 
-            final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
-            chainStatus.serverName = teamcity.serverId();
-
-            final Map<String, IgnitePersistentTeamcity.RunStat> map = teamcity.runTestAnalysis();
-            stream.forEach(
-                pubCtx -> {
-                    pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
-                    res.servers.add(chainStatus);
-                }
-            );
-
-        }
-
-        try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
-            String suiteId = "id8xIgniteGridGainTests_RunAll";
-            //todo config
-            String branchPriv =
-                (isNullOrEmpty(branch) || "master".equals(branch)) ? "<default>" : "ignite-2.1.5";
-            final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(suiteId, branchPriv);
-            Stream<Optional<FullChainRunCtx>> stream
-                = builds.stream().parallel()
-                .filter(b->b.getId()!=null)
-                .map(build -> PrintChainResults.processChainByRef(teamcity, false, build, false));
-
-            final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
-            chainStatus.serverName = teamcity.serverId();
-            final Map<String, IgnitePersistentTeamcity.RunStat> map = teamcity.runTestAnalysis();
-            stream.forEach(
-                privCtx -> {
-                    privCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
-                    res.servers.add(chainStatus);
-                }
-            );
+            }
         }
         return res;
     }

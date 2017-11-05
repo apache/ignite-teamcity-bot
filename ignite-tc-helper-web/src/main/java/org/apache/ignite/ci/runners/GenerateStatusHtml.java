@@ -121,8 +121,8 @@ public class GenerateStatusHtml {
         Properties privResp;
         Properties pubResp;
         if (groupByResponsible) {
-            privResp = HelperConfig.loadPrefixedProperties(tcPrivId, HelperConfig.RESP_FILE_NAME);
-            pubResp = HelperConfig.loadPrefixedProperties(pubTcId, HelperConfig.RESP_FILE_NAME);
+            privResp = HelperConfig.loadContactPersons(tcPrivId);
+            pubResp = HelperConfig.loadContactPersons(pubTcId);
 
             respPersons = allRespPersons(privResp, pubResp);
             System.err.println(respPersons);

@@ -76,7 +76,7 @@ public class PrintChainResults {
     private static Properties getContactPersonProperties(ITeamcity teamcity) {
         Properties properties;
         try {
-            properties = HelperConfig.loadPrefixedProperties(teamcity.serverId(), HelperConfig.RESP_FILE_NAME);
+            properties = HelperConfig.loadContactPersons(teamcity.serverId());
         }
         catch (IOException e) {
             properties = new Properties();

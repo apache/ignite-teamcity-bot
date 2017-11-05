@@ -11,8 +11,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.conf.BranchTracked;
+import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
@@ -33,46 +36,36 @@ public class GetCurrTestFailures {
     @GET
     @Path("failures")
     public FailureDetails getTestFails(@Nullable @QueryParam("branch") String branchOrNull) {
-        Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
         final String key = Strings.nullToEmpty(branchOrNull);
         final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
-        return updater.get(CURRENT, key, k -> getTestFailsNoCache(k, ignite));
+        return updater.get(CURRENT, key, this::getTestFailsNoCache);
     }
 
+    @GET
+    @Path("failuresNoCache")
+    @NotNull public FailureDetails getTestFailsNoCache(@Nullable @QueryParam("branch") String key) {
+        final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
 
-    @NotNull private FailureDetails getTestFailsNoCache(@Nullable @QueryParam("branch") String branch, Ignite ignite) {
         final FailureDetails res = new FailureDetails();
+        final String branch = isNullOrEmpty(key) ? "master" : key;
+        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
 
-        boolean includeLatestRebuild = true;
-        try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
-            String suiteId = "Ignite20Tests_RunAll";
-            //todo config branches and its names
-            String branchPub =
-                (isNullOrEmpty(branch) || "master".equals(branch)) ? "<default>" : "pull/2508/head";
-            Optional<FullChainRunCtx> pubCtx = loadChainContext(teamcity, suiteId, branchPub, includeLatestRebuild);
+        for (ChainAtServerTracked chainTracked : tracked.chains) {
+            try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
+                Optional<FullChainRunCtx> pubCtx = loadChainContext(teamcity,
+                    chainTracked.getSuiteIdMandatory(),
+                    chainTracked.getBranchForRestMandatory(),
+                    true);
 
-            final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
-            chainStatus.serverName = teamcity.serverId();
+                final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
+                chainStatus.serverName = teamcity.serverId();
 
-            final Map<String, IgnitePersistentTeamcity.RunStat> map = teamcity.runTestAnalysis();
+                final Map<String, IgnitePersistentTeamcity.RunStat> map = teamcity.runTestAnalysis();
 
-            pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
+                pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
 
-            res.servers.add(chainStatus);
-        }
-
-        try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
-            String suiteId = "id8xIgniteGridGainTests_RunAll";
-            //todo config
-            String branchPriv =
-                (isNullOrEmpty(branch) || "master".equals(branch)) ? "<default>" : "ignite-2.1.5";
-            Optional<FullChainRunCtx> privCtx = loadChainContext(teamcity, suiteId, branchPriv, includeLatestRebuild);
-
-            final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
-            chainStatus.serverName = teamcity.serverId();
-            final Map<String, IgnitePersistentTeamcity.RunStat> map = teamcity.runTestAnalysis();
-            privCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
-            res.servers.add(chainStatus);
+                res.servers.add(chainStatus);
+            }
         }
         return res;
     }
