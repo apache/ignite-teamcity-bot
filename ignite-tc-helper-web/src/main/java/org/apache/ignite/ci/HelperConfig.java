@@ -1,7 +1,6 @@
 package org.apache.ignite.ci;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -12,9 +11,11 @@ import java.io.UncheckedIOException;
 import java.util.Properties;
 import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.conf.BranchesTracked;
+import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.util.Base64Util;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  * Created by Дмитрий on 21.07.2017
@@ -25,6 +26,7 @@ public class HelperConfig {
     public static final String HOST = "host";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
+    public static final String ENCODED_PASSWORD = "encoded_password";
     public static final String LOGS = "logs";
     public static final String ENDL = String.format("%n");
 
@@ -65,7 +67,7 @@ public class HelperConfig {
     }
 
     private static String prefixedWithServerName(String tcName, String name) {
-        return Strings.isNullOrEmpty(tcName) ? name : (tcName + "." + name);
+        return isNullOrEmpty(tcName) ? name : (tcName + "." + name);
     }
 
     public static File ensureDirExist(File workDir) {
@@ -78,11 +80,11 @@ public class HelperConfig {
     public static File resolveWorkDir() {
         File workDir = null;
         String property = System.getProperty(IgniteTeamcityHelper.TEAMCITY_HELPER_HOME);
-        if (Strings.isNullOrEmpty(property)) {
+        if (isNullOrEmpty(property)) {
             String conf = ".ignite-teamcity-helper";
             String prop = System.getProperty("user.home");
             //relative in work dir
-            workDir = Strings.isNullOrEmpty(prop) ? new File(conf) : new File(prop, conf);
+            workDir = isNullOrEmpty(prop) ? new File(conf) : new File(prop, conf);
         }
         else
             workDir = new File(property);
@@ -92,14 +94,24 @@ public class HelperConfig {
 
     public static String prepareBasicHttpAuthToken(Properties props, String configName) {
         final String user = getMandatoryProperty(props, USERNAME, configName);
-        final String pwd = getMandatoryProperty(props, PASSWORD, configName);
+        String pass = props.getProperty(PASSWORD);
+        boolean filled = !isNullOrEmpty(pass);
+        if(!filled) {
+            String enc = props.getProperty(ENCODED_PASSWORD);
+            if(!isNullOrEmpty(enc)) {
+                pass = PasswordEncoder.decode(enc);
+                filled = true;
+            }
+        }
+        Preconditions.checkState(filled, ENCODED_PASSWORD + " or " + PASSWORD + " property should be filled in " + configName);
+        final String pwd = pass;
         String str = user + ":" + pwd;
         return Base64Util.encodeUtf8String(str);
     }
 
     private static String getMandatoryProperty(Properties props, String key, String configName) {
         final String user = props.getProperty(key);
-        Preconditions.checkState(!Strings.isNullOrEmpty(user), key + " property should be filled in " + configName);
+        Preconditions.checkState(!isNullOrEmpty(user), key + " property should be filled in " + configName);
         return user;
     }
 
