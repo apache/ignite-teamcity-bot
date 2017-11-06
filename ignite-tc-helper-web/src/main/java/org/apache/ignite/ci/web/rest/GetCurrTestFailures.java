@@ -19,7 +19,7 @@ import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
-import org.apache.ignite.ci.web.rest.model.current.FailureDetails;
+import org.apache.ignite.ci.web.rest.model.current.TestFailuresSummary;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,18 +35,18 @@ public class GetCurrTestFailures {
 
     @GET
     @Path("failures")
-    public FailureDetails getTestFails(@Nullable @QueryParam("branch") String branchOrNull) {
+    public TestFailuresSummary getTestFails(@Nullable @QueryParam("branch") String branchOrNull) {
         final String key = Strings.nullToEmpty(branchOrNull);
         final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
-        return updater.get(CURRENT, key, this::getTestFailsNoCache);
+        return updater.get(CURRENT + "TestFailuresSummary", key, this::getTestFailsNoCache);
     }
 
     @GET
     @Path("failuresNoCache")
-    @NotNull public FailureDetails getTestFailsNoCache(@Nullable @QueryParam("branch") String key) {
+    @NotNull public TestFailuresSummary getTestFailsNoCache(@Nullable @QueryParam("branch") String key) {
         final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
 
-        final FailureDetails res = new FailureDetails();
+        final TestFailuresSummary res = new TestFailuresSummary();
         final String branch = isNullOrEmpty(key) ? "master" : key;
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
 

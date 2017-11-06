@@ -4,13 +4,14 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.tcmodel.result.AbstractRef;
 
 /**
  * Actual result of build execution from build history,
  * short version involved in snapshot dependencies and into build history list
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-public class BuildRef {
+public class BuildRef extends AbstractRef {
     @XmlAttribute private Integer id;
 
     @XmlAttribute public String buildTypeId;
@@ -21,7 +22,9 @@ public class BuildRef {
 
     @XmlAttribute private String state;
 
-    @XmlAttribute public String href;
+    @XmlAttribute public Integer number;
+
+    @XmlAttribute public Boolean defaultBranch;
 
     public Integer getId() {
         return id;

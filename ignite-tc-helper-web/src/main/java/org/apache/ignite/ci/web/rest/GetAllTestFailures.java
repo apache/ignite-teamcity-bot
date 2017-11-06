@@ -23,7 +23,7 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
-import org.apache.ignite.ci.web.rest.model.current.FailureDetails;
+import org.apache.ignite.ci.web.rest.model.current.TestFailuresSummary;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,24 +38,25 @@ public class GetAllTestFailures {
 
     @GET
     @Path("failures")
-    public FailureDetails getTestFails(@Nullable @QueryParam("branch") String branchOrNull) {
+    public TestFailuresSummary getTestFails(@Nullable @QueryParam("branch") String branchOrNull) {
         final String key = Strings.nullToEmpty(branchOrNull);
         final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
-        return updater.get(ALL, key, this::getAllTestFailsNoCache);
+        return updater.get("AllTestFailuresSummary", key, this::getAllTestFailsNoCache);
     }
 
 
     @GET
     @Path("failuresNoCache")
-    @NotNull public FailureDetails getAllTestFailsNoCache(@Nullable @QueryParam("branch") String branchOpt ) {
+    @NotNull public TestFailuresSummary getAllTestFailsNoCache(@Nullable @QueryParam("branch") String branchOpt ) {
         Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
-        final FailureDetails res = new FailureDetails();
+        final TestFailuresSummary res = new TestFailuresSummary();
         final String branch = isNullOrEmpty(branchOpt) ? "master" : branchOpt;
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
         for (ChainAtServerTracked chainAtServerTracked : tracked.chains) {
             try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainAtServerTracked.serverId)) {
+                final String projectId = chainAtServerTracked.getSuiteIdMandatory();
                 final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
-                    chainAtServerTracked.getSuiteIdMandatory(),
+                    projectId,
                     chainAtServerTracked.getBranchForRestMandatory());
                 Stream<Optional<FullChainRunCtx>> stream
                     = builds.stream().parallel()
@@ -64,10 +65,10 @@ public class GetAllTestFailures {
 
                 final Map<String, IgnitePersistentTeamcity.RunStat> map = teamcity.runTestAnalysis();
                 stream.forEach(
-                    pubCtx -> {
+                    chainCtxOpt -> {
                         final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
                         chainStatus.serverName = teamcity.serverId();
-                        pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
+                        chainCtxOpt.ifPresent(chainCtx -> chainStatus.initFromContext(teamcity, chainCtx, map));
                         res.servers.add(chainStatus);
                     }
                 );

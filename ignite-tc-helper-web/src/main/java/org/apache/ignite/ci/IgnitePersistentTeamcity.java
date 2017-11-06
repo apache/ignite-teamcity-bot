@@ -17,6 +17,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.cache.Cache;
+import javax.cache.CacheException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.analysis.Expirable;
@@ -27,6 +28,7 @@ import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.jetbrains.annotations.NotNull;
 
@@ -64,7 +66,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     public <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction, Predicate<V> saveValueFilter) {
-        final IgniteCache<K, V> cache = ignite.getOrCreateCache(serverId + "." + cacheName);
+        final IgniteCache<K, V> cache = ignite.getOrCreateCache(ignCacheNme(cacheName));
 
         @Nullable final V persistedBuilds = cache.get(key);
 
@@ -78,7 +80,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     public <K, V> V timedLoadIfAbsentOrMerge(String cacheName, int seconds, K key, BiFunction<K, V, V> loadWithMerge) {
-        final IgniteCache<K, Expirable<V>> hist = ignite.getOrCreateCache(serverId + "." + cacheName);
+        final IgniteCache<K, Expirable<V>> hist = ignite.getOrCreateCache(ignCacheNme(cacheName));
         @Nullable final Expirable<V> persistedBuilds = hist.get(key);
         if (persistedBuilds != null) {
             long ageTs = System.currentTimeMillis() - persistedBuilds.getTs();
@@ -124,15 +126,29 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     @Nullable
     @Override public Build getBuildResults(String href) {
         try {
-            return loadIfAbsent("buildResults",
+            String cacheName = "buildResults";
+            Build results = loadIfAbsent(cacheName,
                 href,
                 teamcity::getBuildResults,
-                Build::hasFinishDate); //only completed builds are saved
+                Build::hasFinishDate);
+            if (results.getBuildType().getProjectId() == null) {
+                //trying to reload to get version with filled project ID
+                try {
+                    Build results1 = teamcity.getBuildResults(href);
+                    ignite.getOrCreateCache(ignCacheNme(cacheName)).put(href, results1);
+                    return results1;
+                }
+                catch (CacheException e) {
+                    e.printStackTrace();
+                }
+            }
+            return results; //only completed builds are saved
         }
         catch (Exception e) {
-            if(Throwables.getRootCause(e) instanceof FileNotFoundException) {
+            if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
                 //404 error from REST api
-                final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(serverId + "." + "buildResults");
+                String results = "buildResults";
+                final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(ignCacheNme(results));
                 e.printStackTrace();
                 //todo log error
 
@@ -142,6 +158,10 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             } else
                 throw e;
         }
+    }
+
+    @NotNull private String ignCacheNme(String results) {
+        return serverId + "." + results;
     }
 
     @Override public String host() {
@@ -157,7 +177,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
     @Override public TestOccurrences getTests(String href) {
         return loadIfAbsent(TESTS,
-            href,
+            href.replace("\",count:7700\"", "\",count:7500\""),  //hack to avoid test reloading from stroe
             teamcity::getTests);
     }
 
@@ -165,6 +185,12 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         return loadIfAbsent(STAT,
             href,
             teamcity::getBuildStat);
+    }
+
+    @Override public TestOccurrenceFull getTestFull(String href) {
+        return loadIfAbsent("testOccurrenceFull",
+            href,
+            teamcity::getTestFull);
     }
 
     public class RunStat {
@@ -180,7 +206,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
     public Map<String, RunStat> runTestAnalysis() {
         Map<String, RunStat> map = new HashMap<>();
-        final IgniteCache<Object, TestOccurrences> cache = ignite.getOrCreateCache(serverId + "." + TESTS);
+        final IgniteCache<Object, TestOccurrences> cache = ignite.getOrCreateCache(ignCacheNme(TESTS));
         for (Cache.Entry<Object, TestOccurrences> next : cache) {
             final TestOccurrences val = next.getValue();
             for (TestOccurrence occurrence : val.getTests()) {

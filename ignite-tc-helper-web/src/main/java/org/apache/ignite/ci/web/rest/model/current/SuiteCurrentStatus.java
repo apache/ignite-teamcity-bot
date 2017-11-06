@@ -3,6 +3,8 @@ package org.apache.ignite.ci.web.rest.model.current;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
@@ -14,14 +16,14 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 /**
  * Represent Suite result
  */
-public class SuiteCurrentStatus extends AbstractTestMetrics {
+@SuppressWarnings("WeakerAccess") public class SuiteCurrentStatus extends AbstractTestMetrics {
     /** Suite Name */
     public String name;
 
     /** Suite Run Result (filled if failed) */
     public String result;
 
-    /** Web Href. to suite runs history*/
+    /** Web Href. to suite runs history */
     public String webToHist = "";
 
     /** Web Href. to suite particular run */
@@ -32,8 +34,9 @@ public class SuiteCurrentStatus extends AbstractTestMetrics {
 
     public List<TestFailure> testFailures = new ArrayList<>();
 
-    public void initFromContext(ITeamcity teamcity, FullBuildRunContext suite,
-        Map<String, IgnitePersistentTeamcity.RunStat> runStatMap) {
+    public void initFromContext(@Nonnull final ITeamcity teamcity,
+        @Nonnull final FullBuildRunContext suite,
+        @Nullable final Map<String, IgnitePersistentTeamcity.RunStat> runStatMap) {
         name = suite.suiteName();
         result = suite.getResult();
         failedTests = suite.failedTests();
@@ -43,19 +46,14 @@ public class SuiteCurrentStatus extends AbstractTestMetrics {
         webToBuild = buildWebLinkToBuild(teamcity, suite);
         suite.getFailedTests().forEach(occurrence -> {
             final TestFailure failure = new TestFailure();
-            final String name = occurrence.getName();
-            final IgnitePersistentTeamcity.RunStat stat = runStatMap.get(name);
-            if (stat != null) {
-                failure.failures = stat.failures;
-                failure.runs = stat.runs;
-            }
-            failure.name = name;
+            failure.initFromOccurrence(occurrence, suite.getFullTest(occurrence.id), teamcity, suite);
+            failure.initStat(runStatMap);
             testFailures.add(failure);
         });
-        if(!isNullOrEmpty(suite.getLastStartedTest())) {
-            final TestFailure e = new TestFailure();
-            e.name = suite.getLastStartedTest() + " (last started)";
-            testFailures.add(e);
+        if (!isNullOrEmpty(suite.getLastStartedTest())) {
+            final TestFailure failure = new TestFailure();
+            failure.name = suite.getLastStartedTest() + " (last started)";
+            testFailures.add(failure);
         }
     }
 
@@ -71,6 +69,6 @@ public class SuiteCurrentStatus extends AbstractTestMetrics {
     }
 
     public static String branchForLink(String branchName) {
-        return "refs/heads/master".equals(branchName) ? "<default>" : branchName;
+        return branchName == null || "refs/heads/master".equals(branchName) ? "<default>" : branchName;
     }
 }

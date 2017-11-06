@@ -9,7 +9,7 @@ import org.apache.ignite.ci.web.IBackgroundUpdatable;
  *
  * Summary failures from all servers
  */
-public class FailureDetails extends AbstractTestMetrics implements IBackgroundUpdatable {
+@SuppressWarnings("WeakerAccess") public class TestFailuresSummary extends AbstractTestMetrics implements IBackgroundUpdatable {
 
     public boolean updateRequired = false;
 

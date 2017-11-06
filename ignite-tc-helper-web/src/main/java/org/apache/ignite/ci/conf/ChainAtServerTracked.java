@@ -13,12 +13,13 @@ public class ChainAtServerTracked {
     /** Server ID to access config files within helper */
     @Nullable public String serverId;
 
-    /** Suite identifier by teamcity identification */
+    /** Suite identifier by teamcity identification for root chain */
     @Nonnull public String suiteId;
 
     /** Branch identifier by TC identification for REST api */
     @Nonnull public String branchForRest;
 
+    /** @return {@link #suiteId} */
     @Nonnull public String getSuiteIdMandatory() {
         checkState(!isNullOrEmpty(suiteId), "Invalid config: suiteId should be filled " + this);
         return suiteId;

@@ -63,4 +63,8 @@ public class Build extends BuildRef {
     public boolean hasFinishDate() {
         return !Strings.isNullOrEmpty(finishDate);
     }
+
+    public BuildType getBuildType() {
+        return buildType;
+    }
 }

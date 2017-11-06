@@ -37,13 +37,12 @@ public class BackgroundUpdater {
             V apply = load.apply(key);
             currCache.put(key, new Expirable<V>(apply));
 
-            scheduledUpdates.remove(cacheName); // removing registered computation
             return apply;
         };
         final Expirable<V> expirable = currCache.get(key);
         if (expirable == null) {
-            FutureTask<V> task = new FutureTask<V>(loadAndSaveCallable);
-            Future<?> future = scheduledUpdates.computeIfAbsent(cacheName, k -> {
+            final FutureTask<V> task = new FutureTask<V>(loadAndSaveCallable);
+            final Future<?> future = scheduledUpdates.computeIfAbsent(cacheName, k -> {
                 task.run();
                 return task;
             });
@@ -58,6 +57,8 @@ public class BackgroundUpdater {
             }
             catch (ExecutionException e) {
                 throw Throwables.propagate(e);
+            } finally {
+                scheduledUpdates.remove(cacheName); // removing registered computation
             }
         }
 

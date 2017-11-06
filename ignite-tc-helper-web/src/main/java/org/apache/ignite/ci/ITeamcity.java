@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import javax.annotation.Nonnull;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
 import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
@@ -13,8 +14,9 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * API for calling methods from REST service:
@@ -75,15 +77,35 @@ public interface ITeamcity extends AutoCloseable {
 
     Statistics getBuildStat(String href);
 
-    @NotNull default FullBuildRunContext loadTestsAndProblems(Build build) {
+    TestOccurrenceFull getTestFull(String href);
+
+    /**
+     * Runs deep collection of all related statistics for particular build
+     *
+     * @param build build from history with references to tests
+     * @return full context
+     */
+    @Nonnull default FullBuildRunContext loadTestsAndProblems(@Nonnull Build build) {
         FullBuildRunContext ctx = new FullBuildRunContext(build);
         if (build.problemOccurrences != null)
             ctx.setProblems(getProblems(build.problemOccurrences.href).getProblemsNonNull());
 
-        if (build.testOccurrences != null)
-            ctx.setTests(getTests(build.testOccurrences.href + ",count:7500").getTests());
+        if (build.testOccurrences != null) {
+            List<TestOccurrence> tests = getTests(build.testOccurrences.href + ",count:7700").getTests();
+            ctx.setTests(tests);
 
-        if(true && build.statisticsRef!=null) {
+            for (TestOccurrence next : tests) {
+                //todo is it required to load non failed test here
+                if (next.href != null && next.isFailedTest()) {
+                    TestOccurrenceFull testOccurrenceFull = getTestFull(next.href);
+                    String testInBuildId = next.id;
+                    if (testOccurrenceFull.test != null && testOccurrenceFull.test.id != null)
+                        ctx.addTestInBuildToTestFull(testInBuildId, testOccurrenceFull);
+                }
+            }
+        }
+
+        if (build.statisticsRef != null) {
             ctx.setStat(getBuildStat(build.statisticsRef.href));
         }
         return ctx;
@@ -115,7 +137,7 @@ public interface ITeamcity extends AutoCloseable {
         final LogsAnalyzer analyzer = new LogsAnalyzer(search, lastTestCp);
         final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
         return fut2.thenApplyAsync(file -> {
-            if(dumpLastTest)
+            if (dumpLastTest)
                 ctx.setLastStartedTest(lastTestCp.getLastTestName());
             return file;
         });

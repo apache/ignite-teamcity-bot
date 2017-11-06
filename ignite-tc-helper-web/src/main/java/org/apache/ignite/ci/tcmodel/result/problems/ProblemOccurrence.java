@@ -6,6 +6,8 @@ import javax.xml.bind.annotation.XmlAttribute;
  * Created by dpavlov on 03.08.2017
  */
 public class ProblemOccurrence {
+    public static final String BUILD_FAILURE_ON_MESSAGE = "BuildFailureOnMessage";
+
     @XmlAttribute public String id;
     @XmlAttribute public String identity;
     @XmlAttribute public String type;

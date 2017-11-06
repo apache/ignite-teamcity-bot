@@ -1,13 +1,18 @@
 package org.apache.ignite.ci.analysis;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
+import javax.annotation.Nonnull;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.util.TimeUtil;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,19 +21,22 @@ import org.jetbrains.annotations.Nullable;
  * Includes tests and problem occurrences; if logs processing is done also contains last started test
  */
 public class FullBuildRunContext {
-    private Build buildInfo;
+    @Nonnull private final Build buildInfo;
     private List<ProblemOccurrence> problems;
     @Nullable private List<TestOccurrence> tests;
 
     /** Last started test. Optionally filled from log post processor */
     private String lastStartedTest;
 
-    /** Extended comment. May be used for associating build info with extended info, e.g. contact person */
+    /** Used for associating build info with contact person */
     private String contactPerson;
 
     @Nullable private Statistics stat;
 
-    public FullBuildRunContext(Build buildInfo) {
+    /** Mapping for building test occurrence reference to test full results */
+    private Map<String, TestOccurrenceFull> testFullMap = new HashMap<>();
+
+    public FullBuildRunContext(@Nonnull final Build buildInfo) {
         this.buildInfo = buildInfo;
     }
 
@@ -48,7 +56,7 @@ public class FullBuildRunContext {
         return problems != null && problems.stream().anyMatch(problem ->
             !problem.isFailedTests()
                 && !problem.isShaphotDepProblem()
-                && !"BuildFailureOnMessage".equals(problem.type));
+                && !ProblemOccurrence.BUILD_FAILURE_ON_MESSAGE.equals(problem.type));
         //todo what to do with BuildFailureOnMessage, now it is ignored
     }
 
@@ -203,5 +211,23 @@ public class FullBuildRunContext {
     @Nullable
     public Long getSourceUpdateDuration() {
         return stat == null ? null : stat.getSourceUpdateDuration();
+    }
+
+    public void addTestInBuildToTestFull(String testInBuildId, TestOccurrenceFull testOccurrenceFull) {
+        testFullMap.put(testInBuildId, testOccurrenceFull);
+    }
+
+    public Optional<TestOccurrenceFull> getFullTest(String id) {
+        return Optional.ofNullable(testFullMap.get(id));
+    }
+
+    @Nullable
+    public String projectId() {
+        final BuildType type = buildInfo.getBuildType();
+
+        if (type == null)
+            return null;
+
+        return type.getProjectId();
     }
 }

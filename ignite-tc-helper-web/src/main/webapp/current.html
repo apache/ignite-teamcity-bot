@@ -127,10 +127,35 @@ function showSuiteData(suite) {
 
 function showTestFailData(testFail) {
     var res = "";
-    res += "&nbsp; " + testFail.name;
+    res += "&nbsp; ";
+
+    var haveIssue = typeof testFail.webIssueUrl !== 'undefined' && testFail.webIssueUrl!=null
+                    && typeof testFail.webIssueText !== 'undefined' && testFail.webIssueText!=null;
+
+    if(haveIssue) {
+        res += "<a href='"+testFail.webIssueUrl+"'>";
+        res += testFail.webIssueText;
+        res += "</a>";
+        res += ": ";
+    };
+
+    res += testFail.name;
+
+    var haveWeb = typeof testFail.webUrl !== 'undefined' && testFail.webUrl!=null;
+    var histContent = "";
     if (testFail.failures != null && testFail.runs != null) {
-        res += " (fails: " + testFail.failures + "/" + testFail.runs + ")";
+        histContent += " <span title='" + testFail.failures + "fails in all tracked branches in helper DB'>";
+        histContent += "(fails: " + testFail.failures + "/" + testFail.runs + ")";
+        histContent += "</span>";
+    } else if(haveWeb) {
+        histContent += " (test history)";
     }
+    if (haveWeb)
+        res += "<a href='"+testFail.webUrl+"'>";
+    res += histContent;
+    if (haveWeb)
+        res += "</a>";
+
     res += " <br>";
     return res;
 }

@@ -3,6 +3,7 @@ package org.apache.ignite.ci.web.rest.model.current;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -13,7 +14,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
 /**
  * Represent Run All chain results/ or RunAll+latest re-runs
  */
-public class ChainAtServerCurrentStatus extends AbstractTestMetrics {
+@SuppressWarnings("WeakerAccess") public class ChainAtServerCurrentStatus extends AbstractTestMetrics {
     public String serverName;
 
     /** Web Href. to suite runs history*/
@@ -26,7 +27,7 @@ public class ChainAtServerCurrentStatus extends AbstractTestMetrics {
 
     public void initFromContext(ITeamcity teamcity,
         FullChainRunCtx ctx,
-        Map<String, IgnitePersistentTeamcity.RunStat> runStatMap) {
+        @Nullable final Map<String, IgnitePersistentTeamcity.RunStat> runStatMap) {
         failedTests = 0;
         failedToFinish = 0;
         ctx.failedChildSuites().forEach(
@@ -35,7 +36,7 @@ public class ChainAtServerCurrentStatus extends AbstractTestMetrics {
                 suiteCurStatus.initFromContext(teamcity, suite, runStatMap);
 
                 failedTests += suiteCurStatus.failedTests;
-                if(suite.hasAnyBuildProblemExceptTestOrSnapshot())
+                if (suite.hasAnyBuildProblemExceptTestOrSnapshot())
                     failedToFinish++;
 
                 this.suites.add(suiteCurStatus);

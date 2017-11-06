@@ -9,11 +9,13 @@ import javax.xml.bind.annotation.XmlAttribute;
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class BuildType {
-    @XmlAttribute(name="id")
-    private String id;
+    @XmlAttribute private String id;
 
-    @XmlAttribute(name="name")
-    private String name;
+    @XmlAttribute private String name;
+
+    @XmlAttribute private String projectId;
+
+    @XmlAttribute private String projectName;
 
     @XmlAttribute
     private String href;
@@ -24,5 +26,9 @@ public class BuildType {
 
     public String getId() {
         return id;
+    }
+
+    public String getProjectId() {
+        return projectId;
     }
 }
