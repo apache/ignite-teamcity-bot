@@ -7,13 +7,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.analysis.Expirable;
+import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.lang.IgniteClosure;
 
 /**
@@ -22,7 +22,7 @@ import org.apache.ignite.lang.IgniteClosure;
 public class BackgroundUpdater {
 
     private Ignite ignite;
-    private Map<String, Future<?>> scheduledUpdates = new ConcurrentHashMap<>();
+    private Map<T2<String, ?>, Future<?>> scheduledUpdates = new ConcurrentHashMap<>();
     private ExecutorService service = Executors.newFixedThreadPool(10);
 
     public BackgroundUpdater(Ignite ignite) {
@@ -32,20 +32,22 @@ public class BackgroundUpdater {
     public <K, V extends IBackgroundUpdatable> V get(String cacheName, K key, IgniteClosure<K, V> load) {
         final IgniteCache<K, Expirable<V>> currCache = ignite.getOrCreateCache(cacheName);
 
-        Callable<V> loadAndSaveCallable = () -> {
+        //Lazy calculation of required value
+        final Callable<V> loadAndSaveCallable = () -> {
             System.err.println("Running background upload for " + cacheName + " for key " + key);
-            V apply = load.apply(key);
-            currCache.put(key, new Expirable<V>(apply));
-
-            return apply;
+            V value = load.apply(key);
+            currCache.put(key, new Expirable<V>(value));
+            return value;
         };
+
+        final T2<String, ?> computationKey = new T2<String, Object>(cacheName, key);
         final Expirable<V> expirable = currCache.get(key);
+        Future<?> future = null;
+        if (expirable == null || !isActual(expirable)) {
+            Function<T2<String, ?>, Future<?>> startingFunction = (k) -> service.submit(loadAndSaveCallable);
+            future = scheduledUpdates.computeIfAbsent(computationKey, startingFunction);
+        }
         if (expirable == null) {
-            final FutureTask<V> task = new FutureTask<V>(loadAndSaveCallable);
-            final Future<?> future = scheduledUpdates.computeIfAbsent(cacheName, k -> {
-                task.run();
-                return task;
-            });
             try {
                 V o = (V)future.get();
                 o.setUpdateRequired(false);
@@ -58,35 +60,25 @@ public class BackgroundUpdater {
             catch (ExecutionException e) {
                 throw Throwables.propagate(e);
             } finally {
-                scheduledUpdates.remove(cacheName); // removing registered computation
+                scheduledUpdates.remove(cacheName, future); // removing registered computation
             }
         }
-
-        final long ts = (expirable).getAgeMs();
-        if (ts <= TimeUnit.MINUTES.toMillis(1)) {
-            final V data = expirable.getData();
-            data.setUpdateRequired(false); //considered actual
-            return data; // return and do nothing
+        //check for computation cleanup required
+        future = scheduledUpdates.get(computationKey);
+        if(future.isCancelled()) {
+            scheduledUpdates.remove(cacheName, future);
         }
-        else {
-            //need update but can return current
-
-            //todo some locking and check if it is already scheduled
-            Function<String, Future<?>> startingFunction = (k) -> {
-                return service.submit(loadAndSaveCallable);
-            };
-            Future<?> future = scheduledUpdates.computeIfAbsent(cacheName, startingFunction);
-            if(future.isCancelled()) {
-                scheduledUpdates.remove(cacheName); //todo bad code, two responsibilities for removal
-            }
-            if(future.isDone()) {
-                scheduledUpdates.remove(cacheName); //todo bad code, two responsibilities for removal
-            }
-
-            final V curData = expirable.getData();
-            curData.setUpdateRequired(true);
-            return curData;
+        if(future.isDone()) {
+            scheduledUpdates.remove(cacheName, future);
         }
+
+        final V data = expirable.getData();
+        data.setUpdateRequired(isActual(expirable)); //considered actual
+        return data;
+    }
+
+    private <V extends IBackgroundUpdatable> boolean isActual(Expirable<V> expirable) {
+        return (expirable).getAgeMs() <= TimeUnit.MINUTES.toMillis(1);
     }
 
     public void stop() {
