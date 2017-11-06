@@ -8,6 +8,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
+import org.apache.ignite.ci.web.rest.GetBuildLog;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.ignite.ci.util.TimeUtil.getDurationPrintable;
@@ -34,6 +35,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public List<TestFailure> testFailures = new ArrayList<>();
 
+    /** Web Href. to thread dump display */
+    @Nullable public String webUrlThreadDump;
+
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final FullBuildRunContext suite,
         @Nullable final Map<String, IgnitePersistentTeamcity.RunStat> runStatMap) {
@@ -54,6 +58,12 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             final TestFailure failure = new TestFailure();
             failure.name = suite.getLastStartedTest() + " (last started)";
             testFailures.add(failure);
+        }
+        if (suite.getThreadDumpFileIdx() != null) {
+            webUrlThreadDump = "/rest/" + GetBuildLog.GET_BUILD_LOG + "/" + GetBuildLog.THREAD_DUMP
+                + "?" + GetBuildLog.SERVER_ID + "=" + teamcity.serverId()
+                + "&" + GetBuildLog.BUILD_NO + "=" + Integer.toString(suite.getBuildId())
+                + "&" + GetBuildLog.FILE_IDX + "=" + Integer.toString(suite.getThreadDumpFileIdx());
         }
     }
 

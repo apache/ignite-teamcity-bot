@@ -36,6 +36,9 @@ public class FullBuildRunContext {
     /** Mapping for building test occurrence reference to test full results */
     private Map<String, TestOccurrenceFull> testFullMap = new HashMap<>();
 
+    /** Thread dump short file name */
+    @Nullable private Integer threadDumpFileIdx;
+
     public FullBuildRunContext(@Nonnull final Build buildInfo) {
         this.buildInfo = buildInfo;
     }
@@ -229,5 +232,14 @@ public class FullBuildRunContext {
             return null;
 
         return type.getProjectId();
+    }
+
+
+    public void setThreadDumpFileIdx(Integer threadDumpFileIdx) {
+        this.threadDumpFileIdx = threadDumpFileIdx;
+    }
+
+    @Nullable public Integer getThreadDumpFileIdx() {
+        return threadDumpFileIdx;
     }
 }

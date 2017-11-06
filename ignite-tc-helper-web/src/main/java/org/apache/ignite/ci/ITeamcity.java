@@ -130,15 +130,17 @@ public interface ITeamcity extends AutoCloseable {
     default CompletableFuture<File> processBuildLog(FullBuildRunContext ctx) {
         final CompletableFuture<File> zipFut = downloadBuildLogZip(ctx.getBuildId());
         final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
-        final ThreadDumpCopyHandler search = new ThreadDumpCopyHandler();
+        final ThreadDumpCopyHandler threadDumpCp = new ThreadDumpCopyHandler();
         final LastTestLogCopyHandler lastTestCp = new LastTestLogCopyHandler();
-        boolean dumpLastTest = ctx.hasTimeoutProblem() || ctx.hasJvmCrashProblem();
+        boolean dumpLastTest = ctx.hasTimeoutProblem() || ctx.hasJvmCrashProblem() || ctx.hasOomeProblem();
         lastTestCp.setDumpLastTest(dumpLastTest);
-        final LogsAnalyzer analyzer = new LogsAnalyzer(search, lastTestCp);
+        final LogsAnalyzer analyzer = new LogsAnalyzer(threadDumpCp, lastTestCp);
         final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
         return fut2.thenApplyAsync(file -> {
-            if (dumpLastTest)
+            if (dumpLastTest) {
                 ctx.setLastStartedTest(lastTestCp.getLastTestName());
+                ctx.setThreadDumpFileIdx(threadDumpCp.getLastFileIdx());
+            }
             return file;
         });
     }

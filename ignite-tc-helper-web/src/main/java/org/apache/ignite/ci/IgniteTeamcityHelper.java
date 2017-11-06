@@ -67,9 +67,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         this.host = hostConf + (hostConf.endsWith("/") ? "" : "/");
         basicAuthTok = HelperConfig.prepareBasicHttpAuthToken(props, configName);
 
-        final String logsProp = props.getProperty(HelperConfig.LOGS, "logs");
-        final File logsDirFileConfigured = new File(logsProp);
-        final File logsDirFile = logsDirFileConfigured.isAbsolute() ? logsDirFileConfigured : new File(workDir, logsProp);
+        final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
 
         logsDir = ensureDirExist(logsDirFile);
         this.executor = MoreExecutors.directExecutor();

@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.logs.ILineHandler;
 
 /**
@@ -15,6 +17,7 @@ public class ThreadDumpCopyHandler implements ILineHandler {
     private static final String ENDL = String.format("%n");
     private FileWriter currentThDump;
     private int fileIdx = 0;
+    private Integer lastFileIdx = null;
 
     @Override public void accept(String line, File fromLogFile) {
         try {
@@ -27,7 +30,9 @@ public class ThreadDumpCopyHandler implements ILineHandler {
 
     private void acceptX(String line, File fromLogFile) throws IOException {
         if (currentThDump == null && line.contains("Full thread dump ")) {
-            currentThDump = new FileWriter(new File(fromLogFile.getParentFile(), "ThreadDump" + fileIdx + ".log"));
+            lastFileIdx = fileIdx;
+            String curFileName = fileName(fileIdx);
+            currentThDump = new FileWriter(new File(fromLogFile.getParentFile(), curFileName));
             fileIdx++;
         }
 
@@ -41,6 +46,10 @@ public class ThreadDumpCopyHandler implements ILineHandler {
 
     }
 
+    @Nonnull public static String fileName(int idx) {
+        return "ThreadDump" + idx + ".log";
+    }
+
     private void closeCurrentIfNeed() throws IOException {
         if (currentThDump != null) {
             currentThDump.close();
@@ -51,4 +60,9 @@ public class ThreadDumpCopyHandler implements ILineHandler {
     @Override public void close() throws Exception {
         closeCurrentIfNeed();
     }
+
+    @Nullable public Integer getLastFileIdx() {
+        return lastFileIdx;
+    }
+
 }

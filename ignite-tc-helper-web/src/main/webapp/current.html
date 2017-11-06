@@ -121,6 +121,14 @@ function showSuiteData(suite) {
         var testFail = suite.testFailures[i];
         res += showTestFailData(testFail);
     }
+
+    if(typeof suite.webUrlThreadDump !== 'undefined' && suite.webUrlThreadDump!=null) {
+        res += "&nbsp; <a href='" + suite.webUrlThreadDump + "'>";
+        res += "<img src='https://cdn2.iconfinder.com/data/icons/metro-uinvert-dock/256/Services.png' width=12px height=12px> ";
+        res += "Thread Dump</a>"
+        res += " <br>";
+    }
+
     res += " <br>";
     return res;
 }

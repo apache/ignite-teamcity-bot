@@ -9,10 +9,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Properties;
+import javax.ws.rs.QueryParam;
 import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.util.Base64Util;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -62,7 +64,7 @@ public class HelperConfig {
         return properties;
     }
 
-    static String prepareConfigName(String tcName) {
+    public static String prepareConfigName(String tcName) {
         return prefixedWithServerName(tcName, CONFIG_FILE_NAME);
     }
 
@@ -143,5 +145,18 @@ public class HelperConfig {
             e.printStackTrace();
             return new Properties();
         }
+    }
+
+    @NotNull public static File getLogsDirForServer(@QueryParam("serverId") String serverId) {
+        final File workDir = resolveWorkDir();
+        final String configName = prepareConfigName(serverId);
+        final Properties props = loadAuthProperties(workDir, configName);
+        return resolveLogs(workDir, props);
+    }
+
+    @NotNull static File resolveLogs(File workDir, Properties props) {
+        final String logsProp = props.getProperty(LOGS, "logs");
+        final File logsDirFileConfigured = new File(logsProp);
+        return logsDirFileConfigured.isAbsolute() ? logsDirFileConfigured : new File(workDir, logsProp);
     }
 }

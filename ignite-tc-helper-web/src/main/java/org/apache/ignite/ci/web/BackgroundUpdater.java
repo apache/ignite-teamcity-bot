@@ -35,7 +35,7 @@ public class BackgroundUpdater {
         //Lazy calculation of required value
         final Callable<V> loadAndSaveCallable = () -> {
             System.err.println("Running background upload for " + cacheName + " for key " + key);
-            V value = load.apply(key);
+            V value = load.apply(key);  //todo how to handle non first load error
             currCache.put(key, new Expirable<V>(value));
             return value;
         };
