@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.analysis;
 
+import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 
 /**
@@ -39,5 +40,19 @@ public class RunStat {
         if (runsWithDuration == 0)
             return 0;
         return (long)(1.0 * totalDurationMs / runsWithDuration);
+    }
+
+    public void addRun(Build build) {
+        runs++;
+
+        //todo ? add duration
+        /*
+        if (build.duration != null) {
+            totalDurationMs += testOccurrence.duration;
+            runsWithDuration++;
+        } */
+
+        if (!build.isSuccess())
+            failures++;
     }
 }

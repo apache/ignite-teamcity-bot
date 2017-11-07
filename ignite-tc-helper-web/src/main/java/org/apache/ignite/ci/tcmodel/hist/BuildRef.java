@@ -3,7 +3,6 @@ package org.apache.ignite.ci.tcmodel.hist;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
-import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.tcmodel.result.AbstractRef;
 
 /**
@@ -12,6 +11,8 @@ import org.apache.ignite.ci.tcmodel.result.AbstractRef;
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class BuildRef extends AbstractRef {
+    public static final String STATUS_UNKNOWN = "UNKNOWN";
+    public static final String STATUS_SUCCESS = "SUCCESS";
     @XmlAttribute private Integer id;
 
     @XmlAttribute public String buildTypeId;
@@ -30,12 +31,16 @@ public class BuildRef extends AbstractRef {
         return id;
     }
 
-    public boolean isNotCancelled(IgniteTeamcityHelper helper) {
+    public boolean isNotCancelled() {
         return !hasUnknownStatus();
     }
 
     private boolean hasUnknownStatus() {
-        return "UNKNOWN".equals(status);
+        return STATUS_UNKNOWN.equals(status);
+    }
+
+    public boolean isSuccess() {
+        return STATUS_SUCCESS.equals(status);
     }
 
     public String suiteId() {

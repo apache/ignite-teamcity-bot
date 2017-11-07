@@ -1,6 +1,5 @@
 package org.apache.ignite.ci.web.rest;
 
-import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
 import javax.servlet.ServletContext;
@@ -32,16 +31,13 @@ public class TopTests {
     private ServletContext context;
 
     @GET
-    @Path("failures")
+    @Path("failing")
     public List<FailingTest> getTopFailingTests(@Nullable @QueryParam("branch") String branchOrNull,
         @Nullable @QueryParam("count") Integer count) {
-        final String key = Strings.nullToEmpty(branchOrNull);
         final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
-        final String branch = isNullOrEmpty(key) ? "master" : key;
-        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
 
         final List<FailingTest> res = new ArrayList<>();
-        for (ChainAtServerTracked chainTracked : tracked.chains) {
+        for (ChainAtServerTracked chainTracked : branchMandatory(branchOrNull).chains) {
             try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
                 int cnt = count == null ? 10 : count;
                 teamcity.topFailing(cnt).stream().map(this::converToUi).forEach(res::add);
@@ -51,13 +47,27 @@ public class TopTests {
     }
 
     @GET
+    @Path("failingSuite")
+    public List<FailingTest> getTopFailingSuite(@Nullable @QueryParam("branch") String branchOrNull,
+        @Nullable @QueryParam("count") Integer count) {
+        final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
+
+        final List<FailingTest> res = new ArrayList<>();
+        for (ChainAtServerTracked chainTracked : branchMandatory(branchOrNull).chains) {
+            try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
+                int cnt = count == null ? 10 : count;
+                teamcity.topFailingSuite(cnt).stream().map(this::converToUi).forEach(res::add);
+            }
+        }
+        return res;
+    }
+
+    @GET
     @Path("longRunning")
     public List<FailingTest> getMostLongRunningTests(@Nullable @QueryParam("branch") String branchOrNull,
         @Nullable @QueryParam("count") Integer count) {
-        final String key = Strings.nullToEmpty(branchOrNull);
         final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
-        final String branch = isNullOrEmpty(key) ? "master" : key;
-        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
+        final BranchTracked tracked = branchMandatory(branchOrNull);
 
         final List<FailingTest> res = new ArrayList<>();
         for (ChainAtServerTracked chainTracked : tracked.chains) {
@@ -67,6 +77,11 @@ public class TopTests {
             }
         }
         return res;
+    }
+
+    private BranchTracked branchMandatory(@Nullable @QueryParam("branch") String branchOrNull) {
+        final String branch = isNullOrEmpty(branchOrNull) ? "master" : branchOrNull;
+        return HelperConfig.getTrackedBranches().getBranchMandatory(branch);
     }
 
     @NotNull private FailingTest converToUi(TestRunStat stat) {

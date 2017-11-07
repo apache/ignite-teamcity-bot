@@ -227,7 +227,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             true,
             null);
 
-        List<BuildRef> nonCancelled = finished.stream().filter(build -> build.isNotCancelled(this)).collect(Collectors.toList());
+        List<BuildRef> nonCancelled = finished.stream().filter(build -> build.isNotCancelled()).collect(Collectors.toList());
         return nonCancelled;
     }
 
@@ -240,7 +240,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             false,
             "finished");
 
-        List<BuildRef> nonCancelled = finished.stream().filter(build -> build.isNotCancelled(this)).collect(Collectors.toList());
+        List<BuildRef> nonCancelled = finished.stream().filter(build -> build.isNotCancelled()).collect(Collectors.toList());
         return nonCancelled;
     }
 

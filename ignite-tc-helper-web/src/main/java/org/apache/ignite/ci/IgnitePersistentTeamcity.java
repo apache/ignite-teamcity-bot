@@ -44,6 +44,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
     public static final String TESTS = "tests";
     public static final String STAT = "stat";
+    public static final String BUILD_RESULTS = "buildResults";
     private final Ignite ignite;
     private final IgniteTeamcityHelper teamcity;
     private final String serverId;
@@ -131,8 +132,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     @Nullable
     @Override public Build getBuildResults(String href) {
         try {
-            String cacheName = "buildResults";
-            Build results = loadIfAbsent(cacheName,
+            Build results = loadIfAbsent(BUILD_RESULTS,
                 href,
                 teamcity::getBuildResults,
                 Build::hasFinishDate);
@@ -140,7 +140,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
                 //trying to reload to get version with filled project ID
                 try {
                     Build results1 = teamcity.getBuildResults(href);
-                    ignite.getOrCreateCache(ignCacheNme(cacheName)).put(href, results1);
+                    ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS)).put(href, results1);
                     return results1;
                 }
                 catch (CacheException e) {
@@ -154,8 +154,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         catch (Exception e) {
             if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
                 //404 error from REST api
-                String results = "buildResults";
-                final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(ignCacheNme(results));
+                final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
                 e.printStackTrace();
                 //todo log error
 
@@ -214,7 +213,9 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
     public Map<String, RunStat> runTestAnalysis() {
         final Map<String, RunStat> map = new HashMap<>();
-        final IgniteCache<Object, TestOccurrences> cache = ignite.getOrCreateCache(ignCacheNme(TESTS));
+        final IgniteCache<Object, TestOccurrences> cache = ignite.cache(ignCacheNme(TESTS));
+        if (cache == null)
+            return map;
         for (Cache.Entry<Object, TestOccurrences> next : cache) {
             final TestOccurrences val = next.getValue();
             for (TestOccurrence occurrence : val.getTests()) {
@@ -222,6 +223,28 @@ public class IgnitePersistentTeamcity implements ITeamcity {
                 if (!Strings.isNullOrEmpty(name) && occurrence.isNotMutedOrIgnoredTest())
                     map.computeIfAbsent(name, k -> new RunStat()).addRun(occurrence);
             }
+        }
+        return map;
+    }
+
+
+    public List<TestRunStat> topFailingSuite(int count) {
+        Map<String, RunStat> map = runSuiteAnalysis();
+        Stream<TestRunStat> data = map.entrySet().stream().map(entry -> new TestRunStat(entry.getKey(), entry.getValue()));
+        return CollectionUtil.top(data, count, Comparator.comparing(TestRunStat::getFailRate));
+    }
+
+    public Map<String, RunStat> runSuiteAnalysis() {
+        final Map<String, RunStat> map = new HashMap<>();
+        final IgniteCache<Object, Build> cache = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
+        if (cache == null)
+            return map;
+        for (Cache.Entry<Object, Build> next : cache) {
+            final Build build = next.getValue();
+            final String name = build.suiteName();
+            if (!Strings.isNullOrEmpty(name))
+                map.computeIfAbsent(name, k -> new RunStat()).addRun(build);
+
         }
         return map;
     }
