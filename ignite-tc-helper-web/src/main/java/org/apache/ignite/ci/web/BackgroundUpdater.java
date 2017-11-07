@@ -34,13 +34,20 @@ public class BackgroundUpdater {
 
         //Lazy calculation of required value
         final Callable<V> loadAndSaveCallable = () -> {
-            System.err.println("Running background upload for " + cacheName + " for key " + key);
-            V value = load.apply(key);  //todo how to handle non first load error
-            currCache.put(key, new Expirable<V>(value));
-            return value;
+            System.err.println("Running background upload for [" + cacheName + "] for key [" + key + "]");
+            V val = load.apply(key);  //todo how to handle non first load error
+            currCache.put(key, new Expirable<V>(val));
+            System.err.println("Successfully completed background upload for [" + cacheName + "] for key [" + key + "]");
+            return val;
         };
 
         final T2<String, ?> computationKey = new T2<String, Object>(cacheName, key);
+
+        //check for computation cleanup required
+        final Future<?> oldFut = scheduledUpdates.get(computationKey);
+        if (oldFut != null && (oldFut.isCancelled() || oldFut.isDone()))
+            scheduledUpdates.remove(cacheName, oldFut);
+
         final Expirable<V> expirable = currCache.get(key);
         Future<?> future = null;
         if (expirable == null || isExpired(expirable)) {
@@ -55,6 +62,7 @@ public class BackgroundUpdater {
             }
             catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+                e.printStackTrace();
                 return null;
             }
             catch (ExecutionException e) {
@@ -62,14 +70,6 @@ public class BackgroundUpdater {
             } finally {
                 scheduledUpdates.remove(cacheName, future); // removing registered computation
             }
-        }
-        //check for computation cleanup required
-        future = scheduledUpdates.get(computationKey);
-        if(future.isCancelled()) {
-            scheduledUpdates.remove(cacheName, future);
-        }
-        if(future.isDone()) {
-            scheduledUpdates.remove(cacheName, future);
         }
 
         final V data = expirable.getData();
