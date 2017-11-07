@@ -6,8 +6,8 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
+import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -40,7 +40,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final FullBuildRunContext suite,
-        @Nullable final Map<String, IgnitePersistentTeamcity.RunStat> runStatMap) {
+        @Nullable final Map<String, RunStat> runStatMap) {
         name = suite.suiteName();
         result = suite.getResult();
         failedTests = suite.failedTests();

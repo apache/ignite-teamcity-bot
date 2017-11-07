@@ -14,6 +14,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.web.BackgroundUpdater;
@@ -60,7 +61,7 @@ public class GetCurrTestFailures {
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
                 chainStatus.serverName = teamcity.serverId();
 
-                final Map<String, IgnitePersistentTeamcity.RunStat> map = teamcity.runTestAnalysis();
+                final Map<String, RunStat> map = teamcity.runTestAnalysis();
 
                 pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
 

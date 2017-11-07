@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.RunStat;
 
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.branchForLink;
@@ -27,7 +27,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
 
     public void initFromContext(ITeamcity teamcity,
         FullChainRunCtx ctx,
-        @Nullable final Map<String, IgnitePersistentTeamcity.RunStat> runStatMap) {
+        @Nullable final Map<String, RunStat> runStatMap) {
         failedTests = 0;
         failedToFinish = 0;
         ctx.failedChildSuites().forEach(

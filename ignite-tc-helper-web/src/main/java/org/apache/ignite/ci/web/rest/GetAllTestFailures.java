@@ -16,6 +16,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.runners.PrintChainResults;
@@ -63,7 +64,7 @@ public class GetAllTestFailures {
                     .filter(b -> b.getId() != null)
                     .map(build -> PrintChainResults.processChainByRef(teamcity, false, build, false));
 
-                final Map<String, IgnitePersistentTeamcity.RunStat> map = teamcity.runTestAnalysis();
+                final Map<String, RunStat> map = teamcity.runTestAnalysis();
                 stream.forEach(
                     chainCtxOpt -> {
                         final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();

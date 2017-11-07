@@ -7,8 +7,8 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
+import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
@@ -92,8 +92,8 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
             + "&tab=testDetails";
     }
 
-    public void initStat(@Nullable final Map<String, IgnitePersistentTeamcity.RunStat> runStatMap) {
-        final IgnitePersistentTeamcity.RunStat stat = runStatMap == null ? null : runStatMap.get(name);
+    public void initStat(@Nullable final Map<String, RunStat> runStatMap) {
+        final RunStat stat = runStatMap == null ? null : runStatMap.get(name);
         if (stat != null) {
             failures = stat.failures;
             runs = stat.runs;

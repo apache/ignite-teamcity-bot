@@ -5,6 +5,7 @@ import com.google.common.base.Throwables;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,13 +16,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.cache.Cache;
 import javax.cache.CacheException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.analysis.Expirable;
+import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.TestRunStat;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -30,6 +34,7 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.util.CollectionUtil;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -195,26 +200,27 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             teamcity::getTestFull);
     }
 
-    public class RunStat {
-        public int runs;
-        public int failures;
+    public List<TestRunStat> topFailing(int count) {
+        Map<String, RunStat> map = runTestAnalysis();
+        Stream<TestRunStat> data = map.entrySet().stream().map(entry -> new TestRunStat(entry.getKey(), entry.getValue()));
+        return CollectionUtil.top(data, count, Comparator.comparing(TestRunStat::getFailRate));
+    }
 
-        public void addRun(boolean failed) {
-            runs++;
-            if (failed)
-                failures++;
-        }
+    public List<TestRunStat> topLongRunning(int count) {
+        Map<String, RunStat> map = runTestAnalysis();
+        Stream<TestRunStat> data = map.entrySet().stream().map(entry -> new TestRunStat(entry.getKey(), entry.getValue()));
+        return CollectionUtil.top(data, count, Comparator.comparing(TestRunStat::getAverageDurationMs));
     }
 
     public Map<String, RunStat> runTestAnalysis() {
-        Map<String, RunStat> map = new HashMap<>();
+        final Map<String, RunStat> map = new HashMap<>();
         final IgniteCache<Object, TestOccurrences> cache = ignite.getOrCreateCache(ignCacheNme(TESTS));
         for (Cache.Entry<Object, TestOccurrences> next : cache) {
             final TestOccurrences val = next.getValue();
             for (TestOccurrence occurrence : val.getTests()) {
                 final String name = occurrence.getName();
                 if (!Strings.isNullOrEmpty(name) && occurrence.isNotMutedOrIgnoredTest())
-                    map.computeIfAbsent(name, k -> new RunStat()).addRun(occurrence.isFailedTest());
+                    map.computeIfAbsent(name, k -> new RunStat()).addRun(occurrence);
             }
         }
         return map;
