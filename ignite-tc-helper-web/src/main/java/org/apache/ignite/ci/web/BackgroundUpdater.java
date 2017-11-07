@@ -43,7 +43,7 @@ public class BackgroundUpdater {
         final T2<String, ?> computationKey = new T2<String, Object>(cacheName, key);
         final Expirable<V> expirable = currCache.get(key);
         Future<?> future = null;
-        if (expirable == null || !isActual(expirable)) {
+        if (expirable == null || isExpired(expirable)) {
             Function<T2<String, ?>, Future<?>> startingFunction = (k) -> service.submit(loadAndSaveCallable);
             future = scheduledUpdates.computeIfAbsent(computationKey, startingFunction);
         }
@@ -73,8 +73,12 @@ public class BackgroundUpdater {
         }
 
         final V data = expirable.getData();
-        data.setUpdateRequired(isActual(expirable)); //considered actual
+        data.setUpdateRequired(isExpired(expirable)); //considered actual
         return data;
+    }
+
+    private <V extends IBackgroundUpdatable> boolean isExpired(Expirable<V> expirable) {
+        return !isActual(expirable);
     }
 
     private <V extends IBackgroundUpdatable> boolean isActual(Expirable<V> expirable) {
