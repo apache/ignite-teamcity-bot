@@ -1,5 +1,7 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8"> 
     <title>Ignite Teamcity Helper</title>
     <link rel="icon" href="https://pbs.twimg.com/profile_images/568493154500747264/xTBxO73F.png">
 
@@ -8,24 +10,24 @@
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 </head>
 <body>
-<a href="chart.html">Build metrics daily history</a><br>
-<a href="./status">Current Build Status</a><br>
-<a href="current.html">Current Failed Tests (master)</a><br>
-<div id="branchesStatus"></div>
-<br>
-<!--<a href="./rest/failures?branch=master">Txt Current Failed Tests (master)</a><br>-->
-
-
-<a href="restpretty.html?url=top/failing">Top failing tests</a> (JSON) <br>
-<a href="restpretty.html?url=top/longRunning">Top long running tests</a> (JSON) <br>
-
-<a href="restpretty.html?url=top/failingSuite">Top failing suites</a> (JSON) <br>
-
+<pre id="ciResponseText"></pre>
 
 <div id="loadStatus"></div>
-
-
 <script>
+
+function findGetParameter(parameterName) {
+    var result = null,
+        tmp = [];
+    location.search
+        .substr(1)
+        .split("&")
+        .forEach(function (item) {
+          tmp = item.split("=");
+          if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
+        });
+    return result;
+}
+
 $(document).ready(function() {
     $( document ).tooltip();
     loadData();
@@ -35,7 +37,7 @@ $(document).ready(function() {
 function loadData() {
     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
     $.ajax({
-        url: "rest/branches/getIds",
+        url: "rest/" + findGetParameter("url"),
         success: function(result) {
             $("#loadStatus").html("");
             showData(result);
@@ -62,12 +64,8 @@ function loadData() {
 }
 
 function showData(result) {
-    var res = "";
-    for (var i = 0; i < result.length; i++) {
-        var id = result[i];
-        res+="<a href='current.html?branch="+id+"'>Current Failed Tests ("+id+")</a><br>";
-    } 
-    $("#branchesStatus").html(res);
+    var ciResponseText = document.getElementById('ciResponseText');
+    ciResponseText.innerHTML =  JSON.stringify(result, null, '\t');
 }
 </script>
 </body>
