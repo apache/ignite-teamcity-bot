@@ -35,7 +35,17 @@ public class BackgroundUpdater {
         //Lazy calculation of required value
         final Callable<V> loadAndSaveCallable = () -> {
             System.err.println("Running background upload for [" + cacheName + "] for key [" + key + "]");
-            V val = load.apply(key);  //todo how to handle non first load error
+            V val = null;  //todo how to handle non first load error
+            try {
+                val = load.apply(key);
+            }
+            catch (Exception e) {
+                System.err.println("Failed to complete background upload for [" + cacheName + "] " +
+                    "for key [" + key + "]");
+
+                e.printStackTrace();
+                throw e;
+            }
             currCache.put(key, new Expirable<V>(val));
             System.err.println("Successfully completed background upload for [" + cacheName + "] for key [" + key + "]");
             return val;
@@ -46,29 +56,31 @@ public class BackgroundUpdater {
         //check for computation cleanup required
         final Future<?> oldFut = scheduledUpdates.get(computationKey);
         if (oldFut != null && (oldFut.isCancelled() || oldFut.isDone()))
-            scheduledUpdates.remove(cacheName, oldFut);
+            scheduledUpdates.remove(computationKey, oldFut);
 
         final Expirable<V> expirable = currCache.get(key);
-        Future<?> future = null;
+
         if (expirable == null || isExpired(expirable)) {
             Function<T2<String, ?>, Future<?>> startingFunction = (k) -> service.submit(loadAndSaveCallable);
-            future = scheduledUpdates.computeIfAbsent(computationKey, startingFunction);
-        }
-        if (expirable == null) {
-            try {
-                V o = (V)future.get();
-                o.setUpdateRequired(false);
-                return o;
-            }
-            catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                e.printStackTrace();
-                return null;
-            }
-            catch (ExecutionException e) {
-                throw Throwables.propagate(e);
-            } finally {
-                scheduledUpdates.remove(cacheName, future); // removing registered computation
+            Future<?> fut = scheduledUpdates.computeIfAbsent(computationKey, startingFunction);
+
+            if (expirable == null) {
+                try {
+                    V o = (V)fut.get();
+                    o.setUpdateRequired(false);
+                    return o;
+                }
+                catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    e.printStackTrace();
+                    return null;
+                }
+                catch (ExecutionException e) {
+                    throw Throwables.propagate(e);
+                }
+                finally {
+                    scheduledUpdates.remove(computationKey, fut); // removing registered computation
+                }
             }
         }
 
