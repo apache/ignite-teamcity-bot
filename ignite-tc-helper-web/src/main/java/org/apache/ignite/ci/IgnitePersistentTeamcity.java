@@ -131,7 +131,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
                 href,
                 teamcity::getBuildResults,
                 Build::hasFinishDate);
-            if (results.getBuildType().getProjectId() == null) {
+            if (results.getBuildType() == null || results.getBuildType().getProjectId() == null) {
                 //trying to reload to get version with filled project ID
                 try {
                     Build results1 = teamcity.getBuildResults(href);
@@ -139,6 +139,8 @@ public class IgnitePersistentTeamcity implements ITeamcity {
                     return results1;
                 }
                 catch (CacheException e) {
+                    if (Throwables.getRootCause(e) instanceof FileNotFoundException)
+                        throw e;
                     e.printStackTrace();
                 }
             }

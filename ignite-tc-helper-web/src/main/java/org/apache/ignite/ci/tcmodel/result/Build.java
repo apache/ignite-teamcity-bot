@@ -51,9 +51,10 @@ public class Build extends BuildRef {
 
     public Date getFinishDate() {
         try {
-            String date = finishDate;
+            if (finishDate == null)
+                return null;
             SimpleDateFormat f = new SimpleDateFormat("yyyyMMdd'T'HHmmssZ");
-            return f.parse(date);
+            return f.parse(finishDate);
         }
         catch (ParseException e) {
             throw new IllegalStateException(e);

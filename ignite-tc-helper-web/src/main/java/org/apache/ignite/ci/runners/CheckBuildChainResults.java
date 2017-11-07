@@ -185,6 +185,7 @@ public class CheckBuildChainResults {
         final List<Build> fullBuildInfoList = all.stream()
             .map(b -> teamcity.getBuildResults(b.href))
             .filter(Objects::nonNull)
+            .filter(b -> b.getId() != null)
             .collect(Collectors.toList());
 
         for (Build next : fullBuildInfoList) {
