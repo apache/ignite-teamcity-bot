@@ -59,12 +59,12 @@ public class IgniteTeamcityHelperRunnerExample {
 
         for (int i = 0; i < 0; i++) {
             //branch example:
-            final String branchName = "pull/2907/head";
+            final String branchName = "pull/2990/head";
             //String branchName = "refs/heads/master";
-            helper.triggerBuild("Ignite20Tests_IgniteCache5", branchName);
+            helper.triggerBuild("Ignite20Tests_IgniteCompatibility", branchName);
         }
 
-        int j = 1;
+        int j = 0;
         if (j > 0) {
             List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(926672);
             List<File> collect = getFuturesResults(fileFutList);

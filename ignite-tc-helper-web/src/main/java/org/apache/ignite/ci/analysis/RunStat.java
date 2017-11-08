@@ -11,8 +11,16 @@ public class RunStat {
     public int failures;
     public long totalDurationMs;
     public int runsWithDuration;
+    private String name;
 
-    public void addRun(TestOccurrence testOccurrence) {
+    /**
+     * @param name Name of test or suite.
+     */
+    public RunStat(String name) {
+        this.name = name;
+    }
+
+    public void addTestRun(TestOccurrence testOccurrence) {
         runs++;
 
         if (testOccurrence.duration != null) {
@@ -24,11 +32,15 @@ public class RunStat {
             failures++;
     }
 
+    public String name() {
+        return name;
+    }
+
     public float getFailRate() {
         return 1.0f * failures / runs;
     }
 
-    String getFailPercentPrintable() {
+    public String getFailPercentPrintable() {
         return String.format("%.2f", getFailPercent());
     }
 
@@ -42,7 +54,7 @@ public class RunStat {
         return (long)(1.0 * totalDurationMs / runsWithDuration);
     }
 
-    public void addRun(Build build) {
+    public void addTestRun(Build build) {
         runs++;
 
         //todo ? add duration
@@ -55,4 +67,12 @@ public class RunStat {
         if (!build.isSuccess())
             failures++;
     }
+
+    @Override public String toString() {
+        return "RunStat{" +
+            "name='" + name + '\'' +
+            ", failRate=" + getFailPercentPrintable() + "%" +
+            '}';
+    }
+
 }

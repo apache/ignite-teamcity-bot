@@ -12,7 +12,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
-import org.apache.ignite.ci.analysis.TestRunStat;
+import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.util.TimeUtil;
@@ -84,7 +84,7 @@ public class TopTests {
         return HelperConfig.getTrackedBranches().getBranchMandatory(branch);
     }
 
-    @NotNull private FailingTest converToUi(TestRunStat stat) {
+    @NotNull private FailingTest converToUi(RunStat stat) {
         FailingTest e = new FailingTest();
         e.name = stat.name();
         e.failureRate = stat.getFailPercentPrintable();

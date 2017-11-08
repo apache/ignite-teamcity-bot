@@ -49,23 +49,18 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
                     String issueLinkPrefix = "https://issues.apache.org/jira/browse/";
 
                     int prefixFoundIdx = details.indexOf(issueLinkPrefix);
-                    if (prefixFoundIdx >= 0) {
-                        //todo indicate failure by issue
+                    if (prefixFoundIdx >= 0)
                         initIssueLink(issueLinkPrefix, details, prefixFoundIdx);
-                    }
                 }
                 if (webIssueUrl == null) {
                     String issueLinkPrefix = "http://issues.apache.org/jira/browse/";
                     int prefixFoundIdx = details.indexOf(issueLinkPrefix);
-                    if (prefixFoundIdx >= 0) {
-                        //todo indicate failure by issue
+                    if (prefixFoundIdx >= 0)
                         initIssueLink(issueLinkPrefix, details, prefixFoundIdx);
-                    }
                 }
             }
-            if (full.test != null && full.test.id != null) {
+            if (full.test != null && full.test.id != null)
                 webUrl = buildWebLink(teamcity, suite, full.test.id);
-            }
         });
 
     }

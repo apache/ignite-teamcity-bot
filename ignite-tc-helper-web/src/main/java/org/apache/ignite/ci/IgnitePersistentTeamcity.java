@@ -25,7 +25,6 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.analysis.Expirable;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
-import org.apache.ignite.ci.analysis.TestRunStat;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -199,16 +198,16 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             teamcity::getTestFull);
     }
 
-    public List<TestRunStat> topFailing(int count) {
+    public List<RunStat> topFailing(int count) {
         Map<String, RunStat> map = runTestAnalysis();
-        Stream<TestRunStat> data = map.entrySet().stream().map(entry -> new TestRunStat(entry.getKey(), entry.getValue()));
-        return CollectionUtil.top(data, count, Comparator.comparing(TestRunStat::getFailRate));
+        Stream<RunStat> data = map.values().stream();
+        return CollectionUtil.top(data, count, Comparator.comparing(RunStat::getFailRate));
     }
 
-    public List<TestRunStat> topLongRunning(int count) {
+    public List<RunStat> topLongRunning(int count) {
         Map<String, RunStat> map = runTestAnalysis();
-        Stream<TestRunStat> data = map.entrySet().stream().map(entry -> new TestRunStat(entry.getKey(), entry.getValue()));
-        return CollectionUtil.top(data, count, Comparator.comparing(TestRunStat::getAverageDurationMs));
+        Stream<RunStat> data = map.values().stream();
+        return CollectionUtil.top(data, count, Comparator.comparing(RunStat::getAverageDurationMs));
     }
 
     public Map<String, RunStat> runTestAnalysis() {
@@ -221,17 +220,17 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             for (TestOccurrence occurrence : val.getTests()) {
                 final String name = occurrence.getName();
                 if (!Strings.isNullOrEmpty(name) && occurrence.isNotMutedOrIgnoredTest())
-                    map.computeIfAbsent(name, k -> new RunStat()).addRun(occurrence);
+                    map.computeIfAbsent(name, RunStat::new).addTestRun(occurrence);
             }
         }
         return map;
     }
 
 
-    public List<TestRunStat> topFailingSuite(int count) {
+    public List<RunStat> topFailingSuite(int count) {
         Map<String, RunStat> map = runSuiteAnalysis();
-        Stream<TestRunStat> data = map.entrySet().stream().map(entry -> new TestRunStat(entry.getKey(), entry.getValue()));
-        return CollectionUtil.top(data, count, Comparator.comparing(TestRunStat::getFailRate));
+        Stream<RunStat> data = map.values().stream();
+        return CollectionUtil.top(data, count, Comparator.comparing(RunStat::getFailRate));
     }
 
     public Map<String, RunStat> runSuiteAnalysis() {
@@ -243,7 +242,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             final Build build = next.getValue();
             final String name = build.suiteName();
             if (!Strings.isNullOrEmpty(name))
-                map.computeIfAbsent(name, k -> new RunStat()).addRun(build);
+                map.computeIfAbsent(name, RunStat::new).addTestRun(build);
 
         }
         return map;
