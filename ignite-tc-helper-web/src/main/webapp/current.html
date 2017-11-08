@@ -157,10 +157,13 @@ function showTestFailData(testFail) {
     if(testFail.failureRate !== 'undefined' && testFail.failureRate!= null) {
         colorCorrect = parseFloat(testFail.failureRate);
     }
-    greenSaturation += colorCorrect;
-    redSaturation -= colorCorrect * 2,5;
-    //blueSaturation += colorCorrect;
-    
+    if(colorCorrect < 50) {
+        redSaturation = 255;
+        greenSaturation += colorCorrect * 5;
+    } else {
+        greenSaturation += 255
+        redSaturation -= (colorCorrect-50) * 5;
+    }
     var color = rgbToHex(redSaturation, greenSaturation, blueSaturation);
     res += " <span style='background-color: " + color + "; width:7px; height:7px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
 
