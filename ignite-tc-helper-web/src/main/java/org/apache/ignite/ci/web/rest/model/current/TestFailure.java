@@ -28,6 +28,9 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     /** Registered number of runs from TC helper DB */
     public Integer runs;
 
+    /** Registered percent of fails from TC helper DB */
+    public String failureRate;
+
     /** Link to test history */
     @Nullable public String webUrl;
 
@@ -92,6 +95,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
         if (stat != null) {
             failures = stat.failures;
             runs = stat.runs;
+            failureRate = stat.getFailPercentPrintable();
         }
     }
 }
