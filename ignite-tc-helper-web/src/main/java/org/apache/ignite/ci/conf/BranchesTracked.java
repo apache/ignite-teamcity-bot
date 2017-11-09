@@ -3,6 +3,7 @@ package org.apache.ignite.ci.conf;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -13,6 +14,10 @@ public class BranchesTracked {
 
     public List<String> getIds() {
         return branches.stream().map(BranchTracked::getId).collect(Collectors.toList());
+    }
+
+    public Set<ChainAtServer> chainAtServers() {
+        return branches.stream().flatMap(tracked -> tracked.getChains().stream()).collect(Collectors.toSet());
     }
 
     public Optional<BranchTracked> get(String branch) {

@@ -4,28 +4,13 @@
     <link rel="icon" href="https://pbs.twimg.com/profile_images/568493154500747264/xTBxO73F.png">
 
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+    <link rel="stylesheet" href="css/style.css">
+    
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-</head>
-<body>
-<a href="chart.html">Build metrics daily history</a><br>
-<a href="./status">Current Build Status</a><br>
-<a href="current.html">Current Failed Tests (master)</a><br>
-<div id="branchesStatus"></div>
-<br>
-<!--<a href="./rest/failures?branch=master">Txt Current Failed Tests (master)</a><br>-->
-
-
-<a href="restpretty.html?url=top/failing">Top failing tests</a> (JSON) <br>
-<a href="restpretty.html?url=top/longRunning">Top long running tests</a> (JSON) <br>
-
-<a href="restpretty.html?url=top/failingSuite">Top failing suites</a> (JSON) <br>
-
-
-<div id="loadStatus"></div>
-
-
-<script>
+    <script src="js/common.js"></script>
+    <script>
 $(document).ready(function() {
     $( document ).tooltip();
     loadData();
@@ -38,37 +23,64 @@ function loadData() {
         url: "rest/branches/getIds",
         success: function(result) {
             $("#loadStatus").html("");
-            showData(result);
+            showCurrentBranchesData(result);
         },
-        error: function(jqXHR, exception) {
-            if (jqXHR.status === 0) {
-                $("#loadStatus").html('Not connect.\n Verify Network.');
-            } else if (jqXHR.status == 404) {
-                $("#loadStatus").html('Requested page not found. [404]');
-            } else if (jqXHR.status == 500) {
-                $("#loadStatus").html('Internal Server Error [500].');
-            } else if (exception === 'parsererror') {
-                $("#loadStatus").html('Requested JSON parse failed.');
-            } else if (exception === 'timeout') {
-                $("#loadStatus").html('Time out error.');
-            } else if (exception === 'abort') {
-                $("#loadStatus").html('Ajax request aborted.');
-            } else {
-                $("#loadStatus").html('Uncaught Error.\n' + jqXHR.responseText);
-            }
-        }
-
-    }, );
+        error: showErrInLoadStatus
+    });
+    $.ajax({
+        url: "rest/branches/suites",
+        success: function(result) {
+            $("#loadStatus").html("");
+            showSuitesForPrCheckData(result);
+        },
+        error: showErrInLoadStatus
+    });
 }
 
-function showData(result) {
+function showCurrentBranchesData(result) {
     var res = "";
     for (var i = 0; i < result.length; i++) {
         var id = result[i];
         res+="<a href='current.html?branch="+id+"'>Current Failed Tests ("+id+")</a><br>";
-    } 
+    }
     $("#branchesStatus").html(res);
 }
+
+function showSuitesForPrCheckData(result) {
+    var res = "";
+    for (var i = 0; i < result.length; i++) {
+        var chainAtServer = result[i];
+        //res+="<a href='pr.html?serverId=private&branchForTc=ignite-gg-12790-1&suiteId=id8xIgniteGridGainTests_RunAll="+id+"'>Check PR</a><br>";
+
+        res+="<form action='pr.html'>";
+        res+="Server: <input type='text' name='serverId' value=" + chainAtServer.serverId +" readonly>" ;
+        res+="Chain: <input type='text' name='suiteId' value=" + chainAtServer.suiteId +" readonly>" ; 
+        res+="Branch: <input type='text' name='branchForTc' required> "
+        res+="<input type='submit' value='>>>'>";
+        res+="</form>";
+    }
+    $("#suitesForPrCheck").html(res);
+}
 </script>
+</head>
+<body>
+Current status:     <br>
+<a href="./status">Current Build Status</a><br>
+<a href="current.html">Current Failed Tests (master)</a><br>
+<div id="branchesStatus"></div>
+<br>
+
+Statistics:   <br>
+<a href="chart.html">Build metrics daily history</a><br>
+<a href="restpretty.html?url=top/failing">Top failing tests</a> (JSON) <br>
+<a href="restpretty.html?url=top/longRunning">Top long running tests</a> (JSON) <br>
+<a href="restpretty.html?url=top/failingSuite">Top failing suites</a> (JSON) <br>
+<br>
+
+Check branch/PR:   <br>
+<div id="suitesForPrCheck"></div>
+<br>
+<div id="loadStatus"></div>
+
 </body>
 </html>

@@ -72,22 +72,22 @@
 </head>
 <body>
 <script>
-  $(function() {
-     $("#tabs").tabs();
-
-     //load();
-
+ var requests=0;
+ $(function() {
      setTimeout(load, 100);
      setInterval(load, 60000);
  });
 
- function load() {
+
+ function load1() {
+    requests++;
      $.ajax({
-        url: " /rest/metrics/failures",
+        url: "/rest/metrics/failures",
 
         success: function(result) {
-            if(result.updateRequired) {
-                 setTimeout(load, 2000);
+            requests--;
+            if(result.updateRequired && requests<=1) {
+                 setTimeout(load1, 2000);
             }
             showChart('.ct-chart-failed', result.failed, 'legend');
             showChart('.ct-chart-notrun', result.notrun, 'legend');
@@ -95,13 +95,18 @@
             showChart('.ct-chart-total', result.total, 'legend');
         }
      })
+ }
 
+ function load2() {
+
+     requests++;
      $.ajax({
         url: "/rest/metrics/failuresPrivate",
 
         success: function(result) {
-            if(result.updateRequired) {
-                 setTimeout(load, 2000);
+            requests--;
+            if(result.updateRequired && requests<=2) {
+                 setTimeout(load2, 2000);
             }
             showChart('.ct-chart-failed-private', result.failed, 'legend-private');
             showChart('.ct-chart-notrun-private', result.notrun, 'legend-private');
@@ -109,6 +114,12 @@
             showChart('.ct-chart-total-private', result.total, 'legend-private');
         }
      })
+ }
+
+
+ function load() {
+     load1();
+     load2();
  }
 
  function showChart(element, chartData, legendId) {

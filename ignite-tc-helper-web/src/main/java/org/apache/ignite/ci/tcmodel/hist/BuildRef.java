@@ -23,7 +23,7 @@ public class BuildRef extends AbstractRef {
 
     @XmlAttribute private String state;
 
-    @XmlAttribute public Integer number;
+    @XmlAttribute(name = "number") public String buildNumber;
 
     @XmlAttribute public Boolean defaultBranch;
 

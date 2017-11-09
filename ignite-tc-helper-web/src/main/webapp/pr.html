@@ -15,14 +15,25 @@
 $(document).ready(function() {
     $( document ).tooltip();
     loadData();
-    setInterval(loadData, 60000)
+    setInterval(loadData, 60000);
+
+    var branch = findGetParameter("branch");
+
 });
 
 function loadData() {
-    var curFailuresUrl = "rest/current/failures";
-    var branch = findGetParameter("branch");
-    if(branch!=null) {
-        curFailuresUrl += "?branch=" + branch;
+    var curFailuresUrl = "rest/current/pr";
+    var branchForTc = findGetParameter("branchForTc");
+    if(branchForTc!=null) {
+        curFailuresUrl += "?branchForTc=" + branchForTc;
+    }
+    var serverId = findGetParameter("serverId");
+    if(serverId!=null) {
+        curFailuresUrl += "&serverId=" + serverId;
+    }
+    var suiteId = findGetParameter("suiteId");
+    if(suiteId!=null) {
+        curFailuresUrl += "&suiteId=" + suiteId;
     }
     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
     $.ajax({

@@ -15,4 +15,8 @@ public class BranchTracked {
     public String getId() {
         return id;
     }
+
+    public List<ChainAtServerTracked> getChains() {
+        return chains;
+    }
 }

@@ -1,6 +1,7 @@
 package org.apache.ignite.ci;
 
 import java.io.File;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -39,7 +40,7 @@ public interface ITeamcity extends AutoCloseable {
 
     default Optional<BuildRef> getLastFinishedBuild(String projectId, String branch) {
         final List<BuildRef> builds = getFinishedBuilds(projectId, branch);
-        return !builds.isEmpty() ? Optional.of(builds.get(builds.size() - 1)) : Optional.empty();
+        return builds.stream().max(Comparator.comparing(BuildRef::getId));
     }
 
     /**
@@ -53,7 +54,7 @@ public interface ITeamcity extends AutoCloseable {
 
     default Optional<BuildRef> getLastBuildIncludeSnDepFailed(String projectId, String branch) {
         final List<BuildRef> builds = getFinishedBuildsIncludeSnDepFailed(projectId, branch);
-        return !builds.isEmpty() ? Optional.of(builds.get(builds.size() - 1)) : Optional.empty();
+        return builds.stream().max(Comparator.comparing(BuildRef::getId));
     }
 
     default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist) {
@@ -121,7 +122,7 @@ public interface ITeamcity extends AutoCloseable {
     default FullBuildRunContext loadTestsAndProblems(BuildRef recentRef) {
         Build build = getBuildResults(recentRef.href);
 
-        if (build == null)
+        if (build == null || build.getId() == null)
             return null;
 
         return loadTestsAndProblems(build);

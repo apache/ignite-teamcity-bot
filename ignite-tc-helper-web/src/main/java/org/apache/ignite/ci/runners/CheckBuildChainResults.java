@@ -213,9 +213,13 @@ public class CheckBuildChainResults {
             .parallel()
             .map((BuildRef buildRef) -> {
                 final BuildRef recentRef = includeLatestRebuild ? teamcity.tryReplaceBuildRefByRecent(buildRef) : buildRef;
-                FullBuildRunContext ctx = teamcity.loadTestsAndProblems(recentRef);
+                if(recentRef.getId()==null)
+                    return null;
+
+                final FullBuildRunContext ctx = teamcity.loadTestsAndProblems(recentRef);
                 if (ctx == null)
                     return null;
+
                 if (procLog && (ctx.hasJvmCrashProblem() || ctx.hasTimeoutProblem() || ctx.hasOomeProblem())) {
                     try {
                         teamcity.processBuildLog(ctx).get();
@@ -230,7 +234,9 @@ public class CheckBuildChainResults {
                     ctx.setContactPerson(extComment);
                 }
                 return ctx;
-            }).collect(Collectors.toList());
+            })
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
 
         suiteCtx.sort(Comparator.comparing(FullBuildRunContext::suiteName));
 

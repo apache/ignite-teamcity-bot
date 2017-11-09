@@ -1,20 +1,14 @@
 package org.apache.ignite.ci.conf;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
- * Created by Дмитрий on 05.11.2017.
+ * Branch on server
  */
-public class ChainAtServerTracked {
-    /** Server ID to access config files within helper */
-    @Nullable public String serverId;
-
-    /** Suite identifier by teamcity identification for root chain */
-    @Nonnull public String suiteId;
+public class ChainAtServerTracked extends ChainAtServer {
 
     /** Branch identifier by TC identification for REST api */
     @Nonnull public String branchForRest;
