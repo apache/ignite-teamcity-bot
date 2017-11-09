@@ -46,7 +46,7 @@ public class RunStat {
     }
 
     private String getPercentPrintable(float percent) {
-        return String.format("%.2f", percent);
+        return String.format("%.0f", percent);
     }
 
     private float getFailPercent() {
