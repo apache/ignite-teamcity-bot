@@ -70,7 +70,7 @@ public class GetAllTestFailures {
                         final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
                         chainStatus.serverName = teamcity.serverId();
                         chainCtxOpt.ifPresent(chainCtx -> chainStatus.initFromContext(teamcity, chainCtx, map));
-                        res.servers.add(chainStatus);
+                        res.addChainOnServer(chainStatus);
                     }
                 );
 

@@ -64,16 +64,16 @@ public class GetCurrTestFailures {
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
                 chainStatus.serverName = teamcity.serverId();
 
+
                 final Map<String, RunStat> map = teamcity.runTestAnalysis();
 
                 pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
 
-                res.servers.add(chainStatus);
+                res.addChainOnServer(chainStatus);
             }
         }
         return res;
     }
-
 
     @GET
     @Path("pr")
@@ -112,7 +112,7 @@ public class GetCurrTestFailures {
 
             pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
 
-            res.servers.add(chainStatus);
+            res.addChainOnServer(chainStatus);
         }
         return res;
     }

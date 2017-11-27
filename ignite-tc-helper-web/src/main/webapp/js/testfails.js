@@ -1,5 +1,26 @@
 
-//see ChainCurrentStatus
+//@param results - TestFailuresSummary
+function showChainOnServersResults(result) {
+     var res = "";
+     res += "Chain results";
+     if(isDefinedAndFilled(result.failedTests) &&
+        isDefinedAndFilled(result.failedToFinish)) {
+        res += " [";
+        res += "tests " + result.failedTests + " suites " + result.failedToFinish + "";
+        res += "]";
+    }
+    res += "<br>";
+
+    for (var i = 0; i < result.servers.length; i++) {
+        var server = result.servers[i];
+        res += showServerData(server);
+    }
+
+    return res;
+}
+
+
+//@param server - see ChainAtServerCurrentStatus
 function showServerData(server) {
     var res = "";
     var altTxt = "duration: " + server.durationPrintable;

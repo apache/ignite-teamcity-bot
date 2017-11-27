@@ -39,9 +39,11 @@ function loadData() {
     $.ajax({
         url: curFailuresUrl,
         success: function(result) {
-            $("#loadStatus").html("");
             if(result.updateRequired) {
                 setTimeout(loadData, 1000)
+                $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Updating");
+            } else {
+                $("#loadStatus").html("");
             }
             showData(result);
         },
@@ -50,18 +52,12 @@ function loadData() {
 }
 
 function showData(result) {
-    $("#divFailures").html("");
-    for (var i = 0; i < result.servers.length; i++) {
-        var server = result.servers[i];
-        $("#divFailures").append(showServerData(server));
-    }
+    $("#divFailures").html(showChainOnServersResults(result));
 }
 </script>
 
-<div id="divFailures"></div>
-
-
 <div id="loadStatus"></div>
-
+<div><a href=".">Home</a><br></div>
+<div id="divFailures"></div>
 </body>
 </html>

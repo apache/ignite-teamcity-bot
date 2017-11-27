@@ -8,6 +8,7 @@
 
     <link rel="stylesheet"
           href="http://cdn.jsdelivr.net/chartist.js/latest/chartist.min.css">
+    <link rel="stylesheet" href="css/style.css">
 
 
     <script src="http://cdn.jsdelivr.net/chartist.js/latest/chartist.min.js"></script>
@@ -80,7 +81,9 @@
 
 
  function load1() {
-    requests++;
+     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+
+     requests++;
      $.ajax({
         url: "/rest/metrics/failures",
 
@@ -88,7 +91,11 @@
             requests--;
             if(result.updateRequired && requests<=1) {
                  setTimeout(load1, 2000);
+                 $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Updating");
+            } else {
+                 $("#loadStatus").html("");
             }
+
             showChart('.ct-chart-failed', result.failed, 'legend');
             showChart('.ct-chart-notrun', result.notrun, 'legend');
             showChart('.ct-chart-muted', result.muted, 'legend');
@@ -98,6 +105,7 @@
  }
 
  function load2() {
+     $("#loadStatus2").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
 
      requests++;
      $.ajax({
@@ -107,6 +115,9 @@
             requests--;
             if(result.updateRequired && requests<=2) {
                  setTimeout(load2, 2000);
+                 $("#loadStatus2").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Updating");
+            } else {
+                 $("#loadStatus2").html("");
             }
             showChart('.ct-chart-failed-private', result.failed, 'legend-private');
             showChart('.ct-chart-notrun-private', result.notrun, 'legend-private');
@@ -142,7 +153,7 @@
          chartPadding: {
              right: 30
          },
-        plugins: [
+         plugins: [
             Chartist.plugins.legend({
                 legendNames: chartData.legendLabels,
                 position: legendDiv
@@ -153,7 +164,10 @@
 
 </script>
 
-<!-- Site content goes here !-->
+
+<div id="loadStatus"></div>
+<div id="loadStatus2"></div>
+<div><a href=".">Home</a><br></div>
 
 <table style="">
     <tr>

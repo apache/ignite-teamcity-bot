@@ -9,7 +9,8 @@ import org.apache.ignite.ci.web.IBackgroundUpdatable;
  *
  * Summary failures from all servers
  */
-@SuppressWarnings("WeakerAccess") public class TestFailuresSummary extends AbstractTestMetrics implements IBackgroundUpdatable {
+@SuppressWarnings("WeakerAccess")
+public class TestFailuresSummary extends AbstractTestMetrics implements IBackgroundUpdatable {
 
     public boolean updateRequired = false;
 
@@ -17,5 +18,16 @@ import org.apache.ignite.ci.web.IBackgroundUpdatable;
 
     @Override public void setUpdateRequired(boolean update) {
         updateRequired = update;
+    }
+
+    public void addChainOnServer(ChainAtServerCurrentStatus chainStatus) {
+        servers.add(chainStatus);
+        if (failedToFinish == null)
+            failedToFinish = 0;
+        failedToFinish += chainStatus.failedToFinish;
+
+        if (failedTests == null)
+            failedTests = 0;
+        failedTests += chainStatus.failedTests;
     }
 }
