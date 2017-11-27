@@ -137,7 +137,7 @@ public class HelperConfig {
         return new Gson().fromJson(json, BranchesTracked.class);
     }
 
-    public static Properties loadContactPersons(String tcName) throws IOException {
+    public static Properties loadContactPersons(String tcName) {
         try {
             return loadPrefixedProperties(tcName, RESP_FILE_NAME);
         }

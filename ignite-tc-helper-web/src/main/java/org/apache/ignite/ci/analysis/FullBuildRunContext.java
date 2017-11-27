@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.analysis;
 
+import com.google.common.base.Strings;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -196,6 +197,10 @@ public class FullBuildRunContext {
 
     public String getContactPerson() {
         return contactPerson;
+    }
+
+    public String getContactPersonOrEmpty() {
+        return Strings.nullToEmpty(contactPerson);
     }
 
     public String getLastStartedTest() {

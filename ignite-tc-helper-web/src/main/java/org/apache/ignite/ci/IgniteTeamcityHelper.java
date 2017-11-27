@@ -219,7 +219,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    public List<BuildRef> getFinishedBuilds(String projectId,
+    @Override public List<BuildRef> getFinishedBuilds(String projectId,
         String branch) {
         String name = URLEncoder.encode(branch);
         List<BuildRef> finished = getBuildHistory(projectId,
@@ -227,12 +227,11 @@ public class IgniteTeamcityHelper implements ITeamcity {
             true,
             null);
 
-        List<BuildRef> nonCancelled = finished.stream().filter(build -> build.isNotCancelled()).collect(Collectors.toList());
-        return nonCancelled;
+        return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
 
     /** {@inheritDoc} */
-    public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId,
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId,
         String branch) {
         String name = URLEncoder.encode(branch);
         List<BuildRef> finished = getBuildHistory(projectId,
@@ -240,8 +239,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             false,
             "finished");
 
-        List<BuildRef> nonCancelled = finished.stream().filter(build -> build.isNotCancelled()).collect(Collectors.toList());
-        return nonCancelled;
+        return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
 
     public String serverId() {

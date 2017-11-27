@@ -74,15 +74,7 @@ public class PrintChainResults {
     }
 
     private static Properties getContactPersonProperties(ITeamcity teamcity) {
-        Properties properties;
-        try {
-            properties = HelperConfig.loadContactPersons(teamcity.serverId());
-        }
-        catch (IOException e) {
-            properties = new Properties();
-        }
-
-        return properties;
+        return HelperConfig.loadContactPersons(teamcity.serverId());
     }
 
     public static String printChainResults(Optional<FullChainRunCtx> ctx) {

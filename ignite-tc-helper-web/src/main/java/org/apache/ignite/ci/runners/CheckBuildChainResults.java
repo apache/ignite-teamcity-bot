@@ -207,7 +207,7 @@ public class CheckBuildChainResults {
         Build chainRoot,
         boolean includeLatestRebuild,
         boolean procLog,
-        @Nullable Properties properties) {
+        @Nullable Properties contactPersonProps) {
 
         List<FullBuildRunContext> suiteCtx = chainRoot.getSnapshotDependenciesNonNull().stream()
             .parallel()
@@ -229,16 +229,18 @@ public class CheckBuildChainResults {
                     }
                 }
 
-                if (properties != null && properties.containsKey(ctx.suiteId())) {
-                    final String extComment = properties.getProperty(ctx.suiteId());
-                    ctx.setContactPerson(extComment);
-                }
+                if (contactPersonProps != null && contactPersonProps.containsKey(ctx.suiteId()))
+                    ctx.setContactPerson(contactPersonProps.getProperty(ctx.suiteId()));
+
                 return ctx;
             })
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
-        suiteCtx.sort(Comparator.comparing(FullBuildRunContext::suiteName));
+        if (contactPersonProps != null)
+            suiteCtx.sort(Comparator.comparing(FullBuildRunContext::getContactPersonOrEmpty));
+        else
+            suiteCtx.sort(Comparator.comparing(FullBuildRunContext::suiteName));
 
         return new FullChainRunCtx(chainRoot, suiteCtx);
     }

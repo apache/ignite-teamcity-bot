@@ -64,7 +64,7 @@ public class BackgroundUpdater {
             Function<T2<String, ?>, Future<?>> startingFunction = (k) -> service.submit(loadAndSaveCallable);
             Future<?> fut = scheduledUpdates.computeIfAbsent(computationKey, startingFunction);
 
-            if (expirable == null) {
+            if (expirable == null || isTooOld(expirable)) {
                 try {
                     V o = (V)fut.get();
                     o.setUpdateRequired(false);
@@ -90,12 +90,13 @@ public class BackgroundUpdater {
     }
 
     private <V extends IBackgroundUpdatable> boolean isExpired(Expirable<V> expirable) {
-        return !isActual(expirable);
+        return expirable.getAgeMs() > TimeUnit.MINUTES.toMillis(1);
     }
 
-    private <V extends IBackgroundUpdatable> boolean isActual(Expirable<V> expirable) {
-        return (expirable).getAgeMs() <= TimeUnit.MINUTES.toMillis(1);
+    private <V extends IBackgroundUpdatable> boolean isTooOld(Expirable<V> expirable) {
+        return expirable.getAgeMs() > TimeUnit.HOURS.toMillis(1);
     }
+
 
     public void stop() {
         scheduledUpdates.values().forEach(future -> future.cancel(true));
