@@ -77,7 +77,13 @@ public class BuildChainProcessor {
                 if(includeScheduledInfo) {
                     final String tcBranch = buildRef.branchName == null ? ITeamcity.DEFAULT : buildRef.branchName;
                     ctx.setRunningBuildCount(teamcity.getRunningBuilds(buildRef.buildTypeId, tcBranch).size());
-                    ctx.setQueuedBuildCount(teamcity.getQueuedBuilds(buildRef.buildTypeId, tcBranch).size());
+
+                    int buildCnt = teamcity.getQueuedBuilds(buildRef.buildTypeId, tcBranch).size();
+
+                    if("refs/heads/master".equals(tcBranch))
+                        buildCnt += teamcity.getQueuedBuilds(buildRef.buildTypeId, ITeamcity.DEFAULT).size();
+
+                    ctx.setQueuedBuildCount(buildCnt);
                 }
 
                 if (contactPersonProps != null && contactPersonProps.containsKey(ctx.suiteId()))

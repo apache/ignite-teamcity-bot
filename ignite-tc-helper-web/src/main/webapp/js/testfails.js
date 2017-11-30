@@ -1,3 +1,5 @@
+//loadData(); // should be defined by page
+//loadStatus element should be provided on page
 
 //@param results - TestFailuresSummary
 function showChainOnServersResults(result) {
@@ -42,6 +44,18 @@ function showServerData(server) {
     return res;
 }
 
+function triggerBuild(serverId, suiteId, branchName) {
+     $.ajax({
+            url: 'rest/build/trigger',
+            data: {"serverId": serverId, "suiteId":suiteId, "branchName":branchName},
+            success: function(result) {
+                alert("Triggered build " + serverId +" ," + suiteId + " ," + branchName + ": " + result.result);
+                loadData(); // should be defined by page
+            },
+            error: showErrInLoadStatus
+        });
+}
+
 //@param suite - see SuiteCurrentStatus
 function showSuiteData(suite) {
     var res = "";
@@ -57,6 +71,13 @@ function showSuiteData(suite) {
     if(isDefinedAndFilled(suite.queuedBuildCount) && suite.queuedBuildCount!=0) {
         res+=" <img src='https://d30y9cdsu7xlg0.cloudfront.net/png/273613-200.png' width=12px height=12px> ";
         res+="" + suite.queuedBuildCount + " queued";
+    }
+
+    if(isDefinedAndFilled(suite.serverId) && isDefinedAndFilled(suite.suiteId) && isDefinedAndFilled(suite.branchName)) {
+        res+=" <a href='javascript:void(0);'><img src='https://cdn2.iconfinder.com/data/icons/iconslandplayer/PNG/256x256/CircleBlue/Play1Hot.png'";
+        res+=" onClick='triggerBuild(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \""+suite.branchName+"\")' ";
+        res+=" title='trigger build'";
+        res+=" width=12px height=12px></a> ";
     }
     res+=" <br>";
 

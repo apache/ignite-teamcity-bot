@@ -34,6 +34,7 @@ import static org.apache.ignite.ci.BuildChainProcessor.loadChainContext;
 @Produces(MediaType.APPLICATION_JSON)
 public class GetCurrTestFailures {
     public static final String CURRENT = "current";
+    public static final String CACHE_NAME = CURRENT + "TestFailuresSummary";
     @Context
     private ServletContext context;
 
@@ -42,7 +43,7 @@ public class GetCurrTestFailures {
     public TestFailuresSummary getTestFails(@Nullable @QueryParam("branch") String branchOrNull) {
         final String key = Strings.nullToEmpty(branchOrNull);
         final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
-        return updater.get(CURRENT + "TestFailuresSummary", key, this::getTestFailsNoCache);
+        return updater.get(CACHE_NAME, key, this::getTestFailsNoCache);
     }
 
     @GET

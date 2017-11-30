@@ -41,6 +41,16 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     @Nullable public Integer runningBuildCount;
     @Nullable public Integer queuedBuildCount;
 
+    /** TC server id. */
+    public String serverId;
+
+    /** Suite ID in teamcity identification. */
+    public String suiteId;
+
+    /** Branch name in teamcity identification. */
+    public String branchName;
+
+
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final FullBuildRunContext suite,
         @Nullable final Map<String, RunStat> runStatMap) {
@@ -72,6 +82,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         runningBuildCount = suite.runningBuildCount();
         queuedBuildCount = suite.queuedBuildCount();
+        serverId = teamcity.serverId();
+        suiteId = suite.suiteId();
+        branchName = branchForLink(suite.branchName());
     }
 
     private static String buildWebLinkToBuild(ITeamcity teamcity, FullBuildRunContext suite) {
