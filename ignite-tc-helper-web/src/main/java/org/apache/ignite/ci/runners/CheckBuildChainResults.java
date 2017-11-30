@@ -2,19 +2,18 @@ package org.apache.ignite.ci.runners;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
@@ -23,7 +22,6 @@ import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Created by dpavlov on 03.08.2017
@@ -192,7 +190,10 @@ public class CheckBuildChainResults {
             Date parse = next.getFinishDate();
             String dateForMap = new SimpleDateFormat("yyyyMMdd").format(parse);
             suiteHist.map.computeIfAbsent(dateForMap, k -> {
-                FullChainRunCtx ctx = loadChainContext(teamcity, next, false, false, null);
+                FullChainRunCtx ctx = BuildChainProcessor.loadChainContext(teamcity, next, false, false, null, false);
+                if (ctx == null)
+                    return null;
+
                 for (FullBuildRunContext suite : ctx.suites()) {
                     boolean suiteOk = suite.failedTests() == 0 && !suite.hasNontestBuildProblem();
                     history.addSuiteResult(teamcity.serverId() + "\t" + suite.suiteName(), suiteOk);
@@ -202,46 +203,4 @@ public class CheckBuildChainResults {
         }
     }
 
-    public static FullChainRunCtx loadChainContext(
-        ITeamcity teamcity,
-        Build chainRoot,
-        boolean includeLatestRebuild,
-        boolean procLog,
-        @Nullable Properties contactPersonProps) {
-
-        List<FullBuildRunContext> suiteCtx = chainRoot.getSnapshotDependenciesNonNull().stream()
-            .parallel()
-            .map((BuildRef buildRef) -> {
-                final BuildRef recentRef = includeLatestRebuild ? teamcity.tryReplaceBuildRefByRecent(buildRef) : buildRef;
-                if(recentRef.getId()==null)
-                    return null;
-
-                final FullBuildRunContext ctx = teamcity.loadTestsAndProblems(recentRef);
-                if (ctx == null)
-                    return null;
-
-                if (procLog && (ctx.hasJvmCrashProblem() || ctx.hasTimeoutProblem() || ctx.hasOomeProblem())) {
-                    try {
-                        teamcity.processBuildLog(ctx).get();
-                    }
-                    catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                if (contactPersonProps != null && contactPersonProps.containsKey(ctx.suiteId()))
-                    ctx.setContactPerson(contactPersonProps.getProperty(ctx.suiteId()));
-
-                return ctx;
-            })
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-
-        if (contactPersonProps != null)
-            suiteCtx.sort(Comparator.comparing(FullBuildRunContext::getContactPersonOrEmpty));
-        else
-            suiteCtx.sort(Comparator.comparing(FullBuildRunContext::suiteName));
-
-        return new FullChainRunCtx(chainRoot, suiteCtx);
-    }
 }

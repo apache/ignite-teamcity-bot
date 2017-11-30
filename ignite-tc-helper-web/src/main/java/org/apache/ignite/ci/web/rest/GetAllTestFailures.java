@@ -13,13 +13,13 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
-import org.apache.ignite.ci.runners.PrintChainResults;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
@@ -62,7 +62,8 @@ public class GetAllTestFailures {
                 Stream<Optional<FullChainRunCtx>> stream
                     = builds.stream().parallel()
                     .filter(b -> b.getId() != null)
-                    .map(build -> PrintChainResults.processChainByRef(teamcity, false, build, false));
+                    .map(build -> BuildChainProcessor.processChainByRef(teamcity, false, build,
+                        false, false));
 
                 final Map<String, RunStat> map = teamcity.runTestAnalysis();
                 stream.forEach(

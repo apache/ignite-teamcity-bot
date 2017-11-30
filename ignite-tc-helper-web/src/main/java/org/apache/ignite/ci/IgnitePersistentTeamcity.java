@@ -128,6 +128,16 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     /** {@inheritDoc} */
+    @Override public List<BuildRef> getRunningBuilds(String projectId, String branch) {
+        return teamcity.getRunningBuilds(projectId, branch);
+    }
+
+    /** {@inheritDoc} */
+    @Override public List<BuildRef> getQueuedBuilds(String projectId, String branch) {
+        return teamcity.getQueuedBuilds(projectId, branch);
+    }
+
+    /** {@inheritDoc} */
     @Nullable
     @Override public Build getBuildResults(String href) {
         try {

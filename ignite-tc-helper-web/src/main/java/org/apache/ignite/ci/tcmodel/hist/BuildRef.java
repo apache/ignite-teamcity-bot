@@ -21,6 +21,12 @@ public class BuildRef extends AbstractRef {
 
     @XmlAttribute public String status;
 
+    public static final String STATE_FINISHED = "finished";
+
+    public static final String STATE_RUNNING = "running";
+
+    public static final String STATE_QUEUED = "queued";
+
     @XmlAttribute private String state;
 
     @XmlAttribute(name = "number") public String buildNumber;

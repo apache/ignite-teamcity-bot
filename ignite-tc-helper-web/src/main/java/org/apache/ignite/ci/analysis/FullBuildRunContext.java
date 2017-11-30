@@ -40,6 +40,12 @@ public class FullBuildRunContext {
     /** Thread dump short file name */
     @Nullable private Integer threadDumpFileIdx;
 
+    /** Currently running builds */
+    @Nullable private Integer runningBuildCount;
+
+    /** Currently scheduled builds */
+    @Nullable private Integer queuedBuildCount;
+
     public FullBuildRunContext(@Nonnull final Build buildInfo) {
         this.buildInfo = buildInfo;
     }
@@ -246,5 +252,21 @@ public class FullBuildRunContext {
 
     @Nullable public Integer getThreadDumpFileIdx() {
         return threadDumpFileIdx;
+    }
+
+    public void setRunningBuildCount(int runningBuildCount) {
+        this.runningBuildCount = runningBuildCount;
+    }
+
+    public void setQueuedBuildCount(int queuedBuildCount) {
+        this.queuedBuildCount = queuedBuildCount;
+    }
+
+    public Integer queuedBuildCount() {
+        return queuedBuildCount;
+    }
+
+    public Integer runningBuildCount() {
+        return runningBuildCount;
     }
 }

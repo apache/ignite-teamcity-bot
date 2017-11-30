@@ -42,17 +42,26 @@ function showServerData(server) {
     return res;
 }
 
+//@param suite - see SuiteCurrentStatus
 function showSuiteData(suite) {
     var res = "";
     var altTxt = "duration: " + suite.durationPrintable;
     res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
         "[ "+ "<a href='" + suite.webToBuild + "' title='"+altTxt+"'> " + "tests " + suite.failedTests + " " + suite.result + "</a> ]" +
-        " " + suite.contactPerson + "" +
-        " <br>";
+        " " + suite.contactPerson + "";
+
+    if(isDefinedAndFilled(suite.runningBuildCount) && suite.runningBuildCount!=0) {
+        res+=" <img src='https://image.flaticon.com/icons/png/128/2/2745.png' width=12px height=12px> ";
+        res+=" " + suite.runningBuildCount + " running";
+    }
+    if(isDefinedAndFilled(suite.queuedBuildCount) && suite.queuedBuildCount!=0) {
+        res+=" <img src='https://d30y9cdsu7xlg0.cloudfront.net/png/273613-200.png' width=12px height=12px> ";
+        res+="" + suite.queuedBuildCount + " queued";
+    }
+    res+=" <br>";
 
     for (var i = 0; i < suite.testFailures.length; i++) {
-        var testFail = suite.testFailures[i];
-        res += showTestFailData(testFail);
+        res += showTestFailData(suite.testFailures[i]);
     }
 
     if(typeof suite.webUrlThreadDump !== 'undefined' && suite.webUrlThreadDump!=null) {
@@ -66,6 +75,8 @@ function showSuiteData(suite) {
     return res;
 }
 
+
+//@param testFail - see TestFailure
 function showTestFailData(testFail) {
     var res = "";
     res += "&nbsp; ";

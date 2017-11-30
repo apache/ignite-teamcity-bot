@@ -47,7 +47,7 @@ public interface ITeamcity extends AutoCloseable {
      * Includes snapshot dependencies failed builds into list
      *
      * @param projectId suite ID (string without spaces)
-     * @param branch
+     * @param branch branch in TC identification
      * @return list of builds in historical order, recent builds coming last
      */
     List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch);
@@ -56,6 +56,12 @@ public interface ITeamcity extends AutoCloseable {
         final List<BuildRef> builds = getFinishedBuildsIncludeSnDepFailed(projectId, branch);
         return builds.stream().max(Comparator.comparing(BuildRef::getId));
     }
+
+    /**   */
+    List<BuildRef> getRunningBuilds(String projectId, String branch);
+
+    /**   */
+    List<BuildRef> getQueuedBuilds(String projectId, String branch);
 
     default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist) {
         return getFinishedBuilds(projectId, branchNameForHist).stream().mapToInt(BuildRef::getId).toArray();

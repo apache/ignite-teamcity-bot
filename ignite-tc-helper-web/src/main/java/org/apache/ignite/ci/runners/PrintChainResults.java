@@ -1,17 +1,12 @@
 package org.apache.ignite.ci.runners;
 
-import java.io.IOException;
 import java.util.Optional;
-import java.util.Properties;
-import javax.annotation.Nonnull;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.result.Build;
 
 /**
  * Created by dpavlov on 20.09.2017
@@ -27,13 +22,13 @@ public class PrintChainResults {
                 String suiteId = "Ignite20Tests_RunAll";
                 String branch = "<default>";
 
-                pubCtx = loadChainContext(teamcity, suiteId, branch, includeLatestRebuild);
+                pubCtx = BuildChainProcessor.loadChainContext(teamcity, suiteId, branch, includeLatestRebuild);
             }
 
             try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
                 String suiteId = "id8xIgniteGridGainTests_RunAll";
                 String branch = "<default>";
-                privCtx = loadChainContext(teamcity, suiteId, branch, includeLatestRebuild);
+                privCtx = BuildChainProcessor.loadChainContext(teamcity, suiteId, branch, includeLatestRebuild);
             }
         }
         finally {
@@ -48,33 +43,6 @@ public class PrintChainResults {
 
         System.err.println(printChainResults(pubCtx, "<Public>"));
         System.err.println(printChainResults(privCtx, "<Private>"));
-    }
-
-    @Nonnull public static Optional<FullChainRunCtx> loadChainContext(
-        ITeamcity teamcity,
-        String suiteId,
-        String branch,
-        boolean includeLatestRebuild) {
-        Optional<BuildRef> buildRef = teamcity.getLastBuildIncludeSnDepFailed(suiteId, branch);
-        return buildRef.flatMap(build -> processChainByRef(teamcity, includeLatestRebuild, build, true));
-    }
-
-    public static Optional<FullChainRunCtx> processChainByRef(ITeamcity teamcity, boolean includeLatestRebuild,
-        BuildRef build, boolean processLogs) {
-
-        Build results = teamcity.getBuildResults(build.href);
-        if (results == null)
-            return Optional.empty();
-
-        final Properties responsible = getContactPersonProperties(teamcity);
-
-        final FullChainRunCtx val = CheckBuildChainResults.loadChainContext(teamcity, results, includeLatestRebuild,
-            processLogs, responsible);
-        return Optional.of(val);
-    }
-
-    private static Properties getContactPersonProperties(ITeamcity teamcity) {
-        return HelperConfig.loadContactPersons(teamcity.serverId());
     }
 
     public static String printChainResults(Optional<FullChainRunCtx> ctx) {

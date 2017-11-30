@@ -17,7 +17,7 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.apache.ignite.ci.runners.PrintChainResults.loadChainContext;
+import static org.apache.ignite.ci.BuildChainProcessor.loadChainContext;
 import static org.apache.ignite.ci.runners.PrintChainResults.printChainResults;
 
 @Path("failures")

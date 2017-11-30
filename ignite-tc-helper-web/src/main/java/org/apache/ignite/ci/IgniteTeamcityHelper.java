@@ -29,6 +29,7 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.util.HttpUtil;
+import org.apache.ignite.ci.util.UrlUtil;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
 
@@ -130,10 +131,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     public List<CompletableFuture<File>> standardProcessAllBuildHistory(String buildTypeId, String branch) {
-        List<BuildRef> allBuilds = this.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branch);
-        List<CompletableFuture<File>> fileFutList = standardProcessLogs(
-            allBuilds.stream().mapToInt(BuildRef::getId).toArray());
-        return fileFutList;
+        List<BuildRef> allBuilds = getFinishedBuildsIncludeSnDepFailed(buildTypeId, branch);
+        return standardProcessLogs(allBuilds.stream().mapToInt(BuildRef::getId).toArray());
     }
 
     /**
@@ -221,9 +220,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
     /** {@inheritDoc} */
     @Override public List<BuildRef> getFinishedBuilds(String projectId,
         String branch) {
-        String name = URLEncoder.encode(branch);
         List<BuildRef> finished = getBuildHistory(projectId,
-            name,
+            UrlUtil.escape(branch),
             true,
             null);
 
@@ -231,16 +229,29 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId,
-        String branch) {
-        String name = URLEncoder.encode(branch);
-        List<BuildRef> finished = getBuildHistory(projectId,
-            name,
-            false,
-            "finished");
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED);
+    }
 
+    /** {@inheritDoc} */
+    @Override public List<BuildRef> getRunningBuilds(String projectId, String branch) {
+        return getBuildsInState(projectId, branch, BuildRef.STATE_RUNNING);
+    }
+
+    /** {@inheritDoc} */
+    @Override public List<BuildRef> getQueuedBuilds(String projectId, String branch) {
+        return getBuildsInState(projectId, branch, BuildRef.STATE_QUEUED);
+    }
+
+    private List<BuildRef> getBuildsInState(String projectId, String branch, String state) {
+        List<BuildRef> finished = getBuildHistory(projectId,
+            UrlUtil.escape(branch),
+            false,
+            state);
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
+
+
 
     public String serverId() {
         return tcName;

@@ -38,9 +38,13 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Web Href. to thread dump display */
     @Nullable public String webUrlThreadDump;
 
+    @Nullable public Integer runningBuildCount;
+    @Nullable public Integer queuedBuildCount;
+
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final FullBuildRunContext suite,
         @Nullable final Map<String, RunStat> runStatMap) {
+
         name = suite.suiteName();
         result = suite.getResult();
         failedTests = suite.failedTests();
@@ -65,6 +69,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
                 + "&" + GetBuildLog.BUILD_NO + "=" + Integer.toString(suite.getBuildId())
                 + "&" + GetBuildLog.FILE_IDX + "=" + Integer.toString(suite.getThreadDumpFileIdx());
         }
+
+        runningBuildCount = suite.runningBuildCount();
+        queuedBuildCount = suite.queuedBuildCount();
     }
 
     private static String buildWebLinkToBuild(ITeamcity teamcity, FullBuildRunContext suite) {
