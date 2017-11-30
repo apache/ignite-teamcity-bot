@@ -1,5 +1,6 @@
 package org.apache.ignite.ci;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import java.io.File;
@@ -82,6 +83,12 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         if (saveValueFilter == null || saveValueFilter.test(loaded))
             cache.put(key, loaded);
         return loaded;
+    }
+
+    public <K, V> V timedLoadIfAbsent(String cacheName, int seconds, K key, Function<K, V> load) {
+        return timedLoadIfAbsentOrMerge(cacheName, seconds, key, (k, peristentValue) -> {
+            return load.apply(k);
+        });
     }
 
     public <K, V> V timedLoadIfAbsentOrMerge(String cacheName, int seconds, K key, BiFunction<K, V, V> loadWithMerge) {
@@ -221,6 +228,20 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     public Map<String, RunStat> runTestAnalysis() {
+        final Stopwatch started = Stopwatch.createStarted();
+        final Map<String, RunStat> map = runTestAnalysisOrCached();
+
+        System.out.println(Thread.currentThread().getName() + ": Test analysis Required: " + started.elapsed(TimeUnit.MILLISECONDS) + "ms for " + serverId());
+        return map;
+    }
+
+    private Map<String, RunStat> runTestAnalysisOrCached() {
+        return timedLoadIfAbsent(ignCacheNme("runStat"),
+            60 * 3, "runTestAnalysis",
+            k -> runTestAnalysisNoCache());
+    }
+
+    @NotNull private Map<String, RunStat> runTestAnalysisNoCache() {
         final Map<String, RunStat> map = new HashMap<>();
         final IgniteCache<Object, TestOccurrences> cache = ignite.cache(ignCacheNme(TESTS));
         if (cache == null)
@@ -235,7 +256,6 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         }
         return map;
     }
-
 
     public List<RunStat> topFailingSuite(int count) {
         Map<String, RunStat> map = runSuiteAnalysis();

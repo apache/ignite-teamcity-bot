@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.util;
 
+import com.google.common.base.Stopwatch;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -12,6 +13,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Methods for sending HTTP requests
@@ -41,9 +43,13 @@ public class HttpUtil {
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
 
         con.setRequestProperty("Authorization", "Basic " + basicAuthToken);
+        final Stopwatch started = Stopwatch.createStarted();
         int resCode = con.getResponseCode();
+
+        System.out.println(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
+            + "ms : Sending 'GET' request to : " + url);
+
         //todo log instead
-        System.out.println(Thread.currentThread().getName() + ": Sending 'GET' request to URL : " + url);
 
         boolean ok = 200 == (resCode);
         if (!ok) {

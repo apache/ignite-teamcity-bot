@@ -1,6 +1,7 @@
 package org.apache.ignite.ci.web.rest;
 
 import com.google.common.base.Strings;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nonnull;
@@ -18,7 +19,6 @@ import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.conf.BranchTracked;
-import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
@@ -55,24 +55,25 @@ public class GetCurrTestFailures {
         final String branch = isNullOrEmpty(key) ? "master" : key;
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
 
-        for (ChainAtServerTracked chainTracked : tracked.chains) {
-            try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
-                Optional<FullChainRunCtx> pubCtx = loadChainContext(teamcity,
-                    chainTracked.getSuiteIdMandatory(),
-                    chainTracked.getBranchForRestMandatory(),
-                    true);
-
+        tracked.chains.stream().parallel()
+            .map(chainTracked -> {
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
-                chainStatus.serverName = teamcity.serverId();
+                try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
+                    Optional<FullChainRunCtx> pubCtx = loadChainContext(teamcity,
+                        chainTracked.getSuiteIdMandatory(),
+                        chainTracked.getBranchForRestMandatory(),
+                        true);
 
+                    chainStatus.serverName = teamcity.serverId();
+                    pubCtx.ifPresent(ctx -> {
+                        chainStatus.initFromContext(teamcity, ctx, teamcity.runTestAnalysis());
+                    });
+                }
+                return chainStatus;
+            })
+            .sorted(Comparator.comparing(ChainAtServerCurrentStatus::serverName))
+            .forEach(res::addChainOnServer);
 
-                final Map<String, RunStat> map = teamcity.runTestAnalysis();
-
-                pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
-
-                res.addChainOnServer(chainStatus);
-            }
-        }
         return res;
     }
 

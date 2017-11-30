@@ -1,10 +1,12 @@
 package org.apache.ignite.ci;
 
+import com.google.common.base.Stopwatch;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
@@ -56,6 +58,7 @@ public class BuildChainProcessor {
 
         List<FullBuildRunContext> suiteCtx = chainRoot.getSnapshotDependenciesNonNull().stream()
             .parallel()
+            .unordered()
             .map((BuildRef buildRef) -> {
                 final BuildRef recentRef = includeLatestRebuild ? teamcity.tryReplaceBuildRefByRecent(buildRef) : buildRef;
                 if (recentRef.getId() == null)
@@ -66,12 +69,19 @@ public class BuildChainProcessor {
                     return null;
 
                 if (procLog && (ctx.hasJvmCrashProblem() || ctx.hasTimeoutProblem() || ctx.hasOomeProblem())) {
+
+                    final Stopwatch started = Stopwatch.createStarted();
+
                     try {
                         teamcity.processBuildLog(ctx).get();
                     }
                     catch (Exception e) {
                         e.printStackTrace();
                     }
+
+                    System.out.println(Thread.currentThread().getName()
+                        + ": processBuildLog required: " + started.elapsed(TimeUnit.MILLISECONDS)
+                        + "ms for " + buildRef.suiteId());
                 }
 
                 if(includeScheduledInfo) {

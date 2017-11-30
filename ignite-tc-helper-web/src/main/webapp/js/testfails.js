@@ -60,7 +60,7 @@ function triggerBuild(serverId, suiteId, branchName) {
 function showSuiteData(suite) {
     var res = "";
     var altTxt = "duration: " + suite.durationPrintable;
-    res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
+    res += "&nbsp; <a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
         "[ "+ "<a href='" + suite.webToBuild + "' title='"+altTxt+"'> " + "tests " + suite.failedTests + " " + suite.result + "</a> ]" +
         " " + suite.contactPerson + "";
 
@@ -86,7 +86,7 @@ function showSuiteData(suite) {
     }
 
     if(typeof suite.webUrlThreadDump !== 'undefined' && suite.webUrlThreadDump!=null) {
-        res += "&nbsp; <a href='" + suite.webUrlThreadDump + "'>";
+        res += "&nbsp; &nbsp; <a href='" + suite.webUrlThreadDump + "'>";
         res += "<img src='https://cdn2.iconfinder.com/data/icons/metro-uinvert-dock/256/Services.png' width=12px height=12px> ";
         res += "Thread Dump</a>"
         res += " <br>";
@@ -100,7 +100,7 @@ function showSuiteData(suite) {
 //@param testFail - see TestFailure
 function showTestFailData(testFail) {
     var res = "";
-    res += "&nbsp; ";
+    res += "&nbsp; &nbsp; ";
 
     var haveIssue = typeof testFail.webIssueUrl !== 'undefined' && testFail.webIssueUrl!=null
                     && typeof testFail.webIssueText !== 'undefined' && testFail.webIssueText!=null;

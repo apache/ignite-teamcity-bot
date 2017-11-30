@@ -58,4 +58,10 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
             + "&tab=buildTypeStatusDiv";
     }
 
+    /**
+     * @return Server name.
+     */
+    public String serverName() {
+        return serverName;
+    }
 }
