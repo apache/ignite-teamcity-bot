@@ -60,7 +60,19 @@ function triggerBuild(serverId, suiteId, branchName) {
 function showSuiteData(suite) {
     var res = "";
     var altTxt = "duration: " + suite.durationPrintable;
-    res += "&nbsp; <a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
+    res += "&nbsp; ";
+
+    var failRateText="";
+    if (isDefinedAndFilled(suite.failures) && isDefinedAndFilled(suite.runs)  && isDefinedAndFilled(suite.failureRate)) {
+        altTxt += "; " + suite.failures + " fails / " + suite.runs + " runs in all tracked branches in helper DB";
+        failRateText += "(fail rate " + suite.failureRate + "%)";
+        altTxt +="; " + failRateText;
+    }
+    var color = failureRateToColor(suite.failureRate);
+    res += " <span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='"+failRateText+"'></span> ";
+
+
+    res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
         "[ "+ "<a href='" + suite.webToBuild + "' title='"+altTxt+"'> " + "tests " + suite.failedTests + " " + suite.result + "</a> ]" +
         " " + suite.contactPerson + "";
 
@@ -96,6 +108,26 @@ function showSuiteData(suite) {
     return res;
 }
 
+function failureRateToColor(failureRate) {
+    var redSaturation = 255;
+    var greenSaturation = 0;
+    var blueSaturation = 0;
+
+    var colorCorrect = 0;
+    if(isDefinedAndFilled(failureRate)) {
+        colorCorrect = parseFloat(failureRate);
+    }
+
+    if(colorCorrect < 50) {
+        redSaturation = 255;
+        greenSaturation += colorCorrect * 5;
+    } else {
+        greenSaturation = 255 -(colorCorrect-50) * 5;;
+        redSaturation = 255 - (colorCorrect-50) * 5;
+    }
+   return rgbToHex(redSaturation, greenSaturation, blueSaturation);
+}
+
 
 //@param testFail - see TestFailure
 function showTestFailData(testFail) {
@@ -105,26 +137,8 @@ function showTestFailData(testFail) {
     var haveIssue = typeof testFail.webIssueUrl !== 'undefined' && testFail.webIssueUrl!=null
                     && typeof testFail.webIssueText !== 'undefined' && testFail.webIssueText!=null;
 
-    var redSaturation = 255;
-    var greenSaturation = 0;
-    var blueSaturation = 0;
-    var colorCorrect = 0;
-    if(testFail.failureRate !== 'undefined' && testFail.failureRate!= null) {
-        colorCorrect = parseFloat(testFail.failureRate);
-    }
-    if(colorCorrect < 50) {
-        redSaturation = 255;
-        greenSaturation += colorCorrect * 5;
-    } else {
-        //greenSaturation += 255;
-        //redSaturation -= (colorCorrect-50) * 5;
-
-        greenSaturation = 255 -(colorCorrect-50) * 5;;
-        redSaturation = 255 - (colorCorrect-50) * 5;
-    }
-    var color = rgbToHex(redSaturation, greenSaturation, blueSaturation);
+    var color = failureRateToColor(testFail.failureRate);
     res += " <span style='background-color: " + color + "; width:7px; height:7px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
-
 
     if(haveIssue) {
         res += "<a href='"+testFail.webIssueUrl+"'>";

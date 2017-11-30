@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.web.rest.model.current;
 
+import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -50,12 +51,29 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Branch name in teamcity identification. */
     public String branchName;
 
+    /** Registered number of failures from TC helper DB */
+    @Nullable public Integer failures;
+
+    /** Registered number of runs from TC helper DB */
+    @Nullable public Integer runs;
+
+    /** Registered percent of fails from TC helper DB */
+    @Nullable public String failureRate;
 
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final FullBuildRunContext suite,
-        @Nullable final Map<String, RunStat> runStatMap) {
+        @Nullable final Map<String, RunStat> testsRunStat,
+        @Nullable final Map<String, RunStat> suiteRunStat) {
 
         name = suite.suiteName();
+        if (!Strings.isNullOrEmpty(name)) {
+            final RunStat stat = suiteRunStat.get(name);
+            if (stat != null) {
+                failures = stat.failures;
+                runs = stat.runs;
+                failureRate = stat.getFailPercentPrintable();
+            }
+        }
         result = suite.getResult();
         failedTests = suite.failedTests();
         durationPrintable = getDurationPrintable(suite.getBuildDuration());
@@ -65,7 +83,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         suite.getFailedTests().forEach(occurrence -> {
             final TestFailure failure = new TestFailure();
             failure.initFromOccurrence(occurrence, suite.getFullTest(occurrence.id), teamcity, suite);
-            failure.initStat(runStatMap);
+            failure.initStat(testsRunStat);
             testFailures.add(failure);
         });
         if (!isNullOrEmpty(suite.getLastStartedTest())) {

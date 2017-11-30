@@ -66,7 +66,8 @@ public class GetCurrTestFailures {
 
                     chainStatus.serverName = teamcity.serverId();
                     pubCtx.ifPresent(ctx -> {
-                        chainStatus.initFromContext(teamcity, ctx, teamcity.runTestAnalysis());
+                        chainStatus.initFromContext(teamcity, ctx, teamcity.runTestAnalysis(),
+                            teamcity.runSuiteAnalysis());
                     });
                 }
                 return chainStatus;
@@ -111,8 +112,9 @@ public class GetCurrTestFailures {
 
             IgnitePersistentTeamcity teamcityP = new IgnitePersistentTeamcity(ignite, teamcity);
             final Map<String, RunStat> map = teamcityP.runTestAnalysis();
+            final Map<String, RunStat> suiteAnalysis = teamcityP.runSuiteAnalysis();
 
-            pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map));
+            pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map, suiteAnalysis));
 
             res.addChainOnServer(chainStatus);
         }

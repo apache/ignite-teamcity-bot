@@ -23,13 +23,13 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     public String name;
 
     /** Registered number of failures from TC helper DB */
-    public Integer failures;
+    @Nullable public Integer failures;
 
     /** Registered number of runs from TC helper DB */
-    public Integer runs;
+    @Nullable public Integer runs;
 
     /** Registered percent of fails from TC helper DB */
-    public String failureRate;
+    @Nullable public String failureRate;
 
     /** Link to test history */
     @Nullable public String webUrl;

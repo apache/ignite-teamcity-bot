@@ -237,7 +237,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
     private Map<String, RunStat> runTestAnalysisOrCached() {
         return timedLoadIfAbsent(ignCacheNme("runStat"),
-            60 * 3, "runTestAnalysis",
+            60 * 5, "runTestAnalysis",
             k -> runTestAnalysisNoCache());
     }
 
@@ -264,6 +264,12 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     public Map<String, RunStat> runSuiteAnalysis() {
+        return timedLoadIfAbsent(ignCacheNme("runStat"),
+            60 * 5, "runSuiteAnalysis",
+            k ->  runSuiteAnalysisNoCache());
+    }
+
+    @NotNull private Map<String, RunStat> runSuiteAnalysisNoCache() {
         final Map<String, RunStat> map = new HashMap<>();
         final IgniteCache<Object, Build> cache = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
         if (cache == null)

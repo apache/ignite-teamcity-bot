@@ -66,11 +66,12 @@ public class GetAllTestFailures {
                         false, false));
 
                 final Map<String, RunStat> map = teamcity.runTestAnalysis();
+                final Map<String, RunStat> suiteMap = teamcity.runSuiteAnalysis();
                 stream.forEach(
                     chainCtxOpt -> {
                         final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
                         chainStatus.serverName = teamcity.serverId();
-                        chainCtxOpt.ifPresent(chainCtx -> chainStatus.initFromContext(teamcity, chainCtx, map));
+                        chainCtxOpt.ifPresent(chainCtx -> chainStatus.initFromContext(teamcity, chainCtx, map, suiteMap));
                         res.addChainOnServer(chainStatus);
                     }
                 );
