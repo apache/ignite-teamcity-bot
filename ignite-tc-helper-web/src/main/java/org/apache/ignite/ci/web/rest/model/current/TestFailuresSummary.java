@@ -23,12 +23,16 @@ public class TestFailuresSummary extends AbstractTestMetrics implements IBackgro
     public void addChainOnServer(ChainAtServerCurrentStatus chainStatus) {
         servers.add(chainStatus);
 
-        if (failedToFinish == null)
-            failedToFinish = 0;
-        failedToFinish += chainStatus.failedToFinish;
+        if(chainStatus.failedToFinish!=null) {
+            if (failedToFinish == null)
+                failedToFinish = 0;
+            failedToFinish += chainStatus.failedToFinish;
+        }
 
-        if (failedTests == null)
-            failedTests = 0;
-        failedTests += chainStatus.failedTests;
+        if(chainStatus.failedTests!=null) {
+            if (failedTests == null)
+                failedTests = 0;
+            failedTests += chainStatus.failedTests;
+        }
     }
 }
