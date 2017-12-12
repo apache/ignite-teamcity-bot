@@ -25,7 +25,10 @@ function showChainOnServersResults(result) {
 //@param server - see ChainAtServerCurrentStatus
 function showServerData(server) {
     var res = "";
-    var altTxt = "duration: " + server.durationPrintable;
+    var altTxt = "";
+
+    if(isDefinedAndFilled(server.durationPrintable))
+        altTxt+="duration: " + server.durationPrintable;
 
     res += "<b><a href='" + server.webToHist + "'>" + server.serverName + "</a> ";
     res += "[";
