@@ -15,7 +15,9 @@
 $(document).ready(function() {
     $( document ).tooltip();
     loadData();
-    setInterval(loadData, 60000)
+    setInterval(loadData, 60000);
+
+    $.getScript("js/testfails.js", function(data, textStatus, jqxhr){ });
 });
 
 function loadData() {

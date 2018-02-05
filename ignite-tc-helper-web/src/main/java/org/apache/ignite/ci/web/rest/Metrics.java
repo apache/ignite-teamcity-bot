@@ -37,11 +37,9 @@ public class Metrics {
     public TestsMetrics getFailuresNoCache(){
         Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
         CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
+        //todo take from branches.json
         try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
-            collectHistory(history, teamcity, "Ignite20Tests_RunAll", "refs/heads/master");
-            // collectHistory(history, teamcity, "Ignite20Tests_RunAll", "ignite-2.2");
-            //collectHistory(history, teamcity, "Ignite20Tests_RunAll", "pull/2380/head");
-            //collectHistory(history, teamcity, "Ignite20Tests_RunAll", "pull/2508/head");
+            collectHistory(history, teamcity, "IgniteTests24Java8_RunAll", "refs/heads/master");
         }
         return convertToChart(history);
     }
@@ -68,9 +66,7 @@ public class Metrics {
         Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
         CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
         try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
-            collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "refs/heads/master");
-            // collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "ignite-2.1.4");
-            //collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "ignite-2.1.5");
+            collectHistory(history, teamcity, "id8xIgniteGridGainTestsJava8_RunAll", "refs/heads/master");
         }
         return convertToChart(history);
     }

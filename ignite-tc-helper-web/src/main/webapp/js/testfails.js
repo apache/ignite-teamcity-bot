@@ -89,10 +89,10 @@ function showSuiteData(suite) {
     }
 
     if(isDefinedAndFilled(suite.serverId) && isDefinedAndFilled(suite.suiteId) && isDefinedAndFilled(suite.branchName)) {
-        res+=" <a href='javascript:void(0);'><img src='https://cdn2.iconfinder.com/data/icons/iconslandplayer/PNG/256x256/CircleBlue/Play1Hot.png'";
+        res+=" <a href='javascript:void(0);' ";
         res+=" onClick='triggerBuild(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \""+suite.branchName+"\")' ";
         res+=" title='trigger build'";
-        res+=" width=12px height=12px></a> ";
+        res+=" >run</a> ";
     }
     res+=" <br>";
 

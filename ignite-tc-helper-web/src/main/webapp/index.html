@@ -54,7 +54,7 @@ function showSuitesForPrCheckData(result) {
 
         res+="<form action='pr.html'>";
         res+="Server: <input type='text' name='serverId' value=" + chainAtServer.serverId +" readonly>" ;
-        res+="Chain: <input type='text' name='suiteId' value=" + chainAtServer.suiteId +" readonly>" ; 
+        res+="Chain: <input type='text' name='suiteId' style='width: 30%;' value=" + chainAtServer.suiteId +" readonly>" ;
         res+="Branch: <input type='text' name='branchForTc' required> "
         res+="<input type='submit' value='>>>'>";
         res+="</form>";
@@ -65,7 +65,6 @@ function showSuitesForPrCheckData(result) {
 </head>
 <body>
 Current status:     <br>
-<a href="./status">Current Build Status</a><br>
 <!--
 <a href="current.html">Current Failed Tests (master)</a><br>-->
 <div id="branchesStatus"></div>
@@ -76,6 +75,7 @@ Statistics:   <br>
 <a href="restpretty.html?url=top/failing">Top failing tests</a> (JSON) <br>
 <a href="restpretty.html?url=top/longRunning">Top long running tests</a> (JSON) <br>
 <a href="restpretty.html?url=top/failingSuite">Top failing suites</a> (JSON) <br>
+<a href="./status">Current Build Status (obsolete)</a><br>
 <br>
 
 Check branch/PR:   <br>
