@@ -53,15 +53,15 @@ public class IgniteTeamcityHelperRunnerExample {
             }
         }
 
-        int b = 1;
+        int b = 0;
         if (b > 0)
             checkBuildTypes(helper);
 
         for (int i = 0; i < 0; i++) {
             //branch example:
-            final String branchName = "pull/2990/head";
+            final String branchName = "pull/3475/head";
             //String branchName = "refs/heads/master";
-            helper.triggerBuild("Ignite20Tests_IgniteCompatibility", branchName);
+            helper.triggerBuild("IgniteTests24Java8_IgnitePds2DirectIo", branchName);
         }
 
         int j = 0;
@@ -75,10 +75,10 @@ public class IgniteTeamcityHelperRunnerExample {
 
         int h = 0;
         if (h > 0) {
-            String branch = "<default>";
-            final String branchName = "pull/2704/head";
+            String branchName1 = "<default>";
+            final String branchName = "pull/3475/head";
             List<CompletableFuture<File>> futures = helper.standardProcessAllBuildHistory(
-                "Ignite20Tests_IgniteDataStructures",
+                "IgniteTests24Java8_IgnitePds2DirectIo",
                 branchName);
 
             List<File> collect = getFuturesResults(futures);
