@@ -6,7 +6,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -18,11 +17,11 @@ import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.actions.DownloadBuildLog;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.Builds;
-import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
@@ -101,10 +100,18 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     public void triggerBuild(String buildTypeId, String branchName) {
-        String parameter = "<build branchName=\"" + xmlEscapeText(branchName )+ "\">\n" +
+        boolean cleanRebuild = false;
+        triggerBuild(buildTypeId, branchName, cleanRebuild);
+    }
+
+    public void triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild) {
+        String triggeringOptions = cleanRebuild ? " <triggeringOptions cleanSources=\"true\" rebuildAllDependencies=\"true\"/>" : "";
+        String parameter = "<build branchName=\"" + xmlEscapeText(branchName) + "\">\n" +
             "    <buildType id=\"" +
             buildTypeId + "\"/>\n" +
-            "    <comment><text>Build triggered from [" + this.getClass().getSimpleName() + "]</text></comment>\n" +
+            "    <comment><text>Build triggered from [" + this.getClass().getSimpleName()
+            + ",cleanRebuild=" + cleanRebuild + "]</text></comment>\n" +
+            triggeringOptions +
             //some fake property to avoid merging build in queue
             "    <properties>\n" +
             "        <property name=\"build.query.ts\" value=\"" + System.currentTimeMillis() + "\"/>\n" +

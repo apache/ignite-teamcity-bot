@@ -57,11 +57,11 @@ public class IgniteTeamcityHelperRunnerExample {
         if (b > 0)
             checkBuildTypes(helper);
 
-        for (int i = 0; i < 0; i++) {
+        for (int i = 0; i < 3; i++) {
             //branch example:
-            final String branchName = "pull/3475/head";
-            //String branchName = "refs/heads/master";
-            helper.triggerBuild("IgniteTests24Java8_IgnitePds2DirectIo", branchName);
+            //final String branchName = "pull/3475/head";
+            String branchName = "refs/heads/master";
+            helper.triggerBuild("IgniteTests24Java8_RunAll", branchName, true);
         }
 
         int j = 0;
