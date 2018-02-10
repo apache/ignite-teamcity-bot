@@ -18,6 +18,7 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * API for calling methods from REST service:
@@ -70,7 +71,11 @@ public interface ITeamcity extends AutoCloseable {
     Build getBuildResults(String href);
 
     default Build getBuildResults(int id) {
-        return getBuildResults("app/rest/latest/builds/id:" + Integer.toString(id));
+        return getBuildResults(getBuildHrefById(id));
+    }
+
+    @NotNull default String getBuildHrefById(int id) {
+        return "app/rest/latest/builds/id:" + Integer.toString(id);
     }
 
     /**

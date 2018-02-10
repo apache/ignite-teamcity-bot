@@ -18,7 +18,6 @@ import org.apache.ignite.spi.IgniteSpiContext;
 import org.apache.ignite.spi.IgniteSpiException;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Created by dpavlov on 04.08.2017
@@ -42,6 +41,7 @@ public class TcHelperDb {
         PersistentStoreConfiguration psCfg = new PersistentStoreConfiguration();
         psCfg.setWalMode(WALMode.LOG_ONLY);
         psCfg.setWalHistorySize(1);
+        psCfg.setCheckpointingFrequency(5 * 60 * 1000);
         cfg.setPersistentStoreConfiguration(psCfg);
 
         final Ignite ignite = Ignition.start(cfg);
