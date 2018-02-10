@@ -90,8 +90,8 @@ public class BuildChainProcessor {
 
                     int buildCnt = teamcity.getQueuedBuilds(buildRef.buildTypeId, tcBranch).size();
 
-                    if("refs/heads/master".equals(tcBranch))
-                        buildCnt += teamcity.getQueuedBuilds(buildRef.buildTypeId, ITeamcity.DEFAULT).size();
+                    if ("refs/heads/master".equals(tcBranch) && buildCnt == 0)
+                        buildCnt = teamcity.getQueuedBuilds(buildRef.buildTypeId, ITeamcity.DEFAULT).size();
 
                     ctx.setQueuedBuildCount(buildCnt);
                 }

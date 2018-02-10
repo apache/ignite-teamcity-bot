@@ -40,7 +40,7 @@ public class TopTests {
         for (ChainAtServerTracked chainTracked : branchMandatory(branchOrNull).chains) {
             try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
                 int cnt = count == null ? 10 : count;
-                teamcity.topFailing(cnt).stream().map(this::converToUi).forEach(res::add);
+                teamcity.topFailing(cnt).stream().map(this::converToUiModel).forEach(res::add);
             }
         }
         return res;
@@ -56,7 +56,7 @@ public class TopTests {
         for (ChainAtServerTracked chainTracked : branchMandatory(branchOrNull).chains) {
             try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
                 int cnt = count == null ? 10 : count;
-                teamcity.topFailingSuite(cnt).stream().map(this::converToUi).forEach(res::add);
+                teamcity.topFailingSuite(cnt).stream().map(this::converToUiModel).forEach(res::add);
             }
         }
         return res;
@@ -73,7 +73,7 @@ public class TopTests {
         for (ChainAtServerTracked chainTracked : tracked.chains) {
             try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
                 int cnt = count == null ? 10 : count;
-                teamcity.topLongRunning(cnt).stream().map(this::converToUi).forEach(res::add);
+                teamcity.topLongRunning(cnt).stream().map(this::converToUiModel).forEach(res::add);
             }
         }
         return res;
@@ -84,7 +84,7 @@ public class TopTests {
         return HelperConfig.getTrackedBranches().getBranchMandatory(branch);
     }
 
-    @NotNull private FailingTest converToUi(RunStat stat) {
+    @NotNull private FailingTest converToUiModel(RunStat stat) {
         FailingTest e = new FailingTest();
         e.name = stat.name();
         e.failureRate = stat.getFailPercentPrintable();
