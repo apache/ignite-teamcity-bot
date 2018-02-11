@@ -15,6 +15,8 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
  * Represent Run All chain results/ or RunAll+latest re-runs
  */
 @SuppressWarnings("WeakerAccess") public class ChainAtServerCurrentStatus extends AbstractTestMetrics {
+    public String chainName;
+
     public String serverName;
 
     /** Web Href. to suite runs history*/

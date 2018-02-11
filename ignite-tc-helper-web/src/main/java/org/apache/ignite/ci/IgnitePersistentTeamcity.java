@@ -41,10 +41,13 @@ import org.jetbrains.annotations.NotNull;
  * Created by dpavlov on 03.08.2017
  */
 public class IgnitePersistentTeamcity implements ITeamcity {
-
+    @Deprecated
     public static final String TESTS = "tests";
     public static final String STAT = "stat";
     public static final String BUILD_RESULTS = "buildResults";
+    public static final String RUN_STAT_CACHE = "runStat";
+    public static final String TESTS_OCURRENCES = "testOcurrences";
+    public static final String TESTS_COUNT_7700 = ",count:7700";
     private final Ignite ignite;
     private final IgniteTeamcityHelper teamcity;
     private final String serverId;
@@ -53,6 +56,10 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         this.ignite = ignite;
         this.teamcity = teamcity;
         this.serverId = teamcity.serverId();
+
+        if(ignite.cacheNames().contains(TESTS)) {
+            ignite.cache(TESTS)  ;
+        }
     }
 
     public IgnitePersistentTeamcity(Ignite ignite, String serverId) {
@@ -198,9 +205,14 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     @Override public TestOccurrences getTests(String href) {
+        String hrefForDb = href.replace(TESTS_COUNT_7700, "");
         return loadIfAbsent(TESTS,
-            href.replace("\",count:7700\"", "\",count:7500\""),  //hack to avoid test reloading from stroe
-            teamcity::getTests);
+            href,  //hack to avoid test reloading from store in case of href filter replaced
+            hrefIgnored -> {
+                TestOccurrences loadedTests = teamcity.getTests(href);
+                
+                return loadedTests;
+            });
     }
 
     @Override public Statistics getBuildStat(String href) {
@@ -236,7 +248,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     private Map<String, RunStat> runTestAnalysisOrCached() {
-        return timedLoadIfAbsent(ignCacheNme("runStat"),
+        return timedLoadIfAbsent(ignCacheNme(RUN_STAT_CACHE),
             60 * 5, "runTestAnalysis",
             k -> runTestAnalysisNoCache());
     }
@@ -264,7 +276,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     public Map<String, RunStat> runSuiteAnalysis() {
-        return timedLoadIfAbsent(ignCacheNme("runStat"),
+        return timedLoadIfAbsent(ignCacheNme(RUN_STAT_CACHE),
             60 * 5, "runSuiteAnalysis",
             k ->  runSuiteAnalysisNoCache());
     }

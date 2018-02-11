@@ -23,7 +23,8 @@ public class BuildChainProcessor {
         boolean includeLatestRebuild) {
 
         Optional<BuildRef> buildRef = teamcity.getLastBuildIncludeSnDepFailed(suiteId, branch);
-        return buildRef.flatMap(build -> processChainByRef(teamcity, includeLatestRebuild, build, true, true));
+        return buildRef.flatMap(build -> processChainByRef(teamcity, includeLatestRebuild, build,
+            true, true, true));
     }
 
     public static Optional<FullChainRunCtx> processChainByRef(
@@ -31,24 +32,26 @@ public class BuildChainProcessor {
         boolean includeLatestRebuild,
         BuildRef build,
         boolean procLogs,
-        boolean includeScheduled) {
+        boolean includeScheduled,
+        boolean showContacts) {
 
         Build results = teamcity.getBuildResults(build.href);
         if (results == null)
             return Optional.empty();
 
-        final Properties responsible = getContactPersonProperties(teamcity);
+        final Properties responsible = showContacts ? getContactPersonProperties(teamcity) : null;
 
         final FullChainRunCtx val = loadChainContext(teamcity, results, includeLatestRebuild,
             procLogs, responsible, includeScheduled);
-        return Optional.ofNullable(val);
+
+        return Optional.of(val);
     }
 
     private static Properties getContactPersonProperties(ITeamcity teamcity) {
         return HelperConfig.loadContactPersons(teamcity.serverId());
     }
 
-    @Nullable public static FullChainRunCtx loadChainContext(
+    public static FullChainRunCtx loadChainContext(
         ITeamcity teamcity,
         Build chainRoot,
         boolean includeLatestRebuild,

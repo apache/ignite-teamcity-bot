@@ -15,7 +15,7 @@ function showChainOnServersResults(result) {
 
     for (var i = 0; i < result.servers.length; i++) {
         var server = result.servers[i];
-        res += showServerData(server);
+        res += showChainAtServerData(server);
     }
 
     return res;
@@ -23,18 +23,25 @@ function showChainOnServersResults(result) {
 
 
 //@param server - see ChainAtServerCurrentStatus
-function showServerData(server) {
+function showChainAtServerData(server) {
     var res = "";
     var altTxt = "";
 
     if(isDefinedAndFilled(server.durationPrintable))
         altTxt+="duration: " + server.durationPrintable;
 
-    res += "<b><a href='" + server.webToHist + "'>" + server.serverName + "</a> ";
+    res += "<b><a href='" + server.webToHist + "'>";
+
+    if(isDefinedAndFilled(server.chainName)) {
+        res+=server.chainName + " ";
+    }
+    res += server.serverName;
+
+    res += "</a> ";
     res += "[";
-    res += " <a href='" + server.webToBuild + "' title='"+altTxt+"'>"
+    res += " <a href='" + server.webToBuild + "' title='"+altTxt+"'>";
     res += "tests " + server.failedTests + " suites " + server.failedToFinish + "";
-    res += " </a>"
+    res += " </a>";
     res += "]";
     res += "</b><br><br>";
 
@@ -76,8 +83,12 @@ function showSuiteData(suite) {
 
 
     res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
-        "[ "+ "<a href='" + suite.webToBuild + "' title='"+altTxt+"'> " + "tests " + suite.failedTests + " " + suite.result + "</a> ]" +
-        " " + suite.contactPerson + "";
+        "[ "+ "<a href='" + suite.webToBuild + "' title='"+altTxt+"'> " + "tests " + suite.failedTests + " " + suite.result + "</a> ]";
+
+
+    if(isDefinedAndFilled(suite.contactPerson)) {
+        res += " " + suite.contactPerson + "";
+    }
 
     if(isDefinedAndFilled(suite.runningBuildCount) && suite.runningBuildCount!=0) {
         res+=" <img src='https://image.flaticon.com/icons/png/128/2/2745.png' width=12px height=12px> ";
@@ -100,10 +111,10 @@ function showSuiteData(suite) {
         res += showTestFailData(suite.testFailures[i]);
     }
 
-    if(typeof suite.webUrlThreadDump !== 'undefined' && suite.webUrlThreadDump!=null) {
+    if(isDefinedAndFilled(suite.webUrlThreadDump)) {
         res += "&nbsp; &nbsp; <a href='" + suite.webUrlThreadDump + "'>";
         res += "<img src='https://cdn2.iconfinder.com/data/icons/metro-uinvert-dock/256/Services.png' width=12px height=12px> ";
-        res += "Thread Dump</a>"
+        res += "Thread Dump</a>";
         res += " <br>";
     }
 
@@ -137,8 +148,7 @@ function showTestFailData(testFail) {
     var res = "";
     res += "&nbsp; &nbsp; ";
 
-    var haveIssue = typeof testFail.webIssueUrl !== 'undefined' && testFail.webIssueUrl!=null
-                    && typeof testFail.webIssueText !== 'undefined' && testFail.webIssueText!=null;
+    var haveIssue = isDefinedAndFilled(testFail.webIssueUrl) && isDefinedAndFilled(testFail.webIssueText)
 
     var color = failureRateToColor(testFail.failureRate);
     res += " <span style='background-color: " + color + "; width:7px; height:7px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
@@ -152,11 +162,11 @@ function showTestFailData(testFail) {
 
     res += testFail.name;
 
-    var haveWeb = typeof testFail.webUrl !== 'undefined' && testFail.webUrl!=null;
+    var haveWeb = isDefinedAndFilled(testFail.webUrl);
     var histContent = "";
     if (testFail.failures != null && testFail.runs != null) {
         histContent += " <span title='" + testFail.failures + " fails / " + testFail.runs + " runs in all tracked branches in helper DB'>";
-        if(testFail.failureRate !== 'undefined' && testFail.failureRate!= null )
+        if(isDefinedAndFilled(testFail.failureRate))
             histContent += "(fail rate " + testFail.failureRate + "%)";
         else
             histContent += "(fails: " + testFail.failures + "/" + testFail.runs + ")";

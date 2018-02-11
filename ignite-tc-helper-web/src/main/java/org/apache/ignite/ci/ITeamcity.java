@@ -20,6 +20,8 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.jetbrains.annotations.NotNull;
 
+import static org.apache.ignite.ci.IgnitePersistentTeamcity.TESTS_COUNT_7700;
+
 /**
  * API for calling methods from REST service:
  * https://confluence.jetbrains.com/display/TCD10/REST+API
@@ -103,7 +105,8 @@ public interface ITeamcity extends AutoCloseable {
             ctx.setProblems(getProblems(build.problemOccurrences.href).getProblemsNonNull());
 
         if (build.testOccurrences != null) {
-            List<TestOccurrence> tests = getTests(build.testOccurrences.href + ",count:7700").getTests();
+            List<TestOccurrence> tests = getTests(build.testOccurrences.href +
+                TESTS_COUNT_7700).getTests();
             ctx.setTests(tests);
 
             for (TestOccurrence next : tests) {

@@ -66,7 +66,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         @Nullable final Map<String, RunStat> suiteRunStat) {
 
         name = suite.suiteName();
-        if (!Strings.isNullOrEmpty(name)) {
+        if (!Strings.isNullOrEmpty(name) && suiteRunStat!=null) {
             final RunStat stat = suiteRunStat.get(name);
             if (stat != null) {
                 failures = stat.failures;

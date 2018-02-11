@@ -63,7 +63,7 @@ public class GetAllTestFailures {
                     = builds.stream().parallel()
                     .filter(b -> b.getId() != null)
                     .map(build -> BuildChainProcessor.processChainByRef(teamcity, false, build,
-                        false, false));
+                        false, false, true));
 
                 final Map<String, RunStat> map = teamcity.runTestAnalysis();
                 final Map<String, RunStat> suiteMap = teamcity.runSuiteAnalysis();
