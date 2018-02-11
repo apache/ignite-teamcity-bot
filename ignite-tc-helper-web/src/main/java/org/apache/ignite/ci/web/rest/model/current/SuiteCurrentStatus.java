@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
@@ -62,7 +63,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final FullBuildRunContext suite,
-        @Nullable final Map<String, RunStat> testsRunStat,
+        @Nullable final Function<String, RunStat> runStatSupplier,
         @Nullable final Map<String, RunStat> suiteRunStat) {
 
         name = suite.suiteName();
@@ -83,7 +84,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         suite.getFailedTests().forEach(occurrence -> {
             final TestFailure failure = new TestFailure();
             failure.initFromOccurrence(occurrence, suite.getFullTest(occurrence.id), teamcity, suite);
-            failure.initStat(testsRunStat);
+            failure.initStat(runStatSupplier);
             testFailures.add(failure);
         });
         if (!isNullOrEmpty(suite.getLastStartedTest())) {

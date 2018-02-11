@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
@@ -65,7 +66,7 @@ public class GetAllTestFailures {
                     .map(build -> BuildChainProcessor.processChainByRef(teamcity, false, build,
                         false, false, true));
 
-                final Map<String, RunStat> map = teamcity.runTestAnalysis();
+                final Function<String, RunStat> map = teamcity.getTestRunStatProvider();
                 final Map<String, RunStat> suiteMap = teamcity.runSuiteAnalysis();
                 stream.forEach(
                     chainCtxOpt -> {

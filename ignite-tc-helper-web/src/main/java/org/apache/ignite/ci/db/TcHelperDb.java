@@ -8,10 +8,9 @@ import java.util.Collections;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.configuration.DataRegionConfiguration;
+import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.configuration.MemoryConfiguration;
-import org.apache.ignite.configuration.MemoryPolicyConfiguration;
-import org.apache.ignite.configuration.PersistentStoreConfiguration;
 import org.apache.ignite.configuration.WALMode;
 import org.apache.ignite.logger.java.JavaLogger;
 import org.apache.ignite.spi.IgniteSpiContext;
@@ -32,17 +31,16 @@ public class TcHelperDb {
         cfg.setConsistentId("TcHelper");
         cfg.setGridLogger(new JavaLogger());
 
-        final MemoryConfiguration memCfg = new MemoryConfiguration();
-        final MemoryPolicyConfiguration configuration = new MemoryPolicyConfiguration();
-        configuration.setMaxSize(2L * 1024 * 1024 * 1024);
-        memCfg.setMemoryPolicies(configuration);
-        cfg.setMemoryConfiguration(memCfg);
+        final DataRegionConfiguration regConf = new DataRegionConfiguration();
+        regConf.setMaxSize(2L * 1024 * 1024 * 1024)
+            .setPersistenceEnabled(true);
 
-        PersistentStoreConfiguration psCfg = new PersistentStoreConfiguration();
-        psCfg.setWalMode(WALMode.LOG_ONLY);
-        psCfg.setWalHistorySize(1);
-        psCfg.setCheckpointingFrequency(5 * 60 * 1000);
-        cfg.setPersistentStoreConfiguration(psCfg);
+        DataStorageConfiguration dsCfg = new DataStorageConfiguration();
+        dsCfg.setWalMode(WALMode.LOG_ONLY)
+            .setWalHistorySize(1)
+            .setCheckpointFrequency(2 * 60 * 1000)
+            .setDefaultDataRegionConfiguration(regConf);
+        cfg.setDataStorageConfiguration(dsCfg);
 
         final Ignite ignite = Ignition.start(cfg);
         ignite.active(true);

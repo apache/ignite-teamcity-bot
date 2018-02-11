@@ -1,7 +1,7 @@
 package org.apache.ignite.ci.web.rest.model.current;
 
-import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
@@ -90,8 +90,8 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
             + "&tab=testDetails";
     }
 
-    public void initStat(@Nullable final Map<String, RunStat> runStatMap) {
-        final RunStat stat = runStatMap == null ? null : runStatMap.get(name);
+    public void initStat(@Nullable final Function<String, RunStat> runStatSupplier) {
+        final RunStat stat = runStatSupplier == null ? null : runStatSupplier.apply(name);
         if (stat != null) {
             failures = stat.failures;
             runs = stat.runs;

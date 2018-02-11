@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
@@ -66,7 +67,7 @@ public class GetCurrTestFailures {
 
                     chainStatus.serverName = teamcity.serverId();
                     pubCtx.ifPresent(ctx -> {
-                        chainStatus.initFromContext(teamcity, ctx, teamcity.runTestAnalysis(),
+                        chainStatus.initFromContext(teamcity, ctx, teamcity.getTestRunStatProvider(),
                             teamcity.runSuiteAnalysis());
                     });
                 }
@@ -111,10 +112,10 @@ public class GetCurrTestFailures {
             chainStatus.serverName = teamcity.serverId();
 
             IgnitePersistentTeamcity teamcityP = new IgnitePersistentTeamcity(ignite, teamcity);
-            final Map<String, RunStat> map = teamcityP.runTestAnalysis();
+            final Function<String, RunStat> supplier = teamcityP.getTestRunStatProvider();
             final Map<String, RunStat> suiteAnalysis = teamcityP.runSuiteAnalysis();
 
-            pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, map, suiteAnalysis));
+            pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, supplier, suiteAnalysis));
 
             res.addChainOnServer(chainStatus);
         }

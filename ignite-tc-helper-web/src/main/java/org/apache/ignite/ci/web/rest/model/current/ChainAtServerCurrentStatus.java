@@ -3,6 +3,7 @@ package org.apache.ignite.ci.web.rest.model.current;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -29,7 +30,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
 
     public void initFromContext(ITeamcity teamcity,
         FullChainRunCtx ctx,
-        @Nullable final Map<String, RunStat> testsRunStatMap,
+        @Nullable final Function<String, RunStat> testsRunStatMap,
         @Nullable final Map<String, RunStat> suiteRunStatMap) {
         failedTests = 0;
         failedToFinish = 0;

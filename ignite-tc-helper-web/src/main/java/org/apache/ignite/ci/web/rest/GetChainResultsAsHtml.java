@@ -55,7 +55,7 @@ public class GetChainResultsAsHtml {
                 status.chainName = c.suiteName();
 
                 status.initFromContext(teamcity, c,
-                    teamcity.runTestAnalysis(),
+                    teamcity.getTestRunStatProvider(),
                     teamcity.runSuiteAnalysis());
 
                 res.append(showChainAtServerData(status));

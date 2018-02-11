@@ -21,8 +21,12 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.cache.Cache;
 import javax.cache.CacheException;
+import javax.cache.processor.EntryProcessor;
+import javax.cache.processor.EntryProcessorException;
+import javax.cache.processor.MutableEntry;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.analysis.Expirable;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
@@ -35,6 +39,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.util.CollectionUtil;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -43,10 +48,16 @@ import org.jetbrains.annotations.NotNull;
 public class IgnitePersistentTeamcity implements ITeamcity {
     @Deprecated
     public static final String TESTS = "tests";
+    public static final String RUN_STAT_CACHE = "runStat";
+
     public static final String STAT = "stat";
     public static final String BUILD_RESULTS = "buildResults";
-    public static final String RUN_STAT_CACHE = "runStat";
-    public static final String TESTS_OCURRENCES = "testOcurrences";
+
+    //V2 caches
+    public static final String TESTS_OCCURRENCES = "testOccurrences";
+    public static final String TESTS_RUN_STAT = "testsRunStat";
+
+
     public static final String TESTS_COUNT_7700 = ",count:7700";
     private final Ignite ignite;
     private final IgniteTeamcityHelper teamcity;
@@ -57,9 +68,44 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         this.teamcity = teamcity;
         this.serverId = teamcity.serverId();
 
-        if(ignite.cacheNames().contains(TESTS)) {
-            ignite.cache(TESTS)  ;
+        dataMigration( );
+    }
+
+    public void dataMigration() {
+        synchronized (IgnitePersistentTeamcity.class) {
+            IgniteCache<Object, Object> occurrences = testOccurrencesCache();
+            if (occurrences.size() == 0) {
+                String cacheNme = ignCacheNme(TESTS);
+                IgniteCache<String, TestOccurrences> tests = ignite.getOrCreateCache(cacheNme);
+
+                int size = tests.size();
+                if (size > 0) {
+                    int i = 0;
+                    for (Cache.Entry<String, TestOccurrences> entry : tests) {
+                        System.out.println("Migrating entry " + i + " from " + size + ": " + entry.getKey());
+
+                        String s = removeCountFromRef(entry.getKey());
+                        TestOccurrences value = entry.getValue();
+
+                        if (occurrences.putIfAbsent(s, value)) {
+                            addTestOccurrencesToStat(value);
+                        }
+                        i++;
+                    }
+
+                    tests.clear();
+
+                    tests.destroy();
+                }
+            }
+
         }
+    }
+
+    public IgniteCache<Object, Object> testOccurrencesCache() {
+        CacheConfiguration<Object, Object> ccfg = new CacheConfiguration<>(ignCacheNme(TESTS_OCCURRENCES));
+        ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
+        return ignite.getOrCreateCache(ccfg);
     }
 
     public IgnitePersistentTeamcity(Ignite ignite, String serverId) {
@@ -85,10 +131,12 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
         if (persistedBuilds != null)
             return persistedBuilds;
+
         final V loaded = loadFunction.apply(key);
 
         if (saveValueFilter == null || saveValueFilter.test(loaded))
             cache.put(key, loaded);
+
         return loaded;
     }
 
@@ -205,14 +253,27 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     @Override public TestOccurrences getTests(String href) {
-        String hrefForDb = href.replace(TESTS_COUNT_7700, "");
-        return loadIfAbsent(TESTS,
-            href,  //hack to avoid test reloading from store in case of href filter replaced
+        String hrefForDb = removeCountFromRef(href);
+
+        return loadIfAbsent(TESTS_OCCURRENCES,
+            hrefForDb,  //hack to avoid test reloading from store in case of href filter replaced
             hrefIgnored -> {
                 TestOccurrences loadedTests = teamcity.getTests(href);
-                
+                addTestOccurrencesToStat(loadedTests);
                 return loadedTests;
             });
+    }
+
+    public void addTestOccurrencesToStat(TestOccurrences value) {
+        //may use invoke all
+        for (TestOccurrence next : value.getTests()) {
+            addTestOccurrenceToStat(next);
+        }
+    }
+
+    public String removeCountFromRef(String href) {
+        return href.replace(TESTS_COUNT_7700, "")
+            .replace(",count:7500", "");
     }
 
     @Override public Statistics getBuildStat(String href) {
@@ -239,34 +300,63 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         return CollectionUtil.top(data, count, Comparator.comparing(RunStat::getAverageDurationMs));
     }
 
+    public Function<String, RunStat> getTestRunStatProvider() {
+        return s -> testRunStatCache().get(s);
+    }
+
+    @Deprecated
     public Map<String, RunStat> runTestAnalysis() {
         final Stopwatch started = Stopwatch.createStarted();
-        final Map<String, RunStat> map = runTestAnalysisOrCached();
+        final Map<String, RunStat> map = runTestAnalysisNoCache();
 
         System.out.println(Thread.currentThread().getName() + ": Test analysis Required: " + started.elapsed(TimeUnit.MILLISECONDS) + "ms for " + serverId());
         return map;
     }
 
-    private Map<String, RunStat> runTestAnalysisOrCached() {
-        return timedLoadIfAbsent(ignCacheNme(RUN_STAT_CACHE),
-            60 * 5, "runTestAnalysis",
-            k -> runTestAnalysisNoCache());
-    }
-
     @NotNull private Map<String, RunStat> runTestAnalysisNoCache() {
+        IgniteCache<String, RunStat> entries = testRunStatCache();
         final Map<String, RunStat> map = new HashMap<>();
-        final IgniteCache<Object, TestOccurrences> cache = ignite.cache(ignCacheNme(TESTS));
-        if (cache == null)
-            return map;
-        for (Cache.Entry<Object, TestOccurrences> next : cache) {
-            final TestOccurrences val = next.getValue();
-            for (TestOccurrence occurrence : val.getTests()) {
-                final String name = occurrence.getName();
-                if (!Strings.isNullOrEmpty(name) && occurrence.isNotMutedOrIgnoredTest())
-                    map.computeIfAbsent(name, RunStat::new).addTestRun(occurrence);
-            }
+        for (Cache.Entry<String, RunStat> next : entries) {
+            map.put(next.getKey(), next.getValue());
         }
         return map;
+    }
+
+
+
+    public IgniteCache<String, RunStat> testRunStatCache() {
+        CacheConfiguration<String, RunStat> ccfg = new CacheConfiguration<>(ignCacheNme(TESTS_RUN_STAT));
+        ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
+        return ignite.getOrCreateCache(ccfg);
+    }
+
+    private void addTestOccurrenceToStat(TestOccurrence next) {
+        String name = next.getName();
+        if(Strings.isNullOrEmpty(name) )
+            return;
+
+        if(next.isMutedTest() || next.isIgnoredTest())
+            return;
+
+        testRunStatCache().invoke(name, new EntryProcessor<String, RunStat, Object>() {
+            @Override
+            public Object process(MutableEntry<String, RunStat> entry,
+                Object... arguments) throws EntryProcessorException {
+
+                String key = entry.getKey();
+
+                TestOccurrence testOccurrence = (TestOccurrence)arguments[0];
+
+                RunStat value = entry.getValue();
+                if (value == null) {
+                    value = new RunStat(key);
+                }
+                value.addTestRun(testOccurrence);
+
+                entry.setValue(value);
+                return null;
+            }
+        }, next);
     }
 
     public List<RunStat> topFailingSuite(int count) {
