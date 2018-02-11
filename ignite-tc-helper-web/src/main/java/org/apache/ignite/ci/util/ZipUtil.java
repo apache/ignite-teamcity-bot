@@ -29,13 +29,16 @@ public class ZipUtil {
                 ZipEntry ze = zis.getNextEntry();
 
                 while (ze != null) {
-
                     String fileName = ze.getName();
                     File newFile = new File(outputFolder + File.separator + fileName);
-                    System.out.println("file unzip : " + newFile.getAbsoluteFile());
+                    if(newFile.exists() && newFile.canRead()) {
+                        System.out.println("file unzip skipped (file already exist): " + newFile.getAbsoluteFile());
+                    } else {
+                        System.out.println("file unzip : " + newFile.getAbsoluteFile());
 
-                    HelperConfig.ensureDirExist(new File(newFile.getParent()));
-                    Files.copy(zis, newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        HelperConfig.ensureDirExist(new File(newFile.getParent()));
+                        Files.copy(zis, newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    }
                     result.add(newFile);
                     ze = zis.getNextEntry();
                 }

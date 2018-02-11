@@ -36,4 +36,8 @@ public class TestOccurrence {
     public boolean isNotMutedOrIgnoredTest() {
         return !isMutedTest() && !isIgnoredTest();
     }
+
+    public boolean isInvestigated() {
+        return (currentlyInvestigated != null && currentlyInvestigated);
+    }
 }

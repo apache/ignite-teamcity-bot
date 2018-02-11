@@ -31,10 +31,7 @@ public class GetChainResultsAsHtml {
 
     @Context
     private ServletContext context;
-
-
-
-
+    
     //test here http://localhost:8080/rest/chainResults/html?serverId=public&buildId=1086222
     public void showChainOnServersResults(StringBuilder res, Integer buildId, String serverId) {
         final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
@@ -210,6 +207,13 @@ public class GetChainResultsAsHtml {
         boolean haveIssue = isDefinedAndFilled(testFail.webIssueUrl) && isDefinedAndFilled(testFail.webIssueText);
 
         String color = failureRateToColor(testFail.failureRate);
+
+        boolean investigated = testFail.investigated;
+        if(investigated) {
+            res += "<img src='https://d30y9cdsu7xlg0.cloudfront.net/png/324212-200.png' width=8px height=8px> ";
+            res += "<span style='opacity: 0.75'> ";
+        }
+
         res += " <span style='background-color: " + color + "; width:7px; height:7px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
 
         if (haveIssue) {
@@ -240,6 +244,11 @@ public class GetChainResultsAsHtml {
         res += histContent;
         if (haveWeb)
             res += "</a>";
+
+
+        if(investigated) {
+            res += "</span> ";
+        }
 
         res += " <br>";
         return res;

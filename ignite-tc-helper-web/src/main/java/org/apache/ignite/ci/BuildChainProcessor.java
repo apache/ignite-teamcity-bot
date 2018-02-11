@@ -1,13 +1,17 @@
 package org.apache.ignite.ci;
 
 import com.google.common.base.Stopwatch;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -51,7 +55,7 @@ public class BuildChainProcessor {
         return HelperConfig.loadContactPersons(teamcity.serverId());
     }
 
-    public static FullChainRunCtx loadChainContext(
+    public static <R> FullChainRunCtx loadChainContext(
         ITeamcity teamcity,
         Build chainRoot,
         boolean includeLatestRebuild,
@@ -59,17 +63,31 @@ public class BuildChainProcessor {
         @Nullable Properties contactPersonProps,
         boolean includeScheduledInfo) {
 
-        List<FullBuildRunContext> suiteCtx = chainRoot.getSnapshotDependenciesNonNull().stream()
+        Map<String, BuildRef>  unique = new ConcurrentHashMap<>();
+        List<FullBuildRunContext> suiteCtx = Stream.of(chainRoot)
             .parallel()
             .unordered()
+            .flatMap(ref-> dependencies(teamcity, ref)).filter(Objects::nonNull)
+            .flatMap(ref-> dependencies(teamcity, ref)).filter(Objects::nonNull)
+            .filter(ref->{
+                BuildRef prevVal = unique.putIfAbsent(ref.buildTypeId, ref);
+
+                return prevVal == null;
+            })
             .map((BuildRef buildRef) -> {
-                final BuildRef recentRef = includeLatestRebuild ? teamcity.tryReplaceBuildRefByRecent(buildRef) : buildRef;
-                if (recentRef.getId() == null)
+                    BuildRef recentRef = includeLatestRebuild ? teamcity.tryReplaceBuildRefByRecent(buildRef) : buildRef;
+                    if (recentRef.getId() == null)
+                        recentRef = buildRef;
+
+                    return recentRef;
+                }
+            )
+            .map((BuildRef buildRef) -> {
+                Build build = teamcity.getBuildResults(buildRef.href);
+                if (build == null || build.getId() == null)
                     return null;
 
-                final FullBuildRunContext ctx = teamcity.loadTestsAndProblems(recentRef);
-                if (ctx == null)
-                    return null;
+                final FullBuildRunContext ctx = teamcity.loadTestsAndProblems(build);
 
                 if (procLog && (ctx.hasJvmCrashProblem() || ctx.hasTimeoutProblem() || ctx.hasOomeProblem())) {
 
@@ -113,5 +131,20 @@ public class BuildChainProcessor {
             suiteCtx.sort(Comparator.comparing(FullBuildRunContext::suiteName));
 
         return new FullChainRunCtx(chainRoot, suiteCtx);
+    }
+
+    @Nullable private static Stream<? extends BuildRef> dependencies(ITeamcity teamcity, BuildRef ref) {
+        Build results = teamcity.getBuildResults(ref.href);
+        if (results == null)
+            return null;
+        
+        List<BuildRef> aNull = results.getSnapshotDependenciesNonNull();
+        if(aNull.isEmpty())
+            return Stream.of(ref);
+
+        ArrayList<BuildRef> copy = new ArrayList<>(aNull);
+        copy.add(ref);
+
+        return copy.stream();
     }
 }

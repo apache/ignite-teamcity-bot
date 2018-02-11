@@ -20,7 +20,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.ignite.ci.IgnitePersistentTeamcity.TESTS_COUNT_7700;
+import static org.apache.ignite.ci.db.Migrations.TESTS_COUNT_7700;
 
 /**
  * API for calling methods from REST service:
@@ -131,15 +131,6 @@ public interface ITeamcity extends AutoCloseable {
     default BuildRef tryReplaceBuildRefByRecent(BuildRef buildRef) {
         return getLastFinishedBuild(buildRef.buildTypeId,
             buildRef.branchName == null ? DEFAULT : buildRef.branchName).orElse(buildRef);
-    }
-
-    default FullBuildRunContext loadTestsAndProblems(BuildRef recentRef) {
-        Build build = getBuildResults(recentRef.href);
-
-        if (build == null || build.getId() == null)
-            return null;
-
-        return loadTestsAndProblems(build);
     }
 
     default CompletableFuture<File> processBuildLog(FullBuildRunContext ctx) {

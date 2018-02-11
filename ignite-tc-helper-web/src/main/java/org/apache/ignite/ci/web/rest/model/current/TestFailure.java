@@ -40,11 +40,16 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     /** Issue text (if any) */
     @Nullable public String webIssueText;
 
+    /** Has some open investigations. */
+    public boolean investigated;
+
     public void initFromOccurrence(@Nonnull final TestOccurrence failure,
         @Nonnull final Optional<TestOccurrenceFull> testFullOpt,
         @Nonnull final ITeamcity teamcity,
         @Nonnull final FullBuildRunContext suite) {
         name = failure.getName();
+        investigated = failure.isInvestigated();
+
         testFullOpt.ifPresent(full -> {
             String details = full.details;
             if (details != null) {

@@ -151,6 +151,13 @@ function showTestFailData(testFail) {
     var haveIssue = isDefinedAndFilled(testFail.webIssueUrl) && isDefinedAndFilled(testFail.webIssueText)
 
     var color = failureRateToColor(testFail.failureRate);
+
+    var investigated =isDefinedAndFilled(testFail.investigated) && testFail.investigated;
+    if(investigated) {
+        res += "<img src='https://d30y9cdsu7xlg0.cloudfront.net/png/324212-200.png' width=8px height=8px> ";
+        res += "<span style='opacity: 0.75'> ";
+    }
+
     res += " <span style='background-color: " + color + "; width:7px; height:7px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
 
     if(haveIssue) {
@@ -179,6 +186,9 @@ function showTestFailData(testFail) {
     res += histContent;
     if (haveWeb)
         res += "</a>";
+
+    if(investigated)
+        res += "</span> ";
 
     res += " <br>";
     return res;

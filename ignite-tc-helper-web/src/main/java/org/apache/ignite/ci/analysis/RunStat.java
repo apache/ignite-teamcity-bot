@@ -11,6 +11,7 @@ public class RunStat {
     public int failures;
     public long totalDurationMs;
     public int runsWithDuration;
+    public long lastUpdatedMs;
     private String name;
 
     /**
@@ -30,6 +31,8 @@ public class RunStat {
 
         if (testOccurrence.isFailedTest())
             failures++;
+
+        lastUpdatedMs = System.currentTimeMillis();
     }
 
     public String name() {

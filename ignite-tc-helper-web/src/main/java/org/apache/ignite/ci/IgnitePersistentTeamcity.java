@@ -1,6 +1,5 @@
 package org.apache.ignite.ci;
 
-import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import java.io.File;
@@ -18,6 +17,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.cache.Cache;
 import javax.cache.CacheException;
@@ -30,6 +30,7 @@ import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.analysis.Expirable;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.db.Migrations;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -46,8 +47,6 @@ import org.jetbrains.annotations.NotNull;
  * Created by dpavlov on 03.08.2017
  */
 public class IgnitePersistentTeamcity implements ITeamcity {
-    @Deprecated
-    public static final String TESTS = "tests";
     public static final String RUN_STAT_CACHE = "runStat";
 
     public static final String STAT = "stat";
@@ -57,8 +56,6 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     public static final String TESTS_OCCURRENCES = "testOccurrences";
     public static final String TESTS_RUN_STAT = "testsRunStat";
 
-
-    public static final String TESTS_COUNT_7700 = ",count:7700";
     private final Ignite ignite;
     private final IgniteTeamcityHelper teamcity;
     private final String serverId;
@@ -68,42 +65,14 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         this.teamcity = teamcity;
         this.serverId = teamcity.serverId();
 
-        dataMigration( );
+        Migrations migrations = new Migrations(ignite, teamcity.serverId());
+
+        migrations.dataMigration(testOccurrencesCache(), this::addTestOccurrencesToStat);
     }
 
-    public void dataMigration() {
-        synchronized (IgnitePersistentTeamcity.class) {
-            IgniteCache<Object, Object> occurrences = testOccurrencesCache();
-            if (occurrences.size() == 0) {
-                String cacheNme = ignCacheNme(TESTS);
-                IgniteCache<String, TestOccurrences> tests = ignite.getOrCreateCache(cacheNme);
 
-                int size = tests.size();
-                if (size > 0) {
-                    int i = 0;
-                    for (Cache.Entry<String, TestOccurrences> entry : tests) {
-                        System.out.println("Migrating entry " + i + " from " + size + ": " + entry.getKey());
-
-                        String s = removeCountFromRef(entry.getKey());
-                        TestOccurrences value = entry.getValue();
-
-                        if (occurrences.putIfAbsent(s, value)) {
-                            addTestOccurrencesToStat(value);
-                        }
-                        i++;
-                    }
-
-                    tests.clear();
-
-                    tests.destroy();
-                }
-            }
-
-        }
-    }
-
-    public IgniteCache<Object, Object> testOccurrencesCache() {
-        CacheConfiguration<Object, Object> ccfg = new CacheConfiguration<>(ignCacheNme(TESTS_OCCURRENCES));
+    public IgniteCache<String, TestOccurrences> testOccurrencesCache() {
+        CacheConfiguration<String, TestOccurrences> ccfg = new CacheConfiguration<>(ignCacheNme(TESTS_OCCURRENCES));
         ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
         return ignite.getOrCreateCache(ccfg);
     }
@@ -127,6 +96,15 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     public <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction, Predicate<V> saveValueFilter) {
         final IgniteCache<K, V> cache = ignite.getOrCreateCache(ignCacheNme(cacheName));
 
+        return loadIfAbsent(cache, key, loadFunction, saveValueFilter);
+    }
+
+    public <K, V> V loadIfAbsent(IgniteCache<K, V> cache, K key, Function<K, V> loadFunction) {
+        return loadIfAbsent(cache, key, loadFunction, null);
+    }
+
+    public <K, V> V loadIfAbsent(IgniteCache<K, V> cache, K key, Function<K, V> loadFunction,
+        Predicate<V> saveValueFilter) {
         @Nullable final V persistedBuilds = cache.get(key);
 
         if (persistedBuilds != null)
@@ -141,9 +119,8 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     public <K, V> V timedLoadIfAbsent(String cacheName, int seconds, K key, Function<K, V> load) {
-        return timedLoadIfAbsentOrMerge(cacheName, seconds, key, (k, peristentValue) -> {
-            return load.apply(k);
-        });
+        return timedLoadIfAbsentOrMerge(cacheName, seconds, key,
+            (k, persistentValue) -> load.apply(k));
     }
 
     public <K, V> V timedLoadIfAbsentOrMerge(String cacheName, int seconds, K key, BiFunction<K, V, V> loadWithMerge) {
@@ -237,8 +214,13 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         }
     }
 
-    @NotNull private String ignCacheNme(String results) {
-        return serverId + "." + results;
+    @NotNull private String ignCacheNme(String cache) {
+        String id = serverId;
+        return ignCacheNme(cache, id);
+    }
+
+    @NotNull public static String ignCacheNme(String cache, String serverId) {
+        return serverId + "." + cache;
     }
 
     @Override public String host() {
@@ -253,27 +235,25 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     @Override public TestOccurrences getTests(String href) {
-        String hrefForDb = removeCountFromRef(href);
+        String hrefForDb = Migrations.removeCountFromRef(href);
 
-        return loadIfAbsent(TESTS_OCCURRENCES,
+        return loadIfAbsent(testOccurrencesCache(),
             hrefForDb,  //hack to avoid test reloading from store in case of href filter replaced
             hrefIgnored -> {
                 TestOccurrences loadedTests = teamcity.getTests(href);
+
                 addTestOccurrencesToStat(loadedTests);
+
                 return loadedTests;
             });
     }
 
     public void addTestOccurrencesToStat(TestOccurrences value) {
         //may use invoke all
-        for (TestOccurrence next : value.getTests()) {
+        List<TestOccurrence> tests = value.getTests();
+        for (TestOccurrence next : tests) {
             addTestOccurrenceToStat(next);
         }
-    }
-
-    public String removeCountFromRef(String href) {
-        return href.replace(TESTS_COUNT_7700, "")
-            .replace(",count:7500", "");
     }
 
     @Override public Statistics getBuildStat(String href) {
@@ -289,14 +269,12 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     public List<RunStat> topFailing(int count) {
-        Map<String, RunStat> map = runTestAnalysis();
-        Stream<RunStat> data = map.values().stream();
+        Stream<RunStat> data = allTestAnalysis();
         return CollectionUtil.top(data, count, Comparator.comparing(RunStat::getFailRate));
     }
 
     public List<RunStat> topLongRunning(int count) {
-        Map<String, RunStat> map = runTestAnalysis();
-        Stream<RunStat> data = map.values().stream();
+        Stream<RunStat> data = allTestAnalysis();
         return CollectionUtil.top(data, count, Comparator.comparing(RunStat::getAverageDurationMs));
     }
 
@@ -304,27 +282,12 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         return s -> testRunStatCache().get(s);
     }
 
-    @Deprecated
-    public Map<String, RunStat> runTestAnalysis() {
-        final Stopwatch started = Stopwatch.createStarted();
-        final Map<String, RunStat> map = runTestAnalysisNoCache();
-
-        System.out.println(Thread.currentThread().getName() + ": Test analysis Required: " + started.elapsed(TimeUnit.MILLISECONDS) + "ms for " + serverId());
-        return map;
+    public Stream<RunStat> allTestAnalysis() {
+        return StreamSupport.stream(testRunStatCache().spliterator(), false)
+            .map(Cache.Entry::getValue);
     }
 
-    @NotNull private Map<String, RunStat> runTestAnalysisNoCache() {
-        IgniteCache<String, RunStat> entries = testRunStatCache();
-        final Map<String, RunStat> map = new HashMap<>();
-        for (Cache.Entry<String, RunStat> next : entries) {
-            map.put(next.getKey(), next.getValue());
-        }
-        return map;
-    }
-
-
-
-    public IgniteCache<String, RunStat> testRunStatCache() {
+    private IgniteCache<String, RunStat> testRunStatCache() {
         CacheConfiguration<String, RunStat> ccfg = new CacheConfiguration<>(ignCacheNme(TESTS_RUN_STAT));
         ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
         return ignite.getOrCreateCache(ccfg);
