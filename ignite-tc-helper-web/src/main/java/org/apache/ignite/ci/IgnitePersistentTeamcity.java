@@ -257,23 +257,21 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     @Override public Statistics getBuildStat(String href) {
-        try {
-            return loadIfAbsent(STAT,
-                href,
-                teamcity::getBuildStat);
-        }
-        catch (Exception e) {
-            if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
-                e.printStackTrace();
-                //todo log error
-
-                final Statistics fakeBuild = new Statistics();
-                cache.put(href, fakeBuild); // save null result, because persistence may refer to some unexistent build on TC
-                return fakeBuild;
-            }
-            else throw e;
-        }
+        return loadIfAbsent(STAT,
+            href,
+            href1 -> {
+                try {
+                    return teamcity.getBuildStat(href1);
+                }
+                catch (Exception e) {
+                    if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                        e.printStackTrace();
+                        return new Statistics();// save null result, because persistence may refer to some  unexistent build on TC
+                    }
+                    else
+                        throw e;
+                }
+            });
     }
 
     @Override public TestOccurrenceFull getTestFull(String href) {
