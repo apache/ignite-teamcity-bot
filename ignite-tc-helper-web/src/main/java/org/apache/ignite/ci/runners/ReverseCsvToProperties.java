@@ -18,13 +18,13 @@ import org.apache.ignite.ci.tcmodel.conf.BuildType;
 public class ReverseCsvToProperties {
     public static void main(String[] args) throws Exception {
         String tcId = "public";
-        List<BuildType> tests = getTests(tcId, "Ignite20Tests");
+        List<BuildType> tests = getTests(tcId, "IgniteTests24Java8");
 
         int indexValue = 2;
         reverseCsvByConfName("Public TC.csv", tcId, tests, indexValue);
 
         String tcPrivId = "private";
-        List<BuildType> privTests = getTests(tcPrivId, "id8xIgniteGridGainTests");
+        List<BuildType> privTests = getTests(tcPrivId, "id8xIgniteGridGainTestsJava8");
         reverseCsvByConfName("Private TC.csv", tcPrivId, privTests, 2);
 
     }
