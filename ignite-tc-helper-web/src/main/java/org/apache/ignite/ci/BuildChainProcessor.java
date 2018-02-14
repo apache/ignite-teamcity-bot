@@ -17,6 +17,7 @@ import org.apache.ignite.ci.analysis.FullBuildRunContext;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class BuildChainProcessor {
@@ -90,40 +91,7 @@ public class BuildChainProcessor {
                 if (build == null || build.isFakeStub())
                     return null;
 
-                final FullBuildRunContext ctx = teamcity.loadTestsAndProblems(build);
-
-                if (procLog && (ctx.hasJvmCrashProblem() || ctx.hasTimeoutProblem() || ctx.hasOomeProblem())) {
-
-                    final Stopwatch started = Stopwatch.createStarted();
-
-                    try {
-                        teamcity.processBuildLog(ctx).get();
-                    }
-                    catch (Exception e) {
-                        e.printStackTrace();
-                    }
-
-                    System.out.println(Thread.currentThread().getName()
-                        + ": processBuildLog required: " + started.elapsed(TimeUnit.MILLISECONDS)
-                        + "ms for " + buildRef.suiteId());
-                }
-
-                if(includeScheduledInfo) {
-                    final String tcBranch = buildRef.branchName == null ? ITeamcity.DEFAULT : buildRef.branchName;
-                    ctx.setRunningBuildCount(teamcity.getRunningBuilds(buildRef.buildTypeId, tcBranch).size());
-
-                    int buildCnt = teamcity.getQueuedBuilds(buildRef.buildTypeId, tcBranch).size();
-
-                    if ("refs/heads/master".equals(tcBranch) && buildCnt == 0)
-                        buildCnt = teamcity.getQueuedBuilds(buildRef.buildTypeId, ITeamcity.DEFAULT).size();
-
-                    ctx.setQueuedBuildCount(buildCnt);
-                }
-
-                if (contactPersonProps != null && contactPersonProps.containsKey(ctx.suiteId()))
-                    ctx.setContactPerson(contactPersonProps.getProperty(ctx.suiteId()));
-
-                return ctx;
+                return collectBuildContext(teamcity, procLog, contactPersonProps, includeScheduledInfo, build);
             })
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
@@ -134,6 +102,44 @@ public class BuildChainProcessor {
             suiteCtx.sort(Comparator.comparing(FullBuildRunContext::suiteName));
 
         return new FullChainRunCtx(chainRoot, suiteCtx);
+    }
+
+    @NotNull private static FullBuildRunContext collectBuildContext(ITeamcity teamcity, boolean procLog,
+        @Nullable Properties contactPersonProps, boolean includeScheduledInfo, Build build) {
+        final FullBuildRunContext ctx = teamcity.loadTestsAndProblems(build);
+
+        if (procLog && (ctx.hasJvmCrashProblem() || ctx.hasTimeoutProblem() || ctx.hasOomeProblem())) {
+
+            final Stopwatch started = Stopwatch.createStarted();
+
+            try {
+                teamcity.processBuildLog(ctx).get();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            System.out.println(Thread.currentThread().getName()
+                + ": processBuildLog required: " + started.elapsed(TimeUnit.MILLISECONDS)
+                + "ms for " + build.suiteId());
+        }
+
+        if(includeScheduledInfo) {
+            final String tcBranch = build.branchName == null ? ITeamcity.DEFAULT : build.branchName;
+            ctx.setRunningBuildCount(teamcity.getRunningBuilds(build.buildTypeId, tcBranch).size());
+
+            int buildCnt = teamcity.getQueuedBuilds(build.buildTypeId, tcBranch).size();
+
+            if ("refs/heads/master".equals(tcBranch) && buildCnt == 0)
+                buildCnt = teamcity.getQueuedBuilds(build.buildTypeId, ITeamcity.DEFAULT).size();
+
+            ctx.setQueuedBuildCount(buildCnt);
+        }
+
+        if (contactPersonProps != null && contactPersonProps.containsKey(ctx.suiteId()))
+            ctx.setContactPerson(contactPersonProps.getProperty(ctx.suiteId()));
+
+        return ctx;
     }
 
     @Nullable private static Stream<? extends BuildRef> dependencies(ITeamcity teamcity, BuildRef ref) {
