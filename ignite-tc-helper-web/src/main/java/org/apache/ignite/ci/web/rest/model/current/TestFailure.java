@@ -19,8 +19,14 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
  * UI model for test failure
  */
 @SuppressWarnings("WeakerAccess") public class TestFailure {
-    /** test Name */
+    /** Test short Name */
     public String name;
+
+    /** Full test name. */
+    public String fullName;
+
+    /** Current filtered failures count, Usually 0 for get current */
+    public Integer curFailures;
 
     /** Registered number of failures from TC helper DB */
     @Nullable public Integer failures;

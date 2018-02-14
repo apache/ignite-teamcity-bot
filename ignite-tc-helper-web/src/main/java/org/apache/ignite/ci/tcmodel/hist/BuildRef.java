@@ -52,4 +52,8 @@ public class BuildRef extends AbstractRef {
     public String suiteId() {
         return buildTypeId;
     }
+
+    public boolean isFakeStub() {
+        return getId() == null;
+    }
 }

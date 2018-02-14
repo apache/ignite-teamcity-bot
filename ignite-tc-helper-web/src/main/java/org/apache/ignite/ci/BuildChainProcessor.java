@@ -67,16 +67,19 @@ public class BuildChainProcessor {
         List<FullBuildRunContext> suiteCtx = Stream.of(chainRoot)
             .parallel()
             .unordered()
-            .flatMap(ref-> dependencies(teamcity, ref)).filter(Objects::nonNull)
-            .flatMap(ref-> dependencies(teamcity, ref)).filter(Objects::nonNull)
-            .filter(ref->{
+            .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
+            .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
+            .filter(ref -> {
+                if(ref.isFakeStub())
+                    return false;
+
                 BuildRef prevVal = unique.putIfAbsent(ref.buildTypeId, ref);
 
                 return prevVal == null;
             })
             .map((BuildRef buildRef) -> {
                     BuildRef recentRef = includeLatestRebuild ? teamcity.tryReplaceBuildRefByRecent(buildRef) : buildRef;
-                    if (recentRef.getId() == null)
+                    if (recentRef.isFakeStub())
                         recentRef = buildRef;
 
                     return recentRef;
@@ -84,7 +87,7 @@ public class BuildChainProcessor {
             )
             .map((BuildRef buildRef) -> {
                 Build build = teamcity.getBuildResults(buildRef.href);
-                if (build == null || build.getId() == null)
+                if (build == null || build.isFakeStub())
                     return null;
 
                 final FullBuildRunContext ctx = teamcity.loadTestsAndProblems(build);
@@ -142,9 +145,10 @@ public class BuildChainProcessor {
         if(aNull.isEmpty())
             return Stream.of(ref);
 
-        ArrayList<BuildRef> copy = new ArrayList<>(aNull);
-        copy.add(ref);
+        ArrayList<BuildRef> cp = new ArrayList<>(aNull);
 
-        return copy.stream();
+        cp.add(ref);
+
+        return cp.stream();
     }
 }

@@ -179,39 +179,25 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     /** {@inheritDoc} */
     @Nullable
     @Override public Build getBuildResults(String href) {
-        try {
-            Build results = loadIfAbsent(BUILD_RESULTS,
-                href,
-                teamcity::getBuildResults,
-                Build::hasFinishDate);
-            if (results.getBuildType() == null || results.getBuildType().getProjectId() == null) {
-                //trying to reload to get version with filled project ID
+        return loadIfAbsent(BUILD_RESULTS,
+            href,
+            href1 -> {
                 try {
-                    Build results1 = teamcity.getBuildResults(href);
-                    ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS)).put(href, results1);
-                    return results1;
+                    return teamcity.getBuildResults(href1);
                 }
-                catch (CacheException e) {
-                    if (Throwables.getRootCause(e) instanceof FileNotFoundException)
+                catch (Exception e) {
+                    if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                        e.printStackTrace();
+                        return new Build();// save null result, because persistence may refer to some  unexistent build on TC
+                    }
+                    else
                         throw e;
-                    e.printStackTrace();
                 }
-            }
-            return results; //only completed builds are saved
-        }
-        catch (Exception e) {
-            if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                //404 error from REST api
-                final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
-                e.printStackTrace();
-                //todo log error
+            },
+            build -> {
+                return build.getId() == null || build.hasFinishDate();
+            }); //only completed builds are saved
 
-                final Build fakeBuild = new Build();
-                cache.put(href, fakeBuild); // save null result, because persistence may refer to some unexistent build on TC
-                return fakeBuild;
-            } else
-                throw e;
-        }
     }
 
     @NotNull private String ignCacheNme(String cache) {

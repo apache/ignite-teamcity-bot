@@ -1,12 +1,17 @@
 package org.apache.ignite.ci.db;
 
+import com.google.common.base.Throwables;
+import java.io.FileNotFoundException;
 import java.util.function.Consumer;
 import javax.cache.Cache;
+import javax.cache.CacheException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
+import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.configuration.CacheConfiguration;
 
@@ -48,18 +53,44 @@ public class Migrations {
                 for (Cache.Entry<String, TestOccurrences> entry : tests) {
                     System.out.println("Migrating entry " + i + " from " + size + ": " + entry.getKey());
 
-                    String s = removeCountFromRef(entry.getKey());
-                    TestOccurrences value = entry.getValue();
+                    String transformedKey = removeCountFromRef(entry.getKey());
+                    TestOccurrences val = entry.getValue();
 
-                    if (occurrences.putIfAbsent(s, value)) {
-                        save.accept(value);
-                    }
+                    if (occurrences.putIfAbsent(transformedKey, val))
+                        save.accept(val);
+                    
                     i++;
                 }
 
                 tests.clear();
 
                 tests.destroy();
+            }
+        });
+        applyMigration("RemoveStatisticsFromBuildCache", ()->{
+            final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(ignCacheNme(IgnitePersistentTeamcity.BUILD_RESULTS));
+            
+            for (Cache.Entry<Object, Object> next : cache) {
+                if(next.getValue() instanceof Statistics) {
+                    System.err.println("Removed incorrect entity: Statistics from build cache");
+                    
+                    cache.remove(next.getKey());
+                }
+            }
+        });
+
+        applyMigration("RemoveBuildsWithoutProjectId", () -> {
+            final IgniteCache<Object, Build> cache = ignite.getOrCreateCache(ignCacheNme(IgnitePersistentTeamcity.BUILD_RESULTS));
+
+            for (Cache.Entry<Object, Build> next : cache) {
+                Build results = next.getValue();
+                //non fake builds but without required data
+                if (results.getId() != null)
+                    if (results.getBuildType() == null || results.getBuildType().getProjectId() == null) {
+                        System.err.println("Removed incorrect entity: Build without filled parameters: " + next);
+
+                        cache.remove(next.getKey());
+                    }
             }
         });
     }

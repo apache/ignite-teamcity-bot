@@ -152,7 +152,7 @@ function showTestFailData(testFail) {
 
     var color = failureRateToColor(testFail.failureRate);
 
-    var investigated =isDefinedAndFilled(testFail.investigated) && testFail.investigated;
+    var investigated = isDefinedAndFilled(testFail.investigated) && testFail.investigated;
     if(investigated) {
         res += "<img src='https://d30y9cdsu7xlg0.cloudfront.net/png/324212-200.png' width=8px height=8px> ";
         res += "<span style='opacity: 0.75'> ";

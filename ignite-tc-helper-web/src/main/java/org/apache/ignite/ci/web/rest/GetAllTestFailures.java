@@ -1,6 +1,7 @@
 package org.apache.ignite.ci.web.rest;
 
 import com.google.common.base.Strings;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -26,6 +27,7 @@ import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.TestFailuresSummary;
+import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,16 +42,21 @@ public class GetAllTestFailures {
 
     @GET
     @Path("failures")
-    public TestFailuresSummary getTestFails(@Nullable @QueryParam("branch") String branchOrNull) {
+    public TestFailuresSummary getTestFails(@Nullable @QueryParam("branch") String branchOrNull,
+        @Nullable @QueryParam("count") Integer count) {
         final String key = Strings.nullToEmpty(branchOrNull);
         final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
-        return updater.get("AllTestFailuresSummary", key, this::getAllTestFailsNoCache);
+        int cnt = count == null ? 10 : count;
+        T2<String, Integer> fullKey = new T2<>(key, cnt);
+        return updater.get("AllTestFailuresSummary",
+            fullKey, branchOpt -> getAllTestFailsNoCache(key, cnt));
     }
 
 
     @GET
     @Path("failuresNoCache")
-    @NotNull public TestFailuresSummary getAllTestFailsNoCache(@Nullable @QueryParam("branch") String branchOpt ) {
+    @NotNull public TestFailuresSummary getAllTestFailsNoCache(@Nullable @QueryParam("branch") String branchOpt,
+        @QueryParam("count") int count) {
         Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
         final TestFailuresSummary res = new TestFailuresSummary();
         final String branch = isNullOrEmpty(branchOpt) ? "master" : branchOpt;
@@ -61,7 +68,10 @@ public class GetAllTestFailures {
                     projectId,
                     chainAtServerTracked.getBranchForRestMandatory());
                 Stream<Optional<FullChainRunCtx>> stream
-                    = builds.stream().parallel()
+                    = builds.stream()
+                    .filter(ref -> !ref.isFakeStub())
+                    .sorted(Comparator.comparing(BuildRef::getId).reversed())
+                    .limit(count).parallel()
                     .filter(b -> b.getId() != null)
                     .map(build -> BuildChainProcessor.processChainByRef(teamcity, false, build,
                         false, false, true));

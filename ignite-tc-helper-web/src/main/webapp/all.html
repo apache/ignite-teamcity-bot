@@ -1,0 +1,58 @@
+<html>
+<head>
+    <title>Ignite Teamcity - current failures</title>
+    <link rel="icon" href="https://pbs.twimg.com/profile_images/568493154500747264/xTBxO73F.png">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/testfails.js"></script>
+</head>
+<body>
+<script>
+$(document).ready(function() {
+    $( document ).tooltip();
+    loadData();
+    setInterval(loadData, 60000);
+
+    $.getScript("js/testfails.js", function(data, textStatus, jqxhr){ });
+});
+
+function loadData() {
+    var curFailuresUrl = "rest/all/failures";
+    var branch = findGetParameter("branch");
+    if(branch!=null) {
+        curFailuresUrl += "?branch=" + branch;
+    }
+    curFailuresUrl += "&cnt=" + 3;
+
+    $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+    $.ajax({
+        url: curFailuresUrl,
+        success: function(result) {
+            if(result.updateRequired) {
+                setTimeout(loadData, 1000)
+                $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Updating");
+            } else {
+                $("#loadStatus").html("");
+            }
+            showData(result);
+        },
+        error: showErrInLoadStatus
+    });
+}
+
+function showData(result) {
+    $("#divFailures").html(showChainOnServersResults(result));
+}
+
+</script>
+
+<div id="loadStatus"></div>
+<div><a href=".">Home</a><br></div>
+<div id="divFailures"></div>
+
+</body>
+</html>
