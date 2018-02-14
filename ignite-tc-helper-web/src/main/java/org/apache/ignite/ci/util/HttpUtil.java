@@ -39,11 +39,15 @@ public class HttpUtil {
     }
 
     private static InputStream sendGetWithBasicAuth(String basicAuthToken, String url) throws IOException {
+        final Stopwatch started = Stopwatch.createStarted();
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
 
         con.setRequestProperty("Authorization", "Basic " + basicAuthToken);
-        final Stopwatch started = Stopwatch.createStarted();
+        con.setRequestProperty("Connection", "Keep-Alive");
+        con.setRequestProperty("Keep-Alive", "header");
+        con.setRequestProperty("accept-charset", StandardCharsets.UTF_8.toString());
+
         int resCode = con.getResponseCode();
 
         System.out.println(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
@@ -79,6 +83,8 @@ public class HttpUtil {
 
         con.setRequestMethod("POST");
         con.setRequestProperty("Authorization", "Basic " + tok);
+        con.setRequestProperty("Connection", "Keep-Alive");
+        con.setRequestProperty("Keep-Alive", "header");
         Charset charset = StandardCharsets.UTF_8;
 
         con.setRequestProperty("accept-charset", charset.toString());
