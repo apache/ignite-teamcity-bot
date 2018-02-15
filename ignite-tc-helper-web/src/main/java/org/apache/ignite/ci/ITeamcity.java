@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
-import org.apache.ignite.ci.analysis.FullBuildRunContext;
+import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
 import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
@@ -99,15 +99,20 @@ public interface ITeamcity extends AutoCloseable {
      * @param build build from history with references to tests
      * @return full context
      */
-    @Nonnull default FullBuildRunContext loadTestsAndProblems(@Nonnull Build build) {
-        FullBuildRunContext ctx = new FullBuildRunContext(build);
+    @Nonnull default MultBuildRunCtx loadTestsAndProblems(@Nonnull Build build) {
+        MultBuildRunCtx ctx = new MultBuildRunCtx(build);
+        loadTestsAndProblems(build, ctx);
+        return ctx;
+    }
+
+    default void loadTestsAndProblems(@Nonnull Build build, MultBuildRunCtx ctx) {
         if (build.problemOccurrences != null)
-            ctx.setProblems(getProblems(build.problemOccurrences.href).getProblemsNonNull());
+            ctx.addProblems(getProblems(build.problemOccurrences.href).getProblemsNonNull());
 
         if (build.testOccurrences != null) {
             List<TestOccurrence> tests = getTests(build.testOccurrences.href +
                 TESTS_COUNT_7700).getTests();
-            ctx.setTests(tests);
+            ctx.addTests(tests);
 
             for (TestOccurrence next : tests) {
                 //todo is it required to load non failed test here
@@ -123,8 +128,6 @@ public interface ITeamcity extends AutoCloseable {
 
         if (build.statisticsRef != null)
             ctx.setStat(getBuildStat(build.statisticsRef.href));
-
-        return ctx;
     }
 
     @Override void close();
@@ -134,7 +137,7 @@ public interface ITeamcity extends AutoCloseable {
             buildRef.branchName == null ? DEFAULT : buildRef.branchName).orElse(buildRef);
     }
 
-    default CompletableFuture<File> processBuildLog(FullBuildRunContext ctx) {
+    default CompletableFuture<File> processBuildLog(MultBuildRunCtx ctx) {
         final CompletableFuture<File> zipFut = downloadBuildLogZip(ctx.getBuildId());
         final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
         final ThreadDumpCopyHandler threadDumpCp = new ThreadDumpCopyHandler();

@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.actions.DownloadBuildLog;
-import org.apache.ignite.ci.analysis.FullBuildRunContext;
+import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
@@ -140,7 +140,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     private CompletableFuture<File> standardProcessOfBuildLog(int buildId) {
         final Build results = getBuildResults(buildId);
-        final FullBuildRunContext ctx = loadTestsAndProblems(results);
+        final MultBuildRunCtx ctx = loadTestsAndProblems(results);
 
         if (ctx.hasTimeoutProblem())
             System.err.println(ctx.suiteName() + " failed with timeout " + buildId);

@@ -1,10 +1,14 @@
 package org.apache.ignite.ci.analysis;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -21,17 +25,17 @@ import org.jetbrains.annotations.Nullable;
  * Run configuration execution results loaded from different API URLs.
  * Includes tests and problem occurrences; if logs processing is done also contains last started test
  */
-public class FullBuildRunContext {
-    @Nonnull private final Build buildInfo;
-    private List<ProblemOccurrence> problems;
+public class MultBuildRunCtx {
+    @Nonnull private final Build firstBuildInfo;
+    private List<ProblemOccurrence> problems = new CopyOnWriteArrayList<>();
 
 
-    /** Tests: Map from full test name to concurrent. */
-    @Nullable private Map<String, MultTestFailureOccurrences> tests = new HashMap<>();
+    /** Tests: Map from full test name to multiple test ocurrence. */
+    @Nullable private Map<String, MultTestFailureOccurrences> tests = new ConcurrentSkipListMap<>();
 
     /**
      * Mapping for building test occurrence reference to test full results:
-     * Occurrence in build id:
+     * Map from "Occurrence in build id" test detailed info.
      */
     private Map<String, TestOccurrenceFull> testFullMap = new HashMap<>();
 
@@ -39,7 +43,7 @@ public class FullBuildRunContext {
     private String lastStartedTest;
 
     /** Used for associating build info with contact person */
-    private String contactPerson;
+    @Nullable private String contactPerson;
 
     @Nullable private Statistics stat;
 
@@ -53,20 +57,20 @@ public class FullBuildRunContext {
     /** Currently scheduled builds */
     @Nullable private Integer queuedBuildCount;
 
-    public FullBuildRunContext(@Nonnull final Build buildInfo) {
-        this.buildInfo = buildInfo;
+    public MultBuildRunCtx(@Nonnull final Build buildInfo) {
+        this.firstBuildInfo = buildInfo;
     }
 
-    public void setProblems(List<ProblemOccurrence> problems) {
-        this.problems = problems;
+    public void addProblems(List<ProblemOccurrence> problems) {
+        this.problems.addAll(problems);
     }
 
     public String suiteId() {
-        return buildInfo.suiteId();
+        return firstBuildInfo.suiteId();
     }
 
     public String suiteName() {
-        return buildInfo.suiteName();
+        return firstBuildInfo.suiteName();
     }
 
     public boolean hasNontestBuildProblem() {
@@ -88,29 +92,40 @@ public class FullBuildRunContext {
     }
 
     public boolean hasTimeoutProblem() {
-        return problems != null && problems.stream().anyMatch(ProblemOccurrence::isExecutionTimeout);
+        return getExecutionTimeoutCount() > 0;
+    }
+
+    public long getExecutionTimeoutCount() {
+        return problems.stream().filter(Objects::nonNull).filter(ProblemOccurrence::isExecutionTimeout).count();
     }
 
     public boolean hasJvmCrashProblem() {
-        return problems != null && problems.stream().anyMatch(ProblemOccurrence::isJvmCrash);
+        return  getJvmCrashProblemCount() > 0;
+    }
+
+    public long getJvmCrashProblemCount() {
+        return problems.stream().filter(Objects::nonNull).filter(ProblemOccurrence::isJvmCrash).count();
     }
 
     public boolean hasOomeProblem() {
-        return problems != null && problems.stream().anyMatch(ProblemOccurrence::isOome);
+        return   getOomeProblemCount() > 0;
+    }
+
+    public long getOomeProblemCount() {
+        return problems.stream().filter(ProblemOccurrence::isOome).count();
     }
 
     public int failedTests() {
-        final TestOccurrencesRef testOccurrences = buildInfo.testOccurrences;
+        return (int)tests.values().stream().mapToInt(MultTestFailureOccurrences::failuresCount)
+            .filter(cnt -> cnt > 0).count();
+    }
 
-        if (testOccurrences == null)
-            return 0;
-        final Integer failed = testOccurrences.failed;
-
-        return failed == null ? 0 : failed;
+    public int overallFailedTests() {
+        return tests.values().stream().mapToInt(MultTestFailureOccurrences::failuresCount).sum();
     }
 
     public int mutedTests() {
-        TestOccurrencesRef testOccurrences = buildInfo.testOccurrences;
+        TestOccurrencesRef testOccurrences = firstBuildInfo.testOccurrences;
         if (testOccurrences == null)
             return 0;
         final Integer muted = testOccurrences.muted;
@@ -119,7 +134,7 @@ public class FullBuildRunContext {
     }
 
     public int totalTests() {
-        final TestOccurrencesRef testOccurrences = buildInfo.testOccurrences;
+        final TestOccurrencesRef testOccurrences = firstBuildInfo.testOccurrences;
 
         if (testOccurrences == null)
             return 0;
@@ -163,32 +178,34 @@ public class FullBuildRunContext {
      * @return printable result
      */
     public String getResult() {
-        String result;
-        if (hasTimeoutProblem())
-            result = ("TIMEOUT ");
-        else if (hasJvmCrashProblem())
-            result = ("JVM CRASH ");
-        else if (hasOomeProblem())
-            result = ("Out Of Memory Error ");
+        long execToCnt = getExecutionTimeoutCount();
+        long jvmCrashProblemCnt = getJvmCrashProblemCount();
+        long oomeProblemCnt = getOomeProblemCount();
+
+        String res;
+        if (execToCnt > 0)
+            res = ("TIMEOUT " + (execToCnt > 1 ? "[" + execToCnt + "]" : ""));
+        else if (jvmCrashProblemCnt > 0)
+            res = ("JVM CRASH " + (jvmCrashProblemCnt > 1 ? "[" + jvmCrashProblemCnt + "]" : ""));
+        else if (oomeProblemCnt > 0)
+            res = ("Out Of Memory Error " + (oomeProblemCnt > 1 ? "[" + oomeProblemCnt + "]" : ""));
         else {
             Optional<ProblemOccurrence> bpOpt = getBuildProblemExceptTestOrSnapshot();
-            result = bpOpt.map(occurrence -> occurrence.type)
+            res = bpOpt.map(occurrence -> occurrence.type)
                 .orElse("");
         }
-        return result;
+        return res;
     }
 
     public Stream<? extends ITestFailureOccurrences> getFailedTests() {
-        if (tests == null)
-            return Stream.empty();
         return tests.values().stream().filter(MultTestFailureOccurrences::hasFailedButNotMuted);
     }
 
-    public void setTests(List<TestOccurrence> tests) {
+    public void addTests(Iterable<TestOccurrence> tests) {
         for (TestOccurrence next : tests) {
             this.tests.computeIfAbsent(next.name,
                 k -> new MultTestFailureOccurrences())
-                .occurrences.add(next);
+                .add(next);
         }
     }
 
@@ -197,7 +214,7 @@ public class FullBuildRunContext {
     }
 
     public int getBuildId() {
-        return buildInfo.getId();
+        return firstBuildInfo.getId();
     }
 
     public void setContactPerson(String contactPerson) {
@@ -209,7 +226,7 @@ public class FullBuildRunContext {
     }
 
     public String branchName() {
-        return buildInfo.branchName;
+        return firstBuildInfo.branchName;
     }
 
     public String getContactPerson() {
@@ -246,13 +263,13 @@ public class FullBuildRunContext {
         testFullMap.put(testOccurrenceInBuildId, testOccurrenceFull);
     }
 
-    public Optional<TestOccurrenceFull> getFullTest(String id) {
+    private Optional<TestOccurrenceFull> getFullTest(String id) {
         return Optional.ofNullable(testFullMap.get(id));
     }
 
     @Nullable
     public String projectId() {
-        final BuildType type = buildInfo.getBuildType();
+        final BuildType type = firstBuildInfo.getBuildType();
 
         if (type == null)
             return null;
@@ -275,6 +292,10 @@ public class FullBuildRunContext {
 
     public void setQueuedBuildCount(int queuedBuildCount) {
         this.queuedBuildCount = queuedBuildCount;
+    }
+
+    public boolean hasScheduledBuildsInfo() {
+        return runningBuildCount!=null && queuedBuildCount !=null;
     }
 
     public Integer queuedBuildCount() {

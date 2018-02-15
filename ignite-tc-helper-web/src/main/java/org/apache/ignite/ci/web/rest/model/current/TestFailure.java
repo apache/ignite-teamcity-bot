@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.analysis.FullBuildRunContext;
+import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
@@ -16,14 +16,11 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.branchForLink;
 
 /**
- * UI model for test failure
+ * UI model for test failure, probably merged with its history
  */
 @SuppressWarnings("WeakerAccess") public class TestFailure {
-    /** Test short Name */
+    /** Test full Name */
     public String name;
-
-    /** Full test name. */
-    public String fullName;
 
     /** Current filtered failures count, Usually 0 for get current */
     public Integer curFailures;
@@ -58,10 +55,10 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     public void initFromOccurrence(@Nonnull final ITestFailureOccurrences failure,
         @Nonnull final Stream<TestOccurrenceFull> testFullOpt,
         @Nonnull final ITeamcity teamcity,
-        @Nonnull final FullBuildRunContext suite) {
+        @Nonnull final MultBuildRunCtx suite) {
         name = failure.getName();
         investigated = failure.isInvestigated();
-        curFailures = failure.occurrencesCount();
+        curFailures = failure.failuresCount();
 
         testFullOpt.forEach(full -> {
             String details = full.details;
@@ -98,7 +95,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
         }
     }
 
-    private static String buildWebLink(ITeamcity teamcity, FullBuildRunContext suite, Long id) {
+    private static String buildWebLink(ITeamcity teamcity, MultBuildRunCtx suite, Long id) {
         if (suite.projectId() == null)
             return null;
         final String branch = branchForLink(suite.branchName());

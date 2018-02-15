@@ -1,6 +1,7 @@
 package org.apache.ignite.ci.web.rest;
 
 import com.google.common.base.Strings;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import javax.servlet.ServletContext;
@@ -36,14 +37,14 @@ public class GetChainResultsAsHtml {
     public void showChainOnServersResults(StringBuilder res, Integer buildId, String serverId) {
         final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
 
-
         try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, serverId)) {
             //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
             String hrefById = teamcity.getBuildHrefById(buildId);
             BuildRef build = new BuildRef();
             build.href = hrefById;
             Optional<FullChainRunCtx> ctx =
-                BuildChainProcessor.processChainByRef(teamcity, false, build,
+                BuildChainProcessor.processBuildChains(teamcity, false,
+                    Collections.singletonList(build),
                     true, false, false);
 
             ctx.ifPresent(c -> {

@@ -7,9 +7,9 @@ public interface ITestFailureOccurrences {
 
     boolean isInvestigated();
 
-    default int occurrencesCount() {
-       return (int)getOccurrenceIds().count();
-    }
-
     Stream<String> getOccurrenceIds();
+
+    public int occurrencesCount();
+
+    public int failuresCount();
 }

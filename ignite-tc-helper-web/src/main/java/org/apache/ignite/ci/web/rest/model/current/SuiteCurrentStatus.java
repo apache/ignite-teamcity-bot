@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.analysis.FullBuildRunContext;
+import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
@@ -64,7 +64,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     @Nullable public String failureRate;
 
     public void initFromContext(@Nonnull final ITeamcity teamcity,
-        @Nonnull final FullBuildRunContext suite,
+        @Nonnull final MultBuildRunCtx suite,
         @Nullable final Function<String, RunStat> runStatSupplier,
         @Nullable final Map<String, RunStat> suiteRunStat) {
 
@@ -111,11 +111,11 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         branchName = branchForLink(suite.branchName());
     }
 
-    private static String buildWebLinkToBuild(ITeamcity teamcity, FullBuildRunContext suite) {
+    private static String buildWebLinkToBuild(ITeamcity teamcity, MultBuildRunCtx suite) {
         return teamcity.host() + "viewLog.html?buildId=" + Integer.toString(suite.getBuildId());
     }
 
-    private static String buildWebLink(ITeamcity teamcity, FullBuildRunContext suite) {
+    private static String buildWebLink(ITeamcity teamcity, MultBuildRunCtx suite) {
         final String branch = branchForLink(suite.branchName());
         return teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
             + "&branch=" + escape(branch)

@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.apache.ignite.ci.BuildChainProcessor.loadChainContext;
+import static org.apache.ignite.ci.BuildChainProcessor.loadChainsContext;
 
 @Path(GetCurrTestFailures.CURRENT)
 @Produces(MediaType.APPLICATION_JSON)
@@ -60,7 +60,7 @@ public class GetCurrTestFailures {
             .map(chainTracked -> {
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
                 try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
-                    Optional<FullChainRunCtx> pubCtx = loadChainContext(teamcity,
+                    Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
                         chainTracked.getSuiteIdMandatory(),
                         chainTracked.getBranchForRestMandatory(),
                         true);
@@ -104,7 +104,7 @@ public class GetCurrTestFailures {
         final TestFailuresSummary res = new TestFailuresSummary();
         //using here non persistent TC allows to skip update statistic
         try (IgniteTeamcityHelper teamcity = new IgniteTeamcityHelper(serverId)) {
-            Optional<FullChainRunCtx> pubCtx = loadChainContext(teamcity,
+            Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
                 suiteId, branchForTc,
                 true);
 

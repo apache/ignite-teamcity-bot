@@ -33,6 +33,9 @@ public class BuildRef extends AbstractRef {
 
     @XmlAttribute public Boolean defaultBranch;
 
+    /**
+     * @return Build ID
+     */
     public Integer getId() {
         return id;
     }

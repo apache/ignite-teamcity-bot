@@ -27,12 +27,12 @@ public class PrintChainResults {
                 Function<String, RunStat> map = teamcity.getTestRunStatProvider();
                 System.out.println(map);
                 
-                pubCtx = BuildChainProcessor.loadChainContext(teamcity, suiteId, branch, includeLatestRebuild);
+                pubCtx = BuildChainProcessor.loadChainsContext(teamcity, suiteId, branch, includeLatestRebuild);
             }
             try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
                 String suiteId = "id8xIgniteGridGainTestsJava8_RunAll";
                 String branch = "<default>";
-                privCtx = BuildChainProcessor.loadChainContext(teamcity, suiteId, branch, includeLatestRebuild);
+                privCtx = BuildChainProcessor.loadChainsContext(teamcity, suiteId, branch, includeLatestRebuild);
             }
         }
         finally {

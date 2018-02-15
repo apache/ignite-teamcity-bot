@@ -16,12 +16,14 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
-import org.apache.ignite.ci.analysis.FullBuildRunContext;
+import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+
+import static java.util.Collections.singletonList;
 
 /**
  * Created by dpavlov on 03.08.2017
@@ -190,11 +192,13 @@ public class CheckBuildChainResults {
             Date parse = next.getFinishDate();
             String dateForMap = new SimpleDateFormat("yyyyMMdd").format(parse);
             suiteHist.map.computeIfAbsent(dateForMap, k -> {
-                FullChainRunCtx ctx = BuildChainProcessor.loadChainContext(teamcity, next, false, false, null, false);
+                FullChainRunCtx ctx = BuildChainProcessor.loadChainsContext(teamcity,
+                    singletonList(next),
+                    false, false, null, false);
                 if (ctx == null)
                     return null;
 
-                for (FullBuildRunContext suite : ctx.suites()) {
+                for (MultBuildRunCtx suite : ctx.suites()) {
                     boolean suiteOk = suite.failedTests() == 0 && !suite.hasNontestBuildProblem();
                     history.addSuiteResult(teamcity.serverId() + "\t" + suite.suiteName(), suiteOk);
                 }

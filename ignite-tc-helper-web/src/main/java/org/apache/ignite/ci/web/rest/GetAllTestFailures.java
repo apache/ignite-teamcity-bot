@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -67,25 +67,23 @@ public class GetAllTestFailures {
                 final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
                     projectId,
                     chainAtServerTracked.getBranchForRestMandatory());
-                Stream<Optional<FullChainRunCtx>> stream
-                    = builds.stream()
+                List<BuildRef> chains = builds.stream()
                     .filter(ref -> !ref.isFakeStub())
                     .sorted(Comparator.comparing(BuildRef::getId).reversed())
                     .limit(count).parallel()
-                    .filter(b -> b.getId() != null)
-                    .map(build -> BuildChainProcessor.processChainByRef(teamcity, false, build,
-                        false, false, true));
+                    .filter(b -> b.getId() != null).collect(Collectors.toList());
+
+                Optional<FullChainRunCtx> chainCtxOpt
+                    = BuildChainProcessor.processBuildChains(teamcity, false, chains,
+                    false, false, true);
 
                 final Function<String, RunStat> map = teamcity.getTestRunStatProvider();
                 final Map<String, RunStat> suiteMap = teamcity.runSuiteAnalysis();
-                stream.forEach(
-                    chainCtxOpt -> {
-                        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
-                        chainStatus.serverName = teamcity.serverId();
-                        chainCtxOpt.ifPresent(chainCtx -> chainStatus.initFromContext(teamcity, chainCtx, map, suiteMap));
-                        res.addChainOnServer(chainStatus);
-                    }
-                );
+
+                final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
+                chainStatus.serverName = teamcity.serverId();
+                chainCtxOpt.ifPresent(chainCtx -> chainStatus.initFromContext(teamcity, chainCtx, map, suiteMap));
+                res.addChainOnServer(chainStatus);
 
             }
         }

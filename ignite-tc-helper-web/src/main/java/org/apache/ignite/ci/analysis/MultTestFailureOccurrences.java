@@ -2,11 +2,13 @@ package org.apache.ignite.ci.analysis;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 
 public class MultTestFailureOccurrences implements ITestFailureOccurrences {
-    List<TestOccurrence> occurrences = new ArrayList<>();
+    private final List<TestOccurrence> occurrences = new CopyOnWriteArrayList<>();
 
     public MultTestFailureOccurrences() {
 
@@ -28,8 +30,24 @@ public class MultTestFailureOccurrences implements ITestFailureOccurrences {
         return getFailedButNotMutedCount() > 0;
     }
 
-    private long getFailedButNotMutedCount() {
-        return occurrences.stream().filter(TestOccurrence::isFailedButNotMuted).count();
+    private int getFailedButNotMutedCount() {
+        return (int)occurrences.stream()
+            .filter(Objects::nonNull)
+            .filter(TestOccurrence::isFailedButNotMuted).count();
     }
 
+    public int occurrencesCount() {
+        return (int)getOccurrenceIds().count();
+    }
+
+    @Override public int failuresCount() {
+        return getFailedButNotMutedCount();
+    }
+
+    public void add(TestOccurrence next) {
+        if (next.id == null)
+            return;
+
+        occurrences.add(next);
+    }
 }
