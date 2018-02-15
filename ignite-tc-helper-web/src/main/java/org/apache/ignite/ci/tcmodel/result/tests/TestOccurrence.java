@@ -40,4 +40,15 @@ public class TestOccurrence {
     public boolean isInvestigated() {
         return (currentlyInvestigated != null && currentlyInvestigated);
     }
+
+    public boolean isFailedButNotMuted() {
+        return isFailedTest() && !(isMutedTest() || isIgnoredTest());
+    }
+
+    /**
+     * @return Test in build occurrence id, something like: 'id:15666,build:(id:1093907)'
+     */
+    public String getId() {
+        return id;
+    }
 }

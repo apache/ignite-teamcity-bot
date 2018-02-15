@@ -23,7 +23,13 @@ public class BackgroundUpdater {
 
     private Ignite ignite;
     private Map<T2<String, ?>, Future<?>> scheduledUpdates = new ConcurrentHashMap<>();
-    private ExecutorService service = Executors.newFixedThreadPool(10);
+    private ExecutorService service = Executors.newFixedThreadPool(10, r -> {
+        Thread thread =  Executors.defaultThreadFactory().newThread(r);
+
+        thread.setName("bgupd-" + thread.getName());
+
+        return thread;
+    });
 
     public BackgroundUpdater(Ignite ignite) {
         this.ignite = ignite;

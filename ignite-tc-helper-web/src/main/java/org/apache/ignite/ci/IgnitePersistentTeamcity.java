@@ -277,7 +277,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     public Function<String, RunStat> getTestRunStatProvider() {
-        return s -> testRunStatCache().get(s);
+        return name -> name == null ? null : testRunStatCache().get(name);
     }
 
     public Stream<RunStat> allTestAnalysis() {

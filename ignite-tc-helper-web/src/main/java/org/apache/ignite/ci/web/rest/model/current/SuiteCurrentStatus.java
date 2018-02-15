@@ -5,11 +5,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -82,8 +84,11 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         webToHist = buildWebLink(teamcity, suite);
         webToBuild = buildWebLinkToBuild(teamcity, suite);
         suite.getFailedTests().forEach(occurrence -> {
+
+            Stream<TestOccurrenceFull> stream = suite.getFullTests(occurrence);
+
             final TestFailure failure = new TestFailure();
-            failure.initFromOccurrence(occurrence, suite.getFullTest(occurrence.id), teamcity, suite);
+            failure.initFromOccurrence(occurrence, stream, teamcity, suite);
             failure.initStat(runStatSupplier);
             testFailures.add(failure);
         });

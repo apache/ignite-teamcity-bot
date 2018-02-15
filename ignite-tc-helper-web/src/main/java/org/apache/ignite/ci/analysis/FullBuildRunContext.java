@@ -24,7 +24,16 @@ import org.jetbrains.annotations.Nullable;
 public class FullBuildRunContext {
     @Nonnull private final Build buildInfo;
     private List<ProblemOccurrence> problems;
-    @Nullable private List<TestOccurrence> tests;
+
+
+    /** Tests: Map from full test name to concurrent. */
+    @Nullable private Map<String, MultTestFailureOccurrences> tests = new HashMap<>();
+
+    /**
+     * Mapping for building test occurrence reference to test full results:
+     * Occurrence in build id:
+     */
+    private Map<String, TestOccurrenceFull> testFullMap = new HashMap<>();
 
     /** Last started test. Optionally filled from log post processor */
     private String lastStartedTest;
@@ -34,8 +43,6 @@ public class FullBuildRunContext {
 
     @Nullable private Statistics stat;
 
-    /** Mapping for building test occurrence reference to test full results */
-    private Map<String, TestOccurrenceFull> testFullMap = new HashMap<>();
 
     /** Thread dump short file name */
     @Nullable private Integer threadDumpFileIdx;
@@ -121,9 +128,6 @@ public class FullBuildRunContext {
         return cnt == null ? 0 : cnt;
     }
 
-    public void setTests(List<TestOccurrence> tests) {
-        this.tests = tests;
-    }
 
     public String getPrintableStatusString() {
         StringBuilder builder = new StringBuilder();
@@ -145,7 +149,7 @@ public class FullBuildRunContext {
         if (lastStartedTest != null)
             builder.append("\t").append(lastStartedTest).append(" (Last started) \n");
 
-        getFailedTests().map(TestOccurrence::getName).forEach(
+        getFailedTests().map(ITestFailureOccurrences::getName).forEach(
             name -> {
                 builder.append("\t").append(name).append("\n");
             }
@@ -174,11 +178,18 @@ public class FullBuildRunContext {
         return result;
     }
 
-    public Stream<TestOccurrence> getFailedTests() {
+    public Stream<? extends ITestFailureOccurrences> getFailedTests() {
         if (tests == null)
             return Stream.empty();
-        return tests.stream()
-            .filter(TestOccurrence::isFailedTest).filter(TestOccurrence::isNotMutedOrIgnoredTest);
+        return tests.values().stream().filter(MultTestFailureOccurrences::hasFailedButNotMuted);
+    }
+
+    public void setTests(List<TestOccurrence> tests) {
+        for (TestOccurrence next : tests) {
+            this.tests.computeIfAbsent(next.name,
+                k -> new MultTestFailureOccurrences())
+                .occurrences.add(next);
+        }
     }
 
     public void setLastStartedTest(String lastStartedTest) {
@@ -227,8 +238,12 @@ public class FullBuildRunContext {
         return stat == null ? null : stat.getSourceUpdateDuration();
     }
 
-    public void addTestInBuildToTestFull(String testInBuildId, TestOccurrenceFull testOccurrenceFull) {
-        testFullMap.put(testInBuildId, testOccurrenceFull);
+    /**
+     * @param testOccurrenceInBuildId, something like: 'id:15666,build:(id:1093907)'
+     * @param testOccurrenceFull
+     */
+    public void addTestInBuildToTestFull(String testOccurrenceInBuildId, TestOccurrenceFull testOccurrenceFull) {
+        testFullMap.put(testOccurrenceInBuildId, testOccurrenceFull);
     }
 
     public Optional<TestOccurrenceFull> getFullTest(String id) {
@@ -268,5 +283,12 @@ public class FullBuildRunContext {
 
     public Integer runningBuildCount() {
         return runningBuildCount;
+    }
+
+    public Stream<TestOccurrenceFull> getFullTests(ITestFailureOccurrences occurrence) {
+        return occurrence.getOccurrenceIds()
+            .map(this::getFullTest)
+            .filter(Optional::isPresent)
+            .map(Optional::get);
     }
 }

@@ -26,7 +26,10 @@ function loadData() {
     if(branch!=null) {
         curFailuresUrl += "?branch=" + branch;
     }
-    curFailuresUrl += "&cnt=" + 3;
+    var count = findGetParameter("count");
+    if(count!=null)
+        curFailuresUrl += "&count=" + count;
+
 
     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
     $.ajax({

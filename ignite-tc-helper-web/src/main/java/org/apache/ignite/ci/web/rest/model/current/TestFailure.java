@@ -1,15 +1,15 @@
 package org.apache.ignite.ci.web.rest.model.current;
 
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullBuildRunContext;
+import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
 import org.apache.ignite.ci.analysis.RunStat;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
 import static org.apache.ignite.ci.util.UrlUtil.escape;
@@ -49,14 +49,21 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     /** Has some open investigations. */
     public boolean investigated;
 
-    public void initFromOccurrence(@Nonnull final TestOccurrence failure,
-        @Nonnull final Optional<TestOccurrenceFull> testFullOpt,
+    /**
+     * @param failure
+     * @param testFullOpt all related full test ocurrences
+     * @param teamcity
+     * @param suite
+     */
+    public void initFromOccurrence(@Nonnull final ITestFailureOccurrences failure,
+        @Nonnull final Stream<TestOccurrenceFull> testFullOpt,
         @Nonnull final ITeamcity teamcity,
         @Nonnull final FullBuildRunContext suite) {
         name = failure.getName();
         investigated = failure.isInvestigated();
+        curFailures = failure.occurrencesCount();
 
-        testFullOpt.ifPresent(full -> {
+        testFullOpt.forEach(full -> {
             String details = full.details;
             if (details != null) {
                 if (webIssueUrl == null) {
@@ -73,8 +80,9 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
                         initIssueLink(issueLinkPrefix, details, prefixFoundIdx);
                 }
             }
-            if (full.test != null && full.test.id != null)
-                webUrl = buildWebLink(teamcity, suite, full.test.id);
+            if (webUrl == null)
+                if (full.test != null && full.test.id != null)
+                    webUrl = buildWebLink(teamcity, suite, full.test.id);
         });
 
     }

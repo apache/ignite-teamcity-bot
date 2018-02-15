@@ -113,16 +113,17 @@ public interface ITeamcity extends AutoCloseable {
                 //todo is it required to load non failed test here
                 if (next.href != null && next.isFailedTest()) {
                     TestOccurrenceFull testOccurrenceFull = getTestFull(next.href);
-                    String testInBuildId = next.id;
+                    String testInBuildId = next.getId();
+
                     if (testOccurrenceFull.test != null && testOccurrenceFull.test.id != null)
                         ctx.addTestInBuildToTestFull(testInBuildId, testOccurrenceFull);
                 }
             }
         }
 
-        if (build.statisticsRef != null) {
+        if (build.statisticsRef != null)
             ctx.setStat(getBuildStat(build.statisticsRef.href));
-        }
+
         return ctx;
     }
 

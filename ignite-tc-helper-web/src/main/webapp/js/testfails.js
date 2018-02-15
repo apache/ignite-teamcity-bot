@@ -157,8 +157,10 @@ function showTestFailData(testFail) {
         res += "<img src='https://d30y9cdsu7xlg0.cloudfront.net/png/324212-200.png' width=8px height=8px> ";
         res += "<span style='opacity: 0.75'> ";
     }
-
     res += " <span style='background-color: " + color + "; width:7px; height:7px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
+
+    if(isDefinedAndFilled(testFail.curFailures) & testFail.curFailures>1)
+        res+= "["+testFail.curFailures + "]";
 
     if(haveIssue) {
         res += "<a href='"+testFail.webIssueUrl+"'>";
