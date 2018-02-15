@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.web.rest.model.current;
 
+import com.google.common.base.Strings;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,6 +22,12 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
 @SuppressWarnings("WeakerAccess") public class TestFailure {
     /** Test full Name */
     public String name;
+
+    /** suite short name */
+    @Nullable public String suiteName;
+
+    /** test short name with class and method */
+    @Nullable public String testName;
 
     /** Current filtered failures count, Usually 0 for get current */
     public Integer curFailures;
@@ -59,6 +66,19 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
         name = failure.getName();
         investigated = failure.isInvestigated();
         curFailures = failure.failuresCount();
+
+        String[] split = Strings.nullToEmpty(name).split("\\:");
+        if (split.length >= 2) {
+            String suiteShort = split[0].trim();
+            String[] suiteComps = suiteShort.split("\\.");
+            if (suiteComps.length > 1)
+                suiteName = suiteComps[suiteComps.length - 1];
+
+            String testShort = split[1].trim();
+            String[] testComps = testShort.split("\\.");
+            if (testComps.length > 2)
+                testName = testComps[testComps.length - 2] + "." + testComps[testComps.length - 1];
+        }
 
         testFullOpt.forEach(full -> {
             String details = full.details;

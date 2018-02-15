@@ -159,7 +159,7 @@ function showTestFailData(testFail) {
     }
     res += " <span style='background-color: " + color + "; width:7px; height:7px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
 
-    if(isDefinedAndFilled(testFail.curFailures) & testFail.curFailures>1)
+    if(isDefinedAndFilled(testFail.curFailures) && testFail.curFailures>1)
         res+= "[" + testFail.curFailures + "] ";
 
     if(haveIssue) {
@@ -169,7 +169,10 @@ function showTestFailData(testFail) {
         res += ": ";
     };
 
-    res += testFail.name;
+    if(isDefinedAndFilled(testFail.suiteName) && isDefinedAndFilled(testFail.testName))
+        res += "<font color='grey'>" + testFail.suiteName + ":</font> " + testFail.testName ;
+    else
+        res += testFail.name;
 
     var haveWeb = isDefinedAndFilled(testFail.webUrl);
     var histContent = "";

@@ -1,9 +1,9 @@
 package org.apache.ignite.ci.web.rest.model;
 
-public class Version {
-    String version;
+@SuppressWarnings("PublicField") public class Version {
+    public String version;
 
-    public Version(String version) {
-        this.version = version;
+    public Version(String ver) {
+        this.version = ver;
     }
 }
