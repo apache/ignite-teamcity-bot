@@ -14,6 +14,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.LatestRebuildMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
@@ -43,7 +44,7 @@ public class GetChainResultsAsHtml {
             BuildRef build = new BuildRef();
             build.href = hrefById;
             Optional<FullChainRunCtx> ctx =
-                BuildChainProcessor.processBuildChains(teamcity, false,
+                BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,
                     Collections.singletonList(build),
                     true, false, false);
 

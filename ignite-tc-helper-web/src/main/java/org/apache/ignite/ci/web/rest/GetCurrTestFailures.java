@@ -18,6 +18,7 @@ import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.web.BackgroundUpdater;
@@ -63,7 +64,7 @@ public class GetCurrTestFailures {
                     Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
                         chainTracked.getSuiteIdMandatory(),
                         chainTracked.getBranchForRestMandatory(),
-                        true);
+                        LatestRebuildMode.LATEST);
 
                     chainStatus.serverName = teamcity.serverId();
                     pubCtx.ifPresent(ctx -> {
@@ -106,7 +107,7 @@ public class GetCurrTestFailures {
         try (IgniteTeamcityHelper teamcity = new IgniteTeamcityHelper(serverId)) {
             Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
                 suiteId, branchForTc,
-                true);
+                LatestRebuildMode.LATEST);
 
             final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
             chainStatus.serverName = teamcity.serverId();

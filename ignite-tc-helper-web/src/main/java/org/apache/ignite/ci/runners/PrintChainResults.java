@@ -7,6 +7,7 @@ import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.db.TcHelperDb;
 
@@ -19,7 +20,7 @@ public class PrintChainResults {
         Optional<FullChainRunCtx> privCtx;
         Ignite ignite = TcHelperDb.start();
         try {
-            boolean includeLatestRebuild = true;
+            LatestRebuildMode includeLatestRebuild = LatestRebuildMode.LATEST;
             try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
                 String suiteId = "IgniteTests24Java8_RunAll";
                 String branch = "<default>";

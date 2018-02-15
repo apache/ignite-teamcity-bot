@@ -5,6 +5,7 @@ import com.google.common.base.Throwables;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -142,8 +143,19 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
         return timedLoadIfAbsentOrMerge("finishedBuilds", 60, suiteInBranch,
             (key, persistedValue) -> {
-                return mergeByIdToHistoricalOrder(persistedValue,
-                    teamcity.getFinishedBuilds(projectId, branch));
+                List<BuildRef> builds;
+                try {
+                    builds = teamcity.getFinishedBuilds(projectId, branch);
+                }
+                catch (Exception e) {
+                    if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                        System.err.println("Build history not found for build : " + projectId + " in " + branch);
+                        builds = Collections.emptyList();
+                    }
+                    else
+                        throw e;
+                }
+                return mergeByIdToHistoricalOrder(persistedValue, builds);
             });
     }
 
@@ -151,7 +163,9 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         final SortedMap<Integer, BuildRef> merge = new TreeMap<>();
         if (persistedVal != null)
             persistedVal.forEach(b -> merge.put(b.getId(), b));
+
         mostActualVal.forEach(b -> merge.put(b.getId(), b)); //to overwrite data from persistence by values from REST
+
         return new ArrayList<>(merge.values());
     }
 
@@ -161,8 +175,11 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
         return timedLoadIfAbsentOrMerge("finishedBuildsIncludeFailed", 60, suiteInBranch,
             (key, persistedValue) -> {
+                List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch);
+
+
                 return mergeByIdToHistoricalOrder(persistedValue,
-                    teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch));
+                    failed);
             });
     }
 

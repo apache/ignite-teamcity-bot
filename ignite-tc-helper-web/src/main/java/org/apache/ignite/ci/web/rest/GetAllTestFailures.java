@@ -19,6 +19,7 @@ import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
@@ -74,7 +75,8 @@ public class GetAllTestFailures {
                     .filter(b -> b.getId() != null).collect(Collectors.toList());
 
                 Optional<FullChainRunCtx> chainCtxOpt
-                    = BuildChainProcessor.processBuildChains(teamcity, false, chains,
+                    = BuildChainProcessor.processBuildChains(teamcity,
+                    LatestRebuildMode.ALL, chains,
                     false, false, true);
 
                 final Function<String, RunStat> map = teamcity.getTestRunStatProvider();

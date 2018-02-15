@@ -13,11 +13,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
+import org.apache.ignite.ci.analysis.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,7 +28,7 @@ public class BuildChainProcessor {
         ITeamcity teamcity,
         String suiteId,
         String branch,
-        boolean includeLatestRebuild) {
+        LatestRebuildMode includeLatestRebuild) {
         Optional<BuildRef> buildRef = teamcity.getLastBuildIncludeSnDepFailed(suiteId, branch);
 
         return buildRef.flatMap(
@@ -38,7 +38,7 @@ public class BuildChainProcessor {
 
     public static Optional<FullChainRunCtx> processBuildChains(
         ITeamcity teamcity,
-        boolean includeLatestRebuild,
+        LatestRebuildMode includeLatestRebuild,
         Collection<BuildRef> builds,
         boolean procLogs,
         boolean includeScheduled,
@@ -46,7 +46,8 @@ public class BuildChainProcessor {
 
         final Properties responsible = showContacts ? getContactPersonProperties(teamcity) : null;
 
-        final FullChainRunCtx val = loadChainsContext(teamcity, builds, includeLatestRebuild,
+        final FullChainRunCtx val = loadChainsContext(teamcity, builds,
+            includeLatestRebuild,
             procLogs, responsible, includeScheduled);
 
         return Optional.of(val);
@@ -59,7 +60,7 @@ public class BuildChainProcessor {
     public static <R> FullChainRunCtx loadChainsContext(
         ITeamcity teamcity,
         Collection<BuildRef> entryPoints,
-        boolean includeLatestRebuild,
+        LatestRebuildMode includeLatestRebuild,
         boolean procLog,
         @Nullable Properties contactPersonProps,
         boolean includeScheduledInfo) {
@@ -78,25 +79,29 @@ public class BuildChainProcessor {
             .unordered()
             .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
             .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
-            .filter(ref -> {
-                if (ref.isFakeStub())
-                    return false;
+            .filter(ref -> enshureUnique(unique, ref))
+            .flatMap((BuildRef buildRef) -> {
+                    if (includeLatestRebuild == LatestRebuildMode.NONE)
+                        return Stream.of(buildRef);
 
-                String id = ref.buildTypeId;
+                    String branch = buildRef.branchName == null ? ITeamcity.DEFAULT : buildRef.branchName;
+                    final List<BuildRef> builds = teamcity.getFinishedBuilds(buildRef.buildTypeId, branch);
 
-                Integer buildId = ref.getId();
-                T2<String, Integer> key = new T2<>(id, buildId);
+                    if (includeLatestRebuild == LatestRebuildMode.LATEST) {
+                        BuildRef recentRef = builds.stream().max(Comparator.comparing(BuildRef::getId)).orElse(buildRef);
 
-                BuildRef prevVal = unique.putIfAbsent(buildId, ref);
+                        return Stream.of(recentRef.isFakeStub() ? buildRef : recentRef);
+                    }
 
-                return prevVal == null;
-            })
-            .map((BuildRef buildRef) -> {
-                    BuildRef recentRef = includeLatestRebuild ? teamcity.tryReplaceBuildRefByRecent(buildRef) : buildRef;
-                    if (recentRef.isFakeStub())
-                        recentRef = buildRef;
+                    if (includeLatestRebuild == LatestRebuildMode.ALL) {
+                        return builds.stream()
+                            .filter(ref -> !ref.isFakeStub())
+                            .filter(ref -> enshureUnique(unique, ref))
+                            .sorted(Comparator.comparing(BuildRef::getId).reversed())
+                            .limit(entryPoints.size()); // applying same limit
+                    }
 
-                    return recentRef;
+                    throw new UnsupportedOperationException("invalid mode " + includeLatestRebuild);
                 }
             )
             .forEach((BuildRef buildRef) -> {
@@ -121,6 +126,15 @@ public class BuildChainProcessor {
         fullChainRunCtx.addAllSuites(contexts);
 
         return fullChainRunCtx;
+    }
+
+    public static boolean enshureUnique(Map<Integer, BuildRef> unique, BuildRef ref) {
+        if (ref.isFakeStub())
+            return false;
+
+        BuildRef prevVal = unique.putIfAbsent(ref.getId(), ref);
+
+        return prevVal == null;
     }
 
     @NotNull private static MultBuildRunCtx collectBuildContext(
