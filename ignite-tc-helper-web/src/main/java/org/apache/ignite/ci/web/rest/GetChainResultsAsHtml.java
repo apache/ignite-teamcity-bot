@@ -42,6 +42,7 @@ public class GetChainResultsAsHtml {
             //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
             String hrefById = teamcity.getBuildHrefById(buildId);
             BuildRef build = new BuildRef();
+            build.setId(buildId);
             build.href = hrefById;
             Optional<FullChainRunCtx> ctx =
                 BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,

@@ -59,4 +59,8 @@ public class BuildRef extends AbstractRef {
     public boolean isFakeStub() {
         return getId() == null;
     }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
 }

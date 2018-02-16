@@ -180,7 +180,7 @@ public class BuildChainProcessor {
     @Nullable private static Stream<? extends BuildRef> dependencies(ITeamcity teamcity, BuildRef ref) {
         Build results = teamcity.getBuildResults(ref.href);
         if (results == null)
-            return null;
+            return Stream.of(ref);
         
         List<BuildRef> aNull = results.getSnapshotDependenciesNonNull();
         if(aNull.isEmpty())
