@@ -1,7 +1,6 @@
 package org.apache.ignite.ci.analysis;
 
 import com.google.common.base.Strings;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +24,15 @@ import org.jetbrains.annotations.Nullable;
  * Run configuration execution results loaded from different API URLs.
  * Includes tests and problem occurrences; if logs processing is done also contains last started test
  */
-public class MultBuildRunCtx {
+public class MultBuildRunCtx implements ISuiteResults {
     @Nonnull private final Build firstBuildInfo;
+
+    private List<SingleBuildRunCtx> builds = new CopyOnWriteArrayList<>();
+
+    public void addBuild(SingleBuildRunCtx ctx) {
+        builds.add(ctx);
+    }
+
     private List<ProblemOccurrence> problems = new CopyOnWriteArrayList<>();
 
 
@@ -39,7 +45,7 @@ public class MultBuildRunCtx {
      */
     private Map<String, TestOccurrenceFull> testFullMap = new HashMap<>();
 
-    /** Last started test. Optionally filled from log post processor */
+    @Deprecated
     private String lastStartedTest;
 
     /** Used for associating build info with contact person */
@@ -61,6 +67,11 @@ public class MultBuildRunCtx {
         this.firstBuildInfo = buildInfo;
     }
 
+    public Stream<String> getCriticalFailLastStartedTest() {
+        return builds.stream().map(SingleBuildRunCtx::getCriticalFailLastStartedTest).filter(Objects::nonNull);
+    }
+
+    @Deprecated
     public void addProblems(List<ProblemOccurrence> problems) {
         this.problems.addAll(problems);
     }
@@ -86,8 +97,6 @@ public class MultBuildRunCtx {
     }
 
     private Optional<ProblemOccurrence> getBuildProblemExceptTestOrSnapshot() {
-        if (problems == null)
-            return Optional.empty();
         return problems.stream().filter(p -> !p.isFailedTests() && !p.isShaphotDepProblem()).findAny();
     }
 
@@ -100,7 +109,7 @@ public class MultBuildRunCtx {
     }
 
     public boolean hasJvmCrashProblem() {
-        return  getJvmCrashProblemCount() > 0;
+        return getJvmCrashProblemCount() > 0;
     }
 
     public long getJvmCrashProblemCount() {
@@ -108,7 +117,7 @@ public class MultBuildRunCtx {
     }
 
     public boolean hasOomeProblem() {
-        return   getOomeProblemCount() > 0;
+        return getOomeProblemCount() > 0;
     }
 
     public long getOomeProblemCount() {
@@ -161,8 +170,8 @@ public class MultBuildRunCtx {
             builder.append("\t").append(contactPerson);
 
         builder.append("\n");
-        if (lastStartedTest != null)
-            builder.append("\t").append(lastStartedTest).append(" (Last started) \n");
+        getCriticalFailLastStartedTest().forEach(lastStartedTest ->
+            builder.append("\t").append(lastStartedTest).append(" (Last started) \n"));
 
         getFailedTests().map(ITestFailureOccurrences::getName).forEach(
             name -> {
@@ -209,10 +218,6 @@ public class MultBuildRunCtx {
         }
     }
 
-    public void setLastStartedTest(String lastStartedTest) {
-        this.lastStartedTest = lastStartedTest;
-    }
-
     public int getBuildId() {
         return firstBuildInfo.getId();
     }
@@ -237,9 +242,7 @@ public class MultBuildRunCtx {
         return Strings.nullToEmpty(contactPerson);
     }
 
-    public String getLastStartedTest() {
-        return lastStartedTest;
-    }
+
 
     public void setStat(Statistics stat) {
         this.stat = stat;
@@ -312,4 +315,5 @@ public class MultBuildRunCtx {
             .filter(Optional::isPresent)
             .map(Optional::get);
     }
+
 }

@@ -6,18 +6,20 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
+import org.apache.ignite.ci.analysis.ISuiteResults;
+import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.logs.LogsAnalyzer;
-import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
-import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
+import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.ci.db.Migrations.TESTS_COUNT_7700;
@@ -105,14 +107,19 @@ public interface ITeamcity extends AutoCloseable {
         return ctx;
     }
 
-    default void loadTestsAndProblems(@Nonnull Build build, MultBuildRunCtx ctx) {
-        if (build.problemOccurrences != null)
-            ctx.addProblems(getProblems(build.problemOccurrences.href).getProblemsNonNull());
+    default SingleBuildRunCtx loadTestsAndProblems(@Nonnull Build build, @Deprecated MultBuildRunCtx mCtx) {
+        SingleBuildRunCtx ctx = new SingleBuildRunCtx(build);
+        if (build.problemOccurrences != null) {
+            List<ProblemOccurrence> problems = getProblems(build.problemOccurrences.href).getProblemsNonNull();
+
+            mCtx.addProblems(problems);
+            ctx.setProblems(problems);
+        }
 
         if (build.testOccurrences != null) {
             List<TestOccurrence> tests = getTests(build.testOccurrences.href +
                 TESTS_COUNT_7700).getTests();
-            ctx.addTests(tests);
+            mCtx.addTests(tests);
 
             for (TestOccurrence next : tests) {
                 //todo is it required to load non failed test here
@@ -121,41 +128,25 @@ public interface ITeamcity extends AutoCloseable {
                     String testInBuildId = next.getId();
 
                     if (testOccurrenceFull.test != null && testOccurrenceFull.test.id != null)
-                        ctx.addTestInBuildToTestFull(testInBuildId, testOccurrenceFull);
+                        mCtx.addTestInBuildToTestFull(testInBuildId, testOccurrenceFull);
                 }
             }
         }
 
         if (build.statisticsRef != null)
-            ctx.setStat(getBuildStat(build.statisticsRef.href));
+            mCtx.setStat(getBuildStat(build.statisticsRef.href));
+
+        return ctx;
     }
 
     @Override void close();
 
-    default BuildRef tryReplaceBuildRefByRecent(BuildRef buildRef) {
-        return getLastFinishedBuild(buildRef.buildTypeId,
-            buildRef.branchName == null ? DEFAULT : buildRef.branchName).orElse(buildRef);
-    }
 
-    default CompletableFuture<File> processBuildLog(MultBuildRunCtx ctx) {
-        final CompletableFuture<File> zipFut = downloadBuildLogZip(ctx.getBuildId());
-        final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
-        final ThreadDumpCopyHandler threadDumpCp = new ThreadDumpCopyHandler();
-        final LastTestLogCopyHandler lastTestCp = new LastTestLogCopyHandler();
-        boolean dumpLastTest = ctx.hasTimeoutProblem() || ctx.hasJvmCrashProblem() || ctx.hasOomeProblem();
-        lastTestCp.setDumpLastTest(dumpLastTest);
-        final LogsAnalyzer analyzer = new LogsAnalyzer(threadDumpCp, lastTestCp);
-        final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
-        return fut2.thenApplyAsync(file -> {
-            if (dumpLastTest) {
-                ctx.setLastStartedTest(lastTestCp.getLastTestName());
-                ctx.setThreadDumpFileIdx(threadDumpCp.getLastFileIdx());
-            }
-            return file;
-        });
-    }
+    CompletableFuture<T2<File, LogCheckResult>> processBuildLog(int buildId, ISuiteResults ctx);
 
     CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut);
 
     CompletableFuture<File> downloadBuildLogZip(int id);
+
+    CompletableFuture<LogCheckResult> getLogCheckResults(Integer buildId, SingleBuildRunCtx ctx);
 }

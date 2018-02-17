@@ -1,22 +1,33 @@
 package org.apache.ignite.ci;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.MoreExecutors;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.actions.DownloadBuildLog;
+import org.apache.ignite.ci.analysis.ISuiteResults;
+import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.logs.LogsAnalyzer;
+import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
+import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
@@ -31,6 +42,7 @@ import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.UrlUtil;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
+import org.apache.ignite.internal.util.typedef.T2;
 
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 
@@ -70,13 +82,26 @@ public class IgniteTeamcityHelper implements ITeamcity {
         final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
 
         logsDir = ensureDirExist(logsDirFile);
-        this.executor = MoreExecutors.directExecutor();
+        this.executor = ForkJoinPool.commonPool(); // MoreExecutors.directExecutor();
     }
 
     public CompletableFuture<File> downloadBuildLogZip(int buildId) {
         final Supplier<File> buildLog = new DownloadBuildLog(buildId,
             host, basicAuthTok, logsDir, true);
         return CompletableFuture.supplyAsync(buildLog, executor);
+    }
+
+    @Override public CompletableFuture<LogCheckResult> getLogCheckResults(Integer buildId, SingleBuildRunCtx ctx) {
+        final Stopwatch started = Stopwatch.createStarted();
+
+        return processBuildLog(buildId, ctx)
+            .thenApply(t -> {
+                System.out.println(Thread.currentThread().getName()
+                    + ": processBuildLog required: " + started.elapsed(TimeUnit.MILLISECONDS)
+                    + "ms for " + ctx.suiteId());
+                return t;
+            })
+            .thenApply(T2::get2);
     }
 
     String xmlEscapeText(String t) {
@@ -145,7 +170,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         if (ctx.hasTimeoutProblem())
             System.err.println(ctx.suiteName() + " failed with timeout " + buildId);
 
-        return processBuildLog(ctx);
+        return processBuildLog(ctx.getBuildId(), ctx).thenApply(T2::get1);
     }
 
     public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
@@ -187,8 +212,10 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     private <T> T sendGetXmlParseJaxb(String url, Class<T> rootElem) {
         try {
-            String response = HttpUtil.sendGetAsString(basicAuthTok, url);
-            return XmlUtil.load(response, rootElem);
+            try (InputStream inputStream = HttpUtil.sendGetWithBasicAuth(basicAuthTok, url)) {
+                final InputStreamReader reader = new InputStreamReader(inputStream);
+                return XmlUtil.load(rootElem, reader);
+            }
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -282,4 +309,41 @@ public class IgniteTeamcityHelper implements ITeamcity {
     public String serverId() {
         return tcName;
     }
+
+    private CompletableFuture<T2<File, LogCheckResult>> processBuildLogNoCache(int buildId, ISuiteResults ctx) {
+        final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
+        final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
+        final ThreadDumpCopyHandler threadDumpCp = new ThreadDumpCopyHandler();
+        final LastTestLogCopyHandler lastTestCp = new LastTestLogCopyHandler();
+        boolean dumpLastTest = ctx.hasTimeoutProblem() || ctx.hasJvmCrashProblem() || ctx.hasOomeProblem();
+        lastTestCp.setDumpLastTest(dumpLastTest);
+        final LogsAnalyzer analyzer = new LogsAnalyzer(threadDumpCp, lastTestCp);
+        final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
+
+        return fut2.thenApplyAsync(file -> {
+            LogCheckResult logCheckResult = new LogCheckResult();
+            if (dumpLastTest) {
+                logCheckResult.setLastStartedTest(lastTestCp.getLastTestName());
+                logCheckResult.setThreadDumpFileIdx(threadDumpCp.getLastFileIdx());
+            }
+            return new T2<>(file, logCheckResult);
+        });
+    }
+
+    private ConcurrentHashMap<Integer,CompletableFuture<T2<File, LogCheckResult>> >
+            buildLogProcessingRunning = new ConcurrentHashMap<>();
+
+    public CompletableFuture<T2<File, LogCheckResult>> processBuildLog(int buildId, ISuiteResults ctx) {
+        CompletableFuture<T2<File, LogCheckResult>> future = buildLogProcessingRunning.computeIfAbsent(buildId,
+            k -> processBuildLogNoCache(buildId, ctx)
+        );
+
+        return future.thenApply(res -> {
+            buildLogProcessingRunning.remove(buildId, future);
+
+            return res;
+        });
+
+    }
+
 }

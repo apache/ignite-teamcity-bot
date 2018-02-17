@@ -15,14 +15,13 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
-import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
-import org.apache.ignite.ci.util.HttpUtil;
-import org.apache.ignite.ci.util.XmlUtil;
 
 /**
  * Created by Дмитрий on 20.07.2017
+ *
+ * https://confluence.jetbrains.com/display/TCD10/REST+API
  */
 public class IgniteTeamcityHelperRunnerExample {
     public static void main(String[] args) throws Exception {
@@ -172,39 +171,6 @@ public class IgniteTeamcityHelperRunnerExample {
         catch (ExecutionException e) {
             throw Throwables.propagate(e.getCause());
         }
-    }
-
-    // HTTP GET request
-    private static void sendGet(String host, String basicAuthTok) throws Exception {
-        //&archived=true
-        //https://confluence.jetbrains.com/display/TCD10/REST+API
-        String url1;
-        url1 = "http://ci.ignite.apache.org/app/rest/testOccurrences?locator=build:735392";
-        url1 = "http://ci.ignite.apache.org/app/rest/problemOccurrences?locator=build:735562";
-
-        String allInvocations = "http://ci.ignite.apache.org/app/rest/testOccurrences?locator=test:(name:org.apache.ignite.internal.processors.cache.distributed.IgniteCache150ClientsTest.test150Clients),expandInvocations:true";
-
-        String particularInvocation = "http://ci.ignite.apache.org/app/rest/testOccurrences/id:108126,build:(id:735392)";
-        String searchTest = "http://ci.ignite.apache.org/app/rest/tests/id:586327933473387239";
-
-        // http://ci.ignite.apache.org/app/rest/latest/builds/buildType:(id:Ignite20Tests_IgniteZooKeeper)
-        String projectId = "id8xIgniteGridGainTests";
-        String projects = host + "app/rest/latest/projects/" + projectId;
-
-        String s = "http://ci.ignite.apache.org/app/rest/latest/builds?locator=buildType:Ignite20Tests_IgniteZooKeeper,branch:pull/2296/head";
-
-        String response = HttpUtil.sendGetAsString(basicAuthTok, projects);
-
-        System.out.println(response);
-        Project load = XmlUtil.load(response, Project.class);
-
-        //print result
-        System.out.println(load);
-
-        for (BuildType bt : load.getBuildTypesNonNull()) {
-            System.err.println(bt.getName());
-        }
-
     }
 
 }

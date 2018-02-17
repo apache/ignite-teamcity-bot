@@ -1,11 +1,13 @@
 package org.apache.ignite.ci.analysis;
 
+import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 
 /**
  * Test run statistics
  */
+@Persisted
 public class RunStat {
     public int runs;
     public int failures;
@@ -49,7 +51,7 @@ public class RunStat {
     }
 
     private String getPercentPrintable(float percent) {
-        return String.format("%.0f", percent);
+        return String.format("%.1f", percent);
     }
 
     private float getFailPercent() {

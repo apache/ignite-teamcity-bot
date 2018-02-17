@@ -1,10 +1,9 @@
 package org.apache.ignite.ci.util;
 
-import java.io.StringReader;
+import java.io.Reader;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
 /**
@@ -15,7 +14,7 @@ public class XmlUtil {
     /** Cached context to save time on creation ctx each time. */
     private static ConcurrentHashMap<Class, JAXBContext> cachedCtx = new ConcurrentHashMap<>();
 
-    public static <T> T load(String xml, Class<T> tCls) throws JAXBException {
+    public static <T> T load(Class<T> tCls, Reader reader) throws JAXBException {
         final JAXBContext ctx = cachedCtx.computeIfAbsent(tCls, c -> {
             try {
                 return JAXBContext.newInstance(tCls);
@@ -25,6 +24,6 @@ public class XmlUtil {
             }
         });
         Unmarshaller unmarshaller = ctx.createUnmarshaller();
-        return (T) unmarshaller.unmarshal(new StringReader(xml));
+        return (T) unmarshaller.unmarshal(reader);
     }
 }

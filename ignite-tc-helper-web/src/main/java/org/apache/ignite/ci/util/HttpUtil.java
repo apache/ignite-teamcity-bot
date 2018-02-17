@@ -19,11 +19,6 @@ import java.util.concurrent.TimeUnit;
  * Methods for sending HTTP requests
  */
 public class HttpUtil {
-    public static String sendGetAsString(String basicAuthToken, String url) throws IOException {
-        try (InputStream inputStream = sendGetWithBasicAuth(basicAuthToken, url)){
-            return readIsToString(inputStream);
-        }
-    }
 
     private static String readIsToString(InputStream inputStream) throws IOException {
         BufferedReader in = new BufferedReader(
@@ -38,7 +33,7 @@ public class HttpUtil {
         return response.toString();
     }
 
-    private static InputStream sendGetWithBasicAuth(String basicAuthToken, String url) throws IOException {
+    public static InputStream sendGetWithBasicAuth(String basicAuthToken, String url) throws IOException {
         final Stopwatch started = Stopwatch.createStarted();
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();

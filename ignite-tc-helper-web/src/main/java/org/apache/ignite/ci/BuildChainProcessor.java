@@ -1,6 +1,5 @@
 package org.apache.ignite.ci;
 
-import com.google.common.base.Stopwatch;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -10,12 +9,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
+import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.jetbrains.annotations.NotNull;
@@ -137,26 +136,15 @@ public class BuildChainProcessor {
         return prevVal == null;
     }
 
-    @NotNull private static MultBuildRunCtx collectBuildContext(
+    @NotNull private static void collectBuildContext(
         MultBuildRunCtx outCtx, ITeamcity teamcity, boolean procLog,
         @Nullable Properties contactPersonProps, boolean includeScheduledInfo, Build build) {
 
-        teamcity.loadTestsAndProblems(build, outCtx);
+        SingleBuildRunCtx ctx = teamcity.loadTestsAndProblems(build, outCtx);
+        outCtx.addBuild(ctx);
 
         if (procLog && (outCtx.hasJvmCrashProblem() || outCtx.hasTimeoutProblem() || outCtx.hasOomeProblem())) {
-
-            final Stopwatch started = Stopwatch.createStarted();
-
-            try {
-                teamcity.processBuildLog(outCtx).get();
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            System.out.println(Thread.currentThread().getName()
-                + ": processBuildLog required: " + started.elapsed(TimeUnit.MILLISECONDS)
-                + "ms for " + build.suiteId());
+            ctx.setLogCheckResultsFut(teamcity.getLogCheckResults(ctx.buildId(), ctx));
         }
 
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {
@@ -174,7 +162,7 @@ public class BuildChainProcessor {
         if (contactPersonProps != null && outCtx.getContactPerson() == null)
             outCtx.setContactPerson(contactPersonProps.getProperty(outCtx.suiteId()));
 
-        return outCtx;
+
     }
 
     @Nullable private static Stream<? extends BuildRef> dependencies(ITeamcity teamcity, BuildRef ref) {

@@ -14,7 +14,6 @@ import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.ignite.ci.util.TimeUtil.getDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 
@@ -92,11 +91,15 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             failure.initStat(runStatSupplier);
             testFailures.add(failure);
         });
-        if (!isNullOrEmpty(suite.getLastStartedTest())) {
-            final TestFailure failure = new TestFailure();
-            failure.name = suite.getLastStartedTest() + " (last started)";
-            testFailures.add(failure);
-        }
+
+        suite.getCriticalFailLastStartedTest().forEach(
+            lastTest->{
+                final TestFailure failure = new TestFailure();
+                failure.name = lastTest + " (last started)";
+                testFailures.add(failure);
+            }
+        );
+
         if (suite.getThreadDumpFileIdx() != null) {
             webUrlThreadDump = "/rest/" + GetBuildLog.GET_BUILD_LOG + "/" + GetBuildLog.THREAD_DUMP
                 + "?" + GetBuildLog.SERVER_ID + "=" + teamcity.serverId()

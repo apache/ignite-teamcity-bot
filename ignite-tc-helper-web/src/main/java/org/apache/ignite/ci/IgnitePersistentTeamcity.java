@@ -21,7 +21,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.cache.Cache;
-import javax.cache.CacheException;
 import javax.cache.processor.EntryProcessor;
 import javax.cache.processor.EntryProcessorException;
 import javax.cache.processor.MutableEntry;
@@ -29,7 +28,11 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.analysis.Expirable;
+import org.apache.ignite.ci.analysis.ISuiteResults;
+import org.apache.ignite.ci.analysis.IVersioned;
+import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.db.Migrations;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -42,6 +45,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -56,6 +60,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     //V2 caches
     public static final String TESTS_OCCURRENCES = "testOccurrences";
     public static final String TESTS_RUN_STAT = "testsRunStat";
+    public static final String LOG_CHECK_RESULT = "logCheckResult";
 
     private final Ignite ignite;
     private final IgniteTeamcityHelper teamcity;
@@ -185,11 +190,13 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
     /** {@inheritDoc} */
     @Override public List<BuildRef> getRunningBuilds(String projectId, String branch) {
+        //todo cache or parse from build queue instead
         return teamcity.getRunningBuilds(projectId, branch);
     }
 
     /** {@inheritDoc} */
     @Override public List<BuildRef> getQueuedBuilds(String projectId, String branch) {
+        //todo cache or parse from build queue instead
         return teamcity.getQueuedBuilds(projectId, branch);
     }
 
@@ -218,8 +225,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     @NotNull private String ignCacheNme(String cache) {
-        String id = serverId;
-        return ignCacheNme(cache, id);
+        return ignCacheNme(cache, serverId);
     }
 
     @NotNull public static String ignCacheNme(String cache, String serverId) {
@@ -308,6 +314,13 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         return ignite.getOrCreateCache(ccfg);
     }
 
+    private IgniteCache<Integer, LogCheckResult> logCheckResultCache() {
+        CacheConfiguration<Integer, LogCheckResult> ccfg = new CacheConfiguration<>(ignCacheNme(LOG_CHECK_RESULT));
+        ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
+        return ignite.getOrCreateCache(ccfg);
+    }
+
+
     private void addTestOccurrenceToStat(TestOccurrence next) {
         String name = next.getName();
         if(Strings.isNullOrEmpty(name) )
@@ -368,11 +381,38 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
     }
 
+    @Override public CompletableFuture<T2<File, LogCheckResult>> processBuildLog(int buildId, ISuiteResults ctx) {
+        return teamcity.processBuildLog(buildId, ctx);
+    }
+
     @Override public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
         return teamcity.unzipFirstFile(fut);
     }
 
     @Override public CompletableFuture<File> downloadBuildLogZip(int id) {
         return teamcity.downloadBuildLogZip(id);
+    }
+
+    @Override public CompletableFuture<LogCheckResult> getLogCheckResults(Integer buildId, SingleBuildRunCtx ctx) {
+        return loadFutureIfAbsent(logCheckResultCache(), buildId,
+            k -> teamcity.getLogCheckResults(buildId, ctx));
+    }
+
+    public <K, V extends IVersioned> CompletableFuture<V> loadFutureIfAbsent(IgniteCache<K, V> cache,
+        K key,
+        Function<K, CompletableFuture<V>> submitFunction) {
+        @Nullable final V persistedValue = cache.get(key);
+
+        if (persistedValue != null
+            && persistedValue.version() >= persistedValue.latestVersion())
+            return CompletableFuture.completedFuture(persistedValue);
+
+        //todo caching of already submitted computations
+        CompletableFuture<V> apply = submitFunction.apply(key);
+
+        return apply.thenApplyAsync(val -> {
+            cache.put(key, val);
+            return val;
+        });
     }
 }
