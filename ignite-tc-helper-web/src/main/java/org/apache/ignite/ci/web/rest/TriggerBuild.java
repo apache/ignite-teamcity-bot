@@ -1,6 +1,5 @@
 package org.apache.ignite.ci.web.rest;
 
-import com.google.common.base.Strings;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -33,7 +32,7 @@ public class TriggerBuild {
 
         final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
 
-        final IgniteCache<Object, Object> cache = ignite.cache(GetCurrTestFailures.CACHE_NAME);
+        final IgniteCache<Object, Object> cache = ignite.cache(GetCurrTestFailures.TEST_FAILURES_SUMMARY_CACHE_NAME);
         if (cache != null)
             cache.remove(branchName);
 
