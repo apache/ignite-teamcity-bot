@@ -14,4 +14,15 @@ public class ChangeRef extends AbstractRef {
     @XmlAttribute public String username;
     @XmlAttribute public String date;
     @XmlAttribute public String webUrl;
+
+    @Override public String toString() {
+        return "ChangeRef{" +
+            "href='" + href + '\'' +
+            ", id='" + id + '\'' +
+            ", version='" + version + '\'' +
+            ", username='" + username + '\'' +
+            ", date='" + date + '\'' +
+            ", webUrl='" + webUrl + '\'' +
+            '}';
+    }
 }

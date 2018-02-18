@@ -13,6 +13,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
+import org.apache.ignite.ci.tcmodel.changes.ChangesListRef;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
@@ -22,7 +23,7 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 @XmlRootElement(name = "build")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Build extends BuildRef implements IVersionedEntity {
-    public static final int LATEST_VERSION = 1;
+    public static final int LATEST_VERSION = 2;
     @XmlElement(name = "buildType") BuildType buildType;
 
     @XmlElement public String queuedDate;
@@ -39,7 +40,11 @@ public class Build extends BuildRef implements IVersionedEntity {
 
     @XmlElement(name = "statistics") public StatisticsRef statisticsRef;
 
+    /** Changes not included into build.*/
     @XmlElement(name = "lastChanges") public ChangesList lastChanges;
+
+    /** Changes included into build.*/
+    @XmlElement(name = "changes") public ChangesListRef changesRef;
 
     private Integer _version = LATEST_VERSION;
 

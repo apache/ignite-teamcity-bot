@@ -13,6 +13,7 @@ import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
+import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -101,6 +102,8 @@ public interface ITeamcity extends AutoCloseable {
 
     Change getChange(String href);
 
+    ChangesList getChangesList(String href);
+
     /**
      * Runs deep collection of all related statistics for particular build
      *
@@ -123,13 +126,24 @@ public interface ITeamcity extends AutoCloseable {
         }
 
         if (build.lastChanges != null) {
-            System.err.println("changes: " + build.lastChanges);
 
             for (ChangeRef next : build.lastChanges.changes) {
                 if(!isNullOrEmpty(next.href)) {
+                    // just to cache this change
+                    getChange(next.href);
+                }
+            }
+        }
 
-                    Change change = getChange(next.href);
-                    ctx.addChange(change);
+        if (build.changesRef != null) {
+            ChangesList changeList = getChangesList(build.changesRef.href);
+            System.err.println("changes: " + changeList);
+            if (changeList.changes != null) {
+                for (ChangeRef next : changeList.changes) {
+                    if (!isNullOrEmpty(next.href)) {
+                        // just to cache this change
+                        ctx.addChange(getChange(next.href));
+                    }
                 }
             }
         }

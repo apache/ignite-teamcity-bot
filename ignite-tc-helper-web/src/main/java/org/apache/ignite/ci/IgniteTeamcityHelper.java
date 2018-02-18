@@ -29,6 +29,7 @@ import org.apache.ignite.ci.logs.LogsAnalyzer;
 import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
 import org.apache.ignite.ci.tcmodel.changes.Change;
+import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
@@ -283,9 +284,12 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return getJaxbUsingHref(href, TestOccurrenceFull.class);
     }
 
-
     public Change getChange(String href) {
         return getJaxbUsingHref(href, Change.class);
+    }
+
+    public ChangesList getChangesList(String href) {
+        return getJaxbUsingHref(href, ChangesList.class);
     }
 
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {

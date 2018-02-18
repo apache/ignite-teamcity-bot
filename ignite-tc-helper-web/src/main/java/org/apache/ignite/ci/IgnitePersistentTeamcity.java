@@ -37,6 +37,7 @@ import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.db.Migrations;
 import org.apache.ignite.ci.tcmodel.changes.Change;
+import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -54,16 +55,19 @@ import org.jetbrains.annotations.NotNull;
  * Created by dpavlov on 03.08.2017
  */
 public class IgnitePersistentTeamcity implements ITeamcity {
+    //V1 caches, 1024 parts
     public static final String RUN_STAT_CACHE = "runStat";
 
     public static final String STAT = "stat";
     public static final String BUILD_RESULTS = "buildResults";
+    public static final String TEST_OCCURRENCE_FULL = "testOccurrenceFull";
 
-    //V2 caches
+    //V2 caches, 32 parts
     public static final String TESTS_OCCURRENCES = "testOccurrences";
     public static final String TESTS_RUN_STAT = "testsRunStat";
     public static final String LOG_CHECK_RESULT = "logCheckResult";
     public static final String CHANGE_INFO_FULL = "changeInfoFull";
+    public static final String CHANGES_LIST = "changesList";
 
     private final Ignite ignite;
     private final IgniteTeamcityHelper teamcity;
@@ -309,15 +313,17 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     @Override public TestOccurrenceFull getTestFull(String href) {
-        return loadIfAbsent("testOccurrenceFull",
+        return loadIfAbsent(TEST_OCCURRENCE_FULL,
             href,
             teamcity::getTestFull);
     }
 
     @Override public Change getChange(String href) {
-        return loadIfAbsentV2(CHANGE_INFO_FULL,
-            href,
-            teamcity::getChange);
+        return loadIfAbsentV2(CHANGE_INFO_FULL, href, teamcity::getChange);
+    }
+
+    @Override public ChangesList getChangesList(String href) {
+        return loadIfAbsentV2(CHANGES_LIST, href, teamcity::getChangesList);
     }
 
     public List<RunStat> topFailing(int count) {
