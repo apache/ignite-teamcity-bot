@@ -69,7 +69,13 @@ function triggerBuild(serverId, suiteId, branchName) {
 //@param suite - see SuiteCurrentStatus
 function showSuiteData(suite) {
     var res = "";
-    var altTxt = "duration: " + suite.durationPrintable;
+    var altTxt = "";
+
+    if(isDefinedAndFilled(suite.userCommits) && suite.userCommits!="") {
+        altTxt+="last commits from: " + suite.userCommits + " ";
+    }
+
+    altTxt+= "duration: " + suite.durationPrintable + " ";
     res += "&nbsp; ";
 
     var failRateText="";
