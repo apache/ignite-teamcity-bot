@@ -2,7 +2,13 @@
 //loadStatus element should be provided on page
 
 //@param results - TestFailuresSummary
+var g_lastJson = ""
+var g_lastHtml = ""
+
 function showChainOnServersResults(result) {
+     if(result==g_lastJson)
+        return g_lastHtml;
+        
      var res = "";
      res += "Chain results";
      if(isDefinedAndFilled(result.failedTests) &&
@@ -17,6 +23,11 @@ function showChainOnServersResults(result) {
         var server = result.servers[i];
         res += showChainAtServerData(server);
     }
+
+    setTimeout(initMoreInfo, 100);
+
+    g_lastJson=result;
+    g_lastHtml=res;
 
     return res;
 }
@@ -72,17 +83,17 @@ function showSuiteData(suite) {
     var altTxt = "";
 
     if(isDefinedAndFilled(suite.userCommits) && suite.userCommits!="") {
-        altTxt+="last commits from: " + suite.userCommits + " ";
+        altTxt+="Last commits from: " + suite.userCommits + " <br>";
     }
 
-    altTxt+= "duration: " + suite.durationPrintable + " ";
+    altTxt+= "Duration: " + suite.durationPrintable + " <br>";
     res += "&nbsp; ";
 
     var failRateText="";
     if (isDefinedAndFilled(suite.failures) && isDefinedAndFilled(suite.runs)  && isDefinedAndFilled(suite.failureRate)) {
-        altTxt += "; " + suite.failures + " fails / " + suite.runs + " runs in all tracked branches in helper DB";
+        altTxt += "Stat: " + suite.failures + " fails / " + suite.runs + " runs in all tracked branches in helper DB";
         failRateText += "(fail rate " + suite.failureRate + "%)";
-        altTxt +="; " + failRateText;
+        altTxt +="; " + failRateText + " <br>   ";
     }
     var color = failureRateToColor(suite.failureRate);
     res += " <span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='"+failRateText+"'></span> ";
@@ -105,12 +116,21 @@ function showSuiteData(suite) {
         res+="" + suite.queuedBuildCount + " queued";
     }
 
+
+    res+= "<span class='container'>";
+    res+= " <a href='javascript:void(0);' class='header'>More info &gt;&gt;</a>";
+
+    res+= "<div class='content'>";
     if(isDefinedAndFilled(suite.serverId) && isDefinedAndFilled(suite.suiteId) && isDefinedAndFilled(suite.branchName)) {
         res+=" <a href='javascript:void(0);' ";
         res+=" onClick='triggerBuild(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \""+suite.branchName+"\")' ";
         res+=" title='trigger build'";
-        res+=" >run</a> ";
+        res+=" >trigger build</a><br>";
     }
+
+    res+= altTxt;
+    res+= "</div></span>";
+
     res+=" <br>";
 
     for (var i = 0; i < suite.testFailures.length; i++) {
@@ -203,4 +223,22 @@ function showTestFailData(testFail) {
 
     res += " <br>";
     return res;
+}
+
+function initMoreInfo() {
+$(".header").click(function () {
+    $header = $(this);
+    //getting the next element
+    $content = $header.next();
+    //open up the content needed - toggle the slide- if visible, slide up, if not slidedown.
+    $content.slideToggle(500, function () {
+        //execute this after slideToggle is done
+        //change text of header based on visibility of content div
+        $header.text(function () {
+            //change text based on condition
+            return $content.is(":visible") ? "Hide <<" : "More info >>";
+        });
+    });
+
+});
 }

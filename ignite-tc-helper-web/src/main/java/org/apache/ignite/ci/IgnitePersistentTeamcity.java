@@ -230,8 +230,11 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
         final Build loaded = realLoadBuild(href);
         //can't reload, but cached has value
-        if (loaded.isFakeStub() && persistedBuild != null && persistedBuild.isOutdatedEntityVersion())
+        if (loaded.isFakeStub() && persistedBuild != null && persistedBuild.isOutdatedEntityVersion()) {
+            persistedBuild._version = persistedBuild.latestVersion();
+            
             return persistedBuild;
+        }
 
         if (loaded.getId() == null || loaded.hasFinishDate())
             cache.put(href, loaded);

@@ -13,3 +13,12 @@ input {
 	font-variant: normal;
 	font-weight: 500;
 }
+
+.container {
+    width:100%;
+    border:1px solid #d3d3d3;
+}
+
+.container .content {
+    display: none; 
+}
