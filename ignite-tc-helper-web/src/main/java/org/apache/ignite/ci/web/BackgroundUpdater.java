@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.web;
 
+import com.google.common.base.Stopwatch;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,6 +41,7 @@ public class BackgroundUpdater {
 
         //Lazy calculation of required value
         final Callable<V> loadAndSaveCallable = () -> {
+            Stopwatch started = Stopwatch.createStarted();
             System.err.println("Running background upload for [" + cacheName + "] for key [" + key + "]");
             V val = null;  //todo how to handle non first load error
             try {
@@ -47,13 +49,15 @@ public class BackgroundUpdater {
             }
             catch (Exception e) {
                 System.err.println("Failed to complete background upload for [" + cacheName + "] " +
-                    "for key [" + key + "]");
+                    "for key [" + key + "], required " + started.elapsed(TimeUnit.MILLISECONDS) + " ms");
 
                 e.printStackTrace();
                 throw e;
             }
             currCache.put(key, new Expirable<V>(val));
-            System.err.println("Successfully completed background upload for [" + cacheName + "] for key [" + key + "]");
+            System.err.println("Successfully completed background upload for [" + cacheName + "] " +
+                "for key [" + key + "], required " + started.elapsed(TimeUnit.MILLISECONDS) + " ms");
+
             return val;
         };
 
@@ -67,7 +71,7 @@ public class BackgroundUpdater {
         final Expirable<V> expirable = currCache.get(key);
 
         if (expirable == null || isExpired(expirable)) {
-            Function<T2<String, ?>, Future<?>> startingFunction = (k) -> service.submit(loadAndSaveCallable);
+            Function<T2<String, ?>, Future<?>> startingFunction = (k) -> getService().submit(loadAndSaveCallable);
             Future<?> fut = scheduledUpdates.computeIfAbsent(computationKey, startingFunction);
 
             if (expirable == null || isTooOld(expirable)) {
@@ -93,6 +97,10 @@ public class BackgroundUpdater {
         final V data = expirable.getData();
         data.setUpdateRequired(isExpired(expirable)); //considered actual
         return data;
+    }
+
+    public ExecutorService getService() {
+        return service;
     }
 
     private <V extends IBackgroundUpdatable> boolean isExpired(Expirable<V> expirable) {

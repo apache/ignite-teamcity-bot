@@ -4,7 +4,9 @@ import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -62,6 +64,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Registered percent of fails from TC helper DB */
     @Nullable public String failureRate;
 
+    public String userCommits = "";
+
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final MultBuildRunCtx suite,
         @Nullable final Function<String, RunStat> runStatSupplier,
@@ -76,6 +80,13 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
                 failureRate = stat.getFailPercentPrintable();
             }
         }
+
+        Set<String> collect = suite.lastChangeUsers().collect(Collectors.toSet());
+
+        if(!collect.isEmpty()) {
+            userCommits = collect.toString();
+        }
+
         result = suite.getResult();
         failedTests = suite.failedTests();
         durationPrintable = getDurationPrintable(suite.getBuildDuration());

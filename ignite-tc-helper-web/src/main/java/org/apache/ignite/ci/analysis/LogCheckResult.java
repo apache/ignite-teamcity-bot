@@ -6,7 +6,7 @@ import org.apache.ignite.ci.db.Persisted;
  * Created by Дмитрий on 17.02.2018.
  */
 @Persisted
-public class LogCheckResult implements IVersioned {
+public class LogCheckResult implements IVersionedEntity {
     public static final int LATEST_VERSION = 2;
 
     private int version = LATEST_VERSION;

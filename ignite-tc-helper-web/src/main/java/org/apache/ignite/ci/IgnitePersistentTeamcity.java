@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -29,12 +30,13 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.analysis.Expirable;
 import org.apache.ignite.ci.analysis.ISuiteResults;
-import org.apache.ignite.ci.analysis.IVersioned;
+import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.db.Migrations;
+import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -61,10 +63,15 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     public static final String TESTS_OCCURRENCES = "testOccurrences";
     public static final String TESTS_RUN_STAT = "testsRunStat";
     public static final String LOG_CHECK_RESULT = "logCheckResult";
+    public static final String CHANGE_INFO_FULL = "changeInfoFull";
 
     private final Ignite ignite;
     private final IgniteTeamcityHelper teamcity;
     private final String serverId;
+
+    public IgnitePersistentTeamcity(Ignite ignite, String serverId) {
+        this(ignite, new IgniteTeamcityHelper(serverId));
+    }
 
     public IgnitePersistentTeamcity(Ignite ignite, IgniteTeamcityHelper teamcity) {
         this.ignite = ignite;
@@ -76,15 +83,14 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         migrations.dataMigration(testOccurrencesCache(), this::addTestOccurrencesToStat);
     }
 
-
     public IgniteCache<String, TestOccurrences> testOccurrencesCache() {
-        CacheConfiguration<String, TestOccurrences> ccfg = new CacheConfiguration<>(ignCacheNme(TESTS_OCCURRENCES));
-        ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
-        return ignite.getOrCreateCache(ccfg);
+        return getOrCreateV2(ignCacheNme(TESTS_OCCURRENCES));
     }
 
-    public IgnitePersistentTeamcity(Ignite ignite, String serverId) {
-        this(ignite, new IgniteTeamcityHelper(serverId));
+    public <K, V> IgniteCache<K, V> getOrCreateV2(String name) {
+        CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
+        ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
+        return ignite.getOrCreateCache(ccfg);
     }
 
     @Override public CompletableFuture<List<BuildType>> getProjectSuites(String projectId) {
@@ -97,6 +103,10 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
     public <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction) {
         return loadIfAbsent(cacheName, key, loadFunction, (V v) -> true);
+    }
+
+    public <K, V> V loadIfAbsentV2(String cacheName, K key, Function<K, V> loadFunction) {
+        return loadIfAbsent(getOrCreateV2(ignCacheNme(cacheName)), key, loadFunction, (V v) -> true);
     }
 
     public <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction, Predicate<V> saveValueFilter) {
@@ -164,7 +174,8 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             });
     }
 
-    @NotNull private List<BuildRef> mergeByIdToHistoricalOrder(List<BuildRef> persistedVal, List<BuildRef> mostActualVal) {
+    @NotNull
+    private List<BuildRef> mergeByIdToHistoricalOrder(List<BuildRef> persistedVal, List<BuildRef> mostActualVal) {
         final SortedMap<Integer, BuildRef> merge = new TreeMap<>();
         if (persistedVal != null)
             persistedVal.forEach(b -> merge.put(b.getId(), b));
@@ -175,13 +186,13 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     //loads build history with following parameter: defaultFilter:false,state:finished
+
     /** {@inheritDoc} */
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
         return timedLoadIfAbsentOrMerge("finishedBuildsIncludeFailed", 60, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch);
-
 
                 return mergeByIdToHistoricalOrder(persistedValue,
                     failed);
@@ -203,25 +214,39 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     /** {@inheritDoc} */
     @Nullable
     @Override public Build getBuildResults(String href) {
-        return loadIfAbsent(BUILD_RESULTS,
-            href,
-            href1 -> {
-                try {
-                    return teamcity.getBuildResults(href1);
-                }
-                catch (Exception e) {
-                    if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                        e.printStackTrace();
-                        return new Build();// save null result, because persistence may refer to some  unexistent build on TC
-                    }
-                    else
-                        throw e;
-                }
-            },
-            build -> {
-                return build.getId() == null || build.hasFinishDate();
-            }); //only completed builds are saved
+        final IgniteCache<String, Build> cache = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
 
+        @Nullable final Build persistedBuild = cache.get(href);
+
+        if (persistedBuild != null) {
+            if (!persistedBuild.isOutdatedEntityVersion())
+                return persistedBuild;
+        }
+
+
+        final Build loaded = realLoadBuild(href);
+        //can't reload, but cached has value
+        if (loaded.isFakeStub() && persistedBuild != null && persistedBuild.isOutdatedEntityVersion())
+            return persistedBuild;
+
+        if (loaded.getId() == null || loaded.hasFinishDate())
+            cache.put(href, loaded);
+
+        return loaded;
+    }
+
+    public Build realLoadBuild(String href1) {
+        try {
+            return teamcity.getBuildResults(href1);
+        }
+        catch (Exception e) {
+            if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                e.printStackTrace();
+                return new Build();// save null result, because persistence may refer to some  unexistent build on TC
+            }
+            else
+                throw e;
+        }
     }
 
     @NotNull private String ignCacheNme(String cache) {
@@ -289,6 +314,12 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             teamcity::getTestFull);
     }
 
+    @Override public Change getChange(String href) {
+        return loadIfAbsentV2(CHANGE_INFO_FULL,
+            href,
+            teamcity::getChange);
+    }
+
     public List<RunStat> topFailing(int count) {
         Stream<RunStat> data = allTestAnalysis();
         return CollectionUtil.top(data, count, Comparator.comparing(RunStat::getFailRate));
@@ -309,24 +340,19 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     private IgniteCache<String, RunStat> testRunStatCache() {
-        CacheConfiguration<String, RunStat> ccfg = new CacheConfiguration<>(ignCacheNme(TESTS_RUN_STAT));
-        ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
-        return ignite.getOrCreateCache(ccfg);
+        return getOrCreateV2(ignCacheNme(TESTS_RUN_STAT));
     }
 
     private IgniteCache<Integer, LogCheckResult> logCheckResultCache() {
-        CacheConfiguration<Integer, LogCheckResult> ccfg = new CacheConfiguration<>(ignCacheNme(LOG_CHECK_RESULT));
-        ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
-        return ignite.getOrCreateCache(ccfg);
+        return getOrCreateV2(ignCacheNme(LOG_CHECK_RESULT));
     }
-
 
     private void addTestOccurrenceToStat(TestOccurrence next) {
         String name = next.getName();
-        if(Strings.isNullOrEmpty(name) )
+        if (Strings.isNullOrEmpty(name))
             return;
 
-        if(next.isMutedTest() || next.isIgnoredTest())
+        if (next.isMutedTest() || next.isIgnoredTest())
             return;
 
         testRunStatCache().invoke(name, new EntryProcessor<String, RunStat, Object>() {
@@ -359,7 +385,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     public Map<String, RunStat> runSuiteAnalysis() {
         return timedLoadIfAbsent(ignCacheNme(RUN_STAT_CACHE),
             60 * 5, "runSuiteAnalysis",
-            k ->  runSuiteAnalysisNoCache());
+            k -> runSuiteAnalysisNoCache());
     }
 
     @NotNull private Map<String, RunStat> runSuiteAnalysisNoCache() {
@@ -398,13 +424,12 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             k -> teamcity.getLogCheckResults(buildId, ctx));
     }
 
-    public <K, V extends IVersioned> CompletableFuture<V> loadFutureIfAbsent(IgniteCache<K, V> cache,
+    public <K, V extends IVersionedEntity> CompletableFuture<V> loadFutureIfAbsent(IgniteCache<K, V> cache,
         K key,
         Function<K, CompletableFuture<V>> submitFunction) {
         @Nullable final V persistedValue = cache.get(key);
 
-        if (persistedValue != null
-            && persistedValue.version() >= persistedValue.latestVersion())
+        if (persistedValue != null && !persistedValue.isOutdatedEntityVersion())
             return CompletableFuture.completedFuture(persistedValue);
 
         //todo caching of already submitted computations
@@ -414,5 +439,9 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             cache.put(key, val);
             return val;
         });
+    }
+
+    public void setExecutor(ExecutorService executor) {
+        this.teamcity.setExecutor(executor);
     }
 }

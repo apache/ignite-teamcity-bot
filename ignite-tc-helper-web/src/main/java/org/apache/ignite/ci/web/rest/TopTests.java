@@ -39,6 +39,8 @@ public class TopTests {
         final List<FailingTest> res = new ArrayList<>();
         for (ChainAtServerTracked chainTracked : branchMandatory(branchOrNull).chains) {
             try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
+                teamcity.setExecutor(CtxListener.getPool(context));
+
                 int cnt = count == null ? 10 : count;
                 teamcity.topFailing(cnt).stream().map(this::converToUiModel).forEach(res::add);
             }
@@ -55,6 +57,8 @@ public class TopTests {
         final List<FailingTest> res = new ArrayList<>();
         for (ChainAtServerTracked chainTracked : branchMandatory(branchOrNull).chains) {
             try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
+                teamcity.setExecutor(CtxListener.getPool(context));
+
                 int cnt = count == null ? 10 : count;
                 teamcity.topFailingSuite(cnt).stream().map(this::converToUiModel).forEach(res::add);
             }
@@ -72,6 +76,8 @@ public class TopTests {
         final List<FailingTest> res = new ArrayList<>();
         for (ChainAtServerTracked chainTracked : tracked.chains) {
             try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
+                teamcity.setExecutor(CtxListener.getPool(context));
+
                 int cnt = count == null ? 10 : count;
                 teamcity.topLongRunning(cnt).stream().map(this::converToUiModel).forEach(res::add);
             }

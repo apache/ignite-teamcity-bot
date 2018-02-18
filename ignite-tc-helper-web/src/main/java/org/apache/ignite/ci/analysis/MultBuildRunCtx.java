@@ -316,4 +316,10 @@ public class MultBuildRunCtx implements ISuiteResults {
             .map(Optional::get);
     }
 
+    public Stream<String> lastChangeUsers() {
+        return builds.stream()
+            .flatMap(k -> k.getChanges().stream())
+            .map(change -> change.username)
+            .filter(Objects::nonNull);
+    }
 }

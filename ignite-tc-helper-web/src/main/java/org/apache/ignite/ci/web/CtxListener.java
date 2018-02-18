@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.web;
 
+import java.util.concurrent.ExecutorService;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -14,13 +15,29 @@ public class CtxListener implements ServletContextListener {
 
     public static final String UPDATER = "updater";
 
+    public static final String POOL = "pool";
+
+    public static Ignite getIgnite(ServletContext context) {
+        return (Ignite)context.getAttribute(IGNITE);
+    }
+
     @Override public void contextInitialized(ServletContextEvent sctxEvt) {
         final Ignite ignite = TcHelperDb.start();
         final ServletContext ctx = sctxEvt.getServletContext();
         ctx.setAttribute(IGNITE, ignite);
 
-        ctx.setAttribute(UPDATER, new BackgroundUpdater(ignite));
+        BackgroundUpdater object = new BackgroundUpdater(ignite);
+
+        ctx.setAttribute(UPDATER, object);
+
+        ctx.setAttribute(POOL, object.getService());
     }
+
+
+    public static ExecutorService getPool(ServletContext context) {
+        return (ExecutorService)context.getAttribute(POOL);
+    }
+
 
     @Override public void contextDestroyed(ServletContextEvent sctxEvt) {
         final ServletContext ctx = sctxEvt.getServletContext();

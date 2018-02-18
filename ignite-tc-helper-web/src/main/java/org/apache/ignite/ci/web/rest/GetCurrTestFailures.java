@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
@@ -61,6 +62,8 @@ public class GetCurrTestFailures {
             .map(chainTracked -> {
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
                 try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
+                    teamcity.setExecutor(CtxListener.getPool(context));
+
                     Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
                         chainTracked.getSuiteIdMandatory(),
                         chainTracked.getBranchForRestMandatory(),
@@ -101,10 +104,13 @@ public class GetCurrTestFailures {
         @Nonnull @QueryParam("suiteId") String suiteId,
         @Nonnull @QueryParam("branchForTc") String branchForTc) {
         final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
+        final ExecutorService pool = (ExecutorService)context.getAttribute(CtxListener.POOL);
 
         final TestFailuresSummary res = new TestFailuresSummary();
         //using here non persistent TC allows to skip update statistic
         try (IgniteTeamcityHelper teamcity = new IgniteTeamcityHelper(serverId)) {
+            teamcity.setExecutor(pool);
+
             Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
                 suiteId, branchForTc,
                 LatestRebuildMode.LATEST);

@@ -39,6 +39,8 @@ public class Metrics {
         CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
         //todo take from branches.json
         try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
+            teamcity.setExecutor(CtxListener.getPool(context));
+
             collectHistory(history, teamcity, "IgniteTests24Java8_RunAll", "refs/heads/master");
         }
         return convertToChart(history);
@@ -66,6 +68,8 @@ public class Metrics {
         Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
         CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
         try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
+            teamcity.setExecutor(CtxListener.getPool(context));
+
             collectHistory(history, teamcity, "id8xIgniteGridGainTestsJava8_RunAll", "refs/heads/master");
         }
         return convertToChart(history);

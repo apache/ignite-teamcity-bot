@@ -5,11 +5,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.analysis.ISuiteResults;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.tcmodel.changes.Change;
+import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -22,6 +25,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.ignite.ci.db.Migrations.TESTS_COUNT_7700;
 
 /**
@@ -95,6 +99,8 @@ public interface ITeamcity extends AutoCloseable {
 
     TestOccurrenceFull getTestFull(String href);
 
+    Change getChange(String href);
+
     /**
      * Runs deep collection of all related statistics for particular build
      *
@@ -114,6 +120,18 @@ public interface ITeamcity extends AutoCloseable {
 
             mCtx.addProblems(problems);
             ctx.setProblems(problems);
+        }
+
+        if (build.lastChanges != null) {
+            System.err.println("changes: " + build.lastChanges);
+
+            for (ChangeRef next : build.lastChanges.changes) {
+                if(!isNullOrEmpty(next.href)) {
+
+                    Change change = getChange(next.href);
+                    ctx.addChange(change);
+                }
+            }
         }
 
         if (build.testOccurrences != null) {
@@ -149,4 +167,6 @@ public interface ITeamcity extends AutoCloseable {
     CompletableFuture<File> downloadBuildLogZip(int id);
 
     CompletableFuture<LogCheckResult> getLogCheckResults(Integer buildId, SingleBuildRunCtx ctx);
+
+    void setExecutor(ExecutorService pool);
 }

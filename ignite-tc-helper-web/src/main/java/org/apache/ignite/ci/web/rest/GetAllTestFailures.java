@@ -64,6 +64,8 @@ public class GetAllTestFailures {
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
         for (ChainAtServerTracked chainAtServerTracked : tracked.chains) {
             try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainAtServerTracked.serverId)) {
+                teamcity.setExecutor(CtxListener.getPool(context));
+
                 final String projectId = chainAtServerTracked.getSuiteIdMandatory();
                 final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
                     projectId,

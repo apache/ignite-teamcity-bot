@@ -11,6 +11,8 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.ignite.ci.analysis.IVersionedEntity;
+import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
@@ -19,7 +21,8 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
  */
 @XmlRootElement(name = "build")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class Build extends BuildRef {
+public class Build extends BuildRef implements IVersionedEntity {
+    public static final int LATEST_VERSION = 1;
     @XmlElement(name = "buildType") BuildType buildType;
 
     @XmlElement public String queuedDate;
@@ -35,6 +38,10 @@ public class Build extends BuildRef {
     @XmlElement(name = "testOccurrences") public TestOccurrencesRef testOccurrences;
 
     @XmlElement(name = "statistics") public StatisticsRef statisticsRef;
+
+    @XmlElement(name = "lastChanges") public ChangesList lastChanges;
+
+    private Integer _version = LATEST_VERSION;
 
     public List<BuildRef> getSnapshotDependenciesNonNull() {
         return snapshotDependencies == null ? Collections.emptyList() : snapshotDependencies;
@@ -67,5 +74,13 @@ public class Build extends BuildRef {
 
     public BuildType getBuildType() {
         return buildType;
+    }
+
+    @Override public int version() {
+        return _version == null ? 0 : _version;
+    }
+
+    @Override public int latestVersion() {
+        return LATEST_VERSION;
     }
 }
