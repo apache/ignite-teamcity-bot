@@ -39,6 +39,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     public String contactPerson;
 
     public List<TestFailure> testFailures = new ArrayList<>();
+    public List<TestFailure> topLongRunning = new ArrayList<>();
 
     /** Web Href. to thread dump display */
     @Nullable public String webUrlThreadDump;
@@ -94,7 +95,6 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         webToHist = buildWebLink(teamcity, suite);
         webToBuild = buildWebLinkToBuild(teamcity, suite);
         suite.getFailedTests().forEach(occurrence -> {
-
             Stream<TestOccurrenceFull> stream = suite.getFullTests(occurrence);
 
             final TestFailure failure = new TestFailure();

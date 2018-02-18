@@ -1,6 +1,5 @@
 package org.apache.ignite.ci.analysis;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -42,6 +41,12 @@ public class MultTestFailureOccurrences implements ITestFailureOccurrences {
 
     @Override public int failuresCount() {
         return getFailedButNotMutedCount();
+    }
+
+    public long getAvgDurationMs() {
+        //todo avg
+        Stream<Long> stream = occurrences.stream().map(TestOccurrence::getDuration);
+        return stream.findAny().orElse(0L);
     }
 
     public void add(TestOccurrence next) {

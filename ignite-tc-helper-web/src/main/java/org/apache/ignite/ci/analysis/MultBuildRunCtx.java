@@ -1,6 +1,7 @@
 package org.apache.ignite.ci.analysis;
 
 import com.google.common.base.Strings;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,7 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.TimeUtil;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,16 +39,13 @@ public class MultBuildRunCtx implements ISuiteResults {
 
 
     /** Tests: Map from full test name to multiple test ocurrence. */
-    @Nullable private Map<String, MultTestFailureOccurrences> tests = new ConcurrentSkipListMap<>();
+    private final Map<String, MultTestFailureOccurrences> tests = new ConcurrentSkipListMap<>();
 
     /**
      * Mapping for building test occurrence reference to test full results:
      * Map from "Occurrence in build id" test detailed info.
      */
     private Map<String, TestOccurrenceFull> testFullMap = new HashMap<>();
-
-    @Deprecated
-    private String lastStartedTest;
 
     /** Used for associating build info with contact person */
     @Nullable private String contactPerson;
@@ -206,6 +205,11 @@ public class MultBuildRunCtx implements ISuiteResults {
         return res;
     }
 
+    public Stream<? extends ITestFailureOccurrences> getTopLongRunning() {
+        Stream<MultTestFailureOccurrences> stream = tests.values().stream();
+        Comparator<MultTestFailureOccurrences> comparing = Comparator.comparing(MultTestFailureOccurrences::getAvgDurationMs);
+        return CollectionUtil.top(stream, 3, comparing).stream();
+    }
     public Stream<? extends ITestFailureOccurrences> getFailedTests() {
         return tests.values().stream().filter(MultTestFailureOccurrences::hasFailedButNotMuted);
     }
@@ -241,8 +245,6 @@ public class MultBuildRunCtx implements ISuiteResults {
     public String getContactPersonOrEmpty() {
         return Strings.nullToEmpty(contactPerson);
     }
-
-
 
     public void setStat(Statistics stat) {
         this.stat = stat;
@@ -280,11 +282,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return type.getProjectId();
     }
 
-
-    public void setThreadDumpFileIdx(Integer threadDumpFileIdx) {
-        this.threadDumpFileIdx = threadDumpFileIdx;
-    }
-
+    @Deprecated
     @Nullable public Integer getThreadDumpFileIdx() {
         return threadDumpFileIdx;
     }

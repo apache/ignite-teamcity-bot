@@ -51,4 +51,8 @@ public class TestOccurrence {
     public String getId() {
         return id;
     }
+
+    public long getDuration() {
+        return duration;
+    }
 }
