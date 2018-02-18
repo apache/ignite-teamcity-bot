@@ -15,9 +15,17 @@ public class TimeUtil {
         if (ms == null)
             return "";
 
-        String s = Duration.ofMillis(ms).toString();
-        if (s.length() > 2)
-            s = s.substring(2);
-        return s;
+        String durationStr = Duration.ofMillis(ms).toString();
+        if (durationStr.length() > 2)
+            return humanReadableFormat(durationStr);
+
+        return durationStr;
+    }
+
+    private static String humanReadableFormat(String durationStr) {
+        return durationStr
+            .substring(2)
+            .replaceAll("(\\d[HMS])(?!$)", "$1 ")
+            .toLowerCase();
     }
 }

@@ -129,6 +129,15 @@ function showSuiteData(suite) {
     }
 
     res+= altTxt;
+
+    if(isDefinedAndFilled(suite.topLongRunning) && suite.topLongRunning.length>0) {
+        res+="Top long running:<br>"
+
+        for (var i = 0; i < suite.topLongRunning.length; i++) {
+            res += showTestFailData(suite.topLongRunning[i]);
+        } 
+    }
+
     res+= "</div></span>";
 
     res+=" <br>";
@@ -209,6 +218,7 @@ function showTestFailData(testFail) {
         else
             histContent += "(fails: " + testFail.failures + "/" + testFail.runs + ")";
         histContent += "</span>";
+
     } else if(haveWeb) {
         histContent += " (test history)";
     }
@@ -217,6 +227,9 @@ function showTestFailData(testFail) {
     res += histContent;
     if (haveWeb)
         res += "</a>";
+
+    if(isDefinedAndFilled(testFail.durationPrintable))
+        res += " duration " +testFail.durationPrintable;
 
     if(investigated)
         res += "</span> ";

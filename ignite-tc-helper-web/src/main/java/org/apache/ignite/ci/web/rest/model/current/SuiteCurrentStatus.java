@@ -94,6 +94,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         contactPerson = suite.getContactPerson();
         webToHist = buildWebLink(teamcity, suite);
         webToBuild = buildWebLinkToBuild(teamcity, suite);
+
         suite.getFailedTests().forEach(occurrence -> {
             Stream<TestOccurrenceFull> stream = suite.getFullTests(occurrence);
 
@@ -101,6 +102,13 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             failure.initFromOccurrence(occurrence, stream, teamcity, suite);
             failure.initStat(runStatSupplier);
             testFailures.add(failure);
+        });
+
+        suite.getTopLongRunning().forEach(occurrence->{
+            final TestFailure failure = new TestFailure();
+            failure.initFromOccurrence(occurrence, Stream.empty(), teamcity, suite);
+            failure.initStat(runStatSupplier);
+            topLongRunning.add(failure);
         });
 
         suite.getCriticalFailLastStartedTest().forEach(

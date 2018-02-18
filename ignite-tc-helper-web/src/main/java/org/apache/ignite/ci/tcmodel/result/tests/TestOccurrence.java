@@ -53,6 +53,6 @@ public class TestOccurrence {
     }
 
     public long getDuration() {
-        return duration;
+        return duration != null ? duration : 0;
     }
 }

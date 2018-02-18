@@ -12,4 +12,6 @@ public interface ITestFailureOccurrences {
     public int occurrencesCount();
 
     public int failuresCount();
+
+    public long getAvgDurationMs();
 }

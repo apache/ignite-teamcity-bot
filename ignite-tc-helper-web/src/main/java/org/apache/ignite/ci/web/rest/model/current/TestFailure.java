@@ -13,6 +13,7 @@ import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
+import static org.apache.ignite.ci.util.TimeUtil.getDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.branchForLink;
 
@@ -53,6 +54,8 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     /** Has some open investigations. */
     public boolean investigated;
 
+    @Nullable public String durationPrintable;
+
     /**
      * @param failure
      * @param testFullOpt all related full test ocurrences
@@ -66,6 +69,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
         name = failure.getName();
         investigated = failure.isInvestigated();
         curFailures = failure.failuresCount();
+        durationPrintable = getDurationPrintable(failure.getAvgDurationMs());
 
         String[] split = Strings.nullToEmpty(name).split("\\:");
         if (split.length >= 2) {
