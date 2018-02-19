@@ -4,7 +4,6 @@ import com.google.common.base.Strings;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
@@ -17,7 +16,6 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
-import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.RunStat;
@@ -45,7 +43,7 @@ public class GetCurrTestFailures {
     @Path("failures")
     public TestFailuresSummary getTestFails(@Nullable @QueryParam("branch") String branchOrNull) {
         final String key = Strings.nullToEmpty(branchOrNull);
-        final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
+        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
         return updater.get(TEST_FAILURES_SUMMARY_CACHE_NAME, key, this::getTestFailsNoCache);
     }
 
@@ -90,7 +88,7 @@ public class GetCurrTestFailures {
         @Nonnull @QueryParam("suiteId") String suiteId,
         @Nonnull @QueryParam("branchForTc") String branchForTc) {
 
-        final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
+        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
         final T3<String, String, String> key = new T3<>(serverId, suiteId, branchForTc);
 
         return updater.get(CURRENT + "PrFailures", key,
@@ -100,27 +98,24 @@ public class GetCurrTestFailures {
     @GET
     @Path("prNoCache")
     @NotNull public TestFailuresSummary getPrFailuresNoCache(
-        @Nullable @QueryParam("serverId") String serverId,
+        @Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @Nonnull @QueryParam("branchForTc") String branchForTc) {
-        final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
-        final ExecutorService pool = (ExecutorService)context.getAttribute(CtxListener.POOL);
 
         final TestFailuresSummary res = new TestFailuresSummary();
         //using here non persistent TC allows to skip update statistic
-        try (IgniteTeamcityHelper teamcity = new IgniteTeamcityHelper(serverId)) {
-            teamcity.setExecutor(pool);
+        try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(CtxListener.getIgnite(context), srvId)) {
+            teamcity.setExecutor(CtxListener.getPool(context));
+            teamcity.setStatUpdateEnabled(false);
 
             Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
-                suiteId, branchForTc,
-                LatestRebuildMode.LATEST);
+                suiteId, branchForTc, LatestRebuildMode.LATEST);
 
             final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
             chainStatus.serverName = teamcity.serverId();
 
-            IgnitePersistentTeamcity teamcityP = new IgnitePersistentTeamcity(ignite, teamcity);
-            final Function<String, RunStat> supplier = teamcityP.getTestRunStatProvider();
-            final Map<String, RunStat> suiteAnalysis = teamcityP.runSuiteAnalysis();
+            final Function<String, RunStat> supplier = teamcity.getTestRunStatProvider();
+            final Map<String, RunStat> suiteAnalysis = teamcity.runSuiteAnalysis();
 
             pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, supplier, suiteAnalysis));
 

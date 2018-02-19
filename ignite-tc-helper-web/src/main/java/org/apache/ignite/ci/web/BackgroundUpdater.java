@@ -21,11 +21,16 @@ import org.apache.ignite.lang.IgniteClosure;
  * Component for storing catchable results into ignite and get updates
  */
 public class BackgroundUpdater {
+    /** Expire milliseconds, provide cached result with flag to update */
+    private static final long EXPIRE_MS = TimeUnit.MINUTES.toMillis(1);
+
+    /** Outdated milliseconds, don't provide cached result after. */
+    private static final long OUTDATED_MS = TimeUnit.HOURS.toMillis(1);
 
     private Ignite ignite;
     private Map<T2<String, ?>, Future<?>> scheduledUpdates = new ConcurrentHashMap<>();
     private ExecutorService service = Executors.newFixedThreadPool(10, r -> {
-        Thread thread =  Executors.defaultThreadFactory().newThread(r);
+        Thread thread = Executors.defaultThreadFactory().newThread(r);
 
         thread.setName("bgupd-" + thread.getName());
 
@@ -40,7 +45,7 @@ public class BackgroundUpdater {
         final IgniteCache<K, Expirable<V>> currCache = ignite.getOrCreateCache(cacheName);
 
         //Lazy calculation of required value
-        final Callable<V> loadAndSaveCallable = () -> {
+        final Callable<V> loadAndSaveCall = () -> {
             Stopwatch started = Stopwatch.createStarted();
             System.err.println("Running background upload for [" + cacheName + "] for key [" + key + "]");
             V val = null;  //todo how to handle non first load error
@@ -71,7 +76,7 @@ public class BackgroundUpdater {
         final Expirable<V> expirable = currCache.get(key);
 
         if (expirable == null || isExpired(expirable)) {
-            Function<T2<String, ?>, Future<?>> startingFunction = (k) -> getService().submit(loadAndSaveCallable);
+            Function<T2<String, ?>, Future<?>> startingFunction = (k) -> getService().submit(loadAndSaveCall);
             Future<?> fut = scheduledUpdates.computeIfAbsent(computationKey, startingFunction);
 
             if (expirable == null || isTooOld(expirable)) {
@@ -104,11 +109,11 @@ public class BackgroundUpdater {
     }
 
     private <V extends IBackgroundUpdatable> boolean isExpired(Expirable<V> expirable) {
-        return expirable.getAgeMs() > TimeUnit.MINUTES.toMillis(1);
+        return expirable.getAgeMs() > EXPIRE_MS;
     }
 
     private <V extends IBackgroundUpdatable> boolean isTooOld(Expirable<V> expirable) {
-        return expirable.getAgeMs() > TimeUnit.HOURS.toMillis(1);
+        return expirable.getAgeMs() > OUTDATED_MS;
     }
 
 

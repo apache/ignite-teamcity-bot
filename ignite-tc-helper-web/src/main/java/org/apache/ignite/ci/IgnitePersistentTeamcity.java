@@ -72,6 +72,8 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     private final Ignite ignite;
     private final IgniteTeamcityHelper teamcity;
     private final String serverId;
+    /** Statistics update in persisted cached enabled. */
+    private boolean statUpdateEnabled = true;
 
     public IgnitePersistentTeamcity(Ignite ignite, String serverId) {
         this(ignite, new IgniteTeamcityHelper(serverId));
@@ -289,9 +291,13 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             });
     }
 
-    public void addTestOccurrencesToStat(TestOccurrences value) {
+
+    public void addTestOccurrencesToStat(TestOccurrences val) {
+        if (!statUpdateEnabled)
+            return;
+
         //may use invoke all
-        List<TestOccurrence> tests = value.getTests();
+        List<TestOccurrence> tests = val.getTests();
         for (TestOccurrence next : tests) {
             addTestOccurrenceToStat(next);
         }
@@ -373,13 +379,14 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
                 TestOccurrence testOccurrence = (TestOccurrence)arguments[0];
 
-                RunStat value = entry.getValue();
-                if (value == null) {
-                    value = new RunStat(key);
-                }
-                value.addTestRun(testOccurrence);
+                RunStat val = entry.getValue();
+                if (val == null)
+                    val = new RunStat(key);
 
-                entry.setValue(value);
+                val.addTestRun(testOccurrence);
+
+                entry.setValue(val);
+
                 return null;
             }
         }, next);
@@ -452,5 +459,9 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
     public void setExecutor(ExecutorService executor) {
         this.teamcity.setExecutor(executor);
+    }
+
+    public void setStatUpdateEnabled(boolean statUpdateEnabled) {
+        this.statUpdateEnabled = statUpdateEnabled;
     }
 }

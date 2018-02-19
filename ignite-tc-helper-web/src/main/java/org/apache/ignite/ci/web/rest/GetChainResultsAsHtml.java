@@ -36,10 +36,10 @@ public class GetChainResultsAsHtml {
     
     //test here http://localhost:8080/rest/chainResults/html?serverId=public&buildId=1086222
     public void showChainOnServersResults(StringBuilder res, Integer buildId, String serverId) {
-        final Ignite ignite = CtxListener.getIgnite(context);
 
-        try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, serverId)) {
+        try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(CtxListener.getIgnite(context), serverId)) {
             teamcity.setExecutor(CtxListener.getPool(context));
+            teamcity.setStatUpdateEnabled(false);
 
             //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
             String hrefById = teamcity.getBuildHrefById(buildId);

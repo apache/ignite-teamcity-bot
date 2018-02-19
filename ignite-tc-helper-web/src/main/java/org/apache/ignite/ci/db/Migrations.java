@@ -39,11 +39,11 @@ public class Migrations {
     }
 
     public void dataMigration(
-        IgniteCache<String, TestOccurrences> occurrences, Consumer<TestOccurrences> save) {
+        Cache<String, TestOccurrences> testOccurrencesCache, Consumer<TestOccurrences> save) {
 
         doneMigrations = doneMigrationsCache();
 
-        applyMigration(TESTS + "-to-" + occurrences.getName(), () -> {
+        applyMigration(TESTS + "-to-" + testOccurrencesCache.getName(), () -> {
             String cacheNme = ignCacheNme(TESTS);
             IgniteCache<String, TestOccurrences> tests = ignite.getOrCreateCache(cacheNme);
 
@@ -56,7 +56,7 @@ public class Migrations {
                     String transformedKey = removeCountFromRef(entry.getKey());
                     TestOccurrences val = entry.getValue();
 
-                    if (occurrences.putIfAbsent(transformedKey, val))
+                    if (testOccurrencesCache.putIfAbsent(transformedKey, val))
                         save.accept(val);
                     
                     i++;

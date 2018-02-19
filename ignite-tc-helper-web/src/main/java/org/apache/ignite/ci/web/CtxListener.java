@@ -15,10 +15,14 @@ public class CtxListener implements ServletContextListener {
 
     public static final String UPDATER = "updater";
 
-    public static final String POOL = "pool";
+    private static final String POOL = "pool";
 
-    public static Ignite getIgnite(ServletContext context) {
-        return (Ignite)context.getAttribute(IGNITE);
+    public static Ignite getIgnite(ServletContext ctx) {
+        return (Ignite)ctx.getAttribute(IGNITE);
+    }
+
+    public  static BackgroundUpdater getBackgroundUpdater(ServletContext ctx) {
+        return (BackgroundUpdater)ctx.getAttribute(UPDATER);
     }
 
     @Override public void contextInitialized(ServletContextEvent sctxEvt) {
