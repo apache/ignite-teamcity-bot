@@ -39,7 +39,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     /** Registered number of runs from TC helper DB */
     @Nullable public Integer runs;
 
-    /** Registered percent of fails from TC helper DB */
+    /** Registered percent of fails from TC helper DB, comma is always used as separator char. */
     @Nullable public String failureRate;
 
     /** Link to test history */

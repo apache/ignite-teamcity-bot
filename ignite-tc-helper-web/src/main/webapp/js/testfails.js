@@ -134,7 +134,7 @@ function showSuiteData(suite) {
         res+="Top long running:<br>"
 
         for (var i = 0; i < suite.topLongRunning.length; i++) {
-            res += showTestFailData(suite.topLongRunning[i]);
+            res += showTestFailData(suite.topLongRunning[i], false);
         } 
     }
 
@@ -143,7 +143,7 @@ function showSuiteData(suite) {
     res+=" <br>";
 
     for (var i = 0; i < suite.testFailures.length; i++) {
-        res += showTestFailData(suite.testFailures[i]);
+        res += showTestFailData(suite.testFailures[i], true);
     }
 
     if(isDefinedAndFilled(suite.webUrlThreadDump)) {
@@ -179,7 +179,7 @@ function failureRateToColor(failureRate) {
 
 
 //@param testFail - see TestFailure
-function showTestFailData(testFail) {
+function showTestFailData(testFail, isFailureShown) {
     var res = "";
     res += "&nbsp; &nbsp; ";
 
@@ -211,7 +211,7 @@ function showTestFailData(testFail) {
 
     var haveWeb = isDefinedAndFilled(testFail.webUrl);
     var histContent = "";
-    if (testFail.failures != null && testFail.runs != null) {
+    if (isFailureShown && testFail.failures != null && testFail.runs != null) {
         histContent += " <span title='" + testFail.failures + " fails / " + testFail.runs + " runs in all tracked branches in helper DB'>";
         if(isDefinedAndFilled(testFail.failureRate))
             histContent += "(fail rate " + testFail.failureRate + "%)";
@@ -228,7 +228,7 @@ function showTestFailData(testFail) {
     if (haveWeb)
         res += "</a>";
 
-    if(isDefinedAndFilled(testFail.durationPrintable))
+    if(!isFailureShown && isDefinedAndFilled(testFail.durationPrintable))
         res += " duration " +testFail.durationPrintable;
 
     if(investigated)
