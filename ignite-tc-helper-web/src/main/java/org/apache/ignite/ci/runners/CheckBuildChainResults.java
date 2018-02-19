@@ -195,7 +195,7 @@ public class CheckBuildChainResults {
             suiteHist.map.computeIfAbsent(dateForMap, k -> {
                 FullChainRunCtx ctx = BuildChainProcessor.loadChainsContext(teamcity,
                     singletonList(next),
-                    LatestRebuildMode.NONE, false, null, false);
+                    LatestRebuildMode.NONE, false, null, false, null);
                 if (ctx == null)
                     return null;
 

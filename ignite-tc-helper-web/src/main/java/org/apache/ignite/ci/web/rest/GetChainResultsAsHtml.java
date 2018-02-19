@@ -23,6 +23,7 @@ import org.apache.ignite.ci.web.rest.model.current.TestFailure;
 import static java.lang.Float.parseFloat;
 import static javax.ws.rs.core.MediaType.TEXT_HTML;
 import static org.apache.ignite.internal.util.lang.GridFunc.isEmpty;
+import static org.apache.ignite.internal.util.lang.GridFunc.t;
 
 /**
  * Created by Дмитрий on 10.02.2018.
@@ -45,19 +46,17 @@ public class GetChainResultsAsHtml {
             BuildRef build = new BuildRef();
             build.setId(buildId);
             build.href = hrefById;
-            Optional<FullChainRunCtx> ctx =
+            Optional<FullChainRunCtx> ctxOptional =
                 BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,
                     Collections.singletonList(build),
-                    true, false, false);
+                    true, false, false, teamcity);
 
-            ctx.ifPresent(c -> {
+            ctxOptional.ifPresent(ctx -> {
                 ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus();
 
-                status.chainName = c.suiteName();
+                status.chainName = ctx.suiteName();
 
-                status.initFromContext(teamcity, c,
-                    teamcity.getTestRunStatProvider(),
-                    teamcity.getBuildFailureRunStatProvider());
+                status.initFromContext(teamcity, ctx, teamcity);
 
                 res.append(showChainAtServerData(status));
             });

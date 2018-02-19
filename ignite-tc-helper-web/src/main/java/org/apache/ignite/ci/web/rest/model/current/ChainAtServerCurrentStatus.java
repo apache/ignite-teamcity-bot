@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
+import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
 
 import static org.apache.ignite.ci.util.UrlUtil.escape;
@@ -30,14 +33,14 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
 
     public void initFromContext(ITeamcity teamcity,
         FullChainRunCtx ctx,
-        @Nullable final Function<String, RunStat> testsRunStatMap,
-        @Nullable final Function<String, RunStat> suiteRunStatMap) {
+        @Nullable ITcAnalytics tcAnalytics) {
         failedTests = 0;
         failedToFinish = 0;
-        ctx.failedChildSuites().forEach(
+        Stream<MultBuildRunCtx> stream = ctx.failedChildSuites();
+        stream.forEach(
             suite -> {
                 final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
-                suiteCurStatus.initFromContext(teamcity, suite, testsRunStatMap, suiteRunStatMap);
+                suiteCurStatus.initFromContext(teamcity, suite, tcAnalytics);
 
                 failedTests += suiteCurStatus.failedTests;
                 if (suite.hasAnyBuildProblemExceptTestOrSnapshot())

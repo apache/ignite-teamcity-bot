@@ -9,11 +9,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -27,12 +29,13 @@ public class BuildChainProcessor {
         ITeamcity teamcity,
         String suiteId,
         String branch,
-        LatestRebuildMode includeLatestRebuild) {
+        LatestRebuildMode includeLatestRebuild,
+        @Nullable ITcAnalytics tcAnalytics) {
         Optional<BuildRef> buildRef = teamcity.getLastBuildIncludeSnDepFailed(suiteId, branch);
 
         return buildRef.flatMap(
             build -> processBuildChains(teamcity, includeLatestRebuild, singletonList(build),
-                true, true, true));
+                true, true, true, tcAnalytics));
     }
 
     public static Optional<FullChainRunCtx> processBuildChains(
@@ -41,13 +44,14 @@ public class BuildChainProcessor {
         Collection<BuildRef> builds,
         boolean procLogs,
         boolean includeScheduled,
-        boolean showContacts) {
+        boolean showContacts,
+        @Nullable ITcAnalytics tcAnalytics) {
 
         final Properties responsible = showContacts ? getContactPersonProperties(teamcity) : null;
 
         final FullChainRunCtx val = loadChainsContext(teamcity, builds,
             includeLatestRebuild,
-            procLogs, responsible, includeScheduled);
+            procLogs, responsible, includeScheduled, tcAnalytics);
 
         return Optional.of(val);
     }
@@ -62,7 +66,8 @@ public class BuildChainProcessor {
         LatestRebuildMode includeLatestRebuild,
         boolean procLog,
         @Nullable Properties contactPersonProps,
-        boolean includeScheduledInfo) {
+        boolean includeScheduledInfo,
+        @Nullable ITcAnalytics tcAnalytics) {
 
         assert !entryPoints.isEmpty();
         //todo empty
@@ -114,10 +119,17 @@ public class BuildChainProcessor {
                 collectBuildContext(ctx, teamcity, procLog, contactPersonProps, includeScheduledInfo, build);
             });
 
-
         Collection<MultBuildRunCtx> values = buildsCtxMap.values();
         ArrayList<MultBuildRunCtx> contexts = new ArrayList<>(values);
-        if (contactPersonProps != null)
+        if (tcAnalytics != null) {
+            Function<MultBuildRunCtx, Float> function = ctx -> {
+                RunStat runStat = tcAnalytics.getBuildFailureRunStatProvider().apply(ctx.suiteId());
+
+                return runStat == null ? 0f : runStat.getFailRate();
+            };
+            contexts.sort(Comparator.comparing(function).reversed());
+        }
+        else if (contactPersonProps != null)
             contexts.sort(Comparator.comparing(MultBuildRunCtx::getContactPersonOrEmpty));
         else
             contexts.sort(Comparator.comparing(MultBuildRunCtx::suiteName));
@@ -143,9 +155,8 @@ public class BuildChainProcessor {
         SingleBuildRunCtx ctx = teamcity.loadTestsAndProblems(build, outCtx);
         outCtx.addBuild(ctx);
 
-        if (procLog && (outCtx.hasJvmCrashProblem() || outCtx.hasTimeoutProblem() || outCtx.hasOomeProblem())) {
+        if (procLog && (outCtx.hasJvmCrashProblem() || outCtx.hasTimeoutProblem() || outCtx.hasOomeProblem()))
             ctx.setLogCheckResultsFut(teamcity.getLogCheckResults(ctx.buildId(), ctx));
-        }
 
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {
             final String tcBranch = build.branchName == null ? ITeamcity.DEFAULT : build.branchName;
@@ -161,8 +172,6 @@ public class BuildChainProcessor {
 
         if (contactPersonProps != null && outCtx.getContactPerson() == null)
             outCtx.setContactPerson(contactPersonProps.getProperty(outCtx.suiteId()));
-
-
     }
 
     @Nullable private static Stream<? extends BuildRef> dependencies(ITeamcity teamcity, BuildRef ref) {
@@ -174,7 +183,7 @@ public class BuildChainProcessor {
         if(aNull.isEmpty())
             return Stream.of(ref);
 
-        ArrayList<BuildRef> cp = new ArrayList<>(aNull);
+        List<BuildRef> cp = new ArrayList<>(aNull);
 
         cp.add(ref);
 

@@ -54,7 +54,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Created by dpavlov on 03.08.2017
  */
-public class IgnitePersistentTeamcity implements ITeamcity {
+public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
 
     public static final String STAT = "stat";
     public static final String TEST_OCCURRENCE_FULL = "testOccurrenceFull";
@@ -248,7 +248,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         if (loaded.isFakeStub() || loaded.hasFinishDate()) {
             cache.put(href, loaded);
 
-            if( statUpdateEnabled) {
+            if (statUpdateEnabled) {
                 //todo update
                 addBuildToFailuresStat(loaded);
             }
@@ -340,8 +340,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             return;
 
         //may use invoke all
-        List<TestOccurrence> tests = val.getTests();
-        for (TestOccurrence next : tests) {
+        for (TestOccurrence next : val.getTests()) {
             addTestOccurrenceToStat(next);
         }
     }

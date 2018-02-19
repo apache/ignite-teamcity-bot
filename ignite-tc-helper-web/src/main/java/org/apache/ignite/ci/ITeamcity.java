@@ -126,7 +126,6 @@ public interface ITeamcity extends AutoCloseable {
         }
 
         if (build.lastChanges != null) {
-
             for (ChangeRef next : build.lastChanges.changes) {
                 if(!isNullOrEmpty(next.href)) {
                     // just to cache this change
@@ -137,7 +136,7 @@ public interface ITeamcity extends AutoCloseable {
 
         if (build.changesRef != null) {
             ChangesList changeList = getChangesList(build.changesRef.href);
-            System.err.println("changes: " + changeList);
+            // System.err.println("changes: " + changeList);
             if (changeList.changes != null) {
                 for (ChangeRef next : changeList.changes) {
                     if (!isNullOrEmpty(next.href)) {

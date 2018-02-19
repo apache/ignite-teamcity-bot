@@ -20,7 +20,7 @@ public class GetTrackedBranches {
     @GET
     @Path("version")
     public Version version() {
-        return new Version("20180218");
+        return new Version("20180219");
     }
 
     @GET

@@ -78,14 +78,11 @@ public class GetAllTestFailures {
                 Optional<FullChainRunCtx> chainCtxOpt
                     = BuildChainProcessor.processBuildChains(teamcity,
                     LatestRebuildMode.ALL, chains,
-                    false, false, true);
-
-                final Function<String, RunStat> map = teamcity.getTestRunStatProvider();
-                final Function<String, RunStat> suiteMap = teamcity.getBuildFailureRunStatProvider();
+                    false, false, true, teamcity);
 
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
                 chainStatus.serverName = teamcity.serverId();
-                chainCtxOpt.ifPresent(chainCtx -> chainStatus.initFromContext(teamcity, chainCtx, map, suiteMap));
+                chainCtxOpt.ifPresent(chainCtx -> chainStatus.initFromContext(teamcity, chainCtx, teamcity));
                 res.addChainOnServer(chainStatus);
 
             }

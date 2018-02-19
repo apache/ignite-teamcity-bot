@@ -210,6 +210,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         Comparator<MultTestFailureOccurrences> comparing = Comparator.comparing(MultTestFailureOccurrences::getAvgDurationMs);
         return CollectionUtil.top(stream, 3, comparing).stream();
     }
+
     public Stream<? extends ITestFailureOccurrences> getFailedTests() {
         return tests.values().stream().filter(MultTestFailureOccurrences::hasFailedButNotMuted);
     }

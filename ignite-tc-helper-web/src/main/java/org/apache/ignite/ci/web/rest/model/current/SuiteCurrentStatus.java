@@ -2,15 +2,19 @@ package org.apache.ignite.ci.web.rest.model.current;
 
 import com.google.common.base.Strings;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
@@ -69,12 +73,14 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final MultBuildRunCtx suite,
-        @Nullable final Function<String, RunStat> runStatSupplier,
-        @Nullable final Function<String, RunStat> suiteRunStat) {
+        @Nullable final ITcAnalytics tcAnalytics) {
 
         name = suite.suiteName();
-        if (!Strings.isNullOrEmpty(name) && suiteRunStat!=null) {
-            final RunStat stat = suiteRunStat.apply(name);
+
+        String suiteId = suite.suiteId();
+        if (!Strings.isNullOrEmpty(suiteId) && tcAnalytics != null) {
+            final RunStat stat = tcAnalytics.getBuildFailureRunStatProvider().apply(suiteId);
+
             if (stat != null) {
                 failures = stat.failures;
                 runs = stat.runs;
@@ -94,19 +100,34 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         webToHist = buildWebLink(teamcity, suite);
         webToBuild = buildWebLinkToBuild(teamcity, suite);
 
-        suite.getFailedTests().forEach(occurrence -> {
+        Stream<? extends ITestFailureOccurrences> tests = suite.getFailedTests();
+        if (tcAnalytics != null) {
+            Function<ITestFailureOccurrences, Float> function = foccur -> {
+                RunStat apply = tcAnalytics.getTestRunStatProvider().apply(foccur.getName());
+
+                return apply == null ? 0f : apply.getFailRate();
+            };
+            tests = tests.sorted(Comparator.comparing(function).reversed());
+        }
+
+        tests.forEach(occurrence -> {
             Stream<TestOccurrenceFull> stream = suite.getFullTests(occurrence);
 
             final TestFailure failure = new TestFailure();
             failure.initFromOccurrence(occurrence, stream, teamcity, suite);
-            failure.initStat(runStatSupplier);
+            if (tcAnalytics != null)
+                failure.initStat(tcAnalytics.getTestRunStatProvider());
+
             testFailures.add(failure);
         });
 
-        suite.getTopLongRunning().forEach(occurrence->{
+        suite.getTopLongRunning().forEach(occurrence -> {
             final TestFailure failure = new TestFailure();
             failure.initFromOccurrence(occurrence, Stream.empty(), teamcity, suite);
-            failure.initStat(runStatSupplier);
+
+            if (tcAnalytics != null)
+                failure.initStat(tcAnalytics.getTestRunStatProvider());
+
             topLongRunning.add(failure);
         });
 
@@ -128,7 +149,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         runningBuildCount = suite.runningBuildCount();
         queuedBuildCount = suite.queuedBuildCount();
         serverId = teamcity.serverId();
-        suiteId = suite.suiteId();
+        this.suiteId = suite.suiteId();
         branchName = branchForLink(suite.branchName());
     }
 

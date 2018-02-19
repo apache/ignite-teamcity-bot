@@ -2,9 +2,7 @@ package org.apache.ignite.ci.web.rest;
 
 import com.google.common.base.Strings;
 import java.util.Comparator;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
@@ -18,7 +16,6 @@ import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.LatestRebuildMode;
-import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
@@ -65,12 +62,11 @@ public class GetCurrTestFailures {
                     Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
                         chainTracked.getSuiteIdMandatory(),
                         chainTracked.getBranchForRestMandatory(),
-                        LatestRebuildMode.LATEST);
+                        LatestRebuildMode.LATEST, teamcity);
 
                     chainStatus.serverName = teamcity.serverId();
                     pubCtx.ifPresent(ctx -> {
-                        chainStatus.initFromContext(teamcity, ctx, teamcity.getTestRunStatProvider(),
-                            teamcity.getBuildFailureRunStatProvider());
+                        chainStatus.initFromContext(teamcity, ctx, teamcity);
                     });
                 }
                 return chainStatus;
@@ -109,15 +105,12 @@ public class GetCurrTestFailures {
             teamcity.setStatUpdateEnabled(false);
 
             Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
-                suiteId, branchForTc, LatestRebuildMode.LATEST);
+                suiteId, branchForTc, LatestRebuildMode.LATEST, teamcity);
 
             final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
             chainStatus.serverName = teamcity.serverId();
 
-            final Function<String, RunStat> supplier = teamcity.getTestRunStatProvider();
-            final Function<String, RunStat> suiteAnalysis = teamcity.getBuildFailureRunStatProvider();
-
-            pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, supplier, suiteAnalysis));
+            pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, teamcity));
 
             res.addChainOnServer(chainStatus);
         }
