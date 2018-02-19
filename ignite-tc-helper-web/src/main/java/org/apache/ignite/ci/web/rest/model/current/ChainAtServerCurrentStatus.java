@@ -3,15 +3,12 @@ package org.apache.ignite.ci.web.rest.model.current;
 import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.analysis.RunStat;
 
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.branchForLink;
@@ -20,7 +17,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
  * Represent Run All chain results/ or RunAll+latest re-runs
  */
 @SuppressWarnings({"WeakerAccess", "PublicField"})
-public class ChainAtServerCurrentStatus extends AbstractTestMetrics {
+public class ChainAtServerCurrentStatus {
     public String chainName;
 
     public String serverName;
@@ -33,6 +30,11 @@ public class ChainAtServerCurrentStatus extends AbstractTestMetrics {
 
     /** Suites involved in chain. */
     public List<SuiteCurrentStatus> suites = new ArrayList<>();
+
+    public Integer failedTests;
+    /** Count of suites with critical build problems found */
+    public Integer failedToFinish;
+    public String durationPrintable;
 
     public void initFromContext(ITeamcity teamcity,
         FullChainRunCtx ctx,
@@ -75,7 +77,6 @@ public class ChainAtServerCurrentStatus extends AbstractTestMetrics {
         return serverName;
     }
 
-    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
@@ -86,11 +87,14 @@ public class ChainAtServerCurrentStatus extends AbstractTestMetrics {
             Objects.equal(serverName, status.serverName) &&
             Objects.equal(webToHist, status.webToHist) &&
             Objects.equal(webToBuild, status.webToBuild) &&
-            Objects.equal(suites, status.suites);
+            Objects.equal(suites, status.suites) &&
+            Objects.equal(failedTests, status.failedTests) &&
+            Objects.equal(failedToFinish, status.failedToFinish) &&
+            Objects.equal(durationPrintable, status.durationPrintable);
     }
 
-    /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(chainName, serverName, webToHist, webToBuild, suites);
+        return Objects.hashCode(chainName, serverName, webToHist, webToBuild, suites,
+            failedTests, failedToFinish, durationPrintable);
     }
 }

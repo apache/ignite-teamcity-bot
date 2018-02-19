@@ -5,10 +5,8 @@ import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
@@ -27,7 +25,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 /**
  * Represent Suite result
  */
-@SuppressWarnings("WeakerAccess") public class SuiteCurrentStatus extends AbstractTestMetrics {
+@SuppressWarnings("WeakerAccess") public class SuiteCurrentStatus {
     /** Suite Name */
     public String name;
 
@@ -72,6 +70,10 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     /** User commits, comma separated string. */
     public String userCommits = "";
+
+    public Integer failedTests;
+
+    public String durationPrintable;
 
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final MultBuildRunCtx suite,
@@ -192,12 +194,14 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             Objects.equal(failures, status.failures) &&
             Objects.equal(runs, status.runs) &&
             Objects.equal(failureRate, status.failureRate) &&
-            Objects.equal(userCommits, status.userCommits);
+            Objects.equal(userCommits, status.userCommits) &&
+            Objects.equal(failedTests, status.failedTests) &&
+            Objects.equal(durationPrintable, status.durationPrintable);
     }
 
     @Override public int hashCode() {
-        return Objects.hashCode(name, result, webToHist, webToBuild, contactPerson,
-            testFailures, topLongRunning, webUrlThreadDump, runningBuildCount,
-            queuedBuildCount, serverId, suiteId, branchName, failures, runs, failureRate, userCommits);
+        return Objects.hashCode(name, result, webToHist, webToBuild, contactPerson, testFailures,
+            topLongRunning, webUrlThreadDump, runningBuildCount, queuedBuildCount, serverId,
+            suiteId, branchName, failures, runs, failureRate, userCommits, failedTests, durationPrintable);
     }
 }

@@ -13,13 +13,45 @@
 </head>
 <body>
 <script>
+var g_shownDataHashCodeHex = ""
+
 $(document).ready(function() {
     $.getScript("js/testfails.js", function(data, textStatus, jqxhr){ });
     
     $( document ).tooltip();
     loadData();
-    setInterval(loadData, 90000);
+    setInterval(checkForUpdate, 30000);
 });
+
+function checkForUpdate() {
+    var curFailuresUrl = "rest/current/failures/updates";
+    var branch = findGetParameter("branch");
+    if(branch!=null) {
+        curFailuresUrl += "?branch=" + branch;
+    }
+    //$("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+    $.ajax({
+        url: curFailuresUrl,
+        success: function(result) {
+           if (g_shownDataHashCodeHex!="" && isDefinedAndFilled(result.hashCodeHex)) {
+                if(g_shownDataHashCodeHex==result.hashCodeHex) {
+                    setTimeout(checkForUpdate, 3000);
+                    //if(!result.updateRequired)
+                    //$("#loadStatus").html("");
+                } else {
+                    loadData(); // data changed, show new
+                }
+            } else if(result.updateRequired) {
+                loadData();
+            } else if (isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0 ) {
+                setTimeout(checkForUpdate, 3000);
+            } else {
+                loadData();
+            }
+        },
+        error: showErrInLoadStatus
+    });
+}
 
 function loadData() {
     var curFailuresUrl = "rest/current/failures";
@@ -32,12 +64,13 @@ function loadData() {
         url: curFailuresUrl,
         success: function(result) {
             if(result.updateRequired || (isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0)) {
-                setTimeout(loadData, 3000)
+                setTimeout(checkForUpdate, 3000)
                 $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Updating");
             } else {
                 $("#loadStatus").html("");
             }
             showData(result);
+            g_shownDataHashCodeHex = isDefinedAndFilled(result.hashCodeHex) ? result.hashCodeHex : "";
         },
         error: showErrInLoadStatus
     });

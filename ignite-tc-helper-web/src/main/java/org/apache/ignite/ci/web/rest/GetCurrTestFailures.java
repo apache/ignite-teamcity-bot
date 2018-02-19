@@ -22,6 +22,7 @@ import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.TestFailuresSummary;
+import org.apache.ignite.ci.web.rest.model.current.UpdateInfo;
 import org.apache.ignite.internal.util.typedef.T3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -36,6 +37,12 @@ public class GetCurrTestFailures {
     public static final String TEST_FAILURES_SUMMARY_CACHE_NAME = CURRENT + "TestFailuresSummary";
     @Context
     private ServletContext context;
+
+    @GET
+    @Path("failures/updates")
+    public UpdateInfo getTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull) {
+        return new UpdateInfo().copyFrom(getTestFails(branchOrNull));
+    }
 
     @GET
     @Path("failures")

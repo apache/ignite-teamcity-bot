@@ -12,18 +12,14 @@ import org.apache.ignite.internal.util.typedef.internal.U;
  * Summary failures from all servers
  */
 @SuppressWarnings("WeakerAccess")
-public class TestFailuresSummary extends AbstractTestMetrics implements IBackgroundUpdatable {
-
-    /** Update required, set by background updater. */
-    public boolean updateRequired = false;
-
-    /** Running updates is in progress, summary is ready, but it is subject to change */
-    public int runningUpdates = 0;
-
-    /** Hash code hexadecimal, protects from redraw and minimizing mode info in case data not changed */
-    public String hashCodeHex;
+public class TestFailuresSummary extends UpdateInfo implements IBackgroundUpdatable {
 
     public List<ChainAtServerCurrentStatus> servers = new ArrayList<>();
+
+    public Integer failedTests;
+
+    /** Count of suites with critical build problems found */
+    public Integer failedToFinish;
 
     @Override public void setUpdateRequired(boolean update) {
         updateRequired = update;
@@ -51,18 +47,18 @@ public class TestFailuresSummary extends AbstractTestMetrics implements IBackgro
         hashCodeHex = Integer.toHexString(U.safeAbs(hashCode()));
     }
 
-    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
         TestFailuresSummary summary = (TestFailuresSummary)o;
-        return Objects.equal(servers, summary.servers);
+        return Objects.equal(servers, summary.servers) &&
+            Objects.equal(failedTests, summary.failedTests) &&
+            Objects.equal(failedToFinish, summary.failedToFinish);
     }
 
-    /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(servers);
+        return Objects.hashCode(servers, failedTests, failedToFinish);
     }
 }
