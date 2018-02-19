@@ -27,7 +27,7 @@ import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.apache.ignite.ci.db.Migrations.TESTS_COUNT_7700;
+import static org.apache.ignite.ci.db.DbMigrations.TESTS_COUNT_7700;
 
 /**
  * API for calling methods from REST service:
@@ -77,10 +77,10 @@ public interface ITeamcity extends AutoCloseable {
         return getFinishedBuilds(projectId, branchNameForHist).stream().mapToInt(BuildRef::getId).toArray();
     }
 
-    Build getBuildResults(String href);
+    Build getBuild(String href);
 
-    default Build getBuildResults(int id) {
-        return getBuildResults(getBuildHrefById(id));
+    default Build getBuild(int id) {
+        return getBuild(getBuildHrefById(id));
     }
 
     @NotNull default String getBuildHrefById(int id) {

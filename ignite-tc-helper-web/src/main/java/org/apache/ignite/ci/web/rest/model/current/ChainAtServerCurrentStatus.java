@@ -31,7 +31,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     public void initFromContext(ITeamcity teamcity,
         FullChainRunCtx ctx,
         @Nullable final Function<String, RunStat> testsRunStatMap,
-        @Nullable final Map<String, RunStat> suiteRunStatMap) {
+        @Nullable final Function<String, RunStat> suiteRunStatMap) {
         failedTests = 0;
         failedToFinish = 0;
         ctx.failedChildSuites().forEach(

@@ -185,7 +185,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     private CompletableFuture<File> standardProcessOfBuildLog(int buildId) {
-        final Build results = getBuildResults(buildId);
+        final Build results = getBuild(buildId);
         final MultBuildRunCtx ctx = loadTestsAndProblems(results);
 
         if (ctx.hasTimeoutProblem())
@@ -264,7 +264,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             buildTypeId, BuildTypeFull.class);
     }
 
-    public Build getBuildResults(String href) {
+    public Build getBuild(String href) {
         return getJaxbUsingHref(href, Build.class);
     }
 

@@ -67,7 +67,7 @@ public class BuildChainProcessor {
         assert !entryPoints.isEmpty();
         //todo empty
         BuildRef next = entryPoints.iterator().next();
-        Build results = teamcity.getBuildResults(next.href);
+        Build results = teamcity.getBuild(next.href);
         FullChainRunCtx fullChainRunCtx = new FullChainRunCtx(results);
 
         Map<Integer, BuildRef> unique = new ConcurrentHashMap<>();
@@ -104,7 +104,7 @@ public class BuildChainProcessor {
                 }
             )
             .forEach((BuildRef buildRef) -> {
-                Build build = teamcity.getBuildResults(buildRef.href);
+                Build build = teamcity.getBuild(buildRef.href);
                 if (build == null || build.isFakeStub())
                     return;
 
@@ -166,7 +166,7 @@ public class BuildChainProcessor {
     }
 
     @Nullable private static Stream<? extends BuildRef> dependencies(ITeamcity teamcity, BuildRef ref) {
-        Build results = teamcity.getBuildResults(ref.href);
+        Build results = teamcity.getBuild(ref.href);
         if (results == null)
             return Stream.of(ref);
         

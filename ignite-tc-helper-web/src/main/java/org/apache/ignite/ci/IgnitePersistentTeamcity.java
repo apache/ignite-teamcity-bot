@@ -35,7 +35,7 @@ import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
-import org.apache.ignite.ci.db.Migrations;
+import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -55,11 +55,8 @@ import org.jetbrains.annotations.NotNull;
  * Created by dpavlov on 03.08.2017
  */
 public class IgnitePersistentTeamcity implements ITeamcity {
-    //V1 caches, 1024 parts
-    public static final String RUN_STAT_CACHE = "runStat";
 
     public static final String STAT = "stat";
-    public static final String BUILD_RESULTS = "buildResults";
     public static final String TEST_OCCURRENCE_FULL = "testOccurrenceFull";
 
     //V2 caches, 32 parts
@@ -68,6 +65,9 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     public static final String LOG_CHECK_RESULT = "logCheckResult";
     public static final String CHANGE_INFO_FULL = "changeInfoFull";
     public static final String CHANGES_LIST = "changesList";
+    //todo need separate cache or separate key for run time because it is placed in statistics
+    public static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
+    public static final String BUILDS = "builds";
 
     private final Ignite ignite;
     private final IgniteTeamcityHelper teamcity;
@@ -75,8 +75,8 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     /** Statistics update in persisted cached enabled. */
     private boolean statUpdateEnabled = true;
 
-    public IgnitePersistentTeamcity(Ignite ignite, String serverId) {
-        this(ignite, new IgniteTeamcityHelper(serverId));
+    public IgnitePersistentTeamcity(Ignite ignite, String srvId) {
+        this(ignite, new IgniteTeamcityHelper(srvId));
     }
 
     public IgnitePersistentTeamcity(Ignite ignite, IgniteTeamcityHelper teamcity) {
@@ -84,9 +84,16 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         this.teamcity = teamcity;
         this.serverId = teamcity.serverId();
 
-        Migrations migrations = new Migrations(ignite, teamcity.serverId());
+        DbMigrations migrations = new DbMigrations(ignite, teamcity.serverId());
 
-        migrations.dataMigration(testOccurrencesCache(), this::addTestOccurrencesToStat);
+        migrations.dataMigration(
+            testOccurrencesCache(), this::addTestOccurrencesToStat,
+            buildsCache(), this::addBuildToFailuresStat);
+    }
+
+
+    public IgniteCache<String, Build> buildsCache() {
+        return getOrCreateV2(ignCacheNme(BUILDS));
     }
 
     public IgniteCache<String, TestOccurrences> testOccurrencesCache() {
@@ -219,8 +226,8 @@ public class IgnitePersistentTeamcity implements ITeamcity {
 
     /** {@inheritDoc} */
     @Nullable
-    @Override public Build getBuildResults(String href) {
-        final IgniteCache<String, Build> cache = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
+    @Override public Build getBuild(String href) {
+        final IgniteCache<String, Build> cache = ignite.getOrCreateCache(ignCacheNme(DbMigrations.BUILD_RESULTS));
 
         @Nullable final Build persistedBuild = cache.get(href);
 
@@ -238,15 +245,51 @@ public class IgnitePersistentTeamcity implements ITeamcity {
             return persistedBuild;
         }
 
-        if (loaded.getId() == null || loaded.hasFinishDate())
+        if (loaded.isFakeStub() || loaded.hasFinishDate()) {
             cache.put(href, loaded);
+
+            if( statUpdateEnabled) {
+                //todo update
+                addBuildToFailuresStat(loaded);
+            }
+        }
 
         return loaded;
     }
 
+    public void addBuildToFailuresStat(Build loaded) {
+        if (loaded.isFakeStub())
+            return;
+
+        String suiteId = loaded.suiteId();
+        if (Strings.isNullOrEmpty(suiteId))
+            return;
+
+        buildsFailureRunStatCache().invoke(suiteId, new EntryProcessor<String, RunStat, Object>() {
+            @Override
+            public Object process(MutableEntry<String, RunStat> entry,
+                Object... arguments) throws EntryProcessorException {
+
+                String key = entry.getKey();
+
+                Build build = (Build)arguments[0];
+
+                RunStat val = entry.getValue();
+                if (val == null)
+                    val = new RunStat(key);
+
+                val.addTestRun(build);
+
+                entry.setValue(val);
+
+                return null;
+            }
+        }, loaded);
+    }
+
     public Build realLoadBuild(String href1) {
         try {
-            return teamcity.getBuildResults(href1);
+            return teamcity.getBuild(href1);
         }
         catch (Exception e) {
             if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
@@ -278,7 +321,7 @@ public class IgnitePersistentTeamcity implements ITeamcity {
     }
 
     @Override public TestOccurrences getTests(String href) {
-        String hrefForDb = Migrations.removeCountFromRef(href);
+        String hrefForDb = DbMigrations.removeCountFromRef(href);
 
         return loadIfAbsent(testOccurrencesCache(),
             hrefForDb,  //hack to avoid test reloading from store in case of href filter replaced
@@ -335,27 +378,41 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         return loadIfAbsentV2(CHANGES_LIST, href, teamcity::getChangesList);
     }
 
-    public List<RunStat> topFailing(int count) {
-        Stream<RunStat> data = allTestAnalysis();
-        return CollectionUtil.top(data, count, Comparator.comparing(RunStat::getFailRate));
+    public List<RunStat> topTestFailing(int cnt) {
+        return CollectionUtil.top(allTestAnalysis(), cnt, Comparator.comparing(RunStat::getFailRate));
     }
 
-    public List<RunStat> topLongRunning(int count) {
-        Stream<RunStat> data = allTestAnalysis();
-        return CollectionUtil.top(data, count, Comparator.comparing(RunStat::getAverageDurationMs));
+    public List<RunStat> topTestsLongRunning(int cnt) {
+        return CollectionUtil.top(allTestAnalysis(), cnt, Comparator.comparing(RunStat::getAverageDurationMs));
     }
 
     public Function<String, RunStat> getTestRunStatProvider() {
         return name -> name == null ? null : testRunStatCache().get(name);
     }
 
-    public Stream<RunStat> allTestAnalysis() {
+    private Stream<RunStat> allTestAnalysis() {
         return StreamSupport.stream(testRunStatCache().spliterator(), false)
             .map(Cache.Entry::getValue);
     }
 
     private IgniteCache<String, RunStat> testRunStatCache() {
         return getOrCreateV2(ignCacheNme(TESTS_RUN_STAT));
+    }
+
+    public Function<String, RunStat> getBuildFailureRunStatProvider() {
+        return name -> name == null ? null : buildsFailureRunStatCache().get(name);
+    }
+
+    private Stream<RunStat> buildsFailureAnalysis() {
+        return StreamSupport.stream(buildsFailureRunStatCache().spliterator(), false)
+            .map(Cache.Entry::getValue);
+    }
+
+    /**
+     * @return cache from suite name to its failure statistics
+     */
+    private IgniteCache<String, RunStat> buildsFailureRunStatCache() {
+        return getOrCreateV2(ignCacheNme(BUILDS_FAILURE_RUN_STAT));
     }
 
     private IgniteCache<Integer, LogCheckResult> logCheckResultCache() {
@@ -392,31 +449,8 @@ public class IgnitePersistentTeamcity implements ITeamcity {
         }, next);
     }
 
-    public List<RunStat> topFailingSuite(int count) {
-        Map<String, RunStat> map = runSuiteAnalysis();
-        Stream<RunStat> data = map.values().stream();
-        return CollectionUtil.top(data, count, Comparator.comparing(RunStat::getFailRate));
-    }
-
-    public Map<String, RunStat> runSuiteAnalysis() {
-        return timedLoadIfAbsent(ignCacheNme(RUN_STAT_CACHE),
-            60 * 5, "runSuiteAnalysis",
-            k -> runSuiteAnalysisNoCache());
-    }
-
-    @NotNull private Map<String, RunStat> runSuiteAnalysisNoCache() {
-        final Map<String, RunStat> map = new HashMap<>();
-        final IgniteCache<Object, Build> cache = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
-        if (cache == null)
-            return map;
-        for (Cache.Entry<Object, Build> next : cache) {
-            final Build build = next.getValue();
-            final String name = build.suiteName();
-            if (!Strings.isNullOrEmpty(name))
-                map.computeIfAbsent(name, RunStat::new).addTestRun(build);
-
-        }
-        return map;
+    public List<RunStat> topFailingSuite(int cnt) {
+        return CollectionUtil.top(buildsFailureAnalysis(), cnt, Comparator.comparing(RunStat::getFailRate));
     }
 
     @Override public void close() {

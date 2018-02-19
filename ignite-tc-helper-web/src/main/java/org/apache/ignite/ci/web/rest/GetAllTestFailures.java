@@ -3,7 +3,6 @@ package org.apache.ignite.ci.web.rest;
 import com.google.common.base.Strings;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -82,7 +81,7 @@ public class GetAllTestFailures {
                     false, false, true);
 
                 final Function<String, RunStat> map = teamcity.getTestRunStatProvider();
-                final Map<String, RunStat> suiteMap = teamcity.runSuiteAnalysis();
+                final Function<String, RunStat> suiteMap = teamcity.getBuildFailureRunStatProvider();
 
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
                 chainStatus.serverName = teamcity.serverId();

@@ -70,7 +70,7 @@ public class GetCurrTestFailures {
                     chainStatus.serverName = teamcity.serverId();
                     pubCtx.ifPresent(ctx -> {
                         chainStatus.initFromContext(teamcity, ctx, teamcity.getTestRunStatProvider(),
-                            teamcity.runSuiteAnalysis());
+                            teamcity.getBuildFailureRunStatProvider());
                     });
                 }
                 return chainStatus;
@@ -115,7 +115,7 @@ public class GetCurrTestFailures {
             chainStatus.serverName = teamcity.serverId();
 
             final Function<String, RunStat> supplier = teamcity.getTestRunStatProvider();
-            final Map<String, RunStat> suiteAnalysis = teamcity.runSuiteAnalysis();
+            final Function<String, RunStat> suiteAnalysis = teamcity.getBuildFailureRunStatProvider();
 
             pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, supplier, suiteAnalysis));
 

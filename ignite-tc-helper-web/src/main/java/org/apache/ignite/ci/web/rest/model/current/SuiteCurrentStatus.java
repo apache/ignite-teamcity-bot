@@ -70,11 +70,11 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final MultBuildRunCtx suite,
         @Nullable final Function<String, RunStat> runStatSupplier,
-        @Nullable final Map<String, RunStat> suiteRunStat) {
+        @Nullable final Function<String, RunStat> suiteRunStat) {
 
         name = suite.suiteName();
         if (!Strings.isNullOrEmpty(name) && suiteRunStat!=null) {
-            final RunStat stat = suiteRunStat.get(name);
+            final RunStat stat = suiteRunStat.apply(name);
             if (stat != null) {
                 failures = stat.failures;
                 runs = stat.runs;
@@ -84,9 +84,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         Set<String> collect = suite.lastChangeUsers().collect(Collectors.toSet());
 
-        if(!collect.isEmpty()) {
+        if(!collect.isEmpty())
             userCommits = collect.toString();
-        }
 
         result = suite.getResult();
         failedTests = suite.failedTests();

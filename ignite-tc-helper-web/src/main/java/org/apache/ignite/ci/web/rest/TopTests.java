@@ -42,7 +42,7 @@ public class TopTests {
                 teamcity.setExecutor(CtxListener.getPool(context));
 
                 int cnt = count == null ? 10 : count;
-                teamcity.topFailing(cnt).stream().map(this::converToUiModel).forEach(res::add);
+                teamcity.topTestFailing(cnt).stream().map(this::converToUiModel).forEach(res::add);
             }
         }
         return res;
@@ -79,7 +79,7 @@ public class TopTests {
                 teamcity.setExecutor(CtxListener.getPool(context));
 
                 int cnt = count == null ? 10 : count;
-                teamcity.topLongRunning(cnt).stream().map(this::converToUiModel).forEach(res::add);
+                teamcity.topTestsLongRunning(cnt).stream().map(this::converToUiModel).forEach(res::add);
             }
         }
         return res;

@@ -184,7 +184,7 @@ public class CheckBuildChainResults {
         final BuildHistory suiteHist = history.history(branchId);
         final List<BuildRef> all = teamcity.getFinishedBuildsIncludeSnDepFailed(id, branch);
         final List<Build> fullBuildInfoList = all.stream()
-            .map(b -> teamcity.getBuildResults(b.href))
+            .map(b -> teamcity.getBuild(b.href))
             .filter(Objects::nonNull)
             .filter(b -> b.getId() != null)
             .collect(Collectors.toList());

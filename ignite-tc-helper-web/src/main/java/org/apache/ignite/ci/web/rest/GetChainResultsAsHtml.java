@@ -10,7 +10,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
-import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -58,7 +57,7 @@ public class GetChainResultsAsHtml {
 
                 status.initFromContext(teamcity, c,
                     teamcity.getTestRunStatProvider(),
-                    teamcity.runSuiteAnalysis());
+                    teamcity.getBuildFailureRunStatProvider());
 
                 res.append(showChainAtServerData(status));
             });

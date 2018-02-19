@@ -67,7 +67,7 @@ public class RunStat {
     public void addTestRun(Build build) {
         runs++;
 
-        //todo ? add duration
+        //todo ? need to add duration from statistics
         /*
         if (build.duration != null) {
             totalDurationMs += testOccurrence.duration;

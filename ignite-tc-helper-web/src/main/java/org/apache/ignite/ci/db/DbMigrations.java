@@ -1,10 +1,7 @@
 package org.apache.ignite.ci.db;
 
-import com.google.common.base.Throwables;
-import java.io.FileNotFoundException;
 import java.util.function.Consumer;
 import javax.cache.Cache;
-import javax.cache.CacheException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheAtomicityMode;
@@ -18,17 +15,24 @@ import org.apache.ignite.configuration.CacheConfiguration;
 /**
  * Created by Дмитрий on 11.02.2018
  */
-public class Migrations {
+public class DbMigrations {
     public static final String DONE_MIGRATIONS = "doneMigrations";
     @Deprecated
     public static final String TESTS = "tests";
+    @Deprecated
+    public static final String BUILD_RESULTS = "buildResults";
     public static final String TESTS_COUNT_7700 = ",count:7700";
+
+
+    //V1 caches, 1024 parts
+    @Deprecated
+    public static final String RUN_STAT_CACHE = "runStat";
 
     private final Ignite ignite;
     private final String serverId;
     private IgniteCache<String, Object> doneMigrations;
 
-    public Migrations(Ignite ignite, String serverId) {
+    public DbMigrations(Ignite ignite, String serverId) {
         this.ignite = ignite;
         this.serverId = serverId;
     }
@@ -39,7 +43,8 @@ public class Migrations {
     }
 
     public void dataMigration(
-        Cache<String, TestOccurrences> testOccurrencesCache, Consumer<TestOccurrences> save) {
+        Cache<String, TestOccurrences> testOccurrencesCache, Consumer<TestOccurrences> saveTestToStat,
+        Cache<String, Build> buildCache, Consumer<Build> saveBuildToStat) {
 
         doneMigrations = doneMigrationsCache();
 
@@ -57,7 +62,7 @@ public class Migrations {
                     TestOccurrences val = entry.getValue();
 
                     if (testOccurrencesCache.putIfAbsent(transformedKey, val))
-                        save.accept(val);
+                        saveTestToStat.accept(val);
                     
                     i++;
                 }
@@ -67,8 +72,13 @@ public class Migrations {
                 tests.destroy();
             }
         });
+        String newBuildsCache = BUILD_RESULTS + "-to-" + IgnitePersistentTeamcity.BUILDS;
+
         applyMigration("RemoveStatisticsFromBuildCache", ()->{
-            final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(ignCacheNme(IgnitePersistentTeamcity.BUILD_RESULTS));
+            if(doneMigrations.containsKey(newBuildsCache))
+                return;
+
+            final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
             
             for (Cache.Entry<Object, Object> next : cache) {
                 if(next.getValue() instanceof Statistics) {
@@ -79,8 +89,31 @@ public class Migrations {
             }
         });
 
+        applyMigration(newBuildsCache, () -> {
+            IgniteCache<String, Build> oldBuilds = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
+
+            int size = oldBuilds.size();
+            if (size > 0) {
+                int i = 0;
+                for (Cache.Entry<String, Build> entry : oldBuilds) {
+                    System.out.println("Migrating build entry " + i + " from " + size + ": " + entry.getKey());
+
+                    Build val = entry.getValue();
+
+                    if (buildCache.putIfAbsent(entry.getKey(), val))
+                        saveBuildToStat.accept(val);
+
+                    i++;
+                }
+
+                oldBuilds.clear();
+
+                oldBuilds.destroy();
+            }
+        });
+
         applyMigration("RemoveBuildsWithoutProjectId", () -> {
-            final IgniteCache<Object, Build> cache = ignite.getOrCreateCache(ignCacheNme(IgnitePersistentTeamcity.BUILD_RESULTS));
+            final IgniteCache<Object, Build> cache = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
 
             for (Cache.Entry<Object, Build> next : cache) {
                 Build results = next.getValue();
@@ -92,6 +125,15 @@ public class Migrations {
                         cache.remove(next.getKey());
                     }
             }
+        });
+
+        applyMigration("Remove-" + RUN_STAT_CACHE, ()->{
+            IgniteCache<String, Build> oldBuilds = ignite.getOrCreateCache(ignCacheNme(RUN_STAT_CACHE));
+
+            oldBuilds.clear();
+
+            oldBuilds.destroy();
+
         });
     }
 
@@ -106,7 +148,7 @@ public class Migrations {
 
     private void applyMigration(String code, Runnable runnable) {
         if (!doneMigrations.containsKey(code)) {
-            synchronized (Migrations.class) {
+            synchronized (DbMigrations.class) {
                 System.err.println("Running migration procedure [" + code + "]");
                 runnable.run();
                 doneMigrations.put(code, true);
