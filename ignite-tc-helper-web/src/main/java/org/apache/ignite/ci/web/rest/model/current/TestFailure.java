@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.web.rest.model.current;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -137,5 +138,30 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
             runs = stat.runs;
             failureRate = stat.getFailPercentPrintable();
         }
+    }
+
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        TestFailure failure = (TestFailure)o;
+        return investigated == failure.investigated &&
+            Objects.equal(name, failure.name) &&
+            Objects.equal(suiteName, failure.suiteName) &&
+            Objects.equal(testName, failure.testName) &&
+            Objects.equal(curFailures, failure.curFailures) &&
+            Objects.equal(failures, failure.failures) &&
+            Objects.equal(runs, failure.runs) &&
+            Objects.equal(failureRate, failure.failureRate) &&
+            Objects.equal(webUrl, failure.webUrl) &&
+            Objects.equal(webIssueUrl, failure.webIssueUrl) &&
+            Objects.equal(webIssueText, failure.webIssueText) &&
+            Objects.equal(durationPrintable, failure.durationPrintable);
+    }
+
+    @Override public int hashCode() {
+        return Objects.hashCode(name, suiteName, testName, curFailures, failures, runs, failureRate,
+            webUrl, webIssueUrl, webIssueText, investigated, durationPrintable);
     }
 }

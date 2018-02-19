@@ -2,11 +2,11 @@
 //loadStatus element should be provided on page
 
 //@param results - TestFailuresSummary
-var g_lastJson = ""
+var g_lastHashCodeHex = ""
 var g_lastHtml = ""
 
 function showChainOnServersResults(result) {
-     if(result==g_lastJson)
+     if(isDefinedAndFilled(result.hashCodeHex) && result.hashCodeHex == g_lastHashCodeHex)
         return g_lastHtml;
         
      var res = "";
@@ -26,8 +26,10 @@ function showChainOnServersResults(result) {
 
     setTimeout(initMoreInfo, 100);
 
-    g_lastJson=result;
-    g_lastHtml=res;
+    if(isDefinedAndFilled(result.hashCodeHex) {
+        g_lastHashCodeHex = result.hashCodeHex;
+        g_lastHtml = res;
+    }
 
     return res;
 }

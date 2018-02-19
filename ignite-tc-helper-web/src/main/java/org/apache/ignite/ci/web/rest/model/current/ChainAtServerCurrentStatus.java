@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.web.rest.model.current;
 
+import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,8 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
 /**
  * Represent Run All chain results/ or RunAll+latest re-runs
  */
-@SuppressWarnings("WeakerAccess") public class ChainAtServerCurrentStatus extends AbstractTestMetrics {
+@SuppressWarnings({"WeakerAccess", "PublicField"})
+public class ChainAtServerCurrentStatus extends AbstractTestMetrics {
     public String chainName;
 
     public String serverName;
@@ -29,6 +31,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     /** Web Href. to suite particular run */
     public String webToBuild = "";
 
+    /** Suites involved in chain. */
     public List<SuiteCurrentStatus> suites = new ArrayList<>();
 
     public void initFromContext(ITeamcity teamcity,
@@ -70,5 +73,24 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
      */
     public String serverName() {
         return serverName;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        ChainAtServerCurrentStatus status = (ChainAtServerCurrentStatus)o;
+        return Objects.equal(chainName, status.chainName) &&
+            Objects.equal(serverName, status.serverName) &&
+            Objects.equal(webToHist, status.webToHist) &&
+            Objects.equal(webToBuild, status.webToBuild) &&
+            Objects.equal(suites, status.suites);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hashCode(chainName, serverName, webToHist, webToBuild, suites);
     }
 }

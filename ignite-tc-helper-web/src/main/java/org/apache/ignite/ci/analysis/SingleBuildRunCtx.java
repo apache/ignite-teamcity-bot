@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.stream.Stream;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
@@ -94,5 +96,12 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     public List<Change> getChanges() {
         return changes;
+    }
+
+    public Stream<? extends Future<?>> getFutures() {
+        if (logCheckResultsFut == null)
+            return Stream.of();
+        else
+            return Stream.of((Future<?>)logCheckResultsFut);
     }
 }

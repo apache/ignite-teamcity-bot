@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -53,6 +54,18 @@ public class GetChainResultsAsHtml {
 
             ctxOptional.ifPresent(ctx -> {
                 ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus();
+
+                ctx.getRunningUpdates().forEach(future -> {
+                    try {
+                        future.get();
+                    }
+                    catch (InterruptedException ignored) {
+                        Thread.currentThread().interrupt();
+                    }
+                    catch (ExecutionException e) {
+                        e.printStackTrace();
+                    }
+                });
 
                 status.chainName = ctx.suiteName();
 
@@ -264,9 +277,8 @@ public class GetChainResultsAsHtml {
         float blueSaturation = 0;
 
         float colorCorrect = 0;
-        if (isDefinedAndFilled(failureRate)) {
-            colorCorrect = parseFloat(failureRate);
-        }
+        if (isDefinedAndFilled(failureRate))
+            colorCorrect = parseFloat(failureRate.replace(",", "."));
 
         if (colorCorrect < 50) {
             redSaturation = 255;
@@ -282,8 +294,7 @@ public class GetChainResultsAsHtml {
     String componentToHex(float c) {
         int cInt = (int)c;
         String cStr = Integer.toHexString(cInt > 255 ? 255 : cInt);
-        String s = Strings.padStart(cStr, 2, '0');
-        return s;
+        return Strings.padStart(cStr, 2, '0');
     }
 
     String rgbToHex(float r, float g, float b) {

@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.web.rest.model.current;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -69,6 +70,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Registered percent of fails from TC helper DB */
     @Nullable public String failureRate;
 
+    /** User commits, comma separated string. */
     public String userCommits = "";
 
     public void initFromContext(@Nonnull final ITeamcity teamcity,
@@ -166,5 +168,36 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public static String branchForLink(String branchName) {
         return branchName == null || "refs/heads/master".equals(branchName) ? "<default>" : branchName;
+    }
+
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        SuiteCurrentStatus status = (SuiteCurrentStatus)o;
+        return Objects.equal(name, status.name) &&
+            Objects.equal(result, status.result) &&
+            Objects.equal(webToHist, status.webToHist) &&
+            Objects.equal(webToBuild, status.webToBuild) &&
+            Objects.equal(contactPerson, status.contactPerson) &&
+            Objects.equal(testFailures, status.testFailures) &&
+            Objects.equal(topLongRunning, status.topLongRunning) &&
+            Objects.equal(webUrlThreadDump, status.webUrlThreadDump) &&
+            Objects.equal(runningBuildCount, status.runningBuildCount) &&
+            Objects.equal(queuedBuildCount, status.queuedBuildCount) &&
+            Objects.equal(serverId, status.serverId) &&
+            Objects.equal(suiteId, status.suiteId) &&
+            Objects.equal(branchName, status.branchName) &&
+            Objects.equal(failures, status.failures) &&
+            Objects.equal(runs, status.runs) &&
+            Objects.equal(failureRate, status.failureRate) &&
+            Objects.equal(userCommits, status.userCommits);
+    }
+
+    @Override public int hashCode() {
+        return Objects.hashCode(name, result, webToHist, webToBuild, contactPerson,
+            testFailures, topLongRunning, webUrlThreadDump, runningBuildCount,
+            queuedBuildCount, serverId, suiteId, branchName, failures, runs, failureRate, userCommits);
     }
 }

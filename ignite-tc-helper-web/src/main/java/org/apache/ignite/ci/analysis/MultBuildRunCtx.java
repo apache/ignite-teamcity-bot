@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -273,8 +274,10 @@ public class MultBuildRunCtx implements ISuiteResults {
         return Optional.ofNullable(testFullMap.get(id));
     }
 
-    @Nullable
-    public String projectId() {
+    /**
+     * @return aggregation project ID, such as "Ignite_Tests_20"
+     */
+    @Nullable public String projectId() {
         final BuildType type = firstBuildInfo.getBuildType();
 
         if (type == null)
@@ -315,10 +318,17 @@ public class MultBuildRunCtx implements ISuiteResults {
             .map(Optional::get);
     }
 
+    /**
+     * @return Username's stream for users introduced changes in this commit
+     */
     public Stream<String> lastChangeUsers() {
         return builds.stream()
             .flatMap(k -> k.getChanges().stream())
             .map(change -> change.username)
             .filter(Objects::nonNull);
+    }
+
+    public Stream<? extends Future<?>> getFutures() {
+        return builds.stream().flatMap(SingleBuildRunCtx::getFutures);
     }
 }

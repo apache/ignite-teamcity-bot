@@ -3,6 +3,7 @@ package org.apache.ignite.ci.web.rest;
 import com.google.common.base.Strings;
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
@@ -50,6 +51,8 @@ public class GetCurrTestFailures {
         final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
 
         final TestFailuresSummary res = new TestFailuresSummary();
+        final AtomicInteger runningUpdates = new AtomicInteger();
+
         final String branch = isNullOrEmpty(key) ? "master" : key;
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
 
@@ -66,6 +69,10 @@ public class GetCurrTestFailures {
 
                     chainStatus.serverName = teamcity.serverId();
                     pubCtx.ifPresent(ctx -> {
+                        int cnt = (int)ctx.getRunningUpdates().count();
+                        if (cnt > 0)
+                            runningUpdates.addAndGet(cnt);
+
                         chainStatus.initFromContext(teamcity, ctx, teamcity);
                     });
                 }
@@ -73,6 +80,8 @@ public class GetCurrTestFailures {
             })
             .sorted(Comparator.comparing(ChainAtServerCurrentStatus::serverName))
             .forEach(res::addChainOnServer);
+
+        res.postProcess(runningUpdates.get());
 
         return res;
     }
@@ -99,6 +108,8 @@ public class GetCurrTestFailures {
         @Nonnull @QueryParam("branchForTc") String branchForTc) {
 
         final TestFailuresSummary res = new TestFailuresSummary();
+        final AtomicInteger runningUpdates = new AtomicInteger();
+
         //using here non persistent TC allows to skip update statistic
         try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(CtxListener.getIgnite(context), srvId)) {
             teamcity.setExecutor(CtxListener.getPool(context));
@@ -110,10 +121,19 @@ public class GetCurrTestFailures {
             final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
             chainStatus.serverName = teamcity.serverId();
 
-            pubCtx.ifPresent(ctx -> chainStatus.initFromContext(teamcity, ctx, teamcity));
+            pubCtx.ifPresent(ctx -> {
+                int cnt = (int)ctx.getRunningUpdates().count();
+                if (cnt > 0)
+                    runningUpdates.addAndGet(cnt);
+
+                chainStatus.initFromContext(teamcity, ctx, teamcity);
+            });
 
             res.addChainOnServer(chainStatus);
         }
+
+        res.postProcess(runningUpdates.get());
+
         return res;
     }
 

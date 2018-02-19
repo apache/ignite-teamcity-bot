@@ -4,6 +4,7 @@ import com.google.common.base.Strings;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
@@ -59,6 +60,8 @@ public class GetAllTestFailures {
         @QueryParam("count") int count) {
         Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
         final TestFailuresSummary res = new TestFailuresSummary();
+        final AtomicInteger runningUpdates = new AtomicInteger();
+
         final String branch = isNullOrEmpty(branchOpt) ? "master" : branchOpt;
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
         for (ChainAtServerTracked chainAtServerTracked : tracked.chains) {
@@ -82,11 +85,20 @@ public class GetAllTestFailures {
 
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
                 chainStatus.serverName = teamcity.serverId();
-                chainCtxOpt.ifPresent(chainCtx -> chainStatus.initFromContext(teamcity, chainCtx, teamcity));
+                chainCtxOpt.ifPresent(chainCtx -> {
+                    chainStatus.initFromContext(teamcity, chainCtx, teamcity);
+
+                    int cnt = (int)chainCtx.getRunningUpdates().count();
+                    if (cnt > 0)
+                        runningUpdates.addAndGet(cnt);
+                });
                 res.addChainOnServer(chainStatus);
 
             }
         }
+
+        res.postProcess(runningUpdates.get());
+
         return res;
     }
 

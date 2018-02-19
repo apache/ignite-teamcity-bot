@@ -3,6 +3,7 @@ package org.apache.ignite.ci.analysis;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.util.TimeUtil;
@@ -100,5 +101,13 @@ public class FullChainRunCtx {
 
     public void addAllSuites(ArrayList<MultBuildRunCtx> suites) {
         this.list.addAll(suites);
+    }
+
+    public Stream<Future<?>> getFutures() {
+        return list.stream().flatMap(MultBuildRunCtx::getFutures);
+    }
+
+    public Stream<Future<?>> getRunningUpdates() {
+        return getFutures().filter(future -> !future.isDone() && !future.isCancelled());
     }
 }
