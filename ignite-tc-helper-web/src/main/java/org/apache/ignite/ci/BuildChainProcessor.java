@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -182,6 +183,9 @@ public class BuildChainProcessor {
         List<BuildRef> aNull = results.getSnapshotDependenciesNonNull();
         if(aNull.isEmpty())
             return Stream.of(ref);
+
+        System.out.println("Snapshot deps found: " +
+            ref.suiteId() + "->" + aNull.stream().map(BuildRef::suiteId).collect(Collectors.toList()));
 
         List<BuildRef> cp = new ArrayList<>(aNull);
 
