@@ -20,7 +20,7 @@ $(document).ready(function() {
     
     $( document ).tooltip();
     loadData();
-    setInterval(checkForUpdate, 30000);
+    setInterval( function() { checkForUpdate(); }, 30000);
 });
 
 function checkForUpdate() {
@@ -35,16 +35,13 @@ function checkForUpdate() {
         success: function(result) {
            if (g_shownDataHashCodeHex!="" && isDefinedAndFilled(result.hashCodeHex)) {
                 if(g_shownDataHashCodeHex==result.hashCodeHex) {
-                    setTimeout(checkForUpdate, 3000);
-                    //if(!result.updateRequired)
-                    //$("#loadStatus").html("");
+                    var updRunning = isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0
+                    var ms = (result.updateRequired || updRunning) ? 3000 : 30000 ;
+                    
+                    setTimeout(checkForUpdate, ms);
                 } else {
                     loadData(); // data changed, show new
                 }
-            } else if(result.updateRequired) {
-                loadData();
-            } else if (isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0 ) {
-                setTimeout(checkForUpdate, 3000);
             } else {
                 loadData();
             }
