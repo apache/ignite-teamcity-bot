@@ -14,6 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -90,6 +91,9 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
     /** cached loads of running builds for branch. */
     private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> runningBuildsFuts = new ConcurrentHashMap<>();
 
+    //todo: not good code to keep it static
+    private static long lastTriggerMs = System.currentTimeMillis();
+
     public IgnitePersistentTeamcity(Ignite ignite, String srvId) {
         this(ignite, new IgniteTeamcityHelper(srvId));
     }
@@ -165,7 +169,7 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
         final IgniteCache<K, Expirable<V>> hist = ignite.getOrCreateCache(ignCacheNme(cacheName));
         @Nullable final Expirable<V> persistedBuilds = hist.get(key);
         if (persistedBuilds != null) {
-            if (persistedBuilds.isAgeLessThan(seconds))
+            if (persistedBuilds.isAgeLessThanSecs(seconds))
                 return persistedBuilds.getData();
         }
 
@@ -226,24 +230,36 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
 
     /** {@inheritDoc} */
     @Override public CompletableFuture<List<BuildRef>> getRunningBuilds(String branch) {
+        int defaultSecs = 60;
+        int secondsUseCached = getTriggerRelCacheValidSecs(defaultSecs);
+
         return CacheUpdateUtil.loadAsyncIfAbsentOrExpired(
-            getOrCreateCacheV2(RUNNING_BUILDS),
+            getOrCreateCacheV2(ignCacheNme(RUNNING_BUILDS)),
             Strings.nullToEmpty(branch),
-            queuedBuildsFuts,
+            runningBuildsFuts,
             teamcity::getRunningBuilds,
-            60,
-            true);
+            secondsUseCached,
+            secondsUseCached == defaultSecs);
+    }
+
+    public static int getTriggerRelCacheValidSecs(int defaultSecs) {
+        long msSinceTrigger = System.currentTimeMillis() - lastTriggerMs;
+        long secondsSinceTigger = TimeUnit.MILLISECONDS.toSeconds(msSinceTrigger);
+        return Math.min((int)secondsSinceTigger, defaultSecs);
     }
 
     /** {@inheritDoc} */
     @Override public CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable final String branch) {
+        int defaultSecs = 60;
+        int secondsUseCached = getTriggerRelCacheValidSecs(defaultSecs);
+
         return CacheUpdateUtil.loadAsyncIfAbsentOrExpired(
-            getOrCreateCacheV2(BUILD_QUEUE),
+            getOrCreateCacheV2(ignCacheNme(BUILD_QUEUE)),
             Strings.nullToEmpty(branch),
             queuedBuildsFuts,
             teamcity::getQueuedBuilds,
-            60,
-            true);
+            secondsUseCached,
+            secondsUseCached == defaultSecs);
     }
 
     /** {@inheritDoc} */
@@ -521,6 +537,12 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
 
     public void setExecutor(ExecutorService executor) {
         this.teamcity.setExecutor(executor);
+    }
+
+    @Override public void triggerBuild(String id, String name) {
+        lastTriggerMs = System.currentTimeMillis();
+
+        teamcity.triggerBuild(id, name);
     }
 
     public void setStatUpdateEnabled(boolean statUpdateEnabled) {

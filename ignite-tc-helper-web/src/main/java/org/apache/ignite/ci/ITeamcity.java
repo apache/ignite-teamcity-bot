@@ -177,4 +177,6 @@ public interface ITeamcity extends AutoCloseable {
     CompletableFuture<LogCheckResult> getLogCheckResults(Integer buildId, SingleBuildRunCtx ctx);
 
     void setExecutor(ExecutorService pool);
+
+    void triggerBuild(String id, String name);
 }

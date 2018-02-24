@@ -8,8 +8,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.web.CtxListener;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,15 +26,11 @@ public class TriggerBuild {
         @Nullable @QueryParam("branchName") String branchName,
         @Nullable @QueryParam("suiteId") String suiteId) {
 
-        try (final IgniteTeamcityHelper helper = new IgniteTeamcityHelper(serverId)) {
+        Ignite ignite = CtxListener.getIgnite(context);
+
+        try (final ITeamcity helper = new IgnitePersistentTeamcity(ignite, serverId)) {
             helper.triggerBuild(suiteId, branchName);
         }
-
-        final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
-
-        final IgniteCache<Object, Object> cache = ignite.cache(GetCurrTestFailures.TEST_FAILURES_SUMMARY_CACHE_NAME);
-        if (cache != null)
-            cache.remove(branchName);
 
         return new TriggerResult("OK");
     }

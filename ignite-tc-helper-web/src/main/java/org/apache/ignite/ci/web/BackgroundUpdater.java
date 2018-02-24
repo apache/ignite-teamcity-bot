@@ -13,9 +13,11 @@ import java.util.function.Function;
 import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.Expirable;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.lang.IgniteClosure;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Component for storing catchable results into ignite and get updates
@@ -42,6 +44,12 @@ public class BackgroundUpdater {
     }
 
     public <K, V extends IBackgroundUpdatable> V get(String cacheName, K key, IgniteClosure<K, V> load) {
+        return get(cacheName, key, load, false);
+    }
+
+    @Nullable
+    public <K, V extends IBackgroundUpdatable> V get(String cacheName, K key, IgniteClosure<K, V> load,
+        boolean triggerSensitive) {
         final IgniteCache<K, Expirable<V>> currCache = ignite.getOrCreateCache(cacheName);
 
         //Lazy calculation of required value
@@ -75,7 +83,7 @@ public class BackgroundUpdater {
 
         final Expirable<V> expirable = currCache.get(key);
 
-        if (expirable == null || isExpired(expirable)) {
+        if (expirable == null || isExpired(expirable, triggerSensitive)) {
             Function<T2<String, ?>, Future<?>> startingFunction = (k) -> getService().submit(loadAndSaveCall);
             Future<?> fut = scheduledUpdates.computeIfAbsent(computationKey, startingFunction);
 
@@ -100,7 +108,7 @@ public class BackgroundUpdater {
         }
 
         final V data = expirable.getData();
-        data.setUpdateRequired(isExpired(expirable)); //considered actual
+        data.setUpdateRequired(isExpired(expirable, triggerSensitive)); //considered actual
         return data;
     }
 
@@ -108,7 +116,11 @@ public class BackgroundUpdater {
         return service;
     }
 
-    private <V extends IBackgroundUpdatable> boolean isExpired(Expirable<V> expirable) {
+    private <V extends IBackgroundUpdatable> boolean isExpired(Expirable<V> expirable, boolean triggerSensitive) {
+
+        if(triggerSensitive)
+            return !expirable.isAgeLessThanSecs(IgnitePersistentTeamcity.getTriggerRelCacheValidSecs(60));
+
         return expirable.getAgeMs() > EXPIRE_MS;
     }
 

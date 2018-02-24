@@ -49,7 +49,7 @@ public class GetCurrTestFailures {
     public TestFailuresSummary getTestFails(@Nullable @QueryParam("branch") String branchOrNull) {
         final String key = Strings.nullToEmpty(branchOrNull);
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
-        return updater.get(TEST_FAILURES_SUMMARY_CACHE_NAME, key, this::getTestFailsNoCache);
+        return updater.get(TEST_FAILURES_SUMMARY_CACHE_NAME, key, this::getTestFailsNoCache, true);
     }
 
     @GET
@@ -114,7 +114,7 @@ public class GetCurrTestFailures {
         final T3<String, String, String> key = new T3<>(serverId, suiteId, branchForTc);
 
         return updater.get(CURRENT + "PrFailures", key,
-            (key1) -> getPrFailuresNoCache(key1.get1(), key1.get2(), key1.get3()));
+            (key1) -> getPrFailuresNoCache(key1.get1(), key1.get2(), key1.get3()), true);
     }
 
     @GET

@@ -63,7 +63,7 @@ public class CacheUpdateUtil {
         boolean alwaysProvidePersisted) {
         @Nullable final Expirable<V> persistedValue = cache.get(key);
 
-        if (persistedValue != null && persistedValue.isAgeLessThan(maxAgeSecs))
+        if (persistedValue != null && persistedValue.isAgeLessThanSecs(maxAgeSecs))
             return CompletableFuture.completedFuture(persistedValue.getData());
 
         AtomicReference<CompletableFuture<V>> submitRef = new AtomicReference<>();

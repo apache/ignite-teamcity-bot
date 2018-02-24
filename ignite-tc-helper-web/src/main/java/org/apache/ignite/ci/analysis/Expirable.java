@@ -30,7 +30,7 @@ public class Expirable<D> {
         return System.currentTimeMillis() - ts;
     }
 
-    public boolean isAgeLessThan(int seconds) {
+    public boolean isAgeLessThanSecs(int seconds) {
         return getAgeMs() < TimeUnit.SECONDS.toMillis(seconds);
     }
 }
