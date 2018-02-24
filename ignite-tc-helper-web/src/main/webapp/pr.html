@@ -43,9 +43,13 @@ function checkForUpdate() {
            if (g_shownDataHashCodeHex!="" && isDefinedAndFilled(result.hashCodeHex)) {
                 if(g_shownDataHashCodeHex==result.hashCodeHex) {
                     var updRunning = isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0
-                    var ms = (result.updateRequired || updRunning) ? 3000 : 30000 ;
+                    var fastCheckNeeded = result.updateRequired || updRunning;
+                    var ms = fastCheckNeeded ? 3000 : 30000 ;
 
                     setTimeout(checkForUpdate, ms);
+
+                    if(!fastCheckNeeded)
+                        $("#loadStatus").html("");
                 } else {
                     loadData(); // data changed, show new
                 }

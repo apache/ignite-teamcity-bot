@@ -256,12 +256,14 @@ public class IgniteTeamcityHelper implements ITeamcity {
         String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId + "";
         String stateFilter = isNullOrEmpty(state) ? "" : (",state:" + state);
         String brachFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
+
         return sendGetXmlParseJaxb(host + "app/rest/latest/builds"
             + "?locator="
             + "defaultFilter:" + dfltFilter
             + btFilter
             + stateFilter
-            + brachFilter, Builds.class).getBuildsNonNull();
+            + brachFilter
+            + ",count:1000", Builds.class).getBuildsNonNull();
     }
 
     public BuildTypeFull getBuildType(String buildTypeId) {
