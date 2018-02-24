@@ -10,7 +10,7 @@ repositories {
 }
 
 mainClassName = 'org.apache.ignite.ci.TcHelperJettyLauncher'
-applicationDefaultJvmArgs = ["-Dteamcity.helper.home=../work", "-Dhttp.maxConnections=20"]
+applicationDefaultJvmArgs = ["-Dteamcity.helper.home=../work", "-Dhttp.maxConnections=35"]
 
 distributions {
     main {

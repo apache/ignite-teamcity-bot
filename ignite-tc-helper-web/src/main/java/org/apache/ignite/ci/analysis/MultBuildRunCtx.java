@@ -303,7 +303,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     private Optional<TestOccurrenceFull> getFullTest(String testOccurrenceInBuildId) {
         return Optional.ofNullable(testFullMap.get(testOccurrenceInBuildId))
             .flatMap(fut ->
-                Optional.ofNullable(FutureUtil.getResultSilent(fut)));
+                Optional.ofNullable(fut.isDone() ?  FutureUtil.getResultSilent(fut) : null));
     }
 
     /**
@@ -336,6 +336,9 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public Integer queuedBuildCount() {
+        if (queuedBuildCount == null)
+            return 0;
+
         Long val = FutureUtil.getResultSilent(queuedBuildCount);
 
         return val == null ? 0 : val.intValue();
@@ -343,6 +346,9 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public Integer runningBuildCount() {
+        if (runningBuildCount == null)
+            return 0;
+
         Long val = FutureUtil.getResultSilent(runningBuildCount);
 
         return val == null ? 0 : val.intValue();

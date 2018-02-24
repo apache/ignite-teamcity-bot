@@ -15,6 +15,8 @@ public class CtxListener implements ServletContextListener {
 
     public static final String UPDATER = "updater";
 
+    private static final String TC_UPDATE_POOL = "tcUpdatePool";
+
     private static final String POOL = "pool";
 
     public static Ignite getIgnite(ServletContext ctx) {
@@ -34,27 +36,24 @@ public class CtxListener implements ServletContextListener {
 
         ctx.setAttribute(UPDATER, object);
 
-        ctx.setAttribute(POOL, object.getService());
-    }
+        TcUpdatePool tcUpdatePool = new TcUpdatePool();
 
+        ctx.setAttribute(TC_UPDATE_POOL, tcUpdatePool);
+        ctx.setAttribute(POOL, tcUpdatePool.getService());
+    }
 
     public static ExecutorService getPool(ServletContext context) {
         return (ExecutorService)context.getAttribute(POOL);
     }
 
-
     @Override public void contextDestroyed(ServletContextEvent sctxEvt) {
         final ServletContext ctx = sctxEvt.getServletContext();
 
-        BackgroundUpdater updater = (BackgroundUpdater)ctx.getAttribute(UPDATER);
-        if (updater != null)
-            updater.stop();
+        TcHelperDb.stop(getIgnite(ctx));
 
-        final Object attribute = ctx.getAttribute(IGNITE);
-        if (attribute != null) {
-            Ignite ignite = (Ignite)attribute;
-            TcHelperDb.stop(ignite);
-        }
+        getBackgroundUpdater(ctx).stop();
+
+        ((TcUpdatePool)ctx.getAttribute(TC_UPDATE_POOL)).stop();
     }
 }
 
