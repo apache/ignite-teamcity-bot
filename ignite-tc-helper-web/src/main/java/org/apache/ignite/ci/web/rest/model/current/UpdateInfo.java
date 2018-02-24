@@ -3,7 +3,7 @@ package org.apache.ignite.ci.web.rest.model.current;
 /**
  * Created by Дмитрий on 19.02.2018
  */
-public class UpdateInfo {
+@SuppressWarnings("WeakerAccess") public class UpdateInfo {
     /** Update required, set by background updater. */
     public boolean updateRequired = false;
 

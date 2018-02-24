@@ -29,7 +29,7 @@ function checkForUpdate() {
     if(branch!=null) {
         curFailuresUrl += "?branch=" + branch;
     }
-    //$("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+
     $.ajax({
         url: curFailuresUrl,
         success: function(result) {

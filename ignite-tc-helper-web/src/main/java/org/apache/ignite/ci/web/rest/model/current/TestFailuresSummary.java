@@ -9,10 +9,9 @@ import org.apache.ignite.internal.util.typedef.internal.U;
 /**
  * Created by dpavlov on 25.10.2017
  *
- * Summary failures from all servers
+ * Summary of failures from all servers.
  */
-@SuppressWarnings("WeakerAccess")
-public class TestFailuresSummary extends UpdateInfo implements IBackgroundUpdatable {
+@SuppressWarnings("WeakerAccess") public class TestFailuresSummary extends UpdateInfo implements IBackgroundUpdatable {
 
     public List<ChainAtServerCurrentStatus> servers = new ArrayList<>();
 

@@ -108,6 +108,6 @@ public class FullChainRunCtx {
     }
 
     public Stream<Future<?>> getRunningUpdates() {
-        return getFutures().filter(future -> !future.isDone() && !future.isCancelled());
+        return getFutures().filter(Objects::nonNull).filter(future -> !future.isDone() && !future.isCancelled());
     }
 }

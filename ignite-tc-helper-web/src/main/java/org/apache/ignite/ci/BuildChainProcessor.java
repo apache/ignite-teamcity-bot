@@ -89,7 +89,7 @@ public class BuildChainProcessor {
                     if (includeLatestRebuild == LatestRebuildMode.NONE)
                         return Stream.of(buildRef);
 
-                    String branch = buildRef.branchName == null ? ITeamcity.DEFAULT : buildRef.branchName;
+                    String branch = getBranchOrDefault(buildRef);
                     final List<BuildRef> builds = teamcity.getFinishedBuilds(buildRef.buildTypeId, branch);
 
                     if (includeLatestRebuild == LatestRebuildMode.LATEST) {
@@ -140,6 +140,10 @@ public class BuildChainProcessor {
         return fullChainRunCtx;
     }
 
+    @NotNull private static String getBranchOrDefault(BuildRef buildRef) {
+        return buildRef.branchName == null ? ITeamcity.DEFAULT : buildRef.branchName;
+    }
+
     public static boolean enshureUnique(Map<Integer, BuildRef> unique, BuildRef ref) {
         if (ref.isFakeStub())
             return false;
@@ -160,26 +164,35 @@ public class BuildChainProcessor {
             ctx.setLogCheckResultsFut(teamcity.getLogCheckResults(ctx.buildId(), ctx));
 
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {
-            final String tcBranch = build.branchName == null ? ITeamcity.DEFAULT : build.branchName;
-            outCtx.setRunningBuildCount(teamcity.getRunningBuilds(build.buildTypeId, tcBranch).size());
 
-            int buildCnt = teamcity.getQueuedBuilds(build.buildTypeId, tcBranch).size();
+            Function<List<BuildRef>, Long> countRelatedToThisBuildType = list ->
+                list.stream()
+                    .filter(ref -> Objects.equals(ref.buildTypeId, build.buildTypeId))
+                    .filter(ref -> Objects.equals(normalizeBranch(build), normalizeBranch(ref)))
+                    .count();
 
-            if ("refs/heads/master".equals(tcBranch) && buildCnt == 0)
-                buildCnt = teamcity.getQueuedBuilds(build.buildTypeId, ITeamcity.DEFAULT).size();
-
-            outCtx.setQueuedBuildCount(buildCnt);
+            outCtx.setRunningBuildCount(teamcity.getRunningBuilds("").thenApply(countRelatedToThisBuildType));
+            outCtx.setQueuedBuildCount(teamcity.getQueuedBuilds("").thenApply(countRelatedToThisBuildType));
         }
 
         if (contactPersonProps != null && outCtx.getContactPerson() == null)
             outCtx.setContactPerson(contactPersonProps.getProperty(outCtx.suiteId()));
     }
 
+    @NotNull private static String normalizeBranch(BuildRef build) {
+        String branch = getBranchOrDefault(build);
+
+        if ("refs/heads/master".equals(branch))
+            return ITeamcity.DEFAULT;
+
+        return branch;
+    }
+
     @Nullable private static Stream<? extends BuildRef> dependencies(ITeamcity teamcity, BuildRef ref) {
         Build results = teamcity.getBuild(ref.href);
         if (results == null)
             return Stream.of(ref);
-        
+
         List<BuildRef> aNull = results.getSnapshotDependenciesNonNull();
         if(aNull.isEmpty())
             return Stream.of(ref);

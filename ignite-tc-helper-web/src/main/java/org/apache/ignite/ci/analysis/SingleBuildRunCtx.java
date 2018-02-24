@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.util.FutureUtil;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -70,16 +70,8 @@ public class SingleBuildRunCtx implements ISuiteResults {
             return null;
         }
 
-        LogCheckResult logCheckResult = null;
-        try {
-            logCheckResult = logCheckResultsFut.get();
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        catch (ExecutionException e) {
-            e.printStackTrace(); //todo log
-        }
+        LogCheckResult logCheckResult = FutureUtil.getResultSilent(logCheckResultsFut);
+
         if (logCheckResult == null)
             return null;
 
@@ -100,7 +92,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     public Stream<? extends Future<?>> getFutures() {
         if (logCheckResultsFut == null)
-            return Stream.of();
+            return Stream.empty();
         else
             return Stream.of((Future<?>)logCheckResultsFut);
     }

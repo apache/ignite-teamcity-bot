@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.analysis.ISuiteResults;
@@ -46,6 +47,8 @@ import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+import static java.util.concurrent.CompletableFuture.supplyAsync;
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 
 /**
@@ -110,7 +113,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             return file;
         };
 
-        return CompletableFuture.supplyAsync(supplier, executor);
+        return supplyAsync(supplier, executor);
     }
 
     @Override public CompletableFuture<LogCheckResult> getLogCheckResults(Integer buildId, SingleBuildRunCtx ctx) {
@@ -223,7 +226,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     /** {@inheritDoc} */
     public CompletableFuture<List<BuildType>> getProjectSuites(String projectId) {
-        return CompletableFuture.supplyAsync(() -> getProjectSuitesSync(projectId), executor);
+        return supplyAsync(() -> getProjectSuitesSync(projectId), executor);
     }
 
     private List<BuildType> getProjectSuitesSync(String projectId) {
@@ -246,17 +249,19 @@ public class IgniteTeamcityHelper implements ITeamcity {
         }
     }
 
-    public List<BuildRef> getBuildHistory(String buildTypeId,
-        String branchName,
+    private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
+        @Nullable String branchName,
         boolean dfltFilter,
         @Nullable String state) {
-        return sendGetXmlParseJaxb(host + "app/rest/latest/builds" +
-            "?locator=" +
-            "buildType:" + buildTypeId
-            + ",defaultFilter:" + dfltFilter
-            + (state == null ? "" : (",state:" + state))
-            + ",branch:" + branchName, Builds.class)
-            .getBuildsNonNull();
+        String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId + "";
+        String stateFilter = isNullOrEmpty(state) ? "" : (",state:" + state);
+        String brachFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
+        return sendGetXmlParseJaxb(host + "app/rest/latest/builds"
+            + "?locator="
+            + "defaultFilter:" + dfltFilter
+            + btFilter
+            + stateFilter
+            + brachFilter, Builds.class).getBuildsNonNull();
     }
 
     public BuildTypeFull getBuildType(String buildTypeId) {
@@ -280,8 +285,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return getJaxbUsingHref(href, Statistics.class);
     }
 
-    public TestOccurrenceFull getTestFull(String href) {
-        return getJaxbUsingHref(href, TestOccurrenceFull.class);
+    public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
+        return supplyAsync(() -> getJaxbUsingHref(href, TestOccurrenceFull.class), executor);
     }
 
     public Change getChange(String href) {
@@ -316,16 +321,19 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getRunningBuilds(String projectId, String branch) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_RUNNING);
+    @Override public CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch) {
+        return supplyAsync(() -> getBuildsInState(null, branch, BuildRef.STATE_RUNNING), executor);
     }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getQueuedBuilds(String projectId, String branch) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_QUEUED);
+    @Override public CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch) {
+        return supplyAsync(() -> getBuildsInState(null, branch, BuildRef.STATE_QUEUED), executor);
     }
 
-    private List<BuildRef> getBuildsInState(String projectId, String branch, String state) {
+    private List<BuildRef> getBuildsInState(
+        @Nullable final String projectId,
+        @Nullable final String branch,
+        @Nonnull final String state) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             false,

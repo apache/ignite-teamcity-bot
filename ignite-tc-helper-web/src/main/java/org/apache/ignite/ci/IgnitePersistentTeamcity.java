@@ -7,14 +7,13 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -46,6 +45,7 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.util.CacheUpdateUtil;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.internal.util.typedef.T2;
@@ -56,8 +56,11 @@ import org.jetbrains.annotations.NotNull;
  */
 public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
 
+    //V1 caches, 1024 parts
     public static final String STAT = "stat";
     public static final String TEST_OCCURRENCE_FULL = "testOccurrenceFull";
+    public static final String FINISHED_BUILDS = "finishedBuilds";
+    public static final String PROBLEMS = "problems";
 
     //V2 caches, 32 parts
     public static final String TESTS_OCCURRENCES = "testOccurrences";
@@ -69,11 +72,23 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
     public static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
     public static final String BUILDS = "builds";
 
+    public static final String BUILD_QUEUE = "buildQueue";
+    public static final String RUNNING_BUILDS = "runningBuilds";
+
     private final Ignite ignite;
     private final IgniteTeamcityHelper teamcity;
     private final String serverId;
     /** Statistics update in persisted cached enabled. */
     private boolean statUpdateEnabled = true;
+
+    /** cached loads of full test occurrence. */
+    private ConcurrentMap<String, CompletableFuture<TestOccurrenceFull>> testOccFullFutures = new ConcurrentHashMap<>();
+
+    /** cached loads of queued builds for branch. */
+    private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> queuedBuildsFuts = new ConcurrentHashMap<>();
+
+    /** cached loads of running builds for branch. */
+    private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> runningBuildsFuts = new ConcurrentHashMap<>();
 
     public IgnitePersistentTeamcity(Ignite ignite, String srvId) {
         this(ignite, new IgniteTeamcityHelper(srvId));
@@ -91,16 +106,15 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
             buildsCache(), this::addBuildToFailuresStat);
     }
 
-
-    public IgniteCache<String, Build> buildsCache() {
-        return getOrCreateV2(ignCacheNme(BUILDS));
+    private IgniteCache<String, Build> buildsCache() {
+        return getOrCreateCacheV2(ignCacheNme(BUILDS));
     }
 
-    public IgniteCache<String, TestOccurrences> testOccurrencesCache() {
-        return getOrCreateV2(ignCacheNme(TESTS_OCCURRENCES));
+    private IgniteCache<String, TestOccurrences> testOccurrencesCache() {
+        return getOrCreateCacheV2(ignCacheNme(TESTS_OCCURRENCES));
     }
 
-    public <K, V> IgniteCache<K, V> getOrCreateV2(String name) {
+    private <K, V> IgniteCache<K, V> getOrCreateCacheV2(String name) {
         CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
         ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
         return ignite.getOrCreateCache(ccfg);
@@ -114,15 +128,15 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
         return serverId;
     }
 
-    public <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction) {
+    private <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction) {
         return loadIfAbsent(cacheName, key, loadFunction, (V v) -> true);
     }
 
-    public <K, V> V loadIfAbsentV2(String cacheName, K key, Function<K, V> loadFunction) {
-        return loadIfAbsent(getOrCreateV2(ignCacheNme(cacheName)), key, loadFunction, (V v) -> true);
+    private <K, V> V loadIfAbsentV2(String cacheName, K key, Function<K, V> loadFunction) {
+        return loadIfAbsent(getOrCreateCacheV2(ignCacheNme(cacheName)), key, loadFunction, (V v) -> true);
     }
 
-    public <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction, Predicate<V> saveValueFilter) {
+    private <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction, Predicate<V> saveValueFilter) {
         final IgniteCache<K, V> cache = ignite.getOrCreateCache(ignCacheNme(cacheName));
 
         return loadIfAbsent(cache, key, loadFunction, saveValueFilter);
@@ -147,29 +161,27 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
         return loaded;
     }
 
-    public <K, V> V timedLoadIfAbsent(String cacheName, int seconds, K key, Function<K, V> load) {
-        return timedLoadIfAbsentOrMerge(cacheName, seconds, key,
-            (k, persistentValue) -> load.apply(k));
-    }
-
     public <K, V> V timedLoadIfAbsentOrMerge(String cacheName, int seconds, K key, BiFunction<K, V, V> loadWithMerge) {
         final IgniteCache<K, Expirable<V>> hist = ignite.getOrCreateCache(ignCacheNme(cacheName));
         @Nullable final Expirable<V> persistedBuilds = hist.get(key);
         if (persistedBuilds != null) {
-            long ageTs = System.currentTimeMillis() - persistedBuilds.getTs();
-            if (ageTs < TimeUnit.SECONDS.toMillis(seconds))
+            if (persistedBuilds.isAgeLessThan(seconds))
                 return persistedBuilds.getData();
         }
+
         V apply = loadWithMerge.apply(key, persistedBuilds != null ? persistedBuilds.getData() : null);
+
         final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), apply);
+
         hist.put(key, newVal);
+
         return apply;
     }
 
     /** {@inheritDoc} */
     @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
-        return timedLoadIfAbsentOrMerge("finishedBuilds", 60, suiteInBranch,
+        return timedLoadIfAbsentOrMerge(FINISHED_BUILDS, 60, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> builds;
                 try {
@@ -213,21 +225,31 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
     }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getRunningBuilds(String projectId, String branch) {
-        //todo cache or parse from build queue instead
-        return teamcity.getRunningBuilds(projectId, branch);
+    @Override public CompletableFuture<List<BuildRef>> getRunningBuilds(String branch) {
+        return CacheUpdateUtil.loadAsyncIfAbsentOrExpired(
+            getOrCreateCacheV2(RUNNING_BUILDS),
+            Strings.nullToEmpty(branch),
+            queuedBuildsFuts,
+            teamcity::getRunningBuilds,
+            60,
+            true);
     }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getQueuedBuilds(String projectId, String branch) {
-        //todo cache or parse from build queue instead
-        return teamcity.getQueuedBuilds(projectId, branch);
+    @Override public CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable final String branch) {
+        return CacheUpdateUtil.loadAsyncIfAbsentOrExpired(
+            getOrCreateCacheV2(BUILD_QUEUE),
+            Strings.nullToEmpty(branch),
+            queuedBuildsFuts,
+            teamcity::getQueuedBuilds,
+            60,
+            true);
     }
 
     /** {@inheritDoc} */
     @Nullable
     @Override public Build getBuild(String href) {
-        final IgniteCache<String, Build> cache = ignite.getOrCreateCache(ignCacheNme(DbMigrations.BUILD_RESULTS));
+        final IgniteCache<String, Build> cache = buildsCache();
 
         @Nullable final Build persistedBuild = cache.get(href);
 
@@ -235,7 +257,6 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
             if (!persistedBuild.isOutdatedEntityVersion())
                 return persistedBuild;
         }
-
 
         final Build loaded = realLoadBuild(href);
         //can't reload, but cached has value
@@ -314,10 +335,9 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
     }
 
     @Override public ProblemOccurrences getProblems(String href) {
-        return loadIfAbsent("problems",
+        return loadIfAbsent(PROBLEMS,
             href,
             teamcity::getProblems);
-
     }
 
     @Override public TestOccurrences getTests(String href) {
@@ -335,7 +355,7 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
     }
 
 
-    public void addTestOccurrencesToStat(TestOccurrences val) {
+    private void addTestOccurrencesToStat(TestOccurrences val) {
         if (!statUpdateEnabled)
             return;
 
@@ -363,9 +383,11 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
             });
     }
 
-    @Override public TestOccurrenceFull getTestFull(String href) {
-        return loadIfAbsent(TEST_OCCURRENCE_FULL,
+    @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
+        return CacheUpdateUtil.loadAsyncIfAbsent(
+            ignite.getOrCreateCache(ignCacheNme(TEST_OCCURRENCE_FULL)),
             href,
+            testOccFullFutures,
             teamcity::getTestFull);
     }
 
@@ -395,7 +417,7 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
     }
 
     private IgniteCache<String, RunStat> testRunStatCache() {
-        return getOrCreateV2(ignCacheNme(TESTS_RUN_STAT));
+        return getOrCreateCacheV2(ignCacheNme(TESTS_RUN_STAT));
     }
 
     public Function<String, RunStat> getBuildFailureRunStatProvider() {
@@ -411,11 +433,11 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
      * @return cache from suite name to its failure statistics
      */
     private IgniteCache<String, RunStat> buildsFailureRunStatCache() {
-        return getOrCreateV2(ignCacheNme(BUILDS_FAILURE_RUN_STAT));
+        return getOrCreateCacheV2(ignCacheNme(BUILDS_FAILURE_RUN_STAT));
     }
 
     private IgniteCache<Integer, LogCheckResult> logCheckResultCache() {
-        return getOrCreateV2(ignCacheNme(LOG_CHECK_RESULT));
+        return getOrCreateCacheV2(ignCacheNme(LOG_CHECK_RESULT));
     }
 
     private void addTestOccurrenceToStat(TestOccurrence next) {
@@ -469,11 +491,19 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
     }
 
     @Override public CompletableFuture<LogCheckResult> getLogCheckResults(Integer buildId, SingleBuildRunCtx ctx) {
-        return loadFutureIfAbsent(logCheckResultCache(), buildId,
+        return loadFutureIfAbsentVers(logCheckResultCache(), buildId,
             k -> teamcity.getLogCheckResults(buildId, ctx));
     }
 
-    public <K, V extends IVersionedEntity> CompletableFuture<V> loadFutureIfAbsent(IgniteCache<K, V> cache,
+    /**
+     * @param cache
+     * @param key
+     * @param submitFunction caching of already submitted computations should be done by this function.
+     * @param <K>
+     * @param <V>
+     * @return
+     */
+    public <K, V extends IVersionedEntity> CompletableFuture<V> loadFutureIfAbsentVers(IgniteCache<K, V> cache,
         K key,
         Function<K, CompletableFuture<V>> submitFunction) {
         @Nullable final V persistedValue = cache.get(key);
@@ -481,7 +511,6 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
         if (persistedValue != null && !persistedValue.isOutdatedEntityVersion())
             return CompletableFuture.completedFuture(persistedValue);
 
-        //todo caching of already submitted computations
         CompletableFuture<V> apply = submitFunction.apply(key);
 
         return apply.thenApplyAsync(val -> {

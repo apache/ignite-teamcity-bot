@@ -72,7 +72,7 @@ public class DbMigrations {
                 tests.destroy();
             }
         });
-        String newBuildsCache = BUILD_RESULTS + "-to-" + IgnitePersistentTeamcity.BUILDS;
+        String newBuildsCache = BUILD_RESULTS + "-to-" + IgnitePersistentTeamcity.BUILDS + "V2";
 
         applyMigration("RemoveStatisticsFromBuildCache", ()->{
             if(doneMigrations.containsKey(newBuildsCache))

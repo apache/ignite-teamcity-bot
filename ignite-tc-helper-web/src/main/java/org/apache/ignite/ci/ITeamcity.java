@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.ISuiteResults;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
@@ -48,11 +49,6 @@ public interface ITeamcity extends AutoCloseable {
      */
     List<BuildRef> getFinishedBuilds(String projectId, String branch);
 
-    default Optional<BuildRef> getLastFinishedBuild(String projectId, String branch) {
-        final List<BuildRef> builds = getFinishedBuilds(projectId, branch);
-        return builds.stream().max(Comparator.comparing(BuildRef::getId));
-    }
-
     /**
      * Includes snapshot dependencies failed builds into list
      *
@@ -68,10 +64,10 @@ public interface ITeamcity extends AutoCloseable {
     }
 
     /**   */
-    List<BuildRef> getRunningBuilds(String projectId, String branch);
+    CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch);
 
     /**   */
-    List<BuildRef> getQueuedBuilds(String projectId, String branch);
+    CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch);
 
     default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist) {
         return getFinishedBuilds(projectId, branchNameForHist).stream().mapToInt(BuildRef::getId).toArray();
@@ -98,7 +94,7 @@ public interface ITeamcity extends AutoCloseable {
 
     Statistics getBuildStat(String href);
 
-    TestOccurrenceFull getTestFull(String href);
+    CompletableFuture<TestOccurrenceFull> getTestFull(String href);
 
     Change getChange(String href);
 
@@ -153,13 +149,12 @@ public interface ITeamcity extends AutoCloseable {
             mCtx.addTests(tests);
 
             for (TestOccurrence next : tests) {
-                //todo is it required to load non failed test here
                 if (next.href != null && next.isFailedTest()) {
-                    TestOccurrenceFull testOccurrenceFull = getTestFull(next.href);
+                    CompletableFuture<TestOccurrenceFull> testFullFut = getTestFull(next.href);
+
                     String testInBuildId = next.getId();
 
-                    if (testOccurrenceFull.test != null && testOccurrenceFull.test.id != null)
-                        mCtx.addTestInBuildToTestFull(testInBuildId, testOccurrenceFull);
+                    mCtx.addTestInBuildToTestFull(testInBuildId, testFullFut);
                 }
             }
         }

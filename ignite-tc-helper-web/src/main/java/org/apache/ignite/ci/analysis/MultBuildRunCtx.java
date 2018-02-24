@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
@@ -20,8 +21,11 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.util.CollectionUtil;
+import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.util.TimeUtil;
 import org.jetbrains.annotations.Nullable;
+
+import static java.util.stream.Stream.concat;
 
 /**
  * Run configuration execution results loaded from different API URLs.
@@ -32,36 +36,37 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     private List<SingleBuildRunCtx> builds = new CopyOnWriteArrayList<>();
 
-    public void addBuild(SingleBuildRunCtx ctx) {
-        builds.add(ctx);
-    }
-
+    @Deprecated
     private List<ProblemOccurrence> problems = new CopyOnWriteArrayList<>();
 
 
-    /** Tests: Map from full test name to multiple test ocurrence. */
+    /** Tests: Map from full test name to multiple test occurrence. */
     private final Map<String, MultTestFailureOccurrences> tests = new ConcurrentSkipListMap<>();
 
     /**
      * Mapping for building test occurrence reference to test full results:
      * Map from "Occurrence in build id" test detailed info.
+     * Note: only failed tests are loaded here
      */
-    private Map<String, TestOccurrenceFull> testFullMap = new HashMap<>();
+    private Map<String, CompletableFuture<TestOccurrenceFull>> testFullMap = new HashMap<>();
 
     /** Used for associating build info with contact person */
     @Nullable private String contactPerson;
 
     @Nullable private Statistics stat;
 
+    public void addBuild(SingleBuildRunCtx ctx) {
+        builds.add(ctx);
+    }
 
     /** Thread dump short file name */
     @Nullable private Integer threadDumpFileIdx;
 
     /** Currently running builds */
-    @Nullable private Integer runningBuildCount;
+    @Nullable private CompletableFuture<Long> runningBuildCount;
 
     /** Currently scheduled builds */
-    @Nullable private Integer queuedBuildCount;
+    @Nullable private CompletableFuture<Long> queuedBuildCount;
 
     public MultBuildRunCtx(@Nonnull final Build buildInfo) {
         this.firstBuildInfo = buildInfo;
@@ -129,10 +134,6 @@ public class MultBuildRunCtx implements ISuiteResults {
             .filter(cnt -> cnt > 0).count();
     }
 
-    public int overallFailedTests() {
-        return tests.values().stream().mapToInt(MultTestFailureOccurrences::failuresCount).sum();
-    }
-
     public int mutedTests() {
         TestOccurrencesRef testOccurrences = firstBuildInfo.testOccurrences;
         if (testOccurrences == null)
@@ -147,6 +148,7 @@ public class MultBuildRunCtx implements ISuiteResults {
 
         if (testOccurrences == null)
             return 0;
+
         final Integer cnt = testOccurrences.count;
 
         return cnt == null ? 0 : cnt;
@@ -188,22 +190,49 @@ public class MultBuildRunCtx implements ISuiteResults {
      */
     public String getResult() {
         long execToCnt = getExecutionTimeoutCount();
-        long jvmCrashProblemCnt = getJvmCrashProblemCount();
-        long oomeProblemCnt = getOomeProblemCount();
 
-        String res;
-        if (execToCnt > 0)
-            res = ("TIMEOUT " + (execToCnt > 1 ? "[" + execToCnt + "]" : ""));
-        else if (jvmCrashProblemCnt > 0)
-            res = ("JVM CRASH " + (jvmCrashProblemCnt > 1 ? "[" + jvmCrashProblemCnt + "]" : ""));
-        else if (oomeProblemCnt > 0)
-            res = ("Out Of Memory Error " + (oomeProblemCnt > 1 ? "[" + oomeProblemCnt + "]" : ""));
-        else {
-            Optional<ProblemOccurrence> bpOpt = getBuildProblemExceptTestOrSnapshot();
-            res = bpOpt.map(occurrence -> occurrence.type)
-                .orElse("");
+        StringBuilder res = new StringBuilder();
+        if (execToCnt > 0) {
+            if (res.length() > 0)
+                res.append(", ");
+
+            res.append("TIMEOUT ").append(execToCnt > 1 ? "[" + execToCnt + "]" : "");
         }
-        return res;
+
+
+        long jvmCrashProblemCnt = getJvmCrashProblemCount();
+        if (jvmCrashProblemCnt > 0) {
+            if (res.length() > 0)
+                res.append(", ");
+
+            res.append("JVM CRASH ").append(jvmCrashProblemCnt > 1 ? "[" + jvmCrashProblemCnt + "]" : "");
+        }
+
+        long oomeProblemCnt = getOomeProblemCount();
+        if (oomeProblemCnt > 0) {
+            if (res.length() > 0)
+                res.append(", ");
+
+            res.append("Out Of Memory Error ").append(oomeProblemCnt > 1 ? "[" + oomeProblemCnt + "]" : "");
+        }
+
+        {
+            Stream<ProblemOccurrence> stream =
+                problems.stream().filter(p ->
+                    !p.isFailedTests()
+                        && !p.isShaphotDepProblem()
+                        && !p.isExecutionTimeout()
+                        && !p.isJvmCrash()
+                        && !p.isOome());
+            Optional<ProblemOccurrence> bpOpt = stream.findAny();
+            if(bpOpt.isPresent()) {
+                if (res.length() > 0)
+                    res.append(", ");
+
+                res.append(bpOpt.get().type).append(" ") ;
+            }
+        }
+        return res.toString();
     }
 
     public Stream<? extends ITestFailureOccurrences> getTopLongRunning() {
@@ -264,14 +293,17 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     /**
      * @param testOccurrenceInBuildId, something like: 'id:15666,build:(id:1093907)'
-     * @param testOccurrenceFull
+     * @param fullFut
      */
-    public void addTestInBuildToTestFull(String testOccurrenceInBuildId, TestOccurrenceFull testOccurrenceFull) {
-        testFullMap.put(testOccurrenceInBuildId, testOccurrenceFull);
+    public void addTestInBuildToTestFull(String testOccurrenceInBuildId,
+        CompletableFuture<TestOccurrenceFull> fullFut) {
+        testFullMap.put(testOccurrenceInBuildId, fullFut);
     }
 
-    private Optional<TestOccurrenceFull> getFullTest(String id) {
-        return Optional.ofNullable(testFullMap.get(id));
+    private Optional<TestOccurrenceFull> getFullTest(String testOccurrenceInBuildId) {
+        return Optional.ofNullable(testFullMap.get(testOccurrenceInBuildId))
+            .flatMap(fut ->
+                Optional.ofNullable(FutureUtil.getResultSilent(fut)));
     }
 
     /**
@@ -291,24 +323,29 @@ public class MultBuildRunCtx implements ISuiteResults {
         return threadDumpFileIdx;
     }
 
-    public void setRunningBuildCount(int runningBuildCount) {
+    public void setRunningBuildCount(CompletableFuture<Long> runningBuildCount) {
         this.runningBuildCount = runningBuildCount;
     }
 
-    public void setQueuedBuildCount(int queuedBuildCount) {
+    public void setQueuedBuildCount(CompletableFuture<Long> queuedBuildCount) {
         this.queuedBuildCount = queuedBuildCount;
     }
 
     public boolean hasScheduledBuildsInfo() {
-        return runningBuildCount!=null && queuedBuildCount !=null;
+        return runningBuildCount != null && queuedBuildCount != null;
     }
 
     public Integer queuedBuildCount() {
-        return queuedBuildCount;
+        Long val = FutureUtil.getResultSilent(queuedBuildCount);
+
+        return val == null ? 0 : val.intValue();
+
     }
 
     public Integer runningBuildCount() {
-        return runningBuildCount;
+        Long val = FutureUtil.getResultSilent(runningBuildCount);
+
+        return val == null ? 0 : val.intValue();
     }
 
     public Stream<TestOccurrenceFull> getFullTests(ITestFailureOccurrences occurrence) {
@@ -329,6 +366,16 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public Stream<? extends Future<?>> getFutures() {
-        return builds.stream().flatMap(SingleBuildRunCtx::getFutures);
+        Stream<CompletableFuture<?>> stream1 = queuedBuildCount != null ? Stream.of(queuedBuildCount) : Stream.empty();
+        Stream<CompletableFuture<?>> stream2 = runningBuildCount != null ? Stream.of(runningBuildCount) : Stream.empty();
+
+        Stream<? extends Future<?>> stream3 = testFullMap.values().stream();
+
+        Stream<? extends Future<?>> stream4 = builds.stream().flatMap(SingleBuildRunCtx::getFutures);
+
+        return
+            concat(
+                concat(stream1, stream2),
+                concat(stream4, stream3));
     }
 }

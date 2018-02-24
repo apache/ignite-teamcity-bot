@@ -94,6 +94,16 @@ public class GetCurrTestFailures {
     }
 
     @GET
+    @Path("pr/updates")
+    public UpdateInfo getPrFailuresUpdates(
+        @Nullable @QueryParam("serverId") String serverId,
+        @Nonnull @QueryParam("suiteId") String suiteId,
+        @Nonnull @QueryParam("branchForTc") String branchForTc) {
+
+        return new UpdateInfo().copyFrom(getPrFailures(serverId, suiteId, branchForTc));
+    }
+
+    @GET
     @Path("pr")
     public TestFailuresSummary getPrFailures(
         @Nullable @QueryParam("serverId") String serverId,

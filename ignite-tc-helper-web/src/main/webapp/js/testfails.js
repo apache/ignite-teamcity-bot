@@ -1,16 +1,7 @@
 //loadData(); // should be defined by page
 //loadStatus element should be provided on page
 //@param results - TestFailuresSummary
-var g_lastHashCodeHex = ""
-var g_lastHtml = ""
-
 function showChainOnServersResults(result) {
-    if (isDefinedAndFilled(result.hashCodeHex) &&
-        result.hashCodeHex == g_lastHashCodeHex &&
-        g_lastHtml != "") {
-        return g_lastHtml;
-    }
-
     var res = "";
     res += "Chain results";
     if (isDefinedAndFilled(result.failedTests) &&
@@ -27,11 +18,6 @@ function showChainOnServersResults(result) {
     }
 
     setTimeout(initMoreInfo, 100);
-
-    if (isDefinedAndFilled(result.hashCodeHex)) {
-        g_lastHashCodeHex = result.hashCodeHex;
-        g_lastHtml = res;
-    }
 
     return res;
 }
@@ -197,7 +183,7 @@ function showTestFailData(testFail, isFailureShown) {
 
     var investigated = isDefinedAndFilled(testFail.investigated) && testFail.investigated;
     if (investigated) {
-        res += "<img src='https://d30y9cdsu7xlg0.cloudfront.net/png/324212-200.png' width=8px height=8px> ";
+        res += "<img src='https://d30y9cdsu7xlg0.cloudfront.net/png/324212-200.png' width=11px height=11px> ";
         res += "<span style='opacity: 0.75'> ";
     }
     res += " <span style='background-color: " + color + "; width:7px; height:7px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
