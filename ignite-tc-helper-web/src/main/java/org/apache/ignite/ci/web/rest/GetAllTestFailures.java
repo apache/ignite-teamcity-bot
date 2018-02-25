@@ -13,10 +13,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.LatestRebuildMode;
 import org.apache.ignite.ci.conf.BranchTracked;
@@ -56,16 +56,14 @@ public class GetAllTestFailures {
     @Path("failuresNoCache")
     @NotNull public TestFailuresSummary getAllTestFailsNoCache(@Nullable @QueryParam("branch") String branchOpt,
         @QueryParam("count") int count) {
-        Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
+        final ITcHelper helper = CtxListener.getTcHelper(context);
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
         final String branch = isNullOrEmpty(branchOpt) ? "master" : branchOpt;
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
         for (ChainAtServerTracked chainAtServerTracked : tracked.chains) {
-            try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainAtServerTracked.serverId)) {
-                teamcity.setExecutor(CtxListener.getPool(context));
-
+            try (IAnalyticsEnabledTeamcity teamcity = helper.server(chainAtServerTracked.serverId)) {
                 final String projectId = chainAtServerTracked.getSuiteIdMandatory();
                 final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
                     projectId,

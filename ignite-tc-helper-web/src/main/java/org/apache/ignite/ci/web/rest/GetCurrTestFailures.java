@@ -12,8 +12,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.LatestRebuildMode;
@@ -55,7 +56,7 @@ public class GetCurrTestFailures {
     @GET
     @Path("failuresNoCache")
     @NotNull public TestFailuresSummary getTestFailsNoCache(@Nullable @QueryParam("branch") String key) {
-        final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
+        final ITcHelper helper = CtxListener.getTcHelper(context);
 
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
@@ -66,15 +67,15 @@ public class GetCurrTestFailures {
         tracked.chains.stream().parallel()
             .map(chainTracked -> {
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
-                try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
-                    teamcity.setExecutor(CtxListener.getPool(context));
+                String serverId = chainTracked.serverId;
+                chainStatus.serverName = serverId;
+                try (IAnalyticsEnabledTeamcity teamcity = helper.server(serverId)) {
 
                     Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
                         chainTracked.getSuiteIdMandatory(),
                         chainTracked.getBranchForRestMandatory(),
                         LatestRebuildMode.LATEST, teamcity);
 
-                    chainStatus.serverName = teamcity.serverId();
                     pubCtx.ifPresent(ctx -> {
                         int cnt = (int)ctx.getRunningUpdates().count();
                         if (cnt > 0)

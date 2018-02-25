@@ -5,17 +5,19 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.db.TcHelperDb;
 
 /**
  */
 public class CtxListener implements ServletContextListener {
+    private static final String TC_HELPER = "tcHelper";
 
     public static final String IGNITE = "ignite";
 
     public static final String UPDATER = "updater";
 
-    private static final String TC_UPDATE_POOL = "tcUpdatePool";
 
     private static final String POOL = "pool";
 
@@ -23,7 +25,11 @@ public class CtxListener implements ServletContextListener {
         return (Ignite)ctx.getAttribute(IGNITE);
     }
 
-    public  static BackgroundUpdater getBackgroundUpdater(ServletContext ctx) {
+    public static ITcHelper getTcHelper(ServletContext ctx) {
+        return (ITcHelper)ctx.getAttribute(TC_HELPER);
+    }
+
+    public static BackgroundUpdater getBackgroundUpdater(ServletContext ctx) {
         return (BackgroundUpdater)ctx.getAttribute(UPDATER);
     }
 
@@ -36,10 +42,10 @@ public class CtxListener implements ServletContextListener {
 
         ctx.setAttribute(UPDATER, object);
 
-        TcUpdatePool tcUpdatePool = new TcUpdatePool();
+        TcHelper tcHelper = new TcHelper(ignite);
 
-        ctx.setAttribute(TC_UPDATE_POOL, tcUpdatePool);
-        ctx.setAttribute(POOL, tcUpdatePool.getService());
+        ctx.setAttribute(TC_HELPER, tcHelper);
+        ctx.setAttribute(POOL, tcHelper.getService());
     }
 
     public static ExecutorService getPool(ServletContext context) {
@@ -53,7 +59,8 @@ public class CtxListener implements ServletContextListener {
 
         getBackgroundUpdater(ctx).stop();
 
-        ((TcUpdatePool)ctx.getAttribute(TC_UPDATE_POOL)).stop();
+        TcHelper helper = (TcHelper)getTcHelper(ctx);
+        helper.close();
     }
 }
 

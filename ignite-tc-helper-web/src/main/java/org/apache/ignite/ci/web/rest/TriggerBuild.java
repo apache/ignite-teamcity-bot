@@ -7,9 +7,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.web.CtxListener;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,9 +24,7 @@ public class TriggerBuild {
         @Nullable @QueryParam("branchName") String branchName,
         @Nullable @QueryParam("suiteId") String suiteId) {
 
-        Ignite ignite = CtxListener.getIgnite(context);
-
-        try (final ITeamcity helper = new IgnitePersistentTeamcity(ignite, serverId)) {
+        try (final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId)) {
             helper.triggerBuild(suiteId, branchName);
         }
 

@@ -55,7 +55,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Created by dpavlov on 03.08.2017
  */
-public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
+public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
 
     //V1 caches, 1024 parts
     public static final String STAT = "stat";
@@ -98,7 +98,7 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
         this(ignite, new IgniteTeamcityHelper(srvId));
     }
 
-    public IgnitePersistentTeamcity(Ignite ignite, IgniteTeamcityHelper teamcity) {
+    private IgnitePersistentTeamcity(Ignite ignite, IgniteTeamcityHelper teamcity) {
         this.ignite = ignite;
         this.teamcity = teamcity;
         this.serverId = teamcity.serverId();
@@ -146,11 +146,11 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
         return loadIfAbsent(cache, key, loadFunction, saveValueFilter);
     }
 
-    public <K, V> V loadIfAbsent(IgniteCache<K, V> cache, K key, Function<K, V> loadFunction) {
+    private <K, V> V loadIfAbsent(IgniteCache<K, V> cache, K key, Function<K, V> loadFunction) {
         return loadIfAbsent(cache, key, loadFunction, null);
     }
 
-    public <K, V> V loadIfAbsent(IgniteCache<K, V> cache, K key, Function<K, V> loadFunction,
+    private <K, V> V loadIfAbsent(IgniteCache<K, V> cache, K key, Function<K, V> loadFunction,
         Predicate<V> saveValueFilter) {
         @Nullable final V persistedBuilds = cache.get(key);
 
@@ -165,7 +165,7 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
         return loaded;
     }
 
-    public <K, V> V timedLoadIfAbsentOrMerge(String cacheName, int seconds, K key, BiFunction<K, V, V> loadWithMerge) {
+    private <K, V> V timedLoadIfAbsentOrMerge(String cacheName, int seconds, K key, BiFunction<K, V, V> loadWithMerge) {
         final IgniteCache<K, Expirable<V>> hist = ignite.getOrCreateCache(ignCacheNme(cacheName));
         @Nullable final Expirable<V> persistedBuilds = hist.get(key);
         if (persistedBuilds != null) {
@@ -286,7 +286,8 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
             cache.put(href, loaded);
 
             if (statUpdateEnabled) {
-                //todo update
+                // may check if branch is tracked and save anyway
+                //todo first touch of build here will cause build and its stat will be diverged
                 addBuildToFailuresStat(loaded);
             }
         }
@@ -294,7 +295,7 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
         return loaded;
     }
 
-    public void addBuildToFailuresStat(Build loaded) {
+    private void addBuildToFailuresStat(Build loaded) {
         if (loaded.isFakeStub())
             return;
 
@@ -324,7 +325,7 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
         }, loaded);
     }
 
-    public Build realLoadBuild(String href1) {
+    private Build realLoadBuild(String href1) {
         try {
             return teamcity.getBuild(href1);
         }
@@ -364,6 +365,7 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
             hrefIgnored -> {
                 TestOccurrences loadedTests = teamcity.getTests(href);
 
+                //todo first touch of build here will cause build and its stat will be diverged
                 addTestOccurrencesToStat(loadedTests);
 
                 return loadedTests;
@@ -415,15 +417,15 @@ public class IgnitePersistentTeamcity implements ITeamcity, ITcAnalytics {
         return loadIfAbsentV2(CHANGES_LIST, href, teamcity::getChangesList);
     }
 
-    public List<RunStat> topTestFailing(int cnt) {
+    @Override public List<RunStat> topTestFailing(int cnt) {
         return CollectionUtil.top(allTestAnalysis(), cnt, Comparator.comparing(RunStat::getFailRate));
     }
 
-    public List<RunStat> topTestsLongRunning(int cnt) {
+    @Override public List<RunStat> topTestsLongRunning(int cnt) {
         return CollectionUtil.top(allTestAnalysis(), cnt, Comparator.comparing(RunStat::getAverageDurationMs));
     }
 
-    public Function<String, RunStat> getTestRunStatProvider() {
+    @Override public Function<String, RunStat> getTestRunStatProvider() {
         return name -> name == null ? null : testRunStatCache().get(name);
     }
 

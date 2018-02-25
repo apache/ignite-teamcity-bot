@@ -11,7 +11,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
@@ -38,8 +38,7 @@ public class TopTests {
 
         final List<FailingTest> res = new ArrayList<>();
         for (ChainAtServerTracked chainTracked : branchMandatory(branchOrNull).chains) {
-            try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
-                teamcity.setExecutor(CtxListener.getPool(context));
+            try (IAnalyticsEnabledTeamcity teamcity = CtxListener.getTcHelper(context).server( chainTracked.serverId)) {
 
                 int cnt = count == null ? 10 : count;
                 teamcity.topTestFailing(cnt).stream().map(this::converToUiModel).forEach(res::add);
@@ -52,13 +51,9 @@ public class TopTests {
     @Path("failingSuite")
     public List<FailingTest> getTopFailingSuite(@Nullable @QueryParam("branch") String branchOrNull,
         @Nullable @QueryParam("count") Integer count) {
-        final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
-
         final List<FailingTest> res = new ArrayList<>();
         for (ChainAtServerTracked chainTracked : branchMandatory(branchOrNull).chains) {
-            try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
-                teamcity.setExecutor(CtxListener.getPool(context));
-
+            try (IAnalyticsEnabledTeamcity teamcity = CtxListener.getTcHelper(context).server(chainTracked.serverId)) {
                 int cnt = count == null ? 10 : count;
                 teamcity.topFailingSuite(cnt).stream().map(this::converToUiModel).forEach(res::add);
             }
@@ -70,14 +65,11 @@ public class TopTests {
     @Path("longRunning")
     public List<FailingTest> getMostLongRunningTests(@Nullable @QueryParam("branch") String branchOrNull,
         @Nullable @QueryParam("count") Integer count) {
-        final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
         final BranchTracked tracked = branchMandatory(branchOrNull);
 
         final List<FailingTest> res = new ArrayList<>();
         for (ChainAtServerTracked chainTracked : tracked.chains) {
-            try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, chainTracked.serverId)) {
-                teamcity.setExecutor(CtxListener.getPool(context));
-
+            try (IAnalyticsEnabledTeamcity teamcity = CtxListener.getTcHelper(context).server(chainTracked.serverId)) {
                 int cnt = count == null ? 10 : count;
                 teamcity.topTestsLongRunning(cnt).stream().map(this::converToUiModel).forEach(res::add);
             }

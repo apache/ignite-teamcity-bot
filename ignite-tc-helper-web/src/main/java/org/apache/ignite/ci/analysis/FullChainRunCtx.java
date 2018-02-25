@@ -14,25 +14,25 @@ import org.jetbrains.annotations.NotNull;
  */
 public class FullChainRunCtx {
     private Build chainResults;
-    private List<MultBuildRunCtx> list = new ArrayList<>();
+    private List<MultBuildRunCtx> buildCfgsResults = new ArrayList<>();
 
     public FullChainRunCtx(Build chainResults ) {
         this.chainResults = chainResults;
     }
 
     public int buildProblems() {
-        return (int)list.stream().filter(MultBuildRunCtx::hasNontestBuildProblem).count();
+        return (int)buildCfgsResults.stream().filter(MultBuildRunCtx::hasNontestBuildProblem).count();
     }
 
     public int timeoutsOomeCrashBuildProblems() {
-        return (int)list.stream().filter(context ->
+        return (int)buildCfgsResults.stream().filter(context ->
             context.hasJvmCrashProblem()
                 || context.hasTimeoutProblem()
                 || context.hasOomeProblem()).count();
     }
 
     public List<MultBuildRunCtx> suites() {
-        return list;
+        return buildCfgsResults;
     }
 
     public Integer getSuiteBuildId() {
@@ -51,15 +51,15 @@ public class FullChainRunCtx {
     }
 
     public int failedTests() {
-        return list.stream().mapToInt(MultBuildRunCtx::failedTests).sum();
+        return buildCfgsResults.stream().mapToInt(MultBuildRunCtx::failedTests).sum();
     }
 
     public int mutedTests() {
-        return list.stream().mapToInt(MultBuildRunCtx::mutedTests).sum();
+        return buildCfgsResults.stream().mapToInt(MultBuildRunCtx::mutedTests).sum();
     }
 
     public int totalTests() {
-        return list.stream().mapToInt(MultBuildRunCtx::totalTests).sum();
+        return buildCfgsResults.stream().mapToInt(MultBuildRunCtx::totalTests).sum();
     }
 
     public Stream<MultBuildRunCtx> failedChildSuites() {
@@ -100,11 +100,11 @@ public class FullChainRunCtx {
     }
 
     public void addAllSuites(ArrayList<MultBuildRunCtx> suites) {
-        this.list.addAll(suites);
+        this.buildCfgsResults.addAll(suites);
     }
 
     public Stream<Future<?>> getFutures() {
-        return list.stream().flatMap(MultBuildRunCtx::getFutures);
+        return buildCfgsResults.stream().flatMap(MultBuildRunCtx::getFutures);
     }
 
     public Stream<Future<?>> getRunningUpdates() {

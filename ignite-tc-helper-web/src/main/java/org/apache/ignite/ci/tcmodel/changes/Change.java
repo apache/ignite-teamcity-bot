@@ -14,11 +14,8 @@ public class Change extends ChangeRef {
     /** Comment text */
     @XmlElement public String comment;
 
-    /**
-     *<change id="804198" version="970b01a6675c10a25d5cf591ac3ab4511b2c2a5e" username="akuznetsov" date="20180217T072122+0300" href="/app/rest/latest/changes/id:804198" webUrl="https://ggtc.gridgain.com/viewModification.html?modId=804198&personal=false">
-     <comment>
-     IGNITE-3345 WIP REST: Implemented support for java build-in types for get/put operations.
-     </comment>
+    /*
+     *<change >
      <user username="akuznetsov" name="Alexey Kuznetsov" id="14" href="/app/rest/latest/users/id:14"/>
      <files count="1">
      <file before-revision="f897370f88b12f7dbaffe4978d1dbc26e0a2516e" after-revision="970b01a6675c10a25d5cf591ac3ab4511b2c2a5e" changeType="edited" file="modules/rest-http/src/main/java/org/apache/ignite/internal/processors/rest/protocols/http/jetty/GridJettyRestHandler.java" relative-file="modules/rest-http/src/main/java/org/apache/ignite/internal/processors/rest/protocols/http/jetty/GridJettyRestHandler.java"/>

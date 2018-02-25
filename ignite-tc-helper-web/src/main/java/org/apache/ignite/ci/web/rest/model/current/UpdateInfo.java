@@ -15,6 +15,7 @@ package org.apache.ignite.ci.web.rest.model.current;
 
     public UpdateInfo copyFrom(UpdateInfo info) {
         this.updateRequired = info.updateRequired;
+        //todo there is no chance to update running futures if info is cached
         this.runningUpdates = info.runningUpdates;
         this.hashCodeHex = info.hashCodeHex;
 

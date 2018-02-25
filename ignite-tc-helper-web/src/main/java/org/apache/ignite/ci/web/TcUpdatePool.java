@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
  * Component for storing catchable results into ignite and get updates
  */
 public class TcUpdatePool {
-    ThreadFactory threadFactory = Executors.defaultThreadFactory();
+    private ThreadFactory threadFactory = Executors.defaultThreadFactory();
 
     private ExecutorService service = Executors.newFixedThreadPool(20, r -> {
         Thread thread = threadFactory.newThread(r);

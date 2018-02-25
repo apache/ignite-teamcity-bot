@@ -12,10 +12,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.conf.BranchTracked;
+import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.runners.CheckBuildChainResults;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
@@ -35,12 +37,13 @@ public class Metrics {
     @GET
     @Path("failuresNoCache")
     public TestsMetrics getFailuresNoCache(){
-        Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
         CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
-        //todo take from branches.json
-        try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
-            teamcity.setExecutor(CtxListener.getPool(context));
+        final String branch = "master" ;
+        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
+        List<ChainAtServerTracked> chains = tracked.chains;
 
+        //todo take from branches.json
+        try (ITeamcity teamcity = CtxListener.getTcHelper(context).server("public")) {
             collectHistory(history, teamcity, "IgniteTests24Java8_RunAll", "refs/heads/master");
         }
         return convertToChart(history);
@@ -66,8 +69,10 @@ public class Metrics {
     @Path("failuresPrivateNoCache")
     @NotNull public TestsMetrics getFailuresPrivateNoCache() {
         Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
+
+        //todo take from branches.json
         CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
-        try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
+        try (ITeamcity teamcity =  CtxListener.getTcHelper(context).server("private")) {
             teamcity.setExecutor(CtxListener.getPool(context));
 
             collectHistory(history, teamcity, "id8xIgniteGridGainTestsJava8_RunAll", "refs/heads/master");

@@ -41,7 +41,7 @@ function checkForUpdate() {
                     
                     setTimeout(checkForUpdate, ms);
 
-                    if(!fastCheckNeeded)
+                    if(!result.updateRequired)
                         $("#loadStatus").html("");
                 } else {
                     loadData(); // data changed, show new
