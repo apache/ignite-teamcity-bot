@@ -83,6 +83,9 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     public void addChange(Change change) {
+        if (change.isFakeStub())
+            return;
+
         this.changes.add(change);
     }
 

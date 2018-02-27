@@ -124,10 +124,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return ignite.getOrCreateCache(ccfg);
     }
 
+    /** {@inheritDoc} */
     @Override public CompletableFuture<List<BuildType>> getProjectSuites(String projectId) {
         return teamcity.getProjectSuites(projectId);
     }
 
+    /** {@inheritDoc} */
     @Override public String serverId() {
         return serverId;
     }
@@ -348,16 +350,19 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return serverId + "." + cache;
     }
 
+    /** {@inheritDoc} */
     @Override public String host() {
         return teamcity.host();
     }
 
+    /** {@inheritDoc} */
     @Override public ProblemOccurrences getProblems(String href) {
         return loadIfAbsent(PROBLEMS,
             href,
             teamcity::getProblems);
     }
 
+    /** {@inheritDoc} */
     @Override public TestOccurrences getTests(String href) {
         String hrefForDb = DbMigrations.removeCountFromRef(href);
 
@@ -384,6 +389,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         }
     }
 
+    /** {@inheritDoc} */
     @Override public Statistics getBuildStat(String href) {
         return loadIfAbsent(STAT,
             href,
@@ -402,6 +408,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             });
     }
 
+    /** {@inheritDoc} */
     @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
         return CacheUpdateUtil.loadAsyncIfAbsent(
             ignite.getOrCreateCache(ignCacheNme(TEST_OCCURRENCE_FULL)),
@@ -410,22 +417,53 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             teamcity::getTestFull);
     }
 
+    /** {@inheritDoc} */
     @Override public Change getChange(String href) {
-        return loadIfAbsentV2(CHANGE_INFO_FULL, href, teamcity::getChange);
+        return loadIfAbsentV2(CHANGE_INFO_FULL, href, href1 -> {
+            try {
+                return teamcity.getChange(href1);
+            }
+            catch (Exception e) {
+                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                    System.err.println("Change history not found for href : " + href);
+
+                    return new Change();
+                }
+                else
+                    throw e;
+            }
+        });
     }
 
+    /** {@inheritDoc} */
     @Override public ChangesList getChangesList(String href) {
-        return loadIfAbsentV2(CHANGES_LIST, href, teamcity::getChangesList);
+        return loadIfAbsentV2(CHANGES_LIST, href, href1 -> {
+            try {
+                return teamcity.getChangesList(href1);
+            }
+            catch (Exception e) {
+                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                    System.err.println("Change List not found for href : " + href);
+
+                    return new ChangesList();
+                }
+                else
+                    throw e;
+            }
+        });
     }
 
+    /** {@inheritDoc} */
     @Override public List<RunStat> topTestFailing(int cnt) {
         return CollectionUtil.top(allTestAnalysis(), cnt, Comparator.comparing(RunStat::getFailRate));
     }
 
+    /** {@inheritDoc} */
     @Override public List<RunStat> topTestsLongRunning(int cnt) {
         return CollectionUtil.top(allTestAnalysis(), cnt, Comparator.comparing(RunStat::getAverageDurationMs));
     }
 
+    /** {@inheritDoc} */
     @Override public Function<String, RunStat> getTestRunStatProvider() {
         return name -> name == null ? null : testRunStatCache().get(name);
     }
@@ -435,10 +473,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             .map(Cache.Entry::getValue);
     }
 
-    private IgniteCache<String, RunStat> testRunStatCache() {
+    private Cache<String, RunStat> testRunStatCache() {
         return getOrCreateCacheV2(ignCacheNme(TESTS_RUN_STAT));
     }
 
+    /** {@inheritDoc} */
     public Function<String, RunStat> getBuildFailureRunStatProvider() {
         return name -> name == null ? null : buildsFailureRunStatCache().get(name);
     }
@@ -489,26 +528,32 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         }, next);
     }
 
+    /** {@inheritDoc} */
     public List<RunStat> topFailingSuite(int cnt) {
         return CollectionUtil.top(buildsFailureAnalysis(), cnt, Comparator.comparing(RunStat::getFailRate));
     }
 
+    /** {@inheritDoc} */
     @Override public void close() {
 
     }
 
+    /** {@inheritDoc} */
     @Override public CompletableFuture<T2<File, LogCheckResult>> processBuildLog(int buildId, ISuiteResults ctx) {
         return teamcity.processBuildLog(buildId, ctx);
     }
 
+    /** {@inheritDoc} */
     @Override public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
         return teamcity.unzipFirstFile(fut);
     }
 
+    /** {@inheritDoc} */
     @Override public CompletableFuture<File> downloadBuildLogZip(int id) {
         return teamcity.downloadBuildLogZip(id);
     }
 
+    /** {@inheritDoc} */
     @Override public CompletableFuture<LogCheckResult> getLogCheckResults(Integer buildId, SingleBuildRunCtx ctx) {
         return loadFutureIfAbsentVers(logCheckResultCache(), buildId,
             k -> teamcity.getLogCheckResults(buildId, ctx));
@@ -538,10 +583,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         });
     }
 
+    /** {@inheritDoc} */
     public void setExecutor(ExecutorService executor) {
         this.teamcity.setExecutor(executor);
     }
 
+    /** {@inheritDoc} */
     @Override public void triggerBuild(String id, String name) {
         lastTriggerMs = System.currentTimeMillis();
 
