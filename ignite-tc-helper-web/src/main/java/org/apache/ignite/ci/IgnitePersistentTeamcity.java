@@ -278,6 +278,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         //can't reload, but cached has value
         if (loaded.isFakeStub() && persistedBuild != null && persistedBuild.isOutdatedEntityVersion()) {
             persistedBuild._version = persistedBuild.latestVersion();
+            cache.put(href, persistedBuild);
             
             return persistedBuild;
         }
@@ -331,8 +332,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         }
         catch (Exception e) {
             if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                e.printStackTrace();
-                return new Build();// save null result, because persistence may refer to some  unexistent build on TC
+                System.err.println("Exception " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                return new Build();// save null result, because persistence may refer to some non-existent build on TC
             }
             else
                 throw e;

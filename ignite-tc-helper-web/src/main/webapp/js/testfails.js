@@ -186,6 +186,25 @@ function showTestFailData(testFail, isFailureShown) {
         res += "<img src='https://d30y9cdsu7xlg0.cloudfront.net/png/324212-200.png' width=11px height=11px> ";
         res += "<span style='opacity: 0.75'> ";
     }
+
+    var bold = false;
+    if(isFailureShown) {
+        var altForWarn = "";
+        if(!isDefinedAndFilled(testFail.failureRate) || !isDefinedAndFilled(testFail.runs)) {
+            altForWarn = "No fail rate info, probably new failure or suite critical failure";
+        } else if(parseFloat(testFail.failureRate) < 1) {
+            altForWarn = "Test fail rate less than 1%, probably new failure";
+        }  else if(testFail.runs<5) {
+            altForWarn = "Test runs count is low < 5, probably new test introduced";
+        }
+
+        if(altForWarn!="") {
+            res += "<img src='https://image.flaticon.com/icons/svg/159/159469.svg' width=11px height=11px title='"+altForWarn+"' > ";
+            bold = true;
+            res += "<b>";
+        }
+    }
+
     res += " <span style='background-color: " + color + "; width:7px; height:7px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
 
     if (isDefinedAndFilled(testFail.curFailures) && testFail.curFailures > 1)
@@ -224,6 +243,9 @@ function showTestFailData(testFail, isFailureShown) {
 
     if (!isFailureShown && isDefinedAndFilled(testFail.durationPrintable))
         res += " duration " + testFail.durationPrintable;
+
+    if(bold)
+        res += "</b>";
 
     if (investigated)
         res += "</span> ";
