@@ -25,8 +25,9 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 public class HelperConfig {
     public static final String CONFIG_FILE_NAME = "auth.properties";
     public static final String RESP_FILE_NAME = "resp.properties";
+    public static final String MAIL_PROPS = "mail.auth.properties";
     public static final String HOST = "host";
-    private static final String USERNAME = "username";
+    public static final String USERNAME = "username";
     private static final String PASSWORD = "password";
     public static final String ENCODED_PASSWORD = "encoded_password";
     public static final String LOGS = "logs";
@@ -111,7 +112,7 @@ public class HelperConfig {
         return Base64Util.encodeUtf8String(str);
     }
 
-    private static String getMandatoryProperty(Properties props, String key, String configName) {
+    public static String getMandatoryProperty(Properties props, String key, String configName) {
         final String user = props.getProperty(key);
         Preconditions.checkState(!isNullOrEmpty(user), key + " property should be filled in " + configName);
         return user;
@@ -146,6 +147,20 @@ public class HelperConfig {
             return new Properties();
         }
     }
+
+    public static Properties loadEmailSettings() {
+        try {
+            String respConf = prefixedWithServerName(null, MAIL_PROPS);
+            final File workDir = resolveWorkDir();
+            File file = new File(workDir, respConf);
+            return loadProps(file);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            return new Properties();
+        }
+    }
+
 
     @NotNull public static File getLogsDirForServer(@QueryParam("serverId") String serverId) {
         final File workDir = resolveWorkDir();
