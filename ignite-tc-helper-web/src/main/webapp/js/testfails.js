@@ -1,6 +1,9 @@
 //loadData(); // should be defined by page
 //loadStatus element should be provided on page
 //@param results - TestFailuresSummary
+
+var g_initMoreInfoDone = false;
+
 function showChainOnServersResults(result) {
     var res = "";
     res += "Chain results";
@@ -17,7 +20,11 @@ function showChainOnServersResults(result) {
         res += showChainAtServerData(server);
     }
 
-    setTimeout(initMoreInfo, 100);
+    if(!g_initMoreInfoDone) {
+        g_initMoreInfoDone = true;
+
+        setTimeout(initMoreInfo, 100);
+    }
 
     return res;
 }

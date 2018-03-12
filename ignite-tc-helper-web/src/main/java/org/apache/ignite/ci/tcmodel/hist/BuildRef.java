@@ -33,6 +33,8 @@ public class BuildRef extends AbstractRef {
 
     @XmlAttribute public Boolean defaultBranch;
 
+    @XmlAttribute public Boolean composite;
+
     /**
      * @return Build ID
      */
@@ -52,15 +54,31 @@ public class BuildRef extends AbstractRef {
         return STATUS_SUCCESS.equals(status);
     }
 
+    /**
+     * @return
+     */
     public String suiteId() {
         return buildTypeId;
     }
 
+    /**
+     * @return
+     */
     public boolean isFakeStub() {
         return getId() == null;
     }
 
+    /**
+     * @param id
+     */
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    /**
+     * @return
+     */
+    public boolean isComposite() {
+        return composite != null && composite;
     }
 }

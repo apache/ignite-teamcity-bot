@@ -7,17 +7,19 @@
 
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script src="js/common.js"></script>
+    <script src="js/common-1.2.js"></script>
     <script src="js/testfails.js"></script>
 </head>
 <body>
 <script>
 $(document).ready(function() {
+    $.getScript("js/testfails.js", function(data, textStatus, jqxhr){ });
+
     $( document ).tooltip();
     loadData();
     setInterval(loadData, 150000);
 
-    $.getScript("js/testfails.js", function(data, textStatus, jqxhr){ });
+    $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 });
 
 function loadData() {
@@ -57,5 +59,6 @@ function showData(result) {
 <div><a href=".">Home</a><br></div>
 <div id="divFailures"></div>
 
+<div id="version"></div>
 </body>
 </html>

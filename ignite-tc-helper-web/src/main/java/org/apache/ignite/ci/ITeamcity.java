@@ -143,9 +143,9 @@ public interface ITeamcity extends AutoCloseable {
             }
         }
 
-        if (build.testOccurrences != null) {
-            List<TestOccurrence> tests = getTests(build.testOccurrences.href +
-                TESTS_COUNT_7700).getTests();
+        if (build.testOccurrences != null && !build.isComposite()) {
+            List<TestOccurrence> tests = getTests(build.testOccurrences.href + TESTS_COUNT_7700).getTests();
+
             mCtx.addTests(tests);
 
             for (TestOccurrence next : tests) {

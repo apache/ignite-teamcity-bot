@@ -7,8 +7,8 @@
 
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-     
-    <script src="js/common.js"></script>
+
+    <script src="js/common-1.2.js"></script>
     <script src="js/testfails.js"></script>
 </head>
 <body>
@@ -21,6 +21,8 @@ $(document).ready(function() {
     $( document ).tooltip();
     loadData();
     setInterval( function() { checkForUpdate(); }, 30000);
+
+    $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 });
 
 function checkForUpdate() {
@@ -87,5 +89,6 @@ function showData(result) {
 <div><a href=".">Home</a><br></div>
 <div id="divFailures"></div>
 
+<div id="version"></div>
 </body>
 </html>

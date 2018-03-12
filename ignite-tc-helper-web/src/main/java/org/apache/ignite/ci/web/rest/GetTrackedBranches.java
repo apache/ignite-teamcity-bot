@@ -2,13 +2,17 @@ package org.apache.ignite.ci.web.rest;
 
 import java.util.List;
 import java.util.Set;
+import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.ChainAtServer;
+import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.Version;
+import org.apache.ignite.lang.IgniteProductVersion;
 
 /**
  * Created by Дмитрий on 05.11.2017.
@@ -17,10 +21,23 @@ import org.apache.ignite.ci.web.rest.model.Version;
 @Path("branches")
 @Produces(MediaType.APPLICATION_JSON)
 public class GetTrackedBranches {
+
+    @Context
+    private ServletContext context;
+
     @GET
     @Path("version")
     public Version version() {
-        return new Version();
+        Version version = new Version();
+
+        IgniteProductVersion ignProdVer = CtxListener.getIgnite(context).version();
+
+        String ignVer = ignProdVer.major() + "." + ignProdVer.minor() + "." + ignProdVer.maintenance();
+
+        version.ignVer = ignVer;
+        version.ignVerFull = ignProdVer.toString();
+
+        return version;
     }
 
     @GET

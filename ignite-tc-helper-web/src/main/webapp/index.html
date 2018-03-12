@@ -9,21 +9,21 @@
     
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script src="js/common.js"></script>
+    <script src="js/common-1.2.js"></script>
     <script>
 $(document).ready(function() {
+    $.getScript("js/common-1.2.js", function(data, textStatus, jqxhr){ });
+
     $( document ).tooltip();
     loadData();
-    setInterval(loadData, 60000)
+    setInterval(loadData, 90000);
 });
 
 function loadData() {
     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
     $.ajax({
         url: "rest/branches/version",
-        success: function(result) {
-            $("#version").html("Ignite TC helper, V" + result.version + ". Powered by Apache Ignite");
-        },
+        success: showVersionInfo,
         error: showErrInLoadStatus
     });
 
@@ -98,8 +98,8 @@ Statistics:   <br>
 Check branch/PR:   <br>
 <div id="suitesForPrCheck"></div>
 <br>
-<div id="version"></div>
 <div id="loadStatus"></div>
+<div id="version"></div>
 
 </body>
 </html>
