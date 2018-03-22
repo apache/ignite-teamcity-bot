@@ -25,6 +25,7 @@ import javax.cache.Cache;
 import javax.cache.processor.EntryProcessor;
 import javax.cache.processor.EntryProcessorException;
 import javax.cache.processor.MutableEntry;
+import javax.xml.bind.UnmarshalException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
@@ -51,6 +52,7 @@ import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
+import org.xml.sax.SAXParseException;
 
 /**
  * Created by dpavlov on 03.08.2017
@@ -426,6 +428,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             catch (Exception e) {
                 if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
                     System.err.println("Change history not found for href : " + href);
+
+                    return new Change();
+                }
+                if (Throwables.getRootCause(e) instanceof SAXParseException) {
+                    System.err.println("Change data seems to be invalid: " + href);
 
                     return new Change();
                 }
