@@ -73,7 +73,9 @@ function showSuitesForPrCheckData(result) {
         res+="Server: <input type='text' name='serverId' value=" + chainAtServer.serverId +" readonly>" ;
         res+="Chain: <input type='text' name='suiteId' style='width: 30%;' value=" + chainAtServer.suiteId +" readonly>" ;
         res+="Branch: <input type='text' name='branchForTc' required> "
-        res+="<input type='submit' value='>>>'>";
+        res+="<input type='submit' name='action' value='Latest'>";
+        // res+="<input type='submit' name='action' value='Chain'>";
+        res+="<input type='submit' name='action' value='History'>";
         res+="</form>";
     }
     $("#suitesForPrCheck").html(res);

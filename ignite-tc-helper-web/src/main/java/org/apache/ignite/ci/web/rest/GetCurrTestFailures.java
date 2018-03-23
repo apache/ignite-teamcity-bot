@@ -1,9 +1,12 @@
 package org.apache.ignite.ci.web.rest;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
@@ -12,6 +15,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -19,12 +23,13 @@ import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.LatestRebuildMode;
 import org.apache.ignite.ci.conf.BranchTracked;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.rest.model.current.UpdateInfo;
-import org.apache.ignite.internal.util.typedef.T3;
+import org.apache.ignite.internal.util.typedef.T5;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -99,9 +104,11 @@ public class GetCurrTestFailures {
     public UpdateInfo getPrFailuresUpdates(
         @Nullable @QueryParam("serverId") String serverId,
         @Nonnull @QueryParam("suiteId") String suiteId,
-        @Nonnull @QueryParam("branchForTc") String branchForTc) {
+        @Nonnull @QueryParam("branchForTc") String branchForTc,
+        @Nonnull @QueryParam("action") String action,
+        @Nullable @QueryParam("count") Integer count) {
 
-        return new UpdateInfo().copyFrom(getPrFailures(serverId, suiteId, branchForTc));
+        return new UpdateInfo().copyFrom(getPrFailures(serverId, suiteId, branchForTc, action, count));
     }
 
     @GET
@@ -109,13 +116,17 @@ public class GetCurrTestFailures {
     public TestFailuresSummary getPrFailures(
         @Nullable @QueryParam("serverId") String serverId,
         @Nonnull @QueryParam("suiteId") String suiteId,
-        @Nonnull @QueryParam("branchForTc") String branchForTc) {
+        @Nonnull @QueryParam("branchForTc") String branchForTc,
+        @Nonnull @QueryParam("action") String action,
+        @Nullable @QueryParam("count") Integer count) {
 
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
-        final T3<String, String, String> key = new T3<>(serverId, suiteId, branchForTc);
+
+        final T5<String, String, String, String, Integer> key
+            = new T5<>(serverId, suiteId, branchForTc, action, count);
 
         return updater.get(CURRENT + "PrFailures", key,
-            (key1) -> getPrFailuresNoCache(key1.get1(), key1.get2(), key1.get3()), true);
+            (k) -> getPrFailuresNoCache(k.get1(), k.get2(), k.get3(), k.get4(), k.get5()), true);
     }
 
     @GET
@@ -123,7 +134,9 @@ public class GetCurrTestFailures {
     @NotNull public TestFailuresSummary getPrFailuresNoCache(
         @Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
-        @Nonnull @QueryParam("branchForTc") String branchForTc) {
+        @Nonnull @QueryParam("branchForTc") String branchForTc,
+        @Nonnull @QueryParam("action") String action,
+        @Nullable @QueryParam("count") Integer count) {
 
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
@@ -133,8 +146,42 @@ public class GetCurrTestFailures {
             teamcity.setExecutor(CtxListener.getPool(context));
             teamcity.setStatUpdateEnabled(false);
 
-            Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
-                suiteId, branchForTc, LatestRebuildMode.LATEST, teamcity);
+            //see definitions in Index.html javascript
+            LatestRebuildMode rebuild;
+            if ("History".equals(action))
+                rebuild = LatestRebuildMode.ALL;
+            else if ("Latest".equals(action))
+                rebuild = LatestRebuildMode.LATEST;
+            else if ("Chain".equals(action))
+                rebuild = LatestRebuildMode.NONE;
+            else
+                rebuild = LatestRebuildMode.LATEST;
+
+            final List<BuildRef> chains;
+            if (rebuild == LatestRebuildMode.ALL) {
+                List<BuildRef> finishedBuilds = teamcity.getFinishedBuildsIncludeSnDepFailed(
+                    suiteId,
+                    branchForTc);
+
+                long limit = count == null ? 10 : count;
+                chains = finishedBuilds.stream()
+                    .filter(ref -> !ref.isFakeStub())
+                    .sorted(Comparator.comparing(BuildRef::getId).reversed())
+                    .limit(limit).parallel()
+                    .filter(b -> b.getId() != null).collect(Collectors.toList());
+            } else {
+                List<BuildRef> finishedBuilds = new ArrayList<>();
+                Optional<BuildRef> buildRef = teamcity.getLastBuildIncludeSnDepFailed(suiteId, branchForTc);
+
+                buildRef.ifPresent(finishedBuilds::add);
+
+                chains= finishedBuilds;
+            }
+
+            Optional<FullChainRunCtx> pubCtx = BuildChainProcessor.processBuildChains(teamcity, rebuild, chains,
+                rebuild != LatestRebuildMode.ALL,
+                rebuild != LatestRebuildMode.ALL,
+                true, teamcity);
 
             final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
             chainStatus.serverName = teamcity.serverId();
