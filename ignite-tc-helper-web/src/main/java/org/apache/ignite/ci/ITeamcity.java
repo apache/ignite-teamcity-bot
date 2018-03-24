@@ -8,7 +8,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.analysis.ISuiteResults;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
@@ -24,7 +23,6 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
-import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -167,14 +165,17 @@ public interface ITeamcity extends AutoCloseable {
 
     @Override void close();
 
-
-    CompletableFuture<T2<File, LogCheckResult>> processBuildLog(int buildId, ISuiteResults ctx);
-
     CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut);
 
     CompletableFuture<File> downloadBuildLogZip(int id);
 
-    CompletableFuture<LogCheckResult> getLogCheckResults(Integer buildId, SingleBuildRunCtx ctx);
+    /**
+     * Returns log analysis. Does not keep not zipped logs on disk
+     * @param buildId biuld ID
+     * @param ctx build results
+     * @return
+     */
+    CompletableFuture<LogCheckResult> analyzeBuildLog(Integer buildId, SingleBuildRunCtx ctx);
 
     void setExecutor(ExecutorService pool);
 

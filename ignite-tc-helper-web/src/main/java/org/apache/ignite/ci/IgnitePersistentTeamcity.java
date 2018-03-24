@@ -25,12 +25,10 @@ import javax.cache.Cache;
 import javax.cache.processor.EntryProcessor;
 import javax.cache.processor.EntryProcessorException;
 import javax.cache.processor.MutableEntry;
-import javax.xml.bind.UnmarshalException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.analysis.Expirable;
-import org.apache.ignite.ci.analysis.ISuiteResults;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.RunStat;
@@ -50,7 +48,6 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.util.CacheUpdateUtil;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.configuration.CacheConfiguration;
-import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 import org.xml.sax.SAXParseException;
 
@@ -546,11 +543,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public CompletableFuture<T2<File, LogCheckResult>> processBuildLog(int buildId, ISuiteResults ctx) {
-        return teamcity.processBuildLog(buildId, ctx);
-    }
-
-    /** {@inheritDoc} */
     @Override public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
         return teamcity.unzipFirstFile(fut);
     }
@@ -561,9 +553,18 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public CompletableFuture<LogCheckResult> getLogCheckResults(Integer buildId, SingleBuildRunCtx ctx) {
+    @Override public CompletableFuture<LogCheckResult> analyzeBuildLog(Integer buildId, SingleBuildRunCtx ctx) {
         return loadFutureIfAbsentVers(logCheckResultCache(), buildId,
-            k -> teamcity.getLogCheckResults(buildId, ctx));
+            k -> teamcity.analyzeBuildLog(buildId, ctx));
+    }
+
+    public String getThreadDumpCached(Integer buildId) {
+        IgniteCache<Integer, LogCheckResult> entries = logCheckResultCache();
+        LogCheckResult logCheckResult = entries.get(buildId);
+        if (logCheckResult == null)
+            return null;
+
+        return logCheckResult.getThreadDump();
     }
 
     /**

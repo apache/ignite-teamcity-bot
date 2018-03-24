@@ -136,19 +136,19 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         });
 
         suite.getCriticalFailLastStartedTest().forEach(
-            lastTest->{
+            lastTest -> {
                 final TestFailure failure = new TestFailure();
                 failure.name = lastTest + " (last started)";
                 testFailures.add(failure);
             }
         );
 
-        if (suite.getThreadDumpFileIdx() != null) {
+        suite.getBuildsWithThreadDump().forEach(buildId -> {
             webUrlThreadDump = "/rest/" + GetBuildLog.GET_BUILD_LOG + "/" + GetBuildLog.THREAD_DUMP
                 + "?" + GetBuildLog.SERVER_ID + "=" + teamcity.serverId()
-                + "&" + GetBuildLog.BUILD_NO + "=" + Integer.toString(suite.getBuildId())
-                + "&" + GetBuildLog.FILE_IDX + "=" + Integer.toString(suite.getThreadDumpFileIdx());
-        }
+                + "&" + GetBuildLog.BUILD_NO + "=" + Integer.toString(buildId)
+                + "&" + GetBuildLog.FILE_IDX + "=" + Integer.toString(-1);
+        });
 
         runningBuildCount = suite.runningBuildCount();
         queuedBuildCount = suite.queuedBuildCount();

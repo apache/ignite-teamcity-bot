@@ -7,6 +7,8 @@ import javax.xml.bind.annotation.XmlAttribute;
  */
 public class ProblemOccurrence {
     public static final String BUILD_FAILURE_ON_MESSAGE = "BuildFailureOnMessage";
+    private static final String TC_EXIT_CODE = "TC_EXIT_CODE";
+    private static final String TC_OOME = "TC_OOME";
 
     @XmlAttribute public String id;
     @XmlAttribute public String identity;
@@ -30,6 +32,10 @@ public class ProblemOccurrence {
     }
 
     public boolean isOome() {
-        return "TC_OOME".equals(type);
+        return TC_OOME.equals(type);
+    }
+
+    public boolean isExitCode() {
+        return TC_EXIT_CODE.equals(type);
     }
 }

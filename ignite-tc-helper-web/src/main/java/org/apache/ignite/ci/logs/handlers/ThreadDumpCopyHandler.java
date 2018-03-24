@@ -29,7 +29,7 @@ public class ThreadDumpCopyHandler implements ILineHandler {
     }
 
     private void acceptX(String line, File fromLogFile) throws IOException {
-        if (currentThDump == null && line.contains("Full thread dump ")) {
+        if (currentThDump == null && line.contains(ThreadDumpInMemoryHandler.FULL_THREAD_DUMP)) {
             lastFileIdx = fileIdx;
             String curFileName = fileName(fileIdx);
             currentThDump = new FileWriter(new File(fromLogFile.getParentFile(), curFileName));

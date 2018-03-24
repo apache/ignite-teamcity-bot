@@ -21,4 +21,7 @@ public interface ITcAnalytics {
 
     List<RunStat> topFailingSuite(int cnt);
 
+
+    String getThreadDumpCached(Integer buildId);
+
 }

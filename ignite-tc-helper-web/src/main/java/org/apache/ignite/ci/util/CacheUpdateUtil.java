@@ -13,8 +13,8 @@ import org.apache.ignite.ci.analysis.Expirable;
  */
 public class CacheUpdateUtil {
     /**
-     * @param cache
-     * @param key
+     * @param cache cache to persist results.
+     * @param key key for update.
      * @param cachedComputations Map with currently running updates. Used for caching
      * @param realLoadFunction supplier of future for real update
      * @param <K>

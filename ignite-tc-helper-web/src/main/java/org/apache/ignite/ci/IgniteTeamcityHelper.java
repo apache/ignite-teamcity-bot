@@ -29,6 +29,7 @@ import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
 import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
+import org.apache.ignite.ci.logs.handlers.ThreadDumpInMemoryHandler;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -67,6 +68,10 @@ public class IgniteTeamcityHelper implements ITeamcity {
     private final String basicAuthTok;
     private final String configName; //main properties file name
     private final String tcName;
+
+    private ConcurrentHashMap<Integer, CompletableFuture<T2<File, LogCheckResult>>>
+        buildLogProcessingRunning = new ConcurrentHashMap<>();
+
 
     public IgniteTeamcityHelper() throws IOException {
         this(null);
@@ -116,14 +121,24 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return supplyAsync(supplier, executor);
     }
 
-    @Override public CompletableFuture<LogCheckResult> getLogCheckResults(Integer buildId, SingleBuildRunCtx ctx) {
+    @Override public CompletableFuture<LogCheckResult> analyzeBuildLog(Integer buildId, SingleBuildRunCtx ctx) {
         final Stopwatch started = Stopwatch.createStarted();
 
-        return processBuildLog(buildId, ctx)
+        CompletableFuture<T2<File, LogCheckResult>> future = buildLogProcessingRunning.computeIfAbsent(buildId,
+            k -> analyzeBuildLogNoCache(k, ctx)
+        );
+
+        return future
+            .thenApply(res -> {
+                buildLogProcessingRunning.remove(buildId, future);
+
+                return res;
+            })
             .thenApply(t -> {
                 System.out.println(Thread.currentThread().getName()
                     + ": processBuildLog required: " + started.elapsed(TimeUnit.MILLISECONDS)
                     + "ms for " + ctx.suiteId());
+
                 return t;
             })
             .thenApply(T2::get2);
@@ -179,6 +194,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return zipFileFut.thenApplyAsync(ZipUtil::unZipToSameFolder, executor);
     }
 
+    @Deprecated
     public List<CompletableFuture<File>> standardProcessLogs(int... buildIds) {
         List<CompletableFuture<File>> futures = new ArrayList<>();
         for (int buildId : buildIds) {
@@ -187,6 +203,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return futures;
     }
 
+    @Deprecated
     private CompletableFuture<File> standardProcessOfBuildLog(int buildId) {
         final Build results = getBuild(buildId);
         final MultBuildRunCtx ctx = loadTestsAndProblems(results);
@@ -194,7 +211,26 @@ public class IgniteTeamcityHelper implements ITeamcity {
         if (ctx.hasTimeoutProblem())
             System.err.println(ctx.suiteName() + " failed with timeout " + buildId);
 
-        return processBuildLog(ctx.getBuildId(), ctx).thenApply(T2::get1);
+        final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
+        boolean dumpLastTest = ctx.hasSuiteIncompleteFailure();
+
+        final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
+
+        final ThreadDumpCopyHandler threadDumpCp = new ThreadDumpCopyHandler();
+        final LastTestLogCopyHandler lastTestCp = new LastTestLogCopyHandler();
+        lastTestCp.setDumpLastTest(dumpLastTest);
+
+        final LogsAnalyzer analyzer = new LogsAnalyzer(threadDumpCp, lastTestCp);
+
+        final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
+
+        return fut2.thenApplyAsync(file -> {
+            LogCheckResult logCheckResult = new LogCheckResult();
+            if (dumpLastTest) {
+                logCheckResult.setLastStartedTest(lastTestCp.getLastTestName());
+            }
+            return new T2<>(file, logCheckResult);
+        }).thenApply(T2::get1);
     }
 
     public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
@@ -347,41 +383,30 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return tcName;
     }
 
-    private CompletableFuture<T2<File, LogCheckResult>> processBuildLogNoCache(int buildId, ISuiteResults ctx) {
+    private CompletableFuture<T2<File, LogCheckResult>> analyzeBuildLogNoCache(int buildId, ISuiteResults ctx) {
         final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
+        boolean dumpLastTest = ctx.hasSuiteIncompleteFailure();
+
         final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
-        final ThreadDumpCopyHandler threadDumpCp = new ThreadDumpCopyHandler();
+
+        final ThreadDumpInMemoryHandler threadDumpCp = new ThreadDumpInMemoryHandler();
         final LastTestLogCopyHandler lastTestCp = new LastTestLogCopyHandler();
-        boolean dumpLastTest = ctx.hasTimeoutProblem() || ctx.hasJvmCrashProblem() || ctx.hasOomeProblem();
         lastTestCp.setDumpLastTest(dumpLastTest);
+
         final LogsAnalyzer analyzer = new LogsAnalyzer(threadDumpCp, lastTestCp);
+
         final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
 
         return fut2.thenApplyAsync(file -> {
             LogCheckResult logCheckResult = new LogCheckResult();
             if (dumpLastTest) {
                 logCheckResult.setLastStartedTest(lastTestCp.getLastTestName());
-                logCheckResult.setThreadDumpFileIdx(threadDumpCp.getLastFileIdx());
+                logCheckResult.setThreadDump(threadDumpCp.getLastThreadDump());
             }
             return new T2<>(file, logCheckResult);
         });
     }
 
-    private ConcurrentHashMap<Integer, CompletableFuture<T2<File, LogCheckResult>>>
-        buildLogProcessingRunning = new ConcurrentHashMap<>();
-
-    public CompletableFuture<T2<File, LogCheckResult>> processBuildLog(int buildId, ISuiteResults ctx) {
-        CompletableFuture<T2<File, LogCheckResult>> future = buildLogProcessingRunning.computeIfAbsent(buildId,
-            k -> processBuildLogNoCache(k, ctx)
-        );
-
-        return future.thenApply(res -> {
-            buildLogProcessingRunning.remove(buildId, future);
-
-            return res;
-        });
-
-    }
 
     public void setExecutor(ExecutorService executor) {
         this.executor = executor;

@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.analysis;
 
+import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -18,7 +19,10 @@ import org.jetbrains.annotations.Nullable;
 public class SingleBuildRunCtx implements ISuiteResults {
     private Build build;
     private CompletableFuture<LogCheckResult> logCheckResultsFut;
-    private List<ProblemOccurrence> problems;
+
+    /** Build problems occurred during single build run. */
+    @Nullable private List<ProblemOccurrence> problems;
+
     private List<Change> changes = new ArrayList<>();
 
     public SingleBuildRunCtx(Build build) {
@@ -34,23 +38,26 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     private long getExecutionTimeoutCount() {
-        return problems.stream().filter(Objects::nonNull).filter(ProblemOccurrence::isExecutionTimeout).count();
+        return getProblemsStream().filter(ProblemOccurrence::isExecutionTimeout).count();
     }
 
-    public boolean hasJvmCrashProblem() {
-        return getJvmCrashProblemCount() > 0;
+    private Stream<ProblemOccurrence> getProblemsStream() {
+        if (problems == null)
+            return Stream.empty();
+
+        return problems.stream().filter(Objects::nonNull);
     }
 
-    private long getJvmCrashProblemCount() {
-        return problems.stream().filter(Objects::nonNull).filter(ProblemOccurrence::isJvmCrash).count();
+    @Override public boolean hasJvmCrashProblem() {
+        return getProblemsStream().anyMatch(ProblemOccurrence::isJvmCrash);
     }
 
-    public boolean hasOomeProblem() {
-        return getOomeProblemCount() > 0;
+    @Override public boolean hasOomeProblem() {
+        return getProblemsStream().anyMatch(ProblemOccurrence::isOome);
     }
 
-    private long getOomeProblemCount() {
-        return problems.stream().filter(ProblemOccurrence::isOome).count();
+    @Override public boolean hasExitCodeProblem() {
+        return getProblemsStream().anyMatch(ProblemOccurrence::isExitCode);
     }
 
     @Override public String suiteId() {
@@ -63,6 +70,23 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     @Nullable
     public String getCriticalFailLastStartedTest() {
+        LogCheckResult logCheckResult = getLogCheckIfFinished();
+        if (logCheckResult == null)
+            return null;
+
+        return logCheckResult.getLastStartedTest();
+    }
+
+    @Nullable
+    public Integer getBuildIdIfHasThreadDump() {
+        LogCheckResult logCheckResult = getLogCheckIfFinished();
+        if (logCheckResult == null)
+            return null;
+
+        return !Strings.isNullOrEmpty(logCheckResult.getThreadDump()) ? buildId() : null;
+    }
+
+    @Nullable public LogCheckResult getLogCheckIfFinished() {
         if (logCheckResultsFut == null)
             return null;
 
@@ -74,11 +98,10 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
         if (logCheckResult == null)
             return null;
-
-        return logCheckResult.getLastStartedTest();
+        return logCheckResult;
     }
 
-    public void setProblems(List<ProblemOccurrence> problems) {
+    public void setProblems(@Nullable List<ProblemOccurrence> problems) {
         this.problems = problems;
     }
 
@@ -99,4 +122,5 @@ public class SingleBuildRunCtx implements ISuiteResults {
         else
             return Stream.of((Future<?>)logCheckResultsFut);
     }
+
 }

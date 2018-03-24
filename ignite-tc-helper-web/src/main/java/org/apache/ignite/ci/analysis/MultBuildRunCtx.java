@@ -39,7 +39,6 @@ public class MultBuildRunCtx implements ISuiteResults {
     @Deprecated
     private List<ProblemOccurrence> problems = new CopyOnWriteArrayList<>();
 
-
     /** Tests: Map from full test name to multiple test occurrence. */
     private final Map<String, MultTestFailureOccurrences> tests = new ConcurrentSkipListMap<>();
 
@@ -76,6 +75,10 @@ public class MultBuildRunCtx implements ISuiteResults {
         return builds.stream().map(SingleBuildRunCtx::getCriticalFailLastStartedTest).filter(Objects::nonNull);
     }
 
+    public Stream<Integer> getBuildsWithThreadDump() {
+        return builds.stream().map(SingleBuildRunCtx::getBuildIdIfHasThreadDump).filter(Objects::nonNull);
+    }
+
     @Deprecated
     public void addProblems(List<ProblemOccurrence> problems) {
         this.problems.addAll(problems);
@@ -109,8 +112,8 @@ public class MultBuildRunCtx implements ISuiteResults {
         return getExecutionTimeoutCount() > 0;
     }
 
-    public long getExecutionTimeoutCount() {
-        return problems.stream().filter(Objects::nonNull).filter(ProblemOccurrence::isExecutionTimeout).count();
+    private long getExecutionTimeoutCount() {
+        return builds.stream().filter(ISuiteResults::hasTimeoutProblem).count();
     }
 
     public boolean hasJvmCrashProblem() {
@@ -118,15 +121,23 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public long getJvmCrashProblemCount() {
-        return problems.stream().filter(Objects::nonNull).filter(ProblemOccurrence::isJvmCrash).count();
+        return builds.stream().filter(ISuiteResults::hasJvmCrashProblem).count();
     }
 
     public boolean hasOomeProblem() {
         return getOomeProblemCount() > 0;
     }
 
-    public long getOomeProblemCount() {
-        return problems.stream().filter(ProblemOccurrence::isOome).count();
+    @Override public boolean hasExitCodeProblem() {
+        return getExitCodeProblemsCount() > 0;
+    }
+
+    private long getExitCodeProblemsCount() {
+        return builds.stream().filter(ISuiteResults::hasExitCodeProblem).count();
+    }
+
+    private long getOomeProblemCount() {
+        return builds.stream().filter(ISuiteResults::hasOomeProblem).count();
     }
 
     public int failedTests() {
@@ -153,7 +164,6 @@ public class MultBuildRunCtx implements ISuiteResults {
 
         return cnt == null ? 0 : cnt;
     }
-
 
     public String getPrintableStatusString() {
         StringBuilder builder = new StringBuilder();
@@ -189,32 +199,12 @@ public class MultBuildRunCtx implements ISuiteResults {
      * @return printable result
      */
     public String getResult() {
-        long execToCnt = getExecutionTimeoutCount();
-
         StringBuilder res = new StringBuilder();
-        if (execToCnt > 0) {
-            if (res.length() > 0)
-                res.append(", ");
 
-            res.append("TIMEOUT ").append(execToCnt > 1 ? "[" + execToCnt + "]" : "");
-        }
-
-
-        long jvmCrashProblemCnt = getJvmCrashProblemCount();
-        if (jvmCrashProblemCnt > 0) {
-            if (res.length() > 0)
-                res.append(", ");
-
-            res.append("JVM CRASH ").append(jvmCrashProblemCnt > 1 ? "[" + jvmCrashProblemCnt + "]" : "");
-        }
-
-        long oomeProblemCnt = getOomeProblemCount();
-        if (oomeProblemCnt > 0) {
-            if (res.length() > 0)
-                res.append(", ");
-
-            res.append("Out Of Memory Error ").append(oomeProblemCnt > 1 ? "[" + oomeProblemCnt + "]" : "");
-        }
+        addKnownProblemCnt(res, "TIMEOUT", getExecutionTimeoutCount());
+        addKnownProblemCnt(res, "JVM CRASH", getJvmCrashProblemCount());
+        addKnownProblemCnt(res, "Out Of Memory Error", getOomeProblemCount());
+        addKnownProblemCnt(res, "Exit Code", getExitCodeProblemsCount());
 
         {
             Stream<ProblemOccurrence> stream =
@@ -223,16 +213,28 @@ public class MultBuildRunCtx implements ISuiteResults {
                         && !p.isShaphotDepProblem()
                         && !p.isExecutionTimeout()
                         && !p.isJvmCrash()
+                        && !p.isExitCode()
                         && !p.isOome());
             Optional<ProblemOccurrence> bpOpt = stream.findAny();
-            if(bpOpt.isPresent()) {
+            if (bpOpt.isPresent()) {
                 if (res.length() > 0)
                     res.append(", ");
 
-                res.append(bpOpt.get().type).append(" ") ;
+                res.append(bpOpt.get().type).append(" ");
             }
         }
         return res.toString();
+    }
+
+    public void addKnownProblemCnt(StringBuilder res, String nme, long execToCnt) {
+        if (execToCnt > 0) {
+            if (res.length() > 0)
+                res.append(", ");
+
+            res.append(nme)
+                .append(" ")
+                .append(execToCnt > 1 ? "[" + execToCnt + "]" : "");
+        }
     }
 
     public Stream<? extends ITestFailureOccurrences> getTopLongRunning() {
@@ -257,7 +259,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return firstBuildInfo.getId();
     }
 
-    public void setContactPerson(String contactPerson) {
+    public void setContactPerson(@Nullable String contactPerson) {
         this.contactPerson = contactPerson;
     }
 
@@ -269,7 +271,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return firstBuildInfo.branchName;
     }
 
-    public String getContactPerson() {
+    @Nullable public String getContactPerson() {
         return contactPerson;
     }
 
@@ -277,7 +279,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return Strings.nullToEmpty(contactPerson);
     }
 
-    public void setStat(Statistics stat) {
+    public void setStat(@Nullable Statistics stat) {
         this.stat = stat;
     }
 
@@ -303,7 +305,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     private Optional<TestOccurrenceFull> getFullTest(String testOccurrenceInBuildId) {
         return Optional.ofNullable(testFullMap.get(testOccurrenceInBuildId))
             .flatMap(fut ->
-                Optional.ofNullable(fut.isDone() ?  FutureUtil.getResultSilent(fut) : null));
+                Optional.ofNullable(fut.isDone() ? FutureUtil.getResultSilent(fut) : null));
     }
 
     /**
@@ -318,10 +320,6 @@ public class MultBuildRunCtx implements ISuiteResults {
         return type.getProjectId();
     }
 
-    @Deprecated
-    @Nullable public Integer getThreadDumpFileIdx() {
-        return threadDumpFileIdx;
-    }
 
     public void setRunningBuildCount(CompletableFuture<Long> runningBuildCount) {
         this.runningBuildCount = runningBuildCount;
@@ -384,4 +382,5 @@ public class MultBuildRunCtx implements ISuiteResults {
                 concat(stream1, stream2),
                 concat(stream4, stream3));
     }
+
 }

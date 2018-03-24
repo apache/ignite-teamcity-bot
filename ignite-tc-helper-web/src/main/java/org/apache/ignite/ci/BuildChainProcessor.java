@@ -153,18 +153,17 @@ public class BuildChainProcessor {
         return prevVal == null;
     }
 
-    @NotNull private static void collectBuildContext(
+    private static void collectBuildContext(
         MultBuildRunCtx outCtx, ITeamcity teamcity, boolean procLog,
         @Nullable Properties contactPersonProps, boolean includeScheduledInfo, Build build) {
 
         SingleBuildRunCtx ctx = teamcity.loadTestsAndProblems(build, outCtx);
         outCtx.addBuild(ctx);
 
-        if (procLog && (outCtx.hasJvmCrashProblem() || outCtx.hasTimeoutProblem() || outCtx.hasOomeProblem()))
-            ctx.setLogCheckResultsFut(teamcity.getLogCheckResults(ctx.buildId(), ctx));
+        if (procLog && ctx.hasSuiteIncompleteFailure())
+            ctx.setLogCheckResultsFut(teamcity.analyzeBuildLog(ctx.buildId(), ctx));
 
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {
-
             Function<List<BuildRef>, Long> countRelatedToThisBuildType = list ->
                 list.stream()
                     .filter(ref -> Objects.equals(ref.buildTypeId, build.buildTypeId))

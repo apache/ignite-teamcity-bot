@@ -24,7 +24,6 @@ public class LastTestLogCopyHandler implements ILineHandler {
     private boolean dumpLastTest;
 
     @Override public void accept(String line, File fromLogFile) {
-
         if (workFolder == null)
             workFolder = fromLogFile.getParentFile();
 
