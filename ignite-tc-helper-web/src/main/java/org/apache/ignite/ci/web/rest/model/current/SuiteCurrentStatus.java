@@ -43,6 +43,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public List<TestFailure> testFailures = new ArrayList<>();
     public List<TestFailure> topLongRunning = new ArrayList<>();
+    public List<TestFailure> warnOnly = new ArrayList<>();
 
     /** Web Href. to thread dump display */
     @Nullable public String webUrlThreadDump;
@@ -143,6 +144,27 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             }
         );
 
+        suite.getLogMsgToWarn().forEach(map -> {
+            map.forEach(
+                (t, list) -> {
+                    TestFailure failure = testFailures.stream().filter(f -> f.name.contains(t)).findAny().orElseGet(
+                        () -> {
+                            return warnOnly.stream().filter(f -> f.name.contains(t)).findAny().orElseGet(
+                                () -> {
+                                    TestFailure f = new TestFailure();
+                                    f.name = t + " (warning)";
+                                    warnOnly.add(f);
+
+                                    return f;
+                                });
+                        });
+
+
+                    failure.warnings.addAll(list);
+                }
+            );
+        });
+
         suite.getBuildsWithThreadDump().forEach(buildId -> {
             webUrlThreadDump = "/rest/" + GetBuildLog.GET_BUILD_LOG + "/" + GetBuildLog.THREAD_DUMP
                 + "?" + GetBuildLog.SERVER_ID + "=" + teamcity.serverId()
@@ -196,12 +218,14 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             Objects.equal(failureRate, status.failureRate) &&
             Objects.equal(userCommits, status.userCommits) &&
             Objects.equal(failedTests, status.failedTests) &&
-            Objects.equal(durationPrintable, status.durationPrintable);
+            Objects.equal(durationPrintable, status.durationPrintable)&&
+            Objects.equal(warnOnly, status.warnOnly);
     }
 
     @Override public int hashCode() {
         return Objects.hashCode(name, result, webToHist, webToBuild, contactPerson, testFailures,
             topLongRunning, webUrlThreadDump, runningBuildCount, queuedBuildCount, serverId,
-            suiteId, branchName, failures, runs, failureRate, userCommits, failedTests, durationPrintable);
+            suiteId, branchName, failures, runs, failureRate, userCommits, failedTests, durationPrintable,
+            warnOnly);
     }
 }

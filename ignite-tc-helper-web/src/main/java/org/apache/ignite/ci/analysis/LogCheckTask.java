@@ -30,12 +30,15 @@ public class LogCheckTask {
         return new BuildLogStreamChecker(threadDumpCp, lastTestCp);
     }
 
-    public void finalize(boolean dumpLastTest) {
+    public void finalize(boolean isIncompleteSuite) {
         LogCheckResult logCheckResult = new LogCheckResult();
-        if (dumpLastTest) {
+        if (isIncompleteSuite) {
             logCheckResult.setLastStartedTest(lastTestCp.getLastTestName());
             logCheckResult.setLastThreadDump(threadDumpCp.getLastThreadDump());
         }
+
+        logCheckResult.setTestWarns(lastTestCp.getTestWarns());
+
         setResult(logCheckResult);
     }
 }

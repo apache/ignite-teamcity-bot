@@ -217,7 +217,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
         final ThreadDumpCopyHandler threadDumpCp = new ThreadDumpCopyHandler();
         final LastTestLogCopyHandler lastTestCp = new LastTestLogCopyHandler();
-        lastTestCp.setDumpLastTest(dumpLastTest);
+        lastTestCp.setSaveLastTestToFile(dumpLastTest);
 
         final LogsAnalyzer analyzer = new LogsAnalyzer(threadDumpCp, lastTestCp);
 
@@ -225,9 +225,14 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
         return fut2.thenApplyAsync(file -> {
             LogCheckResult logCheckResult = new LogCheckResult();
+
             if (dumpLastTest) {
                 logCheckResult.setLastStartedTest(lastTestCp.getLastTestName());
             }
+            logCheckResult.setTestWarns(lastTestCp.getTestWarns());
+
+            System.err.println(logCheckResult);
+
             return new T2<>(file, logCheckResult);
         }).thenApply(T2::get1);
     }

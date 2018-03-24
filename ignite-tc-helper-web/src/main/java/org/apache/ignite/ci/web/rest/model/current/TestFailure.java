@@ -2,6 +2,8 @@ package org.apache.ignite.ci.web.rest.model.current;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -9,9 +11,10 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
+import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.logs.LogMsgToWarn;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
 import static org.apache.ignite.ci.util.TimeUtil.getDurationPrintable;
@@ -57,6 +60,8 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
 
     @Nullable public String durationPrintable;
 
+    public List<String> warnings = new ArrayList<>();
+
     /**
      * @param failure
      * @param testFullOpt all related full test ocurrences
@@ -100,6 +105,11 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
                     int prefixFoundIdx = details.indexOf(issueLinkPrefix);
                     if (prefixFoundIdx >= 0)
                         initIssueLink(issueLinkPrefix, details, prefixFoundIdx);
+                }
+
+                for (String s : details.split("\n")) {
+                    if (LogMsgToWarn.needWarn(s))
+                        warnings.add(s);
                 }
             }
             if (webUrl == null)
@@ -157,11 +167,12 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
             Objects.equal(webUrl, failure.webUrl) &&
             Objects.equal(webIssueUrl, failure.webIssueUrl) &&
             Objects.equal(webIssueText, failure.webIssueText) &&
-            Objects.equal(durationPrintable, failure.durationPrintable);
+            Objects.equal(durationPrintable, failure.durationPrintable)&&
+            Objects.equal(warnings, failure.warnings);
     }
 
     @Override public int hashCode() {
         return Objects.hashCode(name, suiteName, testName, curFailures, failures, runs, failureRate,
-            webUrl, webIssueUrl, webIssueText, investigated, durationPrintable);
+            webUrl, webIssueUrl, webIssueText, investigated, durationPrintable, warnings);
     }
 }

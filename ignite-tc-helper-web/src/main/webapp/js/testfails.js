@@ -101,7 +101,14 @@ function showSuiteData(suite) {
 
 
     res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
-        "[ " + "<a href='" + suite.webToBuild + "' title='" + altTxt + "'> " + "tests " + suite.failedTests + " " + suite.result + "</a> ]";
+        "[ " + "<a href='" + suite.webToBuild + "' title='" + altTxt + "'> "
+         + "tests " + suite.failedTests + " " + suite.result;
+
+    if(isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length>0) {
+        res+=" warn " + suite.warnOnly.length ;
+    }
+
+    res+= "</a> ]";
 
 
     if (isDefinedAndFilled(suite.contactPerson)) {
@@ -119,7 +126,7 @@ function showSuiteData(suite) {
 
 
     res += "<span class='container'>";
-    res += " <a href='javascript:void(0);' class='header'>More info &gt;&gt;</a>";
+    res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
 
     res += "<div class='content'>";
     if (isDefinedAndFilled(suite.serverId) && isDefinedAndFilled(suite.suiteId) && isDefinedAndFilled(suite.branchName)) {
@@ -137,6 +144,14 @@ function showSuiteData(suite) {
         for (var i = 0; i < suite.topLongRunning.length; i++) {
             res += showTestFailData(suite.topLongRunning[i], false);
         }
+    }
+
+    if (isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length > 0) {
+            res += "Warn Only:<br>"
+
+            for (var i = 0; i < suite.warnOnly.length; i++) {
+                res += showTestFailData(suite.warnOnly[i], false);
+            }
     }
 
     res += "</div></span>";
@@ -257,7 +272,29 @@ function showTestFailData(testFail, isFailureShown) {
     if (investigated)
         res += "</span> ";
 
+
+    if(isDefinedAndFilled(testFail.warnings) && testFail.warnings.length>0) {
+        res += "<span class='container'>";
+        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+
+        res += "<div class='content'>";
+
+        res+="<p class='logMsg'>"
+            for (var i = 0; i < testFail.warnings.length; i++) {
+                res+"&nbsp; &nbsp; ";
+                res+"&nbsp; &nbsp; ";
+                res +=  testFail.warnings[i];
+                res += " <br>";
+            }
+        res+="</p>"
+
+        res += "</div></span>";
+
+    }
+
+
     res += " <br>";
+
     return res;
 }
 
@@ -272,7 +309,7 @@ function initMoreInfo() {
             //change text of header based on visibility of content div
             $header.text(function() {
                 //change text based on condition
-                return $content.is(":visible") ? "Hide <<" : "More info >>";
+                return $content.is(":visible") ? "Hide <<" : "More >>";
             });
         });
 

@@ -79,6 +79,11 @@ public class MultBuildRunCtx implements ISuiteResults {
         return builds.stream().map(SingleBuildRunCtx::getBuildIdIfHasThreadDump).filter(Objects::nonNull);
     }
 
+
+    public Stream<Map<String, List<String>>> getLogMsgToWarn() {
+        return builds.stream().map(SingleBuildRunCtx::getLogMsgToWarn).filter(Objects::nonNull);
+    }
+
     @Deprecated
     public void addProblems(List<ProblemOccurrence> problems) {
         this.problems.addAll(problems);

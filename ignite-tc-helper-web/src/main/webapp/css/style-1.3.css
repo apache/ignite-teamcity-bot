@@ -14,6 +14,13 @@ input {
 	font-weight: 500;
 }
 
+.logMsg {
+	font-family: Arial;
+	font-size: 12px;
+	font-family:'Lucida Console',
+    monospace
+}
+
 .container {
     width:100%;
     border:1px solid #d3d3d3;

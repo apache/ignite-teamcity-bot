@@ -3,6 +3,7 @@ package org.apache.ignite.ci.analysis;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -14,7 +15,7 @@ import org.apache.ignite.ci.util.FutureUtil;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Created by Дмитрий on 17.02.2018.
+ * Single build ocurrence,
  */
 public class SingleBuildRunCtx implements ISuiteResults {
     private Build build;
@@ -75,6 +76,15 @@ public class SingleBuildRunCtx implements ISuiteResults {
             return null;
 
         return logCheckResult.getLastStartedTest();
+    }
+
+    @Nullable
+    public Map<String, List<String>> getLogMsgToWarn() {
+        LogCheckResult logCheckResult = getLogCheckIfFinished();
+        if (logCheckResult == null)
+            return null;
+
+        return logCheckResult.getTestWarns();
     }
 
     @Nullable

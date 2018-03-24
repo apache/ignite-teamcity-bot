@@ -1,5 +1,8 @@
 package org.apache.ignite.ci.analysis;
 
+import com.google.common.base.MoreObjects;
+import java.util.List;
+import java.util.Map;
 import org.apache.ignite.ci.db.Persisted;
 
 /**
@@ -7,7 +10,7 @@ import org.apache.ignite.ci.db.Persisted;
  */
 @Persisted
 public class LogCheckResult implements IVersionedEntity {
-    private static final int LATEST_VERSION = 4;
+    private static final int LATEST_VERSION = 5;
 
     @SuppressWarnings("FieldCanBeLocal") private Integer _version = LATEST_VERSION;
 
@@ -15,6 +18,8 @@ public class LogCheckResult implements IVersionedEntity {
     private String lastStartedTest;
 
     private String lastThreadDump;
+
+    private Map<String, List<String>> testWarns;
 
     public void setLastStartedTest(String lastStartedTest) {
         this.lastStartedTest = lastStartedTest;
@@ -38,5 +43,36 @@ public class LogCheckResult implements IVersionedEntity {
 
     public String getLastThreadDump() {
         return lastThreadDump;
+    }
+
+    public void setTestWarns(Map<String, List<String>> testWarns) {
+        this.testWarns = testWarns;
+    }
+
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("lastStartedTest", lastStartedTest)
+            .add("lastThreadDump", lastThreadDump)
+            .add("testWarns", getWarns())
+            .toString();
+    }
+
+    private String getWarns() {
+        StringBuilder sb = new StringBuilder();
+
+        testWarns.forEach(
+            (t, list) -> {
+                sb.append(t).append("   :\n");
+
+                list.forEach(w -> {
+                    sb.append(w).append("\n");
+
+                });
+            });
+        return sb.toString();
+    }
+
+    public Map<String, List<String>> getTestWarns() {
+        return testWarns;
     }
 }
