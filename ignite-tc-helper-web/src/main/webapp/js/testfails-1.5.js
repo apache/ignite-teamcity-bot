@@ -20,11 +20,7 @@ function showChainOnServersResults(result) {
         res += showChainAtServerData(server);
     }
 
-    if(!g_initMoreInfoDone) {
-        g_initMoreInfoDone = true;
-
-        setTimeout(initMoreInfo, 100);
-    }
+    setTimeout(initMoreInfo, 100);
 
     return res;
 }
@@ -299,6 +295,7 @@ function showTestFailData(testFail, isFailureShown) {
 }
 
 function initMoreInfo() {
+    $(".header").unbind( "click" );
     $(".header").click(function() {
         $header = $(this);
         //getting the next element

@@ -8,16 +8,19 @@
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script src="js/common-1.2.js"></script>
-    <script src="js/testfails.js"></script>
+    <script src="js/testfails-1.5.js"></script>
 </head>
 <body>
 <script>
+var g_shownDataHashCodeHex = ""
+
 $(document).ready(function() {
-    $.getScript("js/testfails.js", function(data, textStatus, jqxhr){ });
+    $.getScript("js/testfails-1.5.js", function(data, textStatus, jqxhr){ });
 
     $( document ).tooltip();
+
     loadData();
-    setInterval(loadData, 150000);
+    setInterval( function() { checkForUpdate(); }, 60000);
 
     $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 });
@@ -41,6 +44,34 @@ function parmsForRest() {
     return curReqParms;
 }
 
+
+function checkForUpdate() {
+    var curFailuresUrl = "rest/all/failures/updates" + parmsForRest();
+
+    $.ajax({
+        url: curFailuresUrl,
+        success: function(result) {
+           if (g_shownDataHashCodeHex!="" && isDefinedAndFilled(result.hashCodeHex)) {
+                if(g_shownDataHashCodeHex==result.hashCodeHex) {
+                    var updRunning = isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0
+                    var fastCheckNeeded = result.updateRequired || updRunning;
+                    var ms = fastCheckNeeded ? 6000 : 60000 ;
+
+                    setTimeout(checkForUpdate, ms);
+
+                    if(!result.updateRequired)
+                        $("#loadStatus").html("");
+                } else {
+                    loadData(); // data changed, show new
+                }
+            } else {
+                loadData();
+            }
+        },
+        error: showErrInLoadStatus
+    });
+}
+
 function loadData() {
     var curFailuresUrl = "rest/all/failures" + parmsForRest();
     
@@ -48,13 +79,15 @@ function loadData() {
     $.ajax({
         url: curFailuresUrl,
         success: function(result) {
-            if(result.updateRequired || (isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0)) {
-                setTimeout(loadData, 3000)
+           if(result.updateRequired || (isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0)) {
+                setTimeout(checkForUpdate, 3000)
                 $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Updating");
             } else {
                 $("#loadStatus").html("");
             }
             showData(result);
+
+            g_shownDataHashCodeHex = isDefinedAndFilled(result.hashCodeHex) ? result.hashCodeHex : "";
         },
         error: showErrInLoadStatus
     });

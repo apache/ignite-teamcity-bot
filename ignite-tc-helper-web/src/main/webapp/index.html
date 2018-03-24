@@ -49,7 +49,8 @@ function showCurrentBranchesData(result) {
     var res = "";
     for (var i = 0; i < result.length; i++) {
         var id = result[i];
-        res+="<a href='current.html?branch="+id+"'>Current Failed Tests ("+id+")</a>";
+        res+="<a href='current.html?branch="+id+"'>Latest ("+id+")</a>";
+        res+=" &nbsp;&nbsp;  <a href='current.html?branch="+id+"&checkAllLogs=true' title='With logs processing'>("+id+" + logs)</a>";
         res+="<br>";
     }
 
@@ -83,9 +84,7 @@ function showSuitesForPrCheckData(result) {
 </script>
 </head>
 <body>
-Current status:     <br>
-<!--
-<a href="current.html">Current Failed Tests (master)</a><br>-->
+Current Failed Tests:   <br>
 <div id="branchesStatus"></div>
 <br>
 

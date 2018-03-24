@@ -26,6 +26,7 @@ import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.TestFailuresSummary;
+import org.apache.ignite.ci.web.rest.model.current.UpdateInfo;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,15 +41,24 @@ public class GetAllTestFailures {
     private ServletContext context;
 
     @GET
-    @Path("failures")
-    public TestFailuresSummary getTestFails(@Nullable @QueryParam("branch") String branchOrNull,
+    @Path("failures/updates")
+    public UpdateInfo getAllTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull,
         @Nullable @QueryParam("count") Integer count,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) { 
-        final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+
+        return new UpdateInfo().copyFrom(getAllTestFails(branchOrNull, count, checkAllLogs));
+    }
+
+    @GET
+    @Path("failures")
+    public TestFailuresSummary getAllTestFails(@Nullable @QueryParam("branch") String branchOrNull,
+        @Nullable @QueryParam("count") Integer count,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
         FullQueryParams fullKey = new FullQueryParams();
         fullKey.setBranch(branchOrNull);
         fullKey.setCount(count == null ? FullQueryParams.DEFAULT_COUNT : count);
-        fullKey.setCheckAllLogs(true);
+        fullKey.setCheckAllLogs(checkAllLogs != null && checkAllLogs);
 
         return updater.get("AllTestFailuresSummary",
             fullKey,
@@ -57,7 +67,6 @@ public class GetAllTestFailures {
                 k.getCount(),
                 k.getCheckAllLogs()));
     }
-
 
     @GET
     @Path("failuresNoCache")
