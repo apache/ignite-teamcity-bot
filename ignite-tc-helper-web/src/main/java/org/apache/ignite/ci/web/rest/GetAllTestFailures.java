@@ -1,6 +1,5 @@
 package org.apache.ignite.ci.web.rest;
 
-import com.google.common.base.Strings;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -18,7 +17,8 @@ import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.LatestRebuildMode;
+import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
+import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
@@ -26,7 +26,7 @@ import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.TestFailuresSummary;
-import org.apache.ignite.internal.util.typedef.T2;
+import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,20 +42,28 @@ public class GetAllTestFailures {
     @GET
     @Path("failures")
     public TestFailuresSummary getTestFails(@Nullable @QueryParam("branch") String branchOrNull,
-        @Nullable @QueryParam("count") Integer count) {
-        final String key = Strings.nullToEmpty(branchOrNull);
+        @Nullable @QueryParam("count") Integer count,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) { 
         final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
-        int cnt = count == null ? 10 : count;
-        T2<String, Integer> fullKey = new T2<>(key, cnt);
+        FullQueryParams fullKey = new FullQueryParams();
+        fullKey.setBranch(branchOrNull);
+        fullKey.setCount(count == null ? FullQueryParams.DEFAULT_COUNT : count);
+        fullKey.setCheckAllLogs(true);
+
         return updater.get("AllTestFailuresSummary",
-            fullKey, branchOpt -> getAllTestFailsNoCache(key, cnt));
+            fullKey,
+            k -> getAllTestFailsNoCache(
+                k.getBranch(),
+                k.getCount(),
+                k.getCheckAllLogs()));
     }
 
 
     @GET
     @Path("failuresNoCache")
     @NotNull public TestFailuresSummary getAllTestFailsNoCache(@Nullable @QueryParam("branch") String branchOpt,
-        @QueryParam("count") int count) {
+        @QueryParam("count") Integer count,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
         final ITcHelper helper = CtxListener.getTcHelper(context);
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
@@ -77,7 +85,8 @@ public class GetAllTestFailures {
                 Optional<FullChainRunCtx> chainCtxOpt
                     = BuildChainProcessor.processBuildChains(teamcity,
                     LatestRebuildMode.ALL, chains,
-                    false, false, true, teamcity);
+                    checkAllLogs != null && checkAllLogs ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED,
+                    false, true, teamcity);
 
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
                 chainStatus.serverName = teamcity.serverId();

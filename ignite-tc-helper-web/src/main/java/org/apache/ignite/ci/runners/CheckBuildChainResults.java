@@ -16,10 +16,11 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
-import org.apache.ignite.ci.analysis.LatestRebuildMode;
+import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -195,7 +196,8 @@ public class CheckBuildChainResults {
             suiteHist.map.computeIfAbsent(dateForMap, k -> {
                 FullChainRunCtx ctx = BuildChainProcessor.loadChainsContext(teamcity,
                     singletonList(next),
-                    LatestRebuildMode.NONE, false, null, false, null);
+                    LatestRebuildMode.NONE,
+                    ProcessLogsMode.DISABLED, null, false, null);
                 if (ctx == null)
                     return null;
 

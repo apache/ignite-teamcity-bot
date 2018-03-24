@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.analysis;
+package org.apache.ignite.ci.analysis.mode;
 
 public enum LatestRebuildMode {
     /** None rebuilds are applied. */

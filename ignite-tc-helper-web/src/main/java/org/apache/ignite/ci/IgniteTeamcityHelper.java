@@ -5,6 +5,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.MoreExecutors;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -19,17 +20,20 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.analysis.ISuiteResults;
 import org.apache.ignite.ci.analysis.LogCheckResult;
+import org.apache.ignite.ci.analysis.LogCheckTask;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.logs.BuildLogStreamChecker;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
 import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
-import org.apache.ignite.ci.logs.handlers.ThreadDumpInMemoryHandler;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -47,6 +51,7 @@ import org.apache.ignite.ci.util.UrlUtil;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
 import org.apache.ignite.internal.util.typedef.T2;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
@@ -69,13 +74,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     private final String configName; //main properties file name
     private final String tcName;
 
-    private ConcurrentHashMap<Integer, CompletableFuture<T2<File, LogCheckResult>>>
-        buildLogProcessingRunning = new ConcurrentHashMap<>();
-
-
-    public IgniteTeamcityHelper() throws IOException {
-        this(null);
-    }
+    private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
     public IgniteTeamcityHelper(String tcName) {
         this.tcName = tcName;
@@ -124,24 +123,24 @@ public class IgniteTeamcityHelper implements ITeamcity {
     @Override public CompletableFuture<LogCheckResult> analyzeBuildLog(Integer buildId, SingleBuildRunCtx ctx) {
         final Stopwatch started = Stopwatch.createStarted();
 
-        CompletableFuture<T2<File, LogCheckResult>> future = buildLogProcessingRunning.computeIfAbsent(buildId,
-            k -> analyzeBuildLogNoCache(k, ctx)
+        CompletableFuture<LogCheckTask> future = buildLogProcessingRunning.computeIfAbsent(buildId,
+            k -> checkBuildLogNoCache(k, ctx)
         );
 
         return future
-            .thenApply(res -> {
+            .thenApply(task -> {
                 buildLogProcessingRunning.remove(buildId, future);
 
-                return res;
+                return task;
             })
-            .thenApply(t -> {
+            .thenApply(task -> {
                 System.out.println(Thread.currentThread().getName()
                     + ": processBuildLog required: " + started.elapsed(TimeUnit.MILLISECONDS)
                     + "ms for " + ctx.suiteId());
 
-                return t;
+                return task;
             })
-            .thenApply(T2::get2);
+            .thenApply(LogCheckTask::getResult);
     }
 
     private String xmlEscapeText(String t) {
@@ -383,30 +382,38 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return tcName;
     }
 
-    private CompletableFuture<T2<File, LogCheckResult>> analyzeBuildLogNoCache(int buildId, ISuiteResults ctx) {
+    private CompletableFuture<LogCheckTask> checkBuildLogNoCache(int buildId, ISuiteResults ctx) {
         final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
         boolean dumpLastTest = ctx.hasSuiteIncompleteFailure();
 
-        final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
-
-        final ThreadDumpInMemoryHandler threadDumpCp = new ThreadDumpInMemoryHandler();
-        final LastTestLogCopyHandler lastTestCp = new LastTestLogCopyHandler();
-        lastTestCp.setDumpLastTest(dumpLastTest);
-
-        final LogsAnalyzer analyzer = new LogsAnalyzer(threadDumpCp, lastTestCp);
-
-        final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
-
-        return fut2.thenApplyAsync(file -> {
-            LogCheckResult logCheckResult = new LogCheckResult();
-            if (dumpLastTest) {
-                logCheckResult.setLastStartedTest(lastTestCp.getLastTestName());
-                logCheckResult.setThreadDump(threadDumpCp.getLastThreadDump());
-            }
-            return new T2<>(file, logCheckResult);
-        });
+        return zipFut.thenApplyAsync(zipFile -> runCheckForZippedLog(dumpLastTest, zipFile), executor);
     }
 
+    @NotNull private LogCheckTask runCheckForZippedLog(boolean dumpLastTest, File zipFile) {
+        LogCheckTask task = new LogCheckTask(zipFile);
+
+        try {
+            //get the zip file content
+            try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
+                ZipEntry ze = zis.getNextEntry();    //get the zipped file list entry
+
+                while (ze != null) {
+
+                    BuildLogStreamChecker checker = task.createChecker();
+                    checker.apply(zis, zipFile);
+                    task.finalize(dumpLastTest);
+
+                    ze = zis.getNextEntry();
+                }
+                zis.closeEntry();
+            }
+        }
+        catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+
+        return task;
+    }
 
     public void setExecutor(ExecutorService executor) {
         this.executor = executor;

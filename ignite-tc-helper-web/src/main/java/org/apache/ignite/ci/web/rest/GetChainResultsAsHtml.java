@@ -14,7 +14,8 @@ import javax.ws.rs.core.Context;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.LatestRebuildMode;
+import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
+import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
@@ -24,7 +25,6 @@ import org.apache.ignite.ci.web.rest.model.current.TestFailure;
 import static java.lang.Float.parseFloat;
 import static javax.ws.rs.core.MediaType.TEXT_HTML;
 import static org.apache.ignite.internal.util.lang.GridFunc.isEmpty;
-import static org.apache.ignite.internal.util.lang.GridFunc.t;
 
 /**
  * Created by Дмитрий on 10.02.2018.
@@ -50,7 +50,8 @@ public class GetChainResultsAsHtml {
             Optional<FullChainRunCtx> ctxOptional =
                 BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,
                     Collections.singletonList(build),
-                    true, false, false, teamcity);
+                    ProcessLogsMode.SUITE_NOT_COMPLETE,
+                    false, false, teamcity);
 
             ctxOptional.ifPresent(ctx -> {
                 ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus();

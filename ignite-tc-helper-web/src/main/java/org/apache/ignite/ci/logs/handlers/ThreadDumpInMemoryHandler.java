@@ -5,7 +5,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.logs.ILineHandler;
 
 /**
- * Use one instance per one file, class is statefull and not thread safe
+ * Saves last observed thread dump. Use one instance per one file, class is stateful and not thread safe
  */
 public class ThreadDumpInMemoryHandler implements ILineHandler {
     public static final String FULL_THREAD_DUMP = "Full thread dump ";

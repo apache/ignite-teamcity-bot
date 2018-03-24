@@ -369,7 +369,7 @@ public class MultBuildRunCtx implements ISuiteResults {
             .filter(Objects::nonNull);
     }
 
-    public Stream<? extends Future<?>> getFutures() {
+    Stream<? extends Future<?>> getFutures() {
         Stream<CompletableFuture<?>> stream1 = queuedBuildCount != null ? Stream.of(queuedBuildCount) : Stream.empty();
         Stream<CompletableFuture<?>> stream2 = runningBuildCount != null ? Stream.of(runningBuildCount) : Stream.empty();
 

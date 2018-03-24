@@ -1,6 +1,5 @@
 package org.apache.ignite.ci.web.rest;
 
-import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -21,7 +20,8 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.LatestRebuildMode;
+import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
+import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.web.BackgroundUpdater;
@@ -29,7 +29,7 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.rest.model.current.UpdateInfo;
-import org.apache.ignite.internal.util.typedef.T5;
+import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -46,28 +46,38 @@ public class GetCurrTestFailures {
 
     @GET
     @Path("failures/updates")
-    public UpdateInfo getTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull) {
-        return new UpdateInfo().copyFrom(getTestFails(branchOrNull));
+    public UpdateInfo getTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+        return new UpdateInfo().copyFrom(getTestFails(branchOrNull, checkAllLogs));
     }
 
     @GET
     @Path("failures")
-    public TestFailuresSummary getTestFails(@Nullable @QueryParam("branch") String branchOrNull) {
-        final String key = Strings.nullToEmpty(branchOrNull);
+    public TestFailuresSummary getTestFails(
+        @Nullable @QueryParam("branch") String branchOrNull,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
-        return updater.get(TEST_FAILURES_SUMMARY_CACHE_NAME, key, this::getTestFailsNoCache, true);
+
+        FullQueryParams param = new FullQueryParams();
+        param.setBranch(branchOrNull);
+        param.setCheckAllLogs(checkAllLogs);
+        return updater.get(TEST_FAILURES_SUMMARY_CACHE_NAME, param,
+            (k) -> getTestFailsNoCache(k.getBranch(), k.getCheckAllLogs()), true);
     }
 
     @GET
     @Path("failuresNoCache")
-    @NotNull public TestFailuresSummary getTestFailsNoCache(@Nullable @QueryParam("branch") String key) {
+    @NotNull public TestFailuresSummary getTestFailsNoCache(
+        @Nullable @QueryParam("branch") String branch,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
         final ITcHelper helper = CtxListener.getTcHelper(context);
 
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
-        final String branch = isNullOrEmpty(key) ? "master" : key;
-        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
+        final String branchNn = isNullOrEmpty(branch) ? FullQueryParams.DEFAULT_BRANCH_NAME : branch;
+        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branchNn);
 
         tracked.chains.stream().parallel()
             .map(chainTracked -> {
@@ -79,7 +89,8 @@ public class GetCurrTestFailures {
                     Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
                         chainTracked.getSuiteIdMandatory(),
                         chainTracked.getBranchForRestMandatory(),
-                        LatestRebuildMode.LATEST, teamcity);
+                        LatestRebuildMode.LATEST,
+                        (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE);
 
                     pubCtx.ifPresent(ctx -> {
                         int cnt = (int)ctx.getRunningUpdates().count();
@@ -122,11 +133,11 @@ public class GetCurrTestFailures {
 
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
 
-        final T5<String, String, String, String, Integer> key
-            = new T5<>(serverId, suiteId, branchForTc, action, count);
+        final FullQueryParams key = new FullQueryParams(serverId, suiteId, branchForTc, action, count);
 
         return updater.get(CURRENT + "PrFailures", key,
-            (k) -> getPrFailuresNoCache(k.get1(), k.get2(), k.get3(), k.get4(), k.get5()), true);
+            (k) -> getPrFailuresNoCache(k.getServerId(), k.getSuiteId(), k.getBranchForTc(), k.getAction(), k.getCount()),
+            true);
     }
 
     @GET
@@ -146,13 +157,12 @@ public class GetCurrTestFailures {
             teamcity.setExecutor(CtxListener.getPool(context));
             teamcity.setStatUpdateEnabled(false);
 
-            //see definitions in Index.html javascript
             LatestRebuildMode rebuild;
-            if ("History".equals(action))
+            if (FullQueryParams.HISTORY.equals(action))
                 rebuild = LatestRebuildMode.ALL;
-            else if ("Latest".equals(action))
+            else if (FullQueryParams.LATEST.equals(action))
                 rebuild = LatestRebuildMode.LATEST;
-            else if ("Chain".equals(action))
+            else if (FullQueryParams.CHAIN.equals(action))
                 rebuild = LatestRebuildMode.NONE;
             else
                 rebuild = LatestRebuildMode.LATEST;
@@ -178,9 +188,14 @@ public class GetCurrTestFailures {
                 chains= finishedBuilds;
             }
 
+            boolean singleBuild = rebuild != LatestRebuildMode.ALL;
+            ProcessLogsMode logs = singleBuild
+                ? ProcessLogsMode.SUITE_NOT_COMPLETE
+                : ProcessLogsMode.DISABLED;
+
             Optional<FullChainRunCtx> pubCtx = BuildChainProcessor.processBuildChains(teamcity, rebuild, chains,
-                rebuild != LatestRebuildMode.ALL,
-                rebuild != LatestRebuildMode.ALL,
+                logs,
+                singleBuild,
                 true, teamcity);
 
             final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();

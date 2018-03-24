@@ -14,10 +14,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
+import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.jetbrains.annotations.NotNull;
@@ -27,23 +28,23 @@ import static java.util.Collections.singletonList;
 
 public class BuildChainProcessor {
     @Nonnull public static Optional<FullChainRunCtx> loadChainsContext(
-        ITeamcity teamcity,
+        IAnalyticsEnabledTeamcity teamcity,
         String suiteId,
         String branch,
-        LatestRebuildMode includeLatestRebuild,
-        @Nullable ITcAnalytics tcAnalytics) {
+        LatestRebuildMode rebuildMode,
+        ProcessLogsMode procLogs) {
         Optional<BuildRef> buildRef = teamcity.getLastBuildIncludeSnDepFailed(suiteId, branch);
 
         return buildRef.flatMap(
-            build -> processBuildChains(teamcity, includeLatestRebuild, singletonList(build),
-                true, true, true, tcAnalytics));
+            build -> processBuildChains(teamcity, rebuildMode, singletonList(build),
+                procLogs, true, true, teamcity));
     }
 
     public static Optional<FullChainRunCtx> processBuildChains(
         ITeamcity teamcity,
         LatestRebuildMode includeLatestRebuild,
         Collection<BuildRef> builds,
-        boolean procLogs,
+        ProcessLogsMode procLogs,
         boolean includeScheduled,
         boolean showContacts,
         @Nullable ITcAnalytics tcAnalytics) {
@@ -65,7 +66,7 @@ public class BuildChainProcessor {
         ITeamcity teamcity,
         Collection<BuildRef> entryPoints,
         LatestRebuildMode includeLatestRebuild,
-        boolean procLog,
+        ProcessLogsMode procLog,
         @Nullable Properties contactPersonProps,
         boolean includeScheduledInfo,
         @Nullable ITcAnalytics tcAnalytics) {
@@ -154,13 +155,14 @@ public class BuildChainProcessor {
     }
 
     private static void collectBuildContext(
-        MultBuildRunCtx outCtx, ITeamcity teamcity, boolean procLog,
+        MultBuildRunCtx outCtx, ITeamcity teamcity, ProcessLogsMode procLog,
         @Nullable Properties contactPersonProps, boolean includeScheduledInfo, Build build) {
 
         SingleBuildRunCtx ctx = teamcity.loadTestsAndProblems(build, outCtx);
         outCtx.addBuild(ctx);
 
-        if (procLog && ctx.hasSuiteIncompleteFailure())
+        if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
+            || procLog == ProcessLogsMode.ALL)
             ctx.setLogCheckResultsFut(teamcity.analyzeBuildLog(ctx.buildId(), ctx));
 
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {

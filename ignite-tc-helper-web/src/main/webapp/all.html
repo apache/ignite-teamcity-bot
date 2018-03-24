@@ -22,17 +22,28 @@ $(document).ready(function() {
     $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 });
 
-function loadData() {
-    var curFailuresUrl = "rest/all/failures";
+
+function parmsForRest() {
+    var curReqParms = "";
+
     var branch = findGetParameter("branch");
-    if(branch!=null) {
-        curFailuresUrl += "?branch=" + branch;
-    }
+    if(branch!=null)
+        curReqParms += "?branch=" + branch;
+
     var count = findGetParameter("count");
     if(count!=null)
-        curFailuresUrl += "&count=" + count;
+        curReqParms += "&count=" + count;
 
+    var checkAllLogs = findGetParameter("checkAllLogs");
+    if(checkAllLogs!=null)
+        curReqParms += "&checkAllLogs=" + checkAllLogs;
 
+    return curReqParms;
+}
+
+function loadData() {
+    var curFailuresUrl = "rest/all/failures" + parmsForRest();
+    
     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
     $.ajax({
         url: curFailuresUrl,

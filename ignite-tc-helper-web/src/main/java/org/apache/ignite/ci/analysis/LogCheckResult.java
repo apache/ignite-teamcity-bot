@@ -3,27 +3,25 @@ package org.apache.ignite.ci.analysis;
 import org.apache.ignite.ci.db.Persisted;
 
 /**
- * Created by Дмитрий on 17.02.2018
+ * Persistable Log check task result.
  */
 @Persisted
 public class LogCheckResult implements IVersionedEntity {
-    public static final int LATEST_VERSION = 3;
+    private static final int LATEST_VERSION = 4;
 
-    private int version = LATEST_VERSION;
+    @SuppressWarnings("FieldCanBeLocal") private Integer _version = LATEST_VERSION;
 
     /** Last started test. Optionally filled from log post processor */
     private String lastStartedTest;
-    @Deprecated
-    private Integer threadDumpFileIdx;
 
-    private String threadDump;
+    private String lastThreadDump;
 
     public void setLastStartedTest(String lastStartedTest) {
         this.lastStartedTest = lastStartedTest;
     }
 
-    public void setThreadDump(String threadDump) {
-        this.threadDump = threadDump;
+    public void setLastThreadDump(String lastThreadDump) {
+        this.lastThreadDump = lastThreadDump;
     }
 
     public String getLastStartedTest() {
@@ -31,14 +29,14 @@ public class LogCheckResult implements IVersionedEntity {
     }
 
     @Override public int version() {
-        return version;
+        return _version == null ? -1 : _version;
     }
 
     @Override public int latestVersion() {
         return LATEST_VERSION;
     }
 
-    public String getThreadDump() {
-        return threadDump;
+    public String getLastThreadDump() {
+        return lastThreadDump;
     }
 }

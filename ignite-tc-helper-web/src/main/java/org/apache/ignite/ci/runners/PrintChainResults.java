@@ -4,11 +4,11 @@ import java.util.Optional;
 import java.util.function.Function;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.BuildChainProcessor;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.LatestRebuildMode;
+import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.db.TcHelperDb;
 
 /**
@@ -28,12 +28,12 @@ public class PrintChainResults {
                 Function<String, RunStat> map = teamcity.getTestRunStatProvider();
                 System.out.println(map);
                 
-                pubCtx = BuildChainProcessor.loadChainsContext(teamcity, suiteId, branch, includeLatestRebuild, teamcity);
+                pubCtx = BuildChainProcessor.loadChainsContext(teamcity, suiteId, branch, includeLatestRebuild, ProcessLogsMode.SUITE_NOT_COMPLETE);
             }
             try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
                 String suiteId = "id8xIgniteGridGainTestsJava8_RunAll";
                 String branch = "<default>";
-                privCtx = BuildChainProcessor.loadChainsContext(teamcity, suiteId, branch, includeLatestRebuild, teamcity);
+                privCtx = BuildChainProcessor.loadChainsContext(teamcity, suiteId, branch, includeLatestRebuild, ProcessLogsMode.SUITE_NOT_COMPLETE);
             }
         }
         finally {

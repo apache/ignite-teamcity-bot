@@ -83,7 +83,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
         if (logCheckResult == null)
             return null;
 
-        return !Strings.isNullOrEmpty(logCheckResult.getThreadDump()) ? buildId() : null;
+        return !Strings.isNullOrEmpty(logCheckResult.getLastThreadDump()) ? buildId() : null;
     }
 
     @Nullable public LogCheckResult getLogCheckIfFinished() {
@@ -116,7 +116,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return changes;
     }
 
-    public Stream<? extends Future<?>> getFutures() {
+    Stream<? extends Future<?>> getFutures() {
         if (logCheckResultsFut == null)
             return Stream.empty();
         else

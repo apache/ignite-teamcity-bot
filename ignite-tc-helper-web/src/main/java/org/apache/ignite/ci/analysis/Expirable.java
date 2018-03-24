@@ -1,10 +1,12 @@
 package org.apache.ignite.ci.analysis;
 
 import java.util.concurrent.TimeUnit;
+import org.apache.ignite.ci.db.Persisted;
 
 /**
- * Created by dpavlov on 09.08.2017.
+ * Wrapper for timestamped entry to be reloaded later.
  */
+@Persisted
 public class Expirable<D> {
     private final long ts;
     private final D data;

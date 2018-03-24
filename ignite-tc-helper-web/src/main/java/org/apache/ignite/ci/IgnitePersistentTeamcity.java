@@ -564,7 +564,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         if (logCheckResult == null)
             return null;
 
-        return logCheckResult.getThreadDump();
+        return logCheckResult.getLastThreadDump();
     }
 
     /**

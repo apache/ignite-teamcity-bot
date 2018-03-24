@@ -46,7 +46,7 @@ public class Build extends BuildRef implements IVersionedEntity {
     /** Changes included into build.*/
     @XmlElement(name = "changes") public ChangesListRef changesRef;
 
-    public Integer _version = LATEST_VERSION;
+    @SuppressWarnings("FieldCanBeLocal") public Integer _version = LATEST_VERSION;
 
     public List<BuildRef> getSnapshotDependenciesNonNull() {
         return snapshotDependencies == null ? Collections.emptyList() : snapshotDependencies;
