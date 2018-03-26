@@ -89,7 +89,7 @@ function showSuiteData(suite) {
     var failRateText = "";
     if (isDefinedAndFilled(suite.failures) && isDefinedAndFilled(suite.runs) && isDefinedAndFilled(suite.failureRate)) {
         altTxt += "Stat: " + suite.failures + " fails / " + suite.runs + " runs in all tracked branches in helper DB";
-        failRateText += "(fail rate " + suite.failureRate + "%)";
+        failRateText += "(master fail rate " + suite.failureRate + "%)";
         altTxt += "; " + failRateText + " <br>   ";
     }
     var color = failureRateToColor(suite.failureRate);
@@ -210,10 +210,12 @@ function showTestFailData(testFail, isFailureShown) {
         var altForWarn = "";
         if(!isDefinedAndFilled(testFail.failureRate) || !isDefinedAndFilled(testFail.runs)) {
             altForWarn = "No fail rate info, probably new failure or suite critical failure";
-        } else if(parseFloat(testFail.failureRate) < 1) {
-            altForWarn = "Test fail rate less than 1%, probably new failure";
-        }  else if(testFail.runs<5) {
-            altForWarn = "Test runs count is low < 5, probably new test introduced";
+       // } else if(parseFloat(testFail.failureRate) < 1) {
+       //     altForWarn = "Test fail rate less than 1%, probably new failure";
+        }  else if(testFail.failures < 3) {
+            altForWarn = "Test failures count is low < 3, probably new test introduced";
+        }  else if(testFail.runs < 10) {
+            altForWarn = "Test runs count is low < 10, probably new test introduced";
         }
 
         if(altForWarn!="") {
