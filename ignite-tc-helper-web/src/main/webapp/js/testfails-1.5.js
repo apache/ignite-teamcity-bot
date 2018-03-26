@@ -5,6 +5,22 @@
 var g_initMoreInfoDone = false;
 
 function showChainOnServersResults(result) {
+    var minFailRateP= findGetParameter("minFailRate");
+    var minFailRate = minFailRateP==null ? 0 : parseFloat(minFailRateP);
+
+    var maxFailRateP= findGetParameter("maxFailRate");
+    var maxFailRate = maxFailRateP==null ? 100 : parseFloat(maxFailRateP);
+    return showChainResultsWithSettings(result, new Settings(minFailRate, maxFailRate));
+}
+
+class Settings {
+  constructor(minFailRate, maxFailRate) {
+    this.minFailRate = minFailRate;
+    this.maxFailRate = maxFailRate;
+  }
+}
+
+function showChainResultsWithSettings(result, settings) {
     var res = "";
     res += "Chain results";
     if (isDefinedAndFilled(result.failedTests) &&
@@ -17,7 +33,7 @@ function showChainOnServersResults(result) {
 
     for (var i = 0; i < result.servers.length; i++) {
         var server = result.servers[i];
-        res += showChainAtServerData(server);
+        res += showChainAtServerData(server, settings);
     }
 
     setTimeout(initMoreInfo, 100);
@@ -27,7 +43,7 @@ function showChainOnServersResults(result) {
 
 
 //@param server - see ChainAtServerCurrentStatus
-function showChainAtServerData(server) {
+function showChainAtServerData(server, settings) {
     var res = "";
     var altTxt = "";
 
@@ -52,7 +68,7 @@ function showChainAtServerData(server) {
     var arrayLength = server.suites.length;
     for (var i = 0; i < arrayLength; i++) {
         var suite = server.suites[i];
-        res += showSuiteData(suite);
+        res += showSuiteData(suite, settings);
     }
 
     return res;
@@ -75,7 +91,7 @@ function triggerBuild(serverId, suiteId, branchName) {
 }
 
 //@param suite - see SuiteCurrentStatus
-function showSuiteData(suite) {
+function showSuiteData(suite, settings) {
     var res = "";
     var altTxt = "";
 
@@ -138,7 +154,7 @@ function showSuiteData(suite) {
         res += "Top long running:<br>"
 
         for (var i = 0; i < suite.topLongRunning.length; i++) {
-            res += showTestFailData(suite.topLongRunning[i], false);
+            res += showTestFailData(suite.topLongRunning[i], false, settings);
         }
     }
 
@@ -146,7 +162,7 @@ function showSuiteData(suite) {
             res += "Warn Only:<br>"
 
             for (var i = 0; i < suite.warnOnly.length; i++) {
-                res += showTestFailData(suite.warnOnly[i], false);
+                res += showTestFailData(suite.warnOnly[i], false, settings);
             }
     }
 
@@ -155,7 +171,7 @@ function showSuiteData(suite) {
     res += " <br>";
 
     for (var i = 0; i < suite.testFailures.length; i++) {
-        res += showTestFailData(suite.testFailures[i], true);
+        res += showTestFailData(suite.testFailures[i], true, settings);
     }
 
     if (isDefinedAndFilled(suite.webUrlThreadDump)) {
@@ -191,7 +207,17 @@ function failureRateToColor(failureRate) {
 
 
 //@param testFail - see TestFailure
-function showTestFailData(testFail, isFailureShown) {
+function showTestFailData(testFail, isFailureShown, settings) {
+
+    if (isDefinedAndFilled(testFail.failureRate)
+        && isFailureShown) {
+        if (parseFloat(testFail.failureRate) < settings.minFailRate)
+            return ""; //test is hidden
+
+        if (parseFloat(testFail.failureRate) > settings.maxFailRate)
+            return ""; //test is hidden
+    }
+
     var res = "";
     res += "&nbsp; &nbsp; ";
 
