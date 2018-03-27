@@ -52,6 +52,9 @@ public class MultBuildRunCtx implements ISuiteResults {
     /** Used for associating build info with contact person */
     @Nullable private String contactPerson;
 
+    /**
+     * Statistics for last build.
+     */
     @Nullable private Statistics stat;
 
     public void addBuild(SingleBuildRunCtx ctx) {
@@ -288,6 +291,9 @@ public class MultBuildRunCtx implements ISuiteResults {
         this.stat = stat;
     }
 
+    /**
+     * @return last build duration.
+     */
     @Nullable
     public Long getBuildDuration() {
         return stat == null ? null : stat.getBuildDuration();
@@ -388,4 +394,11 @@ public class MultBuildRunCtx implements ISuiteResults {
                 concat(stream4, stream3));
     }
 
+    /**
+     * @return true if all builds are composite
+     */
+    public boolean isComposite() {
+        return !builds.isEmpty()
+            && builds.stream().allMatch(SingleBuildRunCtx::isComposite);
+    }
 }

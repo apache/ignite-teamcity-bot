@@ -273,7 +273,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
     if (isFailureShown && testFail.failures != null && testFail.runs != null) {
         histContent += " <span title='" + testFail.failures + " fails / " + testFail.runs + " runs in all tracked branches in helper DB'>";
         if (isDefinedAndFilled(testFail.failureRate))
-            histContent += "(fail rate " + testFail.failureRate + "%)";
+            histContent += "(master fail rate " + testFail.failureRate + "%)";
         else
             histContent += "(fails: " + testFail.failures + "/" + testFail.runs + ")";
         histContent += "</span>";

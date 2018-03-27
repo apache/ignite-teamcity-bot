@@ -34,6 +34,8 @@ public class ChainAtServerCurrentStatus {
     public Integer failedTests;
     /** Count of suites with critical build problems found */
     public Integer failedToFinish;
+
+    /** Duration printable. */
     public String durationPrintable;
 
     public void initFromContext(ITeamcity teamcity,

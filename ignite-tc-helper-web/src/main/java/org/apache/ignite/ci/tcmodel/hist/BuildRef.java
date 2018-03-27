@@ -76,7 +76,7 @@ public class BuildRef extends AbstractRef {
     }
 
     /**
-     * @return
+     * @return true if build is composite.
      */
     public boolean isComposite() {
         return composite != null && composite;

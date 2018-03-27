@@ -30,12 +30,14 @@ import org.apache.ignite.internal.util.typedef.internal.U;
         if(chainStatus.failedToFinish!=null) {
             if (failedToFinish == null)
                 failedToFinish = 0;
+
             failedToFinish += chainStatus.failedToFinish;
         }
 
         if(chainStatus.failedTests!=null) {
             if (failedTests == null)
                 failedTests = 0;
+
             failedTests += chainStatus.failedTests;
         }
     }

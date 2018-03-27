@@ -77,10 +77,16 @@ public class FullChainRunCtx {
         return getDurations().noneMatch(Objects::isNull);
     }
 
+    /**
+     * @return returns durations of all suites (last builds)
+     */
     private Stream<Long> getDurations() {
-        return suites().stream().map(MultBuildRunCtx::getBuildDuration);
+        return suites().stream().filter(ctx -> !ctx.isComposite()).map(MultBuildRunCtx::getBuildDuration);
     }
 
+    /**
+     * @return sum of durations of all suites printable.
+     */
     @NotNull public String getDurationPrintable() {
         return (TimeUtil.getDurationPrintable(getTotalDuration()))
             + (hasFullDurationInfo() ? "" : "+");

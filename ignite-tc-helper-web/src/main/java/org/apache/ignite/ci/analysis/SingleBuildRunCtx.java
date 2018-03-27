@@ -133,4 +133,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
             return Stream.of((Future<?>)logCheckResultsFut);
     }
 
+    public boolean isComposite() {
+        return build.isComposite();
+    }
 }
