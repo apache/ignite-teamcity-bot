@@ -1,20 +1,30 @@
 package org.apache.ignite.ci.analysis;
 
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 
 /**
- * Test run statistics
+ * Test or Build run statistics.
  */
 @Persisted
 public class RunStat {
+    private static final int MAX_LATEST_RUNS = 30;
+    private static final int RES_OK = 0;
+    private static final int RES_FAILURE = 1;
+    private static final int RES_MUTED_FAILURE = 2;
+
     public int runs;
     public int failures;
     public long totalDurationMs;
     public int runsWithDuration;
     public long lastUpdatedMs;
     private String name;
+
+    @Nullable List<Integer> latestRuns;
 
     /**
      * @param name Name of test or suite.
@@ -24,6 +34,8 @@ public class RunStat {
     }
 
     public void addTestRun(TestOccurrence testOccurrence) {
+        addRunToLatest(testToResCode(testOccurrence));
+
         runs++;
 
         if (testOccurrence.duration != null) {
@@ -35,6 +47,26 @@ public class RunStat {
             failures++;
 
         lastUpdatedMs = System.currentTimeMillis();
+    }
+
+    public int testToResCode(TestOccurrence testOccurrence) {
+        int resCode;
+        if (testOccurrence.isFailedTest())
+            resCode = testOccurrence.isNotMutedOrIgnoredTest() ? RES_FAILURE : RES_MUTED_FAILURE;
+        else
+            resCode = RES_OK;
+
+        return resCode;
+    }
+
+    public void addRunToLatest(int resCode) {
+        if (latestRuns == null)
+            latestRuns = new ArrayList<>();
+
+        latestRuns.add(resCode);
+
+        if (latestRuns.size() > MAX_LATEST_RUNS)
+            latestRuns.remove(0);
     }
 
     public String name() {
@@ -64,7 +96,7 @@ public class RunStat {
         return (long)(1.0 * totalDurationMs / runsWithDuration);
     }
 
-    public void addTestRun(Build build) {
+    public void addBuildRun(Build build) {
         runs++;
 
         //todo ? need to add duration from statistics
@@ -76,8 +108,13 @@ public class RunStat {
 
         if (!build.isSuccess())
             failures++;
+
+        int resCode = build.isSuccess() ? RES_OK : RES_FAILURE;
+
+        addRunToLatest(resCode);
     }
 
+    /** {@inheritDoc} */
     @Override public String toString() {
         return "RunStat{" +
             "name='" + name + '\'' +
@@ -85,4 +122,10 @@ public class RunStat {
             '}';
     }
 
+    /**
+     * @return
+     */
+    @Nullable public List<Integer> getLatestRuns() {
+        return latestRuns;
+    }
 }

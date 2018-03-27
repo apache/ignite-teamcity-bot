@@ -318,7 +318,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 if (val == null)
                     val = new RunStat(key);
 
-                val.addTestRun(build);
+                val.addBuildRun(build);
 
                 entry.setValue(val);
 

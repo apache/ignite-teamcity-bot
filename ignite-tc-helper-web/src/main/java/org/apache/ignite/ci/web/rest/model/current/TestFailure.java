@@ -46,6 +46,9 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     /** Registered percent of fails from TC helper DB, comma is always used as separator char. */
     @Nullable public String failureRate;
 
+    /** Latest runs. */
+    @Nullable public List<Integer> latestRuns;
+
     /** Link to test history */
     @Nullable public String webUrl;
 
@@ -147,6 +150,8 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
             failures = stat.failures;
             runs = stat.runs;
             failureRate = stat.getFailPercentPrintable();
+
+            latestRuns = stat.getLatestRuns();
         }
     }
 
