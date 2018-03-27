@@ -253,22 +253,23 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
     res += " <span style='background-color: " + color + "; width:7px; height:7px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
 
-    if (isDefinedAndFilled(testFail.latestRuns)) {
-        res += " ";
-        for (var i = 0; i < testFail.latestRuns.length; i++) {
+    if(isDefinedAndFilled(testFail.latestRuns)) {
+          res += " <span title='Latest runs history'>";
+          for (var i = 0; i < testFail.latestRuns.length; i++) {
 
-            var runCode = testFail.latestRuns[i];
-            var runColor = "white";
-            if (runCode == 0)
-                runColor = "green";
-            else if (runCode = 1)
-                runColor = "red";
-            else if (runCode = 2)
-                runColor = "grey";
+                    var runCode = testFail.latestRuns[i];
+                    var runColor = "white";
+                    if(runCode==0)
+                        runColor = "green";
+                    else if(runCode = 1)
+                        runColor = "red";
+                    else if(runCode = 2)
+                        runColor = "grey";
 
-            res += "<span style='background-color: " + runColor + "; width:2px; height:7px; display: inline-block; border-width: 0px; border-color: black; border-style: solid; '></span> ";
+                    res += "<span style='background-color: " + runColor + "; width:2px; height:9px; display: inline-block; border-width: 0px; border-color: black; border-style: solid;'></span>";
 
-        }
+          }
+          res += "</span> "
     }
 
     if (isDefinedAndFilled(testFail.curFailures) && testFail.curFailures > 1)

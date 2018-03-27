@@ -34,6 +34,7 @@ public class RunStat {
     }
 
     public void addTestRun(TestOccurrence testOccurrence) {
+        //todo need to store map ts/id->run
         addRunToLatest(testToResCode(testOccurrence));
 
         runs++;
