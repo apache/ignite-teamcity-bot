@@ -56,7 +56,7 @@ public class IgniteTeamcityHelperRunnerExample {
         if (b > 0)
             checkBuildTypes(helper);
 
-        for (int i = 0; i < 0; i++) {
+        for (int i = 0; i < 1; i++) {
             //branch example:
             final String branchName = "<default>";
             // String branchName = "refs/heads/master";
@@ -66,10 +66,10 @@ public class IgniteTeamcityHelperRunnerExample {
             String buildTypeIdRe = "IgniteTests24Java8_IgniteReproducingSuite";
             String buildTypeId = "IgniteTests24Java8_LicensesJavadoc";
             String dotNetLongRun = "IgniteTests24Java8_IgnitePlatformNetLongRunning";
-            helper.triggerBuild(buildTypeIdAll, branchName, true);
+            helper.triggerBuild("IgniteTests24Java8_Aws", branchName, true, true);
         }
 
-        int j = 1;
+        int j = 0;
         if (j > 0) {
             List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(1155133);
             List<File> collect = getFuturesResults(fileFutList);

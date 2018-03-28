@@ -164,11 +164,17 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     public void triggerBuild(String buildTypeId, String branchName) {
-        triggerBuild(buildTypeId, branchName, false);
+        triggerBuild(buildTypeId, branchName, false, false);
     }
 
-    public void triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild) {
-        String triggeringOptions = cleanRebuild ? " <triggeringOptions cleanSources=\"true\" rebuildAllDependencies=\"true\"/>" : "";
+    public void triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
+        String triggeringOptions =
+            " <triggeringOptions" +
+                " cleanSources=\"" + cleanRebuild + "\"" +
+                " rebuildAllDependencies=\"" + cleanRebuild + "\"" +
+                " queueAtTop=\"" + queueAtTop + "\"" +
+                "/>";
+
         String parameter = "<build branchName=\"" + xmlEscapeText(branchName) + "\">\n" +
             "    <buildType id=\"" +
             buildTypeId + "\"/>\n" +
@@ -178,6 +184,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             //some fake property to avoid merging build in queue
             "    <properties>\n" +
             "        <property name=\"build.query.ts\" value=\"" + System.currentTimeMillis() + "\"/>\n" +
+           // "        <property name=\"testSuite\" value=\"org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest\"/>\n" +
             "    </properties>\n" +
             "</build>";
         String url = host + "app/rest/buildQueue";
