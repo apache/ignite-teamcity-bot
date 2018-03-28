@@ -7,6 +7,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
+import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
@@ -43,10 +44,38 @@ public class DbMigrations {
     }
 
     public void dataMigration(
-        Cache<String, TestOccurrences> testOccurrencesCache, Consumer<TestOccurrences> saveTestToStat,
+        IgniteCache<String, TestOccurrences> testOccurrencesCache, Consumer<TestOccurrences> saveTestToStat,
+        Consumer<TestOccurrences> saveTestToLatest,
         Cache<String, Build> buildCache, Consumer<Build> saveBuildToStat) {
 
         doneMigrations = doneMigrationsCache();
+
+        applyMigration("InitialFillLatestRunsV3", () -> {
+            int size = testOccurrencesCache.size();
+            if (size > 0) {
+                int i = 0;
+                int maxFoundBuildId = 0;
+                for (Cache.Entry<String, TestOccurrences> entry : testOccurrencesCache) {
+                    String key = entry.getKey();
+
+                    Integer buildId = RunStat.extractIdPrefixed(key, "locator=build:(id:", ")");
+                    if (buildId != null) {
+                        if (buildId > maxFoundBuildId)
+                            maxFoundBuildId = buildId;
+
+                        if (buildId < maxFoundBuildId - (RunStat.MAX_LATEST_RUNS * 100 * 3))
+                            System.out.println(serverId + " - Skipping entry " + i + " from " + size + ": " + key);
+                        else {
+                            System.out.println(serverId + " - Migrating entry " + i + " from " + size + ": " + key);
+
+                            saveTestToLatest.accept(entry.getValue());
+                        }
+                    }
+
+                    i++;
+                }
+            }
+        });
 
         applyMigration(TESTS + "-to-" + testOccurrencesCache.getName(), () -> {
             String cacheNme = ignCacheNme(TESTS);

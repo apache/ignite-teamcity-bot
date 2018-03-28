@@ -259,11 +259,11 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
                     var runCode = testFail.latestRuns[i];
                     var runColor = "white";
-                    if(runCode==0)
+                    if(runCode ==0)
                         runColor = "green";
-                    else if(runCode = 1)
+                    else if(runCode == 1)
                         runColor = "red";
-                    else if(runCode = 2)
+                    else if(runCode == 2)
                         runColor = "grey";
 
                     res += "<span style='background-color: " + runColor + "; width:2px; height:9px; display: inline-block; border-width: 0px; border-color: black; border-style: solid;'></span>";

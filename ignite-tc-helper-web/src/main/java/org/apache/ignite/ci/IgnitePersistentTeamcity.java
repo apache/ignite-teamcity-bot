@@ -106,6 +106,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
         migrations.dataMigration(
             testOccurrencesCache(), this::addTestOccurrencesToStat,
+            this::migrateOccurrencesToLatest,
             buildsCache(), this::addBuildToFailuresStat);
     }
 
@@ -377,7 +378,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             });
     }
 
-
     private void addTestOccurrencesToStat(TestOccurrences val) {
         if (!statUpdateEnabled)
             return;
@@ -529,6 +529,40 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
                 return null;
             }
+        }, next);
+    }
+
+    private void migrateOccurrencesToLatest(TestOccurrences val) {
+        if (!statUpdateEnabled)
+            return;
+
+        //may use invoke all
+        for (TestOccurrence next : val.getTests()) {
+            migrateTestOneOcurrToAddToLatest(next);
+        }
+    }
+
+    private void migrateTestOneOcurrToAddToLatest(TestOccurrence next) {
+        String name = next.getName();
+        if (Strings.isNullOrEmpty(name))
+            return;
+
+        if (next.isMutedTest() || next.isIgnoredTest())
+            return;
+
+        testRunStatCache().invoke(name, (entry, arguments) -> {
+            String key = entry.getKey();
+            TestOccurrence testOccurrence = (TestOccurrence)arguments[0];
+
+            RunStat val = entry.getValue();
+            if (val == null)
+                val = new RunStat(key);
+
+            val.addTestRunToLatest(testOccurrence);
+
+            entry.setValue(val);
+
+            return null;
         }, next);
     }
 

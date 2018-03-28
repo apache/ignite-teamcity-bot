@@ -151,7 +151,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
             runs = stat.runs;
             failureRate = stat.getFailPercentPrintable();
 
-            latestRuns = stat.getLatestRuns();
+            latestRuns = stat.getLatestRunResults();
         }
     }
 
