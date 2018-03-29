@@ -8,6 +8,7 @@ package org.apache.ignite.ci.logs;
     //todo add NPE
 public class LogMsgToWarn {
     public static boolean needWarn(String line) {
-        return line.contains("java.lang.AssertionError:");
+        return line.contains("java.lang.AssertionError:")
+            || line.contains("Critical failure. Will be handled accordingly to configured handler");
     }
 }
