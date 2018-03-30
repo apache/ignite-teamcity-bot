@@ -166,6 +166,14 @@ function showSuiteData(suite, settings) {
             }
     }
 
+        if (isDefinedAndFilled(suite.logConsumers) && suite.logConsumers.length > 0) {
+                res += "Top Log Consumers:<br>"
+
+                for (var i = 0; i < suite.logConsumers.length; i++) {
+                    res += showTestFailData(suite.logConsumers[i], false, settings);
+                }
+        }
+
     res += "</div></span>";
 
     res += " <br>";

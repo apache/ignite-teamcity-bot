@@ -2,7 +2,7 @@ package org.apache.ignite.ci.analysis;
 
 import java.io.File;
 import org.apache.ignite.ci.logs.BuildLogStreamChecker;
-import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
+import org.apache.ignite.ci.logs.handlers.TestLogHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpInMemoryHandler;
 
 /**
@@ -12,7 +12,8 @@ public class LogCheckTask {
     LogCheckResult result;
     private File zipFile;
     final ThreadDumpInMemoryHandler threadDumpCp = new ThreadDumpInMemoryHandler();
-    final LastTestLogCopyHandler lastTestCp = new LastTestLogCopyHandler();
+
+    final TestLogHandler testLogHandler = new TestLogHandler();
 
     public LogCheckTask(File zipFile) {
         this.zipFile = zipFile;
@@ -27,17 +28,17 @@ public class LogCheckTask {
     }
 
     public BuildLogStreamChecker createChecker() {
-        return new BuildLogStreamChecker(threadDumpCp, lastTestCp);
+        return new BuildLogStreamChecker(threadDumpCp, testLogHandler);
     }
 
     public void finalize(boolean isIncompleteSuite) {
         LogCheckResult logCheckResult = new LogCheckResult();
         if (isIncompleteSuite) {
-            logCheckResult.setLastStartedTest(lastTestCp.getLastTestName());
+            logCheckResult.setLastStartedTest(testLogHandler.getLastTestName());
             logCheckResult.setLastThreadDump(threadDumpCp.getLastThreadDump());
         }
 
-        logCheckResult.setTestWarns(lastTestCp.getTestWarns());
+        logCheckResult.setTests(testLogHandler.getTests());
 
         setResult(logCheckResult);
     }

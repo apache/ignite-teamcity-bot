@@ -4,8 +4,11 @@ import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -16,6 +19,7 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.analysis.TestLogCheckResult;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 
@@ -44,6 +48,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     public List<TestFailure> testFailures = new ArrayList<>();
     public List<TestFailure> topLongRunning = new ArrayList<>();
     public List<TestFailure> warnOnly = new ArrayList<>();
+    public List<TestFailure> logConsumers = new ArrayList<>();
 
     /** Web Href. to thread dump display */
     @Nullable public String webUrlThreadDump;
@@ -144,26 +149,29 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             }
         );
 
-        suite.getLogMsgToWarn().forEach(map -> {
+        Map<String, Long> logSizeBytes = new HashMap<>();
+
+        suite.getLogsCheckResults().forEach(map -> {
             map.forEach(
-                (t, list) -> {
-                    TestFailure failure = testFailures.stream().filter(f -> f.name.contains(t)).findAny().orElseGet(
-                        () -> {
-                            return warnOnly.stream().filter(f -> f.name.contains(t)).findAny().orElseGet(
-                                () -> {
-                                    TestFailure f = new TestFailure();
-                                    f.name = t + " (warning)";
-                                    warnOnly.add(f);
+                (testName, logCheckResult) -> {
+                    if (logCheckResult.hasWarns())
+                        findFailureAndAddWarning(testName, logCheckResult);
 
-                                    return f;
-                                });
-                        });
-
-
-                    failure.warnings.addAll(list);
+                    logSizeBytes.merge(testName, (long)logCheckResult.getLogSizeBytes(), (a, b) -> a + b);
                 }
             );
         });
+        List<Map.Entry<String, Long>> testSizes = new ArrayList<>(logSizeBytes.entrySet());
+        Comparator<Map.Entry<String, Long>> comparing = Comparator.comparing(Map.Entry::getValue);
+        testSizes.sort(comparing.reversed());
+        testSizes.stream().limit(3).filter(entry -> entry.getValue() > 1024 * 1024).forEach(
+            (entry) -> {
+                TestFailure failure = new TestFailure();
+                long sizeMb = entry.getValue() / 1024 / 1024;
+                failure.name = entry.getKey() + " " + sizeMb + " Mbytes";
+                logConsumers.add(failure);
+            }
+        );
 
         suite.getBuildsWithThreadDump().forEach(buildId -> {
             webUrlThreadDump = "/rest/" + GetBuildLog.GET_BUILD_LOG + "/" + GetBuildLog.THREAD_DUMP
@@ -177,6 +185,22 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         serverId = teamcity.serverId();
         this.suiteId = suite.suiteId();
         branchName = branchForLink(suite.branchName());
+    }
+
+    public void findFailureAndAddWarning(String testName, TestLogCheckResult logCheckRes) {
+        TestFailure failure = testFailures.stream().filter(f -> f.name.contains(testName)).findAny().orElseGet(
+            () -> {
+                return warnOnly.stream().filter(f -> f.name.contains(testName)).findAny().orElseGet(
+                    () -> {
+                        TestFailure f = new TestFailure();
+                        f.name = testName + " (warning)";
+                        warnOnly.add(f);
+
+                        return f;
+                    });
+            });
+
+        failure.warnings.addAll(logCheckRes.getWarns());
     }
 
     private static String buildWebLinkToBuild(ITeamcity teamcity, MultBuildRunCtx suite) {

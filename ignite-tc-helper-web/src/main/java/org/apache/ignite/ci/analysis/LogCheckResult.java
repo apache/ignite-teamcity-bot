@@ -6,7 +6,7 @@ import java.util.Map;
 import org.apache.ignite.ci.db.Persisted;
 
 /**
- * Persistable Log check task result.
+ * Persistable Log from suite run check task result.
  */
 @Persisted
 public class LogCheckResult implements IVersionedEntity {
@@ -19,7 +19,7 @@ public class LogCheckResult implements IVersionedEntity {
 
     private String lastThreadDump;
 
-    private Map<String, List<String>> testWarns;
+    private Map<String, TestLogCheckResult> testLogCheckResult;
 
     public void setLastStartedTest(String lastStartedTest) {
         this.lastStartedTest = lastStartedTest;
@@ -45,10 +45,6 @@ public class LogCheckResult implements IVersionedEntity {
         return lastThreadDump;
     }
 
-    public void setTestWarns(Map<String, List<String>> testWarns) {
-        this.testWarns = testWarns;
-    }
-
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("lastStartedTest", lastStartedTest)
@@ -60,19 +56,27 @@ public class LogCheckResult implements IVersionedEntity {
     private String getWarns() {
         StringBuilder sb = new StringBuilder();
 
-        testWarns.forEach(
-            (t, list) -> {
+        testLogCheckResult.forEach(
+            (t, logCheckResult) -> {
+                List<String> warns = logCheckResult.getWarns();
+                if(warns.isEmpty())
+                    return;
+
                 sb.append(t).append("   :\n");
 
-                list.forEach(w -> {
+                warns.forEach(w -> {
                     sb.append(w).append("\n");
-
                 });
             });
+
         return sb.toString();
     }
 
-    public Map<String, List<String>> getTestWarns() {
-        return testWarns;
+    public void setTests(Map<String, TestLogCheckResult> tests) {
+        this.testLogCheckResult = tests;
+    }
+
+    public Map<String, TestLogCheckResult> getTestLogCheckResult() {
+        return testLogCheckResult;
     }
 }

@@ -83,8 +83,8 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
 
-    public Stream<Map<String, List<String>>> getLogMsgToWarn() {
-        return builds.stream().map(SingleBuildRunCtx::getLogMsgToWarn).filter(Objects::nonNull);
+    public Stream<Map<String, TestLogCheckResult>> getLogsCheckResults() {
+        return builds.stream().map(SingleBuildRunCtx::getTestLogCheckResult).filter(Objects::nonNull);
     }
 
     @Deprecated

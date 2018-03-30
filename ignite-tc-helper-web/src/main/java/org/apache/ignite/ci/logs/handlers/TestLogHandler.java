@@ -8,20 +8,29 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import org.apache.ignite.ci.analysis.LogCheckResult;
+import org.apache.ignite.ci.analysis.TestLogCheckResult;
 import org.apache.ignite.ci.logs.ILineHandler;
+import org.apache.ignite.ci.logs.ILogProductSpecific;
+import org.apache.ignite.ci.logs.LogIgniteSpecific;
 import org.apache.ignite.ci.logs.LogMsgToWarn;
 
 /**
  * Use one instance per one file, class is statefull and not thread safe
  */
-public class LastTestLogCopyHandler implements ILineHandler {
+public class TestLogHandler implements ILineHandler {
+    private static final String STARTING_TEST = ">>> Starting test: ";
     private static final String TEST_NAME_END = " <<<";
     private static final String ENDL = String.format("%n");
-    private static final String STARTING_TEST = ">>> Starting test: ";
 
+    private static final ILogProductSpecific logSpecific =new LogIgniteSpecific();
+    public static final TestLogCheckResult FAKE_RESULT = new TestLogCheckResult();
     private final List<String> curTestLog = new ArrayList<>();
 
-    private final Map<String, List<String>> testWarns = new TreeMap<>();
+    /**
+     * Test name -> its log check results
+     */
+    private final Map<String, TestLogCheckResult> tests = new TreeMap<>();
 
     private String currentTestName = null;
     private File workFolder;
@@ -29,20 +38,23 @@ public class LastTestLogCopyHandler implements ILineHandler {
     /** Dump last test. This mode is enabled if suite was timed out */
     private boolean saveLastTestToFile;
 
+    private static boolean SAVE_LOG_STAT = true;
+
     @Override public void accept(String line, File fromLogFile) {
         if (workFolder == null)
             workFolder = fromLogFile.getParentFile();
 
-        if (line.contains(STARTING_TEST) && line.contains(TEST_NAME_END)) {
+        if (logSpecific.isTestStarting(line)) {
             if (currentTestName != null) {
                 currentTestName = null;
                 curTestLog.clear();
             }
             String startTest = line.substring(line.indexOf(STARTING_TEST) + STARTING_TEST.length(), line.indexOf(TEST_NAME_END));
 
+
             this.currentTestName = startTest;
         }
-        else if (currentTestName != null && line.contains(">>> Stopping test: ")) {
+        else if (currentTestName != null && logSpecific.isTestStopping(line)) {
             //currentTestName = null;
             //curTestLog.clear();
         }
@@ -50,12 +62,11 @@ public class LastTestLogCopyHandler implements ILineHandler {
         if (currentTestName == null)
             return;
 
+        if(SAVE_LOG_STAT)
+            curTest().addLineStat(line);
 
-        if (LogMsgToWarn.needWarn(line)) {
-            testWarns
-                .computeIfAbsent(getLastTestName(), k -> new ArrayList<>())
-                .add(line);
-        }
+        if (LogMsgToWarn.needWarn(line))
+            curTest().addWarning(line);
 
         if (!saveLastTestToFile)
             return;
@@ -69,6 +80,15 @@ public class LastTestLogCopyHandler implements ILineHandler {
                 curTestLog.clear();
             }
         }
+    }
+
+    public TestLogCheckResult curTest() {
+        String curName = getLastTestName();
+
+        if (curName == null)
+            return FAKE_RESULT;
+
+        return tests.computeIfAbsent(curName, k -> new TestLogCheckResult());
     }
 
     @Override public void close() throws Exception {
@@ -102,6 +122,9 @@ public class LastTestLogCopyHandler implements ILineHandler {
         curTestLog.clear();
     }
 
+    /**
+     * @return returns last observed test name
+     */
     public String getLastTestName() {
         if (currentTestName == null)
             return null;
@@ -114,7 +137,7 @@ public class LastTestLogCopyHandler implements ILineHandler {
     }
 
 
-    public Map<String, List<String>> getTestWarns() {
-        return testWarns;
+    public Map<String, TestLogCheckResult> getTests() {
+        return tests;
     }
 }

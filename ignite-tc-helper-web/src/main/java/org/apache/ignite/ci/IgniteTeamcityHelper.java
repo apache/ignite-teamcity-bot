@@ -32,7 +32,7 @@ import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.logs.BuildLogStreamChecker;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
-import org.apache.ignite.ci.logs.handlers.LastTestLogCopyHandler;
+import org.apache.ignite.ci.logs.handlers.TestLogHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -223,7 +223,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
 
         final ThreadDumpCopyHandler threadDumpCp = new ThreadDumpCopyHandler();
-        final LastTestLogCopyHandler lastTestCp = new LastTestLogCopyHandler();
+        final TestLogHandler lastTestCp = new TestLogHandler();
         lastTestCp.setSaveLastTestToFile(dumpLastTest);
 
         final LogsAnalyzer analyzer = new LogsAnalyzer(threadDumpCp, lastTestCp);
@@ -233,10 +233,10 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return fut2.thenApplyAsync(file -> {
             LogCheckResult logCheckResult = new LogCheckResult();
 
-            if (dumpLastTest) {
+            if (dumpLastTest)
                 logCheckResult.setLastStartedTest(lastTestCp.getLastTestName());
-            }
-            logCheckResult.setTestWarns(lastTestCp.getTestWarns());
+
+            logCheckResult.setTests(lastTestCp.getTests());
 
             System.err.println(logCheckResult);
 

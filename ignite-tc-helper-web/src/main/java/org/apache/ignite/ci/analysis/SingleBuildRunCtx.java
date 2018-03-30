@@ -79,12 +79,12 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     @Nullable
-    public Map<String, List<String>> getLogMsgToWarn() {
-        LogCheckResult logCheckResult = getLogCheckIfFinished();
-        if (logCheckResult == null)
+    public Map<String, TestLogCheckResult> getTestLogCheckResult() {
+        LogCheckResult logCheckRes = getLogCheckIfFinished();
+        if (logCheckRes == null)
             return null;
 
-        return logCheckResult.getTestWarns();
+        return logCheckRes.getTestLogCheckResult();
     }
 
     @Nullable
