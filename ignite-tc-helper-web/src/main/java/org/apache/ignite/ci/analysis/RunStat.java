@@ -3,6 +3,7 @@ package org.apache.ignite.ci.analysis;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -17,7 +18,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @Persisted
 public class RunStat {
-    public static final int MAX_LATEST_RUNS = 30;
+    public static final int MAX_LATEST_RUNS = 40;
     private static final int RES_OK = 0;
     private static final int RES_FAILURE = 1;
     private static final int RES_MUTED_FAILURE = 2;
@@ -178,6 +179,9 @@ public class RunStat {
      * @return
      */
     @Nullable public List<Integer> getLatestRunResults() {
+        if (latestRunResults == null)
+            return Collections.emptyList();
+
         return new ArrayList<>(latestRunResults.values());
     }
 

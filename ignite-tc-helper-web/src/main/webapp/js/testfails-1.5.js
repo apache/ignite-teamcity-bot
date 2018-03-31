@@ -5,19 +5,19 @@
 var g_initMoreInfoDone = false;
 
 function showChainOnServersResults(result) {
-    var minFailRateP= findGetParameter("minFailRate");
-    var minFailRate = minFailRateP==null ? 0 : parseFloat(minFailRateP);
+    var minFailRateP = findGetParameter("minFailRate");
+    var minFailRate = minFailRateP == null ? 0 : parseFloat(minFailRateP);
 
-    var maxFailRateP= findGetParameter("maxFailRate");
-    var maxFailRate = maxFailRateP==null ? 100 : parseFloat(maxFailRateP);
+    var maxFailRateP = findGetParameter("maxFailRate");
+    var maxFailRate = maxFailRateP == null ? 100 : parseFloat(maxFailRateP);
     return showChainResultsWithSettings(result, new Settings(minFailRate, maxFailRate));
 }
 
 class Settings {
-  constructor(minFailRate, maxFailRate) {
-    this.minFailRate = minFailRate;
-    this.maxFailRate = maxFailRate;
-  }
+    constructor(minFailRate, maxFailRate) {
+        this.minFailRate = minFailRate;
+        this.maxFailRate = maxFailRate;
+    }
 }
 
 function showChainResultsWithSettings(result, settings) {
@@ -63,7 +63,41 @@ function showChainAtServerData(server, settings) {
     res += "tests " + server.failedTests + " suites " + server.failedToFinish + "";
     res += " </a>";
     res += "]";
-    res += "</b><br><br>";
+    res += "</b>"
+
+     var mInfo = "";
+       /* if (isDefinedAndFilled(suite.serverId) && isDefinedAndFilled(suite.suiteId) && isDefinedAndFilled(suite.branchName)) {
+            mInfo += " <a href='javascript:void(0);' ";
+            mInfo += " onClick='triggerBuild(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName + "\")' ";
+            mInfo += " title='trigger build'";
+            mInfo += " >trigger build</a><br>";
+        }  */
+
+        mInfo += altTxt + "<br>";
+
+        if (isDefinedAndFilled(server.topLongRunning) && server.topLongRunning.length > 0) {
+            mInfo += "Top long running:<br>"
+
+            for (var i = 0; i < server.topLongRunning.length; i++) {
+                mInfo += showTestFailData(server.topLongRunning[i], false, settings);
+            }
+        }
+
+
+        if (isDefinedAndFilled(server.logConsumers) && server.logConsumers.length > 0) {
+            mInfo += "Top Log Consumers:<br>"
+
+            for (var i = 0; i < server.logConsumers.length; i++) {
+                mInfo += showTestFailData(server.logConsumers[i], false, settings);
+            }
+        }
+
+        res += "<span class='container'>";
+        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += "<div class='content'>";
+        res += mInfo + "</div></span>";
+
+    res+="<br><br>";
 
     var arrayLength = server.suites.length;
     for (var i = 0; i < arrayLength; i++) {
@@ -113,14 +147,14 @@ function showSuiteData(suite, settings) {
 
 
     res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
-        "[ " + "<a href='" + suite.webToBuild + "' title='" + altTxt + "'> "
-         + "tests " + suite.failedTests + " " + suite.result;
+        "[ " + "<a href='" + suite.webToBuild + "' title='" + altTxt + "'> " +
+        "tests " + suite.failedTests + " " + suite.result;
 
-    if(isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length>0) {
-        res+=" warn " + suite.warnOnly.length ;
+    if (isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length > 0) {
+        res += " warn " + suite.warnOnly.length;
     }
 
-    res+= "</a> ]";
+    res += "</a> ]";
 
 
     if (isDefinedAndFilled(suite.contactPerson)) {
@@ -136,45 +170,44 @@ function showSuiteData(suite, settings) {
         res += "" + suite.queuedBuildCount + " queued";
     }
 
-
-    res += "<span class='container'>";
-    res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
-
-    res += "<div class='content'>";
+    var mInfo = "";
     if (isDefinedAndFilled(suite.serverId) && isDefinedAndFilled(suite.suiteId) && isDefinedAndFilled(suite.branchName)) {
-        res += " <a href='javascript:void(0);' ";
-        res += " onClick='triggerBuild(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName + "\")' ";
-        res += " title='trigger build'";
-        res += " >trigger build</a><br>";
+        mInfo += " <a href='javascript:void(0);' ";
+        mInfo += " onClick='triggerBuild(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName + "\")' ";
+        mInfo += " title='trigger build'";
+        mInfo += " >trigger build</a><br>";
     }
 
-    res += altTxt;
+    mInfo += altTxt;
 
     if (isDefinedAndFilled(suite.topLongRunning) && suite.topLongRunning.length > 0) {
-        res += "Top long running:<br>"
+        mInfo += "Top long running:<br>"
 
         for (var i = 0; i < suite.topLongRunning.length; i++) {
-            res += showTestFailData(suite.topLongRunning[i], false, settings);
+            mInfo += showTestFailData(suite.topLongRunning[i], false, settings);
         }
     }
 
     if (isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length > 0) {
-            res += "Warn Only:<br>"
+        mInfo += "Warn Only:<br>"
 
-            for (var i = 0; i < suite.warnOnly.length; i++) {
-                res += showTestFailData(suite.warnOnly[i], false, settings);
-            }
+        for (var i = 0; i < suite.warnOnly.length; i++) {
+            mInfo += showTestFailData(suite.warnOnly[i], false, settings);
+        }
     }
 
-        if (isDefinedAndFilled(suite.logConsumers) && suite.logConsumers.length > 0) {
-                res += "Top Log Consumers:<br>"
+    if (isDefinedAndFilled(suite.logConsumers) && suite.logConsumers.length > 0) {
+        mInfo += "Top Log Consumers:<br>"
 
-                for (var i = 0; i < suite.logConsumers.length; i++) {
-                    res += showTestFailData(suite.logConsumers[i], false, settings);
-                }
+        for (var i = 0; i < suite.logConsumers.length; i++) {
+            mInfo += showTestFailData(suite.logConsumers[i], false, settings);
         }
+    }
 
-    res += "</div></span>";
+    res += "<span class='container'>";
+    res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+    res += "<div class='content'>";
+    res += mInfo + "</div></span>";
 
     res += " <br>";
 
@@ -217,8 +250,8 @@ function failureRateToColor(failureRate) {
 //@param testFail - see TestFailure
 function showTestFailData(testFail, isFailureShown, settings) {
 
-    if (isDefinedAndFilled(testFail.failureRate)
-        && isFailureShown) {
+    if (isDefinedAndFilled(testFail.failureRate) &&
+        isFailureShown) {
         if (parseFloat(testFail.failureRate) < settings.minFailRate)
             return ""; //test is hidden
 
@@ -231,7 +264,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
     var haveIssue = isDefinedAndFilled(testFail.webIssueUrl) && isDefinedAndFilled(testFail.webIssueText)
 
-    var color = failureRateToColor(testFail.failureRate);
+    var color = isFailureShown ? failureRateToColor(testFail.failureRate) : "white";
 
     var investigated = isDefinedAndFilled(testFail.investigated) && testFail.investigated;
     if (investigated) {
@@ -240,44 +273,42 @@ function showTestFailData(testFail, isFailureShown, settings) {
     }
 
     var bold = false;
-    if(isFailureShown) {
+    if (isFailureShown) {
         var altForWarn = "";
-        if(!isDefinedAndFilled(testFail.failureRate) || !isDefinedAndFilled(testFail.runs)) {
+        if (!isDefinedAndFilled(testFail.failureRate) || !isDefinedAndFilled(testFail.runs)) {
             altForWarn = "No fail rate info, probably new failure or suite critical failure";
-       // } else if(parseFloat(testFail.failureRate) < 1) {
-       //     altForWarn = "Test fail rate less than 1%, probably new failure";
-        }  else if(testFail.failures < 3) {
+        } else if (testFail.failures < 3) {
             altForWarn = "Test failures count is low < 3, probably new test introduced";
-        }  else if(testFail.runs < 10) {
+        } else if (testFail.runs < 10) {
             altForWarn = "Test runs count is low < 10, probably new test introduced";
         }
 
-        if(altForWarn!="") {
-            res += "<img src='https://image.flaticon.com/icons/svg/159/159469.svg' width=11px height=11px title='"+altForWarn+"' > ";
+        if (altForWarn != "") {
+            res += "<img src='https://image.flaticon.com/icons/svg/159/159469.svg' width=11px height=11px title='" + altForWarn + "' > ";
             bold = true;
             res += "<b>";
         }
     }
 
-    res += " <span style='background-color: " + color + "; width:7px; height:7px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
+    res += " <span style='background-color: " + color + "; width:8px; height:8px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
 
-    if(isDefinedAndFilled(testFail.latestRuns)) {
-          res += " <span title='Latest runs history'>";
-          for (var i = 0; i < testFail.latestRuns.length; i++) {
+    if (isDefinedAndFilled(testFail.latestRuns)) {
+        res += " <span title='Latest runs history'>";
+        for (var i = 0; i < testFail.latestRuns.length; i++) {
 
-                    var runCode = testFail.latestRuns[i];
-                    var runColor = "white";
-                    if(runCode ==0)
-                        runColor = "green";
-                    else if(runCode == 1)
-                        runColor = "red";
-                    else if(runCode == 2)
-                        runColor = "grey";
+            var runCode = testFail.latestRuns[i];
+            var runColor = "white";
+            if (runCode == 0)
+                runColor = "green";
+            else if (runCode == 1)
+                runColor = "red";
+            else if (runCode == 2)
+                runColor = "grey";
 
-                    res += "<span style='background-color: " + runColor + "; width:2px; height:9px; display: inline-block; border-width: 0px; border-color: black; border-style: solid;'></span>";
+            res += "<span style='background-color: " + runColor + "; width:2px; height:10px; display: inline-block; border-width: 0px; border-color: black; border-style: solid;'></span>";
 
-          }
-          res += "</span> "
+        }
+        res += "</span> "
     }
 
     if (isDefinedAndFilled(testFail.curFailures) && testFail.curFailures > 1)
@@ -317,27 +348,27 @@ function showTestFailData(testFail, isFailureShown, settings) {
     if (!isFailureShown && isDefinedAndFilled(testFail.durationPrintable))
         res += " duration " + testFail.durationPrintable;
 
-    if(bold)
+    if (bold)
         res += "</b>";
 
     if (investigated)
         res += "</span> ";
 
 
-    if(isDefinedAndFilled(testFail.warnings) && testFail.warnings.length>0) {
+    if (isDefinedAndFilled(testFail.warnings) && testFail.warnings.length > 0) {
         res += "<span class='container'>";
         res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
 
         res += "<div class='content'>";
 
-        res+="<p class='logMsg'>"
-            for (var i = 0; i < testFail.warnings.length; i++) {
-                res+"&nbsp; &nbsp; ";
-                res+"&nbsp; &nbsp; ";
-                res +=  testFail.warnings[i];
-                res += " <br>";
-            }
-        res+="</p>"
+        res += "<p class='logMsg'>"
+        for (var i = 0; i < testFail.warnings.length; i++) {
+            res + "&nbsp; &nbsp; ";
+            res + "&nbsp; &nbsp; ";
+            res += testFail.warnings[i];
+            res += " <br>";
+        }
+        res += "</p>"
 
         res += "</div></span>";
 
@@ -350,7 +381,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
 }
 
 function initMoreInfo() {
-    $(".header").unbind( "click" );
+    $(".header").unbind("click");
     $(".header").click(function() {
         $header = $(this);
         //getting the next element

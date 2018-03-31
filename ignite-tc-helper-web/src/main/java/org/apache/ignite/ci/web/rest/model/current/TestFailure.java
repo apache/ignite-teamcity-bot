@@ -12,7 +12,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
-import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.logs.LogMsgToWarn;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
@@ -28,7 +27,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     /** Test full Name */
     public String name;
 
-    /** suite short name */
+    /** suite (in code) short name */
     @Nullable public String suiteName;
 
     /** test short name with class and method */
@@ -69,12 +68,14 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
      * @param failure
      * @param testFullOpt all related full test ocurrences
      * @param teamcity
-     * @param suite
+     * @param projectId
+     * @param branchName
      */
     public void initFromOccurrence(@Nonnull final ITestFailureOccurrences failure,
         @Nonnull final Stream<TestOccurrenceFull> testFullOpt,
         @Nonnull final ITeamcity teamcity,
-        @Nonnull final MultBuildRunCtx suite) {
+        @Nullable final String projectId,
+        @Nullable final String branchName) {
         name = failure.getName();
         investigated = failure.isInvestigated();
         curFailures = failure.failuresCount();
@@ -117,7 +118,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
             }
             if (webUrl == null)
                 if (full.test != null && full.test.id != null)
-                    webUrl = buildWebLink(teamcity, suite, full.test.id);
+                    webUrl = buildWebLink(teamcity, full.test.id, projectId, branchName);
         });
 
     }
@@ -133,12 +134,13 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
         }
     }
 
-    private static String buildWebLink(ITeamcity teamcity, MultBuildRunCtx suite, Long id) {
-        if (suite.projectId() == null)
+    private static String buildWebLink(ITeamcity teamcity, Long id,
+        @Nullable String projectId, @Nullable String branchName) {
+        if (projectId == null)
             return null;
-        final String branch = branchForLink(suite.branchName());
+        final String branch = branchForLink(branchName);
         return teamcity.host() + "project.html"
-            + "?projectId=" + suite.projectId()
+            + "?projectId=" + projectId
             + "&testNameId=" + id
             + "&branch=" + escape(branch)
             + "&tab=testDetails";

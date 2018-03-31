@@ -4,11 +4,9 @@ import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,6 +20,7 @@ import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.TestLogCheckResult;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.ci.util.TimeUtil.getDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
@@ -124,7 +123,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             Stream<TestOccurrenceFull> stream = suite.getFullTests(occurrence);
 
             final TestFailure failure = new TestFailure();
-            failure.initFromOccurrence(occurrence, stream, teamcity, suite);
+            failure.initFromOccurrence(occurrence, stream, teamcity, suite.projectId(), suite.branchName());
             if (tcAnalytics != null)
                 failure.initStat(tcAnalytics.getTestRunStatProvider());
 
@@ -132,11 +131,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         });
 
         suite.getTopLongRunning().forEach(occurrence -> {
-            final TestFailure failure = new TestFailure();
-            failure.initFromOccurrence(occurrence, Stream.empty(), teamcity, suite);
-
-            if (tcAnalytics != null)
-                failure.initStat(tcAnalytics.getTestRunStatProvider());
+            final TestFailure failure = createOrrucForLongRun(teamcity, suite, tcAnalytics, occurrence);
 
             topLongRunning.add(failure);
         });
@@ -149,26 +144,22 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             }
         );
 
-        Map<String, Long> logSizeBytes = new HashMap<>();
-
         suite.getLogsCheckResults().forEach(map -> {
-            map.forEach(
-                (testName, logCheckResult) -> {
-                    if (logCheckResult.hasWarns())
-                        findFailureAndAddWarning(testName, logCheckResult);
+                map.forEach(
+                    (testName, logCheckResult) -> {
+                        if (logCheckResult.hasWarns())
+                            this.findFailureAndAddWarning(testName, logCheckResult);
 
-                    logSizeBytes.merge(testName, (long)logCheckResult.getLogSizeBytes(), (a, b) -> a + b);
-                }
-            );
-        });
-        List<Map.Entry<String, Long>> testSizes = new ArrayList<>(logSizeBytes.entrySet());
-        Comparator<Map.Entry<String, Long>> comparing = Comparator.comparing(Map.Entry::getValue);
-        testSizes.sort(comparing.reversed());
-        testSizes.stream().limit(3).filter(entry -> entry.getValue() > 1024 * 1024).forEach(
+                    }
+                );
+            }
+        );
+
+        Stream<Map.Entry<String, Long>> stream = suite.getTopLogConsumers();
+
+        stream.forEach(
             (entry) -> {
-                TestFailure failure = new TestFailure();
-                long sizeMb = entry.getValue() / 1024 / 1024;
-                failure.name = entry.getKey() + " " + sizeMb + " Mbytes";
+                TestFailure failure = createOccurForLogConsumer(entry);
                 logConsumers.add(failure);
             }
         );
@@ -185,6 +176,27 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         serverId = teamcity.serverId();
         this.suiteId = suite.suiteId();
         branchName = branchForLink(suite.branchName());
+    }
+
+    @NotNull public static TestFailure createOccurForLogConsumer(Map.Entry<String, Long> entry) {
+        TestFailure failure = new TestFailure();
+        long sizeMb = entry.getValue() / 1024 / 1024;
+        failure.name = entry.getKey() + " " + sizeMb + " Mbytes";
+        return failure;
+    }
+
+    @NotNull public static TestFailure createOrrucForLongRun(@Nonnull ITeamcity teamcity, @Nonnull MultBuildRunCtx suite,
+        @Nullable ITcAnalytics tcAnalytics, ITestFailureOccurrences occurrence) {
+        final TestFailure failure = new TestFailure();
+
+        Stream<TestOccurrenceFull> stream = suite.getFullTests(occurrence);
+
+        failure.initFromOccurrence(occurrence, stream, teamcity, suite.projectId(), suite.branchName());
+
+        if (tcAnalytics != null)
+            failure.initStat(tcAnalytics.getTestRunStatProvider());
+
+        return failure;
     }
 
     public void findFailureAndAddWarning(String testName, TestLogCheckResult logCheckRes) {
@@ -214,7 +226,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             + "&tab=buildTypeStatusDiv";
     }
 
-    public static String branchForLink(String branchName) {
+    public static String branchForLink(@Nullable String branchName) {
         return branchName == null || "refs/heads/master".equals(branchName) ? "<default>" : branchName;
     }
 

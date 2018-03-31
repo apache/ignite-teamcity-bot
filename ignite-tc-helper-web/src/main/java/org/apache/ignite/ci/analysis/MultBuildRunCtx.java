@@ -245,6 +245,30 @@ public class MultBuildRunCtx implements ISuiteResults {
         }
     }
 
+
+    public Stream<Map.Entry<String, Long>> getTopLogConsumers() {
+        Map<String, Long> logSizeBytes = new HashMap<>();
+
+        getLogsCheckResults()
+
+            .forEach(map -> {
+                map.forEach(
+                    (testName, logCheckResult) -> {
+                        //todo may be it is better to find   avg
+                        long bytes = (long)logCheckResult.getLogSizeBytes();
+                        if (bytes > 1024 * 1024) {
+                            logSizeBytes.merge(testName, bytes, (a, b) ->
+                                Math.max(a, b));
+                        }
+                    }
+                );
+            });
+
+        Comparator<Map.Entry<String, Long>> comparing = Comparator.comparing(Map.Entry::getValue);
+
+        return CollectionUtil.top(logSizeBytes.entrySet().stream(), 3 ,comparing).stream();
+    }
+
     public Stream<? extends ITestFailureOccurrences> getTopLongRunning() {
         Stream<MultTestFailureOccurrences> stream = tests.values().stream();
         Comparator<MultTestFailureOccurrences> comparing = Comparator.comparing(MultTestFailureOccurrences::getAvgDurationMs);

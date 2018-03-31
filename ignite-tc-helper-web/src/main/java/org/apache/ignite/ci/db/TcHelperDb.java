@@ -48,12 +48,11 @@ public class TcHelperDb {
     }
 
     private static void setupDisco(IgniteConfiguration cfg) {
-        final TcpDiscoverySpi spi1 = new TcpDiscoverySpi();
+        final TcpDiscoverySpi spi = new TcpDiscoverySpi();
         final int locPort = 54433;
-        spi1.setLocalPort(locPort);
-        spi1.setLocalPortRange(1);
-        spi1.setIpFinder(new LocalOnlyTcpDiscoveryIpFinder(locPort));
-        final TcpDiscoverySpi spi = spi1;
+        spi.setLocalPort(locPort);
+        spi.setLocalPortRange(1);
+        spi.setIpFinder(new LocalOnlyTcpDiscoveryIpFinder(locPort));
 
         cfg.setDiscoverySpi(spi);
     }
