@@ -179,5 +179,5 @@ public interface ITeamcity extends AutoCloseable {
 
     void setExecutor(ExecutorService pool);
 
-    void triggerBuild(String id, String name);
+    void triggerBuild(String id, String name, boolean queueAtTop);
 }

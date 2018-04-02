@@ -1,9 +1,9 @@
 //loadData(); // should be defined by page
 //loadStatus element should be provided on page
-//@param results - TestFailuresSummary
-
+//triggerConfirm & triggerDialog element should be provided on page (may be hidden)
 var g_initMoreInfoDone = false;
 
+//@param results - TestFailuresSummary
 function showChainOnServersResults(result) {
     var minFailRateP = findGetParameter("minFailRate");
     var minFailRate = minFailRateP == null ? 0 : parseFloat(minFailRateP);
@@ -20,6 +20,8 @@ class Settings {
     }
 }
 
+//@param results - TestFailuresSummary
+//@param settings - Settings (JS class)
 function showChainResultsWithSettings(result, settings) {
     var res = "";
     res += "Chain results";
@@ -55,7 +57,7 @@ function showChainAtServerData(server, settings) {
     if (isDefinedAndFilled(server.chainName)) {
         res += server.chainName + " ";
     }
-    res += server.serverName;
+    res += server.serverId;
 
     res += "</a> ";
     res += "[";
@@ -65,42 +67,63 @@ function showChainAtServerData(server, settings) {
     res += "]";
     res += "</b>"
 
-     var mInfo = "";
-       /* if (isDefinedAndFilled(suite.serverId) && isDefinedAndFilled(suite.suiteId) && isDefinedAndFilled(suite.branchName)) {
-            mInfo += " <a href='javascript:void(0);' ";
-            mInfo += " onClick='triggerBuild(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName + "\")' ";
-            mInfo += " title='trigger build'";
-            mInfo += " >trigger build</a><br>";
-        }  */
+    var mInfo = "";
 
-        mInfo += altTxt + "<br>";
+    var cntFailed = 0;
+    var suitesFailedList = "";
+    for (var i = 0; i < server.suites.length; i++) {
+        var suite = server.suites[i];
 
-        if (isDefinedAndFilled(server.topLongRunning) && server.topLongRunning.length > 0) {
-            mInfo += "Top long running:<br>"
+        if (!isDefinedAndFilled(suite.suiteId))
+            continue;
 
-            for (var i = 0; i < server.topLongRunning.length; i++) {
-                mInfo += showTestFailData(server.topLongRunning[i], false, settings);
-            }
+        //may check failure here in case mode show all
+
+        if (suitesFailedList.length != 0)
+            suitesFailedList += ",";
+
+        suitesFailedList += suite.suiteId;
+        cntFailed++;
+    }
+
+    if (suitesFailedList.length != 0 && isDefinedAndFilled(server.serverId) && isDefinedAndFilled(suite.branchName)) {
+        mInfo += "Trigger failed " + cntFailed + " builds";
+        mInfo += " <a href='javascript:void(0);' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + suite.branchName + "\", false)' ";
+        mInfo += " title='trigger builds'>in queue</a> ";
+
+        mInfo += " <a href='javascript:void(0);' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + suite.branchName + "\", true)' ";
+        mInfo += " title='trigger builds'>on top</a><br>";
+    }
+
+    mInfo += altTxt + "<br>";
+
+    if (isDefinedAndFilled(server.topLongRunning) && server.topLongRunning.length > 0) {
+        mInfo += "Top long running:<br>"
+
+        for (var i = 0; i < server.topLongRunning.length; i++) {
+            mInfo += showTestFailData(server.topLongRunning[i], false, settings);
         }
+    }
 
 
-        if (isDefinedAndFilled(server.logConsumers) && server.logConsumers.length > 0) {
-            mInfo += "Top Log Consumers:<br>"
+    if (isDefinedAndFilled(server.logConsumers) && server.logConsumers.length > 0) {
+        mInfo += "Top Log Consumers:<br>"
 
-            for (var i = 0; i < server.logConsumers.length; i++) {
-                mInfo += showTestFailData(server.logConsumers[i], false, settings);
-            }
+        for (var i = 0; i < server.logConsumers.length; i++) {
+            mInfo += showTestFailData(server.logConsumers[i], false, settings);
         }
+    }
 
-        res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
-        res += "<div class='content'>";
-        res += mInfo + "</div></span>";
+    res += "<span class='container'>";
+    res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+    res += "<div class='content'>";
+    res += mInfo + "</div></span>";
 
-    res+="<br><br>";
+    res += "<br><br>";
 
-    var arrayLength = server.suites.length;
-    for (var i = 0; i < arrayLength; i++) {
+    for (var i = 0; i < server.suites.length; i++) {
         var suite = server.suites[i];
         res += showSuiteData(suite, settings);
     }
@@ -108,19 +131,83 @@ function showChainAtServerData(server, settings) {
     return res;
 }
 
-function triggerBuild(serverId, suiteId, branchName) {
+function triggerBuild(serverId, suiteId, branchName, top) {
+    var queueAtTop = isDefinedAndFilled(top) && top;
     $.ajax({
         url: 'rest/build/trigger',
         data: {
             "serverId": serverId,
             "suiteId": suiteId,
-            "branchName": branchName
+            "branchName": branchName,
+            "top": queueAtTop
         },
         success: function(result) {
-            alert("Triggered build " + serverId + " ," + suiteId + " ," + branchName + ": " + result.result);
+            $("#triggerDialog").html("Trigger builds at server: " + serverId + "<br>" +
+                " Suite: " + suiteId + "<br>Branch:" + branchName + "<br>Top: " + top +
+                "<br><br> Result: " + result.result);
+            $("#triggerDialog").dialog({
+                modal: true,
+                buttons: {
+                    "Ok": function() {
+                        $(this).dialog("close");
+                    }
+                }
+            });
+
             loadData(); // should be defined by page
         },
         error: showErrInLoadStatus
+    });
+}
+
+function triggerBuilds(serverId, suiteIdList, branchName, top) {
+    var res = "Trigger builds at server: " + serverId + "<br>" +
+        "Branch:" + branchName + "<br>Top: " + top + "<br>";
+
+    var partsOfStr = suiteIdList.split(',');
+
+    for (var i = 0; i < partsOfStr.length; i++) {
+        var suite = partsOfStr[i];
+        res += "Suite ID: " + suite + "<br>";
+    }
+    $("#triggerConfirm").html(res);
+
+    $("#triggerConfirm").dialog({
+        modal: true,
+        buttons: {
+            "Run": function() {
+                $(this).dialog("close");
+
+                var queueAtTop = isDefinedAndFilled(top) && top
+                $.ajax({
+                    url: 'rest/build/triggerBuilds',
+                    data: {
+                        "serverId": serverId,
+                        "suiteIdList": suiteIdList,
+                        "branchName": branchName,
+                        "top": queueAtTop
+                    },
+                    success: function(result) {
+                        $("#triggerDialog").html("Trigger builds at server: " + serverId + "<br>" +
+                            " Suites " + suiteIdList + "<br>Branch:" + branchName + "<br>Top: " + top +
+                            "<br><br> Result: " + result.result);
+                        $("#triggerDialog").dialog({
+                            modal: true,
+                            buttons: {
+                                "Ok": function() {
+                                    $(this).dialog("close");
+                                }
+                            }
+                        });
+                        loadData(); // should be defined by page
+                    },
+                    error: showErrInLoadStatus
+                });
+            },
+            Cancel: function() {
+                $(this).dialog("close");
+            }
+        }
     });
 }
 
@@ -172,10 +259,14 @@ function showSuiteData(suite, settings) {
 
     var mInfo = "";
     if (isDefinedAndFilled(suite.serverId) && isDefinedAndFilled(suite.suiteId) && isDefinedAndFilled(suite.branchName)) {
-        mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuild(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName + "\")' ";
-        mInfo += " title='trigger build'";
-        mInfo += " >trigger build</a><br>";
+        mInfo += " Trigger build: ";
+        mInfo += "<a href='javascript:void(0);' ";
+        mInfo += " onClick='triggerBuild(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName + "\", false)' ";
+        mInfo += " title='trigger build' >queue</a> ";
+
+        mInfo += "<a href='javascript:void(0);' ";
+        mInfo += " onClick='triggerBuild(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName + "\", true)' ";
+        mInfo += " title='trigger build at top of queue'>top</a><br>";
     }
 
     mInfo += altTxt;

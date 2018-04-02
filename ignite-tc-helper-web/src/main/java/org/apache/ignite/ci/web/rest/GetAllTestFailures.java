@@ -82,9 +82,10 @@ public class GetAllTestFailures {
         for (ChainAtServerTracked chainAtServerTracked : tracked.chains) {
             try (IAnalyticsEnabledTeamcity teamcity = helper.server(chainAtServerTracked.serverId)) {
                 final String projectId = chainAtServerTracked.getSuiteIdMandatory();
+                final String branchTc = chainAtServerTracked.getBranchForRestMandatory();
                 final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
                     projectId,
-                    chainAtServerTracked.getBranchForRestMandatory());
+                    branchTc);
                 List<BuildRef> chains = builds.stream()
                     .filter(ref -> !ref.isFakeStub())
                     .sorted(Comparator.comparing(BuildRef::getId).reversed())
@@ -98,7 +99,8 @@ public class GetAllTestFailures {
                     false, true, teamcity);
 
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
-                chainStatus.serverName = teamcity.serverId();
+                chainStatus.serverId = teamcity.serverId();
+                chainStatus.branchName =branchTc;
                 chainCtxOpt.ifPresent(chainCtx -> {
                     chainStatus.initFromContext(teamcity, chainCtx, teamcity);
 

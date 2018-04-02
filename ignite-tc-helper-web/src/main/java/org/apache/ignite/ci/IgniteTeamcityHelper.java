@@ -163,8 +163,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return sb.toString();
     }
 
-    public void triggerBuild(String buildTypeId, String branchName) {
-        triggerBuild(buildTypeId, branchName, false, false);
+    public void triggerBuild(String buildTypeId, String branchName, boolean queueAtTop) {
+        triggerBuild(buildTypeId, branchName, false, queueAtTop);
     }
 
     public void triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {

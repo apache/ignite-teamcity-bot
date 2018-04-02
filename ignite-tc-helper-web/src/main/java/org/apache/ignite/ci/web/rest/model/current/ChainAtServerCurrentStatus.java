@@ -27,7 +27,11 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.cre
 public class ChainAtServerCurrentStatus {
     public String chainName;
 
-    public String serverName;
+    /** Server ID. */
+    public String serverId;
+
+    /** Branch name in teamcity identification. */
+    public String branchName;
 
     /** Web Href. to suite runs history*/
     public String webToHist = "";
@@ -128,9 +132,10 @@ public class ChainAtServerCurrentStatus {
      * @return Server name.
      */
     public String serverName() {
-        return serverName;
+        return serverId;
     }
 
+    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
@@ -138,7 +143,8 @@ public class ChainAtServerCurrentStatus {
             return false;
         ChainAtServerCurrentStatus status = (ChainAtServerCurrentStatus)o;
         return Objects.equal(chainName, status.chainName) &&
-            Objects.equal(serverName, status.serverName) &&
+            Objects.equal(serverId, status.serverId) &&
+            Objects.equal(branchName, status.branchName) &&
             Objects.equal(webToHist, status.webToHist) &&
             Objects.equal(webToBuild, status.webToBuild) &&
             Objects.equal(suites, status.suites) &&
@@ -147,8 +153,9 @@ public class ChainAtServerCurrentStatus {
             Objects.equal(durationPrintable, status.durationPrintable);
     }
 
+    /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(chainName, serverName, webToHist, webToBuild, suites,
+        return Objects.hashCode(chainName, serverId, branchName, webToHist, webToBuild, suites,
             failedTests, failedToFinish, durationPrintable);
     }
 }

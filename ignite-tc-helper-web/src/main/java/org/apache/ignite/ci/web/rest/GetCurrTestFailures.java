@@ -82,13 +82,15 @@ public class GetCurrTestFailures {
         tracked.chains.stream().parallel()
             .map(chainTracked -> {
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
-                String serverId = chainTracked.serverId;
-                chainStatus.serverName = serverId;
-                try (IAnalyticsEnabledTeamcity teamcity = helper.server(serverId)) {
+                final String srvId = chainTracked.serverId;
+                final String branchForTc = chainTracked.getBranchForRestMandatory();
+                chainStatus.serverId = srvId;
+                chainStatus.branchName = branchForTc;
+                try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId)) {
 
                     Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
                         chainTracked.getSuiteIdMandatory(),
-                        chainTracked.getBranchForRestMandatory(),
+                        branchForTc,
                         LatestRebuildMode.LATEST,
                         (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE);
 
@@ -199,7 +201,8 @@ public class GetCurrTestFailures {
                 true, teamcity);
 
             final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
-            chainStatus.serverName = teamcity.serverId();
+            chainStatus.serverId = teamcity.serverId();
+            chainStatus.branchName = branchForTc;
 
             pubCtx.ifPresent(ctx -> {
                 int cnt = (int)ctx.getRunningUpdates().count();

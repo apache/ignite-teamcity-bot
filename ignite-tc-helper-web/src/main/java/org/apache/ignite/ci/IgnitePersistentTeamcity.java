@@ -631,10 +631,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public void triggerBuild(String id, String name) {
+    @Override public void triggerBuild(String id, String name, boolean queueAtTop) {
         lastTriggerMs = System.currentTimeMillis();
 
-        teamcity.triggerBuild(id, name);
+        teamcity.triggerBuild(id, name, queueAtTop);
     }
 
     public void setStatUpdateEnabled(boolean statUpdateEnabled) {

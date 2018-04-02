@@ -1,5 +1,8 @@
 package org.apache.ignite.ci.web.rest;
 
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -22,10 +25,36 @@ public class TriggerBuild {
     public TriggerResult triggerBuild(
         @Nullable @QueryParam("serverId") String serverId,
         @Nullable @QueryParam("branchName") String branchName,
-        @Nullable @QueryParam("suiteId") String suiteId) {
+        @Nullable @QueryParam("suiteId") String suiteId,
+        @Nullable @QueryParam("top") Boolean top) {
 
         try (final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId)) {
-            helper.triggerBuild(suiteId, branchName);
+            helper.triggerBuild(suiteId, branchName, top != null && top);
+        }
+
+        return new TriggerResult("OK");
+    }
+
+    @GET
+    @Path("triggerBuilds")
+    public TriggerResult triggerBuilds(
+        @Nullable @QueryParam("serverId") String serverId,
+        @Nullable @QueryParam("branchName") String branchName,
+        @Nullable @QueryParam("suiteIdList") String suiteIdList,
+        @Nullable @QueryParam("top") Boolean top) {
+
+        List<String> strings = Arrays.asList(suiteIdList.split(","));
+        if (strings.isEmpty())
+            return new TriggerResult("Error: nothing to run");
+
+        try (final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId)) {
+            boolean queueToTop = top != null && top;
+
+            for (String suiteId : strings) {
+                System.out.println("Triggering [ " + suiteId + "," + branchName + "," + "top=" + queueToTop + "]");
+
+                helper.triggerBuild(suiteId, branchName, queueToTop);
+            }
         }
 
         return new TriggerResult("OK");

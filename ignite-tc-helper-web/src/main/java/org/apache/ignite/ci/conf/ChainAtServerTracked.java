@@ -19,8 +19,12 @@ public class ChainAtServerTracked extends ChainAtServer {
         return suiteId;
     }
 
+    /**
+     * @return
+     */
     @Nonnull public String getBranchForRestMandatory() {
         checkState(!isNullOrEmpty(branchForRest), "Invalid config: branchForRest should be filled " + this);
+
         return branchForRest;
     }
 }

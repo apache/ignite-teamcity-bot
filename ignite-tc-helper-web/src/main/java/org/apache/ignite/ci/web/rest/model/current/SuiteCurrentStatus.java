@@ -64,7 +64,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Branch name in teamcity identification. */
     public String branchName;
 
-    /** Registered number of failures from TC helper DB */
+    /** Total registered number of failures from TC helper DB */
     @Nullable public Integer failures;
 
     /** Registered number of runs from TC helper DB */

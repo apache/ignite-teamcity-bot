@@ -69,6 +69,7 @@ public class GetChainResultsAsHtml {
                 });
 
                 status.chainName = ctx.suiteName();
+                status.branchName = ctx.branchName();
 
                 status.initFromContext(teamcity, ctx, teamcity);
 
@@ -132,11 +133,10 @@ public class GetChainResultsAsHtml {
         if(!isEmpty(server.durationPrintable))
             altTxt += "duration: " + server.durationPrintable;
 
-        res += "<b><a href='" + server.webToHist + "'>" + Strings.nullToEmpty(server.serverName);
+        res += "<b><a href='" + server.webToHist + "'>" + Strings.nullToEmpty(server.serverId);
 
-        if (isDefinedAndFilled(server.chainName)) {
+        if (isDefinedAndFilled(server.chainName))
             res += " " + server.chainName;
-        }
 
         res += "</a> ";
         res += "[";
