@@ -232,6 +232,9 @@ function showSuiteData(suite, settings) {
     var color = failureRateToColor(suite.failureRate);
     res += " <span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + failRateText + "'></span> ";
 
+    if (isDefinedAndFilled(suite.latestRuns)) {
+        res += drawLatestRuns(suite.latestRuns);
+    }
 
     res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
         "[ " + "<a href='" + suite.webToBuild + "' title='" + altTxt + "'> " +
@@ -384,22 +387,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
     res += " <span style='background-color: " + color + "; width:8px; height:8px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
 
     if (isDefinedAndFilled(testFail.latestRuns)) {
-        res += " <span title='Latest runs history'>";
-        for (var i = 0; i < testFail.latestRuns.length; i++) {
-
-            var runCode = testFail.latestRuns[i];
-            var runColor = "white";
-            if (runCode == 0)
-                runColor = "green";
-            else if (runCode == 1)
-                runColor = "red";
-            else if (runCode == 2)
-                runColor = "grey";
-
-            res += "<span style='background-color: " + runColor + "; width:2px; height:10px; display: inline-block; border-width: 0px; border-color: black; border-style: solid;'></span>";
-
-        }
-        res += "</span> "
+        res += drawLatestRuns(testFail.latestRuns);
     }
 
     if (isDefinedAndFilled(testFail.curFailures) && testFail.curFailures > 1)
@@ -465,10 +453,31 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
     }
 
-
     res += " <br>";
 
     return res;
+}
+
+function drawLatestRuns(latestRuns) {
+    var res ="";
+    res += "<span title='Latest master runs history from right to left is oldest to newest. Red-failed,green-passed'>";
+        for (var i = 0; i < latestRuns.length; i++) {
+
+            var runCode = latestRuns[i];
+            var runColor = "white";
+            if (runCode == 0)
+                runColor = "green";
+            else if (runCode == 1)
+                runColor = "red";
+            else if (runCode == 2)
+                runColor = "grey";
+
+            res += "<span style='background-color: " + runColor + "; width:2px; height:10px; display: inline-block; border-width: 0px; border-color: black; border-style: solid;'></span>";
+
+        }
+        res += "</span> ";
+
+        return res;
 }
 
 function initMoreInfo() {

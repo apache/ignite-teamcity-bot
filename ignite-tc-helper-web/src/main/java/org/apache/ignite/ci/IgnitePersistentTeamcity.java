@@ -306,25 +306,21 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         if (Strings.isNullOrEmpty(suiteId))
             return;
 
-        buildsFailureRunStatCache().invoke(suiteId, new EntryProcessor<String, RunStat, Object>() {
-            @Override
-            public Object process(MutableEntry<String, RunStat> entry,
-                Object... arguments) throws EntryProcessorException {
+        buildsFailureRunStatCache().invoke(suiteId, (entry, arguments) -> {
+            String buildCfgId = entry.getKey();
 
-                String key = entry.getKey();
+            Build build = (Build)arguments[0];
 
-                Build build = (Build)arguments[0];
+            RunStat val = entry.getValue();
 
-                RunStat val = entry.getValue();
-                if (val == null)
-                    val = new RunStat(key);
+            if (val == null)
+                val = new RunStat(buildCfgId);
 
-                val.addBuildRun(build);
+            val.addBuildRun(build);
 
-                entry.setValue(val);
+            entry.setValue(val);
 
-                return null;
-            }
+            return null;
         }, loaded);
     }
 
@@ -482,7 +478,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    public Function<String, RunStat> getBuildFailureRunStatProvider() {
+    @Override public Function<String, RunStat> getBuildFailureRunStatProvider() {
         return name -> name == null ? null : buildsFailureRunStatCache().get(name);
     }
 

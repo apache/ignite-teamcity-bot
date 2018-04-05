@@ -73,6 +73,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Registered percent of fails from TC helper DB */
     @Nullable public String failureRate;
 
+    /** Latest runs, 0,1,3 values for each run. */
+    @Nullable public List<Integer> latestRuns;
+
     /** User commits, comma separated string. */
     public String userCommits = "";
 
@@ -94,6 +97,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
                 failures = stat.failures;
                 runs = stat.runs;
                 failureRate = stat.getFailPercentPrintable();
+                latestRuns = stat.getLatestRunResults();
             }
         }
 

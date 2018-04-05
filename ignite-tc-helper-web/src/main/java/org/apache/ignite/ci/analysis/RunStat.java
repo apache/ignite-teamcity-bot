@@ -20,14 +20,24 @@ import org.jetbrains.annotations.NotNull;
 public class RunStat {
     public static final int MAX_LATEST_RUNS = 40;
     private static final int RES_OK = 0;
+
+    /** Result: general failure of test or suite. */
     private static final int RES_FAILURE = 1;
+
+    /** Result of test execution, muted failure found. */
     private static final int RES_MUTED_FAILURE = 2;
 
     public int runs;
     public int failures;
     public long totalDurationMs;
     public int runsWithDuration;
+
+    /**
+     * timestamp of last write to entry
+     */
     public long lastUpdatedMs;
+
+    /** Name: Key in run stat cache */
     private String name;
 
     @Nullable SortedMap<TestId, Integer> latestRunResults;
@@ -102,7 +112,7 @@ public class RunStat {
         }
     }
 
-    public int testToResCode(TestOccurrence testOccurrence) {
+    private int testToResCode(TestOccurrence testOccurrence) {
         int resCode;
         if (testOccurrence.isFailedTest())
             resCode = testOccurrence.isNotMutedOrIgnoredTest() ? RES_FAILURE : RES_MUTED_FAILURE;
