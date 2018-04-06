@@ -1,6 +1,5 @@
 package org.apache.ignite.ci.web.rest;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -167,27 +166,21 @@ public class GetCurrTestFailures {
             else
                 rebuild = LatestRebuildMode.LATEST;
 
-            final List<BuildRef> chains;
-            if (rebuild == LatestRebuildMode.ALL) {
-                List<BuildRef> finishedBuilds = teamcity.getFinishedBuildsIncludeSnDepFailed(
-                    suiteId,
-                    branchForTc);
+            List<BuildRef> finishedBuilds = teamcity.getFinishedBuildsIncludeSnDepFailed(
+                suiteId,
+                branchForTc);
 
-                long limit = count == null ? 10 : count;
-                chains = finishedBuilds.stream()
-                    .filter(ref -> !ref.isFakeStub())
-                    .sorted(Comparator.comparing(BuildRef::getId).reversed())
-                    .limit(limit).parallel()
-                    .filter(b -> b.getId() != null).collect(Collectors.toList());
-            }
-            else {
-                List<BuildRef> finishedBuilds = new ArrayList<>();
-                Optional<BuildRef> buildRef = teamcity.getLastBuildIncludeSnDepFailed(suiteId, branchForTc);
+            long limit;
+            if (rebuild == LatestRebuildMode.ALL)
+                limit = count == null ? 10 : count;
+            else
+                limit = 1;
 
-                buildRef.ifPresent(finishedBuilds::add);
-
-                chains = finishedBuilds;
-            }
+            final List<BuildRef> chains = finishedBuilds.stream()
+                .filter(ref -> !ref.isFakeStub())
+                .sorted(Comparator.comparing(BuildRef::getId).reversed())
+                .limit(limit)
+                .filter(b -> b.getId() != null).collect(Collectors.toList());
 
             boolean singleBuild = rebuild != LatestRebuildMode.ALL;
             ProcessLogsMode logs = singleBuild
