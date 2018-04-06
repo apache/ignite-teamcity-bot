@@ -54,7 +54,7 @@ public class GetChainResultsAsHtml {
                     false, false, teamcity);
 
             ctxOptional.ifPresent(ctx -> {
-                ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus();
+                ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
 
                 ctx.getRunningUpdates().forEach(future -> {
                     try {
@@ -69,7 +69,6 @@ public class GetChainResultsAsHtml {
                 });
 
                 status.chainName = ctx.suiteName();
-                status.branchName = ctx.branchName();
 
                 status.initFromContext(teamcity, ctx, teamcity);
 

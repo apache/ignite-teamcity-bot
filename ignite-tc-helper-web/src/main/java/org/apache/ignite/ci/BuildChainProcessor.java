@@ -71,8 +71,9 @@ public class BuildChainProcessor {
         boolean includeScheduledInfo,
         @Nullable ITcAnalytics tcAnalytics) {
 
-        assert !entryPoints.isEmpty();
-        //todo empty
+        if (entryPoints.isEmpty())
+            return new FullChainRunCtx(Build.createFakeStub());
+
         BuildRef next = entryPoints.iterator().next();
         Build results = teamcity.getBuild(next.href);
         FullChainRunCtx fullChainRunCtx = new FullChainRunCtx(results);

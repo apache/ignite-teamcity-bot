@@ -13,11 +13,14 @@ import org.jetbrains.annotations.NotNull;
  * Created by dpavlov on 20.09.2017
  */
 public class FullChainRunCtx {
+    private final boolean fakeStub;
     private Build chainResults;
     private List<MultBuildRunCtx> buildCfgsResults = new ArrayList<>();
 
     public FullChainRunCtx(Build chainResults ) {
         this.chainResults = chainResults;
+
+        fakeStub = chainResults.isFakeStub();
     }
 
     public int buildProblems() {
@@ -42,6 +45,7 @@ public class FullChainRunCtx {
     public String suiteId() {
         return chainResults.suiteId();
     }
+
     public String suiteName() {
         return chainResults.suiteName();
     }
@@ -115,5 +119,9 @@ public class FullChainRunCtx {
 
     public Stream<Future<?>> getRunningUpdates() {
         return getFutures().filter(Objects::nonNull).filter(future -> !future.isDone() && !future.isCancelled());
+    }
+
+    public boolean isFakeStub() {
+        return fakeStub;
     }
 }

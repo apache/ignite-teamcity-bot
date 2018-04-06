@@ -81,11 +81,9 @@ public class GetCurrTestFailures {
 
         tracked.chains.stream().parallel()
             .map(chainTracked -> {
-                final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
                 final String srvId = chainTracked.serverId;
                 final String branchForTc = chainTracked.getBranchForRestMandatory();
-                chainStatus.serverId = srvId;
-                chainStatus.branchName = branchForTc;
+                final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
                 try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId)) {
 
                     Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
@@ -181,13 +179,14 @@ public class GetCurrTestFailures {
                     .sorted(Comparator.comparing(BuildRef::getId).reversed())
                     .limit(limit).parallel()
                     .filter(b -> b.getId() != null).collect(Collectors.toList());
-            } else {
+            }
+            else {
                 List<BuildRef> finishedBuilds = new ArrayList<>();
                 Optional<BuildRef> buildRef = teamcity.getLastBuildIncludeSnDepFailed(suiteId, branchForTc);
 
                 buildRef.ifPresent(finishedBuilds::add);
 
-                chains= finishedBuilds;
+                chains = finishedBuilds;
             }
 
             boolean singleBuild = rebuild != LatestRebuildMode.ALL;
@@ -200,16 +199,18 @@ public class GetCurrTestFailures {
                 singleBuild,
                 true, teamcity);
 
-            final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
-            chainStatus.serverId = teamcity.serverId();
-            chainStatus.branchName = branchForTc;
+            final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverId(), branchForTc);
 
             pubCtx.ifPresent(ctx -> {
-                int cnt = (int)ctx.getRunningUpdates().count();
-                if (cnt > 0)
-                    runningUpdates.addAndGet(cnt);
+                if (ctx.isFakeStub())
+                    chainStatus.setBuildNotFound(true);
+                else {
+                    int cnt = (int)ctx.getRunningUpdates().count();
+                    if (cnt > 0)
+                        runningUpdates.addAndGet(cnt);
 
-                chainStatus.initFromContext(teamcity, ctx, teamcity);
+                    chainStatus.initFromContext(teamcity, ctx, teamcity);
+                }
             });
 
             res.addChainOnServer(chainStatus);

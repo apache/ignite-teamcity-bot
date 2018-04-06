@@ -25,6 +25,7 @@ class Settings {
 function showChainResultsWithSettings(result, settings) {
     var res = "";
     res += "Chain results";
+
     if (isDefinedAndFilled(result.failedTests) &&
         isDefinedAndFilled(result.failedToFinish)) {
         res += " [";
@@ -35,7 +36,7 @@ function showChainResultsWithSettings(result, settings) {
 
     for (var i = 0; i < result.servers.length; i++) {
         var server = result.servers[i];
-        res += showChainAtServerData(server, settings);
+        res += showChainCurrentStatusData(server, settings);
     }
 
     setTimeout(initMoreInfo, 100);
@@ -45,7 +46,11 @@ function showChainResultsWithSettings(result, settings) {
 
 
 //@param server - see ChainAtServerCurrentStatus
-function showChainAtServerData(server, settings) {
+function showChainCurrentStatusData(server, settings) {
+    if(isDefinedAndFilled(server.buildNotFound) && server.buildNotFound ) {
+        return "<b>Error: Build not found for branch [" + server.branchName + "]</b><br><br>";
+    }
+
     var res = "";
     var altTxt = "";
 

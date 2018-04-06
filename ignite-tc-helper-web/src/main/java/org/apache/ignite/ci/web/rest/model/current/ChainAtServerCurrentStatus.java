@@ -21,17 +21,20 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.cre
 import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.createOrrucForLongRun;
 
 /**
- * Represent Run All chain results/ or RunAll+latest re-runs
+ * Represent Run All chain results/ or RunAll+latest re-runs.
+ *
+ * Persisted as part of cached result. Renaming require background updater migration.
  */
 @SuppressWarnings({"WeakerAccess", "PublicField"})
 public class ChainAtServerCurrentStatus {
+    /** {@link org.apache.ignite.ci.tcmodel.conf.BuildType#name} */
     public String chainName;
 
     /** Server ID. */
-    public String serverId;
+    public final String serverId;
 
     /** Branch name in teamcity identification. */
-    public String branchName;
+    public final String branchName;
 
     /** Web Href. to suite runs history*/
     public String webToHist = "";
@@ -52,7 +55,16 @@ public class ChainAtServerCurrentStatus {
     /** top long running suites */
     public List<TestFailure> topLongRunning = new ArrayList<>();
 
+    /** top log data producing tests . */
     public List<TestFailure> logConsumers = new ArrayList<>();
+
+    /** Special flag if chain entry point not found */
+    public boolean buildNotFound;
+
+    public ChainAtServerCurrentStatus(String serverId, String branchTc) {
+        this.serverId = serverId;
+        this.branchName = branchTc;
+    }
 
     public void initFromContext(ITeamcity teamcity,
         FullChainRunCtx ctx,
@@ -150,12 +162,20 @@ public class ChainAtServerCurrentStatus {
             Objects.equal(suites, status.suites) &&
             Objects.equal(failedTests, status.failedTests) &&
             Objects.equal(failedToFinish, status.failedToFinish) &&
-            Objects.equal(durationPrintable, status.durationPrintable);
+            Objects.equal(durationPrintable, status.durationPrintable) &&
+            Objects.equal(logConsumers, status.logConsumers) &&
+            Objects.equal(topLongRunning, status.topLongRunning)&&
+            Objects.equal(buildNotFound, status.buildNotFound);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(chainName, serverId, branchName, webToHist, webToBuild, suites,
-            failedTests, failedToFinish, durationPrintable);
+            failedTests, failedToFinish, durationPrintable,
+            logConsumers, topLongRunning, buildNotFound);
+    }
+
+    public void setBuildNotFound(boolean buildNotFound) {
+        this.buildNotFound = buildNotFound;
     }
 }

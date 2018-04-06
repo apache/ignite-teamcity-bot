@@ -16,6 +16,7 @@ import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.changes.ChangesListRef;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Build from history with test and problems references
@@ -47,6 +48,10 @@ public class Build extends BuildRef implements IVersionedEntity {
     @XmlElement(name = "changes") public ChangesListRef changesRef;
 
     @SuppressWarnings("FieldCanBeLocal") public Integer _version = LATEST_VERSION;
+
+    @NotNull public static Build createFakeStub() {
+        return new Build();
+    }
 
     public List<BuildRef> getSnapshotDependenciesNonNull() {
         return snapshotDependencies == null ? Collections.emptyList() : snapshotDependencies;

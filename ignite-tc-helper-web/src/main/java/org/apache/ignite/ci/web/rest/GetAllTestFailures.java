@@ -98,9 +98,9 @@ public class GetAllTestFailures {
                     checkAllLogs != null && checkAllLogs ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED,
                     false, true, teamcity);
 
-                final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus();
-                chainStatus.serverId = teamcity.serverId();
-                chainStatus.branchName =branchTc;
+                final ChainAtServerCurrentStatus chainStatus
+                    = new ChainAtServerCurrentStatus(teamcity.serverId(), branchTc);
+
                 chainCtxOpt.ifPresent(chainCtx -> {
                     chainStatus.initFromContext(teamcity, chainCtx, teamcity);
 

@@ -331,7 +331,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         catch (Exception e) {
             if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
                 System.err.println("Exception " + e.getClass().getSimpleName() + ": " + e.getMessage());
-                return new Build();// save null result, because persistence may refer to some non-existent build on TC
+                return Build.createFakeStub();// save null result, because persistence may refer to some non-existent build on TC
             }
             else
                 throw e;
