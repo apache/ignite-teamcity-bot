@@ -17,6 +17,7 @@ import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
@@ -82,9 +83,10 @@ public class GetCurrTestFailures {
             .map(chainTracked -> {
                 final String srvId = chainTracked.serverId;
                 final String branchForTc = chainTracked.getBranchForRestMandatory();
+                final String failRateBranch = branchForTc; //branch is tracked
+
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
                 try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId)) {
-
                     Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
                         chainTracked.getSuiteIdMandatory(),
                         branchForTc,
@@ -96,7 +98,7 @@ public class GetCurrTestFailures {
                         if (cnt > 0)
                             runningUpdates.addAndGet(cnt);
 
-                        chainStatus.initFromContext(teamcity, ctx, teamcity);
+                        chainStatus.initFromContext(teamcity, ctx, teamcity, failRateBranch);
                     });
                 }
                 return chainStatus;
@@ -202,7 +204,8 @@ public class GetCurrTestFailures {
                     if (cnt > 0)
                         runningUpdates.addAndGet(cnt);
 
-                    chainStatus.initFromContext(teamcity, ctx, teamcity);
+                    //fail rate reference is always default (master)
+                    chainStatus.initFromContext(teamcity, ctx, teamcity, ITeamcity.DEFAULT);
                 }
             });
 

@@ -101,8 +101,11 @@ public class GetAllTestFailures {
                 final ChainAtServerCurrentStatus chainStatus
                     = new ChainAtServerCurrentStatus(teamcity.serverId(), branchTc);
 
+
+                String failRateBranch = branchTc; //for tracked branch reference is also current branch
+
                 chainCtxOpt.ifPresent(chainCtx -> {
-                    chainStatus.initFromContext(teamcity, chainCtx, teamcity);
+                    chainStatus.initFromContext(teamcity, chainCtx, teamcity, failRateBranch);
 
                     int cnt = (int)chainCtx.getRunningUpdates().count();
                     if (cnt > 0)

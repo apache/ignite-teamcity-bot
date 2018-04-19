@@ -25,9 +25,6 @@ public class PrintChainResults {
                 String suiteId = "IgniteTests24Java8_RunAll";
                 String branch = "<default>";
 
-                Function<String, RunStat> map = teamcity.getTestRunStatProvider();
-                System.out.println(map);
-                
                 pubCtx = BuildChainProcessor.loadChainsContext(teamcity, suiteId, branch, includeLatestRebuild, ProcessLogsMode.SUITE_NOT_COMPLETE);
             }
             try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {

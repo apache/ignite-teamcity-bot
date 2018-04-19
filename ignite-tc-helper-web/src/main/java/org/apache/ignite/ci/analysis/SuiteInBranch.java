@@ -1,8 +1,11 @@
 package org.apache.ignite.ci.analysis;
 
+import org.apache.ignite.ci.db.Persisted;
+
 /**
  * Created by dpavlov on 09.08.2017.
  */
+@Persisted
 public class SuiteInBranch implements Comparable<SuiteInBranch> {
     public String id;
     public String branch;
@@ -47,5 +50,9 @@ public class SuiteInBranch implements Comparable<SuiteInBranch> {
 
     public String getBranch() {
         return branch;
+    }
+
+    public String getSuiteId() {
+        return id;
     }
 }

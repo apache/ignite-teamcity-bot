@@ -22,9 +22,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.cache.Cache;
-import javax.cache.processor.EntryProcessor;
-import javax.cache.processor.EntryProcessorException;
-import javax.cache.processor.MutableEntry;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
@@ -34,6 +31,7 @@ import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -50,6 +48,8 @@ import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.xml.sax.SAXParseException;
+
+import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
 
 /**
  * Created by dpavlov on 03.08.2017
@@ -68,7 +68,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     public static final String LOG_CHECK_RESULT = "logCheckResult";
     public static final String CHANGE_INFO_FULL = "changeInfoFull";
     public static final String CHANGES_LIST = "changesList";
-    //todo need separate cache or separate key for run time because it is placed in statistics
+
+    //todo need separate cache or separate key for 'execution time' because it is placed in statistics
     public static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
     public static final String BUILDS = "builds";
 
@@ -107,7 +108,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         migrations.dataMigration(
             testOccurrencesCache(), this::addTestOccurrencesToStat,
             this::migrateOccurrencesToLatest,
-            buildsCache(), this::addBuildToFailuresStat);
+            buildsCache(), this::addBuildOccurrenceToFailuresStat,
+            buildsFailureRunStatCache(), testRunStatCache());
     }
 
     private IgniteCache<String, Build> buildsCache() {
@@ -187,6 +189,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
+
         return timedLoadIfAbsentOrMerge(FINISHED_BUILDS, 60, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> builds;
@@ -221,6 +224,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
+
         return timedLoadIfAbsentOrMerge("finishedBuildsIncludeFailed", 60, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch);
@@ -291,14 +295,14 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             if (statUpdateEnabled) {
                 // may check if branch is tracked and save anyway
                 //todo first touch of build here will cause build and its stat will be diverged
-                addBuildToFailuresStat(loaded);
+                addBuildOccurrenceToFailuresStat(loaded);
             }
         }
 
         return loaded;
     }
 
-    private void addBuildToFailuresStat(Build loaded) {
+    private void addBuildOccurrenceToFailuresStat(Build loaded) {
         if (loaded.isFakeStub())
             return;
 
@@ -306,15 +310,17 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         if (Strings.isNullOrEmpty(suiteId))
             return;
 
-        buildsFailureRunStatCache().invoke(suiteId, (entry, arguments) -> {
-            String buildCfgId = entry.getKey();
+        SuiteInBranch key = keyForBuild(loaded);
+
+        buildsFailureRunStatCache().invoke(key, (entry, arguments) -> {
+            SuiteInBranch buildCfgId = entry.getKey();
 
             Build build = (Build)arguments[0];
 
             RunStat val = entry.getValue();
 
             if (val == null)
-                val = new RunStat(buildCfgId);
+                val = new RunStat(buildCfgId.getSuiteId());
 
             val.addBuildRun(build);
 
@@ -322,6 +328,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
             return null;
         }, loaded);
+    }
+
+    @NotNull private SuiteInBranch keyForBuild(Build loaded) {
+        return new SuiteInBranch(loaded.suiteId(), normalizeBranch(loaded));
     }
 
     private Build realLoadBuild(String href1) {
@@ -359,28 +369,32 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public TestOccurrences getTests(String href) {
+    @Override public TestOccurrences getTests(String href, String normalizedBranch) {
         String hrefForDb = DbMigrations.removeCountFromRef(href);
 
         return loadIfAbsent(testOccurrencesCache(),
             hrefForDb,  //hack to avoid test reloading from store in case of href filter replaced
             hrefIgnored -> {
-                TestOccurrences loadedTests = teamcity.getTests(href);
+                TestOccurrences loadedTests = teamcity.getTests(href, normalizedBranch);
 
                 //todo first touch of build here will cause build and its stat will be diverged
-                addTestOccurrencesToStat(loadedTests);
+                addTestOccurrencesToStat(loadedTests, normalizedBranch);
 
                 return loadedTests;
             });
     }
 
     private void addTestOccurrencesToStat(TestOccurrences val) {
+        addTestOccurrencesToStat(val, ITeamcity.DEFAULT);
+    }
+
+    private void addTestOccurrencesToStat(TestOccurrences val, String normalizedBranch) {
         if (!statUpdateEnabled)
             return;
 
         //may use invoke all
         for (TestOccurrence next : val.getTests()) {
-            addTestOccurrenceToStat(next);
+            addTestOccurrenceToStat(next, normalizedBranch);
         }
     }
 
@@ -464,22 +478,35 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public Function<String, RunStat> getTestRunStatProvider() {
-        return name -> name == null ? null : testRunStatCache().get(name);
+    @Override public Function<TestInBranch, RunStat> getTestRunStatProvider() {
+        return key -> key == null ? null : testRunStatCache().get(key);
     }
+
 
     private Stream<RunStat> allTestAnalysis() {
         return StreamSupport.stream(testRunStatCache().spliterator(), false)
             .map(Cache.Entry::getValue);
     }
 
-    private Cache<String, RunStat> testRunStatCache() {
+    private IgniteCache<TestInBranch, RunStat> testRunStatCache() {
         return getOrCreateCacheV2(ignCacheNme(TESTS_RUN_STAT));
     }
 
     /** {@inheritDoc} */
-    @Override public Function<String, RunStat> getBuildFailureRunStatProvider() {
-        return name -> name == null ? null : buildsFailureRunStatCache().get(name);
+    @Override public Function<String, RunStat> getBuildFailureDefBranchRunStatProvider() {
+        return name -> {
+            if (name == null)
+                return null;
+
+            SuiteInBranch key = new SuiteInBranch(name, ITeamcity.DEFAULT);
+
+            return buildsFailureRunStatCache().get(key);
+        };
+    }
+
+    /** {@inheritDoc} */
+    @Override public Function<SuiteInBranch, RunStat> getBuildFailureRunStatProvider() {
+        return key -> key == null ? null : buildsFailureRunStatCache().get(key);
     }
 
     private Stream<RunStat> buildsFailureAnalysis() {
@@ -490,7 +517,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /**
      * @return cache from suite name to its failure statistics
      */
-    private IgniteCache<String, RunStat> buildsFailureRunStatCache() {
+    private IgniteCache<SuiteInBranch, RunStat> buildsFailureRunStatCache() {
         return getOrCreateCacheV2(ignCacheNme(BUILDS_FAILURE_RUN_STAT));
     }
 
@@ -498,7 +525,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return getOrCreateCacheV2(ignCacheNme(LOG_CHECK_RESULT));
     }
 
-    private void addTestOccurrenceToStat(TestOccurrence next) {
+    private void addTestOccurrenceToStat(TestOccurrence next, String normalizedBranch) {
         String name = next.getName();
         if (Strings.isNullOrEmpty(name))
             return;
@@ -506,25 +533,21 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         if (next.isMutedTest() || next.isIgnoredTest())
             return;
 
-        testRunStatCache().invoke(name, new EntryProcessor<String, RunStat, Object>() {
-            @Override
-            public Object process(MutableEntry<String, RunStat> entry,
-                Object... arguments) throws EntryProcessorException {
+        TestInBranch k = new TestInBranch(name, normalizedBranch);
 
-                String key = entry.getKey();
+        testRunStatCache().invoke(k, (entry, arguments) -> {
+            TestInBranch key = entry.getKey();
+            TestOccurrence testOccurrence = (TestOccurrence)arguments[0];
 
-                TestOccurrence testOccurrence = (TestOccurrence)arguments[0];
+            RunStat val = entry.getValue();
+            if (val == null)
+                val = new RunStat(key.getName());
 
-                RunStat val = entry.getValue();
-                if (val == null)
-                    val = new RunStat(key);
+            val.addTestRun(testOccurrence);
 
-                val.addTestRun(testOccurrence);
+            entry.setValue(val);
 
-                entry.setValue(val);
-
-                return null;
-            }
+            return null;
         }, next);
     }
 
@@ -546,13 +569,15 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         if (next.isMutedTest() || next.isIgnoredTest())
             return;
 
-        testRunStatCache().invoke(name, (entry, arguments) -> {
-            String key = entry.getKey();
+        TestInBranch k = new TestInBranch(name, ITeamcity.DEFAULT);
+
+        testRunStatCache().invoke(k, (entry, arguments) -> {
+            TestInBranch key = entry.getKey();
             TestOccurrence testOccurrence = (TestOccurrence)arguments[0];
 
             RunStat val = entry.getValue();
             if (val == null)
-                val = new RunStat(key);
+                val = new RunStat(key.name);
 
             val.addTestRunToLatest(testOccurrence);
 

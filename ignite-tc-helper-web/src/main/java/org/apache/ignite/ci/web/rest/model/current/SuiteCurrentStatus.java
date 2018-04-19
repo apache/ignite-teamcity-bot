@@ -17,11 +17,14 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.analysis.TestLogCheckResult;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 import org.jetbrains.annotations.NotNull;
 
+import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
 import static org.apache.ignite.ci.util.TimeUtil.getDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 
@@ -85,19 +88,36 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final MultBuildRunCtx suite,
-        @Nullable final ITcAnalytics tcAnalytics) {
+        @Nullable final ITcAnalytics tcAnalytics,
+        @Nullable final String failRateBranch) {
 
         name = suite.suiteName();
 
+        String failRateNormalizedBranch = normalizeBranch(failRateBranch);
+        String curBranchNormalized = normalizeBranch(suite.branchName());
+
         String suiteId = suite.suiteId();
         if (!Strings.isNullOrEmpty(suiteId) && tcAnalytics != null) {
-            final RunStat stat = tcAnalytics.getBuildFailureRunStatProvider().apply(suiteId);
+            {
+                SuiteInBranch key = new SuiteInBranch(suiteId, failRateNormalizedBranch);
 
-            if (stat != null) {
-                failures = stat.failures;
-                runs = stat.runs;
-                failureRate = stat.getFailPercentPrintable();
-                latestRuns = stat.getLatestRunResults();
+                final RunStat stat = tcAnalytics.getBuildFailureRunStatProvider().apply(key);
+
+                if (stat != null) {
+                    failures = stat.failures;
+                    runs = stat.runs;
+                    failureRate = stat.getFailPercentPrintable();
+                    latestRuns = stat.getLatestRunResults();
+                }
+            }
+
+
+            if (!failRateNormalizedBranch.equals(curBranchNormalized)) {
+                SuiteInBranch keyForStripe = new SuiteInBranch(suiteId, curBranchNormalized);
+
+                final RunStat statForStripe = tcAnalytics.getBuildFailureRunStatProvider().apply(keyForStripe);
+
+                latestRuns = statForStripe != null ? statForStripe.getLatestRunResults() : null;
             }
         }
 
@@ -116,7 +136,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         Stream<? extends ITestFailureOccurrences> tests = suite.getFailedTests();
         if (tcAnalytics != null) {
             Function<ITestFailureOccurrences, Float> function = foccur -> {
-                RunStat apply = tcAnalytics.getTestRunStatProvider().apply(foccur.getName());
+                TestInBranch branch = new TestInBranch(foccur.getName(), failRateNormalizedBranch);
+
+                RunStat apply = tcAnalytics.getTestRunStatProvider().apply(branch);
 
                 return apply == null ? 0f : apply.getFailRate();
             };
@@ -129,13 +151,13 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             final TestFailure failure = new TestFailure();
             failure.initFromOccurrence(occurrence, stream, teamcity, suite.projectId(), suite.branchName());
             if (tcAnalytics != null)
-                failure.initStat(tcAnalytics.getTestRunStatProvider());
+                failure.initStat(tcAnalytics.getTestRunStatProvider(), failRateNormalizedBranch, curBranchNormalized);
 
             testFailures.add(failure);
         });
 
         suite.getTopLongRunning().forEach(occurrence -> {
-            final TestFailure failure = createOrrucForLongRun(teamcity, suite, tcAnalytics, occurrence);
+            final TestFailure failure = createOrrucForLongRun(teamcity, suite, tcAnalytics, occurrence, failRateBranch);
 
             topLongRunning.add(failure);
         });
@@ -189,16 +211,22 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         return failure;
     }
 
-    @NotNull public static TestFailure createOrrucForLongRun(@Nonnull ITeamcity teamcity, @Nonnull MultBuildRunCtx suite,
-        @Nullable ITcAnalytics tcAnalytics, ITestFailureOccurrences occurrence) {
+    @NotNull public static TestFailure createOrrucForLongRun(@Nonnull ITeamcity teamcity,
+        @Nonnull MultBuildRunCtx suite,
+        @Nullable final ITcAnalytics tcAnalytics,
+        final ITestFailureOccurrences occurrence,
+        @Nullable final String failRateBranch) {
         final TestFailure failure = new TestFailure();
 
         Stream<TestOccurrenceFull> stream = suite.getFullTests(occurrence);
 
         failure.initFromOccurrence(occurrence, stream, teamcity, suite.projectId(), suite.branchName());
 
-        if (tcAnalytics != null)
-            failure.initStat(tcAnalytics.getTestRunStatProvider());
+        if (tcAnalytics != null) {
+            failure.initStat(tcAnalytics.getTestRunStatProvider(),
+                normalizeBranch(failRateBranch),
+                normalizeBranch(suite.branchName()));
+        }
 
         return failure;
     }

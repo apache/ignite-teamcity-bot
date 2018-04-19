@@ -326,7 +326,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return getJaxbUsingHref(href, ProblemOccurrences.class);
     }
 
-    public TestOccurrences getTests(String href) {
+    public TestOccurrences getTests(String href, String normalizedBranch) {
         return getJaxbUsingHref(href, TestOccurrences.class);
     }
 

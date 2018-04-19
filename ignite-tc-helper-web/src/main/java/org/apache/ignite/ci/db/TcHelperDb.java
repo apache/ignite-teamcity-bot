@@ -32,7 +32,7 @@ public class TcHelperDb {
         cfg.setGridLogger(new JavaLogger());
 
         final DataRegionConfiguration regConf = new DataRegionConfiguration();
-        regConf.setMaxSize(2L * 1024 * 1024 * 1024)
+        regConf.setMaxSize(6L * 1024 * 1024 * 1024)
             .setPersistenceEnabled(true);
 
         DataStorageConfiguration dsCfg = new DataStorageConfiguration();

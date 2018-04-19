@@ -6,8 +6,11 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
@@ -46,7 +49,9 @@ public class DbMigrations {
     public void dataMigration(
         IgniteCache<String, TestOccurrences> testOccurrencesCache, Consumer<TestOccurrences> saveTestToStat,
         Consumer<TestOccurrences> saveTestToLatest,
-        Cache<String, Build> buildCache, Consumer<Build> saveBuildToStat) {
+        Cache<String, Build> buildCache, Consumer<Build> saveBuildToStat,
+        IgniteCache<SuiteInBranch, RunStat> suiteHistCache,
+        IgniteCache<TestInBranch, RunStat> testHistCache) {
 
         doneMigrations = doneMigrationsCache();
 
@@ -163,6 +168,47 @@ public class DbMigrations {
 
             oldBuilds.destroy();
 
+        });
+
+        applyMigration("ReplaceKeyTypeOf-" + suiteHistCache.getName(), () -> {
+            int i = 0;
+            int size = suiteHistCache.size();
+
+            for (Cache.Entry<?, RunStat> next : suiteHistCache) {
+                Object key = next.getKey();
+
+                if (key instanceof String) {
+                    SuiteInBranch suiteKey = new SuiteInBranch((String)key, ITeamcity.DEFAULT);
+
+                    suiteHistCache.put(suiteKey, next.getValue());
+                    ((Cache)suiteHistCache).remove(key);
+
+                    System.out.println("Migrating entry " + i + " from " + size + ": " + suiteKey);
+                }
+
+                i++;
+            }
+        });
+
+
+        applyMigration("ReplaceKeyTypeOf-" + testHistCache.getName(), () -> {
+            int i = 0;
+            int size = testHistCache.size();
+
+            for (Cache.Entry<?, RunStat> next : testHistCache) {
+                Object key = next.getKey();
+
+                if (key instanceof String) {
+                    TestInBranch testKey = new TestInBranch((String)key, ITeamcity.DEFAULT);
+
+                    testHistCache.put(testKey, next.getValue());
+                    ((Cache)testHistCache).remove(key);
+
+                    System.out.println("Migrating entry " + i + " from " + size + ": " + testKey);
+                }
+
+                i++;
+            }
         });
     }
 

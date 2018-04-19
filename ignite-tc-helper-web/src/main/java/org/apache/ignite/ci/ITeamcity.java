@@ -88,7 +88,7 @@ public interface ITeamcity extends AutoCloseable {
 
     ProblemOccurrences getProblems(String href);
 
-    TestOccurrences getTests(String href);
+    TestOccurrences getTests(String href, String normalizedBranch);
 
     Statistics getBuildStat(String href);
 
@@ -142,7 +142,10 @@ public interface ITeamcity extends AutoCloseable {
         }
 
         if (build.testOccurrences != null && !build.isComposite()) {
-            List<TestOccurrence> tests = getTests(build.testOccurrences.href + TESTS_COUNT_7700).getTests();
+            String normalizedBranch = BuildChainProcessor.normalizeBranch(build);
+
+            List<TestOccurrence> tests
+                = getTests(build.testOccurrences.href + TESTS_COUNT_7700, normalizedBranch).getTests();
 
             mCtx.addTests(tests);
 

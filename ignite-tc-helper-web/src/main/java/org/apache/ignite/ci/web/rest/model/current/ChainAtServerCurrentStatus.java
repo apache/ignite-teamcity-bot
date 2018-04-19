@@ -68,15 +68,17 @@ public class ChainAtServerCurrentStatus {
 
     public void initFromContext(ITeamcity teamcity,
         FullChainRunCtx ctx,
-        @Nullable ITcAnalytics tcAnalytics) {
+        @Nullable ITcAnalytics tcAnalytics,
+        @Nullable String failRateBranch) {
         failedTests = 0;
         failedToFinish = 0;
         //todo mode with not failed
         Stream<MultBuildRunCtx> stream = ctx.failedChildSuites();
+
         stream.forEach(
             suite -> {
                 final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
-                suiteCurStatus.initFromContext(teamcity, suite, tcAnalytics);
+                suiteCurStatus.initFromContext(teamcity, suite, tcAnalytics, failRateBranch);
 
                 failedTests += suiteCurStatus.failedTests;
                 if (suite.hasAnyBuildProblemExceptTestOrSnapshot())
@@ -100,7 +102,7 @@ public class ChainAtServerCurrentStatus {
                 MultBuildRunCtx suite = pairCtxAndOccur.get1();
                 ITestFailureOccurrences longRunningOccur = pairCtxAndOccur.get2();
 
-                TestFailure failure = createOrrucForLongRun(teamcity, suite, tcAnalytics, longRunningOccur);
+                TestFailure failure = createOrrucForLongRun(teamcity, suite, tcAnalytics, longRunningOccur, failRateBranch);
 
                 failure.testName = "[" + suite.suiteName() + "] " + failure.testName; //may be separate field
 
@@ -112,10 +114,10 @@ public class ChainAtServerCurrentStatus {
         Stream<T2<MultBuildRunCtx, Map.Entry<String, Long>>> allLogConsumers = ctx.suites().stream().flatMap(
             suite -> suite.getTopLogConsumers().map(t->new T2<>(suite, t))
         );
-        Comparator<T2<MultBuildRunCtx, Map.Entry<String, Long>>> longConsumingComparator
+        Comparator<T2<MultBuildRunCtx, Map.Entry<String, Long>>> longConsumingComp
             = Comparator.comparing((pair) -> pair.get2().getValue());
 
-        CollectionUtil.top(allLogConsumers, 3, longConsumingComparator).forEach(
+        CollectionUtil.top(allLogConsumers, 3, longConsumingComp).forEach(
             pairCtxAndOccur -> {
                 MultBuildRunCtx suite = pairCtxAndOccur.get1();
                 Map.Entry<String, Long> testLogConsuming = pairCtxAndOccur.get2();

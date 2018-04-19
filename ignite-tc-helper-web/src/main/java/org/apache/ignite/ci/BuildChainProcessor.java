@@ -91,7 +91,8 @@ public class BuildChainProcessor {
                     if (includeLatestRebuild == LatestRebuildMode.NONE)
                         return Stream.of(buildRef);
 
-                    String branch = getBranchOrDefault(buildRef);
+                    final String branch = getBranchOrDefault(buildRef.branchName);
+
                     final List<BuildRef> builds = teamcity.getFinishedBuilds(buildRef.buildTypeId, branch);
 
                     if (includeLatestRebuild == LatestRebuildMode.LATEST) {
@@ -126,7 +127,7 @@ public class BuildChainProcessor {
         ArrayList<MultBuildRunCtx> contexts = new ArrayList<>(values);
         if (tcAnalytics != null) {
             Function<MultBuildRunCtx, Float> function = ctx -> {
-                RunStat runStat = tcAnalytics.getBuildFailureRunStatProvider().apply(ctx.suiteId());
+                RunStat runStat = tcAnalytics.getBuildFailureDefBranchRunStatProvider().apply(ctx.suiteId());
 
                 return runStat == null ? 0f : runStat.getFailRate();
             };
@@ -142,8 +143,8 @@ public class BuildChainProcessor {
         return fullChainRunCtx;
     }
 
-    @NotNull private static String getBranchOrDefault(BuildRef buildRef) {
-        return buildRef.branchName == null ? ITeamcity.DEFAULT : buildRef.branchName;
+    @NotNull private static String getBranchOrDefault(@Nullable String branchName) {
+        return branchName == null ? ITeamcity.DEFAULT : branchName;
     }
 
     public static boolean enshureUnique(Map<Integer, BuildRef> unique, BuildRef ref) {
@@ -181,8 +182,12 @@ public class BuildChainProcessor {
             outCtx.setContactPerson(contactPersonProps.getProperty(outCtx.suiteId()));
     }
 
-    @NotNull private static String normalizeBranch(BuildRef build) {
-        String branch = getBranchOrDefault(build);
+    @NotNull protected static String normalizeBranch(@NotNull final BuildRef build) {
+        return normalizeBranch(build.branchName);
+    }
+
+    @NotNull public static String normalizeBranch(@Nullable String branchName) {
+        String branch = getBranchOrDefault(branchName);
 
         if ("refs/heads/master".equals(branch))
             return ITeamcity.DEFAULT;
