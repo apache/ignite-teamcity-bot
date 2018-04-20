@@ -15,13 +15,6 @@ public interface ITcAnalytics {
      * Return build statistics for default branch provider
      * @return map from suite ID to its run statistics
      */
-    @Deprecated
-    Function<String, RunStat> getBuildFailureDefBranchRunStatProvider();
-
-    /**
-     * Return build statistics for default branch provider
-     * @return map from suite ID to its run statistics
-     */
     Function<SuiteInBranch, RunStat> getBuildFailureRunStatProvider();
 
     /**

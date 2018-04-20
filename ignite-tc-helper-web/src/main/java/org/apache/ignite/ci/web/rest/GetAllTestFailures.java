@@ -16,6 +16,7 @@ import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
@@ -86,23 +87,25 @@ public class GetAllTestFailures {
                 final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
                     projectId,
                     branchTc);
+
                 List<BuildRef> chains = builds.stream()
                     .filter(ref -> !ref.isFakeStub())
                     .sorted(Comparator.comparing(BuildRef::getId).reversed())
                     .limit(count).parallel()
                     .filter(b -> b.getId() != null).collect(Collectors.toList());
 
+                String failRateBranch = branchTc; //for tracked branch reference is also current branch
+
                 Optional<FullChainRunCtx> chainCtxOpt
                     = BuildChainProcessor.processBuildChains(teamcity,
                     LatestRebuildMode.ALL, chains,
                     checkAllLogs != null && checkAllLogs ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED,
-                    false, true, teamcity);
+                    false, true, teamcity, failRateBranch);
 
                 final ChainAtServerCurrentStatus chainStatus
                     = new ChainAtServerCurrentStatus(teamcity.serverId(), branchTc);
 
 
-                String failRateBranch = branchTc; //for tracked branch reference is also current branch
 
                 chainCtxOpt.ifPresent(chainCtx -> {
                     chainStatus.initFromContext(teamcity, chainCtx, teamcity, failRateBranch);

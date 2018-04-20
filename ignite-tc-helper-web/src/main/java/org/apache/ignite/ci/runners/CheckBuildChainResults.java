@@ -197,7 +197,7 @@ public class CheckBuildChainResults {
                 FullChainRunCtx ctx = BuildChainProcessor.loadChainsContext(teamcity,
                     singletonList(next),
                     LatestRebuildMode.NONE,
-                    ProcessLogsMode.DISABLED, null, false, null);
+                    ProcessLogsMode.DISABLED, null, false, null, ITeamcity.DEFAULT);
                 if (ctx == null)
                     return null;
 

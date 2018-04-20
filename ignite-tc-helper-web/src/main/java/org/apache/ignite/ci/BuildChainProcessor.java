@@ -17,6 +17,7 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
@@ -32,12 +33,13 @@ public class BuildChainProcessor {
         String suiteId,
         String branch,
         LatestRebuildMode rebuildMode,
-        ProcessLogsMode procLogs) {
+        ProcessLogsMode procLogs,
+        @Nullable String failRateBranch) {
         Optional<BuildRef> buildRef = teamcity.getLastBuildIncludeSnDepFailed(suiteId, branch);
 
         return buildRef.flatMap(
             build -> processBuildChains(teamcity, rebuildMode, singletonList(build),
-                procLogs, true, true, teamcity));
+                procLogs, true, true, teamcity, failRateBranch));
     }
 
     public static Optional<FullChainRunCtx> processBuildChains(
@@ -47,13 +49,15 @@ public class BuildChainProcessor {
         ProcessLogsMode procLogs,
         boolean includeScheduled,
         boolean showContacts,
-        @Nullable ITcAnalytics tcAnalytics) {
+        @Nullable ITcAnalytics tcAnalytics,
+        @Nullable String failRateBranch) {
 
         final Properties responsible = showContacts ? getContactPersonProperties(teamcity) : null;
 
         final FullChainRunCtx val = loadChainsContext(teamcity, builds,
             includeLatestRebuild,
-            procLogs, responsible, includeScheduled, tcAnalytics);
+            procLogs, responsible, includeScheduled, tcAnalytics,
+            failRateBranch);
 
         return Optional.of(val);
     }
@@ -69,7 +73,8 @@ public class BuildChainProcessor {
         ProcessLogsMode procLog,
         @Nullable Properties contactPersonProps,
         boolean includeScheduledInfo,
-        @Nullable ITcAnalytics tcAnalytics) {
+        @Nullable ITcAnalytics tcAnalytics,
+        @Nullable String failRateBranch) {
 
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
@@ -127,10 +132,13 @@ public class BuildChainProcessor {
         ArrayList<MultBuildRunCtx> contexts = new ArrayList<>(values);
         if (tcAnalytics != null) {
             Function<MultBuildRunCtx, Float> function = ctx -> {
-                RunStat runStat = tcAnalytics.getBuildFailureDefBranchRunStatProvider().apply(ctx.suiteId());
+                SuiteInBranch key = new SuiteInBranch(ctx.suiteId(), normalizeBranch(failRateBranch));
+
+                RunStat runStat = tcAnalytics.getBuildFailureRunStatProvider().apply(key);
 
                 return runStat == null ? 0f : runStat.getFailRate();
             };
+
             contexts.sort(Comparator.comparing(function).reversed());
         }
         else if (contactPersonProps != null)

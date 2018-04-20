@@ -41,18 +41,19 @@ public class GetChainResultsAsHtml {
 
         try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(CtxListener.getIgnite(context), serverId)) {
             teamcity.setExecutor(CtxListener.getPool(context));
-            teamcity.setStatUpdateEnabled(false);
 
             //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
             String hrefById = teamcity.getBuildHrefById(buildId);
             BuildRef build = new BuildRef();
             build.setId(buildId);
             build.href = hrefById;
+            String failRateBranch = ITeamcity.DEFAULT;
+
             Optional<FullChainRunCtx> ctxOptional =
                 BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,
                     Collections.singletonList(build),
                     ProcessLogsMode.SUITE_NOT_COMPLETE,
-                    false, false, teamcity);
+                    false, false, teamcity, failRateBranch);
 
             ctxOptional.ifPresent(ctx -> {
                 ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
@@ -71,7 +72,7 @@ public class GetChainResultsAsHtml {
 
                 status.chainName = ctx.suiteName();
 
-                status.initFromContext(teamcity, ctx, teamcity, ITeamcity.DEFAULT);
+                status.initFromContext(teamcity, ctx, teamcity, failRateBranch);
 
                 res.append(showChainAtServerData(status));
             });

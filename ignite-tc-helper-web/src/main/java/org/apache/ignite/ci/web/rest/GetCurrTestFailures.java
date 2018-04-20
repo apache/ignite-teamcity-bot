@@ -83,7 +83,7 @@ public class GetCurrTestFailures {
             .map(chainTracked -> {
                 final String srvId = chainTracked.serverId;
                 final String branchForTc = chainTracked.getBranchForRestMandatory();
-                final String failRateBranch = branchForTc; //branch is tracked
+                final String failRateBranch = branchForTc; //branch is tracked, so fail rate should be taken from branch data
 
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
                 try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId)) {
@@ -91,7 +91,8 @@ public class GetCurrTestFailures {
                         chainTracked.getSuiteIdMandatory(),
                         branchForTc,
                         LatestRebuildMode.LATEST,
-                        (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE);
+                        (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE,
+                        failRateBranch);
 
                     pubCtx.ifPresent(ctx -> {
                         int cnt = (int)ctx.getRunningUpdates().count();
@@ -156,7 +157,6 @@ public class GetCurrTestFailures {
         //using here non persistent TC allows to skip update statistic
         try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(CtxListener.getIgnite(context), srvId)) {
             teamcity.setExecutor(CtxListener.getPool(context));
-            teamcity.setStatUpdateEnabled(false);
 
             LatestRebuildMode rebuild;
             if (FullQueryParams.HISTORY.equals(action))
@@ -189,10 +189,12 @@ public class GetCurrTestFailures {
                 ? ProcessLogsMode.SUITE_NOT_COMPLETE
                 : ProcessLogsMode.DISABLED;
 
+            String failRateBranch = ITeamcity.DEFAULT;
+
             Optional<FullChainRunCtx> pubCtx = BuildChainProcessor.processBuildChains(teamcity, rebuild, chains,
                 logs,
                 singleBuild,
-                true, teamcity);
+                true, teamcity, failRateBranch);
 
             final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverId(), branchForTc);
 
@@ -205,7 +207,7 @@ public class GetCurrTestFailures {
                         runningUpdates.addAndGet(cnt);
 
                     //fail rate reference is always default (master)
-                    chainStatus.initFromContext(teamcity, ctx, teamcity, ITeamcity.DEFAULT);
+                    chainStatus.initFromContext(teamcity, ctx, teamcity, failRateBranch);
                 }
             });
 

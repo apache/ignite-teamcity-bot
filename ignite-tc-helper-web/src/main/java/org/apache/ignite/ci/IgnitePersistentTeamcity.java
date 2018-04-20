@@ -79,8 +79,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private final Ignite ignite;
     private final IgniteTeamcityHelper teamcity;
     private final String serverId;
-    /** Statistics update in persisted cached enabled. */
-    private boolean statUpdateEnabled = true;
 
     /** cached loads of full test occurrence. */
     private ConcurrentMap<String, CompletableFuture<TestOccurrenceFull>> testOccFullFutures = new ConcurrentHashMap<>();
@@ -292,11 +290,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         if (loaded.isFakeStub() || loaded.hasFinishDate()) {
             cache.put(href, loaded);
 
-            if (statUpdateEnabled) {
-                // may check if branch is tracked and save anyway
-                //todo first touch of build here will cause build and its stat will be diverged
-                addBuildOccurrenceToFailuresStat(loaded);
-            }
+            addBuildOccurrenceToFailuresStat(loaded);
         }
 
         return loaded;
@@ -389,10 +383,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     private void addTestOccurrencesToStat(TestOccurrences val, String normalizedBranch) {
-        if (!statUpdateEnabled)
-            return;
-
-        //may use invoke all
         for (TestOccurrence next : val.getTests()) {
             addTestOccurrenceToStat(next, normalizedBranch);
         }
@@ -493,18 +483,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public Function<String, RunStat> getBuildFailureDefBranchRunStatProvider() {
-        return name -> {
-            if (name == null)
-                return null;
-
-            SuiteInBranch key = new SuiteInBranch(name, ITeamcity.DEFAULT);
-
-            return buildsFailureRunStatCache().get(key);
-        };
-    }
-
-    /** {@inheritDoc} */
     @Override public Function<SuiteInBranch, RunStat> getBuildFailureRunStatProvider() {
         return key -> key == null ? null : buildsFailureRunStatCache().get(key);
     }
@@ -552,10 +530,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     private void migrateOccurrencesToLatest(TestOccurrences val) {
-        if (!statUpdateEnabled)
-            return;
-
-        //may use invoke all
         for (TestOccurrence next : val.getTests()) {
             migrateTestOneOcurrToAddToLatest(next);
         }
@@ -656,9 +630,5 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         lastTriggerMs = System.currentTimeMillis();
 
         teamcity.triggerBuild(id, name, queueAtTop);
-    }
-
-    public void setStatUpdateEnabled(boolean statUpdateEnabled) {
-        this.statUpdateEnabled = statUpdateEnabled;
     }
 }

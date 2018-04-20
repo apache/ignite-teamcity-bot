@@ -476,6 +476,8 @@ function drawLatestRuns(latestRuns) {
                 runColor = "red";
             else if (runCode == 2)
                 runColor = "grey";
+            else if (runCode == 3)
+                runColor = "black";
 
             res += "<span style='background-color: " + runColor + "; width:2px; height:10px; display: inline-block; border-width: 0px; border-color: black; border-style: solid;'></span>";
 
