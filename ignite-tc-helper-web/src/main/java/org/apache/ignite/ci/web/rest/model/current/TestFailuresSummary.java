@@ -62,4 +62,18 @@ import org.apache.ignite.internal.util.typedef.internal.U;
     @Override public int hashCode() {
         return Objects.hashCode(servers, failedTests, failedToFinish);
     }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        StringBuilder builder = new StringBuilder();
+
+        servers.forEach(
+            s -> {
+                if (s != null)
+                    builder.append(s.toString());
+            }
+        );
+
+        return builder.toString();
+    }
 }

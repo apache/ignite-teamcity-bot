@@ -53,9 +53,8 @@ function showVersionInfo(result) {
         res+= "<a href='"+result.srcWebUrl + "'>source code (GitHub)</a>. ";
     }
 
-    //todo width
     res += "Powered by <a href='https://ignite.apache.org/'>";
-    res += "<img src='https://pbs.twimg.com/profile_images/568493154500747264/xTBxO73F.png'>"
+    res += "<img width='16px' height='16px' src='https://pbs.twimg.com/profile_images/568493154500747264/xTBxO73F.png'>"
     res += "Apache Ignite</a> ";
 
     if(isDefinedAndFilled(result.ignVer)) {

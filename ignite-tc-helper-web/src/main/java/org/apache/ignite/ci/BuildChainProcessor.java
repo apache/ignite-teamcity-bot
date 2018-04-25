@@ -91,7 +91,7 @@ public class BuildChainProcessor {
             .unordered()
             .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
             .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
-            .filter(ref -> enshureUnique(unique, ref))
+            .filter(ref -> ensureUnique(unique, ref))
             .flatMap((BuildRef buildRef) -> {
                     if (includeLatestRebuild == LatestRebuildMode.NONE)
                         return Stream.of(buildRef);
@@ -109,7 +109,7 @@ public class BuildChainProcessor {
                     if (includeLatestRebuild == LatestRebuildMode.ALL) {
                         return builds.stream()
                             .filter(ref -> !ref.isFakeStub())
-                            .filter(ref -> enshureUnique(unique, ref))
+                            .filter(ref -> ensureUnique(unique, ref))
                             .sorted(Comparator.comparing(BuildRef::getId).reversed())
                             .limit(entryPoints.size()); // applying same limit
                     }
@@ -155,7 +155,7 @@ public class BuildChainProcessor {
         return branchName == null ? ITeamcity.DEFAULT : branchName;
     }
 
-    public static boolean enshureUnique(Map<Integer, BuildRef> unique, BuildRef ref) {
+    private static boolean ensureUnique(Map<Integer, BuildRef> unique, BuildRef ref) {
         if (ref.isFakeStub())
             return false;
 

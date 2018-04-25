@@ -52,6 +52,14 @@ public class GetCurrTestFailures {
     }
 
     @GET
+    @Path("failures/txt")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String getTestFailsText(@Nullable @QueryParam("branch") String branchOrNull,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+        return getTestFails(branchOrNull, checkAllLogs).toString();
+    }
+
+    @GET
     @Path("failures")
     public TestFailuresSummary getTestFails(
         @Nullable @QueryParam("branch") String branchOrNull,

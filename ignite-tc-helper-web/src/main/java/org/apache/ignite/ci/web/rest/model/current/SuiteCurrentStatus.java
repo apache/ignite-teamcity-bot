@@ -262,6 +262,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         return branchName == null || "refs/heads/master".equals(branchName) ? "<default>" : branchName;
     }
 
+    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
@@ -290,10 +291,25 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             Objects.equal(warnOnly, status.warnOnly);
     }
 
+    /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(name, result, webToHist, webToBuild, contactPerson, testFailures,
             topLongRunning, webUrlThreadDump, runningBuildCount, queuedBuildCount, serverId,
             suiteId, branchName, failures, runs, failureRate, userCommits, failedTests, durationPrintable,
             warnOnly);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        StringBuilder builder = new StringBuilder();
+
+        builder.append("[").append(name).append("]").append("\n");
+
+        testFailures.forEach(
+            tf -> builder.append(tf.toString())
+        );
+        builder.append("\n");
+
+        return builder.toString();
     }
 }

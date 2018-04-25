@@ -199,4 +199,9 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
         return Objects.hashCode(name, suiteName, testName, curFailures, failures, runs, failureRate,
             webUrl, webIssueUrl, webIssueText, investigated, durationPrintable, warnings);
     }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return "\t" +  name + "\n";
+    }
 }

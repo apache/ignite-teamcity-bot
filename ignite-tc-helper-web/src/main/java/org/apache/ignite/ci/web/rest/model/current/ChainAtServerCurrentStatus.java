@@ -36,7 +36,7 @@ public class ChainAtServerCurrentStatus {
     /** Branch name in teamcity identification. */
     public final String branchName;
 
-    /** Web Href. to suite runs history*/
+    /** Web Href. to suite runs history. */
     public String webToHist = "";
 
     /** Web Href. to suite particular run */
@@ -92,7 +92,7 @@ public class ChainAtServerCurrentStatus {
         webToBuild = buildWebLinkToBuild(teamcity, ctx);
 
         Stream<T2<MultBuildRunCtx, ITestFailureOccurrences>> allLongRunning = ctx.suites().stream().flatMap(
-            suite -> suite.getTopLongRunning().map(t->new T2<>(suite, t))
+            suite -> suite.getTopLongRunning().map(t -> new T2<>(suite, t))
         );
         Comparator<T2<MultBuildRunCtx, ITestFailureOccurrences>> durationComp
             = Comparator.comparing((pair) -> pair.get2().getAvgDurationMs());
@@ -110,9 +110,8 @@ public class ChainAtServerCurrentStatus {
             }
         );
 
-
         Stream<T2<MultBuildRunCtx, Map.Entry<String, Long>>> allLogConsumers = ctx.suites().stream().flatMap(
-            suite -> suite.getTopLogConsumers().map(t->new T2<>(suite, t))
+            suite -> suite.getTopLogConsumers().map(t -> new T2<>(suite, t))
         );
         Comparator<T2<MultBuildRunCtx, Map.Entry<String, Long>>> longConsumingComp
             = Comparator.comparing((pair) -> pair.get2().getValue());
@@ -132,7 +131,7 @@ public class ChainAtServerCurrentStatus {
     }
 
     private static String buildWebLinkToBuild(ITeamcity teamcity, FullChainRunCtx chain) {
-        return teamcity.host() + "viewLog.html?buildId=" + chain.getSuiteBuildId() ;
+        return teamcity.host() + "viewLog.html?buildId=" + chain.getSuiteBuildId();
     }
 
     private static String buildWebLink(ITeamcity teamcity, FullChainRunCtx suite) {
@@ -166,7 +165,7 @@ public class ChainAtServerCurrentStatus {
             Objects.equal(failedToFinish, status.failedToFinish) &&
             Objects.equal(durationPrintable, status.durationPrintable) &&
             Objects.equal(logConsumers, status.logConsumers) &&
-            Objects.equal(topLongRunning, status.topLongRunning)&&
+            Objects.equal(topLongRunning, status.topLongRunning) &&
             Objects.equal(buildNotFound, status.buildNotFound);
     }
 
@@ -179,5 +178,18 @@ public class ChainAtServerCurrentStatus {
 
     public void setBuildNotFound(boolean buildNotFound) {
         this.buildNotFound = buildNotFound;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        StringBuilder builder = new StringBuilder();
+
+        builder.append("{").append(serverName()).append("}\n");
+        suites.forEach(
+            s -> builder.append(s.toString())
+        );
+        builder.append("\n");
+
+        return builder.toString();
     }
 }
