@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ignite Values Formatting</title>
+    <link rel="icon" href="http://simons1call.com/images/companies/1/icons/icon-tree.png">
+    <script>
+      var storIdx = 'ignValData'; //  Define friendly index name
+
+      function nl(t) {
+           var res = "<br>";
+           for (var j = 0; j < t; j++)
+               res += "&nbsp; &nbsp; ";
+
+            return res;
+      }
+
+      function doConvert() {
+          var value = document.getElementById("taInput").value;
+          var res = "";
+
+          var t = 0;
+          var ll = 0;
+          for (var i = 0; i < value.length; i++) {
+              var ch = value.charAt(i);
+              if (ch == "[") {
+                  t++;
+
+                  res += ch + nl(t);
+                  ll=0;
+
+                  continue;
+              }
+              if (ch == "]") {
+                  t--;
+                  res += nl(t) + ch;
+                  ll=100;
+
+                  continue;
+              }
+
+              if (ch == '\n') {
+                  res += nl(t);
+                  ll=0;
+
+                  continue;
+              }
+
+              if(ch == ',' && ll>2) {
+                  res += ch+ nl(t);
+                  ll=0;
+                  continue;
+
+              }
+
+              res += ch;
+              ll++;
+          }
+
+
+          document.getElementById("divResult").innerHTML = res;
+
+          try {
+              window.sessionStorage.setItem(storIdx, value);
+          } catch (e) {}
+      }
+
+      function load() {
+          try {
+              // getter: Fetch previous value
+              var oldValue = window.sessionStorage.getItem(storIdx);
+
+              if (oldValue != null) {
+                  document.getElementById("taInput").value = oldValue;
+                  doConvert();
+              }
+          } catch (e) {
+              // getter: Always default to first tab in error state
+              var oldIndex = 0;
+          }
+      }
+
+      document.addEventListener("DOMContentLoaded", function(event) {
+          load();
+      });
+    </script>
+</head>
+<body>
+<textarea  rows="6" cols="150" id="taInput"></textarea><br>
+<button onclick="doConvert()">Format</button><br>
+<div id="divResult" style=" font-family: monospace;"></div>
+</body>
+</html>
