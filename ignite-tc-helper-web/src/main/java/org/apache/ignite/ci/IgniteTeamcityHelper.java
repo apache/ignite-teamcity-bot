@@ -76,7 +76,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
-    public IgniteTeamcityHelper(String tcName) {
+    public IgniteTeamcityHelper(@Nullable String tcName) {
         this.tcName = tcName;
         final File workDir = HelperConfig.resolveWorkDir();
 

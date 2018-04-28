@@ -2,6 +2,7 @@ package org.apache.ignite.ci.conf;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Created by Дмитрий on 05.11.2017.
@@ -18,5 +19,9 @@ public class BranchTracked {
 
     public List<ChainAtServerTracked> getChains() {
         return chains;
+    }
+
+    public Stream<ChainAtServerTracked> getChainsStream() {
+        return getChains().stream();
     }
 }

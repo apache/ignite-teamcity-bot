@@ -17,7 +17,7 @@ public class BranchesTracked {
     }
 
     public Set<ChainAtServer> chainAtServers() {
-        return branches.stream().flatMap(tracked -> tracked.getChains().stream()).collect(Collectors.toSet());
+        return branches.stream().flatMap(BranchTracked::getChainsStream).collect(Collectors.toSet());
     }
 
     public Optional<BranchTracked> get(String branch) {
@@ -26,5 +26,9 @@ public class BranchesTracked {
 
     public BranchTracked getBranchMandatory(String branch) {
         return get(branch).orElseThrow(() -> new RuntimeException("Branch not found: " + branch));
+    }
+
+    public Set<String> getServerIds() {
+        return branches.stream().flatMap(BranchTracked::getChainsStream).map(ChainAtServer::getServerId).collect(Collectors.toSet());
     }
 }

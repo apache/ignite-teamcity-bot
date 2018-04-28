@@ -35,11 +35,21 @@ function loadData() {
         },
         error: showErrInLoadStatus
     });
+
     $.ajax({
         url: "rest/branches/suites",
         success: function(result) {
             $("#loadStatus").html("");
             showSuitesForPrCheckData(result);
+        },
+        error: showErrInLoadStatus
+    });
+
+     $.ajax({
+        url: "rest/branches/getServerIds",
+        success: function(result) {
+            $("#loadStatus").html("");
+            showBuildsOnServers(result);
         },
         error: showErrInLoadStatus
     });
@@ -81,6 +91,23 @@ function showSuitesForPrCheckData(result) {
     }
     $("#suitesForPrCheck").html(res);
 }
+
+
+function showBuildsOnServers(result) {
+    var res = "";
+    for (var i = 0; i < result.length; i++) {
+        var serverId = result[i];
+        //res+="<a href='pr.html?serverId=private&branchForTc=ignite-gg-12790-1&suiteId=id8xIgniteGridGainTests_RunAll="+id+"'>Check PR</a><br>";
+
+        res+="<form action='build.html'>";
+        res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
+        res+="Check Logs: <input type='text' name='checkAllLogs' style='width: 20%;' value='true' readonly>" ;
+        res+="Build Id: <input type='text' name='buildId' required> "
+        res+="<input type='submit' name='action' value='Check'>";
+        res+="</form>";
+    }
+    $("#buildsCheck").html(res);
+}
 </script>
 </head>
 <body>
@@ -98,6 +125,10 @@ Statistics:   <br>
 
 Check branch/PR:   <br>
 <div id="suitesForPrCheck"></div>
+<br>
+
+Check build:   <br>
+<div id="buildsCheck"></div>
 <br>
 
 

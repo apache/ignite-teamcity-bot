@@ -51,5 +51,11 @@ public class GetTrackedBranches {
     public Set<ChainAtServer> getSuites() {
         return HelperConfig.getTrackedBranches().chainAtServers();
     }
-    //http://localhost:8080/pr.html?serverId=private&branchForTc=ignite-gg-12790-1&suiteId=id8xIgniteGridGainTests_RunAll
+
+    @GET
+    @Path("getServerIds")
+    public Set<String> getServerIds() {
+        return HelperConfig.getTrackedBranches().getServerIds();
+    }
+
 }

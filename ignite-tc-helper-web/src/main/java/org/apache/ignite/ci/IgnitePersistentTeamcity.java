@@ -92,7 +92,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     //todo: not good code to keep it static
     private static long lastTriggerMs = System.currentTimeMillis();
 
-    public IgnitePersistentTeamcity(Ignite ignite, String srvId) {
+    public IgnitePersistentTeamcity(Ignite ignite, @Nullable String srvId) {
         this(ignite, new IgniteTeamcityHelper(srvId));
     }
 

@@ -1,5 +1,6 @@
 package org.apache.ignite.ci;
 
+import com.google.common.base.Strings;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,9 +24,10 @@ public class TcHelper implements ITcHelper {
         if(stop.get())
             throw new IllegalStateException("Shutdown");
 
-        return servers.computeIfAbsent(serverId,
+        return servers.computeIfAbsent(Strings.nullToEmpty(serverId),
             k -> {
-                IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite, serverId);
+                IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite,
+                    Strings.emptyToNull(serverId));
                 
                 teamcity.setExecutor(getService());
 

@@ -31,4 +31,8 @@ public class ChainAtServer {
         result = 31 * result + suiteId.hashCode();
         return result;
     }
+
+    @Nullable public String getServerId() {
+        return serverId;
+    }
 }

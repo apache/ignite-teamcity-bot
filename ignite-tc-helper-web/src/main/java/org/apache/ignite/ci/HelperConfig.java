@@ -15,6 +15,7 @@ import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.util.Base64Util;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -69,7 +70,7 @@ public class HelperConfig {
         return prefixedWithServerName(tcName, CONFIG_FILE_NAME);
     }
 
-    private static String prefixedWithServerName(String tcName, String name) {
+    private static String prefixedWithServerName(@Nullable String tcName, String name) {
         return isNullOrEmpty(tcName) ? name : (tcName + "." + name);
     }
 

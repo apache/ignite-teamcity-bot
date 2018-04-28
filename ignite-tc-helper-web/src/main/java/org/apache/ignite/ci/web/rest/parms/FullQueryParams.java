@@ -38,8 +38,10 @@ public class FullQueryParams {
 
     /** Enables all logs to be loaded locally without relation to run/failure category. */
     @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs;
+    private Integer buildId;
 
-    public FullQueryParams() {}
+    public FullQueryParams() {
+    }
 
     public FullQueryParams(String serverId, String suiteId, String branchForTc, String action, Integer count) {
         this.serverId = serverId;
@@ -89,11 +91,12 @@ public class FullQueryParams {
             Objects.equal(branchForTc, param.branchForTc) &&
             Objects.equal(action, param.action) &&
             Objects.equal(count, param.count) &&
-            Objects.equal(checkAllLogs, param.checkAllLogs);
+            Objects.equal(checkAllLogs, param.checkAllLogs) &&
+            Objects.equal(buildId, param.buildId);
     }
 
     @Override public int hashCode() {
-        return Objects.hashCode(branch, serverId, suiteId, branchForTc, action, count, checkAllLogs);
+        return Objects.hashCode(branch, serverId, suiteId, branchForTc, action, count, checkAllLogs, buildId);
     }
 
     public void setBranch(@Nullable String branch) {
@@ -113,10 +116,23 @@ public class FullQueryParams {
             .add("action", action)
             .add("count", count)
             .add("checkAllLogs", checkAllLogs)
+            .add("buildId", buildId)
             .toString();
     }
 
     public void setCount(@Nullable int count) {
         this.count = count;
+    }
+
+    public void setBuildId(Integer buildId) {
+        this.buildId = buildId;
+    }
+
+    public void setServerId(@Nullable String serverId) {
+        this.serverId = serverId;
+    }
+
+    public Integer getBuildId() {
+        return buildId;
     }
 }
