@@ -27,6 +27,9 @@ public class RunStat {
     /** Result of test execution, muted failure found. */
     private static final int RES_MUTED_FAILURE = 2;
 
+    /** Result of suite: Critical failure, no results. */
+    private static final int RES_CRITICAL_FAILURE = 3;
+
     public int runs;
     public int failures;
     public long totalDurationMs;
@@ -174,8 +177,17 @@ public class RunStat {
 
         int resCode = build.isSuccess() ? RES_OK : RES_FAILURE;
 
-        addRunToLatest(new TestId(build.getId(), 0), resCode);
+        setBuildResCode(build.getId(), resCode);
     }
+
+    private void setBuildResCode(Integer buildId, int resCode) {
+        addRunToLatest(new TestId(buildId, 0), resCode);
+    }
+
+    public void setBuildCriticalError(Integer bId) {
+        setBuildResCode(bId, RES_CRITICAL_FAILURE);
+    }
+
 
     /** {@inheritDoc} */
     @Override public String toString() {
@@ -194,7 +206,6 @@ public class RunStat {
 
         return new ArrayList<>(latestRunResults.values());
     }
-
 
     private static class TestId implements Comparable<TestId> {
         int buildId ;

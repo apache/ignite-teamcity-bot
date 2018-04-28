@@ -307,14 +307,14 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         SuiteInBranch key = keyForBuild(loaded);
 
         buildsFailureRunStatCache().invoke(key, (entry, arguments) -> {
-            SuiteInBranch buildCfgId = entry.getKey();
+            SuiteInBranch suiteInBranch = entry.getKey();
 
             Build build = (Build)arguments[0];
 
             RunStat val = entry.getValue();
 
             if (val == null)
-                val = new RunStat(buildCfgId.getSuiteId());
+                val = new RunStat(suiteInBranch.getSuiteId());
 
             val.addBuildRun(build);
 
@@ -355,11 +355,52 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.host();
     }
 
-    /** {@inheritDoc} */
-    @Override public ProblemOccurrences getProblems(String href) {
+    /** {@inheritDoc}*/
+    @Override public ProblemOccurrences getProblems(Build build) {
+        String href = build.problemOccurrences.href;
+        
         return loadIfAbsent(PROBLEMS,
             href,
-            teamcity::getProblems);
+            k -> {
+                ProblemOccurrences problems = teamcity.getProblems(build);
+
+                registerCriticalBuildProblemInStat(build, problems);
+
+
+                return problems;
+            });
+    }
+
+    private void registerCriticalBuildProblemInStat(Build build, ProblemOccurrences problems) {
+        boolean criticalFail = problems.getProblemsNonNull().stream().anyMatch(occurrence ->
+            occurrence.isExecutionTimeout() || occurrence.isJvmCrash());
+
+        String suiteId = build.suiteId();
+        Integer buildId = build.getId();
+
+        if (!criticalFail)
+            return;
+
+        if (buildId != null && !Strings.isNullOrEmpty(suiteId)) {
+            SuiteInBranch key = new SuiteInBranch(suiteId, normalizeBranch(build));
+
+            buildsFailureRunStatCache().invoke(key, (entry, arguments) -> {
+                SuiteInBranch suiteInBranch = entry.getKey();
+
+                Integer bId = (Integer)arguments[0];
+
+                RunStat val = entry.getValue();
+
+                if (val == null)
+                    val = new RunStat(suiteInBranch.getSuiteId());
+
+                val.setBuildCriticalError(bId);
+
+                entry.setValue(val);
+
+                return null;
+            }, buildId);
+        }
     }
 
     /** {@inheritDoc} */

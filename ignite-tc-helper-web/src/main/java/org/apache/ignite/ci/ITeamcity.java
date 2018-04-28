@@ -86,7 +86,11 @@ public interface ITeamcity extends AutoCloseable {
      */
     public String host();
 
-    ProblemOccurrences getProblems(String href);
+    /**
+     * @param build
+     * @return
+     */
+    ProblemOccurrences getProblems(Build build);
 
     TestOccurrences getTests(String href, String normalizedBranch);
 
@@ -113,7 +117,7 @@ public interface ITeamcity extends AutoCloseable {
     default SingleBuildRunCtx loadTestsAndProblems(@Nonnull Build build, @Deprecated MultBuildRunCtx mCtx) {
         SingleBuildRunCtx ctx = new SingleBuildRunCtx(build);
         if (build.problemOccurrences != null) {
-            List<ProblemOccurrence> problems = getProblems(build.problemOccurrences.href).getProblemsNonNull();
+            List<ProblemOccurrence> problems = getProblems(build).getProblemsNonNull();
 
             mCtx.addProblems(problems);
             ctx.setProblems(problems);
