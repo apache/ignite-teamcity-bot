@@ -18,7 +18,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @Persisted
 public class RunStat {
-    public static final int MAX_LATEST_RUNS = 40;
+    public static final int MAX_LATEST_RUNS = 50;
     private static final int RES_OK = 0;
 
     /** Result: general failure of test or suite. */
@@ -30,8 +30,12 @@ public class RunStat {
     /** Result of suite: Critical failure, no results. */
     private static final int RES_CRITICAL_FAILURE = 3;
 
-    public int runs;
-    public int failures;
+    /** Runs registered all the times. */
+    private int runs;
+
+    /** Failures registered all the times. */
+    private int failures;
+
     public long totalDurationMs;
     public int runsWithDuration;
 
@@ -139,8 +143,34 @@ public class RunStat {
         return name;
     }
 
-    public float getFailRate() {
+    public float getFailRateAllTimes() {
+        if (runs == 0)
+            return 1.0f;
+
         return 1.0f * failures / runs;
+    }
+
+    /**
+     * @return float representing fail rate
+     */
+    public float getFailRate() {
+        int runs = getRunsCount();
+
+        if (runs == 0)
+            return getFailRateAllTimes();
+
+        return 1.0f * getFailuresCount() / runs;
+    }
+
+    public int getFailuresCount() {
+        if (latestRunResults == null)
+            return 0;
+
+        return (int)latestRunResults.values().stream().filter(res -> res != RES_OK).count();
+    }
+
+    public int getRunsCount() {
+        return latestRunResults == null ? 0 : latestRunResults.size();
     }
 
     public String getFailPercentPrintable() {

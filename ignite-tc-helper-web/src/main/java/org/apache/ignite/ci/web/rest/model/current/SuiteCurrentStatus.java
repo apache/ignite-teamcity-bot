@@ -67,10 +67,10 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Branch name in teamcity identification. */
     public String branchName;
 
-    /** Total registered number of failures from TC helper DB */
+    /** Latest registered number of failures from TC helper DB */
     @Nullable public Integer failures;
 
-    /** Registered number of runs from TC helper DB */
+    /** Latest registered number of runs from TC helper DB */
     @Nullable public Integer runs;
 
     /** Registered percent of fails from TC helper DB */
@@ -104,8 +104,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
                 final RunStat stat = tcAnalytics.getBuildFailureRunStatProvider().apply(key);
 
                 if (stat != null) {
-                    failures = stat.failures;
-                    runs = stat.runs;
+                    failures = stat.getFailuresCount();
+                    runs = stat.getRunsCount();
                     failureRate = stat.getFailPercentPrintable();
                     latestRuns = stat.getLatestRunResults();
                 }

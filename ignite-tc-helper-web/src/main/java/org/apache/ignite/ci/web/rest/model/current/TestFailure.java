@@ -158,8 +158,8 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
         final RunStat stat = runStatSupplier.apply(testInBranch);
 
         if (stat != null) {
-            failures = stat.failures;
-            runs = stat.runs;
+            failures = stat.getFailuresCount();
+            runs = stat.getRunsCount();
             failureRate = stat.getFailPercentPrintable();
 
             latestRuns = stat.getLatestRunResults();
