@@ -376,8 +376,8 @@ function showTestFailData(testFail, isFailureShown, settings) {
         var altForWarn = "";
         if (!isDefinedAndFilled(testFail.failureRate) || !isDefinedAndFilled(testFail.runs)) {
             altForWarn = "No fail rate info, probably new failure or suite critical failure";
-        } else if (testFail.failures < 3) {
-            altForWarn = "Test failures count is low < 3, probably new test introduced";
+        } else if (testFail.failures == 1) {
+            altForWarn = "Test failures count is low = 1, probably new test introduced";
         } else if (testFail.runs < 10) {
             altForWarn = "Test runs count is low < 10, probably new test introduced";
         }
@@ -464,28 +464,50 @@ function showTestFailData(testFail, isFailureShown, settings) {
 }
 
 function drawLatestRuns(latestRuns) {
-    var res ="";
-    res += "<span title='Latest master runs history from right to left is oldest to newest. Red-failed,green-passed'>";
-        for (var i = 0; i < latestRuns.length; i++) {
+    var res = "";
+    res += "<span title='Latest master runs history from right to left is oldest to newest. Red-failed,green-passed,black-timeout'>";
 
-            var runCode = latestRuns[i];
-            var runColor = "white";
-            if (runCode == 0)
-                runColor = "green";
-            else if (runCode == 1)
-                runColor = "red";
-            else if (runCode == 2)
-                runColor = "grey";
-            else if (runCode == 3)
-                runColor = "black";
+    // res += "<span style='background-color: white; width:" + ((50-latestRuns.length) * 2) + "px; height:10px; display: inline-block;'></span>";
 
-            res += "<span style='background-color: " + runColor + "; width:2px; height:10px; display: inline-block; border-width: 0px; border-color: black; border-style: solid;'></span>";
+    var len = 1;
+    var prevState = null;
+    for (var i = 0; i < latestRuns.length; i++) {
+        var runCode = latestRuns[i];
 
+        if (prevState == null) {
+            //skip
+        } else if (prevState == runCode) {
+            len++;
+        } else {
+            res += drawLatestRunsBlock(prevState, len);
+            len = 1;
         }
-        res += "</span> ";
 
-        return res;
+        prevState = runCode;
+    }
+    if (prevState != null) {
+        res += drawLatestRunsBlock(prevState, len);
+    }
+    res += "</span> ";
+
+    return res;
 }
+
+function drawLatestRunsBlock(state, len) {
+    var runColor = "white";
+
+    if (state == 0)
+        runColor = "green";
+    else if (state == 1)
+        runColor = "red";
+    else if (state == 2)
+        runColor = "grey";
+    else if (state == 3)
+        runColor = "black";
+
+    return "<span style='background-color: " + runColor + "; width:" + (len * 2) + "px; height:10px; display: inline-block;'></span>";
+}
+
 
 function initMoreInfo() {
     $(".header").unbind("click");
