@@ -136,7 +136,11 @@ public class BuildChainProcessor {
 
                 RunStat runStat = tcAnalytics.getBuildFailureRunStatProvider().apply(key);
 
-                return runStat == null ? 0f : runStat.getFailRate();
+                if (runStat == null)
+                    return 0f;
+
+                //some hack to bring timed out suites to top
+                return runStat.getCriticalFailRate() * 3.14f + runStat.getFailRate();
             };
 
             contexts.sort(Comparator.comparing(function).reversed());

@@ -143,11 +143,26 @@ public class RunStat {
         return name;
     }
 
-    public float getFailRateAllTimes() {
+    public float getFailRateAllHist() {
         if (runs == 0)
             return 1.0f;
 
         return 1.0f * failures / runs;
+    }
+
+    public int getFailuresAllHist() {
+        return failures;
+    }
+
+    public int getRunsAllHist() {
+        return runs;
+    }
+
+    /**
+     * @return
+     */
+    public String getFailPercentAllHistPrintable() {
+        return getPercentPrintable(getFailRateAllHist() * 100.0f);
     }
 
     /**
@@ -157,9 +172,22 @@ public class RunStat {
         int runs = getRunsCount();
 
         if (runs == 0)
-            return getFailRateAllTimes();
+            return 1.0f;
 
         return 1.0f * getFailuresCount() / runs;
+    }
+
+
+    /**
+     * @return float representing fail rate
+     */
+    public float getCriticalFailRate() {
+        int runs = getRunsCount();
+
+        if (runs == 0)
+            return 1.0f;
+
+        return 1.0f * getCriticalFailuresCount() / runs;
     }
 
     public int getFailuresCount() {
@@ -169,21 +197,27 @@ public class RunStat {
         return (int)latestRunResults.values().stream().filter(res -> res != RES_OK).count();
     }
 
+    public int getCriticalFailuresCount() {
+        if (latestRunResults == null)
+            return 0;
+
+        return (int)latestRunResults.values().stream().filter(res -> res == RES_CRITICAL_FAILURE).count();
+    }
+
     public int getRunsCount() {
         return latestRunResults == null ? 0 : latestRunResults.size();
     }
 
     public String getFailPercentPrintable() {
-        float percent = getFailPercent();
-        return getPercentPrintable(percent);
+        return getPercentPrintable(getFailRate() * 100.0f);
     }
 
-    private String getPercentPrintable(float percent) {
+    public String getCriticalFailPercentPrintable() {
+        return getPercentPrintable(getCriticalFailRate() * 100.0f);
+    }
+
+    private static String getPercentPrintable(float percent) {
         return String.format("%.1f", percent).replace(".", ",");
-    }
-
-    private float getFailPercent() {
-        return getFailRate() * 100.0f;
     }
 
     public long getAverageDurationMs() {

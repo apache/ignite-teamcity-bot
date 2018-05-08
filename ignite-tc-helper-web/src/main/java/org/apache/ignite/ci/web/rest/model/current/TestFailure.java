@@ -24,7 +24,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
 /**
  * UI model for test failure, probably merged with its history
  */
-@SuppressWarnings("WeakerAccess") public class TestFailure {
+@SuppressWarnings("WeakerAccess") public class TestFailure extends FailureSummary {
     /** Test full Name */
     public String name;
 
@@ -37,17 +37,11 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     /** Current filtered failures count, Usually 0 for get current */
     public Integer curFailures;
 
-    /** Registered number of failures from TC helper DB */
-    @Nullable public Integer failures;
-
-    /** Registered number of runs from TC helper DB */
-    @Nullable public Integer runs;
-
-    /** Registered percent of fails from TC helper DB, comma is always used as separator char. */
-    @Nullable public String failureRate;
-
     /** Latest runs, 0,1,2 values for each run. */
     @Nullable public List<Integer> latestRuns;
+
+    /** Failure summary in tracked branch according to all runs history. */
+    @Nonnull public FailureSummary failsAllHist = new FailureSummary();
 
     /** Link to test history */
     @Nullable public String webUrl;
@@ -162,6 +156,10 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
             runs = stat.getRunsCount();
             failureRate = stat.getFailPercentPrintable();
 
+            failsAllHist.failures = stat.getFailuresAllHist();
+            failsAllHist.runs = stat.getRunsAllHist();
+            failsAllHist.failureRate = stat.getFailPercentAllHistPrintable();
+
             latestRuns = stat.getLatestRunResults();
         }
 
@@ -174,6 +172,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
         }
     }
 
+    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
@@ -188,6 +187,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
             Objects.equal(failures, failure.failures) &&
             Objects.equal(runs, failure.runs) &&
             Objects.equal(failureRate, failure.failureRate) &&
+            Objects.equal(failsAllHist, failure.failsAllHist) &&
             Objects.equal(webUrl, failure.webUrl) &&
             Objects.equal(webIssueUrl, failure.webIssueUrl) &&
             Objects.equal(webIssueText, failure.webIssueText) &&
@@ -195,8 +195,9 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
             Objects.equal(warnings, failure.warnings);
     }
 
+    /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(name, suiteName, testName, curFailures, failures, runs, failureRate,
+        return Objects.hashCode(name, suiteName, testName, curFailures, failures, runs, failureRate, failsAllHist,
             webUrl, webIssueUrl, webIssueText, investigated, durationPrintable, warnings);
     }
 

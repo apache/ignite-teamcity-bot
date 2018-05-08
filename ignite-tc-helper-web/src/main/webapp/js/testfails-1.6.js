@@ -220,19 +220,30 @@ function triggerBuilds(serverId, suiteIdList, branchName, top) {
 function showSuiteData(suite, settings) {
     var res = "";
     var altTxt = "";
+    var moreInfoTxt = "";
 
     if (isDefinedAndFilled(suite.userCommits) && suite.userCommits != "") {
-        altTxt += "Last commits from: " + suite.userCommits + " <br>";
+        moreInfoTxt += "Last commits from: " + suite.userCommits + " <br>";
     }
 
-    altTxt += "Duration: " + suite.durationPrintable + " <br>";
+    moreInfoTxt += "Duration: " + suite.durationPrintable + " <br>";
+
+    altTxt += "Duration: " + suite.durationPrintable + "; ";
     res += "&nbsp; ";
 
     var failRateText = "";
     if (isDefinedAndFilled(suite.failures) && isDefinedAndFilled(suite.runs) && isDefinedAndFilled(suite.failureRate)) {
-        altTxt += "Stat: " + suite.failures + " fails / " + suite.runs + " runs in all tracked branches in helper DB";
         failRateText += "(fail rate " + suite.failureRate + "%)";
-        altTxt += "; " + failRateText + " <br>   ";
+
+        moreInfoTxt += "Recent fails : "+ suite.failureRate +"% [" + suite.failures + " fails / " + suite.runs + " runs]; <br> " ;
+
+        if(isDefinedAndFilled(suite.failsAllHist) && isDefinedAndFilled(suite.failsAllHist.failures)) {
+            moreInfoTxt += "All hist fails: "+ suite.failsAllHist.failureRate +"% [" + suite.failsAllHist.failures + " fails / " + suite.failsAllHist.runs + " runs]; <br> " ;
+        }
+
+        if(isDefinedAndFilled(suite.criticalFails) && isDefinedAndFilled(suite.criticalFails.failures)) {
+            moreInfoTxt += "Critical recent fails: "+ suite.criticalFails.failureRate +"% [" + suite.criticalFails.failures + " fails / " + suite.criticalFails.runs + " runs]; <br> " ;
+        }
     }
     var color = failureRateToColor(suite.failureRate);
     res += " <span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + failRateText + "'></span> ";
@@ -277,7 +288,7 @@ function showSuiteData(suite, settings) {
         mInfo += " title='trigger build at top of queue'>top</a><br>";
     }
 
-    mInfo += altTxt;
+    mInfo += moreInfoTxt;
 
     if (isDefinedAndFilled(suite.topLongRunning) && suite.topLongRunning.length > 0) {
         mInfo += "Top long running:<br>"
@@ -376,8 +387,8 @@ function showTestFailData(testFail, isFailureShown, settings) {
         var altForWarn = "";
         if (!isDefinedAndFilled(testFail.failureRate) || !isDefinedAndFilled(testFail.runs)) {
             altForWarn = "No fail rate info, probably new failure or suite critical failure";
-        } else if (testFail.failures == 1) {
-            altForWarn = "Test failures count is low = 1, probably new test introduced";
+        } else if (testFail.failures < 2) {
+            altForWarn = "Test failures count is low < 2, probably new test introduced";
         } else if (testFail.runs < 10) {
             altForWarn = "Test runs count is low < 10, probably new test introduced";
         }
@@ -413,7 +424,16 @@ function showTestFailData(testFail, isFailureShown, settings) {
     var haveWeb = isDefinedAndFilled(testFail.webUrl);
     var histContent = "";
     if (isFailureShown && testFail.failures != null && testFail.runs != null) {
-        histContent += " <span title='" + testFail.failures + " fails / " + testFail.runs + " runs in all tracked branches in helper DB'>";
+        var testFailTitle = "recent rate: " + testFail.failures + " fails / " + testFail.runs + " runs" ;
+
+        if(isDefinedAndFilled(testFail.failsAllHist) && isDefinedAndFilled(testFail.failsAllHist.failures)) {
+            testFailTitle +=
+                 "; all history: " + testFail.failsAllHist.failureRate + "% ["+
+                  testFail.failsAllHist.failures + " fails / " +
+                  testFail.failsAllHist.runs + " runs] " ;
+        }
+
+        histContent += " <span title='" +testFailTitle + "'>";
         if (isDefinedAndFilled(testFail.failureRate))
             histContent += "(fail rate " + testFail.failureRate + "%)";
         else

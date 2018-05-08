@@ -31,7 +31,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 /**
  * Represent Suite result
  */
-@SuppressWarnings("WeakerAccess") public class SuiteCurrentStatus {
+@SuppressWarnings("WeakerAccess") public class SuiteCurrentStatus extends FailureSummary {
     /** Suite Name */
     public String name;
 
@@ -67,14 +67,11 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Branch name in teamcity identification. */
     public String branchName;
 
-    /** Latest registered number of failures from TC helper DB */
-    @Nullable public Integer failures;
+    /** Failure summary in tracked branch according to all runs history. */
+    @Nonnull public FailureSummary failsAllHist = new FailureSummary();
 
-    /** Latest registered number of runs from TC helper DB */
-    @Nullable public Integer runs;
-
-    /** Registered percent of fails from TC helper DB */
-    @Nullable public String failureRate;
+    /** Failure summary in tracked branch according to all runs history. */
+    @Nonnull public FailureSummary criticalFails = new FailureSummary();
 
     /** Latest runs, 0,1,3 values for each run. */
     @Nullable public List<Integer> latestRuns;
@@ -107,6 +104,15 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
                     failures = stat.getFailuresCount();
                     runs = stat.getRunsCount();
                     failureRate = stat.getFailPercentPrintable();
+
+                    criticalFails.failures = stat.getCriticalFailuresCount();
+                    criticalFails.runs = runs;
+                    criticalFails.failureRate = stat.getCriticalFailPercentPrintable();
+
+                    failsAllHist.failures = stat.getFailuresAllHist();
+                    failsAllHist.runs = stat.getRunsAllHist();
+                    failsAllHist.failureRate = stat.getFailPercentAllHistPrintable();
+
                     latestRuns = stat.getLatestRunResults();
                 }
             }
@@ -285,6 +291,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             Objects.equal(failures, status.failures) &&
             Objects.equal(runs, status.runs) &&
             Objects.equal(failureRate, status.failureRate) &&
+            Objects.equal(failsAllHist, status.failsAllHist) &&
+            Objects.equal(criticalFails, status.criticalFails) &&
             Objects.equal(userCommits, status.userCommits) &&
             Objects.equal(failedTests, status.failedTests) &&
             Objects.equal(durationPrintable, status.durationPrintable)&&
@@ -295,7 +303,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     @Override public int hashCode() {
         return Objects.hashCode(name, result, webToHist, webToBuild, contactPerson, testFailures,
             topLongRunning, webUrlThreadDump, runningBuildCount, queuedBuildCount, serverId,
-            suiteId, branchName, failures, runs, failureRate, userCommits, failedTests, durationPrintable,
+            suiteId, branchName, failures, runs, failureRate,
+            failsAllHist, criticalFails, userCommits, failedTests, durationPrintable,
             warnOnly);
     }
 
