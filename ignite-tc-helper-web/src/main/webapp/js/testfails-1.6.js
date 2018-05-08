@@ -47,6 +47,9 @@ function showChainResultsWithSettings(result, settings) {
 
 //@param server - see ChainAtServerCurrentStatus
 function showChainCurrentStatusData(server, settings) {
+    if(!isDefinedAndFilled(server))
+        return;
+
     if(isDefinedAndFilled(server.buildNotFound) && server.buildNotFound ) {
         return "<b>Error: Build not found for branch [" + server.branchName + "]</b><br><br>";
     }
