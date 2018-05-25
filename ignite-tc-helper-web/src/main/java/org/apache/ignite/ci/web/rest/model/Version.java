@@ -1,9 +1,8 @@
 package org.apache.ignite.ci.web.rest.model;
 
 @SuppressWarnings("PublicField") public class Version {
-
     /** TC Helper Version. */
-    public String version = "20180508";
+    public String version = "20180525";
 
     /** Ignite version. */
     public String ignVer;
