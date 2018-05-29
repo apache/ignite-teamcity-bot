@@ -124,10 +124,11 @@ function showChainCurrentStatusData(server, settings) {
         }
     }
 
-    res += "<span class='container'>";
-    res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
-    res += "<div class='content'>";
-    res += mInfo + "</div></span>";
+    if(!isDefinedAndFilled(findGetParameter("reportMode"))) {
+        res += "<span class='container'>";
+        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += "<div class='content'>" + mInfo + "</div></span>";
+    }
 
     res += "<br><br>";
 
@@ -317,10 +318,11 @@ function showSuiteData(suite, settings) {
         }
     }
 
-    res += "<span class='container'>";
-    res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
-    res += "<div class='content'>";
-    res += mInfo + "</div></span>";
+    if(!isDefinedAndFilled(findGetParameter("reportMode"))) {
+        res += "<span class='container'>";
+        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += "<div class='content'>" + mInfo + "</div></span>";
+    }
 
     res += " <br>";
 
@@ -386,7 +388,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
     }
 
     var bold = false;
-    if (isFailureShown) {
+    if (isFailureShown && !isDefinedAndFilled(findGetParameter("reportMode"))) {
         var altForWarn = "";
         if (!isDefinedAndFilled(testFail.failureRate) || !isDefinedAndFilled(testFail.runs)) {
             altForWarn = "No fail rate info, probably new failure or suite critical failure";
@@ -462,7 +464,8 @@ function showTestFailData(testFail, isFailureShown, settings) {
         res += "</span> ";
 
 
-    if (isDefinedAndFilled(testFail.warnings) && testFail.warnings.length > 0) {
+    if (isDefinedAndFilled(testFail.warnings) && testFail.warnings.length > 0
+        && !isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
         res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
 
@@ -487,6 +490,9 @@ function showTestFailData(testFail, isFailureShown, settings) {
 }
 
 function drawLatestRuns(latestRuns) {
+    if(isDefinedAndFilled(findGetParameter("reportMode")))
+        return "";
+
     var res = "";
     res += "<span title='Latest master runs history from right to left is oldest to newest. Red-failed,green-passed,black-timeout'>";
 
