@@ -14,6 +14,7 @@ import org.apache.ignite.ci.detector.IssueList;
 import org.apache.ignite.ci.detector.IssuesStorage;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.rest.TriggerBuild;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.rest.model.current.UpdateInfo;
@@ -48,7 +49,7 @@ public class TcIssues {
         @Nullable @QueryParam("count") Integer count,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
-        return new UpdateInfo();//.copyFrom(listIssues(branchOrNull, count, checkAllLogs));
+        return new UpdateInfo(); //.copyFrom(listIssues(branchOrNull, count, checkAllLogs));
     }
 
     @GET
@@ -64,6 +65,17 @@ public class TcIssues {
 
         IssuesStorage issues = helper.issues();
 
-        return new IssueList(issues.all());
+        IssueList issueList = new IssueList(issues.all());
+
+        issueList.branch = branch;
+
+        return issueList;
     }
+
+    @GET
+    @Path("clear")
+    public TriggerBuild.TriggerResult clear(@Nullable @QueryParam("branch") String branchOpt) {
+        return new TriggerBuild.TriggerResult("Ok");
+    }
+
 }

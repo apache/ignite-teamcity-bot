@@ -33,17 +33,31 @@ public class TcHelperDb {
 
         final DataRegionConfiguration regConf = new DataRegionConfiguration();
         regConf.setMaxSize(6L * 1024 * 1024 * 1024)
-            .setPersistenceEnabled(true);
+                .setPersistenceEnabled(true);
 
         DataStorageConfiguration dsCfg = new DataStorageConfiguration();
         dsCfg.setWalMode(WALMode.LOG_ONLY)
-            .setWalHistorySize(1)
-            .setCheckpointFrequency(60 * 1000)
-            .setDefaultDataRegionConfiguration(regConf);
+                .setWalHistorySize(1)
+                .setCheckpointFrequency(60 * 1000)
+                .setDefaultDataRegionConfiguration(regConf);
         cfg.setDataStorageConfiguration(dsCfg);
 
         final Ignite ignite = Ignition.start(cfg);
-        ignite.active(true);
+        ignite.cluster().active(true);
+        return ignite;
+    }
+
+
+    public static Ignite startClient() {
+        final IgniteConfiguration cfg = new IgniteConfiguration();
+
+        setupDisco(cfg);
+        cfg.setGridLogger(new JavaLogger());
+
+        cfg.setClientMode(true);
+
+        final Ignite ignite = Ignition.start(cfg);
+        ignite.cluster().active(true);
         return ignite;
     }
 

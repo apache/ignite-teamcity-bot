@@ -5,6 +5,8 @@ import java.util.List;
 
 public class IssueList {
 
+    public String branch;
+
     private List<Issue> issues;
 
     public IssueList(List<Issue> all) {

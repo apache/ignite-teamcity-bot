@@ -1,5 +1,6 @@
 package org.apache.ignite.ci;
 
+import org.apache.ignite.ci.detector.IssueDetector;
 import org.apache.ignite.ci.detector.IssuesStorage;
 
 /**
@@ -10,4 +11,6 @@ public interface ITcHelper {
     IAnalyticsEnabledTeamcity server(String serverId);
 
     IssuesStorage issues();
+
+    IssueDetector issueDetector();
 }

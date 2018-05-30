@@ -16,6 +16,14 @@ public class EmailSender {
         // Recipient's email ID needs to be mentioned.
         String to = "dpavlov.spb@gmail.com";
 
+        String html = "<p>This is actual message</p>";
+
+        String subject = "This is the Subject Line!";
+
+        sendEmail(to, subject, html);
+    }
+
+    public static void sendEmail(String to, String subject, String html) {
         Properties cfgProps = HelperConfig.loadEmailSettings();
         String username = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.USERNAME, HelperConfig. MAIL_PROPS);
         String enc = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.ENCODED_PASSWORD, HelperConfig.MAIL_PROPS);
@@ -36,7 +44,7 @@ public class EmailSender {
         // Get the default Session object.
 
         Session session = Session.getInstance(props,
-                new javax.mail.Authenticator() {
+                new Authenticator() {
                     protected PasswordAuthentication getPasswordAuthentication() {
                         return new PasswordAuthentication(username, password);
                     }
@@ -52,10 +60,10 @@ public class EmailSender {
             message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
 
             // Set Subject: header field
-            message.setSubject("This is the Subject Line!");
+            message.setSubject(subject);
 
             // Send the actual HTML message, as big as you like
-            message.setContent("<p>This is actual message</p>", "text/html");
+            message.setContent(html, "text/html");
 
             // Send message
             Transport.send(message);
@@ -63,6 +71,5 @@ public class EmailSender {
         } catch (MessagingException mex) {
             mex.printStackTrace();
         }
-
     }
 }

@@ -2,55 +2,46 @@ package org.apache.ignite.ci.detector;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
-import org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus;
-import org.apache.ignite.ci.web.rest.model.current.TestFailure;
-import org.apache.ignite.ci.web.rest.model.current.TestFailuresSummary;
 
 import javax.cache.Cache;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class IssuesStorage {
+    public static final String ISSUES = "issues";
     private Ignite ignite;
 
     public IssuesStorage(Ignite ignite) {
         this.ignite = ignite;
     }
 
-    private IgniteCache<Object, Issue> cache( ) {
-        return ignite.getOrCreateCache("issues");
+    IgniteCache<IssueKey, Issue> cache() {
+        return ignite.getOrCreateCache(ISSUES);
     }
 
     public List<Issue> all() {
         List<Issue> res = new ArrayList<>();
 
-        for (Cache.Entry<Object, Issue> next : cache()) {
+        for (Cache.Entry<IssueKey, Issue> next : cache()) {
+            if (next.getValue().issueKey() == null)
+                continue;
+
             res.add(next.getValue());
         }
 
         return res;
     }
 
-    public void registerNewIssues(TestFailuresSummary res) {
-        List<ChainAtServerCurrentStatus> servers = res.servers;
+    public boolean needNotify(IssueKey issueKey, String to) {
+        Issue issue = cache().get(issueKey);
+        if (issue == null)
+            return false;
 
-        for (ChainAtServerCurrentStatus next : servers) {
-            for (SuiteCurrentStatus suiteCurrentStatus : next.suites) {
+        boolean add = issue.addressNotified.add(to);
 
-                List<TestFailure> testFailures = suiteCurrentStatus.testFailures;
-                for (TestFailure testFailure : testFailures) {
+        if (add)
+            cache().put(issueKey, issue);
 
-                    if (testFailure.problemRef != null) {
-                        Issue val = new Issue();
-                        val.objectId = testFailure.name;
-                        val.displayType = testFailure.problemRef.name;
-
-                        cache().put(testFailure.name, val);
-                    }
-                }
-            }
-        }
+        return add;
     }
 }

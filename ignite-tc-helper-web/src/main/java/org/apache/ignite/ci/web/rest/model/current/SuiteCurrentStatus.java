@@ -352,4 +352,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         return builder.toString();
     }
+
+    public String branchName() {
+        return branchName;
+    }
 }

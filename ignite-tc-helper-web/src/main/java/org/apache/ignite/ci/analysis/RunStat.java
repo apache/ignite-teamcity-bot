@@ -328,6 +328,14 @@ public class RunStat {
     }
 
     public static class TestId implements Comparable<TestId> {
+        public int getBuildId() {
+            return buildId;
+        }
+
+        public int getTestId() {
+            return testId;
+        }
+
         int buildId;
         int testId;
 

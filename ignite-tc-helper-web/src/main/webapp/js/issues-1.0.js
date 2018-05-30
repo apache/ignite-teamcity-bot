@@ -13,7 +13,21 @@ function showIssues(result) {
     for (var i = 0; i < result.issues.length; i++) {
         var issue = result.issues[i];
 
-        res += issue.displayType + " " + issue.objectId;
+        res += issue.displayType;
+
+        res += " " + issue.issueKey.testOrBuildName;
+
+        if(isDefinedAndFilled(issue.addressNotified)) {
+            res += "Notified: [";
+
+             for (var j = 0; j < issue.addressNotified.length; j++) {
+                var addressNotified = issue.addressNotified[j];
+
+                res+=addressNotified + ", "
+             }
+             res+="]";
+        }
+
         res += "<br>";
     }
 

@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.detector.IssueDetector;
 import org.apache.ignite.ci.detector.IssuesStorage;
 import org.apache.ignite.ci.web.TcUpdatePool;
 
@@ -17,10 +18,14 @@ public class TcHelper implements ITcHelper {
     private Ignite ignite;
     private TcUpdatePool tcUpdatePool = new TcUpdatePool();
     private IssuesStorage issuesStorage;
+    private IssueDetector detector;
 
     public TcHelper(Ignite ignite) {
         this.ignite = ignite;
+
         issuesStorage = new IssuesStorage(ignite);
+
+        detector = new IssueDetector(ignite, issuesStorage);
     }
 
     @Override public IAnalyticsEnabledTeamcity server(String serverId) {
@@ -41,6 +46,11 @@ public class TcHelper implements ITcHelper {
     @Override
     public IssuesStorage issues() {
         return issuesStorage;
+    }
+
+    @Override
+    public IssueDetector issueDetector() {
+        return detector;
     }
 
     public void close() {

@@ -119,15 +119,7 @@ public class GetCurrTestFailures {
 
         res.postProcess(runningUpdates.get());
 
-        Ignite ignite = CtxListener.getIgnite(context);
-
-
-        ignite.scheduler().runLocal(
-                ()->{
-                    helper.issues().registerNewIssues(res);
-
-                },10, TimeUnit.SECONDS
-        );
+        helper.issueDetector().registerIssuesLater(res, helper);
 
         return res;
     }
