@@ -1,28 +1,42 @@
 package org.apache.ignite.ci.tcmodel.result.tests;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 
 /**
  * Created by dpavlov on 20.09.2017
  */
+@XmlAccessorType(XmlAccessType.FIELD)
 public class TestOccurrence {
-    @XmlAttribute public String id;
-    @XmlAttribute public String name;
-    @XmlAttribute public String status;
-    @XmlAttribute public Integer duration;
-    @XmlAttribute public String href;
+    public static final String STATUS_SUCCESS = "SUCCESS";
+    @XmlAttribute
+    private String id;
 
-    @XmlAttribute public Boolean muted;
-    @XmlAttribute public Boolean currentlyMuted;
-    @XmlAttribute public Boolean currentlyInvestigated;
-    @XmlAttribute public Boolean ignored;
+    @XmlAttribute
+    public String name;
+    @XmlAttribute
+    public String status;
+    @XmlAttribute
+    public Integer duration;
+    @XmlAttribute
+    public String href;
+
+    @XmlAttribute
+    public Boolean muted;
+    @XmlAttribute
+    public Boolean currentlyMuted;
+    @XmlAttribute
+    public Boolean currentlyInvestigated;
+    @XmlAttribute
+    public Boolean ignored;
 
     public String getName() {
         return name;
     }
 
     public boolean isFailedTest() {
-        return !"SUCCESS".equals(status);
+        return !STATUS_SUCCESS.equals(status);
     }
 
     public boolean isMutedTest() {
@@ -54,5 +68,17 @@ public class TestOccurrence {
 
     public long getDuration() {
         return duration != null ? duration : 0;
+    }
+
+    public TestOccurrence setId(String id) {
+        this.id = id;
+
+        return this;
+    }
+
+    public TestOccurrence setStatus(String status) {
+        this.status = status;
+
+        return this;
     }
 }

@@ -14,6 +14,9 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.detector.EventTemplate;
+import org.apache.ignite.ci.detector.EventTemplates;
+import org.apache.ignite.ci.detector.ProblemRef;
 import org.apache.ignite.ci.logs.LogMsgToWarn;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
@@ -34,7 +37,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     /** test short name with class and method */
     @Nullable public String testName;
 
-    /** Current filtered failures count, Usually 0 for get current */
+    /** Current filtered failures count, Usually 1 for get current */
     public Integer curFailures;
 
     /** Latest runs, 0,1,2 values for each run. */
@@ -58,6 +61,8 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
     @Nullable public String durationPrintable;
 
     public List<String> warnings = new ArrayList<>();
+
+    @Nullable public ProblemRef problemRef;
 
     /**
      * @param failure
@@ -160,15 +165,28 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
             failsAllHist.runs = stat.getRunsAllHist();
             failsAllHist.failureRate = stat.getFailPercentAllHistPrintable();
 
-            latestRuns = stat.getLatestRunResults();
         }
 
-        if(!curBranchNormalized.equals(failRateNormalizedBranch)) {
+        RunStat latestRunsSrc = null;
+
+        if (!curBranchNormalized.equals(failRateNormalizedBranch)) {
             TestInBranch testInBranchS = new TestInBranch(name, curBranchNormalized);
 
-            RunStat apply = runStatSupplier.apply(testInBranchS);
+            latestRunsSrc = runStatSupplier.apply(testInBranchS);
+        } else
+            latestRunsSrc = stat;
 
-            latestRuns = apply != null ? apply.getLatestRunResults() : null;
+        latestRuns = latestRunsSrc != null ? latestRunsSrc.getLatestRunResults() : null;
+
+        if (latestRunsSrc != null) {
+            RunStat.TestId testId = latestRunsSrc.detectTemplate(EventTemplates.newFailure);
+
+            if (testId != null) {
+                //if(latestRunsSrc.detectTemplate(EventTemplates.fixOfFailure)==null)
+                    problemRef = new ProblemRef("New Failure");
+                //else
+                //    problemRef = new ProblemRef("Fixed Failure");
+            }
         }
     }
 

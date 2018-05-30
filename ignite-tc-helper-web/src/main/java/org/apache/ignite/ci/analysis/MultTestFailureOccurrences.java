@@ -50,7 +50,7 @@ public class MultTestFailureOccurrences implements ITestFailureOccurrences {
     }
 
     public void add(TestOccurrence next) {
-        if (next.id == null)
+        if (next.getId() == null)
             return;
 
         occurrences.add(next);

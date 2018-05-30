@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 public class TcUpdatePool {
     private ThreadFactory threadFactory = Executors.defaultThreadFactory();
 
-    private ExecutorService service = Executors.newFixedThreadPool(20, r -> {
+    private ExecutorService service = Executors.newFixedThreadPool(32, r -> {
         Thread thread = threadFactory.newThread(r);
 
         thread.setName("tc-upd-" + thread.getName());

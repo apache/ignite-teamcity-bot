@@ -2,13 +2,12 @@ package org.apache.ignite.ci.analysis;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.SortedMap;
-import java.util.TreeMap;
+
+import java.util.*;
 import javax.annotation.Nullable;
+
 import org.apache.ignite.ci.db.Persisted;
+import org.apache.ignite.ci.detector.EventTemplate;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.jetbrains.annotations.NotNull;
@@ -19,21 +18,31 @@ import org.jetbrains.annotations.NotNull;
 @Persisted
 public class RunStat {
     public static final int MAX_LATEST_RUNS = 50;
-    private static final int RES_OK = 0;
+    public static final int RES_OK = 0;
 
-    /** Result: general failure of test or suite. */
-    private static final int RES_FAILURE = 1;
+    /**
+     * Result: general failure of test or suite.
+     */
+    public static final int RES_FAILURE = 1;
 
-    /** Result of test execution, muted failure found. */
+    /**
+     * Result of test execution, muted failure found.
+     */
     private static final int RES_MUTED_FAILURE = 2;
 
-    /** Result of suite: Critical failure, no results. */
-    private static final int RES_CRITICAL_FAILURE = 3;
+    /**
+     * Result of suite: Critical failure, no results.
+     */
+    public static final int RES_CRITICAL_FAILURE = 3;
 
-    /** Runs registered all the times. */
+    /**
+     * Runs registered all the times.
+     */
     private int runs;
 
-    /** Failures registered all the times. */
+    /**
+     * Failures registered all the times.
+     */
     private int failures;
 
     public long totalDurationMs;
@@ -44,10 +53,13 @@ public class RunStat {
      */
     public long lastUpdatedMs;
 
-    /** Name: Key in run stat cache */
+    /**
+     * Name: Key in run stat cache
+     */
     private String name;
 
-    @Nullable SortedMap<TestId, Integer> latestRunResults;
+    @Nullable
+    SortedMap<TestId, Integer> latestRunResults;
 
     /**
      * @param name Name of test or suite.
@@ -113,8 +125,7 @@ public class RunStat {
             String substring = id.substring(absBuildIdx, absBuildIdx + buildIdEndIdx);
 
             return Integer.valueOf(substring);
-        }
-        catch (Exception ignored) {
+        } catch (Exception ignored) {
             return null;
         }
     }
@@ -136,7 +147,7 @@ public class RunStat {
         latestRunResults.put(id, resCode);
 
         if (latestRunResults.size() > MAX_LATEST_RUNS)
-            latestRunResults.remove( latestRunResults.firstKey() );
+            latestRunResults.remove(latestRunResults.firstKey());
     }
 
     public String name() {
@@ -194,14 +205,14 @@ public class RunStat {
         if (latestRunResults == null)
             return 0;
 
-        return (int)latestRunResults.values().stream().filter(res -> res != RES_OK).count();
+        return (int) latestRunResults.values().stream().filter(res -> res != RES_OK).count();
     }
 
     public int getCriticalFailuresCount() {
         if (latestRunResults == null)
             return 0;
 
-        return (int)latestRunResults.values().stream().filter(res -> res == RES_CRITICAL_FAILURE).count();
+        return (int) latestRunResults.values().stream().filter(res -> res == RES_CRITICAL_FAILURE).count();
     }
 
     public int getRunsCount() {
@@ -223,7 +234,7 @@ public class RunStat {
     public long getAverageDurationMs() {
         if (runsWithDuration == 0)
             return 0;
-        return (long)(1.0 * totalDurationMs / runsWithDuration);
+        return (long) (1.0 * totalDurationMs / runsWithDuration);
     }
 
     public void addBuildRun(Build build) {
@@ -253,26 +264,71 @@ public class RunStat {
     }
 
 
-    /** {@inheritDoc} */
-    @Override public String toString() {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
         return "RunStat{" +
-            "name='" + name + '\'' +
-            ", failRate=" + getFailPercentPrintable() + "%" +
-            '}';
+                "name='" + name + '\'' +
+                ", failRate=" + getFailPercentPrintable() + "%" +
+                '}';
     }
 
     /**
      * @return
      */
-    @Nullable public List<Integer> getLatestRunResults() {
+    @Nullable
+    public List<Integer> getLatestRunResults() {
         if (latestRunResults == null)
             return Collections.emptyList();
 
         return new ArrayList<>(latestRunResults.values());
     }
 
-    private static class TestId implements Comparable<TestId> {
-        int buildId ;
+    private int[] concatArr(int[] array1, int[] array2) {
+        int[] array1and2 = new int[array1.length + array2.length];
+        System.arraycopy(array1, 0, array1and2, 0, array1.length);
+        System.arraycopy(array2, 0, array1and2, array1.length, array2.length);
+
+        return array1and2;
+    }
+
+    @Nullable
+    public TestId detectTemplate(EventTemplate t) {
+        if (latestRunResults == null)
+            return null;
+
+        int centralEventBuild = t.beforeEvent().length;
+
+        int[] template = concatArr(t.beforeEvent(), t.eventAndAfter());
+
+        assert centralEventBuild < template.length;
+        assert centralEventBuild >= 0;
+
+        Set<Map.Entry<TestId, Integer>> entries = latestRunResults.entrySet();
+
+        if (entries.size() < template.length)
+            return null;
+
+        ArrayList<Map.Entry<TestId, Integer>> histAsArray = new ArrayList<>(entries);
+
+        //start from the end to find most recent
+        for (int idx = histAsArray.size() - template.length; idx >=0; idx--) {
+            for (int tIdx = 0; tIdx < template.length; tIdx++) {
+                if (histAsArray.get(idx + tIdx).getValue().equals(template[tIdx])) {
+                    if (tIdx == template.length - 1)
+                        return histAsArray.get(idx + centralEventBuild).getKey();
+                } else {
+                    break;
+                }
+            }
+        }
+        return null;
+    }
+
+    public static class TestId implements Comparable<TestId> {
+        int buildId;
         int testId;
 
         public TestId(Integer buildId, Integer testId) {
@@ -281,24 +337,33 @@ public class RunStat {
             this.testId = testId;
         }
 
-        /** {@inheritDoc} */
-        @Override public boolean equals(Object o) {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean equals(Object o) {
             if (this == o)
                 return true;
             if (o == null || getClass() != o.getClass())
                 return false;
-            TestId id = (TestId)o;
+            TestId id = (TestId) o;
             return buildId == id.buildId &&
-                testId == id.testId;
+                    testId == id.testId;
         }
 
-        /** {@inheritDoc} */
-        @Override public int hashCode() {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int hashCode() {
             return Objects.hashCode(buildId, testId);
         }
 
-        /** {@inheritDoc} */
-        @Override public int compareTo(@NotNull TestId o) {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int compareTo(@NotNull TestId o) {
             int buildComp = buildId - o.buildId;
             if (buildComp != 0)
                 return buildComp > 0 ? 1 : -1;
@@ -310,12 +375,15 @@ public class RunStat {
             return 0;
         }
 
-        /** {@inheritDoc} */
-        @Override public String toString() {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String toString() {
             return MoreObjects.toStringHelper(this)
-                .add("buildId", buildId)
-                .add("testId", testId)
-                .toString();
+                    .add("buildId", buildId)
+                    .add("testId", testId)
+                    .toString();
         }
     }
 

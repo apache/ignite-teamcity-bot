@@ -20,6 +20,8 @@ import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.analysis.TestLogCheckResult;
+import org.apache.ignite.ci.detector.EventTemplates;
+import org.apache.ignite.ci.detector.ProblemRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 import org.jetbrains.annotations.NotNull;
@@ -83,6 +85,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public String durationPrintable;
 
+    @Nullable public ProblemRef problemRef;
+
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final MultBuildRunCtx suite,
         @Nullable final ITcAnalytics tcAnalytics,
@@ -94,38 +98,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         String curBranchNormalized = normalizeBranch(suite.branchName());
 
         String suiteId = suite.suiteId();
-        if (!Strings.isNullOrEmpty(suiteId) && tcAnalytics != null) {
-            {
-                SuiteInBranch key = new SuiteInBranch(suiteId, failRateNormalizedBranch);
-
-                final RunStat stat = tcAnalytics.getBuildFailureRunStatProvider().apply(key);
-
-                if (stat != null) {
-                    failures = stat.getFailuresCount();
-                    runs = stat.getRunsCount();
-                    failureRate = stat.getFailPercentPrintable();
-
-                    criticalFails.failures = stat.getCriticalFailuresCount();
-                    criticalFails.runs = runs;
-                    criticalFails.failureRate = stat.getCriticalFailPercentPrintable();
-
-                    failsAllHist.failures = stat.getFailuresAllHist();
-                    failsAllHist.runs = stat.getRunsAllHist();
-                    failsAllHist.failureRate = stat.getFailPercentAllHistPrintable();
-
-                    latestRuns = stat.getLatestRunResults();
-                }
-            }
-
-
-            if (!failRateNormalizedBranch.equals(curBranchNormalized)) {
-                SuiteInBranch keyForStripe = new SuiteInBranch(suiteId, curBranchNormalized);
-
-                final RunStat statForStripe = tcAnalytics.getBuildFailureRunStatProvider().apply(keyForStripe);
-
-                latestRuns = statForStripe != null ? statForStripe.getLatestRunResults() : null;
-            }
-        }
+        initStat(tcAnalytics, failRateNormalizedBranch, curBranchNormalized, suiteId);
 
         Set<String> collect = suite.lastChangeUsers().collect(Collectors.toSet());
 
@@ -208,6 +181,64 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         serverId = teamcity.serverId();
         this.suiteId = suite.suiteId();
         branchName = branchForLink(suite.branchName());
+    }
+
+    private void initStat(@Nullable ITcAnalytics tcAnalytics, String failRateNormalizedBranch, String curBranchNormalized, String suiteId) {
+        if (Strings.isNullOrEmpty(suiteId) || tcAnalytics == null) {
+            return;
+        }
+
+        SuiteInBranch key = new SuiteInBranch(suiteId, failRateNormalizedBranch);
+
+        final RunStat stat = tcAnalytics.getBuildFailureRunStatProvider().apply(key);
+
+        if (stat != null) {
+            failures = stat.getFailuresCount();
+            runs = stat.getRunsCount();
+            failureRate = stat.getFailPercentPrintable();
+
+            criticalFails.failures = stat.getCriticalFailuresCount();
+            criticalFails.runs = runs;
+            criticalFails.failureRate = stat.getCriticalFailPercentPrintable();
+
+            failsAllHist.failures = stat.getFailuresAllHist();
+            failsAllHist.runs = stat.getRunsAllHist();
+            failsAllHist.failureRate = stat.getFailPercentAllHistPrintable();
+
+            latestRuns = stat.getLatestRunResults();
+        }
+
+        RunStat latestRunsSrc = null;
+        if (!failRateNormalizedBranch.equals(curBranchNormalized)) {
+            SuiteInBranch keyForStripe = new SuiteInBranch(suiteId, curBranchNormalized);
+
+            final RunStat statForStripe = tcAnalytics.getBuildFailureRunStatProvider().apply(keyForStripe);
+
+            latestRunsSrc = statForStripe;
+            latestRuns = statForStripe != null ? statForStripe.getLatestRunResults() : null;
+        } else
+            latestRunsSrc = stat;
+
+        if (latestRunsSrc != null) {
+            RunStat.TestId testId = latestRunsSrc.detectTemplate(EventTemplates.newFailure);
+
+            if (testId != null) {
+                //if (latestRunsSrc.detectTemplate(EventTemplates.fixOfFailure) == null)
+                problemRef = new ProblemRef("New Failure");
+                //else
+                //    problemRef = new ProblemRef("Fixed Failure");
+            }
+
+            RunStat.TestId testIdA = latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailureA);
+            RunStat.TestId testIdB = latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailureB);
+
+            if (testIdA != null || testIdB != null) {
+                //if (latestRunsSrc.detectTemplate(EventTemplates.fixOfFailure) == null)
+                problemRef = new ProblemRef("New Critical Failure");
+                //else
+                //    problemRef = new ProblemRef("Fixed Failure");
+            }
+        }
     }
 
     @NotNull public static TestFailure createOccurForLogConsumer(Map.Entry<String, Long> entry) {

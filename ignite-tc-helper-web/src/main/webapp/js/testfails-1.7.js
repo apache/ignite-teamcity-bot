@@ -249,6 +249,16 @@ function showSuiteData(suite, settings) {
             moreInfoTxt += "Critical recent fails: "+ suite.criticalFails.failureRate +"% [" + suite.criticalFails.failures + " fails / " + suite.criticalFails.runs + " runs]; <br> " ;
         }
     }
+
+     if(isDefinedAndFilled(suite.problemRef)) {
+        res += suite.problemRef.name;
+
+         //if(!bold)
+//              res += "<b>";
+
+         // bold = true;
+    }
+
     var color = failureRateToColor(suite.failureRate);
     res += " <span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + failRateText + "'></span> ";
 
@@ -403,6 +413,15 @@ function showTestFailData(testFail, isFailureShown, settings) {
             bold = true;
             res += "<b>";
         }
+    }
+
+    if(isFailureShown && isDefinedAndFilled(testFail.problemRef)) {
+        res += testFail.problemRef.name;
+
+        if(!bold)
+          res += "<b>";
+
+        bold = true;
     }
 
     res += " <span style='background-color: " + color + "; width:8px; height:8px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
