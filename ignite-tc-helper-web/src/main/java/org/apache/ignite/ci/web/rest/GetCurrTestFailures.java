@@ -1,8 +1,10 @@
 package org.apache.ignite.ci.web.rest;
 
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -13,6 +15,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+
+import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
@@ -26,9 +30,7 @@ import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
-import org.apache.ignite.ci.web.rest.model.current.TestFailuresSummary;
-import org.apache.ignite.ci.web.rest.model.current.UpdateInfo;
+import org.apache.ignite.ci.web.rest.model.current.*;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -116,6 +118,16 @@ public class GetCurrTestFailures {
             .forEach(res::addChainOnServer);
 
         res.postProcess(runningUpdates.get());
+
+        Ignite ignite = CtxListener.getIgnite(context);
+
+
+        ignite.scheduler().runLocal(
+                ()->{
+                    helper.issues().registerNewIssues(res);
+
+                },10, TimeUnit.SECONDS
+        );
 
         return res;
     }
