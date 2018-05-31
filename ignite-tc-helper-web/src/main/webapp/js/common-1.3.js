@@ -30,6 +30,14 @@ function showErrInLoadStatus(jqXHR, exception) {
         $("#loadStatus").html('Not connect.\n Verify Network.');
     } else if (jqXHR.status == 404) {
         $("#loadStatus").html('Requested page not found. [404]');
+    } else if (jqXHR.status == 401) {
+        $("#loadStatus").html('Unauthorized [401]');
+
+        setTimeout( function() {
+            window.location.href="/login.html" + "?backref=" + encodeURIComponent(window.location.href);
+        }, 4000);
+    } else if (jqXHR.status == 403) {
+        $("#loadStatus").html('Forbidden [403]');
     } else if (jqXHR.status == 500) {
         $("#loadStatus").html('Internal Server Error [500].');
     } else if (exception === 'parsererror') {
