@@ -11,6 +11,7 @@ import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.web.rest.model.Version;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.TestFailure;
@@ -67,8 +68,11 @@ public class IssueDetector {
 
             Collection<Notification> values = toBeSent.values();
             for (Notification next : values) {
-                String s = "MTCGA: " + next.issues.size() + " new failures to be handled";
-                EmailSender.sendEmail(next.addr, s, next.toHtml());
+                String s = "MTCGA needs action from you: " + next.issues.size() + " new failures to be handled";
+
+                String html = next.toHtml();
+
+                EmailSender.sendEmail(next.addr, s,   html);
             }
         } catch (Exception e) {
             System.err.println("Fail to sent notifications");

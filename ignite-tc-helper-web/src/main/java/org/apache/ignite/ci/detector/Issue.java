@@ -20,14 +20,20 @@ public class Issue {
     }
 
     public String toHtml() {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(displayType).append(" ").append(issueKey.getTestOrBuildName()).append(" ");
-        for (ChangeUi next : changes) {
-            stringBuilder.append(next.toHtml()).append(", ");
-        }
-        stringBuilder.append("<br>");
+        StringBuilder sb = new StringBuilder();
+        sb.append(displayType).append(" ").append(issueKey.getTestOrBuildName()).append(" ");
 
-        return stringBuilder.toString();
+        sb.append("Changes may led to failure were done by ");
+
+        for (Iterator<ChangeUi> iterator = changes.iterator(); iterator.hasNext(); ) {
+            ChangeUi next = iterator.next();
+            sb.append(next.toHtml());
+
+            if(iterator.hasNext())
+                sb.append(", ");
+        }
+
+        return sb.toString();
     }
 
     public IssueKey issueKey() {

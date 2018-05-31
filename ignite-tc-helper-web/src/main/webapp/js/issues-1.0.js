@@ -13,12 +13,16 @@ function showIssues(result) {
     for (var i = 0; i < result.issues.length; i++) {
         var issue = result.issues[i];
 
+        var color = 'red';
+        var issueTitle = '';
+        res += " <span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + issueTitle + "'></span> ";
+
         res += issue.displayType;
 
         res += " " + issue.issueKey.testOrBuildName;
 
         if(isDefinedAndFilled(issue.addressNotified)) {
-            res += "Notified: [";
+            res += " Users Notified: [";
 
              for (var j = 0; j < issue.addressNotified.length; j++) {
                 var addressNotified = issue.addressNotified[j];
@@ -28,7 +32,7 @@ function showIssues(result) {
              res+="]";
         }
 
-        res += "<br>";
+        res += "<br><br>";
     }
 
     return res;

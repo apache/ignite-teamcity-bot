@@ -30,7 +30,6 @@ public class EmailSender {
 
         String password = PasswordEncoder.decode(enc);
 
-
         Properties props = new Properties();
         props.put("mail.smtp.host", "smtp.gmail.com");
         props.put("mail.smtp.socketFactory.port", "465");
