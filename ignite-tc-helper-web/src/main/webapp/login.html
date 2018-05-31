@@ -1,0 +1,118 @@
+<html lang="en">
+<head>
+    <title>Ignite Teamcity - login</title>
+    <link rel="icon" href="http://simons1call.com/images/companies/1/icons/icon-tree.png">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="css/style-1.3.css">
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <script src="js/common-1.3.js"></script>
+
+    <meta name="google-signin-scope" content="profile email">
+    <meta name="google-signin-client_id"
+          content="629632280514-dp7c39editpj7at2b7mq48phq1f1uro5.apps.googleusercontent.com">
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+</head>
+<body>
+
+<script>
+  function onSignIn(googleUser) {
+     // Useful data for your client-side scripts:
+     var profile = googleUser.getBasicProfile();
+     console.log("ID: " + profile.getId()); // Don't send this directly to your server!
+     console.log('Full Name: ' + profile.getName());
+     console.log('Given Name: ' + profile.getGivenName());
+     console.log('Family Name: ' + profile.getFamilyName());
+     console.log("Image URL: " + profile.getImageUrl());
+     console.log("Email: " + profile.getEmail());
+
+     // The ID token you need to pass to your backend:
+     var id_token = googleUser.getAuthResponse().id_token;
+     console.log("ID Token: " + id_token);
+ };
+
+
+ $(document).ready(function() {
+     setupLogon();
+ });
+
+ function setupLogon() {
+     $("#loginForm").submit(function(e) {
+         var url = "rest/login/login";
+
+         $.ajax({
+             type: "POST",
+             url: url,
+             data: $("#loginForm").serialize(), // serializes the form's elements.
+             success: function(data) {
+                 logonResponse(data);
+             },
+             error: showErrInLoadStatus
+         });
+
+         e.preventDefault(); // avoid to execute the actual submit of the form.
+     });
+ }
+
+ function logonResponse(data) {
+     if (isDefinedAndFilled(data.fullToken)) {
+         var backref = findGetParameter("backref");
+
+        /* var fullTok = data.fullToken;
+         $.ajaxSetup({
+             beforeSend: function(xhr) {
+                 xhr.setRequestHeader("Authorization", "Token " + data.fullToken);
+             }
+         });*/
+
+         try {
+              window.sessionStorage.setItem("token", data.fullToken);
+         } catch (e) {}
+
+        if (isDefinedAndFilled(backref)) {
+             window.location.href = backref;
+         } else {
+             window.location.href = "/";
+         }
+/*
+          $.ajax({
+            url: "rest/branches/version",
+            success: showVersionInfo,
+            error: showErrInLoadStatus
+          });*/
+     } else {
+         $("#loadStatus").html('Login failed, please check username and password');
+     }
+ }
+
+
+</script>
+
+Please login using actual Teamcity credentials:
+<div class="container">
+    <form id="loginForm"><label for="uname"><b>Username</b></label>
+        <input type="text" placeholder="Enter Username" name="uname" required>
+
+        <label for="psw"><b>Password</b></label>
+        <input type="password" placeholder="Enter Password" name="psw" required>
+
+        <button type="submit">Login</button>
+    </form>
+    <!--<label>
+        <input type="checkbox" checked="checked" name="remember"> Remember me
+    </label>
+
+
+
+<div class="g-signin2" data-onsuccess="onSignIn" data-theme="dark"></div>
+    -->
+</div>
+
+
+<div id="loadStatus"></div>
+<div id="version"></div>
+
+</body>
+</html>

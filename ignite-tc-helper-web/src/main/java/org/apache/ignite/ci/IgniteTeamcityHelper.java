@@ -70,7 +70,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     private final File logsDir;
     /** Normalized Host address, ends with '/'. */
     private final String host;
-    private final String basicAuthTok;
+    private String basicAuthTok;
     private final String configName; //main properties file name
     private final String tcName;
 
@@ -86,13 +86,17 @@ public class IgniteTeamcityHelper implements ITeamcity {
         final String hostConf = props.getProperty(HelperConfig.HOST, "http://ci.ignite.apache.org/");
 
         this.host = hostConf + (hostConf.endsWith("/") ? "" : "/");
-        basicAuthTok = HelperConfig.prepareBasicHttpAuthToken(props, configName);
+        setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, configName));
 
         final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
 
         logsDir = ensureDirExist(logsDirFile);
 
         this.executor =  MoreExecutors.directExecutor();
+    }
+
+    public void setAuthToken(String token) {
+        basicAuthTok = token;
     }
 
     public CompletableFuture<File> downloadBuildLogZip(int buildId) {

@@ -164,6 +164,7 @@ public class GetBuildTestFailures {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
+        //todo get server
         //using here non persistent TC allows to skip update statistic
         try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(CtxListener.getIgnite(context), srvId)) {
             teamcity.setExecutor(CtxListener.getPool(context));

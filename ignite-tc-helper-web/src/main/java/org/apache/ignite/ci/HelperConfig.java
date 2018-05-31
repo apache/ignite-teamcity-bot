@@ -29,7 +29,7 @@ public class HelperConfig {
     public static final String MAIL_PROPS = "mail.auth.properties";
     public static final String HOST = "host";
     public static final String USERNAME = "username";
-    private static final String PASSWORD = "password";
+    private static final String PASSWORD = "encodedPassword";
     public static final String ENCODED_PASSWORD = "encoded_password";
     public static final String LOGS = "logs";
     public static final String ENDL = String.format("%n");
@@ -52,7 +52,7 @@ public class HelperConfig {
                 writer.write(USERNAME + "=" + ENDL);
                 writer.write(PASSWORD + "=" + ENDL);
             }
-            throw new IllegalStateException("Please setup username and password in config file [" +
+            throw new IllegalStateException("Please setup username and encodedPassword in config file [" +
                 file.getCanonicalPath() + "]");
         }
         return loadProps(file);
@@ -109,8 +109,8 @@ public class HelperConfig {
         }
         Preconditions.checkState(filled, ENCODED_PASSWORD + " or " + PASSWORD + " property should be filled in " + configName);
         final String pwd = pass;
-        String str = user + ":" + pwd;
-        return Base64Util.encodeUtf8String(str);
+
+        return Base64Util.encodeUtf8String(user + ":" + pwd);
     }
 
     public static String getMandatoryProperty(Properties props, String key, String configName) {

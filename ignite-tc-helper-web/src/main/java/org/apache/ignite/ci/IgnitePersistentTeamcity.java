@@ -672,4 +672,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
         teamcity.triggerBuild(id, name, queueAtTop);
     }
+
+    @Override
+    public void setAuthToken(String token) {
+        teamcity.setAuthToken(token);
+    }
 }

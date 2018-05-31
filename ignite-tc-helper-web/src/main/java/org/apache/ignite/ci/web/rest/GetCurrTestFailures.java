@@ -9,12 +9,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.xml.ws.spi.http.HttpContext;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.BuildChainProcessor;
@@ -30,6 +32,8 @@ import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.auth.DummyCredentials;
+import org.apache.ignite.ci.web.auth.ICredentialsProv;
 import org.apache.ignite.ci.web.rest.model.current.*;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
@@ -45,6 +49,9 @@ public class GetCurrTestFailures {
     public static final String TEST_FAILURES_SUMMARY_CACHE_NAME = CURRENT + "TestFailuresSummary";
     @Context
     private ServletContext context;
+
+    @Context
+    HttpServletRequest request;
 
     @GET
     @Path("failures/updates")
@@ -81,7 +88,9 @@ public class GetCurrTestFailures {
     @NotNull public TestFailuresSummary getTestFailsNoCache(
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+
         final ITcHelper helper = CtxListener.getTcHelper(context);
+        final ICredentialsProv dummyCredentials = DummyCredentials.create(request);
 
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
@@ -96,7 +105,7 @@ public class GetCurrTestFailures {
                 final String failRateBranch = branchForTc; //branch is tracked, so fail rate should be taken from branch data
 
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
-                try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId)) {
+                try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, dummyCredentials)) {
                     Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
                         chainTracked.getSuiteIdMandatory(),
                         branchForTc,

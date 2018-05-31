@@ -71,3 +71,27 @@ function showVersionInfo(result) {
 
     $("#version").html(res);
 }
+
+$(document).ready(function() {
+    setupTokenManual();
+});
+
+
+function setupTokenManual(result) {
+    $.ajaxSetup({
+        beforeSend: function(xhr) {
+                try {
+                    var fullTok = window.sessionStorage.getItem("token");
+
+                    if (isDefinedAndFilled(fullTok))
+                        xhr.setRequestHeader("Authorization", "Token " + fullTok);
+                    else {
+                        var fullTok = window.localStorage.getItem("token");
+
+                        if (isDefinedAndFilled(fullTok))
+                            xhr.setRequestHeader("Authorization", "Token " + fullTok);
+                    }
+                } catch (e) {}
+        }
+    });
+}
