@@ -67,6 +67,14 @@ public class CryptUtil {
         return aesEcbCrypt(aesKey(userKey), data, Cipher.DECRYPT_MODE);
     }
 
+    public static byte[] aesEncryptP5Pad(byte[] userKey, byte[] data) {
+        return aesEcbPkcs5PaddedCrypt(aesKey(userKey), data, Cipher.ENCRYPT_MODE);
+    }
+
+    public static byte[] aesDecryptP5Pad(byte[] userKey, byte[] data) {
+        return aesEcbPkcs5PaddedCrypt(aesKey(userKey), data, Cipher.DECRYPT_MODE);
+    }
+
     @NotNull
     private static SecretKeySpec aesKey(byte[] userKey) {
         return new SecretKeySpec(userKey, "AES");

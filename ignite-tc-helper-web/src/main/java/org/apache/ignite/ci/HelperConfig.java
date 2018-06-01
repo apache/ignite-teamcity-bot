@@ -97,19 +97,20 @@ public class HelperConfig {
         return ensureDirExist(workDir);
     }
 
-    public static String prepareBasicHttpAuthToken(Properties props, String configName) {
+    @Nullable static String prepareBasicHttpAuthToken(Properties props, String configName) {
         final String user = getMandatoryProperty(props, USERNAME, configName);
-        String pass = props.getProperty(PASSWORD);
-        boolean filled = !isNullOrEmpty(pass);
+        String pwd = props.getProperty(PASSWORD);
+        boolean filled = !isNullOrEmpty(pwd);
         if(!filled) {
             String enc = props.getProperty(ENCODED_PASSWORD);
             if(!isNullOrEmpty(enc)) {
-                pass = PasswordEncoder.decode(enc);
+                pwd = PasswordEncoder.decode(enc);
                 filled = true;
             }
         }
-        Preconditions.checkState(filled, ENCODED_PASSWORD + " or " + PASSWORD + " property should be filled in " + configName);
-        final String pwd = pass;
+
+        if(!filled)
+            return null;
 
         return Base64Util.encodeUtf8String(user + ":" + pwd);
     }

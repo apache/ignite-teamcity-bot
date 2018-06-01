@@ -8,9 +8,6 @@ public class UserSession {
 
     public String username;
 
-    @Deprecated
-    public String encodedPassword;
-
     public Long loginTs;
 
     public Long lastActiveTs;

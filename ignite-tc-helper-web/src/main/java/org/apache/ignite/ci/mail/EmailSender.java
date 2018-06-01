@@ -39,7 +39,7 @@ public class EmailSender {
 
         // Sender's email ID needs to be mentioned
         String from = username;
-        // Setup mail server
+        // Setup mail getOrCreateCreds
         // Get the default Session object.
 
         Session session = Session.getInstance(props,

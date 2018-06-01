@@ -2,21 +2,15 @@ package org.apache.ignite.ci.user;
 
 import com.google.common.base.MoreObjects;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
-import org.apache.ignite.ci.tcmodel.changes.ChangesList;
-import org.apache.ignite.ci.tcmodel.changes.ChangesListRef;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.result.ProblemOccurrencesRef;
-import org.apache.ignite.ci.tcmodel.result.StatisticsRef;
-import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
+import org.apache.ignite.ci.db.Persisted;
+import org.jetbrains.annotations.Nullable;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
 import java.util.ArrayList;
 import java.util.List;
 
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
+@Persisted
 public class TcHelperUser implements IVersionedEntity {
     public static final int LATEST_VERSION = 2;
     @SuppressWarnings("FieldCanBeLocal")
@@ -28,7 +22,7 @@ public class TcHelperUser implements IVersionedEntity {
 
     public byte[] userKeyKcv;
 
-    public List<Credentials> credentials = new ArrayList<>();
+    public List<Credentials> credentialsList = new ArrayList<>();
 
     @Override
     public int version() {
@@ -40,9 +34,37 @@ public class TcHelperUser implements IVersionedEntity {
         return LATEST_VERSION;
     }
 
+    public Credentials getOrCreateCreds(String serverId) {
+        Credentials next = getCredentials(serverId);
+
+        if (next != null)
+            return next;
+
+        Credentials credentials = new Credentials();
+        credentials.serverId = serverId;
+        credentials.username = username;
+        credentialsList.add(credentials);
+
+        return credentials;
+    }
+
+    @Nullable
+    public Credentials getCredentials(String serverId) {
+        if (credentialsList == null)
+            credentialsList = new ArrayList<>();
+
+        for (Credentials next : credentialsList) {
+            if (next.serverId.equals(serverId))
+                return next;
+        }
+
+        return null;
+    }
+
     public static class Credentials {
         String serverId;
         String username;
+
         byte[] passwordUnderUserKey;
 
         @Override
@@ -53,6 +75,20 @@ public class TcHelperUser implements IVersionedEntity {
                     .add("passwordUnderUserKey", printHexBinary(passwordUnderUserKey))
                     .toString();
         }
+
+        public void setPasswordUnderUserKey(byte[] bytes) {
+            passwordUnderUserKey = bytes;
+        }
+
+
+        public String getUsername() {
+            return username;
+        }
+
+        public byte[] getPasswordUnderUserKey() {
+            return passwordUnderUserKey;
+        }
+
     }
 
     @Override
@@ -61,7 +97,7 @@ public class TcHelperUser implements IVersionedEntity {
                 .add("username", username)
                 .add("salt", printHexBinary(salt))
                 .add("userKeyKcv", printHexBinary(userKeyKcv))
-                .add("credentials", credentials)
+                .add("credentialsList", credentialsList)
                 .toString();
     }
 }

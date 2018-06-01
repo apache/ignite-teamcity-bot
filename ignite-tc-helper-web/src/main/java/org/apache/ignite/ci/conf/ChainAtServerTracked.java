@@ -6,7 +6,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
- * Branch on server
+ * Branch on getOrCreateCreds
  */
 public class ChainAtServerTracked extends ChainAtServer {
 

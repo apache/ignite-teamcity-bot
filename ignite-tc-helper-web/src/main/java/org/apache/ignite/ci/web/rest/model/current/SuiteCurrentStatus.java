@@ -60,7 +60,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     @Nullable public Integer runningBuildCount;
     @Nullable public Integer queuedBuildCount;
 
-    /** TC server id. */
+    /** TC getOrCreateCreds id. */
     public String serverId;
 
     /** Suite ID in teamcity identification. */

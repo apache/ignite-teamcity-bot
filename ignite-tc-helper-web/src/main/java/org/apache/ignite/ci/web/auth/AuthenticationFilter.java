@@ -1,7 +1,10 @@
 package org.apache.ignite.ci.web.auth;
 
-import org.apache.ignite.ci.conf.PasswordEncoder;
-import org.apache.ignite.ci.user.*;
+import com.google.common.base.Throwables;
+import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.TcHelperUser;
+import org.apache.ignite.ci.user.UserAndSessionsStorage;
+import org.apache.ignite.ci.user.UserSession;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.util.CryptUtil;
 import org.apache.ignite.ci.web.CtxListener;
@@ -10,14 +13,15 @@ import org.glassfish.jersey.internal.util.Base64;
 import javax.annotation.security.DenyAll;
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
+import javax.crypto.BadPaddingException;
 import javax.servlet.ServletContext;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ResourceInfo;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.ext.Provider;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.Provider;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -140,8 +144,10 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return false;
         }
 
+
+        byte[] userKey;
         try {
-            byte[] userKey = CryptUtil.aesDecrypt(Base64Util.decodeString(token), session.userKeyUnderToken);
+            userKey = CryptUtil.aesDecrypt(Base64Util.decodeString(token), session.userKeyUnderToken);
             byte[] userKeyKcv = CryptUtil.aesKcv(userKey);
 
             if(!Arrays.equals(userKeyKcv, user.userKeyKcv)) {
@@ -159,24 +165,41 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         session.lastActiveTs = System.currentTimeMillis();
         users.putSession(sessId, session);
 
-        String decode = null;
-        try {
-            decode = PasswordEncoder.decode(session.encodedPassword);
-        } catch (Exception e) {
-            System.out.println("Password decoding problems with session" + sessId);
-            requestContext.abortWith(rspUnathorized());
-            return false;
-        }
+        requestContext.setProperty(ICredentialsProv._KEY, new ICredentialsProv() {
+            @Override
+            public String getUser(String server) {
+                TcHelperUser.Credentials credentials = user.getCredentials(server);
+                if(credentials==null)
+                    return null;
 
-        // System.out.println(decode);
-        System.out.println("username:"+session.username);
+                return credentials.getUsername();
+            }
 
-        requestContext.setProperty("principal", session.username);
-        requestContext.setProperty("password", decode);
+            @Override
+            public String getPassword(String server) {
+                TcHelperUser.Credentials credentials = user.getCredentials(server);
+                if (credentials == null)
+                    return null;
 
-        DummyCredentials dummyCredentials = new DummyCredentials("1","2");
+                byte[] encPass = credentials.getPasswordUnderUserKey();
+                if (encPass == null)
+                    return null;
 
-        requestContext.setProperty(ICredentialsProv._KEY, dummyCredentials);
+                try {
+                    byte[] bytes = CryptUtil.aesDecryptP5Pad(userKey, encPass);
+
+                    return new String(bytes, CryptUtil.CHARSET);
+                } catch (Exception e) {
+                    if (Throwables.getCausalChain(e).stream().anyMatch(t -> t instanceof BadPaddingException))
+                        requestContext.abortWith(rspForbidden());
+
+                    e.printStackTrace();
+
+                    return null;
+                }
+
+            }
+        });
 
         return true;
     }

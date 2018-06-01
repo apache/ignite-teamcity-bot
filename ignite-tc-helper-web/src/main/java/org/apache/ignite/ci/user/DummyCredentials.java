@@ -14,7 +14,7 @@ public class DummyCredentials implements ICredentialsProv {
     }
 
     public static DummyCredentials create(HttpServletRequest request) {
-        final String user = (String) request.getAttribute( "principal");
+        final String user = (String) request.getAttribute( ICredentialsProv._KEY);
 
         Preconditions.checkNotNull(user, "TcHelperUser should be defined");
         System.out.println("Username for TC " + user);

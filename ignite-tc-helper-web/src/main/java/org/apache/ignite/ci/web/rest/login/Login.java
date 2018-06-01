@@ -79,11 +79,8 @@ public class Login {
 
         String sessId = Base64Util.encodeBytesToString(random.generateSeed(SESS_ID_LEN));
 
-        String encode = PasswordEncoder.encode(password);
-
         UserSession userSession = new UserSession();
         userSession.username = username;
-        userSession.encodedPassword = encode;
         userSession.sessId = sessId;
 
         userSession.loginTs = System.currentTimeMillis();
@@ -98,8 +95,15 @@ public class Login {
         byte[] userKeyCandidateKcv = CryptUtil.aesKcv(userKeyCandidate);
 
         if (user.userKeyKcv == null) {
-            //todo new registration
+            //todo new registration should be checked on server first
             user.userKeyKcv = userKeyCandidateKcv;
+
+            TcHelperUser.Credentials creds = user.getOrCreateCreds(primaryServerId);
+
+            creds.setPasswordUnderUserKey(
+                    CryptUtil.aesEncryptP5Pad(
+                            userKeyCandidate,
+                            password.getBytes(CryptUtil.CHARSET)));
 
             users.putUser(username, user);
         } else {

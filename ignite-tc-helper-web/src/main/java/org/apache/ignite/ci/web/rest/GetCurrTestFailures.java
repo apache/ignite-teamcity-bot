@@ -86,7 +86,8 @@ public class GetCurrTestFailures {
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
         final ITcHelper helper = CtxListener.getTcHelper(context);
-        final ICredentialsProv dummyCredentials = DummyCredentials.create(request);
+
+        final ICredentialsProv dummyCredentials = (ICredentialsProv) request.getAttribute( ICredentialsProv._KEY);
 
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();

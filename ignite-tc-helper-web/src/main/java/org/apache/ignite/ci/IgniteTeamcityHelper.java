@@ -90,7 +90,6 @@ public class IgniteTeamcityHelper implements ITeamcity {
             setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, configName));
         } catch (Exception e) {
             e.printStackTrace();
-            //todo totally remove init here
         }
 
         final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
