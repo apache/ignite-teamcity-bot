@@ -2,6 +2,7 @@ package org.apache.ignite.ci.user;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.web.CtxListener;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,5 +31,13 @@ public class UserAndSessionsStorage {
 
     public void addSession(String sessId, UserSession userSession) {
         sessions().put(sessId, userSession);
+    }
+
+    public TcHelperUser getUser(String username) {
+        return users().get(username);
+    }
+
+    public void addUser(String username, TcHelperUser user) {
+        users().put(username, user);
     }
 }

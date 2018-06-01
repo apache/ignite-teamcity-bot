@@ -36,6 +36,7 @@ dependencies {
     compile group: 'javax.mail', name: 'mail', version: '1.4.7'
 
     testCompile group: 'junit', name: 'junit', version: '4.+'
+    testCompile group: 'org.mockito', name: 'mockito-core', version: '2.18.3'
 
     compile group: 'com.ullink.slack', name: 'simpleslackapi', version: '1.2.0'
 }

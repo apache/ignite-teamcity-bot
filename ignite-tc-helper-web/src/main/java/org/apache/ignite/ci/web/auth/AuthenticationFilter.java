@@ -1,6 +1,5 @@
 package org.apache.ignite.ci.web.auth;
 
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.user.UserSession;
@@ -86,39 +85,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         String tokenFull = authString.substring(TOKEN_SCHEME.length()).trim();
 
-        final StringTokenizer tokenizer = new StringTokenizer(tokenFull, ":");
 
-        final String sessId = tokenizer.nextToken();
-        final String token = tokenizer.nextToken();
-        System.out.println("Session:"+sessId);
-        System.out.println("token:"+token);
-
-        UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
-
-        UserSession session = users.getSession(sessId);
-
-        if (session == null) {
-            System.out.println("Users session not found " + sessId + " enforcing login");
-
-            requestContext.abortWith(rspUnathorized());
-            return;
-        }
-
-        String decode = null;
-        try {
-            decode = PasswordEncoder.decode(session.encodedPassword);
-        } catch (Exception e) {
-            System.out.println("Password decoding problems with session" + sessId);
-            requestContext.abortWith(rspUnathorized());
-
-            return;
-        }
-
-        // System.out.println(decode);
-        System.out.println("username:"+session.username);
-
-        requestContext.setProperty("principal", session.username);
-        requestContext.setProperty("password", decode);
+        if (!authenticate(requestContext, tokenFull, CtxListener.getTcHelper(context).users())) return;
 
         //Verify user access
         if (method.isAnnotationPresent(RolesAllowed.class)) {
@@ -132,6 +100,43 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                 return;
             }
         }
+    }
+
+    public boolean authenticate(ContainerRequestContext requestContext,
+                                String tokenFull,
+                                UserAndSessionsStorage users) {
+
+        final StringTokenizer tokenizer = new StringTokenizer(tokenFull, ":");
+
+        final String sessId = tokenizer.nextToken();
+        final String token = tokenizer.nextToken();
+        System.out.println("Session:"+sessId);
+        System.out.println("token:"+token);
+
+        UserSession session = users.getSession(sessId);
+
+        if (session == null) {
+            System.out.println("Users session not found " + sessId + " enforcing login");
+
+            requestContext.abortWith(rspUnathorized());
+            return false;
+        }
+
+        String decode = null;
+        try {
+            decode = PasswordEncoder.decode(session.encodedPassword);
+        } catch (Exception e) {
+            System.out.println("Password decoding problems with session" + sessId);
+            requestContext.abortWith(rspUnathorized());
+            return false;
+        }
+
+        // System.out.println(decode);
+        System.out.println("username:"+session.username);
+
+        requestContext.setProperty("principal", session.username);
+        requestContext.setProperty("password", decode);
+        return true;
     }
 
     private String basicAuth(String authString) {

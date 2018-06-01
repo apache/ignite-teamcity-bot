@@ -2,19 +2,14 @@ package org.apache.ignite.ci.conf;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+
 import java.security.SecureRandom;
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
-import jersey.repackaged.com.google.common.base.Throwables;
+
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.util.CryptUtil;
 import org.jetbrains.annotations.NotNull;
 
 import static javax.xml.bind.DatatypeConverter.parseHexBinary;
@@ -25,7 +20,6 @@ import static javax.xml.bind.DatatypeConverter.printHexBinary;
  */
 public class PasswordEncoder {
 
-    public static final Charset CHARSET = StandardCharsets.UTF_8;
     public static final int PREF_LEN = 16;
     public static final int POSTF_LEN = 16;
     public static final char CHAR = 'A';
@@ -36,11 +30,11 @@ public class PasswordEncoder {
         final String len = passBlk.substring(0, 2);
         final int i = Integer.parseInt(len, 16) - CHAR;
         final String p = passBlk.substring(2);
-        return new String(parseHexBinary(p), CHARSET);
+        return new String(parseHexBinary(p), CryptUtil.CHARSET);
     }
 
     public static String encode(String pass) {
-        byte[] bytes = pass.getBytes(CHARSET);
+        byte[] bytes = pass.getBytes(CryptUtil.CHARSET);
         SecureRandom random = new SecureRandom();
         byte[] pref = random.generateSeed(PREF_LEN);
         byte[] suffix = random.generateSeed(POSTF_LEN);
@@ -53,22 +47,11 @@ public class PasswordEncoder {
     }
 
     private static byte[] e(byte[] data) {
-        return doC(data, Cipher.ENCRYPT_MODE);
+        return CryptUtil.aesEcbPkcs5PaddedCrypt(data, Cipher.ENCRYPT_MODE, k());
     }
 
     private static byte[] d(byte[] data) {
-        return doC(data, Cipher.DECRYPT_MODE);
-    }
-
-    private static byte[] doC(byte[] data, int mode) {
-        try {
-            final Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-            cipher.init(mode, k());
-            return cipher.doFinal(data);
-        }
-        catch (NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException | InvalidKeyException e) {
-            throw Throwables.propagate(e);
-        }
+        return CryptUtil.aesEcbPkcs5PaddedCrypt(data, Cipher.DECRYPT_MODE, k());
     }
 
     @NotNull private static SecretKeySpec k() {
