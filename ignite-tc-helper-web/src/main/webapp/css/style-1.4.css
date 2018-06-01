@@ -1,0 +1,66 @@
+body {
+ 	font-family: Arial;
+ 	font-size: 14px;
+ 	font-style: normal;
+ 	font-variant: normal;
+ 	font-weight: 500;
+}
+
+input {
+	font-family: Arial;
+	font-size: 14px;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: 500;
+}
+
+.logMsg {
+	font-family: Arial;
+	font-size: 12px;
+	font-family:'Lucida Console',
+    monospace
+}
+
+.container {
+    width:100%;
+    border:0px solid #d3d3d3;
+}
+
+.container .content {
+    display: none; 
+}
+
+/* The navigation bar */
+.navbar {
+     overflow: hidden;
+    background-color: #f2f2f2;
+    //position: fixed; /* Set the navbar to fixed position */
+    top: 0; /* Position the navbar at the top of the page */
+    width: 100%; /* Full width */
+}
+
+/* Links inside the navbar */
+.navbar a {
+    float: left;
+    display: block;
+    //color: #f2f2f2;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+/* Change background on mouse-over */
+.navbar a:hover {
+    background: #ddd;
+    color: black;
+}
+
+/* Main content */
+.main {
+    margin-top: 30px; /* Add a top margin to avoid content overlay */
+}
+
+/* Right-aligned section inside the top navigation */
+.topnav-right {
+  float: right;
+}

@@ -76,7 +76,28 @@ function showVersionInfo(result) {
 
 $(document).ready(function() {
     setupTokenManual();
+    setupMenu();
 });
+
+var g_menuSet = false;
+function setupMenu() {
+    if(g_menuSet)
+        return;
+
+    g_menuSet = true;
+
+    var res = "";
+    res+="<div class=\"navbar\">";
+    res+=            "<a href=\"/\">Home</a>";
+    res+="<div class='topnav-right'>";
+    var logout="/login.html" + "?exit=true&backref=" + encodeURIComponent(window.location.href);
+    res+="<a href='"+logout+"'>Logout</a>";
+
+
+      res+="</div>";
+     res+=     "</div>";
+    $(document.body).prepend(res );
+}
 
 
 function setupTokenManual(result) {
