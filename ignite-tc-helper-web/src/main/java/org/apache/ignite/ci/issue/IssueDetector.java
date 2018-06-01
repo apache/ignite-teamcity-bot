@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.detector;
+package org.apache.ignite.ci.issue;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteScheduler;
@@ -11,7 +11,6 @@ import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.web.rest.model.Version;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.TestFailure;
@@ -127,6 +126,7 @@ public class IssueDetector {
         Issue issue = new Issue(issueKey);
 
         issue.displayType = "New test failure";
+        //todo add branch of failure
 
         Build build = teamcity.getBuild(buildId);
 

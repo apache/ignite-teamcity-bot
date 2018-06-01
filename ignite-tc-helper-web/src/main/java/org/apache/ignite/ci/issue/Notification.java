@@ -1,7 +1,4 @@
-package org.apache.ignite.ci.detector;
-
-import org.apache.ignite.ci.web.rest.GetTrackedBranches;
-import org.apache.ignite.ci.web.rest.model.Version;
+package org.apache.ignite.ci.issue;
 
 import java.util.*;
 
@@ -42,7 +39,7 @@ public class Notification {
 
         sb.append("Hi Ignite Developer,<br><br>");
 
-        sb.append("I am MTCGA.Bot, and I've detected some issues on TeamCity to be addressed.<br>");
+        sb.append("I am MTCGA.Bot, and I've detected some issue on TeamCity to be addressed.<br>");
 
         sb.append("I hope you can help here because recently you've done some contributions, which may have relation to failure.<br><br>");
 

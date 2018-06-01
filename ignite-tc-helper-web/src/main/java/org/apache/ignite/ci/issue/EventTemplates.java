@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.detector;
+package org.apache.ignite.ci.issue;
 
 import org.apache.ignite.ci.analysis.RunStat;
 

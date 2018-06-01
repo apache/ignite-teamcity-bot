@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.web.auth;
+package org.apache.ignite.ci.user;
 
 public class LoginResponse {
     public String fullToken;

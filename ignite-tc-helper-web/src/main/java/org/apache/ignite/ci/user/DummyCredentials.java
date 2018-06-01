@@ -1,7 +1,6 @@
-package org.apache.ignite.ci.web.auth;
+package org.apache.ignite.ci.user;
 
 import com.google.common.base.Preconditions;
-import org.apache.ignite.ci.util.Base64Util;
 
 import javax.servlet.http.HttpServletRequest;
 

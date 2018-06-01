@@ -273,7 +273,7 @@ public class GetChainResultsAsHtml {
     }
 
 
-    String failureRateToColor(String failureRate) {
+    private String failureRateToColor(String failureRate) {
         float redSaturation = 255;
         float greenSaturation = 0;
         float blueSaturation = 0;
@@ -293,13 +293,13 @@ public class GetChainResultsAsHtml {
         return rgbToHex(redSaturation, greenSaturation, blueSaturation);
     }
 
-    String componentToHex(float c) {
+    private String componentToHex(float c) {
         int cInt = (int)c;
         String cStr = Integer.toHexString(cInt > 255 ? 255 : cInt);
         return Strings.padStart(cStr, 2, '0');
     }
 
-    String rgbToHex(float r, float g, float b) {
+    private String rgbToHex(float r, float g, float b) {
         return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
     }
 }

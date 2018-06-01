@@ -7,7 +7,7 @@ import java.util.*;
 import javax.annotation.Nullable;
 
 import org.apache.ignite.ci.db.Persisted;
-import org.apache.ignite.ci.detector.EventTemplate;
+import org.apache.ignite.ci.issue.EventTemplate;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.jetbrains.annotations.NotNull;

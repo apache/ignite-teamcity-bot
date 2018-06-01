@@ -1,12 +1,12 @@
-package org.apache.ignite.ci.web.rest;
+package org.apache.ignite.ci.web.rest.login;
 
 import com.google.common.base.Preconditions;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.auth.LoginResponse;
-import org.apache.ignite.ci.web.auth.UserSession;
+import org.apache.ignite.ci.user.LoginResponse;
+import org.apache.ignite.ci.user.UserSession;
 
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;

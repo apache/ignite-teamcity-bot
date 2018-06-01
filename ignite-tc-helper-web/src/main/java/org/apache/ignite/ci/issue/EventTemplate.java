@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.detector;
+package org.apache.ignite.ci.issue;
 
 public class EventTemplate {
     private final int[] beforeEvent;

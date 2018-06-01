@@ -14,9 +14,8 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.TestInBranch;
-import org.apache.ignite.ci.detector.EventTemplate;
-import org.apache.ignite.ci.detector.EventTemplates;
-import org.apache.ignite.ci.detector.ProblemRef;
+import org.apache.ignite.ci.issue.EventTemplates;
+import org.apache.ignite.ci.issue.ProblemRef;
 import org.apache.ignite.ci.logs.LogMsgToWarn;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
@@ -98,14 +97,14 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
             String details = full.details;
             if (details != null) {
                 if (webIssueUrl == null) {
-                    String issueLinkPrefix = "https://issues.apache.org/jira/browse/";
+                    String issueLinkPrefix = "https://issue.apache.org/jira/browse/";
 
                     int prefixFoundIdx = details.indexOf(issueLinkPrefix);
                     if (prefixFoundIdx >= 0)
                         initIssueLink(issueLinkPrefix, details, prefixFoundIdx);
                 }
                 if (webIssueUrl == null) {
-                    String issueLinkPrefix = "http://issues.apache.org/jira/browse/";
+                    String issueLinkPrefix = "http://issue.apache.org/jira/browse/";
                     int prefixFoundIdx = details.indexOf(issueLinkPrefix);
                     if (prefixFoundIdx >= 0)
                         initIssueLink(issueLinkPrefix, details, prefixFoundIdx);

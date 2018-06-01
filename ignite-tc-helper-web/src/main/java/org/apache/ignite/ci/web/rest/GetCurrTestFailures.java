@@ -1,10 +1,8 @@
 package org.apache.ignite.ci.web.rest;
 
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -16,9 +14,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.xml.ws.spi.http.HttpContext;
 
-import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
@@ -32,8 +28,8 @@ import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.auth.DummyCredentials;
-import org.apache.ignite.ci.web.auth.ICredentialsProv;
+import org.apache.ignite.ci.user.DummyCredentials;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.rest.model.current.*;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;

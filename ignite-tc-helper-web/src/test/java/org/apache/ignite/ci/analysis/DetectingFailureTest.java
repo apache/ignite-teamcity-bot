@@ -1,6 +1,6 @@
 package org.apache.ignite.ci.analysis;
 
-import org.apache.ignite.ci.detector.EventTemplates;
+import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.junit.Test;
 

@@ -1,5 +1,6 @@
-package org.apache.ignite.ci.web.auth;
+package org.apache.ignite.ci.web;
 
+import org.apache.ignite.ci.web.auth.AuthenticationFilter;
 import org.glassfish.jersey.filter.LoggingFilter;
 import org.glassfish.jersey.server.ResourceConfig;
 

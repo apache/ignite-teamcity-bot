@@ -1,8 +1,8 @@
 package org.apache.ignite.ci.web.auth;
 
 import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.conf.PasswordEncoder;
+import org.apache.ignite.ci.user.UserSession;
 import org.apache.ignite.ci.web.CtxListener;
 import org.glassfish.jersey.internal.util.Base64;
 
@@ -20,7 +20,7 @@ import javax.ws.rs.core.Response;
 import java.lang.reflect.Method;
 import java.util.*;
 
-import static org.apache.ignite.ci.web.rest.Login.USER_SESSIONS;
+import static org.apache.ignite.ci.web.rest.login.Login.USER_SESSIONS;
 
 
 @Provider

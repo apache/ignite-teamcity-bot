@@ -1,8 +1,8 @@
 package org.apache.ignite.ci;
 
-import org.apache.ignite.ci.detector.IssueDetector;
-import org.apache.ignite.ci.detector.IssuesStorage;
-import org.apache.ignite.ci.web.auth.ICredentialsProv;
+import org.apache.ignite.ci.issue.IssueDetector;
+import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.user.ICredentialsProv;
 
 /**
  * Created by Дмитрий on 25.02.2018

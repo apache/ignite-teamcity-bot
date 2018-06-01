@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.web.auth;
+package org.apache.ignite.ci.user;
 
 public interface ICredentialsProv {
     String getUser(String server);

@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.detector;
+package org.apache.ignite.ci.issue;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class IssuesStorage {
-    public static final String ISSUES = "issues";
+    public static final String ISSUES = "issue";
     private Ignite ignite;
 
     public IssuesStorage(Ignite ignite) {
