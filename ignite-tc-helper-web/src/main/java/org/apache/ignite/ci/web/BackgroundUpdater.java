@@ -18,6 +18,7 @@ import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.Expirable;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.lang.IgniteClosure;
+import org.apache.ignite.transactions.TransactionException;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -84,7 +85,12 @@ public class BackgroundUpdater {
         if (oldFut != null && (oldFut.isCancelled() || oldFut.isDone()))
             scheduledUpdates.remove(computationKey, oldFut);
 
-        final Expirable<V> expirable = currCache.get(key);
+        Expirable<V> expirable = null;
+        try {
+            expirable = currCache.get(key);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         if (expirable == null || isExpired(expirable, triggerSensitive)) {
             Function<T2<String, ?>, Future<?>> startingFunction = (k) -> getService().submit(loadAndSaveCall);

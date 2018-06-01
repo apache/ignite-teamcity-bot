@@ -86,7 +86,12 @@ public class IgniteTeamcityHelper implements ITeamcity {
         final String hostConf = props.getProperty(HelperConfig.HOST, "http://ci.ignite.apache.org/");
 
         this.host = hostConf + (hostConf.endsWith("/") ? "" : "/");
-        setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, configName));
+        try {
+            setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, configName));
+        } catch (Exception e) {
+            e.printStackTrace();
+            //todo totally remove init here
+        }
 
         final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
 
@@ -187,7 +192,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             triggeringOptions +
             //some fake property to avoid merging build in queue
             "    <properties>\n" +
-            "        <property name=\"build.query.ts\" value=\"" + System.currentTimeMillis() + "\"/>\n" +
+            "        <property name=\"build.query.loginTs\" value=\"" + System.currentTimeMillis() + "\"/>\n" +
            // "        <property name=\"testSuite\" value=\"org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest\"/>\n" +
             "    </properties>\n" +
             "</build>";

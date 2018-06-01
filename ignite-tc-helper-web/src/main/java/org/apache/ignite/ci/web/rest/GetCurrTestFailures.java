@@ -95,32 +95,35 @@ public class GetCurrTestFailures {
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branchNn);
 
         tracked.chains.stream().parallel()
-            .map(chainTracked -> {
-                final String srvId = chainTracked.serverId;
-                final String branchForTc = chainTracked.getBranchForRestMandatory();
-                final String failRateBranch = branchForTc; //branch is tracked, so fail rate should be taken from branch data
+                .filter(chainTracked -> dummyCredentials.hasAccess(chainTracked.serverId))
+                .map(chainTracked -> {
+                    final String srvId = chainTracked.serverId;
 
-                final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
-                try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, dummyCredentials)) {
-                    Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
-                        chainTracked.getSuiteIdMandatory(),
-                        branchForTc,
-                        LatestRebuildMode.LATEST,
-                        (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE,
-                        failRateBranch);
+                    final String branchForTc = chainTracked.getBranchForRestMandatory();
+                    final String failRateBranch = branchForTc; //branch is tracked, so fail rate should be taken from branch data
 
-                    pubCtx.ifPresent(ctx -> {
-                        int cnt = (int)ctx.getRunningUpdates().count();
-                        if (cnt > 0)
-                            runningUpdates.addAndGet(cnt);
+                    final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
 
-                        chainStatus.initFromContext(teamcity, ctx, teamcity, failRateBranch);
-                    });
-                }
-                return chainStatus;
-            })
-            .sorted(Comparator.comparing(ChainAtServerCurrentStatus::serverName))
-            .forEach(res::addChainOnServer);
+                    try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, dummyCredentials)) {
+                        Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
+                                chainTracked.getSuiteIdMandatory(),
+                                branchForTc,
+                                LatestRebuildMode.LATEST,
+                                (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE,
+                                failRateBranch);
+
+                        pubCtx.ifPresent(ctx -> {
+                            int cnt = (int) ctx.getRunningUpdates().count();
+                            if (cnt > 0)
+                                runningUpdates.addAndGet(cnt);
+
+                            chainStatus.initFromContext(teamcity, ctx, teamcity, failRateBranch);
+                        });
+                    }
+                    return chainStatus;
+                })
+                .sorted(Comparator.comparing(ChainAtServerCurrentStatus::serverName))
+                .forEach(res::addChainOnServer);
 
         res.postProcess(runningUpdates.get());
 

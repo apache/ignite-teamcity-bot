@@ -15,7 +15,7 @@ import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.issue.EventTemplates;
-import org.apache.ignite.ci.issue.ProblemRef;
+import org.apache.ignite.ci.issue.IssueRef;
 import org.apache.ignite.ci.logs.LogMsgToWarn;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
@@ -61,7 +61,7 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
 
     public List<String> warnings = new ArrayList<>();
 
-    @Nullable public ProblemRef problemRef;
+    @Nullable public IssueRef problemRef;
 
     /**
      * @param failure
@@ -182,9 +182,9 @@ import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.bra
 
             if (testId != null) {
                 //if(latestRunsSrc.detectTemplate(EventTemplates.fixOfFailure)==null)
-                    problemRef = new ProblemRef("New Failure");
+                    problemRef = new IssueRef("New Failure");
                 //else
-                //    problemRef = new ProblemRef("Fixed Failure");
+                //    problemRef = new IssueRef("Fixed Failure");
             }
         }
     }

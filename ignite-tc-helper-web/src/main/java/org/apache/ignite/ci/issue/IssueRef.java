@@ -1,10 +1,10 @@
 package org.apache.ignite.ci.issue;
 
-public class ProblemRef {
+public class IssueRef {
     public String name;
     public String webUrl;
 
-    public ProblemRef(String name) {
+    public IssueRef(String name) {
         this.name = name;
     }
 }

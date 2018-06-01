@@ -71,6 +71,10 @@
               window.sessionStorage.setItem("token", data.fullToken);
          } catch (e) {}
 
+         try {
+              window.localStorage.setItem("token", data.fullToken);
+         } catch (e) {}
+
         if (isDefinedAndFilled(backref)) {
              window.location.href = backref;
          } else {

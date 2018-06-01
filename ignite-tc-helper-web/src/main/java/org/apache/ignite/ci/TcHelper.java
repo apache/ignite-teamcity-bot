@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -23,11 +24,13 @@ public class TcHelper implements ITcHelper {
     private TcUpdatePool tcUpdatePool = new TcUpdatePool();
     private IssuesStorage issuesStorage;
     private IssueDetector detector;
+    private UserAndSessionsStorage userAndSessionsStorage;
 
     public TcHelper(Ignite ignite) {
         this.ignite = ignite;
 
         issuesStorage = new IssuesStorage(ignite);
+        userAndSessionsStorage = new UserAndSessionsStorage(ignite);
 
         detector = new IssueDetector(ignite, issuesStorage);
     }
@@ -75,6 +78,11 @@ public class TcHelper implements ITcHelper {
 
                     return teamcity;
                 });
+    }
+
+    @Override
+    public UserAndSessionsStorage users() {
+        return userAndSessionsStorage;
     }
 
     public void close() {

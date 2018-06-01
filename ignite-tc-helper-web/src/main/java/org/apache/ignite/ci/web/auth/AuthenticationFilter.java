@@ -1,7 +1,8 @@
 package org.apache.ignite.ci.web.auth;
 
-import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.conf.PasswordEncoder;
+import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.user.UserSession;
 import org.apache.ignite.ci.web.CtxListener;
 import org.glassfish.jersey.internal.util.Base64;
@@ -19,8 +20,6 @@ import javax.ws.rs.ext.Provider;
 import javax.ws.rs.core.Response;
 import java.lang.reflect.Method;
 import java.util.*;
-
-import static org.apache.ignite.ci.web.rest.login.Login.USER_SESSIONS;
 
 
 @Provider
@@ -94,14 +93,14 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         System.out.println("Session:"+sessId);
         System.out.println("token:"+token);
 
-        Ignite ignite = CtxListener.getIgnite(context);
+        UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
 
-        UserSession session = ignite.<String, UserSession>getOrCreateCache(USER_SESSIONS).get(sessId);
+        UserSession session = users.getSession(sessId);
 
         if (session == null) {
-            System.out.println("Users session not found " + sessId);
-            requestContext.abortWith(rspUnathorized());
+            System.out.println("Users session not found " + sessId + " enforcing login");
 
+            requestContext.abortWith(rspUnathorized());
             return;
         }
 

@@ -21,7 +21,7 @@ import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.analysis.TestLogCheckResult;
 import org.apache.ignite.ci.issue.EventTemplates;
-import org.apache.ignite.ci.issue.ProblemRef;
+import org.apache.ignite.ci.issue.IssueRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 import org.jetbrains.annotations.NotNull;
@@ -78,14 +78,14 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Latest runs, 0,1,3 values for each run. */
     @Nullable public List<Integer> latestRuns;
 
-    /** User commits, comma separated string. */
+    /** TcHelperUser commits, comma separated string. */
     public String userCommits = "";
 
     public Integer failedTests;
 
     public String durationPrintable;
 
-    @Nullable public ProblemRef problemRef;
+    @Nullable public IssueRef problemRef;
 
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final MultBuildRunCtx suite,
@@ -224,9 +224,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
             if (testId != null) {
                 //if (latestRunsSrc.detectTemplate(EventTemplates.fixOfFailure) == null)
-                problemRef = new ProblemRef("New Failure");
+                problemRef = new IssueRef("New Failure");
                 //else
-                //    problemRef = new ProblemRef("Fixed Failure");
+                //    problemRef = new IssueRef("Fixed Failure");
             }
 
             RunStat.TestId testIdA = latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailureA);
@@ -234,9 +234,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
             if (testIdA != null || testIdB != null) {
                 //if (latestRunsSrc.detectTemplate(EventTemplates.fixOfFailure) == null)
-                problemRef = new ProblemRef("New Critical Failure");
+                problemRef = new IssueRef("New Critical Failure");
                 //else
-                //    problemRef = new ProblemRef("Fixed Failure");
+                //    problemRef = new IssueRef("Fixed Failure");
             }
         }
     }

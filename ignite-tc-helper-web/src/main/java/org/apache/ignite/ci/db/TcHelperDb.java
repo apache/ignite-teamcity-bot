@@ -18,10 +18,33 @@ import org.apache.ignite.spi.IgniteSpiException;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 
+import static org.apache.ignite.ci.web.Launcher.waitStopSignal;
+
 /**
  * Created by dpavlov on 04.08.2017
  */
 public class TcHelperDb {
+
+    public static void main(String[] args) {
+        Ignite ignite = start();
+
+        System.out.println("Starting Ignite DB only");
+
+        Runnable r = () -> {
+            boolean stop = waitStopSignal();
+
+            if (stop) {
+                try {
+                    TcHelperDb.stop(ignite);
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+        };
+        new Thread(r).start();
+    }
 
     public static Ignite start() {
         final IgniteConfiguration cfg = new IgniteConfiguration();

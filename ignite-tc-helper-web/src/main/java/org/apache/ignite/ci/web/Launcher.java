@@ -14,10 +14,8 @@ import org.eclipse.jetty.webapp.WebAppContext;
  * Created by Дмитрий on 04.08.2017
  */
 public class Launcher {
-
     public static void main(String[] args) throws Exception {
-        boolean dev = true;
-        runServer(dev);
+        runServer(true);
     }
 
     public static void runServer(boolean dev) throws Exception {
@@ -55,6 +53,7 @@ public class Launcher {
 
         Runnable r = () -> {
             boolean stop = waitStopSignal();
+
             if (stop) {
                 try {
                     server.stop();
@@ -69,7 +68,7 @@ public class Launcher {
         server.start();
     }
 
-    private static boolean waitStopSignal() {
+    public static boolean waitStopSignal() {
         Console cons = System.console();
         if (cons != null) {
             Reader unbuffered = cons.reader();
