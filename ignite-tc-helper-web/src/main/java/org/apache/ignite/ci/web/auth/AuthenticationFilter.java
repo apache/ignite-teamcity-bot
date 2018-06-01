@@ -1,8 +1,9 @@
 package org.apache.ignite.ci.web.auth;
 
 import org.apache.ignite.ci.conf.PasswordEncoder;
-import org.apache.ignite.ci.user.UserAndSessionsStorage;
-import org.apache.ignite.ci.user.UserSession;
+import org.apache.ignite.ci.user.*;
+import org.apache.ignite.ci.util.Base64Util;
+import org.apache.ignite.ci.util.CryptUtil;
 import org.apache.ignite.ci.web.CtxListener;
 import org.glassfish.jersey.internal.util.Base64;
 
@@ -85,8 +86,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         String tokenFull = authString.substring(TOKEN_SCHEME.length()).trim();
 
+        if (!authenticate(requestContext, tokenFull, CtxListener.getTcHelper(context).users())) {
+            requestContext.abortWith(rspUnathorized());
 
-        if (!authenticate(requestContext, tokenFull, CtxListener.getTcHelper(context).users())) return;
+            return;
+        }
 
         //Verify user access
         if (method.isAnnotationPresent(RolesAllowed.class)) {
@@ -122,6 +126,39 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return false;
         }
 
+        TcHelperUser user = users.getUser(session.username);
+        if (user == null) {
+            System.out.println("No such user " + session.username + " for " + sessId + " enforcing login");
+
+            requestContext.abortWith(rspUnathorized());
+            return false;
+        }
+
+        if (user.userKeyKcv == null) {
+            System.out.println("User not initialised " + session.username + ",failed at " + sessId + " enforcing login");
+
+            return false;
+        }
+
+        try {
+            byte[] userKey = CryptUtil.aesDecrypt(Base64Util.decodeString(token), session.userKeyUnderToken);
+            byte[] userKeyKcv = CryptUtil.aesKcv(userKey);
+
+            if(!Arrays.equals(userKeyKcv, user.userKeyKcv)) {
+                System.out.println("User provided " + session.username + " invalid token ,failed at " + sessId + " enforcing login");
+
+                return false;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            return false;
+        }
+
+        session.lastActiveTs = System.currentTimeMillis();
+        users.putSession(sessId, session);
+
         String decode = null;
         try {
             decode = PasswordEncoder.decode(session.encodedPassword);
@@ -136,6 +173,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         requestContext.setProperty("principal", session.username);
         requestContext.setProperty("password", decode);
+
+        DummyCredentials dummyCredentials = new DummyCredentials("1","2");
+
+        requestContext.setProperty(ICredentialsProv._KEY, dummyCredentials);
+
         return true;
     }
 

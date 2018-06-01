@@ -1,6 +1,7 @@
 package org.apache.ignite.ci.util;
 
 import jersey.repackaged.com.google.common.base.Throwables;
+import org.jetbrains.annotations.NotNull;
 
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
@@ -11,6 +12,8 @@ import java.security.NoSuchAlgorithmException;
 
 public class CryptUtil {
     public static final Charset CHARSET = StandardCharsets.UTF_8;
+    public static final int AES_BLOCK_LEN = 16;
+    public static final int KCV_LEN = 3;
 
     public static byte[] hmacSha256(byte[] keyBytes, String data)   {
         try {
@@ -24,7 +27,7 @@ public class CryptUtil {
         }
     }
 
-    public static byte[] aesEcbPkcs5PaddedCrypt(byte[] data, int mode, SecretKeySpec key) {
+    public static byte[] aesEcbPkcs5PaddedCrypt(SecretKeySpec key, byte[] data, int mode) {
         try {
             final Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
             cipher.init(mode, key);
@@ -35,15 +38,37 @@ public class CryptUtil {
         }
     }
 
-    public static byte[] aesKcv(byte[] userKey) {
-        byte[] data = new byte[8];
-
-        return aesEncrypt(userKey, data);
+    public static byte[] aesEcbCrypt(SecretKeySpec key, byte[] data, int mode) {
+        try {
+            final Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+            cipher.init(mode, key);
+            return cipher.doFinal(data);
+        }
+        catch (NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException | InvalidKeyException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
-    private static byte[] aesEncrypt(byte[] userKey, byte[] data) {
-        SecretKeySpec keySpec = new SecretKeySpec(userKey, "AES");
+    public static byte[] aesKcv(byte[] userKey) {
+        byte[] data = new byte[AES_BLOCK_LEN];
 
-        return aesEcbPkcs5PaddedCrypt(data, Cipher.ENCRYPT_MODE, keySpec);
+        byte[] bytes = aesEcbCrypt(aesKey(userKey), data, Cipher.ENCRYPT_MODE);
+
+        byte[] kcv = new byte[KCV_LEN];
+        System.arraycopy(bytes, 0, kcv, 0, kcv.length);
+        return kcv;
+    }
+
+    public static byte[] aesEncrypt(byte[] userKey, byte[] data) {
+        return aesEcbCrypt(aesKey(userKey), data, Cipher.ENCRYPT_MODE);
+    }
+
+    public static byte[] aesDecrypt(byte[] userKey, byte[] data) {
+        return aesEcbCrypt(aesKey(userKey), data, Cipher.DECRYPT_MODE);
+    }
+
+    @NotNull
+    private static SecretKeySpec aesKey(byte[] userKey) {
+        return new SecretKeySpec(userKey, "AES");
     }
 }

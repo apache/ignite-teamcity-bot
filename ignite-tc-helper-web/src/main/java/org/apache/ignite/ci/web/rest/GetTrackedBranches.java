@@ -2,6 +2,7 @@ package org.apache.ignite.ci.web.rest;
 
 import java.util.List;
 import java.util.Set;
+import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -27,6 +28,7 @@ public class GetTrackedBranches {
 
     @GET
     @Path("version")
+    @PermitAll
     public Version version() {
         Version version = new Version();
 

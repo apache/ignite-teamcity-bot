@@ -7,16 +7,15 @@ import java.util.Collection;
 import java.util.Collections;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.configuration.DataRegionConfiguration;
-import org.apache.ignite.configuration.DataStorageConfiguration;
-import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.configuration.WALMode;
+import org.apache.ignite.configuration.*;
 import org.apache.ignite.logger.java.JavaLogger;
 import org.apache.ignite.spi.IgniteSpiContext;
 import org.apache.ignite.spi.IgniteSpiException;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.ci.web.Launcher.waitStopSignal;
 
@@ -106,6 +105,15 @@ public class TcHelperDb {
 
     public static void stop(Ignite ignite) {
         Ignition.stop(ignite.name(), false);
+    }
+
+    @NotNull
+    public static <K, V> CacheConfiguration<K, V> getCacheV2Config(String name) {
+        CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
+
+        ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
+
+        return ccfg;
     }
 
     private static class LocalOnlyTcpDiscoveryIpFinder implements TcpDiscoveryIpFinder {

@@ -3,6 +3,8 @@ package org.apache.ignite.ci.user;
 import com.google.common.base.Strings;
 
 public interface ICredentialsProv {
+    String _KEY = ICredentialsProv.class.getName();
+
     String getUser(String server);
     String getPassword(String server);
 

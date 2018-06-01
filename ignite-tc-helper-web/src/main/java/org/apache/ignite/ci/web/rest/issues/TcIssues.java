@@ -23,7 +23,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 @Path(TcIssues.ISSUES)
 @Produces(MediaType.APPLICATION_JSON)
 public class TcIssues {
-    public static final String ISSUES = "issue";
+    public static final String ISSUES = "issues";
 
     @Context
     private ServletContext context;

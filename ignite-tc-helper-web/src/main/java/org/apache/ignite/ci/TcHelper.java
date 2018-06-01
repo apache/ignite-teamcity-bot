@@ -13,6 +13,7 @@ import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Created by Дмитрий on 25.02.2018
@@ -37,18 +38,7 @@ public class TcHelper implements ITcHelper {
 
     @Override
     public IAnalyticsEnabledTeamcity server(String serverId) {
-        if (stop.get())
-            throw new IllegalStateException("Shutdown");
-
-        return servers.computeIfAbsent(Strings.nullToEmpty(serverId),
-                k -> {
-                    IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite,
-                            Strings.emptyToNull(serverId));
-
-                    teamcity.setExecutor(getService());
-
-                    return teamcity;
-                });
+        return server(serverId, null);
     }
 
     @Override
@@ -62,19 +52,21 @@ public class TcHelper implements ITcHelper {
     }
 
     @Override
-    public IAnalyticsEnabledTeamcity server(String srvId, ICredentialsProv prov) {
+    public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov) {
         if (stop.get())
             throw new IllegalStateException("Shutdown");
 
         return servers.computeIfAbsent(
-                Strings.nullToEmpty(prov.getUser(srvId)) + ":" + Strings.nullToEmpty(srvId),
+                Strings.nullToEmpty(prov == null ? null : prov.getUser(srvId)) + ":" + Strings.nullToEmpty(srvId),
                 k -> {
                     IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite,
                             Strings.emptyToNull(srvId));
 
                     teamcity.setExecutor(getService());
-                    teamcity.setAuthToken(
-                            Base64Util.encodeUtf8String(prov.getUser(srvId) + ":" + prov.getPassword(srvId)));
+                    if (prov != null) {
+                        teamcity.setAuthToken(
+                                Base64Util.encodeUtf8String(prov.getUser(srvId) + ":" + prov.getPassword(srvId)));
+                    }
 
                     return teamcity;
                 });
@@ -83,6 +75,11 @@ public class TcHelper implements ITcHelper {
     @Override
     public UserAndSessionsStorage users() {
         return userAndSessionsStorage;
+    }
+
+    @Override
+    public String primaryServerId() {
+        return "public"; //todo remove
     }
 
     public void close() {

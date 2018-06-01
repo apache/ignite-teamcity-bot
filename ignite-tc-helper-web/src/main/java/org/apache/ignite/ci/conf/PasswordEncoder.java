@@ -47,11 +47,11 @@ public class PasswordEncoder {
     }
 
     private static byte[] e(byte[] data) {
-        return CryptUtil.aesEcbPkcs5PaddedCrypt(data, Cipher.ENCRYPT_MODE, k());
+        return CryptUtil.aesEcbPkcs5PaddedCrypt(k(), data, Cipher.ENCRYPT_MODE);
     }
 
     private static byte[] d(byte[] data) {
-        return CryptUtil.aesEcbPkcs5PaddedCrypt(data, Cipher.DECRYPT_MODE, k());
+        return CryptUtil.aesEcbPkcs5PaddedCrypt(k(), data, Cipher.DECRYPT_MODE);
     }
 
     @NotNull private static SecretKeySpec k() {

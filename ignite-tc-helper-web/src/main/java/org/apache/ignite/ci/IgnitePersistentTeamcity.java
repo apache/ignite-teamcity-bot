@@ -24,7 +24,6 @@ import javax.annotation.Nullable;
 import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.analysis.Expirable;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.analysis.LogCheckResult;
@@ -33,6 +32,7 @@ import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.DbMigrations;
+import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -119,8 +119,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     private <K, V> IgniteCache<K, V> getOrCreateCacheV2(String name) {
-        CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
-        ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
+        CacheConfiguration<K, V> ccfg = TcHelperDb.getCacheV2Config(name);
         return ignite.getOrCreateCache(ccfg);
     }
 

@@ -2,13 +2,14 @@ package org.apache.ignite.ci.user;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.Nullable;
 
 public class UserAndSessionsStorage {
     public static final String USERS = "users";
-    public static final String USER_SESSIONS = "UserSessions";
+    public static final String USER_SESSIONS = "sessions";
 
     private Ignite ignite;
 
@@ -17,7 +18,7 @@ public class UserAndSessionsStorage {
     }
 
     IgniteCache<String, TcHelperUser> users() {
-        return ignite.getOrCreateCache(USERS);
+        return ignite.getOrCreateCache(getTxConfig(USERS));
     }
 
     @Nullable public UserSession getSession(String sessId) {
@@ -26,10 +27,15 @@ public class UserAndSessionsStorage {
 
 
     private IgniteCache<String, UserSession> sessions() {
-        return ignite.getOrCreateCache(USER_SESSIONS);
+        return ignite.getOrCreateCache(getTxConfig(USER_SESSIONS));
     }
 
-    public void addSession(String sessId, UserSession userSession) {
+    private <K, V> CacheConfiguration<K, V> getTxConfig(String name) {
+        return TcHelperDb.<K, V>getCacheV2Config(name).setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
+
+    }
+
+    public void putSession(String sessId, UserSession userSession) {
         sessions().put(sessId, userSession);
     }
 
@@ -37,7 +43,7 @@ public class UserAndSessionsStorage {
         return users().get(username);
     }
 
-    public void addUser(String username, TcHelperUser user) {
+    public void putUser(String username, TcHelperUser user) {
         users().put(username, user);
     }
 }

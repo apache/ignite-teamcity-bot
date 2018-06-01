@@ -36,7 +36,26 @@
 
  $(document).ready(function() {
      setupLogon();
+     showServerAndVersion();
  });
+
+ function showServerAndVersion() {
+        $.ajax({
+             type: "GET",
+             url: "rest/login/primaryServerData",
+             success: function(data) {
+                if (isDefinedAndFilled(data.host))
+                  $("#serverData").html("<a href='" + data.host + "'>" +  data.host + "</a>");
+             },
+             error: showErrInLoadStatus
+         });
+
+         $.ajax({
+            url: "rest/branches/version",
+            success: showVersionInfo,
+            error: showErrInLoadStatus
+          });
+}
 
  function setupLogon() {
      $("#loginForm").submit(function(e) {
@@ -60,13 +79,6 @@
      if (isDefinedAndFilled(data.fullToken)) {
          var backref = findGetParameter("backref");
 
-        /* var fullTok = data.fullToken;
-         $.ajaxSetup({
-             beforeSend: function(xhr) {
-                 xhr.setRequestHeader("Authorization", "Token " + data.fullToken);
-             }
-         });*/
-
          try {
               window.sessionStorage.setItem("token", data.fullToken);
          } catch (e) {}
@@ -80,12 +92,6 @@
          } else {
              window.location.href = "/";
          }
-/*
-          $.ajax({
-            url: "rest/branches/version",
-            success: showVersionInfo,
-            error: showErrInLoadStatus
-          });*/
      } else {
          $("#loadStatus").html('Login failed, please check username and password');
      }
@@ -94,22 +100,20 @@
 
 </script>
 
-Please login using actual Teamcity credentials:
 <div class="container">
+
+    Please login using actual Teamcity <span id="serverData"></span> credentials:<br><br>
+
     <form id="loginForm"><label for="uname"><b>Username</b></label>
         <input type="text" placeholder="Enter Username" name="uname" required>
+        <br>
 
         <label for="psw"><b>Password</b></label>
         <input type="password" placeholder="Enter Password" name="psw" required>
-
+        <br>
         <button type="submit">Login</button>
     </form>
-    <!--<label>
-        <input type="checkbox" checked="checked" name="remember"> Remember me
-    </label>
-
-
-
+    <!--
 <div class="g-signin2" data-onsuccess="onSignIn" data-theme="dark"></div>
     -->
 </div>

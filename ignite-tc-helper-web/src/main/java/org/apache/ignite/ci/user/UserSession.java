@@ -12,4 +12,8 @@ public class UserSession {
     public String encodedPassword;
 
     public Long loginTs;
+
+    public Long lastActiveTs;
+
+    public byte[] userKeyUnderToken;
 }
