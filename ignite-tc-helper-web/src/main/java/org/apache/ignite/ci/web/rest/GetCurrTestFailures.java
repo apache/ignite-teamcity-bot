@@ -26,10 +26,11 @@ import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.user.DummyCredentials;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.rest.login.TcHelperExceptionMapper;
 import org.apache.ignite.ci.web.rest.model.current.*;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
@@ -86,8 +87,7 @@ public class GetCurrTestFailures {
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
         final ITcHelper helper = CtxListener.getTcHelper(context);
-
-        final ICredentialsProv dummyCredentials = (ICredentialsProv) request.getAttribute( ICredentialsProv._KEY);
+        final ICredentialsProv creds = ICredentialsProv.get(request);
 
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
@@ -96,7 +96,7 @@ public class GetCurrTestFailures {
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branchNn);
 
         tracked.chains.stream().parallel()
-                .filter(chainTracked -> dummyCredentials.hasAccess(chainTracked.serverId))
+                .filter(chainTracked -> creds.hasAccess(chainTracked.serverId))
                 .map(chainTracked -> {
                     final String srvId = chainTracked.serverId;
 
@@ -105,7 +105,7 @@ public class GetCurrTestFailures {
 
                     final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
 
-                    try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, dummyCredentials)) {
+                    try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds)) {
                         Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
                                 chainTracked.getSuiteIdMandatory(),
                                 branchForTc,
@@ -159,8 +159,8 @@ public class GetCurrTestFailures {
         final FullQueryParams key = new FullQueryParams(serverId, suiteId, branchForTc, action, count);
 
         return updater.get(CURRENT + "PrFailures", key,
-            (k) -> getPrFailuresNoCache(k.getServerId(), k.getSuiteId(), k.getBranchForTc(), k.getAction(), k.getCount()),
-            true);
+                (k) -> getPrFailuresNoCache(k.getServerId(), k.getSuiteId(), k.getBranchForTc(), k.getAction(), k.getCount()),
+                true);
     }
 
     @GET
@@ -218,7 +218,6 @@ public class GetCurrTestFailures {
                 true, teamcity, failRateBranch);
 
             final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverId(), branchForTc);
-
             pubCtx.ifPresent(ctx -> {
                 if (ctx.isFakeStub())
                     chainStatus.setBuildNotFound(true);

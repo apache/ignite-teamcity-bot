@@ -38,6 +38,8 @@ function showErrInLoadStatus(jqXHR, exception) {
         }, 4000);
     } else if (jqXHR.status == 403) {
         $("#loadStatus").html('Forbidden [403]');
+    } else if (jqXHR.status == 424) {
+        $("#loadStatus").html('Dependency problem: [424]: ' + jqXHR.responseText);
     } else if (jqXHR.status == 500) {
         $("#loadStatus").html('Internal Server Error [500].');
     } else if (exception === 'parsererror') {

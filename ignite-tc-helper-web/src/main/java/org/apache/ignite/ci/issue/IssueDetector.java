@@ -86,7 +86,6 @@ public class IssueDetector {
         List<ChainAtServerCurrentStatus> servers = res.servers;
 
         for (ChainAtServerCurrentStatus next : servers) {
-
             IAnalyticsEnabledTeamcity teamcity = helper.server(next.serverId);
 
             for (SuiteCurrentStatus suiteCurrentStatus : next.suites) {

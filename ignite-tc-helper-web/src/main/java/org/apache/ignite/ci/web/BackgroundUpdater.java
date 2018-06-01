@@ -1,6 +1,7 @@
 package org.apache.ignite.ci.web;
 
 import com.google.common.base.Stopwatch;
+
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,14 +12,14 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import jersey.repackaged.com.google.common.base.Throwables;
+
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.Expirable;
+import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.lang.IgniteClosure;
-import org.apache.ignite.transactions.TransactionException;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -89,7 +90,7 @@ public class BackgroundUpdater {
         try {
             expirable = currCache.get(key);
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(); //some persistence problem
         }
 
         if (expirable == null || isExpired(expirable, triggerSensitive)) {
@@ -108,7 +109,7 @@ public class BackgroundUpdater {
                     return null;
                 }
                 catch (ExecutionException e) {
-                    throw Throwables.propagate(e);
+                    throw ExceptionUtil.propagateException(e);
                 }
                 finally {
                     scheduledUpdates.remove(computationKey, fut); // removing registered computation

@@ -2,8 +2,14 @@ package org.apache.ignite.ci.user;
 
 import com.google.common.base.Strings;
 
+import javax.servlet.http.HttpServletRequest;
+
 public interface ICredentialsProv {
     String _KEY = ICredentialsProv.class.getName();
+
+    static ICredentialsProv get(HttpServletRequest request) {
+        return (ICredentialsProv) request.getAttribute(_KEY);
+    }
 
     String getUser(String server);
     String getPassword(String server);

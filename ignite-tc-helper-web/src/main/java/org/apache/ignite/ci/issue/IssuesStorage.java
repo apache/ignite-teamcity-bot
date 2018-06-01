@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class IssuesStorage {
-    public static final String ISSUES = "issue";
+    public static final String ISSUES = "issues";
     private Ignite ignite;
 
     public IssuesStorage(Ignite ignite) {

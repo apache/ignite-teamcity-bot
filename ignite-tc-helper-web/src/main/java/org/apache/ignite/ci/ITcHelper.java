@@ -12,6 +12,7 @@ import javax.annotation.Nullable;
  */
 public interface ITcHelper {
 
+    @Deprecated
     IAnalyticsEnabledTeamcity server(String serverId);
 
     IssuesStorage issues();

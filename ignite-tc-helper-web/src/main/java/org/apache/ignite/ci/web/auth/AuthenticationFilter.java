@@ -119,7 +119,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         final String sessId = tokenizer.nextToken();
         final String token = tokenizer.nextToken();
         System.out.println("Session:"+sessId);
-        System.out.println("token:"+token);
 
         UserSession session = users.getSession(sessId);
 

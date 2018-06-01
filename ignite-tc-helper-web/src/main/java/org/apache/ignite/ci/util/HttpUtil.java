@@ -1,6 +1,8 @@
 package org.apache.ignite.ci.util;
 
 import com.google.common.base.Stopwatch;
+import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -48,15 +50,7 @@ public class HttpUtil {
         System.out.println(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
             + "ms : Sending 'GET' request to : " + url);
 
-        //todo log instead
-
-        boolean ok = 200 == (resCode);
-        if (!ok) {
-            throw new IllegalStateException("Invalid Response Code : " + resCode + ":\n"
-                + readIsToString(con.getInputStream()));
-        }
-
-        return con.getInputStream();
+        return getInputStream(url, con, resCode);
     }
 
     public static void sendGetCopyToFile(String tok, String url, File file) throws IOException {
@@ -92,12 +86,20 @@ public class HttpUtil {
 
         int resCode = con.getResponseCode();
         System.out.println("\nSending 'POST' request to URL : " + url + "\n" + body);
-        boolean ok = 200 == (resCode);
-        if (!ok) {
-            throw new IllegalStateException("Invalid Response Code : " + resCode + ":\n"
-                + readIsToString(con.getInputStream()));
+        return getInputStream(url, con, resCode);
+
+    }
+
+    private static InputStream getInputStream(String url, HttpURLConnection con, int resCode) throws IOException {
+        if (resCode == 200) {
+            return con.getInputStream();
         }
 
-        return con.getInputStream();
+        if (resCode == 401) {
+            throw new ServiceUnauthorizedException("Service " + url + " returned forbidden error");
+        }
+
+        throw new IllegalStateException("Invalid Response Code : " + resCode + ":\n"
+                + readIsToString(con.getInputStream()));
     }
 }

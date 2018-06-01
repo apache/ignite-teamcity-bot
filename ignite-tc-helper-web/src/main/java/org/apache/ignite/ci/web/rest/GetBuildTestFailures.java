@@ -23,6 +23,7 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
@@ -45,8 +46,8 @@ public class GetBuildTestFailures {
     public UpdateInfo getTestFailsUpdates(
         @QueryParam("serverId") String serverId,
         @QueryParam("buildId") Integer buildId,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        return new UpdateInfo().copyFrom(getTestFails(serverId, buildId, checkAllLogs));
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) throws ServiceUnauthorizedException {
+        return new UpdateInfo().copyFrom(getBuildTestFails(serverId, buildId, checkAllLogs));
     }
 
     @GET
@@ -55,16 +56,17 @@ public class GetBuildTestFailures {
     public String getTestFailsText(
         @QueryParam("serverId") String serverId,
         @QueryParam("buildId") Integer buildId,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        return getTestFails(serverId, buildId, checkAllLogs).toString();
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) throws ServiceUnauthorizedException {
+        return getBuildTestFails(serverId, buildId, checkAllLogs).toString();
     }
 
     @GET
     @Path("failures")
-    public TestFailuresSummary getTestFails(
+    public TestFailuresSummary getBuildTestFails(
         @QueryParam("serverId") String serverId,
         @QueryParam("buildId") Integer buildId,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs)
+            throws ServiceUnauthorizedException {
 
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
 
@@ -73,12 +75,12 @@ public class GetBuildTestFailures {
         param.setBuildId(buildId);
         param.setCheckAllLogs(checkAllLogs);
         return updater.get(TEST_FAILURES_SUMMARY_CACHE_NAME, param,
-            (k) -> getTestFailsNoCache(k.getServerId(), k.getBuildId(), k.getCheckAllLogs()), true);
+            (k) -> getBuildTestFailsNoCache(k.getServerId(), k.getBuildId(), k.getCheckAllLogs()), true);
     }
 
     @GET
     @Path("failuresNoCache")
-    @NotNull public TestFailuresSummary getTestFailsNoCache(
+    @NotNull public TestFailuresSummary getBuildTestFailsNoCache(
         @QueryParam("serverId") String serverId,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
