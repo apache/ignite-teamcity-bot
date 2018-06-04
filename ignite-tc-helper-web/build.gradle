@@ -8,9 +8,9 @@ repositories {
     mavenCentral()
     mavenLocal()
 
-    maven {
+    /* maven {
         url "https://repository.apache.org/content/repositories/orgapacheignite-1424/"
-    }
+    } */
 }
 
 dependencies {
