@@ -38,7 +38,7 @@ function setupAddDialog() {
         width: 350,
         modal: true,
         buttons: {
-            "Add Credentials": addUser,
+            "Add Credentials": addServiceCreds,
             Cancel: function() {
                 dialog.dialog("close");
             }
@@ -50,7 +50,7 @@ function setupAddDialog() {
 
     form = dialog.find("form").on("submit", function(event) {
         event.preventDefault();
-        addUser();
+        addServiceCreds();
     });
 
     $("#addCredsBtn").button().on("click", function() {
@@ -94,7 +94,7 @@ function doResetCreds() {
 }
 
 
-function addUser() {
+function addServiceCreds() {
     var url = "rest/user/addService";
 
     $.ajax({
@@ -102,6 +102,12 @@ function addUser() {
         url: url,
         data: $("#addCred").serialize(),
         success: function(data) {
+            if(isDefinedAndFilled(data.result) && data.result.length>0) {
+                $("#addCredsStatus").html('Unable to add credentials [' + data.result + "]");
+
+                return;
+            }
+            $("#addCredsStatus").html("");
 
             dialog.dialog("close");
 
@@ -154,6 +160,9 @@ function loadData() {
 
 function showData(userUi) {
     $("#login").val(userUi.login);
+    $("#fullName").val(userUi.fullName);
+    $("#email").val(userUi.email);
+
     $("#serviceLogin").val(userUi.login);
 
     $('#serviceCreds').dataTable().fnDestroy();
@@ -261,7 +270,7 @@ function showData(userUi) {
 <div id="loadStatus"></div>
 <div id="version"></div>
 
-<div style="visibility:none">
+<div style="visibility:none; position:absolute; top:-1000px">
     <div id="addCredDialogDiv" title="Add service credentials">
         <form id="addCred">
             <fieldset>
@@ -278,6 +287,8 @@ function showData(userUi) {
                 <input type="password" name="servicePassword" id="servicePassword"
                        class="text ui-widget-content ui-corner-all"></li>
                 </ul>
+
+                <div id="addCredsStatus"></div>
                 <!-- Allow form submission with keyboard without duplicating the dialog button -->
                 <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
             </fieldset>

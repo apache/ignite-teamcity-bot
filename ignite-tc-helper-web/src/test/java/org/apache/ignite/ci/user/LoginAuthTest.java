@@ -9,6 +9,7 @@ import org.mockito.Mockito;
 
 import javax.ws.rs.container.ContainerRequestContext;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,7 +26,7 @@ public class LoginAuthTest {
 
         Login login = new Login();
 
-        LoginResponse login1 = login.doLogin("user", "password", storage, "public");
+        LoginResponse login1 = login.doLogin("user", "password", storage, "public", Collections.emptySet());
         assertNotNull(login1.fullToken);
 
         AuthenticationFilter authenticationFilter = new AuthenticationFilter();
@@ -34,9 +35,9 @@ public class LoginAuthTest {
 
         assertTrue(authenticationFilter.authenticate(re, login1.fullToken, storage));
 
-        assertNotNull(login.doLogin("user", "password", storage, "public").fullToken);
+        assertNotNull(login.doLogin("user", "password", storage, "public", Collections.emptySet()).fullToken);
 
-        assertNull(login.doLogin("user", "assword", storage, "public").fullToken);
+        assertNull(login.doLogin("user", "assword", storage, "public", Collections.emptySet()).fullToken);
 
         System.out.println(storage.getUser("user"));
     }
@@ -91,7 +92,7 @@ public class LoginAuthTest {
         String srvId = "public";
         String user = "user";
         String password = "password";
-        LoginResponse loginResponse = login.doLogin(user, password, storage, srvId);
+        LoginResponse loginResponse = login.doLogin(user, password, storage, srvId, Collections.emptySet());
         assertNotNull(loginResponse.fullToken);
 
         AuthenticationFilter authenticationFilter = new AuthenticationFilter();
@@ -118,11 +119,11 @@ public class LoginAuthTest {
 
         Login login = new Login();
 
-        String fullToken = login.doLogin("user", "password", storage, "public").fullToken;
+        String fullToken = login.doLogin("user", "password", storage, "public", Collections.emptySet()).fullToken;
 
         int sepIdx = fullToken.indexOf(":");
         String brokenToken = fullToken.substring(0, sepIdx + 1) +
-                Base64Util.encodeBytesToString(new byte[128/8]);
+                Base64Util.encodeBytesToString(new byte[128 / 8]);
         assertNotNull(fullToken);
 
         AuthenticationFilter authenticationFilter = new AuthenticationFilter();

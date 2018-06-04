@@ -23,6 +23,7 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.util.Base64Util;
 import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -189,4 +190,9 @@ public interface ITeamcity extends AutoCloseable {
     void triggerBuild(String id, String name, boolean queueAtTop);
 
     void setAuthToken(String token);
+
+    default void setAuthData(String user, String password) {
+        setAuthToken(
+                Base64Util.encodeUtf8String(user + ":" + password));
+    }
 }

@@ -4,13 +4,13 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
+import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.util.CryptUtil;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.jetbrains.annotations.Nullable;
 
 import javax.ws.rs.FormParam;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
@@ -35,6 +35,8 @@ public class TcHelperUser implements IVersionedEntity {
 
     public String email;
 
+    public Set<String> additionalEmails = new LinkedHashSet<>();
+
     @Override
     public int version() {
         return _version == null ? 0 : _version;
@@ -53,7 +55,6 @@ public class TcHelperUser implements IVersionedEntity {
 
         Credentials credentials = new Credentials();
         credentials.serverId = serverId;
-        credentials.username = username;
 
         getCredentialsList().add(credentials);
 
@@ -82,6 +83,22 @@ public class TcHelperUser implements IVersionedEntity {
             return fullName;
 
         return username;
+    }
+
+    public void enrichUserData(User tcUser) {
+        if (tcUser.email != null) {
+            if (email == null) {
+                email = tcUser.email;
+            } else if (!email.equals(tcUser.email)) {
+                additionalEmails.add(tcUser.email);
+            }
+        }
+
+        if (tcUser.name != null) {
+            if (this.fullName == null) {
+                fullName = tcUser.name;
+            }
+        }
     }
 
     public static class Credentials {
@@ -131,6 +148,11 @@ public class TcHelperUser implements IVersionedEntity {
                     CryptUtil.aesEncryptP5Pad(
                             userKey,
                             password.getBytes(CryptUtil.CHARSET)));
+        }
+
+        public Credentials setLogin(String username) {
+            this.username = username;
+            return this;
         }
     }
 

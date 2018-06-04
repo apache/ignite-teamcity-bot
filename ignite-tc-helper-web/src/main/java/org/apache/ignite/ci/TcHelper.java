@@ -2,15 +2,16 @@ package org.apache.ignite.ci;
 
 import com.google.common.base.Strings;
 
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
-import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.jetbrains.annotations.Nullable;
@@ -60,8 +61,9 @@ public class TcHelper implements ITcHelper {
                     teamcity.setExecutor(getService());
 
                     if (prov != null) {
-                        teamcity.setAuthToken(
-                                Base64Util.encodeUtf8String(prov.getUser(srvId) + ":" + prov.getPassword(srvId)));
+                        final String user = prov.getUser(srvId);
+                        final String password = prov.getPassword(srvId);
+                        teamcity.setAuthData(user, password);
                     }
 
                     return teamcity;
@@ -81,6 +83,11 @@ public class TcHelper implements ITcHelper {
     @Override
     public String primaryServerId() {
         return "public"; //todo remove
+    }
+
+    //todo get from persistence
+    public Collection<String> getServerIds() {
+        return HelperConfig.getTrackedBranches().getServerIds();
     }
 
     public void close() {

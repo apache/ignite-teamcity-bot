@@ -3,6 +3,7 @@ package org.apache.ignite.ci.web.rest.login;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -20,6 +21,8 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
+
+import static org.apache.ignite.ci.web.rest.login.Login.checkServiceUserAndPassword;
 
 
 @Path(UserService.USER)
@@ -115,11 +118,18 @@ public class UserService {
 
         //todo check service credentials first
 
-        final TcHelperUser.Credentials credentials = new TcHelperUser.Credentials(
-                serviceId, serviceLogin
+        final User tcAddUser = checkServiceUserAndPassword(serviceId, serviceLogin, servicePassword);
+
+        if (tcAddUser == null) {
+            return new SimpleResult("Service rejected credentials/user not found");
+        }
+
+        final TcHelperUser.Credentials credentials = new TcHelperUser.Credentials( serviceId, serviceLogin
         );
 
         credentials.setPassword(servicePassword, prov.getUserKey());
+
+        user.enrichUserData(tcAddUser);
 
         user.getCredentialsList().add(credentials);
 

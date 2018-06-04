@@ -6,6 +6,7 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 
 /**
  * Created by Дмитрий on 25.02.2018
@@ -22,4 +23,5 @@ public interface ITcHelper {
     UserAndSessionsStorage users();
 
     String primaryServerId();
+    Collection<String> getServerIds();
 }

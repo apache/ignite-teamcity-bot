@@ -130,7 +130,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return false;
         }
 
-        System.out.println("Session:" + sessId + ", session.username: " + session.username);
+        System.out.println("[[" + session.username + "]] Session:" + sessId + "");
         TcHelperUser user = users.getUser(session.username);
         if (user == null) {
             System.out.println("No such user " + session.username + " for " + sessId + " enforcing login");
@@ -139,7 +139,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return false;
         }
 
-        System.out.println(user);
+         //System.out.println(user);
 
         if (user.userKeyKcv == null) {
             System.out.println("User not initialised " + session.username + ",failed at " + sessId + " enforcing login");

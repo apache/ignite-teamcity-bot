@@ -46,6 +46,8 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.user.User;
+import org.apache.ignite.ci.tcmodel.user.Users;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.UrlUtil;
 import org.apache.ignite.ci.util.XmlUtil;
@@ -437,6 +439,14 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     public void setExecutor(ExecutorService executor) {
         this.executor = executor;
+    }
+
+    public Users getUsers() {
+        return getJaxbUsingHref("app/rest/latest/users", Users.class);
+    }
+
+    public User getUserByUsername(String username) {
+        return getJaxbUsingHref("app/rest/latest/users/username:" + username, User.class);
     }
 
 }

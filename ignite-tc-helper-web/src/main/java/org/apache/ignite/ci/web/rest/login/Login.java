@@ -3,6 +3,8 @@ package org.apache.ignite.ci.web.rest.login;
 import com.google.common.base.Preconditions;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.util.Base64Util;
@@ -18,6 +20,8 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 
 @Path("login")
 @Produces("application/json")
@@ -54,7 +58,8 @@ public class Login {
         String primaryServerId = tcHelper.primaryServerId();
 
         try {
-            return doLogin(username, password, users, primaryServerId);
+            return doLogin(username, password, users, primaryServerId,
+                    tcHelper.getServerIds());
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -64,7 +69,8 @@ public class Login {
     public LoginResponse doLogin(@FormParam("uname") String username,
                                  @FormParam("psw") String password,
                                  UserAndSessionsStorage users,
-                                 String primaryServerId) {
+                                 String primaryServerId,
+                                 Collection<String> serverIds) {
         SecureRandom random = new SecureRandom();
         byte[] tokenBytes = random.generateSeed(TOKEN_LEN);
         String token = Base64Util.encodeBytesToString(tokenBytes);
@@ -86,13 +92,35 @@ public class Login {
         byte[] userKeyCandidate = CryptUtil.hmacSha256(user.salt, (username + ":" + password));
         byte[] userKeyCandidateKcv = CryptUtil.aesKcv(userKeyCandidate);
 
+        final User tcUser = checkServiceUserAndPassword(primaryServerId, username, password);
+
         if (user.userKeyKcv == null) {
+            if (tcUser == null) {
+                loginResponse.errorMessage =
+                        "Service " + primaryServerId + " rejected credentials/user not found";
+
+                return loginResponse;
+            }
+
             //todo new registration should be checked on server first
             user.userKeyKcv = userKeyCandidateKcv;
 
-            TcHelperUser.Credentials creds = user.getOrCreateCreds(primaryServerId);
+            user.email = tcUser.email;
+            user.fullName = tcUser.name;
 
-            creds.setPassword(password, userKeyCandidate);
+            user.getOrCreateCreds(primaryServerId).setLogin(username).setPassword(password, userKeyCandidate);
+
+            for (String addSrvId : serverIds) {
+                if (!addSrvId.equals(primaryServerId)) {
+                    final User tcAddUser = checkServiceUserAndPassword(addSrvId, username, password);
+
+                    if (tcAddUser != null) {
+                        user.getOrCreateCreds(addSrvId).setLogin(username).setPassword(password, userKeyCandidate);
+
+                        user.enrichUserData(tcAddUser);
+                    }
+                }
+            }
 
             users.putUser(username, user);
         } else {
@@ -109,6 +137,36 @@ public class Login {
         loginResponse.fullToken = sessId + ":" + token;
 
         return loginResponse;
+    }
+
+    public static User checkServiceUserAndPassword(String serverId, String username, String password) {
+        try {
+            try(IgniteTeamcityHelper igniteTeamcityHelper = new IgniteTeamcityHelper(serverId)) {
+                igniteTeamcityHelper.setAuthData(username, password);
+
+                final User tcUser = igniteTeamcityHelper.getUserByUsername(username);
+
+                /*
+                final List<UserRef> usersRefs = users.getUsersRefs();
+
+                for (UserRef next : usersRefs) {
+                    if (next.username.equals(username)) {
+                        System.err.println("Found ");
+                    }
+                }*/
+
+                if (tcUser != null)
+                    System.err.println(tcUser);
+
+                return tcUser;
+            }
+        } catch (ServiceUnauthorizedException e) {
+            System.err.println("Service " + serverId + " rejected credentials from " + username);
+            return null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private TcHelperUser getOrCreateUser(@FormParam("uname") String username,

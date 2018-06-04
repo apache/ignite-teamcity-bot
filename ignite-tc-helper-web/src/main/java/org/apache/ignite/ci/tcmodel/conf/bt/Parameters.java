@@ -1,5 +1,7 @@
 package org.apache.ignite.ci.tcmodel.conf.bt;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -15,7 +17,7 @@ public class Parameters {
     @XmlElement(name="property")
     List<Property> properties;
 
-    public String getParameter(String key) {
+    @Nullable public String getParameter(String key) {
         if(properties==null) {
             return null;
         }
