@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.web.rest.model.top;
+package org.apache.ignite.ci.web.model.top;
 
 /**
  * Created by Дмитрий on 07.11.2017.

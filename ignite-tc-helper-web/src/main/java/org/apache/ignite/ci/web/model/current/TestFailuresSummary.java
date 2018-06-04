@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.web.rest.model.current;
+package org.apache.ignite.ci.web.model.current;
 
 import com.google.common.base.Objects;
 import java.util.ArrayList;

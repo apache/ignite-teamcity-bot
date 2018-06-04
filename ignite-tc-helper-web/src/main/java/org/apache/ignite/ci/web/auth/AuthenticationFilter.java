@@ -211,6 +211,15 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                     return null;
                 }
             }
+
+            @Override
+            public String getPrincipalId() {
+                return user.username;
+            }
+
+            @Override public byte[] getUserKey() {
+                return userKey;
+            }
         };
     }
 

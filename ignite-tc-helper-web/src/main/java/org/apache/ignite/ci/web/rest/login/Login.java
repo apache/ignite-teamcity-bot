@@ -3,7 +3,6 @@ package org.apache.ignite.ci.web.rest.login;
 import com.google.common.base.Preconditions;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.util.Base64Util;
@@ -11,6 +10,7 @@ import org.apache.ignite.ci.util.CryptUtil;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.user.LoginResponse;
 import org.apache.ignite.ci.user.UserSession;
+import org.apache.ignite.ci.web.model.ServerDataResponse;
 
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
@@ -37,14 +37,6 @@ public class Login {
         String serverId = tcHelper.primaryServerId();
         IAnalyticsEnabledTeamcity server = tcHelper.server(serverId, null);
         return new ServerDataResponse(server.host());
-    }
-
-    public static class ServerDataResponse {
-        public String host;
-
-        public ServerDataResponse(String host) {
-            this.host = host;
-        }
     }
 
     @POST
@@ -100,10 +92,7 @@ public class Login {
 
             TcHelperUser.Credentials creds = user.getOrCreateCreds(primaryServerId);
 
-            creds.setPasswordUnderUserKey(
-                    CryptUtil.aesEncryptP5Pad(
-                            userKeyCandidate,
-                            password.getBytes(CryptUtil.CHARSET)));
+            creds.setPassword(password, userKeyCandidate);
 
             users.putUser(username, user);
         } else {

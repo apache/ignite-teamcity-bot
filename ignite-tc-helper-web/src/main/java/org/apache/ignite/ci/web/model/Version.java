@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.web.rest.model;
+package org.apache.ignite.ci.web.model;
 
 @SuppressWarnings("PublicField") public class Version {
     /** TC Helper Version. */

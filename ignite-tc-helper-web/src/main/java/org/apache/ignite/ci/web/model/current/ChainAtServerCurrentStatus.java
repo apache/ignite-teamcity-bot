@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.web.rest.model.current;
+package org.apache.ignite.ci.web.model.current;
 
 import com.google.common.base.Objects;
 import java.util.ArrayList;
@@ -16,9 +16,9 @@ import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 
 import static org.apache.ignite.ci.util.UrlUtil.escape;
-import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.branchForLink;
-import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.createOccurForLogConsumer;
-import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.createOrrucForLongRun;
+import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchForLink;
+import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOccurForLogConsumer;
+import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOrrucForLongRun;
 
 /**
  * Represent Run All chain results/ or RunAll+latest re-runs.

@@ -6,8 +6,8 @@ import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.issue.IssueList;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.TriggerBuild;
-import org.apache.ignite.ci.web.rest.model.current.UpdateInfo;
+import org.apache.ignite.ci.web.model.SimpleResult;
+import org.apache.ignite.ci.web.model.current.UpdateInfo;
 import org.jetbrains.annotations.Nullable;
 
 import javax.servlet.ServletContext;
@@ -59,8 +59,8 @@ public class TcIssues {
 
     @GET
     @Path("clear")
-    public TriggerBuild.TriggerResult clear(@Nullable @QueryParam("branch") String branchOpt) {
-        return new TriggerBuild.TriggerResult("Ok");
+    public SimpleResult clear(@Nullable @QueryParam("branch") String branchOpt) {
+        return new SimpleResult("Ok");
     }
 
 }

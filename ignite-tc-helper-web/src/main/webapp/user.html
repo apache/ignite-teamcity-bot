@@ -1,0 +1,240 @@
+<html lang="en">
+<head>
+    <title>Ignite Teamcity - login</title>
+    <link rel="icon" href="http://simons1call.com/images/companies/1/icons/icon-tree.png">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="css/style-1.4.css">
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.js"></script>
+    <script src="https://cdn.datatables.net/1.10.16/js/dataTables.jqueryui.js"></script>
+
+    <script src="js/common-1.3.js"></script>
+</head>
+<body>
+
+<script>
+
+$(document).ready(function() {
+    $( document ).tooltip();
+    loadData();
+
+    var username = findGetParameter("username");
+
+    $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
+
+    setupAddDialog();
+});
+
+ function setupAddDialog() {
+    dialog = $( "#addCredDialogDiv" ).dialog({
+      autoOpen: false,
+      height: 400,
+      width: 350,
+      modal: true,
+      buttons: {
+        "Add Credentials": addUser,
+        Cancel: function() {
+          dialog.dialog( "close" );
+        }
+      },
+      close: function() {
+        form[ 0 ].reset();
+      }
+    });
+
+    form = dialog.find( "form" ).on( "submit", function( event ) {
+      event.preventDefault();
+      addUser();
+    });
+
+    $( "#create-user" ).button().on( "click", function() {
+      dialog.dialog( "open" );
+    });
+    }
+    
+ function addUser() {
+       var url = "rest/user/addService";
+
+         $.ajax({
+             type: "POST",
+             url: url,
+             data: $("#addCred").serialize(),
+             success: function(data) {
+
+                 dialog.dialog( "close" );
+
+                 loadData();
+             },
+             error: showErrInLoadStatus
+         });
+
+ 
+      /*var valid = true;
+
+      var serviceId = $( "#serviceId" );
+      var serviceLogin = $( "#serviceLogin" );
+      var servicePassword = $( "#servicePassword" );
+
+      if ( valid ) {
+        $( "#serviceCreds tbody" ).append( "<tr>" +
+          "<td>" + serviceId.val() + "</td>" +
+          "<td>" + serviceLogin.val() + "</td>" +
+          "<td>" + servicePassword.val() + "</td>" +
+        "</tr>" );
+      }
+      return valid;*/
+    }
+
+
+function parmsForRest() {
+    var curReqParms = "";
+    var login = findGetParameter("login");
+    if(login!=null) {
+        curReqParms += "?login=" + login;
+    }
+
+    return curReqParms;
+}
+
+function loadData() {
+    var curFailuresUrl = "rest/user/get" + parmsForRest();
+
+    $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+    $.ajax({
+        url: curFailuresUrl,
+        success: function(result) {
+            showData(result);
+            $("#loadStatus").html("");
+        },
+        error: showErrInLoadStatus
+    });
+}
+
+function showData(userUi) {
+    $("#login").val(userUi.login);
+    $("#serviceLogin").val(userUi.login);
+
+    $('#serviceCreds').dataTable().fnDestroy();
+    $('#serviceCreds').DataTable( {
+        data: userUi.data,
+        columns: [
+            { "data": "serviceId", title: "Service ID" },
+            { "data": "serviceLogin", title: "login" },
+            { "data": "servicePassword",title: "Password" }
+        ]
+    } );
+}
+
+</script>
+
+<div id="form_container">
+
+    <form id="userdata" class="appnitro" method="post" action="">
+        <div class="form_description">
+            <h2>TC helper User</h2>
+            <p>User data and preferences</p>
+        </div>
+        <ul>
+            <li id="li_0">
+                <label class="description" for="login">Login</label>
+                <div>
+                    <input id="login" name="login" class="element text medium" type="text" maxlength="255"
+                           readonly/>
+                </div>
+            </li>
+            <li>
+                <label class="description" for="fullName">Full Name </label>
+                <div>
+                    <input id="fullName" name="fullName" class="element text medium" type="text" maxlength="255"
+                           value=""/>
+                </div>
+            </li>
+            <li>
+                <label class="description" for="email">Email </label>
+                <div>
+                    <input id="email" name="email" class="element text medium" type="text" maxlength="255"
+                           value=""/>
+                </div>
+            </li>
+            <li>
+                <label class="description" for="slackid">Slack ID</label>
+                <div>
+                    <input id="slackid" name="slackid" class="element text medium" type="text" maxlength="255"
+                           value=""/>
+                </div>
+            </li>
+            <li  >
+                <label class="description">Preferences</label>
+
+			<input id="element_5_1" name="element_5_1" class="element checkbox" type="checkbox" value="1"/>
+<label class="choice" for="element_5_1">Notify on build problems related to me</label>
+<input id="element_5_2" name="element_5_2" class="element checkbox" type="checkbox" value="1"/>
+<label class="choice" for="element_5_2">I agree to be responsible for MTCGA issues</label>
+<input id="element_5_3" name="element_5_3" class="element checkbox" type="checkbox" value="1"/>
+<label class="choice" for="element_5_3">Notify me on all build problems</label>
+
+            </li>
+
+            <li class="buttons">
+                <input type="hidden" name="form_id" value="13472"/>
+
+                <input id="saveForm" class="button_text" type="submit" name="submit" value="Save"/>
+            </li>
+        </ul>
+    </form>
+
+
+    <h3>Service credentials</h3>
+    <div class="ui-widget">
+        <table id="serviceCreds" class="ui-widget ui-widget-content">
+            <thead>
+            <tr class="ui-widget-header ">
+                <th>Service Id</th>
+                <th>Login</th>
+                <th>Password</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>John Doe</td>
+                <td>john.doe@example.com</td>
+                <td>johndoe1</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <button id="create-user">Add credentials</button>
+
+</div>
+
+<div id="loadStatus"></div>
+<div id="version"></div>
+
+<div style="visibility:none">
+    <div id="addCredDialogDiv" title="Add service credentials">
+        <form id="addCred">
+            <fieldset>
+                <ul>
+                    <li>
+
+                    <li><label for="serviceId">Service ID</label>
+                <input type="text" name="serviceId" id="serviceId"
+                       class="text ui-widget-content ui-corner-all"></li>
+                    <li><label for="serviceLogin">Login</label>
+                <input type="text" name="serviceLogin" id="serviceLogin"
+                       class="text ui-widget-content ui-corner-all"></li>
+                    <li> <label for="servicePassword">Password</label>
+                <input type="password" name="servicePassword" id="servicePassword"
+                       class="text ui-widget-content ui-corner-all"></li>
+                </ul>
+                <!-- Allow form submission with keyboard without duplicating the dialog button -->
+                <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+            </fieldset>
+        </form>
+    </div>
+</div>
+</body>
+</html>

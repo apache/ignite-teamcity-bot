@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.web.rest.model.chart;
+package org.apache.ignite.ci.web.model.chart;
 
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -1,7 +1,6 @@
 package org.apache.ignite.ci.web.rest;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -15,6 +14,7 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
+import org.apache.ignite.ci.web.model.SimpleResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,7 +29,7 @@ public class TriggerBuild {
 
     @GET
     @Path("trigger")
-    public TriggerResult triggerBuild(
+    public SimpleResult triggerBuild(
         @Nullable @QueryParam("serverId") String serverId,
         @Nullable @QueryParam("branchName") String branchName,
         @Nullable @QueryParam("suiteId") String suiteId,
@@ -45,12 +45,12 @@ public class TriggerBuild {
             helper.triggerBuild(suiteId, branchName, top != null && top);
         }
 
-        return new TriggerResult("OK");
+        return new SimpleResult("OK");
     }
 
     @GET
     @Path("triggerBuilds")
-    public TriggerResult triggerBuilds(
+    public SimpleResult triggerBuilds(
         @Nullable @QueryParam("serverId") String serverId,
         @Nullable @QueryParam("branchName") String branchName,
         @NotNull @QueryParam("suiteIdList") String suiteIdList,
@@ -64,7 +64,7 @@ public class TriggerBuild {
 
         List<String> strings = Arrays.asList(suiteIdList.split(","));
         if (strings.isEmpty())
-            return new TriggerResult("Error: nothing to run");
+            return new SimpleResult("Error: nothing to run");
 
         try (final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId, prov)) {
             boolean queueToTop = top != null && top;
@@ -76,15 +76,7 @@ public class TriggerBuild {
             }
         }
 
-        return new TriggerResult("OK");
-    }
-
-    public static class TriggerResult {
-        public String result;
-
-        public TriggerResult(String result) {
-            this.result = result;
-        }
+        return new SimpleResult("OK");
     }
 
 }

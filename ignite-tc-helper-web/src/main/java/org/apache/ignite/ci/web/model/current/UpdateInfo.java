@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.web.rest.model.current;
+package org.apache.ignite.ci.web.model.current;
 
 /**
  * Created by Дмитрий on 19.02.2018

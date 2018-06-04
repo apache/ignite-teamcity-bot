@@ -19,7 +19,7 @@ import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.util.TimeUtil;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.model.top.FailingTest;
+import org.apache.ignite.ci.web.model.top.FailingTest;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

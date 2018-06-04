@@ -3,8 +3,10 @@ package org.apache.ignite.ci.user;
 import com.google.common.base.MoreObjects;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
+import org.apache.ignite.ci.util.CryptUtil;
 import org.jetbrains.annotations.Nullable;
 
+import javax.ws.rs.FormParam;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -67,6 +69,16 @@ public class TcHelperUser implements IVersionedEntity {
 
         byte[] passwordUnderUserKey;
 
+        Credentials() {
+
+        }
+
+        public Credentials(String serviceId, String serviceLogin) {
+            this.serverId = serviceId;
+            this.username = serviceLogin;
+        }
+
+
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(this)
@@ -85,10 +97,20 @@ public class TcHelperUser implements IVersionedEntity {
             return username;
         }
 
+        public String getServerId() {
+            return serverId;
+        }
+
         public byte[] getPasswordUnderUserKey() {
             return passwordUnderUserKey;
         }
 
+        public void setPassword(String password, byte[] userKey) {
+            setPasswordUnderUserKey(
+                    CryptUtil.aesEncryptP5Pad(
+                            userKey,
+                            password.getBytes(CryptUtil.CHARSET)));
+        }
     }
 
     @Override

@@ -19,9 +19,9 @@ import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
-import org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus;
-import org.apache.ignite.ci.web.rest.model.current.TestFailure;
+import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
+import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
+import org.apache.ignite.ci.web.model.current.TestFailure;
 
 import static java.lang.Float.parseFloat;
 import static javax.ws.rs.core.MediaType.TEXT_HTML;

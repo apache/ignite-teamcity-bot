@@ -15,7 +15,7 @@ import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.ChainAtServer;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.model.Version;
+import org.apache.ignite.ci.web.model.Version;
 import org.apache.ignite.lang.IgniteProductVersion;
 
 /**

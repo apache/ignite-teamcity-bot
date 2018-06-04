@@ -24,8 +24,8 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
-import org.apache.ignite.ci.web.rest.model.chart.ChartData;
-import org.apache.ignite.ci.web.rest.model.chart.TestsMetrics;
+import org.apache.ignite.ci.web.model.chart.ChartData;
+import org.apache.ignite.ci.web.model.chart.TestsMetrics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

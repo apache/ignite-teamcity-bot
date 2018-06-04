@@ -12,10 +12,10 @@ import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
-import org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus;
-import org.apache.ignite.ci.web.rest.model.current.TestFailure;
-import org.apache.ignite.ci.web.rest.model.current.TestFailuresSummary;
+import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
+import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
+import org.apache.ignite.ci.web.model.current.TestFailure;
+import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;

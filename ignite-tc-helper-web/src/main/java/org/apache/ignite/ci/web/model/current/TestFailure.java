@@ -1,4 +1,4 @@
-package org.apache.ignite.ci.web.rest.model.current;
+package org.apache.ignite.ci.web.model.current;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
@@ -21,7 +21,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
 import static org.apache.ignite.ci.util.TimeUtil.getDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
-import static org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus.branchForLink;
+import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchForLink;
 
 /**
  * UI model for test failure, probably merged with its history
