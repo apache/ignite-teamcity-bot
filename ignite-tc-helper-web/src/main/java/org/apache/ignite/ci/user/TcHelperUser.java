@@ -1,9 +1,11 @@
 package org.apache.ignite.ci.user;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Strings;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.util.CryptUtil;
+import org.apache.ignite.ci.web.model.SimpleResult;
 import org.jetbrains.annotations.Nullable;
 
 import javax.ws.rs.FormParam;
@@ -20,11 +22,18 @@ public class TcHelperUser implements IVersionedEntity {
 
     public String username;
 
+    @Nullable
     public byte[] salt;
 
+    @Nullable
     public byte[] userKeyKcv;
 
-    public List<Credentials> credentialsList = new ArrayList<>();
+    @Nullable
+    private List<Credentials> credentialsList = new ArrayList<>();
+
+    public String fullName;
+
+    public String email;
 
     @Override
     public int version() {
@@ -45,22 +54,34 @@ public class TcHelperUser implements IVersionedEntity {
         Credentials credentials = new Credentials();
         credentials.serverId = serverId;
         credentials.username = username;
-        credentialsList.add(credentials);
+
+        getCredentialsList().add(credentials);
 
         return credentials;
     }
 
     @Nullable
     public Credentials getCredentials(String serverId) {
-        if (credentialsList == null)
-            credentialsList = new ArrayList<>();
-
-        for (Credentials next : credentialsList) {
+        for (Credentials next : getCredentialsList()) {
             if (next.serverId.equals(serverId))
                 return next;
         }
 
         return null;
+    }
+
+    public List<Credentials> getCredentialsList() {
+        if (credentialsList == null)
+            credentialsList = new ArrayList<>();
+
+        return credentialsList;
+    }
+
+    public String getDisplayName() {
+        if (!Strings.isNullOrEmpty(fullName))
+            return fullName;
+
+        return username;
     }
 
     public static class Credentials {
@@ -88,7 +109,7 @@ public class TcHelperUser implements IVersionedEntity {
                     .toString();
         }
 
-        public void setPasswordUnderUserKey(byte[] bytes) {
+        void setPasswordUnderUserKey(byte[] bytes) {
             passwordUnderUserKey = bytes;
         }
 
@@ -117,8 +138,8 @@ public class TcHelperUser implements IVersionedEntity {
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("username", username)
-                .add("salt", printHexBinary(salt))
-                .add("userKeyKcv", printHexBinary(userKeyKcv))
+                .add("salt", salt == null ? "" : printHexBinary(salt))
+                .add("userKeyKcv", userKeyKcv == null ? "" : printHexBinary(userKeyKcv))
                 .add("credentialsList", credentialsList)
                 .toString();
     }

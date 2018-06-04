@@ -33,8 +33,8 @@ function showErrInLoadStatus(jqXHR, exception) {
     } else if (jqXHR.status == 401) {
         $("#loadStatus").html('Unauthorized [401]');
 
-        setTimeout( function() {
-            window.location.href="/login.html" + "?backref=" + encodeURIComponent(window.location.href);
+        setTimeout(function() {
+            window.location.href = "/login.html" + "?backref=" + encodeURIComponent(window.location.href);
         }, 4000);
     } else if (jqXHR.status == 403) {
         $("#loadStatus").html('Forbidden [403]');
@@ -59,16 +59,16 @@ function showVersionInfo(result) {
     var res = "";
     res += "Ignite TC helper, V" + result.version + ", ";
 
-    if(isDefinedAndFilled(result.srcWebUrl)) {
-        res+= "<a href='"+result.srcWebUrl + "'>source code (GitHub)</a>. ";
+    if (isDefinedAndFilled(result.srcWebUrl)) {
+        res += "<a href='" + result.srcWebUrl + "'>source code (GitHub)</a>. ";
     }
 
     res += "Powered by <a href='https://ignite.apache.org/'>";
     res += "<img width='16px' height='16px' src='https://pbs.twimg.com/profile_images/568493154500747264/xTBxO73F.png'>"
     res += "Apache Ignite</a> ";
 
-    if(isDefinedAndFilled(result.ignVer)) {
-        res+="V" + result.ignVer;
+    if (isDefinedAndFilled(result.ignVer)) {
+        res += "V" + result.ignVer;
     }
 
     $("#version").html(res);
@@ -80,41 +80,70 @@ $(document).ready(function() {
 });
 
 var g_menuSet = false;
+
 function setupMenu() {
-    if(g_menuSet)
+    if (g_menuSet)
         return;
 
     g_menuSet = true;
 
-    var res = "";
-    res+="<div class=\"navbar\">";
-    res+=            "<a href=\"/\">Home</a>";
-    res+="<div class='topnav-right'>";
-    var logout="/login.html" + "?exit=true&backref=" + encodeURIComponent(window.location.href);
-    res+="<a href='"+logout+"'>Logout</a>";
+    $.ajax({
+        url: "rest/user/currentUserName",
+        success: showMenu,
+        error:  function () {
+            //not logged in
 
+            showMenu({});
+        }
+    });
 
-      res+="</div>";
-     res+=     "</div>";
-    $(document.body).prepend(res );
 }
+
+function showMenu(menuData) {
+    var userName = menuData.result;
+    var logoImage="";
+
+    var res = "";
+    if (!isDefinedAndFilled(userName)) {
+        res += "<div class=\"navbar\">";
+        res += logoImage;
+        res += "<div class='topnav-right'>";
+        res += "<a href='/login.html'>Login</a>";
+        res += "</div>";
+        res += "</div>";
+    } else {
+        res += "<div class=\"navbar\">";
+        res += "<a href=\"/\">Home</a>";
+
+        res += "<div class='topnav-right'>";
+        res += "<a href='/user.html'>"+userName+"</a>";
+        var logout = "/login.html" + "?exit=true&backref=" + encodeURIComponent(window.location.href);
+        res += "<a href='" + logout + "'>Logout</a>";
+
+        res += "</div>";
+        res += "</div>";
+    }
+
+    $(document.body).prepend(res);
+}
+
 
 
 function setupTokenManual(result) {
     $.ajaxSetup({
         beforeSend: function(xhr) {
-                try {
-                    var fullTok = window.sessionStorage.getItem("token");
+            try {
+                var fullTok = window.sessionStorage.getItem("token");
+
+                if (isDefinedAndFilled(fullTok))
+                    xhr.setRequestHeader("Authorization", "Token " + fullTok);
+                else {
+                    var fullTok = window.localStorage.getItem("token");
 
                     if (isDefinedAndFilled(fullTok))
                         xhr.setRequestHeader("Authorization", "Token " + fullTok);
-                    else {
-                        var fullTok = window.localStorage.getItem("token");
-
-                        if (isDefinedAndFilled(fullTok))
-                            xhr.setRequestHeader("Authorization", "Token " + fullTok);
-                    }
-                } catch (e) {}
+                }
+            } catch (e) {}
         }
     });
 }

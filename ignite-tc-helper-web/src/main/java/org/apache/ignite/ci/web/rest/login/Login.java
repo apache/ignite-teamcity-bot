@@ -119,13 +119,15 @@ public class Login {
         if (user == null) {
             user = new TcHelperUser();
             user.username = username;
-            user.salt = random.generateSeed(SALT_LEN);
         } else {
             if (user.isOutdatedEntityVersion()) {
-                user.salt = random.generateSeed(SALT_LEN);
                 user.userKeyKcv = null;
                 user._version = TcHelperUser.LATEST_VERSION;
             }
+        }
+
+        if (user.salt == null) {
+            user.salt = random.generateSeed(SALT_LEN);
         }
 
         return user;

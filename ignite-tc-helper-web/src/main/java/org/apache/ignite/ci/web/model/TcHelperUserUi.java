@@ -11,7 +11,13 @@ public class TcHelperUserUi {
 
     public List<CredentialsUi> data = new ArrayList<>();
 
+    public String fullName;
+
+    public String email;
+
     public TcHelperUserUi(TcHelperUser user) {
         login = user.username;
+        fullName = user.fullName;
+        email = user.email;
     }
 }

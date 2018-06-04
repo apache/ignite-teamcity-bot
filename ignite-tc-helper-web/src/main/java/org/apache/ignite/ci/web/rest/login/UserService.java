@@ -13,11 +13,13 @@ import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.ci.web.model.TcHelperUserUi;
 import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import java.util.ArrayList;
 
 
 @Path(UserService.USER)
@@ -32,6 +34,21 @@ public class UserService {
     private HttpServletRequest request;
 
     @GET
+    @Path("currentUserName")
+    public SimpleResult currentUserName() {
+        final ICredentialsProv prov = ICredentialsProv.get(request);
+        if (prov == null)
+            return new SimpleResult("");
+
+        final String currentUserLogin = prov.getPrincipalId();
+        final UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
+        final TcHelperUser user = users.getUser(currentUserLogin);
+
+        return new SimpleResult(user.getDisplayName());
+    }
+
+
+    @GET
     @Path("get")
     public TcHelperUserUi getUserData(@Nullable @QueryParam("login") final String loginParm) {
         final String login = Strings.isNullOrEmpty(loginParm) ? currentPrincipal().login : loginParm;
@@ -43,7 +60,7 @@ public class UserService {
 
         //if principal is not null, can do only brief check of credentials.
 
-        for (TcHelperUser.Credentials next : user.credentialsList) {
+        for (TcHelperUser.Credentials next : user.getCredentialsList()) {
             final CredentialsUi credentialsUi = new CredentialsUi();
             credentialsUi.serviceId = next.getServerId();
             credentialsUi.serviceLogin = next.getUsername();
@@ -62,6 +79,25 @@ public class UserService {
     PrincipalResponse currentPrincipal() {
         return new PrincipalResponse(ICredentialsProv.get(request).getPrincipalId());
     }
+
+
+    @POST
+    @Path("resetCredentials")
+    public SimpleResult resetCredentials() {
+        final ICredentialsProv prov = ICredentialsProv.get(request);
+        final String currentUserLogin = prov.getPrincipalId();
+        final UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
+        final TcHelperUser user = users.getUser(currentUserLogin);
+
+        user.userKeyKcv = null;
+        user.getCredentialsList().clear();
+        user.salt = null;
+
+        users.putUser(currentUserLogin, user);
+
+        return new SimpleResult("");
+    }
+
 
     @POST
     @Path("addService")
@@ -85,7 +121,7 @@ public class UserService {
 
         credentials.setPassword(servicePassword, prov.getUserKey());
 
-        user.credentialsList.add(credentials);
+        user.getCredentialsList().add(credentials);
 
         users.putUser(currentUserLogin, user);
 

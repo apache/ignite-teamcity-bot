@@ -11,88 +11,127 @@
     <script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.js"></script>
     <script src="https://cdn.datatables.net/1.10.16/js/dataTables.jqueryui.js"></script>
 
-    <script src="js/common-1.3.js"></script>
+    <script src="js/common-1.4.js"></script>
 </head>
 <body>
 
 <script>
-
 $(document).ready(function() {
-    $( document ).tooltip();
+    $(document).tooltip();
     loadData();
 
     var username = findGetParameter("username");
 
-    $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
+    $.ajax({
+        url: "rest/branches/version",
+        success: showVersionInfo,
+        error: showErrInLoadStatus
+    });
 
     setupAddDialog();
 });
 
- function setupAddDialog() {
-    dialog = $( "#addCredDialogDiv" ).dialog({
-      autoOpen: false,
-      height: 400,
-      width: 350,
+function setupAddDialog() {
+    dialog = $("#addCredDialogDiv").dialog({
+        autoOpen: false,
+        height: 400,
+        width: 350,
+        modal: true,
+        buttons: {
+            "Add Credentials": addUser,
+            Cancel: function() {
+                dialog.dialog("close");
+            }
+        },
+        close: function() {
+            form[0].reset();
+        }
+    });
+
+    form = dialog.find("form").on("submit", function(event) {
+        event.preventDefault();
+        addUser();
+    });
+
+    $("#addCredsBtn").button().on("click", function() {
+        dialog.dialog("open");
+    });
+
+     $("#resetCredsBtn").button().on("click", function() {
+         confirmResetCreds();
+    });
+}
+
+function confirmResetCreds() {
+ $( "#dialogConfirmReset" ).dialog({
+      resizable: false,
+      height: "auto",
+      width: 400,
       modal: true,
       buttons: {
-        "Add Credentials": addUser,
+        "Reset password and credentials": function() {
+           doResetCreds();
+            $( this ).dialog( "close" );
+        },
         Cancel: function() {
-          dialog.dialog( "close" );
+          $( this ).dialog( "close" );
         }
-      },
-      close: function() {
-        form[ 0 ].reset();
       }
     });
+}
 
-    form = dialog.find( "form" ).on( "submit", function( event ) {
-      event.preventDefault();
-      addUser();
+function doResetCreds() {
+    var url = "rest/user/resetCredentials";
+
+    $.ajax({
+        type: "POST",
+        url: url,
+        success: function(data) {
+             loadData();
+        },
+        error: showErrInLoadStatus
+    });
+}
+
+
+function addUser() {
+    var url = "rest/user/addService";
+
+    $.ajax({
+        type: "POST",
+        url: url,
+        data: $("#addCred").serialize(),
+        success: function(data) {
+
+            dialog.dialog("close");
+
+            loadData();
+        },
+        error: showErrInLoadStatus
     });
 
-    $( "#create-user" ).button().on( "click", function() {
-      dialog.dialog( "open" );
-    });
+
+    /*var valid = true;
+
+    var serviceId = $( "#serviceId" );
+    var serviceLogin = $( "#serviceLogin" );
+    var servicePassword = $( "#servicePassword" );
+
+    if ( valid ) {
+      $( "#serviceCreds tbody" ).append( "<tr>" +
+        "<td>" + serviceId.val() + "</td>" +
+        "<td>" + serviceLogin.val() + "</td>" +
+        "<td>" + servicePassword.val() + "</td>" +
+      "</tr>" );
     }
-    
- function addUser() {
-       var url = "rest/user/addService";
-
-         $.ajax({
-             type: "POST",
-             url: url,
-             data: $("#addCred").serialize(),
-             success: function(data) {
-
-                 dialog.dialog( "close" );
-
-                 loadData();
-             },
-             error: showErrInLoadStatus
-         });
-
- 
-      /*var valid = true;
-
-      var serviceId = $( "#serviceId" );
-      var serviceLogin = $( "#serviceLogin" );
-      var servicePassword = $( "#servicePassword" );
-
-      if ( valid ) {
-        $( "#serviceCreds tbody" ).append( "<tr>" +
-          "<td>" + serviceId.val() + "</td>" +
-          "<td>" + serviceLogin.val() + "</td>" +
-          "<td>" + servicePassword.val() + "</td>" +
-        "</tr>" );
-      }
-      return valid;*/
-    }
+    return valid;*/
+}
 
 
 function parmsForRest() {
     var curReqParms = "";
     var login = findGetParameter("login");
-    if(login!=null) {
+    if (login != null) {
         curReqParms += "?login=" + login;
     }
 
@@ -118,23 +157,30 @@ function showData(userUi) {
     $("#serviceLogin").val(userUi.login);
 
     $('#serviceCreds').dataTable().fnDestroy();
-    $('#serviceCreds').DataTable( {
+    $('#serviceCreds').DataTable({
         data: userUi.data,
-        columns: [
-            { "data": "serviceId", title: "Service ID" },
-            { "data": "serviceLogin", title: "login" },
-            { "data": "servicePassword",title: "Password" }
+        columns: [{
+                "data": "serviceId",
+                title: "Service ID"
+            },
+            {
+                "data": "serviceLogin",
+                title: "login"
+            },
+            {
+                "data": "servicePassword",
+                title: "Password"
+            }
         ]
-    } );
+    });
 }
-
 </script>
 
 <div id="form_container">
 
-    <form id="userdata" class="appnitro" method="post" action="">
+    <form id="userdata" class="appnitro">
         <div class="form_description">
-            <h2>TC helper User</h2>
+            <h2>Teamcity helper User</h2>
             <p>User data and preferences</p>
         </div>
         <ul>
@@ -146,16 +192,24 @@ function showData(userUi) {
                 </div>
             </li>
             <li>
-                <label class="description" for="fullName">Full Name </label>
+                <label class="description" for="fullName">Full Name</label>
                 <div>
                     <input id="fullName" name="fullName" class="element text medium" type="text" maxlength="255"
                            value=""/>
                 </div>
             </li>
             <li>
-                <label class="description" for="email">Email </label>
+                <label class="description" for="email">Email</label>
                 <div>
                     <input id="email" name="email" class="element text medium" type="text" maxlength="255"
+                           value=""/>
+                </div>
+            </li>
+            <!--
+            <li>
+                <label class="description" for="email2">Additional Email</label>
+                <div>
+                    <input id="email2" name="email2" class="element text medium" type="text" maxlength="255"
                            value=""/>
                 </div>
             </li>
@@ -166,7 +220,7 @@ function showData(userUi) {
                            value=""/>
                 </div>
             </li>
-            <li  >
+            <li>
                 <label class="description">Preferences</label>
 
 			<input id="element_5_1" name="element_5_1" class="element checkbox" type="checkbox" value="1"/>
@@ -175,8 +229,8 @@ function showData(userUi) {
 <label class="choice" for="element_5_2">I agree to be responsible for MTCGA issues</label>
 <input id="element_5_3" name="element_5_3" class="element checkbox" type="checkbox" value="1"/>
 <label class="choice" for="element_5_3">Notify me on all build problems</label>
-
             </li>
+            -->
 
             <li class="buttons">
                 <input type="hidden" name="form_id" value="13472"/>
@@ -197,17 +251,11 @@ function showData(userUi) {
                 <th>Password</th>
             </tr>
             </thead>
-            <tbody>
-            <tr>
-                <td>John Doe</td>
-                <td>john.doe@example.com</td>
-                <td>johndoe1</td>
-            </tr>
-            </tbody>
         </table>
     </div>
-    <button id="create-user">Add credentials</button>
+    <button id="addCredsBtn">Add credentials</button>
 
+    <button id="resetCredsBtn">Reset credentials</button>
 </div>
 
 <div id="loadStatus"></div>
@@ -234,6 +282,10 @@ function showData(userUi) {
                 <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
             </fieldset>
         </form>
+    </div>
+
+    <div id="dialogConfirmReset" title="Reset password and remove services from account?">
+        <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>These items will be permanently deleted and cannot be recovered. Are you sure?</p>
     </div>
 </div>
 </body>
