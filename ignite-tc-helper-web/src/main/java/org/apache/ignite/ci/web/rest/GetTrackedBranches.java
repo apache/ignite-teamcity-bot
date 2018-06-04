@@ -2,8 +2,10 @@ package org.apache.ignite.ci.web.rest;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -11,6 +13,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.ChainAtServer;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.model.Version;
 import org.apache.ignite.lang.IgniteProductVersion;
@@ -25,6 +28,9 @@ public class GetTrackedBranches {
 
     @Context
     private ServletContext context;
+
+    @Context
+    private HttpServletRequest request;
 
     @GET
     @Path("version")
@@ -51,13 +57,25 @@ public class GetTrackedBranches {
     @GET
     @Path("suites")
     public Set<ChainAtServer> getSuites() {
-        return HelperConfig.getTrackedBranches().chainAtServers();
+        final ICredentialsProv prov = ICredentialsProv.get(request);
+
+        return HelperConfig.getTrackedBranches()
+                .chainAtServers()
+                .stream()
+                .filter(chainAtServer -> prov.hasAccess(chainAtServer.serverId))
+                .collect(Collectors.toSet());
     }
 
     @GET
     @Path("getServerIds")
     public Set<String> getServerIds() {
-        return HelperConfig.getTrackedBranches().getServerIds();
+        final ICredentialsProv prov = ICredentialsProv.get(request);
+
+        return HelperConfig.getTrackedBranches()
+                .getServerIds()
+                .stream()
+                .filter(prov::hasAccess)
+                .collect(Collectors.toSet());
     }
 
 }

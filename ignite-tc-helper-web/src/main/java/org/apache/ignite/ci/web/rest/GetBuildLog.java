@@ -7,6 +7,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -17,6 +18,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.web.CtxListener;
 
@@ -37,13 +39,14 @@ public class GetBuildLog {
 
     @GET
     @Path(THREAD_DUMP)
+    @PermitAll
     public Response getThreadDump(
         @QueryParam(SERVER_ID) String serverId,
         @QueryParam(BUILD_NO) Integer buildNo,
         @Deprecated @QueryParam(FILE_IDX) Integer fileIdx) {
 
         ITcHelper helper = CtxListener.getTcHelper(context);
-        IAnalyticsEnabledTeamcity server = helper.server(serverId);
+        ITcAnalytics server = helper.tcAnalytics(serverId);
         String cached = server.getThreadDumpCached(buildNo);
 
         return sendString(cached);

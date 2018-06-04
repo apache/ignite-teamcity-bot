@@ -13,6 +13,7 @@ import org.apache.ignite.ci.db.TcHelperDb;
 /**
  * Created by dpavlov on 20.09.2017
  */
+@Deprecated
 public class PrintChainResults {
     public static void main(String[] args) {
         Optional<FullChainRunCtx> pubCtx;

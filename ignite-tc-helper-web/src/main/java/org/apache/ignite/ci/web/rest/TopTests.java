@@ -2,6 +2,7 @@ package org.apache.ignite.ci.web.rest;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -12,6 +13,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
@@ -32,13 +34,12 @@ public class TopTests {
 
     @GET
     @Path("failing")
+    @PermitAll
     public List<FailingTest> getTopFailingTests(@Nullable @QueryParam("branch") String branchOrNull,
         @Nullable @QueryParam("count") Integer count) {
-        final Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
-
         final List<FailingTest> res = new ArrayList<>();
         for (ChainAtServerTracked chainTracked : branchMandatory(branchOrNull).chains) {
-            try (IAnalyticsEnabledTeamcity teamcity = CtxListener.getTcHelper(context).server( chainTracked.serverId)) {
+            try (ITcAnalytics teamcity = CtxListener.getTcHelper(context).tcAnalytics( chainTracked.serverId)) {
 
                 int cnt = count == null ? 10 : count;
                 teamcity.topTestFailing(cnt).stream().map(this::converToUiModel).forEach(res::add);
@@ -49,11 +50,12 @@ public class TopTests {
 
     @GET
     @Path("failingSuite")
+    @PermitAll
     public List<FailingTest> getTopFailingSuite(@Nullable @QueryParam("branch") String branchOrNull,
         @Nullable @QueryParam("count") Integer count) {
         final List<FailingTest> res = new ArrayList<>();
         for (ChainAtServerTracked chainTracked : branchMandatory(branchOrNull).chains) {
-            try (IAnalyticsEnabledTeamcity teamcity = CtxListener.getTcHelper(context).server(chainTracked.serverId)) {
+            try (ITcAnalytics teamcity = CtxListener.getTcHelper(context).tcAnalytics(chainTracked.serverId)) {
                 int cnt = count == null ? 10 : count;
                 teamcity.topFailingSuite(cnt).stream().map(this::converToUiModel).forEach(res::add);
             }
@@ -63,13 +65,14 @@ public class TopTests {
 
     @GET
     @Path("longRunning")
+    @PermitAll
     public List<FailingTest> getMostLongRunningTests(@Nullable @QueryParam("branch") String branchOrNull,
         @Nullable @QueryParam("count") Integer count) {
         final BranchTracked tracked = branchMandatory(branchOrNull);
 
         final List<FailingTest> res = new ArrayList<>();
         for (ChainAtServerTracked chainTracked : tracked.chains) {
-            try (IAnalyticsEnabledTeamcity teamcity = CtxListener.getTcHelper(context).server(chainTracked.serverId)) {
+            try (ITcAnalytics teamcity = CtxListener.getTcHelper(context).tcAnalytics(chainTracked.serverId)) {
                 int cnt = count == null ? 10 : count;
                 teamcity.topTestsLongRunning(cnt).stream().map(this::converToUiModel).forEach(res::add);
             }

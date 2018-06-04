@@ -42,6 +42,7 @@ public class GetAllTestFailures {
     public static final String ALL = "all";
     @Context
     private ServletContext context;
+
     @Context
     private HttpServletRequest req;
 

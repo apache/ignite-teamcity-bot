@@ -6,7 +6,7 @@ import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 
-public interface ITcAnalytics {
+public interface ITcAnalytics extends AutoCloseable {
     List<RunStat> topTestFailing(int cnt);
 
     List<RunStat> topTestsLongRunning(int cnt);
@@ -22,10 +22,9 @@ public interface ITcAnalytics {
      */
     Function<TestInBranch, RunStat> getTestRunStatProvider();
 
-
     List<RunStat> topFailingSuite(int cnt);
-
 
     String getThreadDumpCached(Integer buildId);
 
+    @Override void close();
 }

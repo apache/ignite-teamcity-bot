@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -19,8 +20,10 @@ import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.runners.CheckBuildChainResults;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.rest.model.chart.ChartData;
 import org.apache.ignite.ci.web.rest.model.chart.TestsMetrics;
 import org.jetbrains.annotations.NotNull;
@@ -34,6 +37,9 @@ public class Metrics {
     @Context
     private ServletContext context;
 
+    @Context
+    private HttpServletRequest req;
+
     @GET
     @Path("failuresNoCache")
     public TestsMetrics getFailuresNoCache(){
@@ -43,7 +49,14 @@ public class Metrics {
         List<ChainAtServerTracked> chains = tracked.chains;
 
         //todo take from branches.json
-        try (ITeamcity teamcity = CtxListener.getTcHelper(context).server("public")) {
+        final String serverId = "public";
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        if(!prov.hasAccess(serverId)) {
+            throw ServiceUnauthorizedException.noCreds(serverId);
+        }
+
+        try (ITeamcity teamcity = CtxListener.getTcHelper(context).server(serverId, prov)) {
             collectHistory(history, teamcity, "IgniteTests24Java8_RunAll", "refs/heads/master");
         }
         return convertToChart(history);
@@ -51,7 +64,7 @@ public class Metrics {
 
     @GET
     @Path("failures")
-    public TestsMetrics getFailures() throws ParseException {
+    public TestsMetrics getFailures() {
         final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
         return updater.get("failures.public", "", k -> getFailuresNoCache());
 
@@ -72,7 +85,15 @@ public class Metrics {
 
         //todo take from branches.json
         CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
-        try (ITeamcity teamcity =  CtxListener.getTcHelper(context).server("private")) {
+        final String serverId = "private";
+
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        if (!prov.hasAccess(serverId)) {
+            throw ServiceUnauthorizedException.noCreds(serverId);
+        }
+
+        try (ITeamcity teamcity = CtxListener.getTcHelper(context).server(serverId, prov)) {
             teamcity.setExecutor(CtxListener.getPool(context));
 
             collectHistory(history, teamcity, "id8xIgniteGridGainTestsJava8_RunAll", "refs/heads/master");
@@ -81,7 +102,7 @@ public class Metrics {
     }
 
     @NotNull
-    private TestsMetrics convertToChart(CheckBuildChainResults.BuildMetricsHistory history)   {
+    private TestsMetrics convertToChart(CheckBuildChainResults.BuildMetricsHistory history) {
         TestsMetrics testsMetrics = new TestsMetrics();
         Set<SuiteInBranch> builds = history.builds();
         testsMetrics.initBuilds(builds);//to initialize internal mapping build->idx

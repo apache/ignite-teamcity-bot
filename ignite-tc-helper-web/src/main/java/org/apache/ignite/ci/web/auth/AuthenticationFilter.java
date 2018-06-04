@@ -8,7 +8,9 @@ import org.apache.ignite.ci.user.UserSession;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.util.CryptUtil;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.glassfish.jersey.internal.util.Base64;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.security.DenyAll;
 import javax.annotation.security.PermitAll;
@@ -118,7 +120,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         final String sessId = tokenizer.nextToken();
         final String token = tokenizer.nextToken();
-        System.out.println("Session:"+sessId);
 
         UserSession session = users.getSession(sessId);
 
@@ -129,6 +130,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return false;
         }
 
+        System.out.println("Session:" + sessId + ", session.username: " + session.username);
         TcHelperUser user = users.getUser(session.username);
         if (user == null) {
             System.out.println("No such user " + session.username + " for " + sessId + " enforcing login");
@@ -136,6 +138,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             requestContext.abortWith(rspUnathorized());
             return false;
         }
+
+        System.out.println(user);
 
         if (user.userKeyKcv == null) {
             System.out.println("User not initialised " + session.username + ",failed at " + sessId + " enforcing login");
@@ -162,13 +166,21 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         session.lastActiveTs = System.currentTimeMillis();
+
         users.putSession(sessId, session);
 
-        requestContext.setProperty(ICredentialsProv._KEY, new ICredentialsProv() {
+        requestContext.setProperty(ICredentialsProv._KEY, createCredsProv(user, userKey));
+
+        return true;
+    }
+
+    @NotNull
+    private ICredentialsProv createCredsProv(TcHelperUser user, byte[] userKey) {
+        return new ICredentialsProv() {
             @Override
             public String getUser(String server) {
                 TcHelperUser.Credentials credentials = user.getCredentials(server);
-                if(credentials==null)
+                if (credentials == null)
                     return null;
 
                 return credentials.getUsername();
@@ -189,18 +201,17 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
                     return new String(bytes, CryptUtil.CHARSET);
                 } catch (Exception e) {
-                    if (Throwables.getCausalChain(e).stream().anyMatch(t -> t instanceof BadPaddingException))
-                        requestContext.abortWith(rspForbidden());
-
                     e.printStackTrace();
+
+                    if (Throwables.getCausalChain(e).stream().anyMatch(t -> t instanceof BadPaddingException)) {
+                        throw new ServiceUnauthorizedException("Invalid credentials stored for " +
+                                credentials.getUsername() + " for service [" + server + "]");
+                    }
 
                     return null;
                 }
-
             }
-        });
-
-        return true;
+        };
     }
 
     private String basicAuth(String authString) {

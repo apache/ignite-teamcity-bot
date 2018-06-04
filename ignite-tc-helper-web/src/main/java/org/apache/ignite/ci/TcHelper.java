@@ -37,11 +37,6 @@ public class TcHelper implements ITcHelper {
     }
 
     @Override
-    public IAnalyticsEnabledTeamcity server(String serverId) {
-        return server(serverId, null);
-    }
-
-    @Override
     public IssuesStorage issues() {
         return issuesStorage;
     }
@@ -63,6 +58,7 @@ public class TcHelper implements ITcHelper {
                             Strings.emptyToNull(srvId));
 
                     teamcity.setExecutor(getService());
+
                     if (prov != null) {
                         teamcity.setAuthToken(
                                 Base64Util.encodeUtf8String(prov.getUser(srvId) + ":" + prov.getPassword(srvId)));
@@ -70,6 +66,11 @@ public class TcHelper implements ITcHelper {
 
                     return teamcity;
                 });
+    }
+
+    @Override
+    public ITcAnalytics tcAnalytics(String serverId) {
+        return server(serverId, null);
     }
 
     @Override

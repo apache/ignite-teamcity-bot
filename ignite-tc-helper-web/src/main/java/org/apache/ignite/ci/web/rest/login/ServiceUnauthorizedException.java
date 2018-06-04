@@ -15,6 +15,10 @@ public class ServiceUnauthorizedException extends RuntimeException
     public ServiceUnauthorizedException() {
     }
 
+    public static ServiceUnauthorizedException noCreds(String serverId) {
+        return new ServiceUnauthorizedException("Service [" + serverId + "] is not available for current user");
+    }
+
     @Override
     public Response toResponse(ServiceUnauthorizedException exception) {
         return Response.status(424).entity(exception.getMessage())

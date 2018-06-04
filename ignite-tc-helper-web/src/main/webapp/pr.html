@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>Ignite Teamcity - current failures</title>
+    <title>Ignite Teamcity - PR failures</title>
     <link rel="icon" href="http://simons1call.com/images/companies/1/icons/icon-tree.png">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <link rel="stylesheet" href="css/style-1.4.css">
@@ -55,7 +55,7 @@ function parmsForRest() {
 }
 
 function checkForUpdate() {
-    var curFailuresUrl = "rest/current/pr/updates" + parmsForRest();
+    var curFailuresUrl = "rest/pr/failures/updates" + parmsForRest();
 
     $.ajax({
         url: curFailuresUrl,
@@ -82,7 +82,7 @@ function checkForUpdate() {
 }
 
 function loadData() {
-    var curFailuresUrl = "rest/current/pr"  + parmsForRest();
+    var curFailuresUrl = "rest/pr/failures"  + parmsForRest();
 
     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
     $.ajax({

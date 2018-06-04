@@ -30,6 +30,7 @@ import static java.util.Collections.singletonList;
 /**
  * Created by dpavlov on 03.08.2017
  */
+@Deprecated
 public class CheckBuildChainResults {
 
     private static class BuildHistory {

@@ -11,6 +11,7 @@ import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.rest.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.rest.model.current.TestFailure;
@@ -31,12 +32,12 @@ public class IssueDetector {
         this.issuesStorage = issuesStorage;
     }
 
-    public void registerIssuesLater(TestFailuresSummary res, ITcHelper helper) {
+    public void registerIssuesLater(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
         IgniteScheduler s = ignite.scheduler();
 
         s.runLocal(
                 () -> {
-                    boolean newIssFound = registerNewIssues(res, helper);
+                    boolean newIssFound = registerNewIssues(res, helper, creds);
 
                     if (newIssFound || true)
                         s.runLocal(()->{
@@ -81,12 +82,15 @@ public class IssueDetector {
     }
 
 
-    public boolean registerNewIssues(TestFailuresSummary res, ITcHelper helper) {
+    public boolean registerNewIssues(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
         int newIssues = 0;
         List<ChainAtServerCurrentStatus> servers = res.servers;
 
         for (ChainAtServerCurrentStatus next : servers) {
-            IAnalyticsEnabledTeamcity teamcity = helper.server(next.serverId);
+            if(!creds.hasAccess(next.serverId))
+                continue;
+
+            IAnalyticsEnabledTeamcity teamcity = helper.server(next.serverId, creds);
 
             for (SuiteCurrentStatus suiteCurrentStatus : next.suites) {
 

@@ -11,15 +11,13 @@ import javax.annotation.Nullable;
  * Created by Дмитрий on 25.02.2018
  */
 public interface ITcHelper {
-
-    @Deprecated
-    IAnalyticsEnabledTeamcity server(String serverId);
-
     IssuesStorage issues();
 
     IssueDetector issueDetector();
 
     IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov);
+
+    ITcAnalytics tcAnalytics(String serverId);
 
     UserAndSessionsStorage users();
 
