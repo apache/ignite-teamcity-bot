@@ -92,7 +92,7 @@ public class Login {
         byte[] userKeyCandidate = CryptUtil.hmacSha256(user.salt, (username + ":" + password));
         byte[] userKeyCandidateKcv = CryptUtil.aesKcv(userKeyCandidate);
 
-        final User tcUser = checkServiceUserAndPassword(primaryServerId, username, password);
+        final User tcUser = checkService(username, password, primaryServerId);
 
         if (user.userKeyKcv == null) {
             if (tcUser == null) {
@@ -112,7 +112,7 @@ public class Login {
 
             for (String addSrvId : serverIds) {
                 if (!addSrvId.equals(primaryServerId)) {
-                    final User tcAddUser = checkServiceUserAndPassword(addSrvId, username, password);
+                    final User tcAddUser = checkService(username, password, addSrvId);
 
                     if (tcAddUser != null) {
                         user.getOrCreateCreds(addSrvId).setLogin(username).setPassword(password, userKeyCandidate);
@@ -137,6 +137,11 @@ public class Login {
         loginResponse.fullToken = sessId + ":" + token;
 
         return loginResponse;
+    }
+
+    protected User checkService(   String username, @FormParam("psw") String password,
+        String primaryServerId) {
+        return checkServiceUserAndPassword(primaryServerId, username, password);
     }
 
     public static User checkServiceUserAndPassword(String serverId, String username, String password) {

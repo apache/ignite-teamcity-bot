@@ -1,9 +1,11 @@
 package org.apache.ignite.ci.user;
 
+import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.web.auth.AuthenticationFilter;
 import org.apache.ignite.ci.web.rest.login.Login;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -24,7 +26,7 @@ public class LoginAuthTest {
     public void testNewUserLogin() {
         UserAndSessionsStorage storage = mockOneSessionStor();
 
-        Login login = new Login();
+        Login login = createLogin();
 
         LoginResponse login1 = login.doLogin("user", "password", storage, "public", Collections.emptySet());
         assertNotNull(login1.fullToken);
@@ -87,7 +89,7 @@ public class LoginAuthTest {
     public void testUserCredentials() {
         UserAndSessionsStorage storage = mockOneSessionStor();
 
-        Login login = new Login();
+        Login login = createLogin();
 
         String srvId = "public";
         String user = "user";
@@ -117,11 +119,11 @@ public class LoginAuthTest {
     public void testAuthFailedWithBrokenToken() {
         UserAndSessionsStorage storage = mockOneSessionStor();
 
-        Login login = new Login();
+        Login login = createLogin();
 
         String fullToken = login.doLogin("user", "password", storage, "public", Collections.emptySet()).fullToken;
 
-        int sepIdx = fullToken.indexOf(":");
+        int sepIdx = fullToken.indexOf(':');
         String brokenToken = fullToken.substring(0, sepIdx + 1) +
                 Base64Util.encodeBytesToString(new byte[128 / 8]);
         assertNotNull(fullToken);
@@ -132,5 +134,13 @@ public class LoginAuthTest {
         System.out.println(storage.getUser("user"));
 
         assertFalse(authenticationFilter.authenticate(ctx, brokenToken, storage));
+    }
+
+    @NotNull public Login createLogin() {
+        return new Login() {
+                @Override protected User checkService(String username, String pwd, String primarySrvId) {
+                    return new User();
+                }
+            };
     }
 }
