@@ -88,10 +88,10 @@ public class Issue {
 
         if(includeChangesInfo) {
             if (changes.isEmpty())
-                sb.append(" No changes in build");
+                sb.append("\n No changes in build");
             else {
 
-                sb.append(" Changes may led to failure were done by ");
+                sb.append("\n Changes may led to failure were done by ");
 
                 for (Iterator<ChangeUi> iter = changes.iterator(); iter.hasNext(); ) {
                     ChangeUi next = iter.next();

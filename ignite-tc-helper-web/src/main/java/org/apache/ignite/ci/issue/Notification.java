@@ -98,6 +98,8 @@ public class Notification {
     private String toSlackMarkup(List<Issue> issues) {
         StringBuilder sb = new StringBuilder();
 
+        sb.append(":warning: ");
+
         for (Iterator<Issue> iter = issues.iterator(); iter.hasNext(); ) {
             Issue next = iter.next();
             sb.append(next.toSlackMarkup(!iter.hasNext()));
