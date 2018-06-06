@@ -83,6 +83,18 @@ public class GetCurrTestFailures {
         final ITcHelper helper = CtxListener.getTcHelper(context);
         final ICredentialsProv creds = ICredentialsProv.get(request);
 
+        final TestFailuresSummary res = getTrackedBranchTestFailures(branch, checkAllLogs, helper, creds);
+
+        helper.issueDetector().registerIssuesLater(res, helper, creds);
+
+        return res;
+    }
+
+    @NotNull public static TestFailuresSummary getTrackedBranchTestFailures(
+        @Nullable @QueryParam("branch") String branch,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
+        ITcHelper helper,
+        ICredentialsProv creds) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -122,8 +134,6 @@ public class GetCurrTestFailures {
                 .forEach(res::addChainOnServer);
 
         res.postProcess(runningUpdates.get());
-
-        helper.issueDetector().registerIssuesLater(res, helper, creds);
 
         return res;
     }

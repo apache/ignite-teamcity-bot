@@ -115,7 +115,13 @@ function showMenu(menuData) {
         res += "<div class=\"navbar\">";
         res += "<a href=\"/\">Home</a>";
 
+
         res += "<div class='topnav-right'>";
+
+        if(isDefinedAndFilled(menuData.authorizedState) && !menuData.authorizedState) {
+            res += "<a onclick='authorizeServer()' href='javascript:void(0);'>Authorize Server</a>";
+        }
+
         res += "<a href='/user.html'>"+userName+"</a>";
         var logout = "/login.html" + "?exit=true&backref=" + encodeURIComponent(window.location.href);
         res += "<a href='" + logout + "'>Logout</a>";
@@ -126,6 +132,23 @@ function showMenu(menuData) {
 
     $(document.body).prepend(res);
 }
+
+
+function authorizeServer() {
+    $.ajax({
+        type: "POST",
+        url: "rest/user/authorize",
+        success: resetMenu,
+        error:   showErrInLoadStatus
+    });
+}
+
+function resetMenu() {
+    $(".navbar").html("");
+    g_menuSet = false;
+    setupMenu();
+}
+
 
 
 

@@ -1,5 +1,8 @@
 package org.apache.ignite.ci.issue;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteScheduler;
 import org.apache.ignite.ci.HelperConfig;
@@ -21,7 +24,9 @@ import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import org.apache.ignite.ci.web.rest.GetCurrTestFailures;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.apache.ignite.scheduler.SchedulerFuture;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
@@ -30,6 +35,13 @@ public class IssueDetector {
     public static final String SLACK = "slack:";
     private final Ignite ignite;
     private final IssuesStorage issuesStorage;
+
+
+    private final AtomicBoolean init = new AtomicBoolean();
+    private ICredentialsProv backgroundOpsCreds = null;
+    private ITcHelper backgroundOpsTcHelper;
+    private ScheduledExecutorService executorService;
+
 
     public IssueDetector(Ignite ignite, IssuesStorage issuesStorage) {
         this.ignite = ignite;
@@ -184,5 +196,45 @@ public class IssueDetector {
         issuesStorage.cache().put(issueKey, issue);
 
         return true;
+    }
+
+    public boolean isAuthorized() {
+        return backgroundOpsCreds != null && backgroundOpsTcHelper != null;
+    }
+
+    public void startBackgroundCheck(ITcHelper helper, ICredentialsProv prov) {
+
+        try {
+            if(init.compareAndSet(false, true)) {
+                this.backgroundOpsCreds = prov;
+                this.backgroundOpsTcHelper = helper;
+
+                executorService = Executors.newScheduledThreadPool(1);
+
+                executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+
+            init.set(false);
+
+            throw e;
+        }
+        // SchedulerFuture<?> future = ignite.scheduler().scheduleLocal(this::checkFailures, "? * * * * *");
+    }
+
+    private void checkFailures() {
+        TestFailuresSummary failures = GetCurrTestFailures.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME, false,
+            backgroundOpsTcHelper,
+            backgroundOpsCreds);
+
+        registerIssuesLater(failures, backgroundOpsTcHelper, backgroundOpsCreds);
+    }
+
+    public void stop() {
+        if (executorService != null)
+            executorService.shutdownNow();
+
     }
 }

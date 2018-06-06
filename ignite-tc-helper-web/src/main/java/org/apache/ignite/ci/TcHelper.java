@@ -102,6 +102,8 @@ public class TcHelper implements ITcHelper {
         }
 
         tcUpdatePool.stop();
+
+        detector.stop();
     }
 
     public ExecutorService getService() {

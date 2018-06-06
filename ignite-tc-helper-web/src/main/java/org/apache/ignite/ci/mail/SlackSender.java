@@ -40,9 +40,6 @@ public class SlackSender {
                 SlackMessageHandle<SlackMessageReply> handle = session.sendMessage(slackChannel, message);
 
                 System.out.println("Message to channel " + addr + " "  + message + "; acked: " + handle.isAcked());
-
-                //todo tmp
-                return false;
             }
             else {
                 SlackUser user = session.findUserByUserName(addr); //make sure bot is a member of the user.
