@@ -12,4 +12,8 @@ public class ChangeUi {
     public String toHtml() {
         return "<a href='" + webUrl + "'>" + username + "</a>";
     }
+
+    public String toSlackMarkup() {
+        return new StringBuilder().append("<").append(webUrl).append("|").append(username).append(">").toString();
+    }
 }

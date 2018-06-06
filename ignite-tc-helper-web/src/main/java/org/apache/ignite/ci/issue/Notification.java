@@ -6,10 +6,12 @@ public class Notification {
     String addr;
     Long ts;
 
-    List<Issue> issues = new ArrayList<>();
+    Map<Integer,  List<Issue>> buildIdToIssue= new TreeMap<>(Comparator.reverseOrder( ));
 
-    public void addIssue(Issue issueKey) {
-        issues.add(issueKey);
+    public void addIssue(Issue issue) {
+        Integer buildId = issue.issueKey.buildId;
+
+        buildIdToIssue.computeIfAbsent(buildId, b -> new ArrayList<>()).add(issue);
     }
 
     public String toHtml() {
@@ -17,16 +19,23 @@ public class Notification {
 
         sb.append(messageHeader());
 
-        for (Issue next : issues) {
-            String color = "blue";
+        for (Map.Entry<Integer, List<Issue>> nextEntry : buildIdToIssue.entrySet()) {
+            List<Issue> issues = nextEntry.getValue();
 
-            sb.append(
-                "<span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;'></span>"
-            );
+            for (Iterator<Issue> iterator = issues.iterator(); iterator.hasNext(); ) {
+                Issue next = iterator.next();
+                String color = "blue";
 
-            sb.append("    ");
-            sb.append(next.toHtml());
-            sb.append("<br><br>");
+                sb.append("<span style='border-color: ")
+                    .append(color)
+                    .append("; width:0px; height:0px; display: inline-block; border-width: 4px; color: black; border-style: solid;'></span>");
+
+                sb.append("    ");
+                sb.append(next.toHtml(!iterator.hasNext()));
+                sb.append("<br>");
+            }
+
+            sb.append("<br>");
         }
 
         sb.append(messageTail());
@@ -67,6 +76,35 @@ public class Notification {
         sb.append("BR,<br> MTCGA.Bot<br>");
 
         sb.append("Notification generated at ").append(new Date(ts).toString()).append( "<br>");
+        return sb.toString();
+    }
+
+    public String countIssues() {
+        return "";
+    }
+
+    public List<String> toSlackMarkup() {
+        List<String> res = new ArrayList<>();
+
+        for (Map.Entry<Integer, List<Issue>> nextEntry : buildIdToIssue.entrySet()) {
+            List<Issue> issues = nextEntry.getValue();
+
+            res.add(toSlackMarkup(issues));
+        }
+
+        return res;
+    }
+
+    private String toSlackMarkup(List<Issue> issues) {
+        StringBuilder sb = new StringBuilder();
+
+        for (Iterator<Issue> iter = issues.iterator(); iter.hasNext(); ) {
+            Issue next = iter.next();
+            sb.append(next.toSlackMarkup(!iter.hasNext()));
+
+            sb.append("\n");
+        }
+
         return sb.toString();
     }
 

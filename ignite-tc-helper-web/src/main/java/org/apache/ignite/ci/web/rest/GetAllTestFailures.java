@@ -84,7 +84,9 @@ public class GetAllTestFailures {
         final AtomicInteger runningUpdates = new AtomicInteger();
         final ICredentialsProv creds = ICredentialsProv.get(req);
 
-        final String branch = isNullOrEmpty(branchOpt) ? "master" : branchOpt;
+        final String branch = isNullOrEmpty(branchOpt) ? FullQueryParams.DEFAULT_BRANCH_NAME : branchOpt;
+        res.setTrackedBranch(branch);
+
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
         for (ChainAtServerTracked chainAtServerTracked : tracked.chains) {
 

@@ -88,6 +88,7 @@ public class GetCurrTestFailures {
 
         final String branchNn = isNullOrEmpty(branch) ? FullQueryParams.DEFAULT_BRANCH_NAME : branch;
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branchNn);
+        res.setTrackedBranch(branchNn);
 
         tracked.chains.stream().parallel()
                 .filter(chainTracked -> creds.hasAccess(chainTracked.serverId))

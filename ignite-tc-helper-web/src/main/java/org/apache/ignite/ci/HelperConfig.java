@@ -32,6 +32,7 @@ public class HelperConfig {
     private static final String PASSWORD = "encodedPassword";
     public static final String ENCODED_PASSWORD = "encoded_password";
     public static final String SLACK_AUTH_TOKEN = "slack.auth_token";
+    public static final String SLACK_CHANNEL = "slack.channel";
     public static final String LOGS = "logs";
     public static final String ENDL = String.format("%n");
 

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.ignite.ci.web.IBackgroundUpdatable;
 import org.apache.ignite.internal.util.typedef.internal.U;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Created by dpavlov on 25.10.2017
@@ -19,6 +20,9 @@ import org.apache.ignite.internal.util.typedef.internal.U;
 
     /** Count of suites with critical build problems found */
     public Integer failedToFinish;
+
+    /** Tracked branch ID. */
+    @Nullable private String trackedBranch;
 
     @Override public void setUpdateRequired(boolean update) {
         updateRequired = update;
@@ -75,5 +79,14 @@ import org.apache.ignite.internal.util.typedef.internal.U;
         );
 
         return builder.toString();
+    }
+
+    public void setTrackedBranch(String trackedBranch) {
+        this.trackedBranch = trackedBranch;
+    }
+
+    @Nullable
+    public String getTrackedBranch() {
+        return trackedBranch;
     }
 }

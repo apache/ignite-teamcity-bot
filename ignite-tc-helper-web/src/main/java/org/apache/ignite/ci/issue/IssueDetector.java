@@ -2,11 +2,13 @@ package org.apache.ignite.ci.issue;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteScheduler;
+import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.mail.EmailSender;
+import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -19,11 +21,13 @@ import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
 
 public class IssueDetector {
+    public static final String SLACK = "slack:";
     private final Ignite ignite;
     private final IssuesStorage issuesStorage;
 
@@ -34,6 +38,9 @@ public class IssueDetector {
 
     public void registerIssuesLater(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
         IgniteScheduler s = ignite.scheduler();
+
+        if(!FullQueryParams.DEFAULT_BRANCH_NAME.equals(res.getTrackedBranch()))
+            return;
 
         s.runLocal(
                 () -> {
@@ -54,25 +61,44 @@ public class IssueDetector {
             Map<String, Notification> toBeSent = new HashMap<>();
 
             for (Issue issue : issuesStorage.all()) {
-                String to = "dpavlov.spb@gmail.com";
+                String to1 = "dpavlov.spb@gmail.com";
+                String to2 = "slack:dpavlov";
 
-                if (issuesStorage.needNotify(issue.issueKey, to)) {
-                    toBeSent.computeIfAbsent(to, addr -> {
-                        Notification notification = new Notification();
-                        notification.ts = System.currentTimeMillis();
-                        notification.addr = addr;
-                        return notification;
-                    }).addIssue(issue);
+                List<String> addrs = new ArrayList<>(Arrays.asList(to1, to2));
+
+                String property = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
+                if (property != null)
+                    addrs.add(SLACK + "#" + property);
+
+                for (String nextAddr : addrs) {
+                    if (issuesStorage.needNotify(issue.issueKey, nextAddr)) {
+                        toBeSent.computeIfAbsent(nextAddr, addr -> {
+                            Notification notification = new Notification();
+                            notification.ts = System.currentTimeMillis();
+                            notification.addr = addr;
+                            return notification;
+                        }).addIssue(issue);
+                    }
                 }
             }
 
             Collection<Notification> values = toBeSent.values();
             for (Notification next : values) {
-                String s = "MTCGA needs action from you: " + next.issues.size() + " new failures to be handled";
+                if(next.addr.startsWith(SLACK)) {
+                    String substring = next.addr.substring(SLACK.length());
 
-                String html = next.toHtml();
+                    List<String> messages = next.toSlackMarkup();
+                    for (String msg : messages) {
+                        if (!SlackSender.sendMessage(substring, msg))
+                            break;
+                    }
+                } else {
+                    String s = "MTCGA needs action from you: " + next.countIssues() + " new failures to be handled";
 
-                EmailSender.sendEmail(next.addr, s,   html);
+                    String html = next.toHtml();
+
+                    EmailSender.sendEmail(next.addr, s, html);
+                }
             }
         } catch (Exception e) {
             System.err.println("Fail to sent notifications");
@@ -84,9 +110,8 @@ public class IssueDetector {
 
     public boolean registerNewIssues(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
         int newIssues = 0;
-        List<ChainAtServerCurrentStatus> servers = res.servers;
 
-        for (ChainAtServerCurrentStatus next : servers) {
+        for (ChainAtServerCurrentStatus next : res.servers) {
             if(!creds.hasAccess(next.serverId))
                 continue;
 
@@ -97,7 +122,7 @@ public class IssueDetector {
                 String normalizeBranch = normalizeBranch(suiteCurrentStatus.branchName());
 
                 for (TestFailure testFailure : suiteCurrentStatus.testFailures) {
-                    if(registerTestFailIssues(teamcity, next.serverId, normalizeBranch, testFailure))
+                    if(registerTestFailIssues(res, teamcity, next.serverId, normalizeBranch, testFailure))
                         newIssues++;
                 }
             }
@@ -105,31 +130,39 @@ public class IssueDetector {
         return (newIssues>0);
     }
 
-    private boolean registerTestFailIssues(IAnalyticsEnabledTeamcity teamcity,
-                                           String serverId, String normalizeBranch,
-                                           TestFailure testFailure) {
+    private boolean registerTestFailIssues(TestFailuresSummary res,
+        IAnalyticsEnabledTeamcity teamcity,
+        String srvId,
+        String normalizeBranch,
+        TestFailure testFailure) {
+
         String name = testFailure.name;
         TestInBranch testInBranch = new TestInBranch(name, normalizeBranch);
+
         RunStat runStat = teamcity.getTestRunStatProvider().apply(testInBranch);
 
         if (runStat == null)
             return false;
 
         RunStat.TestId testId = runStat.detectTemplate(EventTemplates.newFailure);
-        if (testId == null) {
+        if (testId == null)
             return false;
-        }
 
         int buildId = testId.getBuildId();
-        IssueKey issueKey = new IssueKey(serverId, buildId, name);
+        IssueKey issueKey = new IssueKey(srvId, buildId, name);
+
 
         if (issuesStorage.cache().containsKey(issueKey))
             return false; //duplicate
 
         Issue issue = new Issue(issueKey);
+        issue.trackedBranchName = res.getTrackedBranch();
+        issue.displayName = testFailure.testName;
+        issue.webUrl = testFailure.webUrl;
 
         issue.displayType = "New test failure";
         //todo add branch of failure
+
 
         Build build = teamcity.getBuild(buildId);
 
@@ -141,6 +174,7 @@ public class IssueDetector {
                     if (!isNullOrEmpty(next.href)) {
                         // just to cache this change
                         Change change = teamcity.getChange(next.href);
+
                         issue.addChange(change.username, change.webUrl);
                     }
                 }
