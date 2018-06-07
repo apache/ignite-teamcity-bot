@@ -61,6 +61,7 @@ import org.jetbrains.annotations.Nullable;
         return Objects.equal(servers, summary.servers) &&
             Objects.equal(failedTests, summary.failedTests) &&
             Objects.equal(failedToFinish, summary.failedToFinish);
+        //todo add tracked branch to equals
     }
 
     @Override public int hashCode() {

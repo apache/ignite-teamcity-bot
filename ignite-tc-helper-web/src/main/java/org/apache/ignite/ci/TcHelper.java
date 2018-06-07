@@ -1,28 +1,23 @@
 package org.apache.ignite.ci;
 
 import com.google.common.base.Strings;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import java.util.*;
+import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.issue.IssueDetector;
+import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.UserAndSessionsStorage;
+import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.ci.web.TcUpdatePool;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Collection;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-
-import org.apache.ignite.Ignite;
-import org.apache.ignite.ci.issue.IssueDetector;
-import org.apache.ignite.ci.issue.IssuesStorage;
-import org.apache.ignite.ci.user.UserAndSessionsStorage;
-import org.apache.ignite.ci.util.ExceptionUtil;
-import org.apache.ignite.ci.web.TcUpdatePool;
-import org.apache.ignite.ci.user.ICredentialsProv;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Created by Дмитрий on 25.02.2018
