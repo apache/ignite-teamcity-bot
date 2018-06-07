@@ -2,9 +2,16 @@ package org.apache.ignite.ci;
 
 import com.google.common.base.Strings;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -12,6 +19,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
+import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.jetbrains.annotations.Nullable;
@@ -21,7 +29,14 @@ import org.jetbrains.annotations.Nullable;
  */
 public class TcHelper implements ITcHelper {
     private AtomicBoolean stop = new AtomicBoolean();
-    private ConcurrentHashMap<String, IAnalyticsEnabledTeamcity> servers = new ConcurrentHashMap<>();
+
+    private final Cache<String, IAnalyticsEnabledTeamcity> servers
+        = CacheBuilder.<String, String>newBuilder()
+        .maximumSize(100)
+        .expireAfterAccess(16, TimeUnit.MINUTES)
+        .softValues()
+        .build();
+
     private Ignite ignite;
     private TcUpdatePool tcUpdatePool = new TcUpdatePool();
     private IssuesStorage issuesStorage;
@@ -52,22 +67,31 @@ public class TcHelper implements ITcHelper {
         if (stop.get())
             throw new IllegalStateException("Shutdown");
 
-        return servers.computeIfAbsent(
-                Strings.nullToEmpty(prov == null ? null : prov.getUser(srvId)) + ":" + Strings.nullToEmpty(srvId),
-                k -> {
-                    IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite,
-                            Strings.emptyToNull(srvId));
+        Callable<IAnalyticsEnabledTeamcity> callable = () -> {
+            IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite,
+                Strings.emptyToNull(srvId));
 
-                    teamcity.setExecutor(getService());
+            teamcity.setExecutor(getService());
 
-                    if (prov != null) {
-                        final String user = prov.getUser(srvId);
-                        final String password = prov.getPassword(srvId);
-                        teamcity.setAuthData(user, password);
-                    }
+            if (prov != null) {
+                final String user = prov.getUser(srvId);
+                final String password = prov.getPassword(srvId);
+                teamcity.setAuthData(user, password);
+            }
 
-                    return teamcity;
-                });
+            return teamcity;
+        };
+        String fullKey = Strings.nullToEmpty(prov == null ? null : prov.getUser(srvId)) + ":" + Strings.nullToEmpty(srvId);
+
+        IAnalyticsEnabledTeamcity teamcity;
+        try {
+            teamcity = servers.get(fullKey, callable);
+        }
+        catch (ExecutionException e) {
+            throw ExceptionUtil.propagateException(e);
+        }
+
+        return teamcity;
     }
 
     @Override
@@ -92,7 +116,7 @@ public class TcHelper implements ITcHelper {
 
     public void close() {
         if (stop.compareAndSet(false, true)) {
-            servers.values().forEach(v -> {
+            servers.asMap().values().forEach(v -> {
                 try {
                     v.close();
                 } catch (Exception e) {

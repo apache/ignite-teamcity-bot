@@ -51,7 +51,10 @@ public class IssueDetector {
     public void registerIssuesLater(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
         IgniteScheduler s = ignite.scheduler();
 
-        if(!FullQueryParams.DEFAULT_BRANCH_NAME.equals(res.getTrackedBranch()))
+        if (!FullQueryParams.DEFAULT_BRANCH_NAME.equals(res.getTrackedBranch()))
+            return;
+
+        if (creds == null)
             return;
 
         s.runLocal(

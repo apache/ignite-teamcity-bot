@@ -40,6 +40,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 @Produces(MediaType.APPLICATION_JSON)
 public class GetAllTestFailures {
     public static final String ALL = "all";
+    public static final String TEST_FAILURES_SUMMARY = "AllTestFailuresSummary";
     @Context
     private ServletContext context;
 
@@ -66,7 +67,7 @@ public class GetAllTestFailures {
         fullKey.setCount(count == null ? FullQueryParams.DEFAULT_COUNT : count);
         fullKey.setCheckAllLogs(checkAllLogs != null && checkAllLogs);
 
-        return updater.get("AllTestFailuresSummary",
+        return updater.get(TEST_FAILURES_SUMMARY,
             fullKey,
             k -> getAllTestFailsNoCache(
                 k.getBranch(),

@@ -24,6 +24,12 @@ public class XmlUtil {
             }
         });
         Unmarshaller unmarshaller = ctx.createUnmarshaller();
-        return (T) unmarshaller.unmarshal(reader);
+        T unmarshal = (T)unmarshaller.unmarshal(reader);
+
+        int i = ObjectInterner.internFields(unmarshal);
+        if (i > 0)
+            System.out.println("Strings saved: " + i);
+
+        return unmarshal;
     }
 }

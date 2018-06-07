@@ -1,7 +1,8 @@
 package org.apache.ignite.ci.web;
 
 import com.google.common.base.Stopwatch;
-
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,9 +13,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-
-import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.Expirable;
 import org.apache.ignite.ci.util.ExceptionUtil;
@@ -32,9 +30,15 @@ public class BackgroundUpdater {
     /** Outdated milliseconds, don't provide cached result after. */
     private static final long OUTDATED_MS = TimeUnit.HOURS.toMillis(1);
 
-    private Ignite ignite;
     private Map<T2<String, ?>, Future<?>> scheduledUpdates = new ConcurrentHashMap<>();
     ThreadFactory threadFactory = Executors.defaultThreadFactory();
+
+    private final Cache<T2<String, ?>, Expirable<?>> data
+        = CacheBuilder.<T2<String, ?>, Expirable<?>>newBuilder()
+        .maximumSize(100)
+        .expireAfterAccess(15, TimeUnit.MINUTES)
+        .softValues()
+        .build();
 
     private ExecutorService service = Executors.newFixedThreadPool(5, r -> {
         Thread thread = threadFactory.newThread(r);
@@ -44,8 +48,7 @@ public class BackgroundUpdater {
         return thread;
     });
 
-    public BackgroundUpdater(Ignite ignite) {
-        this.ignite = ignite;
+    public BackgroundUpdater() {
     }
 
     public <K, V extends IBackgroundUpdatable> V get(String cacheName, K key, IgniteClosure<K, V> load) {
@@ -55,7 +58,8 @@ public class BackgroundUpdater {
     @Nullable
     public <K, V extends IBackgroundUpdatable> V get(String cacheName, K key, IgniteClosure<K, V> load,
         boolean triggerSensitive) {
-        final IgniteCache<K, Expirable<V>> currCache = ignite.getOrCreateCache(cacheName);
+
+        final T2<String, ?> computationKey = new T2<String, Object>(cacheName, key);
 
         //Lazy calculation of required value
         final Callable<V> loadAndSaveCall = () -> {
@@ -72,14 +76,13 @@ public class BackgroundUpdater {
                 e.printStackTrace();
                 throw e;
             }
-            currCache.put(key, new Expirable<V>(val));
+
+            data.put(computationKey, new Expirable<V>(val));
             System.err.println("Successfully completed background upload for [" + cacheName + "] " +
                 "for key [" + key + "], required " + started.elapsed(TimeUnit.MILLISECONDS) + " ms");
 
             return val;
         };
-
-        final T2<String, ?> computationKey = new T2<String, Object>(cacheName, key);
 
         //check for computation cleanup required
         final Future<?> oldFut = scheduledUpdates.get(computationKey);
@@ -88,8 +91,17 @@ public class BackgroundUpdater {
 
         Expirable<V> expirable = null;
         try {
-            expirable = currCache.get(key);
-        } catch (Exception e) {
+            /*
+            //todo migrate to guava's get
+            expirable = (Expirable<V>)data.get(computationKey,
+                ()->{
+                    return new Expirable<Object>(loadAndSaveCall.call());
+                });
+                */
+
+            expirable = (Expirable<V>)data.getIfPresent(computationKey);
+        }
+        catch (Exception e) {
             e.printStackTrace(); //some persistence problem
         }
 
@@ -128,7 +140,7 @@ public class BackgroundUpdater {
 
     private <V extends IBackgroundUpdatable> boolean isExpired(Expirable<V> expirable, boolean triggerSensitive) {
 
-        if(triggerSensitive)
+        if (triggerSensitive)
             return !expirable.isAgeLessThanSecs(IgnitePersistentTeamcity.getTriggerRelCacheValidSecs(60));
 
         return expirable.getAgeMs() > EXPIRE_MS;
@@ -137,7 +149,6 @@ public class BackgroundUpdater {
     private <V extends IBackgroundUpdatable> boolean isTooOld(Expirable<V> expirable) {
         return expirable.getAgeMs() > OUTDATED_MS;
     }
-
 
     public void stop() {
         scheduledUpdates.values().forEach(future -> future.cancel(true));

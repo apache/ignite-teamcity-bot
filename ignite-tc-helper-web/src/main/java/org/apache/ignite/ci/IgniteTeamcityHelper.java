@@ -295,6 +295,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         try {
             try (InputStream inputStream = HttpUtil.sendGetWithBasicAuth(basicAuthTok, url)) {
                 final InputStreamReader reader = new InputStreamReader(inputStream);
+
                 return XmlUtil.load(rootElem, reader);
             }
         }

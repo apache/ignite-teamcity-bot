@@ -45,7 +45,6 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.util.CacheUpdateUtil;
 import org.apache.ignite.ci.util.CollectionUtil;
-import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.xml.sax.SAXParseException;
 
@@ -119,8 +118,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     private <K, V> IgniteCache<K, V> getOrCreateCacheV2(String name) {
-        CacheConfiguration<K, V> ccfg = TcHelperDb.getCacheV2Config(name);
-        return ignite.getOrCreateCache(ccfg);
+        return ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(name));
     }
 
     /** {@inheritDoc} */
@@ -410,6 +408,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             hrefForDb,  //hack to avoid test reloading from store in case of href filter replaced
             hrefIgnored -> {
                 TestOccurrences loadedTests = teamcity.getTests(href, normalizedBranch);
+
 
                 //todo first touch of build here will cause build and its stat will be diverged
                 addTestOccurrencesToStat(loadedTests, normalizedBranch);

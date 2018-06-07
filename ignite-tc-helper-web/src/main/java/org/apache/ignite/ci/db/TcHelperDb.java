@@ -7,8 +7,10 @@ import java.util.Collection;
 import java.util.Collections;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.cache.CacheInterceptorAdapter;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.util.ObjectInterner;
 import org.apache.ignite.configuration.*;
 import org.apache.ignite.logger.java.JavaLogger;
 import org.apache.ignite.spi.IgniteSpiContext;
@@ -16,6 +18,7 @@ import org.apache.ignite.spi.IgniteSpiException;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.ci.web.Launcher.waitStopSignal;
 
@@ -112,6 +115,20 @@ public class TcHelperDb {
         CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
 
         ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
+
+        /*
+        ccfg.setInterceptor(new CacheInterceptorAdapter<K, V>(){
+            @Nullable @Override public V onGet(K key, V val) {
+                V v = super.onGet(key, val);
+
+                int i = ObjectInterner.internFields(v);
+
+                if(i>0)
+                    System.out.println("cache.get: Strings saved: " + i);
+
+                return v;
+            }
+        });*/
 
         return ccfg;
     }

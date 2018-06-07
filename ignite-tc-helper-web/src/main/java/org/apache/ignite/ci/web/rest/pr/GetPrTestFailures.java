@@ -38,6 +38,7 @@ import static org.apache.ignite.ci.BuildChainProcessor.loadChainsContext;
 @Produces(MediaType.APPLICATION_JSON)
 public class GetPrTestFailures {
     public static final String PR = "pr";
+    public static final String CURRENT_PR_FAILURES = "currentPrFailures";
 
     @Context
     private ServletContext context;
@@ -70,7 +71,7 @@ public class GetPrTestFailures {
 
         final FullQueryParams key = new FullQueryParams(serverId, suiteId, branchForTc, action, count);
 
-        return updater.get("currentPrFailures", key,
+        return updater.get(CURRENT_PR_FAILURES, key,
                 (k) -> getPrFailuresNoCache(k.getServerId(), k.getSuiteId(), k.getBranchForTc(), k.getAction(), k.getCount()),
                 true);
     }

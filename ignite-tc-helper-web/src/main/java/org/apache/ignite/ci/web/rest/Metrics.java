@@ -34,6 +34,8 @@ import static org.apache.ignite.ci.runners.CheckBuildChainResults.collectHistory
 @Path("metrics")
 @Produces("application/json")
 public class Metrics {
+    public static final String FAILURES_PUBLIC = "failures.public";
+    public static final String FAILURES_PRIVATE = "failures.private";
     @Context
     private ServletContext context;
 
@@ -66,7 +68,7 @@ public class Metrics {
     @Path("failures")
     public TestsMetrics getFailures() {
         final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
-        return updater.get("failures.public", "", k -> getFailuresNoCache());
+        return updater.get(FAILURES_PUBLIC, "", k -> getFailuresNoCache());
 
     }
 
@@ -74,7 +76,7 @@ public class Metrics {
     @Path("failuresPrivate")
     public TestsMetrics getFailuresPrivate(@Nullable @QueryParam("param") String msg)  {
         final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
-        return updater.get("failures.private", "", k -> getFailuresPrivateNoCache());
+        return updater.get(FAILURES_PRIVATE, "", k -> getFailuresPrivateNoCache());
     }
 
 
