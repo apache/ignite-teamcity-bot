@@ -45,6 +45,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.util.CacheUpdateUtil;
 import org.apache.ignite.ci.util.CollectionUtil;
+import org.apache.ignite.ci.util.ObjectInterner;
 import org.jetbrains.annotations.NotNull;
 import org.xml.sax.SAXParseException;
 
@@ -153,8 +154,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         Predicate<V> saveValueFilter) {
         @Nullable final V persistedBuilds = cache.get(key);
 
-        if (persistedBuilds != null)
+        if (persistedBuilds != null) {
+            int fields = ObjectInterner.internFields(persistedBuilds);
+
             return persistedBuilds;
+        }
 
         final V loaded = loadFunction.apply(key);
 
@@ -167,6 +171,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private <K, V> V timedLoadIfAbsentOrMerge(String cacheName, int seconds, K key, BiFunction<K, V, V> loadWithMerge) {
         final IgniteCache<K, Expirable<V>> hist = ignite.getOrCreateCache(ignCacheNme(cacheName));
         @Nullable final Expirable<V> persistedBuilds = hist.get(key);
+
+        int fields = ObjectInterner.internFields(persistedBuilds);
+
         if (persistedBuilds != null) {
             if (persistedBuilds.isAgeLessThanSecs(seconds))
                 return persistedBuilds.getData();
@@ -269,6 +276,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         final IgniteCache<String, Build> cache = buildsCache();
 
         @Nullable final Build persistedBuild = cache.get(href);
+
+        int fields = ObjectInterner.internFields(persistedBuild);
 
         if (persistedBuild != null) {
             if (!persistedBuild.isOutdatedEntityVersion())
@@ -628,9 +637,13 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     public String getThreadDumpCached(Integer buildId) {
         IgniteCache<Integer, LogCheckResult> entries = logCheckResultCache();
+
         LogCheckResult logCheckResult = entries.get(buildId);
+
         if (logCheckResult == null)
             return null;
+
+        int fields = ObjectInterner.internFields(logCheckResult);
 
         return logCheckResult.getLastThreadDump();
     }
@@ -648,8 +661,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         Function<K, CompletableFuture<V>> submitFunction) {
         @Nullable final V persistedValue = cache.get(key);
 
-        if (persistedValue != null && !persistedValue.isOutdatedEntityVersion())
+        if (persistedValue != null && !persistedValue.isOutdatedEntityVersion()) {
+            int fields = ObjectInterner.internFields(persistedValue);
+
             return CompletableFuture.completedFuture(persistedValue);
+        }
 
         CompletableFuture<V> apply = submitFunction.apply(key);
 

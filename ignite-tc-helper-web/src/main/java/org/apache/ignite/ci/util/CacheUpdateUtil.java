@@ -29,8 +29,8 @@ public class CacheUpdateUtil {
 
         int fields = ObjectInterner.internFields(persistedValue);
 
-        if(fields>0)
-            System.out.println("Interned " + fields + " after get()");
+       // if(fields>0)
+       //     System.out.println("Interned " + fields + " after get()");
 
         if (persistedValue != null)
             return CompletableFuture.completedFuture(persistedValue);
@@ -70,8 +70,8 @@ public class CacheUpdateUtil {
 
         int fields = ObjectInterner.internFields(persistedValue);
 
-        if (fields > 0)
-            System.out.println("Interned " + fields + " after get()");
+     //   if (fields > 0)
+       //     System.out.println("Interned " + fields + " after get()");
 
 
         if (persistedValue != null && persistedValue.isAgeLessThanSecs(maxAgeSecs))
