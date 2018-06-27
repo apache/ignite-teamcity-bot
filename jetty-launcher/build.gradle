@@ -10,8 +10,16 @@ repositories {
 }
 
 mainClassName = 'org.apache.ignite.ci.TcHelperJettyLauncher'
-applicationDefaultJvmArgs = ["-Dteamcity.helper.home=../work", "-Dhttp.maxConnections=30",
-                             "-XX:+UseG1GC", "-XX:+UseStringDeduplication"]
+applicationDefaultJvmArgs = ["-Dteamcity.helper.home=../work",
+                             "-Dhttp.maxConnections=30",
+                             "-XX:+UseG1GC",
+                             "-XX:+UseStringDeduplication",
+                             "-Djava.rmi.server.hostname=app02",
+                             "-Dcom.sun.management.jmxremote",
+                             "-Dcom.sun.management.jmxremote.port=9010",
+                             "-Dcom.sun.management.jmxremote.local.only=false",
+                             "-Dcom.sun.management.jmxremote.authenticate=false",
+                             "-Dcom.sun.management.jmxremote.ssl=false"]
 
 distributions {
     main {
