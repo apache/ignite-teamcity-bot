@@ -130,8 +130,9 @@ public class GetCurrTestFailures {
                     }
                     return chainStatus;
                 })
-                .sorted(Comparator.comparing(ChainAtServerCurrentStatus::serverName))
                 .forEach(res::addChainOnServer);
+
+        res.servers.sort(Comparator.comparing(ChainAtServerCurrentStatus::serverName));
 
         res.postProcess(runningUpdates.get());
 

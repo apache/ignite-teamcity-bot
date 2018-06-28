@@ -3,19 +3,16 @@ package org.apache.ignite.ci.web;
 import com.google.common.base.Stopwatch;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.Expirable;
-import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.lang.IgniteClosure;
 import org.jetbrains.annotations.Nullable;
@@ -27,16 +24,19 @@ public class BackgroundUpdater {
     /** Expire milliseconds, provide cached result with flag to update */
     private static final long EXPIRE_MS = TimeUnit.MINUTES.toMillis(1);
 
-    /** Outdated milliseconds, don't provide cached result after. */
-    private static final long OUTDATED_MS = TimeUnit.HOURS.toMillis(1);
+    private ThreadFactory threadFactory = Executors.defaultThreadFactory();
 
-    private Map<T2<String, ?>, Future<?>> scheduledUpdates = new ConcurrentHashMap<>();
-    ThreadFactory threadFactory = Executors.defaultThreadFactory();
+    private final Cache<T2<String, ?>, Future<?>> scheduledUpdates
+        = CacheBuilder.<T2<String, ?>, Future<?>>newBuilder()
+        .maximumSize(100)
+        .expireAfterWrite(15, TimeUnit.MINUTES)
+        .softValues()
+        .build();
 
-    private final Cache<T2<String, ?>, Expirable<?>> data
+    private final Cache<T2<String, ?>, Expirable<?>> dataLoaded
         = CacheBuilder.<T2<String, ?>, Expirable<?>>newBuilder()
         .maximumSize(100)
-        .expireAfterAccess(15, TimeUnit.MINUTES)
+        .expireAfterWrite(15, TimeUnit.MINUTES)
         .softValues()
         .build();
 
@@ -64,73 +64,76 @@ public class BackgroundUpdater {
         //Lazy calculation of required value
         final Callable<V> loadAndSaveCall = () -> {
             Stopwatch started = Stopwatch.createStarted();
-            System.err.println("Running background upload for [" + cacheName + "] for key [" + key + "]");
+            System.out.println("Running background upload for [" + cacheName + "] for key [" + key + "]");
             V val = null;  //todo how to handle non first load error
             try {
                 val = load.apply(key);
             }
             catch (Exception e) {
-                System.err.println("Failed to complete background upload for [" + cacheName + "] " +
+                System.out.println("Failed to complete background upload for [" + cacheName + "] " +
                     "for key [" + key + "], required " + started.elapsed(TimeUnit.MILLISECONDS) + " ms");
 
                 e.printStackTrace();
+
                 throw e;
             }
 
-            data.put(computationKey, new Expirable<V>(val));
-            System.err.println("Successfully completed background upload for [" + cacheName + "] " +
+            System.out.println("Successfully completed background upload for [" + cacheName + "] " +
                 "for key [" + key + "], required " + started.elapsed(TimeUnit.MILLISECONDS) + " ms");
 
             return val;
         };
 
         //check for computation cleanup required
-        final Future<?> oldFut = scheduledUpdates.get(computationKey);
-        if (oldFut != null && (oldFut.isCancelled() || oldFut.isDone()))
-            scheduledUpdates.remove(computationKey, oldFut);
+        final Future<?> oldFut = scheduledUpdates.getIfPresent(computationKey);
 
-        Expirable<V> expirable = null;
+        if (oldFut != null && (oldFut.isCancelled() || oldFut.isDone()))
+            scheduledUpdates.invalidate(computationKey);
+
+        Expirable<V> expirable;
+
         try {
-            /*
-            //todo migrate to guava's get
-            expirable = (Expirable<V>)data.get(computationKey,
-                ()->{
+            expirable = (Expirable<V>)dataLoaded.get(computationKey,
+                () -> {
                     return new Expirable<Object>(loadAndSaveCall.call());
                 });
-                */
-
-            expirable = (Expirable<V>)data.getIfPresent(computationKey);
         }
-        catch (Exception e) {
-            e.printStackTrace(); //some persistence problem
+        catch (ExecutionException e) {
+            throw Throwables.propagate(e);
         }
 
-        if (expirable == null || isExpired(expirable, triggerSensitive)) {
-            Function<T2<String, ?>, Future<?>> startingFunction = (k) -> getService().submit(loadAndSaveCall);
-            Future<?> fut = scheduledUpdates.computeIfAbsent(computationKey, startingFunction);
-
-            if (expirable == null || isTooOld(expirable)) {
+        if (isRefreshRequired(expirable, triggerSensitive)) {
+            Callable<?> loadModified = () -> {
                 try {
-                    V o = (V)fut.get();
-                    o.setUpdateRequired(false);
-                    return o;
-                }
-                catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    e.printStackTrace();
-                    return null;
-                }
-                catch (ExecutionException e) {
-                    throw ExceptionUtil.propagateException(e);
+                    V call = loadAndSaveCall.call();
+
+                    Expirable<Object> expirable1 = new Expirable<>(call);
+
+                    dataLoaded.put(computationKey, expirable1);
                 }
                 finally {
-                    scheduledUpdates.remove(computationKey, fut); // removing registered computation
+                    scheduledUpdates.invalidate(computationKey); //todo race here is possible if value was changed
                 }
+
+                return computationKey;
+            };
+
+            Callable<Future<?>> startingFunction = () -> {
+                return getService().submit(loadModified);
+            };
+
+            try {
+                scheduledUpdates.get(computationKey, startingFunction);
+            }
+            catch (ExecutionException e) {
+                e.printStackTrace();
+
+                scheduledUpdates.invalidate(computationKey);
             }
         }
 
         final V data = expirable.getData();
-        data.setUpdateRequired(isExpired(expirable, triggerSensitive)); //considered actual
+        data.setUpdateRequired(isRefreshRequired(expirable, triggerSensitive)); //considered actual
         return data;
     }
 
@@ -138,7 +141,7 @@ public class BackgroundUpdater {
         return service;
     }
 
-    private <V extends IBackgroundUpdatable> boolean isExpired(Expirable<V> expirable, boolean triggerSensitive) {
+    private <V extends IBackgroundUpdatable> boolean isRefreshRequired(Expirable<V> expirable, boolean triggerSensitive) {
 
         if (triggerSensitive)
             return !expirable.isAgeLessThanSecs(IgnitePersistentTeamcity.getTriggerRelCacheValidSecs(60));
@@ -146,13 +149,15 @@ public class BackgroundUpdater {
         return expirable.getAgeMs() > EXPIRE_MS;
     }
 
-    private <V extends IBackgroundUpdatable> boolean isTooOld(Expirable<V> expirable) {
-        return expirable.getAgeMs() > OUTDATED_MS;
-    }
-
     public void stop() {
-        scheduledUpdates.values().forEach(future -> future.cancel(true));
+        scheduledUpdates.asMap().values().forEach(future -> future.cancel(true));
+
+        scheduledUpdates.cleanUp();
+
+        dataLoaded.cleanUp();
+
         service.shutdown();
+
         try {
             service.awaitTermination(10, TimeUnit.SECONDS);
         }

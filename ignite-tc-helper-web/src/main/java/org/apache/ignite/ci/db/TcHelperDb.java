@@ -56,27 +56,38 @@ public class TcHelperDb {
         cfg.setConsistentId("TcHelper");
         cfg.setGridLogger(new JavaLogger());
 
-        final DataRegionConfiguration regConf = new DataRegionConfiguration();
-        regConf.setMaxSize(6L * 1024 * 1024 * 1024)
-                .setPersistenceEnabled(true);
+        final DataRegionConfiguration regConf = new DataRegionConfiguration()
+            .setMaxSize(12L * 1024 * 1024 * 1024)
+            .setPersistenceEnabled(true);
 
-        DataStorageConfiguration dsCfg = new DataStorageConfiguration();
-        dsCfg.setWalMode(WALMode.LOG_ONLY)
-                .setWalHistorySize(1)
-                .setCheckpointFrequency(60 * 1000)
-                .setDefaultDataRegionConfiguration(regConf);
+        final DataStorageConfiguration dsCfg = new DataStorageConfiguration()
+            .setWalMode(WALMode.LOG_ONLY)
+            .setWalHistorySize(1)
+            .setCheckpointFrequency(60 * 1000)
+            .setWriteThrottlingEnabled(true)
+            .setDefaultDataRegionConfiguration(regConf);
+
         cfg.setDataStorageConfiguration(dsCfg);
 
+        System.out.println("Starting Ignite Server Node");
+
         final Ignite ignite = Ignition.start(cfg);
+
+        System.out.println("Activating Ignite Server Node");
+
         ignite.cluster().active(true);
+
+
+        System.out.println("Activate completed");
+
         return ignite;
     }
-
 
     public static Ignite startClient() {
         final IgniteConfiguration cfg = new IgniteConfiguration();
 
         setupDisco(cfg);
+
         cfg.setGridLogger(new JavaLogger());
 
         cfg.setClientMode(true);

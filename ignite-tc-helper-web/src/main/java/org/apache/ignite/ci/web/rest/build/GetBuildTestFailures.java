@@ -95,9 +95,8 @@ public class GetBuildTestFailures {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
-        if(!prov.hasAccess(serverId)) {
+        if(!prov.hasAccess(serverId))
             throw ServiceUnauthorizedException.noCreds(serverId);
-        }
 
         try (IAnalyticsEnabledTeamcity teamcity = helper.server(serverId, prov)) {
             //processChainByRef(teamcity, includeLatestRebuild, build, true, true)

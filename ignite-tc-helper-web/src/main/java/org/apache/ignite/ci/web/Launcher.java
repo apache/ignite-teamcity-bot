@@ -49,7 +49,7 @@ public class Launcher {
         }
         server.setHandler(ctx);
 
-        System.out.println("Starting getOrCreateCreds at [" + port + "]");
+        System.out.println("Starting server at [" + port + "]");
 
         Runnable r = () -> {
             boolean stop = waitStopSignal();

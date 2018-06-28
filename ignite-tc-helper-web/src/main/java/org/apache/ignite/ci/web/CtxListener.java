@@ -38,9 +38,9 @@ public class CtxListener implements ServletContextListener {
         final ServletContext ctx = sctxEvt.getServletContext();
         ctx.setAttribute(IGNITE, ignite);
 
-        BackgroundUpdater object = new BackgroundUpdater();
+        BackgroundUpdater backgroundUpdater = new BackgroundUpdater();
 
-        ctx.setAttribute(UPDATER, object);
+        ctx.setAttribute(UPDATER, backgroundUpdater);
 
         TcHelper tcHelper = new TcHelper(ignite);
 
