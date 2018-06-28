@@ -75,11 +75,13 @@ public class GetBuildTestFailures {
 
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
 
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
         FullQueryParams param = new FullQueryParams();
         param.setServerId(serverId);
         param.setBuildId(buildId);
         param.setCheckAllLogs(checkAllLogs);
-        return updater.get(TEST_FAILURES_SUMMARY_CACHE_NAME, param,
+        return updater.get(TEST_FAILURES_SUMMARY_CACHE_NAME, prov, param,
             (k) -> getBuildTestFailsNoCache(k.getServerId(), k.getBuildId(), k.getCheckAllLogs()), true);
     }
 

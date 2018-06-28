@@ -67,12 +67,14 @@ public class GetAllTestFailures {
         fullKey.setCount(count == null ? FullQueryParams.DEFAULT_COUNT : count);
         fullKey.setCheckAllLogs(checkAllLogs != null && checkAllLogs);
 
-        return updater.get(TEST_FAILURES_SUMMARY,
+        final ICredentialsProv creds = ICredentialsProv.get(req);
+        return updater.get(TEST_FAILURES_SUMMARY, creds,
             fullKey,
             k -> getAllTestFailsNoCache(
                 k.getBranch(),
                 k.getCount(),
-                k.getCheckAllLogs()));
+                k.getCheckAllLogs()),
+            false);
     }
 
     @GET

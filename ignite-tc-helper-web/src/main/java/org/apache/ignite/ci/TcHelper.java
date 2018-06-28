@@ -101,7 +101,7 @@ public class TcHelper implements ITcHelper {
 
     @Override
     public String primaryServerId() {
-        return "public"; //todo remove
+        return "apache"; //todo remove
     }
 
     //todo get from persistence

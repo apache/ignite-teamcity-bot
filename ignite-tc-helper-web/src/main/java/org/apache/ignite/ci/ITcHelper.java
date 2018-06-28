@@ -23,5 +23,6 @@ public interface ITcHelper {
     UserAndSessionsStorage users();
 
     String primaryServerId();
+
     Collection<String> getServerIds();
 }

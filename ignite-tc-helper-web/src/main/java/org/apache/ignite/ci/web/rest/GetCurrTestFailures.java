@@ -70,8 +70,10 @@ public class GetCurrTestFailures {
         FullQueryParams param = new FullQueryParams();
         param.setBranch(branchOrNull);
         param.setCheckAllLogs(checkAllLogs);
-        return updater.get(TEST_FAILURES_SUMMARY_CACHE_NAME, param,
-            (k) -> getTestFailsNoCache(k.getBranch(), k.getCheckAllLogs()), true);
+
+        return updater.get(TEST_FAILURES_SUMMARY_CACHE_NAME, ICredentialsProv.get(request), param,
+            (k) -> getTestFailsNoCache(k.getBranch(), k.getCheckAllLogs()), true
+        );
     }
 
     @GET

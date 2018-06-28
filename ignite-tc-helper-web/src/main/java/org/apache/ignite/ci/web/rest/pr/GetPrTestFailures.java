@@ -4,7 +4,6 @@ import org.apache.ignite.ci.*;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
@@ -31,7 +30,6 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.ignite.ci.BuildChainProcessor.loadChainsContext;
 
 @Path(GetPrTestFailures.PR)
@@ -44,7 +42,7 @@ public class GetPrTestFailures {
     private ServletContext context;
 
     @Context
-    private HttpServletRequest request;
+    private HttpServletRequest req;
 
     @GET
     @Path("failures/updates")
@@ -71,7 +69,9 @@ public class GetPrTestFailures {
 
         final FullQueryParams key = new FullQueryParams(serverId, suiteId, branchForTc, action, count);
 
-        return updater.get(CURRENT_PR_FAILURES, key,
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        return updater.get(CURRENT_PR_FAILURES, prov, key,
                 (k) -> getPrFailuresNoCache(k.getServerId(), k.getSuiteId(), k.getBranchForTc(), k.getAction(), k.getCount()),
                 true);
     }
@@ -89,7 +89,7 @@ public class GetPrTestFailures {
         final AtomicInteger runningUpdates = new AtomicInteger();
 
         final ITcHelper tcHelper = CtxListener.getTcHelper(context);
-        final ICredentialsProv creds = ICredentialsProv.get(request);
+        final ICredentialsProv creds = ICredentialsProv.get(req);
 
         //using here non persistent TC allows to skip update statistic
         try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds)) {

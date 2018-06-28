@@ -11,10 +11,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import jersey.repackaged.com.google.common.base.Throwables;
+import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.Expirable;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.lang.IgniteClosure;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -48,15 +51,42 @@ public class BackgroundUpdater {
         return thread;
     });
 
-    public BackgroundUpdater() {
+    private ITcHelper tcHelper;
+
+    public BackgroundUpdater(ITcHelper tcHelper) {
+        this.tcHelper = tcHelper;
     }
 
     public <K, V extends IBackgroundUpdatable> V get(String cacheName, K key, IgniteClosure<K, V> load) {
         return get(cacheName, key, load, false);
     }
 
-    @Nullable
-    public <K, V extends IBackgroundUpdatable> V get(String cacheName, K key, IgniteClosure<K, V> load,
+
+    @NotNull private String availServers(ICredentialsProv prov) {
+        StringBuffer sb = new StringBuffer();
+        sb.append("[");
+
+        tcHelper.getServerIds()
+            .stream()
+            .filter(prov::hasAccess)
+            .forEach(s -> sb.append(s).append(" "));
+
+        sb.append("]");
+
+        return sb.toString();
+    }
+
+    @Nullable public <K, V extends IBackgroundUpdatable> V get(String cacheName,
+        ICredentialsProv prov,
+        K key,
+        IgniteClosure<K, V> load,
+        boolean triggerSensitive) {
+        String postfix = (prov == null) ? "" : "-" + availServers(prov);
+
+        return get(cacheName + postfix, key, load, triggerSensitive);
+    }
+
+    @Nullable private <K, V extends IBackgroundUpdatable> V get(String cacheName, K key, IgniteClosure<K, V> load,
         boolean triggerSensitive) {
 
         final T2<String, ?> computationKey = new T2<String, Object>(cacheName, key);
