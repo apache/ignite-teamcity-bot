@@ -54,6 +54,8 @@ import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
@@ -66,6 +68,8 @@ import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
  * https://confluence.jetbrains.com/display/TCD10/REST+API
  */
 public class IgniteTeamcityHelper implements ITeamcity {
+    private static final Logger logger = LoggerFactory.getLogger(IgniteTeamcityHelper.class);
+
 
     public static final String TEAMCITY_HELPER_HOME = "teamcity.helper.home";
     private Executor executor;
@@ -113,7 +117,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
             final File file = new File(buildDirectory,
                 "build.log" + (archive ? ".zip" : ""));
             if (file.exists() && file.canRead() && file.length() > 0) {
-                System.out.println("Nothing to do, file is cached locally: [" + file + "]");
+                logger.info("Nothing to do, file is cached locally: [" + file + "]");
+
                 return file;
             }
             String url = host + "downloadBuildLog.html" + "?buildId=" + buildIdStr + "&archived=true";
@@ -144,7 +149,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
                 return task;
             })
             .thenApply(task -> {
-                System.out.println(Thread.currentThread().getName()
+                logger.info(Thread.currentThread().getName()
                     + ": processBuildLog required: " + started.elapsed(TimeUnit.MILLISECONDS)
                     + "ms for " + ctx.suiteId());
 

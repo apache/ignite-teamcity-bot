@@ -24,10 +24,14 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.Collections.singletonList;
 
 public class BuildChainProcessor {
+    private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
+
     @Nonnull public static Optional<FullChainRunCtx> loadChainsContext(
         IAnalyticsEnabledTeamcity teamcity,
         String suiteId,
@@ -216,7 +220,7 @@ public class BuildChainProcessor {
         if(aNull.isEmpty())
             return Stream.of(ref);
 
-        System.out.println("Snapshot deps found: " +
+        logger.info("Snapshot deps found: " +
             ref.suiteId() + "->" + aNull.stream().map(BuildRef::suiteId).collect(Collectors.toList()));
 
         List<BuildRef> cp = new ArrayList<>(aNull);

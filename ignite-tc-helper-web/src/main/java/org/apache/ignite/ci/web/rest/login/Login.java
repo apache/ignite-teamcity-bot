@@ -124,10 +124,9 @@ public class Login {
 
             users.putUser(username, user);
         } else {
-            if (Arrays.equals(userKeyCandidateKcv, user.userKeyKcv)) {
-                System.out.println("Yup, they're the same!");
-            } else
+            if (!Arrays.equals(userKeyCandidateKcv, user.userKeyKcv)) {
                 return loginResponse; //password validation failed
+            }
         }
 
         userSession.userKeyUnderToken = CryptUtil.aesEncrypt(tokenBytes, userKeyCandidate);

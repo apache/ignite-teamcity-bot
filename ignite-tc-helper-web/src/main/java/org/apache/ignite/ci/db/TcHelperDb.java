@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Collections;
+
+import ch.qos.logback.classic.LoggerContext;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.CacheInterceptorAdapter;
@@ -13,12 +15,22 @@ import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.util.ObjectInterner;
 import org.apache.ignite.configuration.*;
 import org.apache.ignite.logger.java.JavaLogger;
+import org.apache.ignite.logger.slf4j.Slf4jLogger;
 import org.apache.ignite.spi.IgniteSpiContext;
 import org.apache.ignite.spi.IgniteSpiException;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.core.ConsoleAppender;
+import ch.qos.logback.core.rolling.RollingFileAppender;
+import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.ignite.ci.web.Launcher.waitStopSignal;
 
@@ -49,12 +61,17 @@ public class TcHelperDb {
     }
 
     public static Ignite start() {
+
+        final File workDir = HelperConfig.resolveWorkDir();
+        configLogger(workDir);
+
         final IgniteConfiguration cfg = new IgniteConfiguration();
-        setWork(cfg, HelperConfig.resolveWorkDir());
+        setWork(cfg, workDir);
 
         setupDisco(cfg);
         cfg.setConsistentId("TcHelper");
-        cfg.setGridLogger(new JavaLogger());
+        cfg.setGridLogger(new Slf4jLogger());
+
 
         final DataRegionConfiguration regConf = new DataRegionConfiguration()
             .setMaxSize(12L * 1024 * 1024 * 1024)
@@ -83,12 +100,49 @@ public class TcHelperDb {
         return ignite;
     }
 
+    private static void configLogger(File workDir) {
+        LoggerContext logCtx = (LoggerContext) LoggerFactory.getILoggerFactory();
+
+        PatternLayoutEncoder logEncoder  = new PatternLayoutEncoder();
+        logEncoder.setContext(logCtx);
+        logEncoder.setPattern("%-12date{YYYY-MM-dd HH:mm:ss.SSS} %-5level [%t] - %msg%n");
+        logEncoder.start();
+
+        RollingFileAppender rollingFa = new RollingFileAppender();
+        rollingFa.setContext(logCtx);
+        rollingFa.setName("logFile");
+        rollingFa.setEncoder(logEncoder);
+        rollingFa.setAppend(true);
+
+        final File logs = new File(workDir, "logs");
+        HelperConfig.ensureDirExist(logs);
+
+        rollingFa.setFile(new File(logs, "logfile.log").getAbsolutePath());
+
+        TimeBasedRollingPolicy logFilePolicy = new TimeBasedRollingPolicy();
+        logFilePolicy.setContext(logCtx);
+        logFilePolicy.setParent(rollingFa);
+        logFilePolicy.setFileNamePattern(new File(logs, "logfile-%d{yyyy-MM-dd_HH}.log").getAbsolutePath());
+        logFilePolicy.setMaxHistory(7);
+        logFilePolicy.start();
+
+        rollingFa.setRollingPolicy(logFilePolicy);
+        rollingFa.start();
+
+        Logger log = logCtx.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        log.setAdditive(false);
+        log.setLevel(Level.INFO);
+        log.detachAndStopAllAppenders();
+
+        log.addAppender(rollingFa);
+    }
+
     public static Ignite startClient() {
         final IgniteConfiguration cfg = new IgniteConfiguration();
 
         setupDisco(cfg);
 
-        cfg.setGridLogger(new JavaLogger());
+        cfg.setGridLogger(new Slf4jLogger());
 
         cfg.setClientMode(true);
 

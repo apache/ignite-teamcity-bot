@@ -1,7 +1,10 @@
 package org.apache.ignite.ci.util;
 
 import com.google.common.base.Stopwatch;
+import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -21,6 +24,7 @@ import java.util.concurrent.TimeUnit;
  * Methods for sending HTTP requests
  */
 public class HttpUtil {
+    private static final Logger logger = LoggerFactory.getLogger(HttpUtil.class);
 
     private static String readIsToString(InputStream inputStream) throws IOException {
         BufferedReader in = new BufferedReader(
@@ -47,7 +51,7 @@ public class HttpUtil {
 
         int resCode = con.getResponseCode();
 
-        System.out.println(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
+        logger.info(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
             + "ms : Sending 'GET' request to : " + url);
 
         return getInputStream(url, con, resCode);
@@ -85,7 +89,9 @@ public class HttpUtil {
         }
 
         int resCode = con.getResponseCode();
-        System.out.println("\nSending 'POST' request to URL : " + url + "\n" + body);
+
+        logger.info("\nSending 'POST' request to URL : " + url + "\n" + body);
+
         return getInputStream(url, con, resCode);
 
     }
