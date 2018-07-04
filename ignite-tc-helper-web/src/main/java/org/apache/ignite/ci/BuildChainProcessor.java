@@ -66,7 +66,7 @@ public class BuildChainProcessor {
         return Optional.of(val);
     }
 
-    private static Properties getContactPersonProperties(ITeamcity teamcity) {
+    @Nullable private static Properties getContactPersonProperties(ITeamcity teamcity) {
         return HelperConfig.loadContactPersons(teamcity.serverId());
     }
 

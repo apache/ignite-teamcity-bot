@@ -3,7 +3,6 @@ package org.apache.ignite.ci;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -62,9 +61,11 @@ public class HelperConfig {
 
     private static Properties loadProps(File file) throws IOException {
         Properties properties = new Properties();
+
         try (FileReader reader = new FileReader(file)) {
             properties.load(reader);
         }
+
         return properties;
     }
 
@@ -122,29 +123,27 @@ public class HelperConfig {
         return user;
     }
 
-    public static Properties loadPrefixedProperties(String tcName, String name) throws IOException {
-        String respConf = prefixedWithServerName(tcName, name);
-        final File workDir = resolveWorkDir();
-        File file = new File(workDir, respConf);
-        return loadProps(file);
-    }
-
     public static BranchesTracked getTrackedBranches() {
         final File workDir = resolveWorkDir();
         final File file = new File(workDir, "branches.json");
-        final FileReader json;
-        try {
-            json = new FileReader(file);
-        }
-        catch (FileNotFoundException e) {
+
+        try(final FileReader json = new FileReader(file)) {
+            return new Gson().fromJson(json, BranchesTracked.class);
+        } catch (IOException e) {
             throw Throwables.propagate(e);
         }
-        return new Gson().fromJson(json, BranchesTracked.class);
     }
 
-    public static Properties loadContactPersons(String tcName) {
+    @Nullable public static Properties loadContactPersons(String tcName) {
         try {
-            return loadPrefixedProperties(tcName, RESP_FILE_NAME);
+            String respConf = prefixedWithServerName(tcName, RESP_FILE_NAME);
+            final File workDir = resolveWorkDir();
+            final File file = new File(workDir, respConf);
+
+            if(!file.exists())
+                return null;
+
+            return loadProps(file);
         }
         catch (IOException e) {
             e.printStackTrace();
