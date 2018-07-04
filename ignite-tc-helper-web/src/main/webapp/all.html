@@ -20,7 +20,7 @@ $(document).ready(function() {
     $( document ).tooltip();
 
     loadData();
-    setInterval( function() { checkForUpdate(); }, 60000);
+     //todo fix setInterval( function() { checkForUpdate(); }, 60000);
 
     $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 });

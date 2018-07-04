@@ -114,7 +114,7 @@ public class TcHelperDb {
         rollingFa.setEncoder(logEncoder);
         rollingFa.setAppend(true);
 
-        final File logs = new File(workDir, "logs");
+        final File logs = new File(workDir, "tchelper_logs");
         HelperConfig.ensureDirExist(logs);
 
         rollingFa.setFile(new File(logs, "logfile.log").getAbsolutePath());

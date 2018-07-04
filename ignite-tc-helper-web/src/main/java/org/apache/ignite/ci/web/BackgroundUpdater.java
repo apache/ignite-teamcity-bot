@@ -11,6 +11,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import jersey.repackaged.com.google.common.base.Throwables;
+import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.Expirable;
@@ -19,11 +20,15 @@ import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.lang.IgniteClosure;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Component for storing catchable results into ignite and get updates
  */
 public class BackgroundUpdater {
+    private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
+
     /** Expire milliseconds, provide cached result with flag to update */
     private static final long EXPIRE_MS = TimeUnit.MINUTES.toMillis(1);
 
@@ -94,21 +99,19 @@ public class BackgroundUpdater {
         //Lazy calculation of required value
         final Callable<V> loadAndSaveCall = () -> {
             Stopwatch started = Stopwatch.createStarted();
-            System.out.println("Running background upload for [" + cacheName + "] for key [" + key + "]");
+            logger.info("Running background upload for [" + cacheName + "] for key [" + key + "]");
             V val = null;  //todo how to handle non first load error
             try {
                 val = load.apply(key);
             }
             catch (Exception e) {
-                System.out.println("Failed to complete background upload for [" + cacheName + "] " +
-                    "for key [" + key + "], required " + started.elapsed(TimeUnit.MILLISECONDS) + " ms");
-
-                e.printStackTrace();
+                logger.error("Failed to complete background upload for [" + cacheName + "] " +
+                    "for key [" + key + "], required " + started.elapsed(TimeUnit.MILLISECONDS) + " ms", e);
 
                 throw e;
             }
 
-            System.out.println("Successfully completed background upload for [" + cacheName + "] " +
+            logger.info("Successfully completed background upload for [" + cacheName + "] " +
                 "for key [" + key + "], required " + started.elapsed(TimeUnit.MILLISECONDS) + " ms");
 
             return val;
@@ -124,9 +127,7 @@ public class BackgroundUpdater {
 
         try {
             expirable = (Expirable<V>)dataLoaded.get(computationKey,
-                () -> {
-                    return new Expirable<Object>(loadAndSaveCall.call());
-                });
+                () -> new Expirable<V>(loadAndSaveCall.call()));
         }
         catch (ExecutionException e) {
             throw Throwables.propagate(e);
@@ -156,7 +157,8 @@ public class BackgroundUpdater {
                 scheduledUpdates.get(computationKey, startingFunction);
             }
             catch (ExecutionException e) {
-                e.printStackTrace();
+                logger.error("Scheduled update for "
+                                + computationKey + " indicated error, dropping this compaction", e);
 
                 scheduledUpdates.invalidate(computationKey);
             }

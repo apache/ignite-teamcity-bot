@@ -1,6 +1,7 @@
 package org.apache.ignite.ci.web.auth;
 
 import com.google.common.base.Throwables;
+import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -11,6 +12,8 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.glassfish.jersey.internal.util.Base64;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.DenyAll;
 import javax.annotation.security.PermitAll;
@@ -30,6 +33,8 @@ import java.util.*;
 
 @Provider
 public class AuthenticationFilter implements ContainerRequestFilter {
+    private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
+
     @Context
     private ResourceInfo resourceInfo;
 
@@ -124,16 +129,17 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         UserSession session = users.getSession(sessId);
 
         if (session == null) {
-            System.out.println("Users session not found " + sessId + " enforcing login");
+            logger.warn("Users session not found " + sessId + " enforcing login");
 
-            requestContext.abortWith(rspUnathorized());
             return false;
         }
 
-        System.out.println("[[" + session.username + "]] Session:" + sessId + "");
+        if(requestContext.getUriInfo()!=null)
+            logger.info("[[" + session.username + "]] "+ requestContext.getUriInfo().getPath() +" Session:" + sessId + "");
+
         TcHelperUser user = users.getUser(session.username);
         if (user == null) {
-            System.out.println("No such user " + session.username + " for " + sessId + " enforcing login");
+            logger.error("No such user " + session.username + " for " + sessId + " enforcing login");
 
             requestContext.abortWith(rspUnathorized());
             return false;

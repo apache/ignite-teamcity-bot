@@ -14,17 +14,41 @@
 <body>
 <script>
 var g_shownDataHashCodeHex = ""
+var g_updTimer = null;
 
 $(document).ready(function() {
     $.getScript("js/testfails-1.7.js", function(data, textStatus, jqxhr){ });
     
     $( document ).tooltip();
     loadData();
-    setInterval( function() { checkForUpdate(); }, 30000);
+    //todo fix setInterval( function() { checkForUpdate(); }, 30000);
 
     $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
+
+    if(g_updTimer==null) {
+        g_updTimer=setTimeout(tstTimeout, 3200);
+    }
+    setInterval(tstTimeout, 10000);
 });
 
+function tstTimeout() {
+
+    if(g_updTimer!=null) {
+        clearTimeout(g_updTimer);
+        g_updTimer=null;
+    }
+
+
+var d = new Date();
+var n = d.getTime();
+
+    // $(document.body).prepend("timeout at "+n+"<br>");
+
+
+    if(g_updTimer==null) {
+        g_updTimer=setTimeout(tstTimeout, 3200);
+    }
+}
 
 function parmsForRest() {
     var curReqParms = "";
