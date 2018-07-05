@@ -45,7 +45,7 @@ public class GetPrTestFailures {
     private HttpServletRequest req;
 
     @GET
-    @Path("failures/updates")
+    @Path("updates")
     public UpdateInfo getPrFailuresUpdates(
         @Nullable @QueryParam("serverId") String serverId,
         @Nonnull @QueryParam("suiteId") String suiteId,
@@ -57,7 +57,7 @@ public class GetPrTestFailures {
     }
 
     @GET
-    @Path("failures")
+    @Path("results")
     public TestFailuresSummary getPrFailures(
         @Nullable @QueryParam("serverId") String serverId,
         @Nonnull @QueryParam("suiteId") String suiteId,
@@ -77,7 +77,7 @@ public class GetPrTestFailures {
     }
 
     @GET
-    @Path("failuresNoCache")
+    @Path("resultsNoCache")
     @NotNull public TestFailuresSummary getPrFailuresNoCache(
         @Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
@@ -152,5 +152,4 @@ public class GetPrTestFailures {
 
         return res;
     }
-
 }

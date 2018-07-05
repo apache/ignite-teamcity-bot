@@ -65,7 +65,7 @@ function parmsForRest() {
 }
 
 function checkForUpdate() {
-    var curFailuresUrl = "rest/current/failures/updates" + parmsForRest();
+    var curFailuresUrl = "rest/tracked/updates" + parmsForRest();
 
     $.ajax({
         url: curFailuresUrl,
@@ -92,7 +92,7 @@ function checkForUpdate() {
 }
 
 function loadData() {
-    var curFailuresUrl = "rest/current/failures" + parmsForRest();
+    var curFailuresUrl = "rest/tracked/results" + parmsForRest();
     
     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
     $.ajax({
@@ -112,10 +112,10 @@ function loadData() {
 }
 
 function showData(result) {
-    var txtUrl = "rest/current/failures/txt" + parmsForRest();
+    //var txtUrl = "rest/tracked/results/txt" + parmsForRest();
 
-    $("#divFailures").html(showChainOnServersResults(result)
-        + " <a href='"+ txtUrl + "'>txt</a>");
+    $("#divFailures").html(showChainOnServersResults(result));
+    //        + " <a href='"+ txtUrl + "'>txt</a>");
 }
 
 </script>

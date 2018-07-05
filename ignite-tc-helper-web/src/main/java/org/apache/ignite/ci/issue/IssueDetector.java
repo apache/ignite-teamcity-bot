@@ -24,9 +24,8 @@ import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import org.apache.ignite.ci.web.rest.GetCurrTestFailures;
+import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
-import org.apache.ignite.scheduler.SchedulerFuture;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
@@ -228,7 +227,7 @@ public class IssueDetector {
     }
 
     private void checkFailures() {
-        TestFailuresSummary failures = GetCurrTestFailures.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME, false,
+        TestFailuresSummary failures = GetTrackedBranchTestResults.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME, false,
             backgroundOpsTcHelper,
             backgroundOpsCreds);
 

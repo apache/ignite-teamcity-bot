@@ -14,8 +14,7 @@ import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
-import org.apache.ignite.ci.web.rest.GetAllTestFailures;
-import org.apache.ignite.ci.web.rest.GetCurrTestFailures;
+import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
 import org.apache.ignite.ci.web.rest.Metrics;
 import org.apache.ignite.ci.web.rest.build.GetBuildTestFailures;
 import org.apache.ignite.ci.web.rest.pr.GetPrTestFailures;
@@ -215,10 +214,10 @@ public class DbMigrations {
             }
         });
 
-        applyRemoveCache(GetAllTestFailures.TEST_FAILURES_SUMMARY);
+        applyRemoveCache(GetTrackedBranchTestResults.ALL_TEST_FAILURES_SUMMARY);
         applyRemoveCache(Metrics.FAILURES_PUBLIC);
         applyRemoveCache(Metrics.FAILURES_PRIVATE);
-        applyRemoveCache(GetCurrTestFailures.TEST_FAILURES_SUMMARY_CACHE_NAME);
+        applyRemoveCache(GetTrackedBranchTestResults.TEST_FAILURES_SUMMARY_CACHE_NAME);
         applyRemoveCache(GetBuildTestFailures.TEST_FAILURES_SUMMARY_CACHE_NAME);
         applyRemoveCache(GetPrTestFailures.CURRENT_PR_FAILURES);
     }
