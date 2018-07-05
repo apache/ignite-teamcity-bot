@@ -89,9 +89,9 @@ public class IgniteTeamcityHelper implements ITeamcity {
         this.configName = HelperConfig.prepareConfigName(tcName);
 
         final Properties props = HelperConfig.loadAuthProperties(workDir, configName);
-        final String hostConf = props.getProperty(HelperConfig.HOST, "http://ci.ignite.apache.org/");
+        final String hostConf = props.getProperty(HelperConfig.HOST, "https://ci.ignite.apache.org/");
 
-        this.host = hostConf + (hostConf.endsWith("/") ? "" : "/");
+        this.host = hostConf.trim() + (hostConf.endsWith("/") ? "" : "/");
         try {
             setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, configName));
         } catch (Exception e) {
