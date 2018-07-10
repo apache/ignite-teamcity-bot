@@ -35,7 +35,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.apache.ignite.ci.BuildChainProcessor.loadChainsContext;
 
 @Path(GetTrackedBranchTestResults.TRACKED)
 @Produces(MediaType.APPLICATION_JSON)
@@ -153,7 +152,7 @@ public class GetTrackedBranchTestResults {
                     final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
 
                     try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds)) {
-                        Optional<FullChainRunCtx> pubCtx = loadChainsContext(teamcity,
+                        Optional<FullChainRunCtx> pubCtx = BuildChainProcessor.loadChainsContext(teamcity,
                                 chainTracked.getSuiteIdMandatory(),
                                 branchForTc,
                                 LatestRebuildMode.LATEST,

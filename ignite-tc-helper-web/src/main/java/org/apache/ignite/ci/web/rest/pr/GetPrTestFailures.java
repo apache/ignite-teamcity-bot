@@ -30,8 +30,6 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static org.apache.ignite.ci.BuildChainProcessor.loadChainsContext;
-
 @Path(GetPrTestFailures.PR)
 @Produces(MediaType.APPLICATION_JSON)
 public class GetPrTestFailures {
