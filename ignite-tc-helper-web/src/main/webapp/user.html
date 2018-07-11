@@ -29,6 +29,7 @@ $(document).ready(function() {
     });
 
     setupAddDialog();
+    setupEditDialog();
 });
 
 function setupAddDialog() {
@@ -57,7 +58,7 @@ function setupAddDialog() {
         dialog.dialog("open");
     });
 
-     $("#resetCredsBtn").button().on("click", function() {
+    $("#resetCredsBtn").button().on("click", function() {
          confirmResetCreds();
     });
 }
@@ -115,22 +116,6 @@ function addServiceCreds() {
         },
         error: showErrInLoadStatus
     });
-
-
-    /*var valid = true;
-
-    var serviceId = $( "#serviceId" );
-    var serviceLogin = $( "#serviceLogin" );
-    var servicePassword = $( "#servicePassword" );
-
-    if ( valid ) {
-      $( "#serviceCreds tbody" ).append( "<tr>" +
-        "<td>" + serviceId.val() + "</td>" +
-        "<td>" + serviceLogin.val() + "</td>" +
-        "<td>" + servicePassword.val() + "</td>" +
-      "</tr>" );
-    }
-    return valid;*/
 }
 
 
@@ -158,10 +143,52 @@ function loadData() {
     });
 }
 
+function setupEditDialog() {
+    $("#btnSaveUserData").button().on("click", function() {
+        sendUserData();
+    });
+ }
+
+ function sendUserData() {
+    var url = "rest/user/saveUserData";
+
+    $.ajax({
+        type: "POST",
+        url: url,
+        data: $("#userData").serialize(),
+        success: function(data) {
+            loadData();
+        },
+        error: showErrInLoadStatus
+    });
+ }
+
+//see TcHelperUserUi java class
 function showData(userUi) {
     $("#login").val(userUi.login);
     $("#fullName").val(userUi.fullName);
     $("#email").val(userUi.email);
+
+    var res = "";
+    if(isDefinedAndFilled(userUi.subscribedAllToBranchFailures)) {
+        var map = userUi.subscribedAllToBranchFailures
+        for (var key in map) {
+           if (map.hasOwnProperty(key)) {
+
+              res+="<input id='notify_"+key+"' name='notify_"+key+"' class='element checkbox' type='checkbox' value='1'";
+              if(map[key]== true)
+                    res+=" checked";
+
+              res+="/>";
+
+                res+="<label class='choice' for='notify_"+key+"'>Notify on all failures in "+key+"</label>";
+
+                res+="<br>";
+           }
+        }
+    }
+
+    $("#notifyOnBranches").html(res);
 
     $("#serviceLogin").val(userUi.login);
 
@@ -187,13 +214,13 @@ function showData(userUi) {
 
 <div id="form_container">
 
-    <form id="userdata" class="appnitro">
+    <form id="userData" class="appnitro">
         <div class="form_description">
             <h2>Teamcity helper User</h2>
             <p>User data and preferences</p>
         </div>
         <ul>
-            <li id="li_0">
+            <li>
                 <label class="description" for="login">Login</label>
                 <div>
                     <input id="login" name="login" class="element text medium" type="text" maxlength="255"
@@ -229,22 +256,24 @@ function showData(userUi) {
                            value=""/>
                 </div>
             </li>
-            <li>
-                <label class="description">Preferences</label>
 
-			<input id="element_5_1" name="element_5_1" class="element checkbox" type="checkbox" value="1"/>
-<label class="choice" for="element_5_1">Notify on build problems related to me</label>
-<input id="element_5_2" name="element_5_2" class="element checkbox" type="checkbox" value="1"/>
-<label class="choice" for="element_5_2">I agree to be responsible for MTCGA issues</label>
-<input id="element_5_3" name="element_5_3" class="element checkbox" type="checkbox" value="1"/>
-<label class="choice" for="element_5_3">Notify me on all build problems</label>
-            </li>
+                <input id="element_5_1" name="element_5_1" class="element checkbox" type="checkbox" value="1"/>
+                <label class="choice" for="element_5_1">Notify on build problems related to me</label>
+                <input id="element_5_2" name="element_5_2" class="element checkbox" type="checkbox" value="1"/>
+                <label class="choice" for="element_5_2">I agree to be responsible for MTCGA issues</label>
+
             -->
+
+            <li>
+                <label class="description">Tracked Branch Notification Preferences</label>
+
+                <div id="notifyOnBranches"></div>
+            </li>
 
             <li class="buttons">
                 <input type="hidden" name="form_id" value="13472"/>
 
-                <input id="saveForm" class="button_text" type="submit" name="submit" value="Save"/>
+                <input id="btnSaveUserData" class="button_text" value="Save"/>
             </li>
         </ul>
     </form>

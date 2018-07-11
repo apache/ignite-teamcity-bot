@@ -21,8 +21,11 @@ public class Issue {
     @Nullable
     public String displayName;
 
+    @Nullable public Long detectedTs;
+
     public Issue(IssueKey issueKey) {
         this.issueKey = issueKey;
+        this.detectedTs = System.currentTimeMillis();
     }
 
     public void addChange(String username, String webUrl) {

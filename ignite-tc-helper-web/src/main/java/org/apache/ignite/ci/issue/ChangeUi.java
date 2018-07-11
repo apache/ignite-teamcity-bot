@@ -14,6 +14,10 @@ public class ChangeUi {
     }
 
     public String toSlackMarkup() {
-        return new StringBuilder().append("<").append(webUrl).append("|").append(username).append(">").toString();
+        String str = username
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;");
+        return "<" + webUrl + "|" + str + ">";
     }
 }

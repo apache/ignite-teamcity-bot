@@ -1,8 +1,10 @@
 package org.apache.ignite.ci.issue;
 
+import com.google.common.base.Strings;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteScheduler;
 import org.apache.ignite.ci.HelperConfig;
@@ -17,6 +19,8 @@ import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.TcHelperUser;
+import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
@@ -34,7 +38,7 @@ public class IssueDetector {
     public static final String SLACK = "slack:";
     private final Ignite ignite;
     private final IssuesStorage issuesStorage;
-
+    private UserAndSessionsStorage userStorage;
 
     private final AtomicBoolean init = new AtomicBoolean();
     private ICredentialsProv backgroundOpsCreds = null;
@@ -42,9 +46,11 @@ public class IssueDetector {
     private ScheduledExecutorService executorService;
 
 
-    public IssueDetector(Ignite ignite, IssuesStorage issuesStorage) {
+    public IssueDetector(Ignite ignite, IssuesStorage issuesStorage,
+        UserAndSessionsStorage userStorage) {
         this.ignite = ignite;
         this.issuesStorage = issuesStorage;
+        this.userStorage = userStorage;
     }
 
     public void registerIssuesLater(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
@@ -72,18 +78,45 @@ public class IssueDetector {
 
     private void sendNewNotifications() {
         try {
+            Collection<TcHelperUser> userForPossibleNotifications = new ArrayList<>();
+
+            for(Cache.Entry<String, TcHelperUser> entry : userStorage.users()) {
+                TcHelperUser tcHelperUser = entry.getValue();
+
+                if (Strings.isNullOrEmpty(tcHelperUser.email))
+                    continue;
+
+                if(tcHelperUser.hasSubscriptions())
+                    userForPossibleNotifications.add(tcHelperUser);
+            }
+
             Map<String, Notification> toBeSent = new HashMap<>();
 
             for (Issue issue : issuesStorage.all()) {
-                String to1 = "dpavlov.spb@gmail.com";
-                String to2 = "slack:dpavlov";
+                long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
+                long issueAgeMs = System.currentTimeMillis() - detected;
+                if (issueAgeMs > TimeUnit.HOURS.toMillis(2))
+                    continue;
 
-                List<String> addrs = new ArrayList<>(Arrays.asList(to1, to2));
+                String to1 = "dpavlov.spb@gmail.com";
+                String to2 = "slack:dpavlov"; //todo implement direct slask notification
+
+                List<String> addrs = new ArrayList<>(Arrays.asList(to1));
 
                 String property = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
                 if (property != null)
                     addrs.add(SLACK + "#" + property);
 
+                for (TcHelperUser next : userForPossibleNotifications) {
+                    if (next.getCredentials(issue.issueKey().server) != null) {
+                        if (next.isSubscribed(issue.trackedBranchName)) {
+                            System.err.println("User " + next + " is candidate for notification " + next.email
+                                + " for " + issue);
+
+                            addrs.add(next.email);
+                        }
+                    }
+                }
                 for (String nextAddr : addrs) {
                     if (issuesStorage.needNotify(issue.issueKey, nextAddr)) {
                         toBeSent.computeIfAbsent(nextAddr, addr -> {
@@ -107,11 +140,12 @@ public class IssueDetector {
                             break;
                     }
                 } else {
-                    String s = "MTCGA needs action from you: " + next.countIssues() + " new failures to be handled";
+                    String builds = next.buildIdToIssue.keySet().toString();
+                    String subj = "MTCGA: " + next.countIssues() + " new failures in builds " + builds + " needs to be handled";
 
                     String html = next.toHtml();
 
-                    EmailSender.sendEmail(next.addr, s, html);
+                    EmailSender.sendEmail(next.addr, subj, html);
                 }
             }
         } catch (Exception e) {
@@ -164,7 +198,6 @@ public class IssueDetector {
 
         int buildId = testId.getBuildId();
         IssueKey issueKey = new IssueKey(srvId, buildId, name);
-
 
         if (issuesStorage.cache().containsKey(issueKey))
             return false; //duplicate

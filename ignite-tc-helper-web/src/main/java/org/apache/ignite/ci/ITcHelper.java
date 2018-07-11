@@ -1,5 +1,6 @@
 package org.apache.ignite.ci;
 
+import java.util.List;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -25,4 +26,6 @@ public interface ITcHelper {
     String primaryServerId();
 
     Collection<String> getServerIds();
+
+    List<String> getTrackedBranchesIds();
 }

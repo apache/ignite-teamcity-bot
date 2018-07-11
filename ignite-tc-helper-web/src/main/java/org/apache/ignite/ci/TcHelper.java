@@ -3,7 +3,9 @@ package org.apache.ignite.ci;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import java.util.List;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -44,7 +46,7 @@ public class TcHelper implements ITcHelper {
         issuesStorage = new IssuesStorage(ignite);
         userAndSessionsStorage = new UserAndSessionsStorage(ignite);
 
-        detector = new IssueDetector(ignite, issuesStorage);
+        detector = new IssueDetector(ignite, issuesStorage, userAndSessionsStorage);
     }
 
     @Override
@@ -106,7 +108,15 @@ public class TcHelper implements ITcHelper {
 
     //todo get from persistence
     public Collection<String> getServerIds() {
-        return HelperConfig.getTrackedBranches().getServerIds();
+        return getTrackedBranches().getServerIds();
+    }
+
+    private BranchesTracked getTrackedBranches() {
+        return HelperConfig.getTrackedBranches();
+    }
+
+    @Override public List<String> getTrackedBranchesIds() {
+        return getTrackedBranches().getIds();
     }
 
     public void close() {

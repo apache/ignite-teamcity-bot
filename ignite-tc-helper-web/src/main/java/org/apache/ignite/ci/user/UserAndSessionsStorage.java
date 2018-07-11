@@ -17,7 +17,7 @@ public class UserAndSessionsStorage {
         this.ignite = ignite;
     }
 
-    IgniteCache<String, TcHelperUser> users() {
+    public IgniteCache<String, TcHelperUser> users() {
         return ignite.getOrCreateCache(getTxConfig(USERS));
     }
 
@@ -46,4 +46,5 @@ public class UserAndSessionsStorage {
     public void putUser(String username, TcHelperUser user) {
         users().put(username, user);
     }
+
 }

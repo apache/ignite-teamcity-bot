@@ -6,7 +6,7 @@ public class Notification {
     String addr;
     Long ts;
 
-    Map<Integer,  List<Issue>> buildIdToIssue= new TreeMap<>(Comparator.reverseOrder( ));
+    Map<Integer, List<Issue>> buildIdToIssue = new TreeMap<>(Comparator.reverseOrder());
 
     public void addIssue(Issue issue) {
         Integer buildId = issue.issueKey.buildId;
@@ -44,15 +44,8 @@ public class Notification {
     }
 
     private String messageHeader() {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("Hi Ignite Developer,<br><br>");
-
-        sb.append("I am MTCGA.Bot, and I've detected some issue on TeamCity to be addressed.<br>");
-
-        sb.append("I hope you can help here because recently you've done some contributions, which may have relation to failure.<br><br>");
-
-        return sb.toString();
+        return "Hi Ignite Developer,<br><br>" +
+            "I am MTCGA.Bot, and I've detected some issue on TeamCity to be addressed. I hope you can help.<br><br>";
     }
 
     private String messageTail() {

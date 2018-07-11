@@ -51,7 +51,7 @@ public class GetTrackedBranches {
     @GET
     @Path("getIds")
     public List<String> getIds() {
-        return HelperConfig.getTrackedBranches().getIds();
+        return CtxListener.getTcHelper(context).getTrackedBranchesIds();
     }
 
     @GET

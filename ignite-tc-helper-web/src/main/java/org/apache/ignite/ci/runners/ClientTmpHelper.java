@@ -17,6 +17,7 @@ public class ClientTmpHelper {
         Object dpavlov = ignite.cache(UserAndSessionsStorage.USERS).get("dpavlov");
 
         IgniteCache<Object, Object> cache = ignite.cache(IssuesStorage.ISSUES);
+
         cache.forEach(
             issue->{
                 Object key = issue.getKey();
@@ -24,7 +25,6 @@ public class ClientTmpHelper {
                  // value.addressNotified.clear();
 
                 cache.put(key, value);
-
             }
         );
 

@@ -35,6 +35,8 @@ public class TcHelperUser implements IVersionedEntity {
 
     public Set<String> additionalEmails = new LinkedHashSet<>();
 
+    @Nullable private Set<String> subscribedToAllFailures;
+
     @Override
     public int version() {
         return _version == null ? 0 : _version;
@@ -103,6 +105,26 @@ public class TcHelperUser implements IVersionedEntity {
         salt = null;
     }
 
+    public boolean isSubscribed(String trackedBranchId) {
+        return subscribedToAllFailures != null && subscribedToAllFailures.contains(trackedBranchId);
+    }
+
+    public void resetNotifications() {
+        if (subscribedToAllFailures != null)
+            subscribedToAllFailures.clear();
+    }
+
+    public void addNotification(String branch) {
+        if (subscribedToAllFailures == null)
+            subscribedToAllFailures = new TreeSet<>();
+
+        subscribedToAllFailures.add(branch);
+    }
+
+    public boolean hasSubscriptions() {
+        return subscribedToAllFailures!=null && !subscribedToAllFailures.isEmpty();
+    }
+
     public static class Credentials {
         String serverId;
         String username;
@@ -118,20 +140,18 @@ public class TcHelperUser implements IVersionedEntity {
             this.username = serviceLogin;
         }
 
-
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(this)
-                    .add("serverId", serverId)
-                    .add("username", username)
-                    .add("passwordUnderUserKey", printHexBinary(passwordUnderUserKey))
-                    .toString();
+                .add("serverId", serverId)
+                .add("username", username)
+                .add("passwordUnderUserKey", printHexBinary(passwordUnderUserKey))
+                .toString();
         }
 
         void setPasswordUnderUserKey(byte[] bytes) {
             passwordUnderUserKey = bytes;
         }
-
 
         public String getUsername() {
             return username;
@@ -147,9 +167,9 @@ public class TcHelperUser implements IVersionedEntity {
 
         public void setPassword(String password, byte[] userKey) {
             setPasswordUnderUserKey(
-                    CryptUtil.aesEncryptP5Pad(
-                            userKey,
-                            password.getBytes(CryptUtil.CHARSET)));
+                CryptUtil.aesEncryptP5Pad(
+                    userKey,
+                    password.getBytes(CryptUtil.CHARSET)));
         }
 
         public Credentials setLogin(String username) {
@@ -161,10 +181,14 @@ public class TcHelperUser implements IVersionedEntity {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("username", username)
-                .add("salt", salt == null ? "" : printHexBinary(salt))
-                .add("userKeyKcv", userKeyKcv == null ? "" : printHexBinary(userKeyKcv))
-                .add("credentialsList", credentialsList)
-                .toString();
+            .add("username", username)
+            .add("fullName", fullName)
+            .add("email", email)
+            .add("additionalEmails", additionalEmails)
+            .add("salt", salt == null ? "" : printHexBinary(salt))
+            .add("userKeyKcv", userKeyKcv == null ? "" : printHexBinary(userKeyKcv))
+            .add("credentialsList", credentialsList)
+            .add("subscribedToAllFailures", subscribedToAllFailures == null ? "" : subscribedToAllFailures.toString())
+            .toString();
     }
 }
