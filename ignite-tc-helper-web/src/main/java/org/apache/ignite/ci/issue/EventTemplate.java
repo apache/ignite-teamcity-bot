@@ -16,4 +16,8 @@ public class EventTemplate {
     public int[] eventAndAfter() {
         return eventAndAfter;
     }
+
+    public int cntEvents() {
+        return beforeEvent.length + eventAndAfter.length;
+    }
 }

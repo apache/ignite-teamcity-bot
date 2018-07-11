@@ -6,10 +6,8 @@ import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.util.CryptUtil;
-import org.apache.ignite.ci.web.model.SimpleResult;
 import org.jetbrains.annotations.Nullable;
 
-import javax.ws.rs.FormParam;
 import java.util.*;
 
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
@@ -53,18 +51,18 @@ public class TcHelperUser implements IVersionedEntity {
         if (next != null)
             return next;
 
-        Credentials credentials = new Credentials();
-        credentials.serverId = serverId;
+        Credentials creds = new Credentials();
+        creds.serverId = serverId;
 
-        getCredentialsList().add(credentials);
+        getCredentialsList().add(creds);
 
-        return credentials;
+        return creds;
     }
 
     @Nullable
-    public Credentials getCredentials(String serverId) {
+    public Credentials getCredentials(String srvId) {
         for (Credentials next : getCredentialsList()) {
-            if (next.serverId.equals(serverId))
+            if (next.serverId.equals(srvId))
                 return next;
         }
 
@@ -87,18 +85,22 @@ public class TcHelperUser implements IVersionedEntity {
 
     public void enrichUserData(User tcUser) {
         if (tcUser.email != null) {
-            if (email == null) {
+            if (email == null)
                 email = tcUser.email;
-            } else if (!email.equals(tcUser.email)) {
+            else if (!email.equals(tcUser.email))
                 additionalEmails.add(tcUser.email);
-            }
         }
 
         if (tcUser.name != null) {
-            if (this.fullName == null) {
+            if (this.fullName == null)
                 fullName = tcUser.name;
-            }
         }
+    }
+
+    public void resetCredentials() {
+        userKeyKcv = null;
+        getCredentialsList().clear();
+        salt = null;
     }
 
     public static class Credentials {

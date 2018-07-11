@@ -175,8 +175,6 @@ public class IssueDetector {
         issue.webUrl = testFailure.webUrl;
 
         issue.displayType = "New test failure";
-        //todo add branch of failure
-
 
         Build build = teamcity.getBuild(buildId);
 
@@ -227,9 +225,14 @@ public class IssueDetector {
     }
 
     private void checkFailures() {
-        TestFailuresSummary failures = GetTrackedBranchTestResults.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME, false,
-            backgroundOpsTcHelper,
-            backgroundOpsCreds);
+        int buildsToQuery = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
+
+        TestFailuresSummary failures =
+            GetTrackedBranchTestResults.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
+                false,
+                buildsToQuery,
+                backgroundOpsTcHelper,
+                backgroundOpsCreds);
 
         registerIssuesLater(failures, backgroundOpsTcHelper, backgroundOpsCreds);
     }

@@ -91,11 +91,7 @@ public class GetTrackedBranchTestResults {
         final ITcHelper helper = CtxListener.getTcHelper(context);
         final ICredentialsProv creds = ICredentialsProv.get(request);
 
-        final TestFailuresSummary res = getTrackedBranchTestFailures(branch, checkAllLogs, helper, creds);
-
-        helper.issueDetector().registerIssuesLater(res, helper, creds);
-
-        return res;
+        return getTrackedBranchTestFailures(branch, checkAllLogs, 1, helper, creds);
     }
 
     @GET
@@ -132,6 +128,7 @@ public class GetTrackedBranchTestResults {
     public static TestFailuresSummary getTrackedBranchTestFailures(
             @Nullable @QueryParam("branch") String branch,
             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
+            int buildResultMergeCnt,
             ITcHelper helper,
             ICredentialsProv creds) {
         final TestFailuresSummary res = new TestFailuresSummary();
@@ -152,15 +149,43 @@ public class GetTrackedBranchTestResults {
                     final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
 
                     try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds)) {
+
+                        final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
+                            chainTracked.getSuiteIdMandatory(),
+                            branchForTc);
+
+                        List<BuildRef> chains = builds.stream()
+                            .filter(ref -> !ref.isFakeStub())
+                            .sorted(Comparator.comparing(BuildRef::getId).reversed())
+                            .limit(buildResultMergeCnt)
+                            .filter(b -> b.getId() != null).collect(Collectors.toList());
+
+                        ProcessLogsMode logs;
+                        if (buildResultMergeCnt > 1)
+                            logs = checkAllLogs != null && checkAllLogs ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED;
+                        else
+                            logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
+
+                        LatestRebuildMode rebuild = buildResultMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
+
+                        boolean includeScheduled = buildResultMergeCnt == 1;
+
+                        Optional<FullChainRunCtx> chainCtxOpt
+                            = BuildChainProcessor.processBuildChains(teamcity,
+                            rebuild, chains,
+                            logs,
+                            includeScheduled, true, teamcity, failRateBranch);
+                        /*
                         Optional<FullChainRunCtx> pubCtx = BuildChainProcessor.loadChainsContext(teamcity,
                                 chainTracked.getSuiteIdMandatory(),
                                 branchForTc,
                                 LatestRebuildMode.LATEST,
                                 (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE,
                                 failRateBranch);
+*/
 
-                        pubCtx.ifPresent(ctx -> {
-                            int cnt = (int) ctx.getRunningUpdates().count();
+                        chainCtxOpt.ifPresent(ctx -> {
+                            int cnt = (int)ctx.getRunningUpdates().count();
                             if (cnt > 0)
                                 runningUpdates.addAndGet(cnt);
 
@@ -189,7 +214,7 @@ public class GetTrackedBranchTestResults {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
         final ICredentialsProv creds = ICredentialsProv.get(request);
-
+/*
         final String branch = isNullOrEmpty(branchOpt) ? FullQueryParams.DEFAULT_BRANCH_NAME : branchOpt;
         res.setTrackedBranch(branch);
 
@@ -238,7 +263,9 @@ public class GetTrackedBranchTestResults {
         }
 
         res.postProcess(runningUpdates.get());
+*/
+        int cntLimit = count == null ? 10 : count;
 
-        return res;
+        return getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, helper, creds );
     }
 }

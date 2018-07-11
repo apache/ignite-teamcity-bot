@@ -35,7 +35,7 @@ function showErrInLoadStatus(jqXHR, exception) {
 
         setTimeout(function() {
             window.location.href = "/login.html" + "?backref=" + encodeURIComponent(window.location.href);
-        }, 4000);
+        }, 1000);
     } else if (jqXHR.status == 403) {
         $("#loadStatus").html('Forbidden [403]');
     } else if (jqXHR.status == 424) {
@@ -169,4 +169,19 @@ function setupTokenManual(result) {
             } catch (e) {}
         }
     });
+}
+
+function tcHelperLogout() {
+    try {
+                    var fullTok = window.sessionStorage.getItem("token");
+
+                    if (isDefinedAndFilled(fullTok))
+                        window.sessionStorage.removeItem("token");
+
+                        var fullTok = window.localStorage.getItem("token");
+
+                        if (isDefinedAndFilled(fullTok))
+                            window.localStorage.removeItem("token");
+
+      } catch (e) {}
 }

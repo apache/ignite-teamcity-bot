@@ -26,6 +26,11 @@ public class RunStat {
     public static final int RES_FAILURE = 1;
 
     /**
+     * RES OK or RES FAILURE
+     */
+    public static final int RES_OK_OR_FAILURE = 10;
+
+    /**
      * Result of test execution, muted failure found.
      */
     private static final int RES_MUTED_FAILURE = 2;

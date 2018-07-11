@@ -117,15 +117,12 @@ public class UserService {
         final UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
         final TcHelperUser user = users.getUser(currentUserLogin);
 
-        user.userKeyKcv = null;
-        user.getCredentialsList().clear();
-        user.salt = null;
+        user.resetCredentials();
 
         users.putUser(currentUserLogin, user);
 
         return new SimpleResult("");
     }
-
 
     @POST
     @Path("addService")

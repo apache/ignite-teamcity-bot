@@ -24,7 +24,11 @@ class Settings {
 //@param settings - Settings (JS class)
 function showChainResultsWithSettings(result, settings) {
     var res = "";
-    res += "Chain results";
+    res += "<table border='0px'><tr><td colspan='4'>Chain results";
+
+    if(isDefinedAndFilled(result.trackedBranch)) {
+        res+=" for [" + result.trackedBranch + "]";
+    }
 
     if (isDefinedAndFilled(result.failedTests) &&
         isDefinedAndFilled(result.failedToFinish)) {
@@ -32,12 +36,14 @@ function showChainResultsWithSettings(result, settings) {
         res += "tests " + result.failedTests + " suites " + result.failedToFinish + "";
         res += "]";
     }
-    res += "<br>";
+    res += "</td></tr>";
+    res+="</table>"
 
     for (var i = 0; i < result.servers.length; i++) {
         var server = result.servers[i];
         res += showChainCurrentStatusData(server, settings);
     }
+
 
     setTimeout(initMoreInfo, 100);
 
@@ -51,7 +57,7 @@ function showChainCurrentStatusData(server, settings) {
         return;
 
     if(isDefinedAndFilled(server.buildNotFound) && server.buildNotFound ) {
-        return "<b>Error: Build not found for branch [" + server.branchName + "]</b><br><br>";
+        return "<tr><td><b>Error: Build not found for branch [" + server.branchName + "]</b></td></tr>";
     }
 
     var res = "";
@@ -60,7 +66,8 @@ function showChainCurrentStatusData(server, settings) {
     if (isDefinedAndFilled(server.durationPrintable))
         altTxt += "duration: " + server.durationPrintable;
 
-    res += "<b><a href='" + server.webToHist + "'>";
+    res += "<table border='0px'>";
+    res += "<tr bgcolor='#F5F5FF'><td colspan='4'><b><a href='" + server.webToHist + "'>";
 
     if (isDefinedAndFilled(server.chainName)) {
         res += server.chainName + " ";
@@ -110,18 +117,22 @@ function showChainCurrentStatusData(server, settings) {
     if (isDefinedAndFilled(server.topLongRunning) && server.topLongRunning.length > 0) {
         mInfo += "Top long running:<br>"
 
+        mInfo += "<table>";
         for (var i = 0; i < server.topLongRunning.length; i++) {
             mInfo += showTestFailData(server.topLongRunning[i], false, settings);
         }
+        mInfo += "</table>";
     }
 
 
     if (isDefinedAndFilled(server.logConsumers) && server.logConsumers.length > 0) {
         mInfo += "Top Log Consumers:<br>"
 
+        mInfo += "<table>";
         for (var i = 0; i < server.logConsumers.length; i++) {
             mInfo += showTestFailData(server.logConsumers[i], false, settings);
         }
+        mInfo += "</table>";
     }
 
     if(!isDefinedAndFilled(findGetParameter("reportMode"))) {
@@ -130,12 +141,16 @@ function showChainCurrentStatusData(server, settings) {
         res += "<div class='content'>" + mInfo + "</div></span>";
     }
 
-    res += "<br><br>";
+    res += "</td></tr>";
+
 
     for (var i = 0; i < server.suites.length; i++) {
         var suite = server.suites[i];
         res += showSuiteData(suite, settings);
     }
+
+    res += "<tr><td colspan='4'>&nbsp;</td></tr>";
+    res += "</table>"
 
     return res;
 }
@@ -222,8 +237,6 @@ function triggerBuilds(serverId, suiteIdList, branchName, top) {
 
 //@param suite - see SuiteCurrentStatus
 function showSuiteData(suite, settings) {
-    var res = "";
-    var altTxt = "";
     var moreInfoTxt = "";
 
     if (isDefinedAndFilled(suite.userCommits) && suite.userCommits != "") {
@@ -232,8 +245,11 @@ function showSuiteData(suite, settings) {
 
     moreInfoTxt += "Duration: " + suite.durationPrintable + " <br>";
 
+    var altTxt = "";
     altTxt += "Duration: " + suite.durationPrintable + "; ";
-    res += "&nbsp; ";
+
+    var res = "";
+    res += "<tr bgcolor='#FAFAFF'><td align='right' valign='top'>";
 
     var failRateText = "";
     if (isDefinedAndFilled(suite.failures) && isDefinedAndFilled(suite.runs) && isDefinedAndFilled(suite.failureRate)) {
@@ -250,21 +266,18 @@ function showSuiteData(suite, settings) {
         }
     }
 
-     if(isDefinedAndFilled(suite.problemRef)) {
-        res += suite.problemRef.name;
-
-         //if(!bold)
-//              res += "<b>";
-
-         // bold = true;
+    if(isDefinedAndFilled(suite.problemRef)) {
+        res += "<img width='12px' height='12px' src='img/error-icon-4.png' title='" + suite.problemRef.name + "'> ";
     }
 
     var color = failureRateToColor(suite.failureRate);
-    res += " <span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + failRateText + "'></span> ";
 
     if (isDefinedAndFilled(suite.latestRuns)) {
         res += drawLatestRuns(suite.latestRuns);
     }
+
+    res +="</td><td colspan='2'>";
+    res += "<span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + failRateText + "'></span> ";
 
     res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
         "[ " + "<a href='" + suite.webToBuild + "' title='" + altTxt + "'> " +
@@ -307,25 +320,29 @@ function showSuiteData(suite, settings) {
     if (isDefinedAndFilled(suite.topLongRunning) && suite.topLongRunning.length > 0) {
         mInfo += "Top long running:<br>"
 
+        mInfo += "<table>";
         for (var i = 0; i < suite.topLongRunning.length; i++) {
             mInfo += showTestFailData(suite.topLongRunning[i], false, settings);
         }
+        mInfo += "</table>";
     }
 
     if (isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length > 0) {
         mInfo += "Warn Only:<br>"
-
+        mInfo += "<table>";
         for (var i = 0; i < suite.warnOnly.length; i++) {
             mInfo += showTestFailData(suite.warnOnly[i], false, settings);
         }
+        mInfo += "</table>";
     }
 
     if (isDefinedAndFilled(suite.logConsumers) && suite.logConsumers.length > 0) {
         mInfo += "Top Log Consumers:<br>"
-
+        mInfo += "<table>";
         for (var i = 0; i < suite.logConsumers.length; i++) {
             mInfo += showTestFailData(suite.logConsumers[i], false, settings);
         }
+        mInfo += "</table>";
     }
 
     if(!isDefinedAndFilled(findGetParameter("reportMode"))) {
@@ -333,21 +350,24 @@ function showSuiteData(suite, settings) {
         res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
         res += "<div class='content'>" + mInfo + "</div></span>";
     }
-
-    res += " <br>";
+    res += "<td>&nbsp;</td>"; //fail rate
+    res += "</td></tr>";
 
     for (var i = 0; i < suite.testFailures.length; i++) {
         res += showTestFailData(suite.testFailures[i], true, settings);
     }
 
     if (isDefinedAndFilled(suite.webUrlThreadDump)) {
-        res += "&nbsp; &nbsp; <a href='" + suite.webUrlThreadDump + "'>";
+        res += "<tr><td colspan='2'></td><td>&nbsp; &nbsp; <a href='" + suite.webUrlThreadDump + "'>";
         res += "<img src='https://cdn2.iconfinder.com/data/icons/metro-uinvert-dock/256/Services.png' width=12px height=12px> ";
         res += "Thread Dump</a>";
-        res += " <br>";
+        res += "<td>&nbsp;</td>";
+        res += "</td></tr>";
     }
 
-    res += " <br>";
+
+    res += "<tr><td>&nbsp;</td><td width='12px'>&nbsp;</td><td colspan='2'></td></tr>";
+
     return res;
 }
 
@@ -374,7 +394,6 @@ function failureRateToColor(failureRate) {
 
 //@param testFail - see TestFailure
 function showTestFailData(testFail, isFailureShown, settings) {
-
     if (isDefinedAndFilled(testFail.failureRate) &&
         isFailureShown) {
         if (parseFloat(testFail.failureRate) < settings.minFailRate)
@@ -385,7 +404,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
     }
 
     var res = "";
-    res += "&nbsp; &nbsp; ";
+    res += "<tr><td align='right' valign='top' colspan='2'>";
 
     var haveIssue = isDefinedAndFilled(testFail.webIssueUrl) && isDefinedAndFilled(testFail.webIssueText)
 
@@ -402,8 +421,8 @@ function showTestFailData(testFail, isFailureShown, settings) {
         var altForWarn = "";
         if (!isDefinedAndFilled(testFail.failureRate) || !isDefinedAndFilled(testFail.runs)) {
             altForWarn = "No fail rate info, probably new failure or suite critical failure";
-        } else if (testFail.failures < 2) {
-            altForWarn = "Test failures count is low < 2, probably new test introduced";
+        // } else if (testFail.failures < 2) {
+        //     altForWarn = "Test failures count is low < 2, probably new test introduced";
         } else if (testFail.runs < 10) {
             altForWarn = "Test runs count is low < 10, probably new test introduced";
         }
@@ -416,19 +435,21 @@ function showTestFailData(testFail, isFailureShown, settings) {
     }
 
     if(isFailureShown && isDefinedAndFilled(testFail.problemRef)) {
-        res += testFail.problemRef.name;
+        res += "<img width='12px' height='12px' src='img/error-icon-4.png' title='" + testFail.problemRef.name + "'> ";
 
         if(!bold)
-          res += "<b>";
+           res += "<b>";
 
         bold = true;
     }
 
-    res += " <span style='background-color: " + color + "; width:8px; height:8px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
 
     if (isDefinedAndFilled(testFail.latestRuns)) {
         res += drawLatestRuns(testFail.latestRuns);
     }
+
+    res+= "</td><td>";
+    res += "<span style='background-color: " + color + "; width:8px; height:8px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
 
     if (isDefinedAndFilled(testFail.curFailures) && testFail.curFailures > 1)
         res += "[" + testFail.curFailures + "] ";
@@ -467,11 +488,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
     } else if (haveWeb) {
         histContent += " (test history)";
     }
-    if (haveWeb)
-        res += "<a href='" + testFail.webUrl + "'>";
-    res += histContent;
-    if (haveWeb)
-        res += "</a>";
+
 
     if (!isFailureShown && isDefinedAndFilled(testFail.durationPrintable))
         res += " duration " + testFail.durationPrintable;
@@ -503,7 +520,19 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
     }
 
-    res += " <br>";
+
+    res += "<td>";
+
+    if (haveWeb)
+        res += "<a href='" + testFail.webUrl + "'>";
+
+    res += histContent;
+
+    if (haveWeb)
+        res += "</a>";
+    res += "&nbsp;</td>";
+
+    res += "</td></tr>";
 
     return res;
 }
@@ -513,7 +542,7 @@ function drawLatestRuns(latestRuns) {
         return "";
 
     var res = "";
-    res += "<span title='Latest master runs history from right to left is oldest to newest. Red-failed,green-passed,black-timeout'>";
+    res += "<span style='word-break:keep-all;' title='Latest master runs history from right to left is oldest to newest. Red-failed,green-passed,black-timeout'>";
 
     // res += "<span style='background-color: white; width:" + ((50-latestRuns.length) * 2) + "px; height:10px; display: inline-block;'></span>";
 

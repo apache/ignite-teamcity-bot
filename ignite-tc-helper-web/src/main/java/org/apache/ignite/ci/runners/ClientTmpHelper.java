@@ -21,7 +21,7 @@ public class ClientTmpHelper {
             issue->{
                 Object key = issue.getKey();
                 Issue value = (Issue)issue.getValue();
-                value.addressNotified.clear();
+                 // value.addressNotified.clear();
 
                 cache.put(key, value);
 
