@@ -129,7 +129,13 @@ public class TestLogHandler implements ILineHandler {
         if (currentTestName == null)
             return null;
 
-        return currentTestName.replaceAll("#", ".");
+        String str = currentTestName.replaceAll("#", ".");
+
+        int cfgVariationMarker = str.indexOf("-[");
+        if (cfgVariationMarker > 0)
+            return str.substring(0, cfgVariationMarker);
+
+        return str;
     }
 
     public void setSaveLastTestToFile(boolean saveLastTestToFile) {

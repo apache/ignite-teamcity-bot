@@ -40,6 +40,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Suite Run Result (filled if failed) */
     public String result;
 
+    /** Has critical problem: Timeout or JMV Crash */
+    @Nullable public Boolean hasCriticalProblem;
+
     /** Web Href. to suite runs history */
     public String webToHist = "";
 
@@ -106,6 +109,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             userCommits = collect.toString();
 
         result = suite.getResult();
+        hasCriticalProblem = suite.hasCriticalProblem();
         failedTests = suite.failedTests();
         durationPrintable = getDurationPrintable(suite.getBuildDuration());
         contactPerson = suite.getContactPerson();
@@ -184,9 +188,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     }
 
     private void initStat(@Nullable ITcAnalytics tcAnalytics, String failRateNormalizedBranch, String curBranchNormalized, String suiteId) {
-        if (Strings.isNullOrEmpty(suiteId) || tcAnalytics == null) {
+        if (Strings.isNullOrEmpty(suiteId) || tcAnalytics == null)
             return;
-        }
 
         SuiteInBranch key = new SuiteInBranch(suiteId, failRateNormalizedBranch);
 
@@ -296,7 +299,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     }
 
     public static String branchForLink(@Nullable String branchName) {
-        return branchName == null || "refs/heads/master".equals(branchName) ? "<default>" : branchName;
+        return branchName == null || "refs/heads/master".equals(branchName) ? ITeamcity.DEFAULT : branchName;
     }
 
     /** {@inheritDoc} */
@@ -308,6 +311,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         SuiteCurrentStatus status = (SuiteCurrentStatus)o;
         return Objects.equal(name, status.name) &&
             Objects.equal(result, status.result) &&
+            Objects.equal(hasCriticalProblem, status.hasCriticalProblem) &&
             Objects.equal(webToHist, status.webToHist) &&
             Objects.equal(webToBuild, status.webToBuild) &&
             Objects.equal(contactPerson, status.contactPerson) &&
@@ -332,7 +336,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(name, result, webToHist, webToBuild, contactPerson, testFailures,
+        return Objects.hashCode(name, result, hasCriticalProblem, webToHist, webToBuild, contactPerson, testFailures,
             topLongRunning, webUrlThreadDump, runningBuildCount, queuedBuildCount, serverId,
             suiteId, branchName, failures, runs, failureRate,
             failsAllHist, criticalFails, userCommits, failedTests, durationPrintable,

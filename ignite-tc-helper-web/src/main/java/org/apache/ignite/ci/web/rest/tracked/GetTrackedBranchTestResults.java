@@ -175,14 +175,6 @@ public class GetTrackedBranchTestResults {
                             rebuild, chains,
                             logs,
                             includeScheduled, true, teamcity, failRateBranch);
-                        /*
-                        Optional<FullChainRunCtx> pubCtx = BuildChainProcessor.loadChainsContext(teamcity,
-                                chainTracked.getSuiteIdMandatory(),
-                                branchForTc,
-                                LatestRebuildMode.LATEST,
-                                (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE,
-                                failRateBranch);
-*/
 
                         chainCtxOpt.ifPresent(ctx -> {
                             int cnt = (int)ctx.getRunningUpdates().count();

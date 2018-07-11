@@ -12,6 +12,9 @@ public interface ISuiteResults {
 
     boolean hasExitCodeProblem();
 
+    default boolean hasCriticalProblem() {
+        return hasJvmCrashProblem() || hasTimeoutProblem();
+    }
 
     default boolean hasSuiteIncompleteFailure() {
         return hasJvmCrashProblem()

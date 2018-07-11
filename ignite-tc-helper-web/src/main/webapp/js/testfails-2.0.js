@@ -262,7 +262,7 @@ function showSuiteData(suite, settings) {
         }
 
         if(isDefinedAndFilled(suite.criticalFails) && isDefinedAndFilled(suite.criticalFails.failures)) {
-            moreInfoTxt += "Critical recent fails: "+ suite.criticalFails.failureRate +"% [" + suite.criticalFails.failures + " fails / " + suite.criticalFails.runs + " runs]; <br> " ;
+            moreInfoTxt += "Critical recent fails: "+ suite.criticalFails.failureRate + "% [" + suite.criticalFails.failures + " fails / " + suite.criticalFails.runs + " runs]; <br> " ;
         }
     }
 
@@ -288,7 +288,6 @@ function showSuiteData(suite, settings) {
     }
 
     res += "</a> ]";
-
 
     if (isDefinedAndFilled(suite.contactPerson)) {
         res += " " + suite.contactPerson + "";
@@ -350,8 +349,19 @@ function showSuiteData(suite, settings) {
         res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
         res += "<div class='content'>" + mInfo + "</div></span>";
     }
-    res += "<td>&nbsp;</td>"; //fail rate
-    res += "</td></tr>";
+
+    res += "</td>";
+
+    res += "<td>"; //fail rate
+    if(isDefinedAndFilled(suite.hasCriticalProblem) && suite.hasCriticalProblem
+        && isDefinedAndFilled(suite.criticalFails) && isDefinedAndFilled(suite.criticalFails.failures)) {
+        res += "<a href='" + suite.webToHist + "'>";
+        res += "Critical F.R.: "+ suite.criticalFails.failureRate + "% </a> " ;
+    } else {
+        res+="&nbsp;";
+    }
+    res += "</td>"; //fail rate
+    res += " </tr>";
 
     for (var i = 0; i < suite.testFailures.length; i++) {
         res += showTestFailData(suite.testFailures[i], true, settings);
