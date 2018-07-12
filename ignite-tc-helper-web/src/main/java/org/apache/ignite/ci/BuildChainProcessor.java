@@ -39,7 +39,8 @@ public class BuildChainProcessor {
         LatestRebuildMode rebuildMode,
         ProcessLogsMode procLogs,
         @Nullable String failRateBranch) {
-        Optional<BuildRef> buildRef = teamcity.getLastBuildIncludeSnDepFailed(suiteId, branch);
+        final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(suiteId, branch);
+        Optional<BuildRef> buildRef = builds.stream().max(Comparator.comparing(BuildRef::getId));
 
         return buildRef.flatMap(
             build -> processBuildChains(teamcity, rebuildMode, singletonList(build),

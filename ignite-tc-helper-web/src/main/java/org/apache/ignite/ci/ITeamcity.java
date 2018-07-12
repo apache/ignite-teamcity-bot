@@ -57,12 +57,6 @@ public interface ITeamcity extends AutoCloseable {
      */
     List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch);
 
-    @Deprecated
-    default Optional<BuildRef> getLastBuildIncludeSnDepFailed(String projectId, String branch) {
-        final List<BuildRef> builds = getFinishedBuildsIncludeSnDepFailed(projectId, branch);
-        return builds.stream().max(Comparator.comparing(BuildRef::getId));
-    }
-
     /**   */
     CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch);
 

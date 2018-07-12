@@ -66,11 +66,7 @@ public class IssueDetector {
                 () -> {
                     boolean newIssFound = registerNewIssues(res, helper, creds);
 
-                    if (newIssFound || true)
-                        s.runLocal(()->{
-                            sendNewNotifications();
-
-                        }, 10, TimeUnit.SECONDS);
+                    s.runLocal(this::sendNewNotifications, 10, TimeUnit.SECONDS);
 
                 }, 10, TimeUnit.SECONDS
         );
@@ -101,7 +97,7 @@ public class IssueDetector {
                 String to1 = "dpavlov.spb@gmail.com";
                 String to2 = "slack:dpavlov"; //todo implement direct slask notification
 
-                List<String> addrs = new ArrayList<>(Arrays.asList(to1));
+                List<String> addrs = new ArrayList<>();
 
                 String property = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
                 if (property != null)
@@ -258,12 +254,15 @@ public class IssueDetector {
     }
 
     private void checkFailures() {
-        int buildsToQuery = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
+        int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
+
+        GetTrackedBranchTestResults.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
+            false, buildsToQry, backgroundOpsTcHelper, backgroundOpsCreds);
 
         TestFailuresSummary failures =
             GetTrackedBranchTestResults.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
                 false,
-                buildsToQuery,
+                1,
                 backgroundOpsTcHelper,
                 backgroundOpsCreds);
 
