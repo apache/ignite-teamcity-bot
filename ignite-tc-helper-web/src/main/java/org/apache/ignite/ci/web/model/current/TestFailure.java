@@ -97,14 +97,15 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
             String details = full.details;
             if (details != null) {
                 if (webIssueUrl == null) {
-                    String issueLinkPrefix = "https://issue.apache.org/jira/browse/";
+                    String issueLinkPrefix = "https://issues.apache.org/jira/browse/";
 
                     int prefixFoundIdx = details.indexOf(issueLinkPrefix);
                     if (prefixFoundIdx >= 0)
                         initIssueLink(issueLinkPrefix, details, prefixFoundIdx);
                 }
                 if (webIssueUrl == null) {
-                    String issueLinkPrefix = "http://issue.apache.org/jira/browse/";
+                    String issueLinkPrefix = "http://issues.apache.org/jira/browse/";
+
                     int prefixFoundIdx = details.indexOf(issueLinkPrefix);
                     if (prefixFoundIdx >= 0)
                         initIssueLink(issueLinkPrefix, details, prefixFoundIdx);
