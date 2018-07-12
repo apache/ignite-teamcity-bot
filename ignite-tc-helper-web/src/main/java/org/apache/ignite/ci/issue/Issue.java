@@ -1,5 +1,6 @@
 package org.apache.ignite.ci.issue;
 
+import com.google.common.base.MoreObjects;
 import java.util.*;
 import org.jetbrains.annotations.Nullable;
 
@@ -114,5 +115,57 @@ public class Issue {
             return issueKey.getTestOrBuildName();
 
         return displayName;
+    }
+
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("displayType", displayType)
+            .add("trackedBranchName", trackedBranchName)
+            .add("issueKey", issueKey)
+            .add("changes", changes)
+            .add("addressNotified", addressNotified)
+            .add("webUrl", webUrl)
+            .add("displayName", displayName)
+            .add("detectedTs", detectedTs)
+            .toString();
+    }
+
+    public String toPlainText(boolean includeChangesInfo) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(displayType);
+
+        if (trackedBranchName != null)
+            sb.append(" in ").append(trackedBranchName);
+
+        sb.append(" ");
+
+        if (webUrl != null)
+            sb.append("").append(getDisplayName()).append(" ").append(webUrl).append("");
+        else
+            sb.append(getDisplayName());
+
+        sb.append("\n");
+
+        if(includeChangesInfo) {
+            if (changes.isEmpty())
+                sb.append(" No changes in build");
+            else {
+
+                sb.append(" Changes may led to failure were done by ");
+
+                for (Iterator<ChangeUi> iter = changes.iterator(); iter.hasNext(); ) {
+                    ChangeUi next = iter.next();
+
+                    sb.append("\t - ");
+                    sb.append(next.toPlainText());
+
+                    if (iter.hasNext())
+                        sb.append("\n");
+                }
+            }
+        }
+
+        return sb.toString();
     }
 }

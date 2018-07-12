@@ -20,4 +20,8 @@ public class ChangeUi {
             .replace(">", "&gt;");
         return "<" + webUrl + "|" + str + ">";
     }
+
+    public String toPlainText() {
+        return username + " " + webUrl;
+    }
 }

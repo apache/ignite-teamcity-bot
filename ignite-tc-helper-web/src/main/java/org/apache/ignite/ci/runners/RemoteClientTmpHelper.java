@@ -5,7 +5,7 @@ import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
-import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.configuration.IgniteConfiguration;
@@ -49,6 +49,19 @@ public class RemoteClientTmpHelper {
                 u.resetCredentials();
 
                 cache1.put(next.getKey(), u);
+            }
+        }
+
+        IgniteCache<Object, Object> cache = ignite.cache(IssuesStorage.ISSUES);
+        for (Cache.Entry<Object, Object> next : cache) {
+            Object key = next.getKey();
+            Object value = next.getValue();
+
+            if (key.toString().contains("IgnitePdsCheckpointSimulationWithRealCpDisabledTest.testCheckpointSimulationMultiThreaded")) {
+                boolean remove = cache.remove(key);
+
+                if (remove)
+                    System.err.println("Removed issue " + value);
             }
         }
 

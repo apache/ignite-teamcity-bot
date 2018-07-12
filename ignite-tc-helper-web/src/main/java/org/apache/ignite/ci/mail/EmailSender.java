@@ -2,8 +2,10 @@ package org.apache.ignite.ci.mail;
 
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import java.util.Properties;
+import javax.mail.internet.MimeMultipart;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.PasswordEncoder;
 
@@ -20,15 +22,15 @@ public class EmailSender {
 
         String subject = "This is the Subject Line!";
 
-        sendEmail(to, subject, html);
+        sendEmail(to, subject, html, "This is actual message.");
     }
 
-    public static void sendEmail(String to, String subject, String html) {
+    public static void sendEmail(String to, String subject, String html, String plainText) {
         Properties cfgProps = HelperConfig.loadEmailSettings();
         String username = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.USERNAME, HelperConfig. MAIL_PROPS);
         String enc = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.ENCODED_PASSWORD, HelperConfig.MAIL_PROPS);
 
-        String password = PasswordEncoder.decode(enc);
+        String pwd = PasswordEncoder.decode(enc);
 
         Properties props = new Properties();
         props.put("mail.smtp.host", "smtp.gmail.com");
@@ -42,32 +44,44 @@ public class EmailSender {
         // Setup mail getOrCreateCreds
         // Get the default Session object.
 
-        Session session = Session.getInstance(props,
+        Session ses = Session.getInstance(props,
                 new Authenticator() {
-                    protected PasswordAuthentication getPasswordAuthentication() {
-                        return new PasswordAuthentication(username, password);
+                    @Override protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(username, pwd);
                     }
                 });
         try {
             // Create a default MimeMessage object.
-            MimeMessage message = new MimeMessage(session);
+            MimeMessage msg = new MimeMessage(ses);
 
             // Set From: header field of the header.
-            message.setFrom(new InternetAddress(from));
+            msg.setFrom(new InternetAddress(from));
 
             // Set To: header field of the header.
-            message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
+            msg.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
 
             // Set Subject: header field
-            message.setSubject(subject);
+            msg.setSubject(subject);
 
-            // Send the actual HTML message, as big as you like
-            message.setContent(html, "text/html");
+            final MimeBodyPart textPart = new MimeBodyPart();
+            textPart.setContent(plainText, "text/plain");
+            // HTML version
+            final MimeBodyPart htmlPart = new MimeBodyPart();
+            htmlPart.setContent(html, "text/html");
+
+            // Create the Multipart.  Add BodyParts to it.
+            final Multipart mp = new MimeMultipart("alternative");
+            mp.addBodyPart(textPart);
+            mp.addBodyPart(htmlPart);
+            // Set Multipart as the message's content
+            msg.setContent(mp);
 
             // Send message
-            Transport.send(message);
-            System.out.println("Sent message successfully....");
-        } catch (MessagingException mex) {
+            Transport.send(msg);
+
+            System.out.println("Sent message successfully to [" + to + "]...");
+        }
+        catch (MessagingException mex) {
             mex.printStackTrace();
         }
     }

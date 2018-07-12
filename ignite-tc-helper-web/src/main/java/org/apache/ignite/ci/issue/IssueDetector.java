@@ -137,11 +137,9 @@ public class IssueDetector {
                     }
                 } else {
                     String builds = next.buildIdToIssue.keySet().toString();
-                    String subj = "MTCGA: " + next.countIssues() + " new failures in builds " + builds + " needs to be handled";
+                    String subj = "[MTCGA]: " + next.countIssues() + " new failures in builds " + builds + " needs to be handled";
 
-                    String html = next.toHtml();
-
-                    EmailSender.sendEmail(next.addr, subj, html);
+                    EmailSender.sendEmail(next.addr, subj, next.toHtml(), next.toPlainText());
                 }
             }
         } catch (Exception e) {
