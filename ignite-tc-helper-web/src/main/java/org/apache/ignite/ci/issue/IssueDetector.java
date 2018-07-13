@@ -10,7 +10,9 @@ import org.apache.ignite.IgniteScheduler;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
@@ -167,9 +169,70 @@ public class IssueDetector {
                     if(registerTestFailIssues(res, teamcity, next.serverId, normalizeBranch, testFailure))
                         newIssues++;
                 }
+
+                if(registerSuiteFailIssues(res, teamcity, next.serverId, normalizeBranch, suiteCurrentStatus))
+                    newIssues++;
             }
         }
         return (newIssues>0);
+    }
+
+    private boolean registerSuiteFailIssues(TestFailuresSummary res,
+        IAnalyticsEnabledTeamcity teamcity,
+        String srvId,
+        String normalizeBranch,
+        SuiteCurrentStatus suiteFailure) {
+
+        String suiteId = suiteFailure.suiteId;
+
+        SuiteInBranch key = new SuiteInBranch(suiteId, normalizeBranch);
+
+        RunStat runStat = teamcity.getBuildFailureRunStatProvider().apply(key);
+
+        if (runStat == null)
+            return false;
+
+        RunStat.TestId testId = runStat.detectTemplate(EventTemplates.newCriticalFailure);
+        if (testId == null)
+            return false;
+
+        int buildId = testId.getBuildId();
+        IssueKey issueKey = new IssueKey(srvId, buildId, suiteId);
+
+        if (issuesStorage.cache().containsKey(issueKey))
+            return false; //duplicate
+
+        Issue issue = new Issue(issueKey);
+        issue.trackedBranchName = res.getTrackedBranch();
+        issue.displayName = suiteFailure.name;
+        issue.webUrl = suiteFailure.webToHist;
+
+        issue.displayType = "New Critical Failure";
+
+        locateChanges(teamcity, buildId, issue);
+
+        issuesStorage.cache().put(issueKey, issue);
+
+        return true;
+    }
+
+    private void locateChanges(ITeamcity teamcity, int buildId, Issue issue) {
+        Build build = teamcity.getBuild(buildId);
+
+        if (build.changesRef != null) {
+            ChangesList changeList = teamcity.getChangesList(build.changesRef.href);
+            // System.err.println("changes: " + changeList);
+            if (changeList.changes != null) {
+                for (ChangeRef next : changeList.changes) {
+                    if (!isNullOrEmpty(next.href)) {
+                        // just to cache this change
+                        Change change = teamcity.getChange(next.href);
+
+                        issue.addChange(change.username, change.webUrl);
+                    }
+                }
+            }
+        }
     }
 
     private boolean registerTestFailIssues(TestFailuresSummary res,
@@ -203,22 +266,7 @@ public class IssueDetector {
 
         issue.displayType = "New test failure";
 
-        Build build = teamcity.getBuild(buildId);
-
-        if (build.changesRef != null) {
-            ChangesList changeList = teamcity.getChangesList(build.changesRef.href);
-            // System.err.println("changes: " + changeList);
-            if (changeList.changes != null) {
-                for (ChangeRef next : changeList.changes) {
-                    if (!isNullOrEmpty(next.href)) {
-                        // just to cache this change
-                        Change change = teamcity.getChange(next.href);
-
-                        issue.addChange(change.username, change.webUrl);
-                    }
-                }
-            }
-        }
+        locateChanges(teamcity, buildId, issue);
 
         issuesStorage.cache().put(issueKey, issue);
 
