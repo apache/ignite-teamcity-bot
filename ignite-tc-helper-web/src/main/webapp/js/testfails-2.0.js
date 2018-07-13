@@ -552,9 +552,7 @@ function drawLatestRuns(latestRuns) {
         return "";
 
     var res = "";
-    res += "<nobr><span style='white-space: nowrap; width:" + ((latestRuns.length) * 2) + "px;' title='Latest master runs history from right to left is oldest to newest. Red-failed,green-passed,black-timeout'>";
-
-    // res += "<span style='background-color: white; width:" + ((50-latestRuns.length) * 2) + "px; height:10px; display: inline-block;'></span>";
+    res += "<nobr><span style='white-space: nowrap; width:" + (latestRuns.length  * 2) + "px; display: inline-block;' title='Latest master runs history from right to left is oldest to newest. Red-failed,green-passed,black-timeout'>";
 
     var len = 1;
     var prevState = null;
