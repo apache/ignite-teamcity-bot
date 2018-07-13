@@ -321,12 +321,16 @@ public class RunStat {
         //start from the end to find most recent
         for (int idx = histAsArray.size() - template.length; idx >=0; idx--) {
             for (int tIdx = 0; tIdx < template.length; tIdx++) {
-                if (histAsArray.get(idx + tIdx).getValue().equals(template[tIdx])) {
+                Integer curStatus = histAsArray.get(idx + tIdx).getValue();
+                int tmpl = template[tIdx];
+
+                if ((tmpl == RES_OK_OR_FAILURE && (curStatus == RES_OK || curStatus == RES_FAILURE))
+                    || curStatus.equals(tmpl)) {
                     if (tIdx == template.length - 1)
                         return histAsArray.get(idx + centralEventBuild).getKey();
-                } else {
-                    break;
                 }
+                else
+                    break;
             }
         }
         return null;

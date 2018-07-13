@@ -232,10 +232,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
                 //    problemRef = new IssueRef("Fixed Failure");
             }
 
-            RunStat.TestId testIdA = latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailureA);
-            RunStat.TestId testIdB = latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailureB);
+            RunStat.TestId buildIdCritical  = latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailure);
 
-            if (testIdA != null || testIdB != null) {
+            if (buildIdCritical != null) {
                 //if (latestRunsSrc.detectTemplate(EventTemplates.fixOfFailure) == null)
                 problemRef = new IssueRef("New Critical Failure");
                 //else

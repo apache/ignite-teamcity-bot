@@ -2,6 +2,7 @@ package org.apache.ignite.ci.issue;
 
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.issue.EventTemplates;
+import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.junit.Test;
 
@@ -32,5 +33,33 @@ public class DetectingFailureTest {
         assertEquals(firstFailedBuildId, testId.getBuildId());
 
         assertNull(stat.detectTemplate(EventTemplates.fixOfFailure));
+    }
+
+    @Test
+    public void detectSuiteFailure() {
+        RunStat stat = new RunStat("");
+
+        Build occurrence = new Build();
+
+        for (int i = 0; i < 5; i++) {
+            occurrence.setId(113 + i);
+            boolean ok = (int)(Math.random() * 1000) % 2 == 0;
+            occurrence.status = ok ? Build.STATUS_SUCCESS : "FAILURE";
+
+            stat.addBuildRun(occurrence);
+        }
+
+        int firstFailedBuildId = 150;
+
+        occurrence.status = "FAILED";
+        for (int i = 0; i < 4; i++)
+            stat.setBuildCriticalError(firstFailedBuildId + i);
+
+        RunStat.TestId testId = stat.detectTemplate(EventTemplates.newCriticalFailure);
+
+        System.out.println(stat.getLatestRunResults());
+        assertNotNull(testId);
+        assertEquals(firstFailedBuildId, testId.getBuildId());
+
     }
 }
