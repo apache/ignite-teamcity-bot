@@ -152,7 +152,7 @@ public class Issue {
                 sb.append(" No changes in build");
             else {
 
-                sb.append(" Changes may led to failure were done by ");
+                sb.append(" Changes may led to failure were done by \n");
 
                 for (Iterator<ChangeUi> iter = changes.iterator(); iter.hasNext(); ) {
                     ChangeUi next = iter.next();

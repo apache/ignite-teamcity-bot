@@ -57,11 +57,13 @@ public class RemoteClientTmpHelper {
             Object key = next.getKey();
             Object value = next.getValue();
 
-            if (key.toString().contains("IgnitePdsCheckpointSimulationWithRealCpDisabledTest.testCheckpointSimulationMultiThreaded")) {
-                boolean remove = cache.remove(key);
+            if (key.toString().contains("GridCacheLifecycleAwareSelfTest.testLifecycleAware")) {
+                /*boolean remove = cache.remove(key);
 
                 if (remove)
-                    System.err.println("Removed issue " + value);
+                    System.err.println("Removed issue " + value);*/
+
+                System.err.println("Issue: " + value);
             }
         }
 

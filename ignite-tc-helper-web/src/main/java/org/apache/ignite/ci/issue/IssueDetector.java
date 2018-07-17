@@ -165,23 +165,26 @@ public class IssueDetector {
 
                 String normalizeBranch = normalizeBranch(suiteCurrentStatus.branchName());
 
+                final String trackedBranch = res.getTrackedBranch();
+
                 for (TestFailure testFailure : suiteCurrentStatus.testFailures) {
-                    if(registerTestFailIssues(res, teamcity, next.serverId, normalizeBranch, testFailure))
+                    if(registerTestFailIssues(teamcity, next.serverId, normalizeBranch, testFailure, trackedBranch))
                         newIssues++;
                 }
 
-                if(registerSuiteFailIssues(res, teamcity, next.serverId, normalizeBranch, suiteCurrentStatus))
+                if(registerSuiteFailIssues(teamcity, next.serverId, normalizeBranch, suiteCurrentStatus, trackedBranch))
                     newIssues++;
             }
         }
+
         return (newIssues>0);
     }
 
-    private boolean registerSuiteFailIssues(TestFailuresSummary res,
-        IAnalyticsEnabledTeamcity teamcity,
-        String srvId,
-        String normalizeBranch,
-        SuiteCurrentStatus suiteFailure) {
+    private boolean registerSuiteFailIssues(IAnalyticsEnabledTeamcity teamcity,
+                                            String srvId,
+                                            String normalizeBranch,
+                                            SuiteCurrentStatus suiteFailure,
+                                            String trackedBranch) {
 
         String suiteId = suiteFailure.suiteId;
 
@@ -192,28 +195,30 @@ public class IssueDetector {
         if (runStat == null)
             return false;
 
+        boolean issueFound=false;
+
         RunStat.TestId testId = runStat.detectTemplate(EventTemplates.newCriticalFailure);
-        if (testId == null)
-            return false;
+        if (testId != null && suiteFailure.hasCriticalProblem != null && suiteFailure.hasCriticalProblem) {
+            int buildId = testId.getBuildId();
+            IssueKey issueKey = new IssueKey(srvId, buildId, suiteId);
 
-        int buildId = testId.getBuildId();
-        IssueKey issueKey = new IssueKey(srvId, buildId, suiteId);
+            if (issuesStorage.cache().containsKey(issueKey))
+                return false; //duplicate
 
-        if (issuesStorage.cache().containsKey(issueKey))
-            return false; //duplicate
+            Issue issue = new Issue(issueKey);
+            issue.trackedBranchName = trackedBranch;
+            issue.displayName = suiteFailure.name;
+            issue.webUrl = suiteFailure.webToHist;
+            issue.displayType = "New Critical Failure";
 
-        Issue issue = new Issue(issueKey);
-        issue.trackedBranchName = res.getTrackedBranch();
-        issue.displayName = suiteFailure.name;
-        issue.webUrl = suiteFailure.webToHist;
+            locateChanges(teamcity, buildId, issue);
 
-        issue.displayType = "New Critical Failure";
+            issuesStorage.cache().put(issueKey, issue);
 
-        locateChanges(teamcity, buildId, issue);
+            issueFound = true;
+        }
 
-        issuesStorage.cache().put(issueKey, issue);
-
-        return true;
+        return issueFound;
     }
 
     private void locateChanges(ITeamcity teamcity, int buildId, Issue issue) {
@@ -235,11 +240,11 @@ public class IssueDetector {
         }
     }
 
-    private boolean registerTestFailIssues(TestFailuresSummary res,
-        IAnalyticsEnabledTeamcity teamcity,
-        String srvId,
-        String normalizeBranch,
-        TestFailure testFailure) {
+    private boolean registerTestFailIssues(IAnalyticsEnabledTeamcity teamcity,
+                                           String srvId,
+                                           String normalizeBranch,
+                                           TestFailure testFailure,
+                                           String trackedBranch) {
 
         String name = testFailure.name;
         TestInBranch testInBranch = new TestInBranch(name, normalizeBranch);
@@ -260,7 +265,7 @@ public class IssueDetector {
             return false; //duplicate
 
         Issue issue = new Issue(issueKey);
-        issue.trackedBranchName = res.getTrackedBranch();
+        issue.trackedBranchName = trackedBranch;
         issue.displayName = testFailure.testName;
         issue.webUrl = testFailure.webUrl;
 
