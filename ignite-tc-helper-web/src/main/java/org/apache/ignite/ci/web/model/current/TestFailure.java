@@ -63,6 +63,8 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 
     @Nullable public IssueRef problemRef;
 
+    @Nullable public String flakyComments;
+
     /**
      * @param failure
      * @param testFullOpt all related full test ocurrences
@@ -182,11 +184,10 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
             RunStat.TestId testId = latestRunsSrc.detectTemplate(EventTemplates.newFailure);
 
             if (testId != null) {
-                //if(latestRunsSrc.detectTemplate(EventTemplates.fixOfFailure)==null)
-                    problemRef = new IssueRef("New Failure");
-                //else
-                //    problemRef = new IssueRef("Fixed Failure");
+                problemRef = new IssueRef("New Failure");
             }
+
+            flakyComments = latestRunsSrc.getFlakyComments();
         }
     }
 

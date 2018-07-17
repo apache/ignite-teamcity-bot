@@ -670,7 +670,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         CompletableFuture<V> apply = submitFunction.apply(key);
 
         return apply.thenApplyAsync(val -> {
-            cache.put(key, val);
+            if (val != null)
+                cache.put(key, val);
+
             return val;
         });
     }

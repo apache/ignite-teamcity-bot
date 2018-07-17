@@ -90,6 +90,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     @Nullable public IssueRef problemRef;
 
+
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final MultBuildRunCtx suite,
         @Nullable final ITcAnalytics tcAnalytics,
@@ -227,16 +228,12 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
             if (testId != null) {
                 problemRef = new IssueRef("New Failure");
-
             }
 
             RunStat.TestId buildIdCritical  = latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailure);
 
             if (buildIdCritical != null) {
-                //if (latestRunsSrc.detectTemplate(EventTemplates.fixOfFailure) == null)
                 problemRef = new IssueRef("New Critical Failure");
-                //else
-                //    problemRef = new IssueRef("Fixed Failure");
             }
         }
     }

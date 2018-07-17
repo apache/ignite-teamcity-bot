@@ -435,18 +435,26 @@ function showTestFailData(testFail, isFailureShown, settings) {
         //     altForWarn = "Test failures count is low < 2, probably new test introduced";
         } else if (testFail.runs < 10) {
             altForWarn = "Test runs count is low < 10, probably new test introduced";
+            //todo move to server side
         }
 
         if (altForWarn != "") {
-            res += "<img src='https://image.flaticon.com/icons/svg/159/159469.svg' width=11px height=11px title='" + altForWarn + "' > ";
+            // res += "<img src='https://image.flaticon.com/icons/svg/159/159469.svg' width=11px height=11px title='" + altForWarn + "' > ";
+            res += "<span title='" + altForWarn + "' >&#9888;</span>";
+
             bold = true;
             res += "<b>";
         }
     }
 
-    if(isFailureShown && isDefinedAndFilled(testFail.problemRef)) {
-        res += "<img width='12px' height='12px' src='img/error-icon-4.png' title='" + testFail.problemRef.name + "'> ";
+    if(isFailureShown && isDefinedAndFilled(testFail.flakyComments) && testFail.flakyComments) {
+        res += "<span title='"+testFail.flakyComments+"'><b>"+"&asymp;"+"</b></span> "
+    }
 
+    if(isFailureShown && isDefinedAndFilled(testFail.problemRef)) {
+        //res += "<img width='12px' height='12px' src='img/error-icon-4.png' title='" + testFail.problemRef.name + "'> ";
+
+        res += "<span title='"+testFail.problemRef.name +"'>&#128030;</span>"
         if(!bold)
            res += "<b>";
 

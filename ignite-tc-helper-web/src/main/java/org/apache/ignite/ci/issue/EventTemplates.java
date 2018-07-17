@@ -20,6 +20,18 @@ public class EventTemplates {
             new int[]{RunStat.RES_CRITICAL_FAILURE, RunStat.RES_CRITICAL_FAILURE, RunStat.RES_CRITICAL_FAILURE}
     );
 
+    public static final EventTemplate newContributedTestFailure = new EventTemplate(
+            new int[]{},
+            new int[]{RunStat.RES_FAILURE, RunStat.RES_FAILURE, RunStat.RES_FAILURE}
+    ).setShouldBeFirst(true);
+
+    public static final EventTemplate newFailureForFlakyTest = new EventTemplate(
+            new int[]{RunStat.RES_OK, RunStat.RES_OK, RunStat.RES_OK, RunStat.RES_OK, RunStat.RES_OK},
+            new int[]{RunStat.RES_FAILURE, RunStat.RES_FAILURE, RunStat.RES_FAILURE,
+                    RunStat.RES_FAILURE, RunStat.RES_FAILURE, RunStat.RES_FAILURE,
+                    RunStat.RES_FAILURE}
+    );
+
     public static ArrayList<EventTemplate> templates;
 
     static {

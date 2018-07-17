@@ -7,9 +7,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.junit.Test;
 
 import static org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence.STATUS_SUCCESS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 public class DetectingFailureTest {
     @Test
@@ -60,6 +58,36 @@ public class DetectingFailureTest {
         System.out.println(stat.getLatestRunResults());
         assertNotNull(testId);
         assertEquals(firstFailedBuildId, testId.getBuildId());
+    }
 
+    @Test
+    public void detectFlakyTest() {
+        RunStat stat = new RunStat("");
+
+        TestOccurrence occurrence = new TestOccurrence().setStatus(STATUS_SUCCESS);
+
+
+        final int[] ints = {0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 3, 3, 3, 3};
+
+        for (int i = 0; i < 50; i++) {
+            occurrence.status = ints[i] == 0 ? Build.STATUS_SUCCESS : "FAILURE";
+
+            stat.addTestRunToLatest(occurrence.setId("id:10231,build:(id:" + (100 + i) + ")"));
+        }
+
+        int firstFailedBuildId = 150;
+
+        occurrence.status = "FAILED";
+        for (int i = 0; i < 4; i++)
+            stat.addTestRunToLatest(occurrence.setId("id:10231,build:(id:" + (firstFailedBuildId + i) + ")"));
+
+
+
+        assertTrue(stat.isFlaky());
+
+        System.out.println(stat.getLatestRunResults());
+        RunStat.TestId testId = stat.detectTemplate(EventTemplates.newFailure);
+        assertNotNull(testId);
+        assertEquals(firstFailedBuildId, testId.getBuildId());
     }
 }

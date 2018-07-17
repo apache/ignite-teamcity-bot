@@ -7,10 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteScheduler;
-import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.*;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
@@ -32,11 +29,15 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
 
 public class IssueDetector {
+    private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
+
     public static final String SLACK = "slack:";
     private final Ignite ignite;
     private final IssuesStorage issuesStorage;
@@ -96,7 +97,6 @@ public class IssueDetector {
                 if (issueAgeMs > TimeUnit.HOURS.toMillis(2))
                     continue;
 
-                String to1 = "dpavlov.spb@gmail.com";
                 String to2 = "slack:dpavlov"; //todo implement direct slask notification
 
                 List<String> addrs = new ArrayList<>();
@@ -195,7 +195,7 @@ public class IssueDetector {
         if (runStat == null)
             return false;
 
-        boolean issueFound=false;
+        boolean issueFound = false;
 
         RunStat.TestId testId = runStat.detectTemplate(EventTemplates.newCriticalFailure);
         if (testId != null && suiteFailure.hasCriticalProblem != null && suiteFailure.hasCriticalProblem) {
@@ -212,6 +212,8 @@ public class IssueDetector {
             issue.displayType = "New Critical Failure";
 
             locateChanges(teamcity, buildId, issue);
+
+            logger.info("Register new issue for suite fail: " + issue);
 
             issuesStorage.cache().put(issueKey, issue);
 
@@ -258,6 +260,17 @@ public class IssueDetector {
         if (testId == null)
             return false;
 
+        final String flakyComments = runStat.getFlakyComments();
+
+        if(!Strings.isNullOrEmpty(flakyComments)) {
+            if (runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) == null) {
+                logger.info("Skipping registering new issue for test fail:" +
+                        " Test seems to be flaky " + name + ": " + flakyComments);
+
+                return false;
+            }
+        }
+
         int buildId = testId.getBuildId();
         IssueKey issueKey = new IssueKey(srvId, buildId, name);
 
@@ -272,6 +285,8 @@ public class IssueDetector {
         issue.displayType = "New test failure";
 
         locateChanges(teamcity, buildId, issue);
+
+        logger.info("Register new issue for test fail: " + issue);
 
         issuesStorage.cache().put(issueKey, issue);
 

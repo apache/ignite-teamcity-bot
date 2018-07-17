@@ -93,7 +93,9 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
         this.host = hostConf.trim() + (hostConf.endsWith("/") ? "" : "/");
         try {
-            setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, configName));
+            if (props.getProperty(HelperConfig.USERNAME) != null
+                    && props.getProperty(HelperConfig.ENCODED_PASSWORD) != null)
+                setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, configName));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -426,7 +428,6 @@ public class IgniteTeamcityHelper implements ITeamcity {
                 ZipEntry ze = zis.getNextEntry();    //get the zipped file list entry
 
                 while (ze != null) {
-
                     BuildLogStreamChecker checker = task.createChecker();
                     checker.apply(zis, zipFile);
                     task.finalize(dumpLastTest);
@@ -436,8 +437,13 @@ public class IgniteTeamcityHelper implements ITeamcity {
                 zis.closeEntry();
             }
         }
-        catch (IOException e) {
-            throw new UncheckedIOException(e);
+        catch (IOException | UncheckedIOException e) {
+            final String msg = "Failed to process ZIPed entry " + zipFile;
+
+            System.err.println(msg);
+            e.printStackTrace();
+
+            logger.error(msg, e);
         }
 
         return task;

@@ -336,6 +336,33 @@ public class RunStat {
         return null;
     }
 
+    public boolean isFlaky() {
+        return getFlakyComments() != null;
+    }
+
+    public String getFlakyComments() {
+        if (latestRunResults == null)
+            return null;
+
+        int statusChange = 0;
+        Integer prev = null;
+        for (Integer next : latestRunResults.values()) {
+            if (prev != null && next != null) {
+                if (!prev.equals(next)) {
+                    statusChange++;
+                }
+            }
+            prev = next;
+        }
+
+        if (statusChange <= 6) {
+            return null;
+        }
+
+        return "Test seems to be flaky: " +
+                    "change status [" + statusChange + "/" + latestRunResults.size() + "]";
+    }
+
     public static class TestId implements Comparable<TestId> {
         public int getBuildId() {
             return buildId;

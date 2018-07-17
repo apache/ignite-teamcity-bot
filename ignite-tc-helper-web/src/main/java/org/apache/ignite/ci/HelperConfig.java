@@ -28,7 +28,8 @@ public class HelperConfig {
     public static final String MAIL_PROPS = "mail.auth.properties";
     public static final String HOST = "host";
     public static final String USERNAME = "username";
-    private static final String PASSWORD = "encodedPassword";
+    @Deprecated
+    private static final String PASSWORD = "password";
     public static final String ENCODED_PASSWORD = "encoded_password";
     public static final String SLACK_AUTH_TOKEN = "slack.auth_token";
     public static final String SLACK_CHANNEL = "slack.channel";
@@ -51,7 +52,7 @@ public class HelperConfig {
             try (FileWriter writer = new FileWriter(file)) {
                 writer.write(HOST + "=" + "http://ci.ignite.apache.org/" + ENDL);
                 writer.write(USERNAME + "=" + ENDL);
-                writer.write(PASSWORD + "=" + ENDL);
+                writer.write(ENCODED_PASSWORD + "=" + ENDL);
             }
             throw new IllegalStateException("Please setup username and encodedPassword in config file [" +
                 file.getCanonicalPath() + "]");
