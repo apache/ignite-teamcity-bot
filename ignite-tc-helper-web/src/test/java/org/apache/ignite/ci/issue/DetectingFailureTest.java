@@ -67,7 +67,7 @@ public class DetectingFailureTest {
         TestOccurrence occurrence = new TestOccurrence().setStatus(STATUS_SUCCESS);
 
 
-        final int[] ints = {0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 3, 3, 3, 3};
+        final int[] ints = {0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0};
 
         for (int i = 0; i < 50; i++) {
             occurrence.status = ints[i] == 0 ? Build.STATUS_SUCCESS : "FAILURE";
