@@ -24,6 +24,11 @@ public class EventTemplate {
 
     public EventTemplate setShouldBeFirst(boolean shouldBeFirst) {
         this.shouldBeFirst = shouldBeFirst;
+
         return this;
+    }
+
+    public boolean shouldBeFirst() {
+        return shouldBeFirst;
     }
 }

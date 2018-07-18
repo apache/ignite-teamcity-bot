@@ -245,7 +245,7 @@ public class RunStat {
     public void addBuildRun(Build build) {
         runs++;
 
-        //todo ? need to add duration from statistics
+        //todo ? add duration from statistics
         /*
         if (build.duration != null) {
             totalDurationMs += testOccurrence.duration;
@@ -268,12 +268,10 @@ public class RunStat {
         setBuildResCode(bId, RES_CRITICAL_FAILURE);
     }
 
-
     /**
      * {@inheritDoc}
      */
-    @Override
-    public String toString() {
+    @Override public String toString() {
         return "RunStat{" +
                 "name='" + name + '\'' +
                 ", failRate=" + getFailPercentPrintable() + "%" +
@@ -291,12 +289,12 @@ public class RunStat {
         return new ArrayList<>(latestRunResults.values());
     }
 
-    private int[] concatArr(int[] array1, int[] array2) {
-        int[] array1and2 = new int[array1.length + array2.length];
-        System.arraycopy(array1, 0, array1and2, 0, array1.length);
-        System.arraycopy(array2, 0, array1and2, array1.length, array2.length);
+    private int[] concatArr(int[] arr1, int[] arr2) {
+        int[] arr1and2 = new int[arr1.length + arr2.length];
+        System.arraycopy(arr1, 0, arr1and2, 0, arr1.length);
+        System.arraycopy(arr2, 0, arr1and2, arr1.length, arr2.length);
 
-        return array1and2;
+        return arr1and2;
     }
 
     @Nullable
@@ -304,35 +302,58 @@ public class RunStat {
         if (latestRunResults == null)
             return null;
 
-        int centralEventBuild = t.beforeEvent().length;
+        int centralEvtBuild = t.beforeEvent().length;
 
         int[] template = concatArr(t.beforeEvent(), t.eventAndAfter());
 
-        assert centralEventBuild < template.length;
-        assert centralEventBuild >= 0;
+        assert centralEvtBuild < template.length;
+        assert centralEvtBuild >= 0;
 
         Set<Map.Entry<TestId, Integer>> entries = latestRunResults.entrySet();
 
         if (entries.size() < template.length)
             return null;
 
-        ArrayList<Map.Entry<TestId, Integer>> histAsArray = new ArrayList<>(entries);
+        List<Map.Entry<TestId, Integer>> histAsArr = new ArrayList<>(entries);
 
-        //start from the end to find most recent
-        for (int idx = histAsArray.size() - template.length; idx >=0; idx--) {
-            for (int tIdx = 0; tIdx < template.length; tIdx++) {
-                Integer curStatus = histAsArray.get(idx + tIdx).getValue();
-                int tmpl = template[tIdx];
+        TestId detectedAt = null;
+        if (t.shouldBeFirst()) {
+            if (histAsArr.size() >= runs) // skip if total runs can't fit to latest runs
+                detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, 0);
+        }
+        else {
+            //start from the end to find most recent
+            for (int idx = histAsArr.size() - template.length; idx >= 0; idx--) {
+                detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, idx);
 
-                if ((tmpl == RES_OK_OR_FAILURE && (curStatus == RES_OK || curStatus == RES_FAILURE))
-                    || curStatus.equals(tmpl)) {
-                    if (tIdx == template.length - 1)
-                        return histAsArray.get(idx + centralEventBuild).getKey();
-                }
-                else
+                if (detectedAt != null)
                     break;
             }
         }
+
+        return detectedAt;
+    }
+
+    @Nullable
+    private TestId checkTemplateAtPos(int[] template, int centralEvtBuild, List<Map.Entry<TestId, Integer>> histAsArr,
+        int idx) {
+        for (int tIdx = 0; tIdx < template.length; tIdx++) {
+            Integer curStatus = histAsArr.get(idx + tIdx).getValue();
+
+            if (curStatus == null)
+                break;
+
+            int tmpl = template[tIdx];
+
+            if ((tmpl == RES_OK_OR_FAILURE && (curStatus == RES_OK || curStatus == RES_FAILURE))
+                || curStatus == tmpl) {
+                if (tIdx == template.length - 1)
+                    return histAsArr.get(idx + centralEvtBuild).getKey();
+            }
+            else
+                break;
+        }
+
         return null;
     }
 
@@ -340,6 +361,7 @@ public class RunStat {
         return getFlakyComments() != null;
     }
 
+    @Nullable
     public String getFlakyComments() {
         if (latestRunResults == null)
             return null;
@@ -348,22 +370,28 @@ public class RunStat {
         Integer prev = null;
         for (Integer next : latestRunResults.values()) {
             if (prev != null && next != null) {
-                if (!prev.equals(next)) {
+                if (!prev.equals(next))
                     statusChange++;
-                }
             }
             prev = next;
         }
 
-        if (statusChange <= 6) {
+        if (statusChange <= 6)
             return null;
-        }
 
         return "Test seems to be flaky: " +
                     "change status [" + statusChange + "/" + latestRunResults.size() + "]";
     }
 
     public static class TestId implements Comparable<TestId> {
+        int buildId;
+        int testId;
+
+        public TestId(Integer buildId, Integer testId) {
+            this.buildId = buildId;
+            this.testId = testId;
+        }
+
         public int getBuildId() {
             return buildId;
         }
@@ -372,20 +400,10 @@ public class RunStat {
             return testId;
         }
 
-        int buildId;
-        int testId;
-
-        public TestId(Integer buildId, Integer testId) {
-
-            this.buildId = buildId;
-            this.testId = testId;
-        }
-
         /**
          * {@inheritDoc}
          */
-        @Override
-        public boolean equals(Object o) {
+        @Override public boolean equals(Object o) {
             if (this == o)
                 return true;
             if (o == null || getClass() != o.getClass())
@@ -398,16 +416,14 @@ public class RunStat {
         /**
          * {@inheritDoc}
          */
-        @Override
-        public int hashCode() {
+        @Override public int hashCode() {
             return Objects.hashCode(buildId, testId);
         }
 
         /**
          * {@inheritDoc}
          */
-        @Override
-        public int compareTo(@NotNull TestId o) {
+        @Override public int compareTo(@NotNull TestId o) {
             int buildComp = buildId - o.buildId;
             if (buildComp != 0)
                 return buildComp > 0 ? 1 : -1;
@@ -422,8 +438,7 @@ public class RunStat {
         /**
          * {@inheritDoc}
          */
-        @Override
-        public String toString() {
+        @Override public String toString() {
             return MoreObjects.toStringHelper(this)
                     .add("buildId", buildId)
                     .add("testId", testId)
