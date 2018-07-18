@@ -35,6 +35,7 @@ public class EventTemplates {
     public static ArrayList<EventTemplate> templates;
 
     static {
-        templates = Lists.newArrayList(newFailure, newCriticalFailure, fixOfFailure);
+        templates = Lists.newArrayList(newFailure, newCriticalFailure, fixOfFailure,
+            newContributedTestFailure, newFailureForFlakyTest);
     }
 }
