@@ -256,22 +256,37 @@ public class IssueDetector {
         if (runStat == null)
             return false;
 
-        RunStat.TestId testId = runStat.detectTemplate(EventTemplates.newFailure);
-        if (testId == null)
-            return false;
+        RunStat.TestId firstFailedTestId  = null;
+        String displayType = null;
 
-        final String flakyComments = runStat.getFlakyComments();
+        if (firstFailedTestId == null) {
+            firstFailedTestId = runStat.detectTemplate(EventTemplates.newContributedTestFailure);
+            displayType = "Recently contributed test failed";
+        }
 
-        if(!Strings.isNullOrEmpty(flakyComments)) {
-            if (runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) == null) {
-                logger.info("Skipping registering new issue for test fail:" +
-                        " Test seems to be flaky " + name + ": " + flakyComments);
+        if (firstFailedTestId == null) {
+            firstFailedTestId = runStat.detectTemplate(EventTemplates.newFailure);
+            displayType = "New test failure";
 
-                return false;
+            if (firstFailedTestId != null) {
+                final String flakyComments = runStat.getFlakyComments();
+
+                if (!Strings.isNullOrEmpty(flakyComments)) {
+                    if (runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) == null) {
+                        logger.info("Skipping registering new issue for test fail:" +
+                            " Test seems to be flaky " + name + ": " + flakyComments);
+
+                        firstFailedTestId = null;
+                    } else
+                        displayType = "New stable failure of flaky test";
+                }
             }
         }
 
-        int buildId = testId.getBuildId();
+        if (firstFailedTestId == null)
+            return false;
+
+        int buildId = firstFailedTestId.getBuildId();
         IssueKey issueKey = new IssueKey(srvId, buildId, name);
 
         if (issuesStorage.cache().containsKey(issueKey))
@@ -281,8 +296,7 @@ public class IssueDetector {
         issue.trackedBranchName = trackedBranch;
         issue.displayName = testFailure.testName;
         issue.webUrl = testFailure.webUrl;
-
-        issue.displayType = "New test failure";
+        issue.displayType = displayType;
 
         locateChanges(teamcity, buildId, issue);
 
@@ -298,9 +312,8 @@ public class IssueDetector {
     }
 
     public void startBackgroundCheck(ITcHelper helper, ICredentialsProv prov) {
-
         try {
-            if(init.compareAndSet(false, true)) {
+            if (init.compareAndSet(false, true)) {
                 this.backgroundOpsCreds = prov;
                 this.backgroundOpsTcHelper = helper;
 

@@ -8,11 +8,12 @@ repositories {
     mavenCentral()
     mavenLocal()
 
-    maven {
+    /* maven {
         url "https://repository.apache.org/content/repositories/orgapacheignite-1426/"
-    }
+    }*/
 }
 
+// https://www.apache.org/legal/resolved.html#category-a
 dependencies {
     compile group: 'com.google.guava', name: 'guava', version: '22.0'
 
@@ -20,14 +21,16 @@ dependencies {
     compile group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
     compile group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
 
+    // MIT/X11 license, category A;
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
 
+    //dual-licensed under the EPL v1.0 (Category B list.) and the LGPL 2.1 (category X).
     def lbVer = '1.2.3'
     compile group: 'ch.qos.logback', name: 'logback-core', version: lbVer
     compile group: 'ch.qos.logback', name: 'logback-classic', version: lbVer
 
+    //Apache License Version 2.0
     compile group: 'com.google.code.gson', name: 'gson', version: '2.8.2'
-
 
     def jettyVer = '9.4.6.v20170531'
     compile group: 'org.eclipse.jetty', name: 'jetty-util', version: jettyVer
