@@ -183,9 +183,13 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         if (latestRunsSrc != null) {
             RunStat.TestId testId = latestRunsSrc.detectTemplate(EventTemplates.newFailure);
 
-            if (testId != null) {
+            if (testId != null)
                 problemRef = new IssueRef("New Failure");
-            }
+
+            RunStat.TestId recentContributedTestId = latestRunsSrc.detectTemplate(EventTemplates.newContributedTestFailure);
+
+            if (recentContributedTestId != null)
+                problemRef = new IssueRef("Recently contributed test failure");
 
             flakyComments = latestRunsSrc.getFlakyComments();
         }

@@ -226,15 +226,13 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         if (latestRunsSrc != null) {
             RunStat.TestId testId = latestRunsSrc.detectTemplate(EventTemplates.newFailure);
 
-            if (testId != null) {
+            if (testId != null)
                 problemRef = new IssueRef("New Failure");
-            }
 
             RunStat.TestId buildIdCritical  = latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailure);
 
-            if (buildIdCritical != null) {
+            if (buildIdCritical != null)
                 problemRef = new IssueRef("New Critical Failure");
-            }
         }
     }
 
