@@ -1,4 +1,21 @@
-package org.apache.ignite.ci.tcmodel.changes;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package  org.apache.ignite.ci.tcmodel.changes;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -16,17 +33,6 @@ public class Change extends ChangeRef {
     @XmlElement public String comment;
 
     @Nullable @XmlElement public UserRef user;
-
-    /* <change >
-     <files count="1">
-     <file before-revision="f897370f88b12f7dbaffe4978d1dbc26e0a2516e"
-           after-revision="970b01a6675c10a25d5cf591ac3ab4511b2c2a5e"
-          changeType="edited"
-                   file="modules/rest-http/src/main/java/org/apache/ignite/internal/processors/rest/protocols/http/jetty/GridJettyRestHandler.java"
-          relative-file="modules/rest-http/src/main/java/org/apache/ignite/internal/processors/rest/protocols/http/jetty/GridJettyRestHandler.java"/>
-     </files>
-     <vcsRootInstance id="1166" vcs-root-id="IgniteApache" name="ignite-apache" href="/app/rest/latest/vcs-root-instances/id:1166"/>
-     </change> */
 
     public boolean isFakeStub() {
         return getId() == null;

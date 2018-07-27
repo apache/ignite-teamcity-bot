@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.ignite.ci;
 
 import java.util.ArrayList;
@@ -12,7 +29,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nonnull;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
@@ -27,25 +43,9 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.util.Collections.singletonList;
-
 public class BuildChainProcessor {
+    /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
-
-    @Nonnull public static Optional<FullChainRunCtx> loadChainsContext(
-        IAnalyticsEnabledTeamcity teamcity,
-        String suiteId,
-        String branch,
-        LatestRebuildMode rebuildMode,
-        ProcessLogsMode procLogs,
-        @Nullable String failRateBranch) {
-        final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(suiteId, branch);
-        Optional<BuildRef> buildRef = builds.stream().max(Comparator.comparing(BuildRef::getId));
-
-        return buildRef.flatMap(
-            build -> processBuildChains(teamcity, rebuildMode, singletonList(build),
-                procLogs, true, true, teamcity, failRateBranch));
-    }
 
     public static Optional<FullChainRunCtx> processBuildChains(
         ITeamcity teamcity,
