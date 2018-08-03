@@ -42,6 +42,7 @@ import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
+import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -79,8 +80,6 @@ public class IssueDetector {
     private ICredentialsProv backgroundOpsCreds;
     private ITcHelper backgroundOpsTcHelper;
     private ScheduledExecutorService executorService;
-
-    private volatile int prevQueueSize = -1;
 
     public IssueDetector(Ignite ignite, IssuesStorage issuesStorage,
         UserAndSessionsStorage userStorage) {
@@ -349,12 +348,15 @@ public class IssueDetector {
             if (init.compareAndSet(false, true)) {
                 this.backgroundOpsCreds = prov;
                 this.backgroundOpsTcHelper = helper;
-                this.prevQueueSize = -1;
 
-                executorService = Executors.newScheduledThreadPool(2);
+                executorService = Executors.newScheduledThreadPool(1);
 
                 executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
-                executorService.scheduleAtFixedRate(this::checkQueue, 0, 10, TimeUnit.MINUTES);
+
+                if (Boolean.valueOf(System.getProperty("AUTO_TRIGGERING_DISABLED")))
+                    logger.info("Automatic build triggering was disabled.");
+                else
+                    executorService.scheduleAtFixedRate(this::checkQueue, 0, 10, TimeUnit.MINUTES);
             }
         }
         catch (Exception e) {
@@ -368,7 +370,7 @@ public class IssueDetector {
     }
 
     /**
-     * Trigger build if queue is empty.
+     * Trigger build if half od agents is available and there is no self-triggered builds in build queue.
      */
     private void checkQueue() {
         String branch = FullQueryParams.DEFAULT_BRANCH_NAME;
@@ -376,14 +378,13 @@ public class IssueDetector {
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
 
         if (tracked == null || tracked.getChains() == null || tracked.getChains().isEmpty()) {
-            logger.info("Background check queue skipped - no configuration specified {} branch.", branch);
+            logger.info("Background check queue skipped - no configuration specified for \"{}\" branch.", branch);
 
             return;
         }
 
         for (ChainAtServerTracked chain : tracked.getChains()) {
             String srv = chain.serverId;
-            String suite = chain.suiteId;
 
             if (!backgroundOpsCreds.hasAccess(srv)) {
                 logger.warn("Background operations credentials does not grant access to server \"{}\"," +
@@ -392,33 +393,65 @@ public class IssueDetector {
                 continue;
             }
 
+            logger.debug("Checking queue for server {}.", srv);
+
+            ITeamcity teamcity = backgroundOpsTcHelper.server(srv, backgroundOpsCreds);
+
             try {
-                logger.debug("Checking queue for server {}.", srv);
-
-                ITeamcity teamcity = backgroundOpsTcHelper.server(chain.serverId, backgroundOpsCreds);
-
-                List<BuildRef> builds = teamcity.getQueuedBuilds(null).get();
-
-                int queueSize = builds.size();
-
-                logger.info("Current build queue [size = {}, prev = {}].", queueSize, prevQueueSize);
-
-                if (prevQueueSize == 0 && queueSize == 0) {
-                    logger.info("Detected empty queue - triggering build.");
-
-                    teamcity.triggerBuild(suite, branch, false);
-                }
-
-                prevQueueSize = queueSize;
+                checkQueue0(teamcity, branch, chain.suiteId);
+            }
+            catch (RuntimeException | ExecutionException e) {
+                logger.error("Unable to check queue: " + e.getMessage(), e);
             }
             catch (InterruptedException e) {
-                logger.error(e.getMessage(), e);
+                logger.error("Unable to check queue: " + e.getMessage(), e);
 
                 Thread.currentThread().interrupt();
             }
-            catch (ExecutionException e) {
-                logger.error(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Trigger build if half od agents is available and there is no self-triggered builds in build queue.
+     */
+    private void checkQueue0(ITeamcity teamcity, String branch, String suite) throws ExecutionException, InterruptedException {
+        List<Agent> agents = teamcity.agents(true, true);
+
+        int total = agents.size();
+        int running = 0;
+
+        for (Agent agent : agents) {
+            if (agent.getBuild() != null) //  || !STATE_RUNNING.equals(agent.getBuild().status)
+                ++running;
+        }
+
+        logger.info("There are {} agents ({} running builds).", total, running);
+
+        if (running * 2 < total) {
+            logger.info("There are more than half free agents (total={}, free={}).", total, total - running);
+
+            List<BuildRef> builds = teamcity.getQueuedBuilds(null).get();
+
+            String selfLogin = backgroundOpsCreds.getUser(teamcity.serverId());
+
+            boolean triggerBuild = true;
+
+            for (BuildRef ref : builds) {
+                Build build = teamcity.getBuild(ref.href);
+
+                String user = build.getTriggered().getUser().username;
+
+                if (selfLogin.toLowerCase().equals(user.toLowerCase())) {
+                    logger.info("Queued build {} triggered by me (user {}). Will not start build.", ref.getId(), user);
+
+                    triggerBuild = false;
+
+                    break;
+                }
             }
+
+            if (triggerBuild)
+                teamcity.triggerBuild(suite, branch, false);
         }
     }
 

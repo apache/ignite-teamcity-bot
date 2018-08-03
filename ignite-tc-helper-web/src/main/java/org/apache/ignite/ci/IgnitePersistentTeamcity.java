@@ -50,6 +50,7 @@ import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -709,5 +710,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override
     public void setAuthToken(String token) {
         teamcity.setAuthToken(token);
+    }
+
+    /** {@inheritDoc} */
+    @Override public List<Agent> agents(boolean connected, boolean authorized) {
+        return teamcity.agents(connected, authorized);
     }
 }

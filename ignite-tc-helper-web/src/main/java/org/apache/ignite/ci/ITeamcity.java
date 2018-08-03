@@ -18,9 +18,7 @@
 package org.apache.ignite.ci;
 
 import java.io.File;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
@@ -28,6 +26,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -207,4 +206,13 @@ public interface ITeamcity extends AutoCloseable {
         setAuthToken(
                 Base64Util.encodeUtf8String(user + ":" + password));
     }
+
+    /**
+     * Get list of teamcity agents.
+     *
+     * @param connected Connected flag.
+     * @param authorized Authorized flag.
+     * @return List of teamcity agents.
+     */
+    public List<Agent> agents(boolean connected, boolean authorized);
 }
