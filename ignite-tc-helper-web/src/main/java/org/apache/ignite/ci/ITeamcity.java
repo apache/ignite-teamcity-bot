@@ -198,7 +198,15 @@ public interface ITeamcity extends AutoCloseable {
 
     void setExecutor(ExecutorService pool);
 
-    void triggerBuild(String id, String name, boolean queueAtTop);
+    /**
+     * Trigger build.
+     *
+     * @param id Build identifier.
+     * @param name Branch name.
+     * @param cleanRebuild Rebuild all dependencies.
+     * @param queueAtTop Put at the top of the build queue.
+     */
+    void triggerBuild(String id, String name, boolean cleanRebuild, boolean queueAtTop);
 
     void setAuthToken(String token);
 
@@ -214,5 +222,5 @@ public interface ITeamcity extends AutoCloseable {
      * @param authorized Authorized flag.
      * @return List of teamcity agents.
      */
-    public List<Agent> agents(boolean connected, boolean authorized);
+    List<Agent> agents(boolean connected, boolean authorized);
 }

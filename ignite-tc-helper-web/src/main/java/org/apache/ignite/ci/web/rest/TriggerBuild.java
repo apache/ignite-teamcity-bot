@@ -59,7 +59,7 @@ public class TriggerBuild {
         }
 
         try (final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId, prov)) {
-            helper.triggerBuild(suiteId, branchName, top != null && top);
+            helper.triggerBuild(suiteId, branchName, false, top != null && top);
         }
 
         return new SimpleResult("OK");
@@ -89,7 +89,7 @@ public class TriggerBuild {
             for (String suiteId : strings) {
                 System.out.println("Triggering [ " + suiteId + "," + branchName + "," + "top=" + queueToTop + "]");
 
-                helper.triggerBuild(suiteId, branchName, queueToTop);
+                helper.triggerBuild(suiteId, branchName, false, queueToTop);
             }
         }
 

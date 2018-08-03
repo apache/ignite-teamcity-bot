@@ -471,7 +471,7 @@ public class IssueDetector {
 
             if (triggerBuild) {
                 for (ChainAtServerTracked chain : chains)
-                    teamcity.triggerBuild(chain.suiteId, chain.branchForRest, false);
+                    teamcity.triggerBuild(chain.suiteId, chain.branchForRest, true, false);
             }
         }
     }

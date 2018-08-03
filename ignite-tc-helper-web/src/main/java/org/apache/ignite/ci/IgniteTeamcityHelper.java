@@ -211,11 +211,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return sb.toString();
     }
 
-    public void triggerBuild(String buildTypeId, String branchName, boolean queueAtTop) {
-        triggerBuild(buildTypeId, branchName, false, queueAtTop);
-    }
-
-    public void triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
+    /** {@inheritDoc} */
+    @Override public void triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
         String triggeringOptions =
             " <triggeringOptions" +
                 " cleanSources=\"" + cleanRebuild + "\"" +
