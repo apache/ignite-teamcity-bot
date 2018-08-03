@@ -18,21 +18,34 @@
 package org.apache.ignite.ci.issue;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteScheduler;
-import org.apache.ignite.ci.*;
+import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.conf.BranchTracked;
+import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.TcHelperUser;
@@ -41,11 +54,8 @@ import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
-
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,7 +67,7 @@ import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
  */
 public class IssueDetector {
     /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(IssueDetector.class);
 
     /**Slack prefix, using this for email address will switch notifier to slack (if configured). */
     private static final String SLACK = "slack:";
@@ -70,6 +80,7 @@ public class IssueDetector {
     private ITcHelper backgroundOpsTcHelper;
     private ScheduledExecutorService executorService;
 
+    private volatile int prevQueueSize = -1;
 
     public IssueDetector(Ignite ignite, IssuesStorage issuesStorage,
         UserAndSessionsStorage userStorage) {
@@ -338,10 +349,12 @@ public class IssueDetector {
             if (init.compareAndSet(false, true)) {
                 this.backgroundOpsCreds = prov;
                 this.backgroundOpsTcHelper = helper;
+                this.prevQueueSize = -1;
 
-                executorService = Executors.newScheduledThreadPool(1);
+                executorService = Executors.newScheduledThreadPool(2);
 
                 executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
+                executorService.scheduleAtFixedRate(this::checkQueue, 0, 10, TimeUnit.MINUTES);
             }
         }
         catch (Exception e) {
@@ -352,6 +365,61 @@ public class IssueDetector {
             throw e;
         }
         // SchedulerFuture<?> future = ignite.scheduler().scheduleLocal(this::checkFailures, "? * * * * *");
+    }
+
+    /**
+     * Trigger build if queue is empty.
+     */
+    private void checkQueue() {
+        String branch = FullQueryParams.DEFAULT_BRANCH_NAME;
+
+        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
+
+        if (tracked == null || tracked.getChains() == null || tracked.getChains().isEmpty()) {
+            logger.info("Background check queue skipped - no configuration specified {} branch.", branch);
+
+            return;
+        }
+
+        for (ChainAtServerTracked chain : tracked.getChains()) {
+            String srv = chain.serverId;
+            String suite = chain.suiteId;
+
+            if (!backgroundOpsCreds.hasAccess(srv)) {
+                logger.warn("Background operations credentials does not grant access to server \"{}\"," +
+                    " build queue trigger will not work.", srv);
+
+                continue;
+            }
+
+            try {
+                logger.debug("Checking queue for server {}.", srv);
+
+                ITeamcity teamcity = backgroundOpsTcHelper.server(chain.serverId, backgroundOpsCreds);
+
+                List<BuildRef> builds = teamcity.getQueuedBuilds(null).get();
+
+                int queueSize = builds.size();
+
+                logger.info("Current build queue [size = {}, prev = {}].", queueSize, prevQueueSize);
+
+                if (prevQueueSize == 0 && queueSize == 0) {
+                    logger.info("Detected empty queue - triggering build.");
+
+                    teamcity.triggerBuild(suite, branch, false);
+                }
+
+                prevQueueSize = queueSize;
+            }
+            catch (InterruptedException e) {
+                logger.error(e.getMessage(), e);
+
+                Thread.currentThread().interrupt();
+            }
+            catch (ExecutionException e) {
+                logger.error(e.getMessage(), e);
+            }
+        }
     }
 
     private void checkFailures() {
