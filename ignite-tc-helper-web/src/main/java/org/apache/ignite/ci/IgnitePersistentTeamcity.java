@@ -307,7 +307,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         if (loaded.isFakeStub() && persistedBuild != null && persistedBuild.isOutdatedEntityVersion()) {
             persistedBuild._version = persistedBuild.latestVersion();
             cache.put(href, persistedBuild);
-            
+
             return persistedBuild;
         }
 

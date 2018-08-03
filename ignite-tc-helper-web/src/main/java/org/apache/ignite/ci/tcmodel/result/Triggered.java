@@ -20,6 +20,8 @@ package org.apache.ignite.ci.tcmodel.result;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlElement;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 
 /**
@@ -54,6 +56,8 @@ public class Triggered {
     protected String type;
     @XmlAttribute(name = "date")
     protected String date;
+    @XmlElement(name = "build")
+    protected BuildRef build;
 
     /**
      * Gets the value of the user property.
@@ -125,5 +129,19 @@ public class Triggered {
      */
     public void setDate(String value) {
         this.date = value;
+    }
+
+    /**
+     * @return Build reference.
+     */
+    public BuildRef getBuild() {
+        return build;
+    }
+
+    /**
+     * @param build Build reference.
+     */
+    public void setBuild(BuildRef build) {
+        this.build = build;
     }
 }

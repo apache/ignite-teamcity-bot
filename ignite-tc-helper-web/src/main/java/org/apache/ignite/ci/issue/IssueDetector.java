@@ -48,6 +48,7 @@ import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -378,10 +379,12 @@ public class IssueDetector {
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
 
         if (tracked == null || tracked.getChains() == null || tracked.getChains().isEmpty()) {
-            logger.info("Background check queue skipped - no configuration specified for \"{}\" branch.", branch);
+            logger.info("Background check queue skipped - no config specified for \"{}\".", branch);
 
             return;
         }
+
+        Map<String, List<ChainAtServerTracked>> chainsBySrv = new HashMap<>();
 
         for (ChainAtServerTracked chain : tracked.getChains()) {
             String srv = chain.serverId;
@@ -395,10 +398,18 @@ public class IssueDetector {
 
             logger.debug("Checking queue for server {}.", srv);
 
+            chainsBySrv.computeIfAbsent(srv, v -> new ArrayList<>()).add(chain);
+        }
+
+        for (Map.Entry<String, List<ChainAtServerTracked>> entry : chainsBySrv.entrySet()) {
+            String srv = entry.getKey();
+
+            List<ChainAtServerTracked> chains = entry.getValue();
+
             ITeamcity teamcity = backgroundOpsTcHelper.server(srv, backgroundOpsCreds);
 
             try {
-                checkQueue0(teamcity, branch, chain.suiteId);
+                checkQueue0(teamcity, chains);
             }
             catch (RuntimeException | ExecutionException e) {
                 logger.error("Unable to check queue: " + e.getMessage(), e);
@@ -414,7 +425,7 @@ public class IssueDetector {
     /**
      * Trigger build if half od agents is available and there is no self-triggered builds in build queue.
      */
-    private void checkQueue0(ITeamcity teamcity, String branch, String suite) throws ExecutionException, InterruptedException {
+    private void checkQueue0(ITeamcity teamcity, List<ChainAtServerTracked> chains) throws ExecutionException, InterruptedException {
         List<Agent> agents = teamcity.agents(true, true);
 
         int total = agents.size();
@@ -428,7 +439,7 @@ public class IssueDetector {
         logger.info("There are {} agents ({} running builds).", total, running);
 
         if (running * 2 < total) {
-            logger.info("There are more than half free agents (total={}, free={}).", total, total - running);
+            logger.debug("There are more than half free agents (total={}, free={}).", total, total - running);
 
             List<BuildRef> builds = teamcity.getQueuedBuilds(null).get();
 
@@ -439,10 +450,18 @@ public class IssueDetector {
             for (BuildRef ref : builds) {
                 Build build = teamcity.getBuild(ref.href);
 
-                String user = build.getTriggered().getUser().username;
+                User user = build.getTriggered().getUser();
 
-                if (selfLogin.toLowerCase().equals(user.toLowerCase())) {
-                    logger.info("Queued build {} triggered by me (user {}). Will not start build.", ref.getId(), user);
+                if (user == null) {
+                    logger.info("Unable to get username for queued build {} (type={}).", ref.getId(), ref.buildTypeId);
+
+                    continue;
+                }
+
+                String login = user.username;
+
+                if (selfLogin.equalsIgnoreCase(login)) {
+                    logger.info("Queued build {} triggered by me (user {}). Will not start build.", ref.getId(), login);
 
                     triggerBuild = false;
 
@@ -450,8 +469,10 @@ public class IssueDetector {
                 }
             }
 
-            if (triggerBuild)
-                teamcity.triggerBuild(suite, branch, false);
+            if (triggerBuild) {
+                for (ChainAtServerTracked chain : chains)
+                    teamcity.triggerBuild(chain.suiteId, chain.branchForRest, false);
+            }
         }
     }
 
