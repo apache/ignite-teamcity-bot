@@ -1,0 +1,86 @@
+<html>
+<head>
+    <title>Ignite Teamcity Helper</title>
+    <link rel="icon" href="img/leaf-icon-png-7066.png">
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+    <link rel="stylesheet" href="css/style-1.5.css">
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="js/common-1.6.js"></script>
+    <script>
+        $(document).ready(function() {
+            $.getScript("js/common-1.6.js", function(data, textStatus, jqxhr){ });
+
+            $( document ).tooltip();
+            loadData();
+            //todo fix setInterval(loadData, 90000);
+        });
+
+        function loadData() {
+            $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+            $.ajax({
+                url: "rest/branches/version",
+                success: showVersionInfo,
+                error: showErrInLoadStatus
+            });
+
+            $.ajax({
+                url: "rest/branches/getServerIds",
+                success: function(result) {
+                    $("#loadStatus").html("");
+
+                    showTestsSetOnServers(result);
+
+                    compareTestSetsOnServers(result);
+                },
+                error: showErrInLoadStatus
+            });
+        }
+
+        function showTestsSetOnServers(result) {
+            var res = "";
+            for (var i = 0; i < result.length; i++) {
+                var serverId = result[i];
+
+                res+="<form action='build-comparator.html'>";
+                res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>";
+                res+="Build Id: <input type='text' name='buildId' required> ";
+                res+="<input type='submit' name='action' value='Get tests list'>";
+                res+="</form>";
+            }
+            $("#testsSet").html(res);
+        }
+
+        function compareTestSetsOnServers(result) {
+            var res = "";
+            for (var i = 0; i < result.length; i++) {
+                var serverId = result[i];
+
+                res += "<form action='build-comparator.html'>";
+                res += "Server: <input type='text' name='serverId' value=" + serverId + " readonly>";
+                res += "Build 1: <input type='text' name='build1' required> ";
+                res += "Build 2: <input type='text' name='build2' required> ";
+                res += "<input type='submit' name='action' value='Compare tests'>";
+                res += "</form>";
+            }
+            $("#compareTestsSet").html(res);
+        }
+    </script>
+</head>
+<body>
+
+<div id="testsSet"></div>
+<div id="compareTestsSet"></div>
+<br>
+
+
+<a href="ignval.html">Ignite Log Values pretty-print</a><br>
+
+<div id="loadStatus"></div>
+<div id="version"></div>
+
+</body>
+</html>

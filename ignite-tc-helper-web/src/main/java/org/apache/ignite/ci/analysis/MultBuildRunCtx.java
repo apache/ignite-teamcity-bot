@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -441,5 +442,12 @@ public class MultBuildRunCtx implements ISuiteResults {
     public boolean isComposite() {
         return !builds.isEmpty()
             && builds.stream().allMatch(SingleBuildRunCtx::isComposite);
+    }
+
+    /**
+     * @return Set of tests.
+     */
+    public Set<String> tests() {
+        return tests.keySet();
     }
 }
