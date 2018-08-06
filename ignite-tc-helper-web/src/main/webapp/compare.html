@@ -46,10 +46,9 @@
                 var serverId = result[i];
 
                 res+="<form action='build-comparator.html'>";
-                res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
-                res+="Check Logs: <input type='text' name='checkAllLogs' style='width: 20%;' value='true' readonly>" ;
-                res+="Build Id: <input type='text' name='buildId' required> "
-                res+="<input type='submit' name='action' value='Check'>";
+                res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>";
+                res+="Build Id: <input type='text' name='buildId' required> ";
+                res+="<input type='submit' name='action' value='Get tests list'>";
                 res+="</form>";
             }
             $("#testsSet").html(res);
@@ -62,10 +61,9 @@
 
                 res += "<form action='build-comparator.html'>";
                 res += "Server: <input type='text' name='serverId' value=" + serverId + " readonly>";
-                res += "Check Logs: <input type='text' name='checkAllLogs' style='width: 20%;' value='true' readonly>";
                 res += "Build 1: <input type='text' name='build1' required> ";
                 res += "Build 2: <input type='text' name='build2' required> ";
-                res += "<input type='submit' name='action' value='Check'>";
+                res += "<input type='submit' name='action' value='Compare tests'>";
                 res += "</form>";
             }
             $("#compareTestsSet").html(res);
