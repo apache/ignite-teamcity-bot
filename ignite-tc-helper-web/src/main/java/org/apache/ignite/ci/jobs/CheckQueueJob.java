@@ -173,6 +173,13 @@ public class CheckQueueJob implements Runnable {
                 continue;
             }
 
+            if (!chain.isTriggerBuild()) {
+                logger.info("Build triggering disabled for server={}, suite={}, branch={}",
+                    srv, chain.getSuiteIdMandatory(), chain.getBranchForRestMandatory());
+
+                continue;
+            }
+
             logger.debug("Checking queue for server {}.", srv);
 
             chainsBySrv.computeIfAbsent(srv, v -> new ArrayList<>()).add(chain);
