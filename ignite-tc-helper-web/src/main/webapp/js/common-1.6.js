@@ -114,7 +114,6 @@ function showMenu(menuData) {
     } else {
         res += "<div class=\"navbar\">";
         res += "<a href=\"/\">Home</a>";
-        res += "<a href=\"/compare.html\">Compare builds</a>";
 
 
         res += "<div class='topnav-right'>";
