@@ -116,7 +116,7 @@ public class CheckQueueJob implements Runnable {
 
         int free = (total - running) * 100 / total;
 
-        logger.info("{}% of free agents ({} total, {} running builds).", free, total, running);
+        logger.info("{}% of agents are free ({} total, {} running builds).", free, total, running);
 
         if (free >= CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT) {
             logger.debug("There are more than half free agents (total={}, free={}).", total, total - running);
