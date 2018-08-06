@@ -30,6 +30,9 @@ public class ChainAtServer {
     /** Suite identifier by teamcity identification for root chain */
     @Nonnull public String suiteId;
 
+    /** Automatic build triggering. */
+    @Nullable private Boolean triggerBuild;
+
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
@@ -51,5 +54,9 @@ public class ChainAtServer {
 
     @Nullable public String getServerId() {
         return serverId;
+    }
+
+    @Nonnull public boolean isTriggerBuild() {
+        return triggerBuild == null ? false : triggerBuild;
     }
 }
