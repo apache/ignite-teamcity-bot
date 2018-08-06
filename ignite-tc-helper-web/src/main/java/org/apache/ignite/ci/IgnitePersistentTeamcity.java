@@ -50,6 +50,7 @@ import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -306,7 +307,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         if (loaded.isFakeStub() && persistedBuild != null && persistedBuild.isOutdatedEntityVersion()) {
             persistedBuild._version = persistedBuild.latestVersion();
             cache.put(href, persistedBuild);
-            
+
             return persistedBuild;
         }
 
@@ -700,14 +701,19 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public void triggerBuild(String id, String name, boolean queueAtTop) {
+    @Override public void triggerBuild(String id, String name, boolean cleanRebuild, boolean queueAtTop) {
         lastTriggerMs = System.currentTimeMillis();
 
-        teamcity.triggerBuild(id, name, queueAtTop);
+        teamcity.triggerBuild(id, name, cleanRebuild, queueAtTop);
     }
 
     @Override
     public void setAuthToken(String token) {
         teamcity.setAuthToken(token);
+    }
+
+    /** {@inheritDoc} */
+    @Override public List<Agent> agents(boolean connected, boolean authorized) {
+        return teamcity.agents(connected, authorized);
     }
 }

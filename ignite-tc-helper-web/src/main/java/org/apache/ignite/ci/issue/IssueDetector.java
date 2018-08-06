@@ -18,16 +18,26 @@
 package org.apache.ignite.ci.issue;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteScheduler;
-import org.apache.ignite.ci.*;
+import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.jobs.CheckQueueJob;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.tcmodel.changes.Change;
@@ -41,11 +51,8 @@ import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
-
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,7 +64,7 @@ import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
  */
 public class IssueDetector {
     /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(IssueDetector.class);
 
     /**Slack prefix, using this for email address will switch notifier to slack (if configured). */
     private static final String SLACK = "slack:";
@@ -69,7 +76,6 @@ public class IssueDetector {
     private ICredentialsProv backgroundOpsCreds;
     private ITcHelper backgroundOpsTcHelper;
     private ScheduledExecutorService executorService;
-
 
     public IssueDetector(Ignite ignite, IssuesStorage issuesStorage,
         UserAndSessionsStorage userStorage) {
@@ -342,6 +348,12 @@ public class IssueDetector {
                 executorService = Executors.newScheduledThreadPool(1);
 
                 executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
+
+                if (Boolean.valueOf(System.getProperty(CheckQueueJob.AUTO_TRIGGERING_BUILD_DISABLED)))
+                    logger.info("Automatic build triggering was disabled.");
+                else
+                    executorService.scheduleAtFixedRate(
+                        new CheckQueueJob(backgroundOpsTcHelper, backgroundOpsCreds), 0, 10, TimeUnit.MINUTES);
             }
         }
         catch (Exception e) {

@@ -51,6 +51,8 @@ import org.apache.ignite.ci.logs.BuildLogStreamChecker;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
 import org.apache.ignite.ci.logs.handlers.TestLogHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
+import org.apache.ignite.ci.tcmodel.agent.Agent;
+import org.apache.ignite.ci.tcmodel.agent.AgentsRef;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -128,6 +130,18 @@ public class IgniteTeamcityHelper implements ITeamcity {
         basicAuthTok = token;
     }
 
+    /** {@inheritDoc} */
+    @Override public List<Agent> agents(boolean connected, boolean authorized) {
+        String url = "app/rest/agents?locator=connected:" + connected + ",authorized:" + authorized;
+
+        return getJaxbUsingHref(url, AgentsRef.class)
+            .getAgent()
+            .stream()
+            .parallel()
+            .map(v -> getJaxbUsingHref(v.getHref(), Agent.class))
+            .collect(Collectors.toList());
+    }
+
     public CompletableFuture<File> downloadBuildLogZip(int buildId) {
         boolean archive = true;
         Supplier<File> supplier = () -> {
@@ -197,11 +211,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return sb.toString();
     }
 
-    public void triggerBuild(String buildTypeId, String branchName, boolean queueAtTop) {
-        triggerBuild(buildTypeId, branchName, false, queueAtTop);
-    }
-
-    public void triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
+    /** {@inheritDoc} */
+    @Override public void triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
         String triggeringOptions =
             " <triggeringOptions" +
                 " cleanSources=\"" + cleanRebuild + "\"" +
@@ -223,6 +234,9 @@ public class IgniteTeamcityHelper implements ITeamcity {
             "</build>";
         String url = host + "app/rest/buildQueue";
         try {
+            logger.info("Triggering build: buildTypeId={}, branchName={}, cleanRebuild={}, queueAtTop={}",
+                buildTypeId, branchName, cleanRebuild, queueAtTop);
+
             HttpUtil.sendPostAsString(basicAuthTok, url, parameter);
         }
         catch (IOException e) {

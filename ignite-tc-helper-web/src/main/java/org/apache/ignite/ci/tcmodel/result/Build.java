@@ -64,6 +64,9 @@ public class Build extends BuildRef implements IVersionedEntity {
     /** Changes included into build.*/
     @XmlElement(name = "changes") public ChangesListRef changesRef;
 
+    /** Information about build triggering. */
+    @XmlElement(name = "triggered") private Triggered triggered;
+
     @SuppressWarnings("FieldCanBeLocal") public Integer _version = LATEST_VERSION;
 
     @NotNull public static Build createFakeStub() {
@@ -109,5 +112,19 @@ public class Build extends BuildRef implements IVersionedEntity {
 
     @Override public int latestVersion() {
         return LATEST_VERSION;
+    }
+
+    /**
+     * @return Information about build triggering.
+     */
+    public Triggered getTriggered() {
+        return triggered;
+    }
+
+    /**
+     * @param triggered Information about build triggering.
+     */
+    public void setTriggered(Triggered triggered) {
+        this.triggered = triggered;
     }
 }
