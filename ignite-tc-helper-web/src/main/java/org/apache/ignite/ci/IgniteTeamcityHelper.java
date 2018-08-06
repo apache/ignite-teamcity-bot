@@ -191,7 +191,10 @@ public class IgniteTeamcityHelper implements ITeamcity {
             .thenApply(LogCheckTask::getResult);
     }
 
-    private String xmlEscapeText(String t) {
+    /**
+     * @param t Text to process.
+     */
+    private String xmlEscapeText(CharSequence t) {
         StringBuilder sb = new StringBuilder();
         for(int i = 0; i < t.length(); i++){
             char c = t.charAt(i);
@@ -202,9 +205,9 @@ public class IgniteTeamcityHelper implements ITeamcity {
                 case '&': sb.append("&amp;"); break;
                 case '\'': sb.append("&apos;"); break;
                 default:
-                    if(c>0x7e) {
-                        sb.append("&#"+((int)c)+";");
-                    }else
+                    if(c>0x7e)
+                        sb.append("&#").append((int)c).append(";");
+                    else
                         sb.append(c);
             }
         }
