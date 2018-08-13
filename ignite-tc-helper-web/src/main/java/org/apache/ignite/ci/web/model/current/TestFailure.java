@@ -114,21 +114,13 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 
         testFullOpt.forEach(full -> {
             String details = full.details;
+
             if (details != null) {
-                if (webIssueUrl == null) {
-                    String issueLinkPrefix = "https://issues.apache.org/jira/browse/";
+                if (webIssueUrl == null)
+                    checkAndFillByPrefix(details, "https://issues.apache.org/jira/browse/");
 
-                    int prefixFoundIdx = details.indexOf(issueLinkPrefix);
-                    if (prefixFoundIdx >= 0)
-                        initIssueLink(issueLinkPrefix, details, prefixFoundIdx);
-                }
-                if (webIssueUrl == null) {
-                    String issueLinkPrefix = "http://issues.apache.org/jira/browse/";
-
-                    int prefixFoundIdx = details.indexOf(issueLinkPrefix);
-                    if (prefixFoundIdx >= 0)
-                        initIssueLink(issueLinkPrefix, details, prefixFoundIdx);
-                }
+                if (webIssueUrl == null)
+                    checkAndFillByPrefix(details, "http://issues.apache.org/jira/browse/");
 
                 for (String s : details.split("\n")) {
                     if (LogMsgToWarn.needWarn(s))
@@ -142,14 +134,30 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 
     }
 
-    private void initIssueLink(String prefix, String txt, int idx) {
-        String issueMention = txt.substring(idx - prefix.length());
-        String issueIdStart = issueMention.substring(prefix.length());
+    /**
+     * @param details Details full text with error.
+     * @param issueLinkPrefix Issue link prefix.
+     */
+    public void checkAndFillByPrefix(String details, String issueLinkPrefix) {
+        int prefixFoundIdx = details.indexOf(issueLinkPrefix);
+
+        if (prefixFoundIdx < 0)
+            return;
+
+        String issueMention = details.substring(prefixFoundIdx);
+
+        if (issueMention.length() < issueLinkPrefix.length())
+            return;
+
+        String issueIdStart = issueMention.substring(issueLinkPrefix.length());
+
         Matcher m = Pattern.compile("IGNITE-[0-9]*").matcher(issueIdStart);
+
         if (m.find()) {
             String issueId = m.group(0);
+
             webIssueText = issueId;
-            webIssueUrl = prefix + issueId;
+            webIssueUrl = issueLinkPrefix + issueId;
         }
     }
 

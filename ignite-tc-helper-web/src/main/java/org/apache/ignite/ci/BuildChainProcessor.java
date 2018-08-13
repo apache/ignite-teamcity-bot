@@ -217,17 +217,19 @@ public class BuildChainProcessor {
         if (results == null)
             return Stream.of(ref);
 
-        List<BuildRef> aNull = results.getSnapshotDependenciesNonNull();
-        if(aNull.isEmpty())
+        List<BuildRef> deps = results.getSnapshotDependenciesNonNull();
+
+        if(deps.isEmpty())
             return Stream.of(ref);
 
-        logger.info("Snapshot deps found: " +
-            ref.suiteId() + "->" + aNull.stream().map(BuildRef::suiteId).collect(Collectors.toList()));
+        if(logger.isDebugEnabled())
+            logger.debug("Snapshot deps found: " +
+                ref.suiteId() + "->" + deps.stream().map(BuildRef::suiteId).collect(Collectors.toList()));
 
-        List<BuildRef> cp = new ArrayList<>(aNull);
+        Collection<BuildRef> buildAndDeps = new ArrayList<>(deps);
 
-        cp.add(ref);
+        buildAndDeps.add(ref);
 
-        return cp.stream();
+        return buildAndDeps.stream();
     }
 }
