@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.conf;
 
+import java.util.Objects;
 import javax.annotation.Nonnull;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -43,5 +44,20 @@ public class ChainAtServerTracked extends ChainAtServer {
         checkState(!isNullOrEmpty(branchForRest), "Invalid config: branchForRest should be filled " + this);
 
         return branchForRest;
+    }
+
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        if (!super.equals(o))
+            return false;
+        ChainAtServerTracked tracked = (ChainAtServerTracked)o;
+        return Objects.equals(branchForRest, tracked.branchForRest);
+    }
+
+    @Override public int hashCode() {
+        return Objects.hash(super.hashCode(), branchForRest);
     }
 }
