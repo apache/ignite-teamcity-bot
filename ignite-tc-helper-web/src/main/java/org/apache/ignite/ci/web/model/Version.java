@@ -28,7 +28,7 @@ package org.apache.ignite.ci.web.model;
     public String ignVerFull;
 
     /** TC Helper Source web. */
-    public String srcWebUrl = "https://github.com/ignite/ignite-teamcity-bot";
+    public String srcWebUrl = "https://github.com/apache/ignite-teamcity-bot";
 
     public Version() {}
 }
