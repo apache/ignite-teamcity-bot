@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Created by Дмитрий on 05.11.2017.
+ * One tracked branch, probably on several servers
  */
 public class BranchTracked {
     /** ID for internal REST and for */
@@ -30,6 +30,9 @@ public class BranchTracked {
 
     public List<ChainAtServerTracked> chains = new ArrayList<>();
 
+    /**
+     * @return internal identifier of the branch.
+     */
     public String getId() {
         return id;
     }

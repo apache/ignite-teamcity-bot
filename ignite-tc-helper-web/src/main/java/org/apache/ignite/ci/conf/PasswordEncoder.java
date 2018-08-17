@@ -33,13 +33,12 @@ import static javax.xml.bind.DatatypeConverter.parseHexBinary;
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
 /**
- * Created by Дмитрий on 05.11.2017.
+ * Encoding utility to avoid simply readable password in config.
  */
 public class PasswordEncoder {
-
-    public static final int PREF_LEN = 16;
-    public static final int POSTF_LEN = 16;
-    public static final char CHAR = 'A';
+    private static final int PREF_LEN = 16;
+    private static final int POSTF_LEN = 16;
+    private static final char CHAR = 'A';
 
     public static String decode(String encPass) {
         final String clearBlk = printHexBinary(d(parseHexBinary(encPass)));

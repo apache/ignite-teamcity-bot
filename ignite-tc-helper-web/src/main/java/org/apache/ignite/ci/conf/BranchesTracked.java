@@ -24,11 +24,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Created by Дмитрий on 05.11.2017.
+ * Config file for tracked branches.
  */
 public class BranchesTracked {
-    public List<BranchTracked> branches = new ArrayList<>();
+    /** Branches. */
+    private List<BranchTracked> branches = new ArrayList<>();
 
+    /**
+     * @return list of internal identifiers of branch.
+     */
     public List<String> getIds() {
         return branches.stream().map(BranchTracked::getId).collect(Collectors.toList());
     }

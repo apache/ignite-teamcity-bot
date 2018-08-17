@@ -19,7 +19,7 @@ package org.apache.ignite.ci.web.model;
 
 @SuppressWarnings("PublicField") public class Version {
     /** TC Helper Version. */
-    public String version = "20180813";
+    public String version = "20180817";
 
     /** Ignite version. */
     public String ignVer;
@@ -28,8 +28,7 @@ package org.apache.ignite.ci.web.model;
     public String ignVerFull;
 
     /** TC Helper Source web. */
-    public String srcWebUrl = "https://github.com/dspavlov/ignite-teamcity-helper";
-
+    public String srcWebUrl = "https://github.com/ignite/ignite-teamcity-bot";
 
     public Version() {}
 }

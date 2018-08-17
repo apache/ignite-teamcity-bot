@@ -44,7 +44,7 @@ public class EmailSender {
 
     public static void sendEmail(String to, String subject, String html, String plainText) {
         Properties cfgProps = HelperConfig.loadEmailSettings();
-        String username = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.USERNAME, HelperConfig. MAIL_PROPS);
+        String from = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.USERNAME, HelperConfig. MAIL_PROPS);
         String enc = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.ENCODED_PASSWORD, HelperConfig.MAIL_PROPS);
 
         String pwd = PasswordEncoder.decode(enc);
@@ -57,14 +57,13 @@ public class EmailSender {
         props.put("mail.smtp.port", "465");
 
         // Sender's email ID needs to be mentioned
-        String from = username;
         // Setup mail getOrCreateCreds
         // Get the default Session object.
 
         Session ses = Session.getInstance(props,
                 new Authenticator() {
                     @Override protected PasswordAuthentication getPasswordAuthentication() {
-                        return new PasswordAuthentication(username, pwd);
+                        return new PasswordAuthentication(from, pwd);
                     }
                 });
         try {

@@ -28,53 +28,51 @@ import org.apache.ignite.ci.HelperConfig;
 import java.io.IOException;
 import java.util.Properties;
 
+/**
+ *
+ */
 public class SlackSender {
-    public static void main(String[] args) throws IOException {
-        String addr = "dpavlov";
-        sendMessage(addr, "hi im a bot " +
-            "<http://localhost:8080|app>");
-    }
-
-    public static boolean sendMessage(String addr, String message) throws IOException {
+    public static boolean sendMessage(String addr, String msg) throws IOException {
         Properties cfgProps = HelperConfig.loadEmailSettings();
         String authTok = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.SLACK_AUTH_TOKEN, HelperConfig. MAIL_PROPS);
 
-        SlackSession session = SlackSessionFactory.createWebSocketSlackSession(authTok);
-        session.connect();
+        SlackSession ses = SlackSessionFactory.createWebSocketSlackSession(authTok);
+
+        ses.connect();
 
         try {
             if(addr.startsWith("#")) {
-                String channel = addr.substring(1);
+                String ch = addr.substring(1);
 
-                SlackChannel slackChannel = session.findChannelByName(channel);
+                SlackChannel slackCh = ses.findChannelByName(ch);
 
-                if (slackChannel == null) {
-                    System.err.println("Failed to find channel [" + addr + "]: Notification not send [" + message + "]");
+                if (slackCh == null) {
+                    System.err.println("Failed to find channel [" + addr + "]: Notification not send [" + msg + "]");
 
                     return false;
                 }
 
-                SlackMessageHandle<SlackMessageReply> handle = session.sendMessage(slackChannel, message);
+                SlackMessageHandle<SlackMessageReply> handle = ses.sendMessage(slackCh, msg);
 
-                System.out.println("Message to channel " + addr + " "  + message + "; acked: " + handle.isAcked());
+                System.out.println("Message to channel " + addr + " "  + msg + "; acked: " + handle.isAcked());
             }
             else {
-                SlackUser user = session.findUserByUserName(addr); //make sure bot is a member of the user.
+                SlackUser user = ses.findUserByUserName(addr); //make sure bot is a member of the user.
 
                 if (user == null) {
-                    System.err.println("Failed to find user [" + addr + "]: Notification not send [" + message + "]");
+                    System.err.println("Failed to find user [" + addr + "]: Notification not send [" + msg + "]");
 
                     return false;
                 }
 
-                SlackMessageHandle<SlackMessageReply> handle = session.sendMessageToUser(user, message, null);
+                SlackMessageHandle<SlackMessageReply> handle = ses.sendMessageToUser(user, msg, null);
 
-                System.out.println("Message to user " + addr + " "  + message + "; acked: " + handle.isAcked());
+                System.out.println("Message to user " + addr + " "  + msg + "; acked: " + handle.isAcked());
 
             }
         }
         finally {
-            session.disconnect();
+            ses.disconnect();
         }
 
         return true;
