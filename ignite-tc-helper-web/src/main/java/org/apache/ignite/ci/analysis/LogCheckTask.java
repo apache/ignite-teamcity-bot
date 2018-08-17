@@ -23,7 +23,7 @@ import org.apache.ignite.ci.logs.handlers.TestLogHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpInMemoryHandler;
 
 /**
- * Created by Дмитрий on 24.03.2018
+ *
  */
 public class LogCheckTask {
     LogCheckResult result;

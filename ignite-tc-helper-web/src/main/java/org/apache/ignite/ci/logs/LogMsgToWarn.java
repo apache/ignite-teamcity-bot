@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.logs;
 
 /**
- * Created by Дмитрий on 24.03.2018
+ *
  */
 //todo make non static
     //todo include test name

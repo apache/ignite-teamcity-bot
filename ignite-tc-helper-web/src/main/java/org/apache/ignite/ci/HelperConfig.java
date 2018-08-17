@@ -37,7 +37,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
- * Created by Дмитрий on 21.07.2017
+ * TC Helper Config access stuff.
  */
 public class HelperConfig {
     public static final String CONFIG_FILE_NAME = "auth.properties";
@@ -53,17 +53,17 @@ public class HelperConfig {
     public static final String LOGS = "logs";
     public static final String ENDL = String.format("%n");
 
-    public static Properties loadAuthProperties(File workDir, String configFileName) {
+    public static Properties loadAuthProperties(File workDir, String cfgFileName) {
         try {
-            return loadAuthPropertiesX(workDir, configFileName);
+            return loadAuthPropertiesX(workDir, cfgFileName);
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    private static Properties loadAuthPropertiesX(File workDir, String configFileName) throws IOException {
-        File file = new File(workDir, configFileName);
+    private static Properties loadAuthPropertiesX(File workDir, String cfgFileName) throws IOException {
+        File file = new File(workDir, cfgFileName);
         if (!(file.exists())) {
 
             try (FileWriter writer = new FileWriter(file)) {
@@ -78,16 +78,16 @@ public class HelperConfig {
     }
 
     private static Properties loadProps(File file) throws IOException {
-        Properties properties = new Properties();
+        Properties props = new Properties();
 
         try (FileReader reader = new FileReader(file)) {
-            properties.load(reader);
+            props.load(reader);
         }
 
-        return properties;
+        return props;
     }
 
-    public static String prepareConfigName(String tcName) {
+    static String prepareConfigName(String tcName) {
         return prefixedWithServerName(tcName, CONFIG_FILE_NAME);
     }
 

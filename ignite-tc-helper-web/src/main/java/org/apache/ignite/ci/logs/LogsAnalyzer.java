@@ -26,20 +26,30 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import javax.annotation.concurrent.NotThreadSafe;
+import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Created by dpavlov on 24.07.2017.
- *
- * Use one instance per one file, class is statefull and not thread safe
+ * Use one instance per one file, class is stateful.
  */
+@NotThreadSafe
 public class LogsAnalyzer implements Function<File, File> {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(LogsAnalyzer.class);
 
+    /** Line handlers list. */
     private final List<ILineHandler> lineHandlersList;
 
+    /**
+     * @param lineHandlers Line handlers.
+     */
     public LogsAnalyzer(ILineHandler... lineHandlers) {
         lineHandlersList = Arrays.asList(lineHandlers);
     }
 
+    /** {@inheritDoc} */
     @Override public File apply(File file) {
         try (Stream<String> lines = Files.lines(file.toPath(), StandardCharsets.UTF_8)) {
             lines.forEach(line -> lineHandlersList.forEach(h -> h.accept(line, file)));
@@ -52,12 +62,13 @@ public class LogsAnalyzer implements Function<File, File> {
         return file;
     }
 
-    private void closeSilent(ILineHandler handler) {
+    private void closeSilent(ILineHandler hnd) {
         try {
-            handler.close();
+            hnd.close();
         }
         catch (Exception e) {
             e.printStackTrace();
+            logger.error("Problem with line handler release: " + e.getMessage(), e);
         }
     }
 

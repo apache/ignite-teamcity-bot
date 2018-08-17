@@ -17,17 +17,23 @@
 
 package org.apache.ignite.ci.logs;
 
+/**
+ * Ignite specific logic related to build logs.
+ */
 public class LogIgniteSpecific implements ILogProductSpecific {
-
+    /** Starting test. */
     private static final String STARTING_TEST = ">>> Starting test: ";
+    /** Test name end. */
     private static final String TEST_NAME_END = " <<<";
+    /** Stopping test. */
+    private static final String STOPPING_TEST = ">>> Stopping test: ";
 
-    public static final String STOPPING_TEST = ">>> Stopping test: ";
-
+    /** {@inheritDoc} */
     @Override public boolean isTestStarting(String line) {
        return line.contains(STARTING_TEST) && line.contains(TEST_NAME_END);
     }
 
+    /** {@inheritDoc} */
     @Override public boolean isTestStopping(String line) {
         return  line.contains(STOPPING_TEST);
     }

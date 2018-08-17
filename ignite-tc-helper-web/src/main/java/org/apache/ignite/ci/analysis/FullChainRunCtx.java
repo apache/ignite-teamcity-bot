@@ -27,7 +27,7 @@ import org.apache.ignite.ci.util.TimeUtil;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Created by dpavlov on 20.09.2017
+ *
  */
 public class FullChainRunCtx {
     private final boolean fakeStub;

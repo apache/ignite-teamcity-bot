@@ -18,7 +18,7 @@
 package org.apache.ignite.ci;
 
 /**
- * Created by Дмитрий on 25.02.2018.
+ * Combination of REST data and persisted statistics.
  */
 public interface IAnalyticsEnabledTeamcity extends ITeamcity, ITcAnalytics {
 }

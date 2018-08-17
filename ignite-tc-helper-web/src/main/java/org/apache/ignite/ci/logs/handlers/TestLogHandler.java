@@ -108,6 +108,7 @@ public class TestLogHandler implements ILineHandler {
         return tests.computeIfAbsent(curName, k -> new TestLogCheckResult());
     }
 
+    /** {@inheritDoc} */
     @Override public void close() throws Exception {
         if (saveLastTestToFile && currentTestName != null && !curTestLog.isEmpty())
             dumpCurrentToFile("lastStartedTest_");

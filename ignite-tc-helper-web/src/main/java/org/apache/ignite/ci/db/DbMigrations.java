@@ -38,7 +38,7 @@ import org.apache.ignite.ci.web.rest.pr.GetPrTestFailures;
 import org.apache.ignite.configuration.CacheConfiguration;
 
 /**
- * Created by Дмитрий on 11.02.2018
+ * Migrations to be applied to each TC related caches.
  */
 public class DbMigrations {
     public static final String DONE_MIGRATIONS = "doneMigrations";
@@ -48,7 +48,6 @@ public class DbMigrations {
     public static final String BUILD_RESULTS = "buildResults";
     public static final String TESTS_COUNT_7700 = ",count:7700";
 
-
     //V1 caches, 1024 parts
     @Deprecated
     public static final String RUN_STAT_CACHE = "runStat";
@@ -57,9 +56,9 @@ public class DbMigrations {
     private final String serverId;
     private IgniteCache<String, Object> doneMigrations;
 
-    public DbMigrations(Ignite ignite, String serverId) {
+    public DbMigrations(Ignite ignite, String srvId) {
         this.ignite = ignite;
-        this.serverId = serverId;
+        this.serverId = srvId;
     }
 
     public static String removeCountFromRef(String href) {

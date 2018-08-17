@@ -39,12 +39,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Created by Дмитрий on 25.02.2018
+ * TC Bot implementation
  */
 public class TcHelper implements ITcHelper {
+    /** Stop guard. */
     private AtomicBoolean stop = new AtomicBoolean();
 
-    private final Cache<String, IAnalyticsEnabledTeamcity> servers
+    private final Cache<String, IAnalyticsEnabledTeamcity> srvs
         = CacheBuilder.<String, String>newBuilder()
         .maximumSize(100)
         .expireAfterAccess(16, TimeUnit.MINUTES)
@@ -66,23 +67,23 @@ public class TcHelper implements ITcHelper {
         detector = new IssueDetector(ignite, issuesStorage, userAndSessionsStorage);
     }
 
-    @Override
-    public IssuesStorage issues() {
+    /** {@inheritDoc} */
+    @Override public IssuesStorage issues() {
         return issuesStorage;
     }
 
-    @Override
-    public IssueDetector issueDetector() {
+    /** {@inheritDoc} */
+    @Override public IssueDetector issueDetector() {
         return detector;
     }
 
-    @Override
-    public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov) {
+    /** {@inheritDoc} */
+    @Override public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov) {
         if (stop.get())
             throw new IllegalStateException("Shutdown");
 
-        Callable<IAnalyticsEnabledTeamcity> callable = () -> {
-            IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(ignite,
+        Callable<IAnalyticsEnabledTeamcity> call = () -> {
+            IAnalyticsEnabledTeamcity teamcity = new IgnitePersistentTeamcity(ignite,
                 Strings.emptyToNull(srvId));
 
             teamcity.setExecutor(getService());
@@ -99,7 +100,7 @@ public class TcHelper implements ITcHelper {
 
         IAnalyticsEnabledTeamcity teamcity;
         try {
-            teamcity = servers.get(fullKey, callable);
+            teamcity = srvs.get(fullKey, call);
         }
         catch (ExecutionException e) {
             throw ExceptionUtil.propagateException(e);
@@ -108,18 +109,17 @@ public class TcHelper implements ITcHelper {
         return teamcity;
     }
 
-    @Override
-    public ITcAnalytics tcAnalytics(String serverId) {
-        return server(serverId, null);
+    /** {@inheritDoc} */
+    @Override public ITcAnalytics tcAnalytics(String srvId) {
+        return server(srvId, null);
     }
 
-    @Override
-    public UserAndSessionsStorage users() {
+    /** {@inheritDoc} */
+    @Override public UserAndSessionsStorage users() {
         return userAndSessionsStorage;
     }
 
-    @Override
-    public String primaryServerId() {
+    @Override public String primaryServerId() {
         return "apache"; //todo remove
     }
 
@@ -138,7 +138,7 @@ public class TcHelper implements ITcHelper {
 
     public void close() {
         if (stop.compareAndSet(false, true)) {
-            servers.asMap().values().forEach(v -> {
+            srvs.asMap().values().forEach(v -> {
                 try {
                     v.close();
                 } catch (Exception e) {

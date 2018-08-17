@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.ignite.ci.web.Launcher.waitStopSignal;
 
 /**
- * Created by dpavlov on 04.08.2017
+ *
  */
 public class TcHelperDb {
 

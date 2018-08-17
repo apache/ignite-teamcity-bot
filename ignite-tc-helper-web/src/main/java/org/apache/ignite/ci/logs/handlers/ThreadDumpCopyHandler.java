@@ -23,13 +23,13 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 import org.apache.ignite.ci.logs.ILineHandler;
 
 /**
- * Created by Дмитрий on 21.07.2017
- *
  * Use one instance per one file, class is statefull and not thread safe
  */
+@NotThreadSafe
 public class ThreadDumpCopyHandler implements ILineHandler {
     private static final String ENDL = String.format("%n");
     private FileWriter currentThDump;

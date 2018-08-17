@@ -20,5 +20,12 @@ package org.apache.ignite.ci.analysis.mode;
 /**
  */
 public enum ProcessLogsMode {
-    DISABLED, SUITE_NOT_COMPLETE, ALL
+    /** Don't parse build logs. */
+    DISABLED,
+
+    /** Parse logs if suite not completed. */
+    SUITE_NOT_COMPLETE,
+
+    /** Always parse logs. */
+    ALL
 }

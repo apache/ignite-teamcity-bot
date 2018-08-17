@@ -27,7 +27,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 
 /**
- * Created by Дмитрий on 25.02.2018
+ * Teamcity Bot main interface
  */
 public interface ITcHelper {
     IssuesStorage issues();

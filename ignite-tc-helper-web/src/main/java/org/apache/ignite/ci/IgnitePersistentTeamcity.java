@@ -70,7 +70,7 @@ import org.xml.sax.SAXParseException;
 import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
 
 /**
- * Created by dpavlov on 03.08.2017
+ *
  */
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
 

@@ -81,14 +81,14 @@ import static java.util.concurrent.CompletableFuture.supplyAsync;
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 
 /**
- * Created by Дмитрий on 21.07.2017.
+ * Class for access to Teamcity REST API without any caching.
  *
- *
+ * See more info about API
  * https://confluence.jetbrains.com/display/TCD10/REST+API
  */
 public class IgniteTeamcityHelper implements ITeamcity {
+    /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(IgniteTeamcityHelper.class);
-
 
     public static final String TEAMCITY_HELPER_HOME = "teamcity.helper.home";
     private Executor executor;
