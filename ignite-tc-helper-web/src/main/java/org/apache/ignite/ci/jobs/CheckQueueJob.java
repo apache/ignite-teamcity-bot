@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
@@ -55,6 +56,9 @@ public class CheckQueueJob implements Runnable {
 
     /** */
     private final ITcHelper tcHelper;
+
+    /** */
+    private final Map<ChainAtServerTracked, Long> startTimes = new HashMap<>();
 
     /**
      * @param creds Background credentials provider.
@@ -150,8 +154,31 @@ public class CheckQueueJob implements Runnable {
             }
 
             if (triggerBuild) {
-                for (ChainAtServerTracked chain : chains)
+                for (ChainAtServerTracked chain : chains) {
+                    long curr = System.currentTimeMillis();
+                    long delay = chain.getTriggerBuildQuietPeriod();
+
+                    if (delay > 0) {
+                        Long lastStart = startTimes.get(chain);
+
+                        long minsPassed;
+
+                        if (lastStart != null &&
+                            (minsPassed = TimeUnit.MILLISECONDS.toMinutes(curr - lastStart)) < delay) {
+
+                            logger.info("Skip triggering build, timeout has not expired " +
+                                    "(server={}, suite={}, branch={}, delay={} mins, passed={} mins)",
+                                chain.getServerId(), chain.getSuiteIdMandatory(), chain.getBranchForRestMandatory(),
+                                chain.getTriggerBuildQuietPeriod(), minsPassed);
+
+                            continue;
+                        }
+                    }
+
+                    startTimes.put(chain, curr);
+
                     teamcity.triggerBuild(chain.suiteId, chain.branchForRest, true, false);
+                }
             }
         }
     }
