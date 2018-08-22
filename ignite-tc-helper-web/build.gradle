@@ -18,6 +18,7 @@ dependencies {
     compile group: 'com.google.guava', name: 'guava', version: '22.0'
 
     def ignVer = '2.6.0'
+    //def ignVer = '2.7.0-SNAPSHOT'
     compile group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
     compile group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
 

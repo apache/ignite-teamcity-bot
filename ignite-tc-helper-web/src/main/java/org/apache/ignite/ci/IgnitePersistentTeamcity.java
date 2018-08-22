@@ -249,8 +249,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             (key, persistedValue) -> {
                 List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch);
 
-                return mergeByIdToHistoricalOrder(persistedValue,
-                    failed);
+                return mergeByIdToHistoricalOrder(persistedValue, failed);
             });
     }
 

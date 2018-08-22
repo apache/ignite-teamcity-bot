@@ -318,7 +318,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     /**
      * @return Normalized Host address, ends with '/'.
      */
-    public String host() {
+    @Override public String host() {
         return host;
     }
 
