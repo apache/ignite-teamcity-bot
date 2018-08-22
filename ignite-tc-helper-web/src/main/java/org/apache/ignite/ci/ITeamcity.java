@@ -106,7 +106,7 @@ public interface ITeamcity extends AutoCloseable {
 
     TestOccurrences getTests(String href, String normalizedBranch);
 
-    Statistics getBuildStat(String href);
+    Statistics getBuildStatistics(String href);
 
     CompletableFuture<TestOccurrenceFull> getTestFull(String href);
 
@@ -177,7 +177,7 @@ public interface ITeamcity extends AutoCloseable {
         }
 
         if (build.statisticsRef != null)
-            mCtx.setStat(getBuildStat(build.statisticsRef.href));
+            mCtx.setStat(getBuildStatistics(build.statisticsRef.href));
 
         return ctx;
     }

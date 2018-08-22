@@ -77,6 +77,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     //V1 caches, 1024 parts
     public static final String STAT = "stat";
     public static final String FINISHED_BUILDS = "finishedBuilds";
+    public static final String FINISHED_BUILDS_INCLUDE_FAILED = "finishedBuildsIncludeFailed";
+    public static final String ISSUES = "issues";
 
     //V2 caches, 32 parts
     public static final String TESTS_OCCURRENCES = "testOccurrences";
@@ -86,6 +88,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     public static final String CHANGES_LIST = "changesList";
     public static final String TEST_FULL = "testFull";
     public static final String BUILD_PROBLEMS = "buildProblems";
+    public static final String BUILD_STATISTICS = "buildStatistics";
 
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
     public static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
@@ -168,6 +171,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return serverId;
     }
 
+    @Deprecated
     private <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction) {
         return loadIfAbsent(cacheName, key, loadFunction, (V v) -> true);
     }
@@ -176,6 +180,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loadIfAbsent(getOrCreateCacheV2(ignCacheNme(cacheName)), key, loadFunction, (V v) -> true);
     }
 
+    @Deprecated
     private <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction, Predicate<V> saveValueFilter) {
         final IgniteCache<K, V> cache = ignite.getOrCreateCache(ignCacheNme(cacheName));
 
@@ -204,6 +209,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
+    @Deprecated
     private <K, V> V timedLoadIfAbsentOrMerge(String cacheName, int seconds, K key, BiFunction<K, V, V> loadWithMerge) {
         final IgniteCache<K, Expirable<V>> hist = ignite.getOrCreateCache(ignCacheNme(cacheName));
         @Nullable final Expirable<V> persistedBuilds = hist.get(key);
@@ -242,6 +248,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                     else
                         throw e;
                 }
+
                 return mergeByIdToHistoricalOrder(persistedValue, builds);
             });
     }
@@ -249,6 +256,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @NotNull
     private List<BuildRef> mergeByIdToHistoricalOrder(List<BuildRef> persistedVal, List<BuildRef> mostActualVal) {
         final SortedMap<Integer, BuildRef> merge = new TreeMap<>();
+
         if (persistedVal != null)
             persistedVal.forEach(b -> merge.put(b.getId(), b));
 
@@ -263,7 +271,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        return timedLoadIfAbsentOrMerge("finishedBuildsIncludeFailed", 60, suiteInBranch,
+        return timedLoadIfAbsentOrMerge(FINISHED_BUILDS_INCLUDE_FAILED, 60, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch);
 
@@ -470,12 +478,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public Statistics getBuildStat(String href) {
+    @Override public Statistics getBuildStatistics(String href) {
         return loadIfAbsent(STAT,
             href,
             href1 -> {
                 try {
-                    return teamcity.getBuildStat(href1);
+                    return teamcity.getBuildStatistics(href1);
                 }
                 catch (Exception e) {
                     if (Throwables.getRootCause(e) instanceof FileNotFoundException) {

@@ -19,13 +19,13 @@ package org.apache.ignite.ci.issue;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.ci.IgnitePersistentTeamcity;
 
 import javax.cache.Cache;
 import java.util.ArrayList;
 import java.util.List;
 
 public class IssuesStorage {
-    public static final String ISSUES = "issues";
     private Ignite ignite;
 
     public IssuesStorage(Ignite ignite) {
@@ -33,7 +33,7 @@ public class IssuesStorage {
     }
 
     IgniteCache<IssueKey, Issue> cache() {
-        return ignite.getOrCreateCache(ISSUES);
+        return ignite.getOrCreateCache(IgnitePersistentTeamcity.ISSUES);
     }
 
     public List<Issue> all() {

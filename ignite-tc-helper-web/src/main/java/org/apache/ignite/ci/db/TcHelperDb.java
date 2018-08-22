@@ -143,6 +143,8 @@ public class TcHelperDb {
         logFilePolicy.setMaxHistory(7);
         logFilePolicy.start();
 
+        //todo use logFilePolicy.getActiveFileName()
+
         rollingFa.setRollingPolicy(logFilePolicy);
         rollingFa.start();
 

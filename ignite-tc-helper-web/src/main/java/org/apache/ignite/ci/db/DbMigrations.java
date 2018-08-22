@@ -120,8 +120,7 @@ public class DbMigrations {
         });
 
         applyMigration(TESTS + "-to-" + testOccurrencesCache.getName(), () -> {
-            String cacheNme = ignCacheNme(TESTS);
-            IgniteCache<String, TestOccurrences> tests = ignite.getOrCreateCache(cacheNme);
+            IgniteCache<String, TestOccurrences> tests = getOrCreateIgnCacheV1(TESTS);
 
             int size = tests.size();
             if (size > 0) {
@@ -161,7 +160,7 @@ public class DbMigrations {
         });
 
         applyMigration(newBuildsCache, () -> {
-            IgniteCache<String, Build> oldBuilds = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
+            IgniteCache<String, Build> oldBuilds = getOrCreateIgnCacheV1(BUILD_RESULTS);
 
             int size = oldBuilds.size();
             if (size > 0) {
@@ -263,6 +262,10 @@ public class DbMigrations {
         });
     }
 
+    private <K, V> IgniteCache<K, V> getOrCreateIgnCacheV1(String name) {
+        return ignite.getOrCreateCache(ignCacheNme(name));
+    }
+
     private <T> void v1tov2cacheMigrate(String deprecatedCache, Cache<String, T> testFullCache) {
         String cacheNme = ignCacheNme(deprecatedCache);
         IgniteCache<String, T> tests = ignite.getOrCreateCache(cacheNme);
@@ -272,14 +275,14 @@ public class DbMigrations {
             int i = 0;
 
             Map<String, T> batch = new HashMap<>();
-            for (Cache.Entry<String, T> entry : tests) {
 
+            for (Cache.Entry<String, T> entry : tests) {
                 batch.put(entry.getKey(), entry.getValue());
 
-                if (batch.size() >= 100)
-                    saveOneBatch(testFullCache, cacheNme, size, i, batch);
-
                 i++;
+
+                if (batch.size() >= 300)
+                    saveOneBatch(testFullCache, cacheNme, size, i, batch);
             }
 
             if (!batch.isEmpty())
@@ -304,10 +307,10 @@ public class DbMigrations {
         batch.clear();
     }
 
-    public void applyRemoveCache(String summary) {
-        applyMigration("remove" + summary, () -> {
-            if (ignite.cacheNames().contains(summary)) {
-                IgniteCache<String, Build> oldBuilds = ignite.getOrCreateCache(summary);
+    private void applyRemoveCache(String cacheNme) {
+        applyMigration("remove" + cacheNme, () -> {
+            if (ignite.cacheNames().contains(cacheNme)) {
+                IgniteCache<String, Build> oldBuilds = ignite.getOrCreateCache(cacheNme);
 
                 oldBuilds.clear();
 
