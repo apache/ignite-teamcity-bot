@@ -329,20 +329,24 @@ public class DbMigrations {
     }
 
     private void applyMigration(String code, Runnable runnable) {
-        if (!doneMigrations.containsKey(code)) {
-            synchronized (DbMigrations.class) {
-                String msg = "Running migration procedure [" + code + "]";
-                System.err.println(msg);
-                logger.warn(msg);
+        if (doneMigrations.containsKey(code))
+            return;
 
-                runnable.run();
+        synchronized (DbMigrations.class) {
+            if (doneMigrations.containsKey(code))
+                return;
 
-                doneMigrations.put(code, true);
+            String msg = "Running migration procedure [" + code + "]";
+            System.err.println(msg);
+            logger.warn(msg);
 
-                String msgComp = "Completed migration procedure [" + code + "]";
-                System.err.println(msgComp);
-                logger.warn(msgComp);
-            }
+            runnable.run();
+
+            doneMigrations.put(code, true);
+
+            String msgComp = "Completed migration procedure [" + code + "]";
+            System.err.println(msgComp);
+            logger.warn(msgComp);
         }
     }
 
