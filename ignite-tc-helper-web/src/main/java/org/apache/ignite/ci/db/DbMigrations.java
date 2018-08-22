@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.db;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 import javax.cache.Cache;
 import org.apache.ignite.Ignite;
@@ -29,18 +31,25 @@ import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
-import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
 import org.apache.ignite.ci.web.rest.Metrics;
 import org.apache.ignite.ci.web.rest.build.GetBuildTestFailures;
 import org.apache.ignite.ci.web.rest.pr.GetPrTestFailures;
+import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
 import org.apache.ignite.configuration.CacheConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Migrations to be applied to each TC related caches.
  */
 public class DbMigrations {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(DbMigrations.class);
+
     public static final String DONE_MIGRATIONS = "doneMigrations";
     @Deprecated
     public static final String TESTS = "tests";
@@ -51,6 +60,12 @@ public class DbMigrations {
     //V1 caches, 1024 parts
     @Deprecated
     public static final String RUN_STAT_CACHE = "runStat";
+
+    @Deprecated
+    public static final String TEST_OCCURRENCE_FULL = "testOccurrenceFull";
+
+    @Deprecated
+    public static final String PROBLEMS = "problems";
 
     private final Ignite ignite;
     private final String serverId;
@@ -71,7 +86,9 @@ public class DbMigrations {
         Consumer<TestOccurrences> saveTestToLatest,
         Cache<String, Build> buildCache, Consumer<Build> saveBuildToStat,
         IgniteCache<SuiteInBranch, RunStat> suiteHistCache,
-        IgniteCache<TestInBranch, RunStat> testHistCache) {
+        IgniteCache<TestInBranch, RunStat> testHistCache,
+        IgniteCache<String, TestOccurrenceFull> testFullCache,
+        IgniteCache<String, ProblemOccurrences> problemsCache) {
 
         doneMigrations = doneMigrationsCache();
 
@@ -236,6 +253,55 @@ public class DbMigrations {
         applyRemoveCache(GetTrackedBranchTestResults.TEST_FAILURES_SUMMARY_CACHE_NAME);
         applyRemoveCache(GetBuildTestFailures.TEST_FAILURES_SUMMARY_CACHE_NAME);
         applyRemoveCache(GetPrTestFailures.CURRENT_PR_FAILURES);
+
+        applyMigration(TEST_OCCURRENCE_FULL + "-to-" + testFullCache.getName() + "V2", () -> {
+            this.v1tov2cacheMigrate(TEST_OCCURRENCE_FULL, testFullCache);
+        });
+
+        applyMigration(PROBLEMS + "-to-" + problemsCache.getName() + "V2", () -> {
+            this.v1tov2cacheMigrate(PROBLEMS, problemsCache);
+        });
+    }
+
+    private <T> void v1tov2cacheMigrate(String deprecatedCache, Cache<String, T> testFullCache) {
+        String cacheNme = ignCacheNme(deprecatedCache);
+        IgniteCache<String, T> tests = ignite.getOrCreateCache(cacheNme);
+
+        int size = tests.size();
+        if (size > 0) {
+            int i = 0;
+
+            Map<String, T> batch = new HashMap<>();
+            for (Cache.Entry<String, T> entry : tests) {
+
+                batch.put(entry.getKey(), entry.getValue());
+
+                if (batch.size() >= 100)
+                    saveOneBatch(testFullCache, cacheNme, size, i, batch);
+
+                i++;
+            }
+
+            if (!batch.isEmpty())
+                saveOneBatch(testFullCache, cacheNme, size, i, batch);
+
+            tests.clear();
+
+            tests.destroy();
+        }
+    }
+
+    private <T> void saveOneBatch(Cache<String, T> testFullCache, String cacheNme, int size,
+        int i,
+        Map<String, T> batch) {
+        String key = batch.keySet().iterator().next();
+        String msg = "Migrating " + cacheNme + " " + batch.size() + " entries." +
+            " Processed " + i + " from " + size + ": One entry key " + key;
+        logger.info(msg);
+
+        testFullCache.putAll(batch);
+
+        batch.clear();
     }
 
     public void applyRemoveCache(String summary) {
@@ -262,9 +328,17 @@ public class DbMigrations {
     private void applyMigration(String code, Runnable runnable) {
         if (!doneMigrations.containsKey(code)) {
             synchronized (DbMigrations.class) {
-                System.err.println("Running migration procedure [" + code + "]");
+                String msg = "Running migration procedure [" + code + "]";
+                System.err.println(msg);
+                logger.warn(msg);
+
                 runnable.run();
+
                 doneMigrations.put(code, true);
+
+                String msgComp = "Completed migration procedure [" + code + "]";
+                System.err.println(msgComp);
+                logger.warn(msgComp);
             }
         }
     }
