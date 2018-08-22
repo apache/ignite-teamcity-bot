@@ -34,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @Persisted
 public class RunStat {
-    public static final int MAX_LATEST_RUNS = 50;
+    public static final int MAX_LATEST_RUNS = 100;
     public static final int RES_OK = 0;
 
     /**
