@@ -60,7 +60,11 @@ function showVersionInfo(result) {
     res += "Ignite TC helper, V" + result.version + ", ";
 
     if (isDefinedAndFilled(result.srcWebUrl)) {
-        res += "<a href='" + result.srcWebUrl + "'>source code (GitHub)</a>. ";
+        res += "<a href='" + result.srcWebUrl + "'>source code (GitHub)</a> ";
+    }
+
+    if (isDefinedAndFilled(result.apacheGitUrl)) {
+        res += ", <a href='" + result.apacheGitUrl + "'>Apache Git</a>. ";
     }
 
     res += "Powered by <a href='https://ignite.apache.org/'>";
