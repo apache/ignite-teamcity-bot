@@ -26,6 +26,7 @@ import java.util.Collections;
 import ch.qos.logback.classic.LoggerContext;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheInterceptorAdapter;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.HelperConfig;
@@ -215,6 +216,11 @@ public class TcHelperDb {
         });*/
 
         return ccfg;
+    }
+
+    public static <K, V> CacheConfiguration<K, V> getCacheV2TxConfig(String name) {
+        return TcHelperDb.<K, V>getCacheV2Config(name).setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
+
     }
 
     private static class LocalOnlyTcpDiscoveryIpFinder implements TcpDiscoveryIpFinder {

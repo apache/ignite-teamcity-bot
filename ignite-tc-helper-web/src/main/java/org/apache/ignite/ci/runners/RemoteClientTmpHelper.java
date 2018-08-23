@@ -69,7 +69,7 @@ public class RemoteClientTmpHelper {
             }
         }
 
-        IgniteCache<Object, Object> cache = ignite.cache(IgnitePersistentTeamcity.ISSUES);
+        IgniteCache<Object, Object> cache = ignite.cache(IgnitePersistentTeamcity.BOT_DETECTED_ISSUES);
         for (Cache.Entry<Object, Object> next : cache) {
             Object key = next.getKey();
             Object value = next.getValue();

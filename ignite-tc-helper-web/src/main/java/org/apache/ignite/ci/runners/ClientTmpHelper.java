@@ -32,7 +32,7 @@ public class ClientTmpHelper {
         //ignite.cache(UserAndSessionsStorage.USERS).destroy();
         Object dpavlov = ignite.cache(UserAndSessionsStorage.USERS).get("dpavlov");
 
-        IgniteCache<Object, Object> cache = ignite.cache(IgnitePersistentTeamcity.ISSUES);
+        IgniteCache<Object, Object> cache = ignite.cache(IgnitePersistentTeamcity.BOT_DETECTED_ISSUES);
 
         cache.forEach(
             issue->{

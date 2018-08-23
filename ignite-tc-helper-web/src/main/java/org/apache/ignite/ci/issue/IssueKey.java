@@ -18,14 +18,16 @@
 package org.apache.ignite.ci.issue;
 
 import com.google.common.base.MoreObjects;
+import org.apache.ignite.ci.db.Persisted;
 
+@Persisted
 public class IssueKey {
     public String server;
     public Integer buildId;
     public String testOrBuildName;
 
-    public IssueKey(String server, Integer buildId, String testOrBuildName) {
-        this.server = server;
+    public IssueKey(String srv, Integer buildId, String testOrBuildName) {
+        this.server = srv;
         this.buildId = buildId;
         this.testOrBuildName = testOrBuildName;
     }

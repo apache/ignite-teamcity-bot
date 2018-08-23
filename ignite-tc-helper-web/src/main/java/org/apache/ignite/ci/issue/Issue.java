@@ -19,12 +19,14 @@ package org.apache.ignite.ci.issue;
 
 import com.google.common.base.MoreObjects;
 import java.util.*;
+import org.apache.ignite.ci.db.Persisted;
 import org.jetbrains.annotations.Nullable;
 
 /**
  *
  */
 @SuppressWarnings("WeakerAccess")
+@Persisted
 public class Issue {
     public String displayType;
 
