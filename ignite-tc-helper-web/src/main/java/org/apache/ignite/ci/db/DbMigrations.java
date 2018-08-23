@@ -325,27 +325,35 @@ public class DbMigrations {
         String cacheNme = ignCacheNme(deprecatedCache);
         IgniteCache<K, V> tests = ignite.getOrCreateCache(cacheNme);
 
+
         int size = tests.size();
         if (size > 0) {
-            int i = 0;
+            ignite.cluster().disableWal(newCache.getName());
 
-            Map<K, V> batch = new HashMap<>();
+            try {
+                int i = 0;
 
-            for (Cache.Entry<K, V> entry : tests) {
-                batch.put(entry.getKey(), entry.getValue());
+                Map<K, V> batch = new HashMap<>();
 
-                i++;
+                for (Cache.Entry<K, V> entry : tests) {
+                    batch.put(entry.getKey(), entry.getValue());
 
-                if (batch.size() >= 300)
+                    i++;
+
+                    if (batch.size() >= 300)
+                        saveOneBatch(newCache, cacheNme, size, i, batch);
+                }
+
+                if (!batch.isEmpty())
                     saveOneBatch(newCache, cacheNme, size, i, batch);
+
+                tests.clear();
+
+                tests.destroy();
             }
-
-            if (!batch.isEmpty())
-                saveOneBatch(newCache, cacheNme, size, i, batch);
-
-            tests.clear();
-
-            tests.destroy();
+            finally {
+                ignite.cluster().enableWal(newCache.getName());
+            }
         }
     }
 
