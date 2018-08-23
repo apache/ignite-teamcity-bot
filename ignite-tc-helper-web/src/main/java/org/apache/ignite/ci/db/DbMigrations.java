@@ -24,6 +24,7 @@ import java.util.function.Consumer;
 import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.ci.ITeamcity;
@@ -84,6 +85,7 @@ public class DbMigrations {
 
     @Deprecated
     public static final String ISSUES = "issues";
+    public static final int SUITES_CNT = 100;
 
     private final Ignite ignite;
     private final String serverId;
@@ -126,7 +128,7 @@ public class DbMigrations {
                         if (buildId > maxFoundBuildId)
                             maxFoundBuildId = buildId;
 
-                        if (buildId < maxFoundBuildId - (RunStat.MAX_LATEST_RUNS * 100 * 3))
+                        if (buildId < maxFoundBuildId - (RunStat.MAX_LATEST_RUNS * SUITES_CNT * 3))
                             System.out.println(serverId + " - Skipping entry " + i + " from " + size + ": " + key);
                         else {
                             System.out.println(serverId + " - Migrating entry " + i + " from " + size + ": " + key);
@@ -274,7 +276,58 @@ public class DbMigrations {
         applyRemoveCache(GetBuildTestFailures.TEST_FAILURES_SUMMARY_CACHE_NAME);
         applyRemoveCache(GetPrTestFailures.CURRENT_PR_FAILURES);
 
-        applyV1toV2Migration(TEST_OCCURRENCE_FULL, testFullCache);
+        applyMigration(TEST_OCCURRENCE_FULL + "-to-" + testFullCache.getName() + "V2", () -> {
+            String cacheNme = ignCacheNme(TEST_OCCURRENCE_FULL);
+            IgniteCache<String, TestOccurrenceFull> oldTestCache = ignite.getOrCreateCache(cacheNme);
+
+            int size = oldTestCache.size();
+            if (size > 0) {
+                ignite.cluster().disableWal(testFullCache.getName());
+
+                try {
+                    int i = 0;
+
+                    Map<String, TestOccurrenceFull> batch = new HashMap<>();
+                    int maxFoundBuildId = 0;
+
+                    IgniteDataStreamer<String, TestOccurrenceFull> streamer = ignite.dataStreamer(testFullCache.getName());
+
+                    for (Cache.Entry<String, TestOccurrenceFull> entry : oldTestCache) {
+                        String key = entry.getKey();
+
+                        Integer buildId = RunStat.extractIdPrefixed(key, ",build:(id:", ")");
+
+                        if (buildId != null) {
+                            if (buildId > maxFoundBuildId)
+                                maxFoundBuildId = buildId;
+
+                            if (buildId < maxFoundBuildId - (RunStat.MAX_LATEST_RUNS * SUITES_CNT * 15))
+                                logger.info(serverId + " - Skipping entry " + i + " from " + size + ": " + key);
+                            else
+                                batch.put(entry.getKey(), entry.getValue());
+                        }
+
+
+                        i++;
+
+                        if (batch.size() >= 300)
+                            saveOneBatch(cacheNme, size, i, batch, streamer);
+                    }
+
+                    if (!batch.isEmpty())
+                        saveOneBatch(cacheNme, size, i, batch, streamer);
+
+                    streamer.flush();
+
+                    System.err.println("Removing data from old cache " + oldTestCache.getName());
+
+                    oldTestCache.destroy();
+                }
+                finally {
+                    ignite.cluster().enableWal(testFullCache.getName());
+                }
+            }
+        });
         applyV1toV2Migration(PROBLEMS, problemsCache);
         applyV1toV2Migration(STAT, buildStatCache);
         applyV1toV2Migration(FINISHED_BUILDS, buildHistCache);
@@ -291,27 +344,27 @@ public class DbMigrations {
 
                 Map<IssueKey, Issue> batch = new HashMap<>();
 
+                IgniteDataStreamer<IssueKey, Issue> streamer = ignite.dataStreamer(issuesCache.getName());
                 for (Cache.Entry<IssueKey, Issue> entry : issuesOldCache) {
                     batch.put(entry.getKey(), entry.getValue());
 
                     i++;
 
                     if (batch.size() >= 300)
-                        saveOneBatch(issuesCache, cacheName, size, i, batch);
+                        saveOneBatch(cacheName, size, i, batch, streamer);
                 }
 
                 if (!batch.isEmpty())
-                    saveOneBatch(issuesCache, cacheName, size, i, batch);
+                    saveOneBatch(cacheName, size, i, batch, streamer);
 
-                issuesOldCache.clear();
+                System.err.println("Removing data from old cache " + issuesOldCache.getName());
 
                 issuesOldCache.destroy();
             }
         });
     }
 
-    public <K, V> void applyV1toV2Migration( String full,
-        Cache<K, V> cache) {
+    private <K, V> void applyV1toV2Migration(String full, Cache<K, V> cache) {
         applyMigration(full + "-to-" + cache.getName() + "V2", () -> {
             v1tov2cacheMigrate(full, cache);
         });
@@ -335,19 +388,22 @@ public class DbMigrations {
 
                 Map<K, V> batch = new HashMap<>();
 
+                IgniteDataStreamer<K, V> streamer = ignite.dataStreamer(newCache.getName());
+
                 for (Cache.Entry<K, V> entry : tests) {
                     batch.put(entry.getKey(), entry.getValue());
 
                     i++;
 
                     if (batch.size() >= 300)
-                        saveOneBatch(newCache, cacheNme, size, i, batch);
+                        saveOneBatch(cacheNme, size, i, batch, streamer);
                 }
 
                 if (!batch.isEmpty())
-                    saveOneBatch(newCache, cacheNme, size, i, batch);
+                    saveOneBatch(cacheNme, size, i, batch, streamer);
 
-                tests.clear();
+                streamer.flush();
+                System.err.println("Removing data from old cache " + tests.getName());
 
                 tests.destroy();
             }
@@ -358,22 +414,22 @@ public class DbMigrations {
     }
 
     /**
-     * @param newCache Test full cache.
      * @param cacheNme Cache name.
      * @param size overall size of cache.
      * @param i Processed count.
      * @param batch Batch.
+     * @param streamer
      */
-    private <K, V> void saveOneBatch(Cache<K, V> newCache, String cacheNme, int size,
+    private <K, V> void saveOneBatch(String cacheNme, int size,
         int i,
-        Map<K, V> batch) {
+        Map<K, V> batch, IgniteDataStreamer<K, V> streamer) {
         K key = batch.keySet().iterator().next();
         String msg = "Migrating " + cacheNme + " " + batch.size() + " entries." +
             " Processed " + i + " from " + size + ": One entry key " + key;
         System.out.println(msg);
         logger.info(msg);
 
-        newCache.putAll(batch);
+        streamer.addData(batch);
 
         batch.clear();
     }

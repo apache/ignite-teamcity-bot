@@ -541,7 +541,19 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             testFullCache(),
             href,
             testOccFullFutures,
-            teamcity::getTestFull);
+            href1 -> {
+                try {
+                    return teamcity.getTestFull(href1);
+                }
+                catch (Exception e) {
+                    if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                        System.err.println("TestOccurrenceFull not found for href : " + href);
+
+                        return CompletableFuture.completedFuture(new TestOccurrenceFull());
+                    }
+                    throw e;
+                }
+            });
     }
 
     /** {@inheritDoc} */

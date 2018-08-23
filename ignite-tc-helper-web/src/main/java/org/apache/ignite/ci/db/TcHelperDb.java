@@ -98,7 +98,7 @@ public class TcHelperDb {
         final DataStorageConfiguration dsCfg = new DataStorageConfiguration()
             .setWalMode(WALMode.LOG_ONLY)
             .setWalHistorySize(1)
-            .setCheckpointFrequency(60 * 1000)
+            .setCheckpointFrequency(5 * 60 * 1000)
             .setWriteThrottlingEnabled(true)
             .setDefaultDataRegionConfiguration(regConf);
 
