@@ -33,6 +33,7 @@ import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
@@ -113,6 +114,8 @@ public interface ITeamcity extends AutoCloseable {
     Change getChange(String href);
 
     ChangesList getChangesList(String href);
+
+    IssuesUsagesList getIssuesUsagesList(String href);
 
     /**
      * Runs deep collection of all related statistics for particular build

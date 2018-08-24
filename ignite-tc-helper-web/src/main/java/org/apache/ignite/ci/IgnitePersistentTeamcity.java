@@ -56,6 +56,7 @@ import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
@@ -86,6 +87,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     public static final String LOG_CHECK_RESULT = "logCheckResult";
     public static final String CHANGE_INFO_FULL = "changeInfoFull";
     public static final String CHANGES_LIST = "changesList";
+    public static final String ISSUES_USAGES_LIST = "issuesUsagesList";
 
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
     public static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
@@ -521,6 +523,24 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                     throw e;
             }
         });
+    }
+
+    @Override public IssuesUsagesList getIssuesUsagesList(String href) {
+        IssuesUsagesList issuesUsages =  loadIfAbsentV2(ISSUES_USAGES_LIST, href, href1 -> {
+            try {
+                return teamcity.getIssuesUsagesList(href1);
+            }
+            catch (Exception e) {
+                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                    System.err.println("Issues Usage List not found for href : " + href);
+
+                    return new IssuesUsagesList();
+                }
+                else
+                    throw e;
+            }
+        });
+        return issuesUsages;
     }
 
     /** {@inheritDoc} */

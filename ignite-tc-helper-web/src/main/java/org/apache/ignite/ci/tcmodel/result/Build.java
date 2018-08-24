@@ -58,6 +58,8 @@ public class Build extends BuildRef implements IVersionedEntity {
 
     @XmlElement(name = "statistics") public StatisticsRef statisticsRef;
 
+    @XmlElement(name = "relatedIssues") public RelatedIssuesRef relatedIssuesRef;
+
     /** Changes not included into build.*/
     @XmlElement(name = "lastChanges") public ChangesList lastChanges;
 

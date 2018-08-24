@@ -15,21 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.result;
+package org.apache.ignite.ci.tcmodel.result.issues;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 
-/**
- * Test occurrences reference
- */
-public class TestOccurrencesRef {
-    /** Href without host name to obtain full tests list. */
-    @XmlAttribute public String href;
+@XmlRootElement(name = "IssueUsage")
+@XmlAccessorType(XmlAccessType.FIELD)
+public class IssueUsage {
+    @XmlElement(name = "issue")
+    private IssueRef issue;
+    @XmlElement(name = "changes")
+    private ChangesList changesList;
 
-    @XmlAttribute public Integer count;
-    @XmlAttribute public Integer passed;
-    @XmlAttribute public Integer failed;
-    @XmlAttribute public Integer newFailed;
-    @XmlAttribute public Integer ignored;
-    @XmlAttribute public Integer muted;
+    public IssueRef getIssue(){
+        return issue;
+    }
 }

@@ -38,8 +38,10 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
+import org.apache.ignite.ci.tcmodel.result.issues.IssueRef;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.issues.IssueUsage;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.BackgroundUpdater;
@@ -169,6 +171,22 @@ public class GetBuildTestFailures {
 
             return Lists.reverse(teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchName))
                 .stream().limit(cnt).map(v -> teamcity.getBuild(v.href)).collect(Collectors.toList());
+        }
+    }
+
+    @GET
+    @Path("relatedIssues")
+    public List<IssueRef> getRelatedIssues(
+        @QueryParam("buildId") Integer buildId) {
+        final ITcHelper tcHelper = CtxListener.getTcHelper(context);
+        final String srvId = tcHelper.primaryServerId();
+
+        final ICredentialsProv creds = ICredentialsProv.get(req);
+
+        try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds)) {
+
+            return teamcity.getIssuesUsagesList(teamcity.getBuild(buildId).relatedIssuesRef.href)
+                .getIssuesUsagesNonNull().stream().map(IssueUsage::getIssue).collect(Collectors.toList());
         }
     }
 }
