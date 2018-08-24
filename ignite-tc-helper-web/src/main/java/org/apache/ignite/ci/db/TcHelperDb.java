@@ -27,25 +27,21 @@ import ch.qos.logback.classic.LoggerContext;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.CacheAtomicityMode;
-import org.apache.ignite.cache.CacheInterceptorAdapter;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.util.ObjectInterner;
+import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.configuration.*;
-import org.apache.ignite.logger.java.JavaLogger;
 import org.apache.ignite.logger.slf4j.Slf4jLogger;
 import org.apache.ignite.spi.IgniteSpiContext;
 import org.apache.ignite.spi.IgniteSpiException;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
-import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
 import org.slf4j.LoggerFactory;
@@ -56,6 +52,8 @@ import static org.apache.ignite.ci.web.Launcher.waitStopSignal;
  *
  */
 public class TcHelperDb {
+    /** Logger. */
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IgniteTeamcityHelper.class);
 
     public static void main(String[] args) {
         Ignite ignite = start();
@@ -92,8 +90,9 @@ public class TcHelperDb {
 
 
         final DataRegionConfiguration regConf = new DataRegionConfiguration()
-            .setMaxSize(12L * 1024 * 1024 * 1024)
             .setPersistenceEnabled(true);
+
+        setupRegSize(regConf);
 
         final DataStorageConfiguration dsCfg = new DataStorageConfiguration()
             .setWalMode(WALMode.LOG_ONLY)
@@ -112,10 +111,37 @@ public class TcHelperDb {
 
         ignite.cluster().active(true);
 
-
-        System.out.println("Activate completed");
+        System.out.println("Activate Completed");
 
         return ignite;
+    }
+
+    /**
+     * @param regConf Reg conf.
+     */
+    private static void setupRegSize(DataRegionConfiguration regConf) {
+        String regSzGb = System.getProperty(ITcHelper.TEAMCITY_BOT_REGIONSIZE);
+
+        if (regSzGb != null) {
+            try {
+                int szGb = Integer.parseInt(regSzGb);
+
+                String msg = "Using custom size of region: " + szGb + "Gb";
+                logger.info(msg);
+                System.out.println(msg);
+
+                regConf.setMaxSize(szGb * 1024L * 1024 * 1024);
+            }
+            catch (NumberFormatException e) {
+                e.printStackTrace();
+
+                logger.error("Unable to setup region", e);
+            }
+        } else {
+            String msg = "Using default size of region.";
+            logger.info(msg);
+            System.out.println(msg);
+        }
     }
 
     private static void configLogger(File workDir) {

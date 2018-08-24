@@ -90,7 +90,6 @@ public class IgniteTeamcityHelper implements ITeamcity {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(IgniteTeamcityHelper.class);
 
-    public static final String TEAMCITY_HELPER_HOME = "teamcity.helper.home";
     private Executor executor;
     private final File logsDir;
     /** Normalized Host address, ends with '/'. */
