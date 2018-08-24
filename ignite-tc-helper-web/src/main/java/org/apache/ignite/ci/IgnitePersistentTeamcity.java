@@ -80,6 +80,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     //V2 caches, 32 parts
     public static final String TESTS_OCCURRENCES = "testOccurrences";
     public static final String TESTS_RUN_STAT = "testsRunStat";
+    public static final String CALCULATED_STATISTIC = "calculatedStatistic";
     public static final String LOG_CHECK_RESULT = "logCheckResult";
     public static final String CHANGE_INFO_FULL = "changeInfoFull";
     public static final String CHANGES_LIST = "changesList";
@@ -497,14 +498,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
         return loadIfAbsent(testOccurrencesCache(),
             hrefForDb,  //hack to avoid test reloading from store in case of href filter replaced
-            hrefIgnored -> {
-                TestOccurrences loadedTests = teamcity.getTests(href, normalizedBranch);
-
-                //todo first touch of build here will cause build and its stat will be diverged
-                addTestOccurrencesToStat(loadedTests, normalizedBranch);
-
-                return loadedTests;
-            });
+            hrefIgnored -> teamcity.getTests(href, normalizedBranch));
     }
 
     private void addTestOccurrencesToStat(TestOccurrences val) {
@@ -512,8 +506,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     private void addTestOccurrencesToStat(TestOccurrences val, String normalizedBranch) {
-        for (TestOccurrence next : val.getTests())
-            addTestOccurrenceToStat(next, normalizedBranch);
+        for (TestOccurrence next : val.getTests()) {
+            addTestOccurrenceToStat(next, normalizedBranch, null);
+        }
     }
 
     /** {@inheritDoc} */
@@ -612,7 +607,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return key -> key == null ? null : testRunStatCache().get(key);
     }
 
-
     private Stream<RunStat> allTestAnalysis() {
         return StreamSupport.stream(testRunStatCache().spliterator(), false)
             .map(Cache.Entry::getValue);
@@ -620,6 +614,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     private IgniteCache<TestInBranch, RunStat> testRunStatCache() {
         return getOrCreateCacheV2(ignCacheNme(TESTS_RUN_STAT));
+    }
+
+    private IgniteCache<Integer, Boolean> calculatedStatistic() {
+        return getOrCreateCacheV2(ignCacheNme(CALCULATED_STATISTIC));
     }
 
     /** {@inheritDoc} */
@@ -643,7 +641,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return getOrCreateCacheV2(ignCacheNme(LOG_CHECK_RESULT));
     }
 
-    private void addTestOccurrenceToStat(TestOccurrence next, String normalizedBranch) {
+    private void addTestOccurrenceToStat(TestOccurrence next, String normalizedBranch, Boolean changesExist) {
         String name = next.getName();
         if (Strings.isNullOrEmpty(name))
             return;
@@ -661,7 +659,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             if (val == null)
                 val = new RunStat(key.getName());
 
-            val.addTestRun(testOccurrence);
+            val.addTestRun(testOccurrence, changesExist);
 
             entry.setValue(val);
 
@@ -692,7 +690,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             if (val == null)
                 val = new RunStat(key.name);
 
-            val.addTestRunToLatest(testOccurrence);
+            val.addTestRunToLatest(testOccurrence, RunStat.ChangesState.UNKNOWN);
 
             entry.setValue(val);
 
@@ -737,6 +735,18 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         int fields = ObjectInterner.internFields(logCheckResult);
 
         return logCheckResult.getLastThreadDump();
+    }
+
+    /** {@inheritDoc} */
+    @Override public void calculateBuildStatistic(SingleBuildRunCtx ctx) {
+        if (calculatedStatistic().containsKey(ctx.buildId()))
+            return;
+
+        for (TestOccurrence testOccurrence : ctx.getTests()) {
+            addTestOccurrenceToStat(testOccurrence, normalizeBranch(ctx.getBuild()), !ctx.getChanges().isEmpty());
+        }
+
+        calculatedStatistic().put(ctx.buildId(), true);
     }
 
     /**

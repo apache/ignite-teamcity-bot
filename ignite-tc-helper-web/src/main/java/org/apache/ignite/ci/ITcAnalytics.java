@@ -20,6 +20,7 @@ package org.apache.ignite.ci;
 import java.util.List;
 import java.util.function.Function;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 
@@ -30,6 +31,7 @@ public interface ITcAnalytics extends AutoCloseable {
 
     /**
      * Return build statistics for default branch provider
+     *
      * @return map from suite ID to its run statistics
      */
     Function<SuiteInBranch, RunStat> getBuildFailureRunStatProvider();
@@ -42,6 +44,13 @@ public interface ITcAnalytics extends AutoCloseable {
     List<RunStat> topFailingSuite(int cnt);
 
     String getThreadDumpCached(Integer buildId);
+
+    /**
+     * Calculate required statistic for build if was not already calculated.
+     *
+     * @param ctx Context as provider build data.
+     */
+    void calculateBuildStatistic(SingleBuildRunCtx ctx);
 
     @Override void close();
 }

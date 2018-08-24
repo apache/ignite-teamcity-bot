@@ -23,6 +23,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import static org.apache.ignite.ci.analysis.RunStat.ChangesState.UNKNOWN;
 import static org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence.STATUS_SUCCESS;
 import static org.junit.Assert.*;
 
@@ -34,14 +35,14 @@ public class DetectingFailureTest {
         TestOccurrence occurrence = new TestOccurrence().setStatus(STATUS_SUCCESS);
 
         for (int i = 0; i < 5; i++)
-            stat.addTestRunToLatest(occurrence.setId(fakeTestId(113 + i)));
+            stat.addTestRunToLatest(occurrence.setId(fakeTestId(113 + i)), UNKNOWN);
 
         occurrence.status = "FAILED";
 
         int firstFailedBuildId = 150;
 
         for (int i = 0; i < 5; i++)
-            stat.addTestRunToLatest(occurrence.setId(fakeTestId(firstFailedBuildId + i)));
+            stat.addTestRunToLatest(occurrence.setId(fakeTestId(firstFailedBuildId + i)), UNKNOWN);
 
         RunStat.TestId testId = stat.detectTemplate(EventTemplates.newFailure);
 
@@ -95,14 +96,14 @@ public class DetectingFailureTest {
         for (int i = 0; i < 50; i++) {
             occurrence.status = ints[i] == 0 ? Build.STATUS_SUCCESS : "FAILURE";
 
-            stat.addTestRunToLatest(occurrence.setId(fakeTestId(100 + i)));
+            stat.addTestRunToLatest(occurrence.setId(fakeTestId(100 + i)), UNKNOWN);
         }
 
         occurrence.status = "FAILED";
 
         int firstFailedBuildId = 150;
         for (int i = 0; i < 4; i++)
-            stat.addTestRunToLatest(occurrence.setId(fakeTestId(firstFailedBuildId + i)));
+            stat.addTestRunToLatest(occurrence.setId(fakeTestId(firstFailedBuildId + i)), UNKNOWN);
 
         assertTrue(stat.isFlaky());
 
@@ -124,20 +125,20 @@ public class DetectingFailureTest {
         for (int i = 0; i < results.length; i++) {
             statWithHist.addTestRunToLatest(occurrence
                 .setStatus(results[i] == 0 ? Build.STATUS_SUCCESS : "FAILURE")
-                .setId(fakeTestId(100 + i)));
+                .setId(fakeTestId(100 + i)), UNKNOWN);
         }
 
         occurrence.setStatus("FAILED");
 
         int firstFailedBuildId = 150;
         for (int i = 0; i < 15; i++)
-            statWithHist.addTestRunToLatest(occurrence.setId(fakeTestId(firstFailedBuildId + i)));
+            statWithHist.addTestRunToLatest(occurrence.setId(fakeTestId(firstFailedBuildId + i)), UNKNOWN);
 
         assertNull(statWithHist.detectTemplate(EventTemplates.newContributedTestFailure));
 
         RunStat contributedTestStat = new RunStat("");
         for (int i = 0; i < 5; i++)
-            contributedTestStat.addTestRunToLatest(occurrence.setId(fakeTestId(firstFailedBuildId + i)));
+            contributedTestStat.addTestRunToLatest(occurrence.setId(fakeTestId(firstFailedBuildId + i)), UNKNOWN);
 
         RunStat.TestId testId = contributedTestStat.detectTemplate(EventTemplates.newContributedTestFailure);
         assertNotNull(testId);
