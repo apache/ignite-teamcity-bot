@@ -124,17 +124,26 @@ public class BuildChainProcessor {
             )
             .forEach((BuildRef buildRef) -> {
                 Build build = teamcity.getBuild(buildRef.href);
+
                 if (build == null || build.isFakeStub())
                     return;
 
-                String buildTypeId = build.buildTypeId;
-                MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(buildTypeId, k -> new MultBuildRunCtx(build));
+                MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(build.buildTypeId, k -> new MultBuildRunCtx(build));
 
-                collectBuildContext(ctx, teamcity, procLog, contactPersonProps, includeScheduledInfo, build);
+                ctx.addBuild(teamcity.loadTestsAndProblems(build, ctx));
             });
 
-        Collection<MultBuildRunCtx> values = buildsCtxMap.values();
-        ArrayList<MultBuildRunCtx> contexts = new ArrayList<>(values);
+        ArrayList<MultBuildRunCtx> contexts = new ArrayList<>(buildsCtxMap.values());
+
+        contexts.forEach(multiCtx -> {
+            analyzeTests(multiCtx, teamcity, procLog, tcAnalytics);
+
+            fillBuildCounts(multiCtx, teamcity, includeScheduledInfo);
+
+            if (contactPersonProps != null && multiCtx.getContactPerson() == null)
+                multiCtx.setContactPerson(contactPersonProps.getProperty(multiCtx.suiteId()));
+        });
+
         if (tcAnalytics != null) {
             Function<MultBuildRunCtx, Float> function = ctx -> {
                 SuiteInBranch key = new SuiteInBranch(ctx.suiteId(), normalizeBranch(failRateBranch));
@@ -173,30 +182,29 @@ public class BuildChainProcessor {
         return prevVal == null;
     }
 
-    private static void collectBuildContext(
-        MultBuildRunCtx outCtx, ITeamcity teamcity, ProcessLogsMode procLog,
-        @Nullable Properties contactPersonProps, boolean includeScheduledInfo, Build build) {
-
-        SingleBuildRunCtx ctx = teamcity.loadTestsAndProblems(build, outCtx);
-        outCtx.addBuild(ctx);
-
-        if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
-            || procLog == ProcessLogsMode.ALL)
-            ctx.setLogCheckResultsFut(teamcity.analyzeBuildLog(ctx.buildId(), ctx));
-
+    private static void fillBuildCounts(MultBuildRunCtx outCtx, ITeamcity teamcity, boolean includeScheduledInfo) {
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {
             Function<List<BuildRef>, Long> countRelatedToThisBuildType = list ->
                 list.stream()
-                    .filter(ref -> Objects.equals(ref.buildTypeId, build.buildTypeId))
-                    .filter(ref -> Objects.equals(normalizeBranch(build), normalizeBranch(ref)))
+                    .filter(ref -> Objects.equals(ref.buildTypeId, outCtx.buildTypeId()))
+                    .filter(ref -> Objects.equals(normalizeBranch(outCtx.branchName()), normalizeBranch(ref)))
                     .count();
 
             outCtx.setRunningBuildCount(teamcity.getRunningBuilds("").thenApply(countRelatedToThisBuildType));
             outCtx.setQueuedBuildCount(teamcity.getQueuedBuilds("").thenApply(countRelatedToThisBuildType));
         }
+    }
 
-        if (contactPersonProps != null && outCtx.getContactPerson() == null)
-            outCtx.setContactPerson(contactPersonProps.getProperty(outCtx.suiteId()));
+    private static void analyzeTests(MultBuildRunCtx outCtx, ITeamcity teamcity, ProcessLogsMode procLog,
+        ITcAnalytics tcAnalytics) {
+        for (SingleBuildRunCtx ctx : outCtx.getBuilds()) {
+            if (tcAnalytics != null)
+                tcAnalytics.calculateBuildStatistic(ctx);
+
+            if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
+                || procLog == ProcessLogsMode.ALL)
+                ctx.setLogCheckResultsFut(teamcity.analyzeBuildLog(ctx.buildId(), ctx));
+        }
     }
 
     @NotNull protected static String normalizeBranch(@NotNull final BuildRef build) {

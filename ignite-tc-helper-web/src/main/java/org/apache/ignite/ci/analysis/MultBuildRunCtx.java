@@ -118,6 +118,10 @@ public class MultBuildRunCtx implements ISuiteResults {
         return firstBuildInfo.suiteName();
     }
 
+    public String buildTypeId() {
+        return firstBuildInfo.buildTypeId;
+    }
+
     public boolean hasNontestBuildProblem() {
         return problems != null && problems.stream().anyMatch(problem ->
             !problem.isFailedTests()
@@ -132,6 +136,10 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     private Optional<ProblemOccurrence> getBuildProblemExceptTestOrSnapshot() {
         return problems.stream().filter(p -> !p.isFailedTests() && !p.isShaphotDepProblem()).findAny();
+    }
+
+    public List<SingleBuildRunCtx> getBuilds() {
+        return builds;
     }
 
     public boolean hasTimeoutProblem() {
