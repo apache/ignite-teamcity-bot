@@ -163,6 +163,8 @@ public interface ITeamcity extends AutoCloseable {
             List<TestOccurrence> tests
                 = getTests(build.testOccurrences.href + TESTS_COUNT_7700, normalizedBranch).getTests();
 
+            ctx.setTests(tests);
+
             mCtx.addTests(tests);
 
             for (TestOccurrence next : tests) {

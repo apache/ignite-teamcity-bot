@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,8 +44,14 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     private List<Change> changes = new ArrayList<>();
 
+    private List<TestOccurrence> tests = new ArrayList<>();
+
     public SingleBuildRunCtx(Build build) {
         this.build = build;
+    }
+
+    public Build getBuild() {
+        return build;
     }
 
     public Integer buildId() {
@@ -141,6 +148,14 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     public List<Change> getChanges() {
         return changes;
+    }
+
+    public void setTests(List<TestOccurrence> tests) {
+        this.tests = tests;
+    }
+
+    public List<TestOccurrence> getTests() {
+        return tests;
     }
 
     Stream<? extends Future<?>> getFutures() {

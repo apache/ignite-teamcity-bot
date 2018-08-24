@@ -21,6 +21,8 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.apache.ignite.ci.db.Persisted;
@@ -29,33 +31,17 @@ import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.jetbrains.annotations.NotNull;
 
+import static org.apache.ignite.ci.analysis.RunStat.RunStatus.RES_CRITICAL_FAILURE;
+import static org.apache.ignite.ci.analysis.RunStat.RunStatus.RES_FAILURE;
+import static org.apache.ignite.ci.analysis.RunStat.RunStatus.RES_MUTED_FAILURE;
+import static org.apache.ignite.ci.analysis.RunStat.RunStatus.RES_OK;
+
 /**
  * Test or Build run statistics.
  */
 @Persisted
 public class RunStat {
     public static final int MAX_LATEST_RUNS = 100;
-    public static final int RES_OK = 0;
-
-    /**
-     * Result: general failure of test or suite.
-     */
-    public static final int RES_FAILURE = 1;
-
-    /**
-     * RES OK or RES FAILURE
-     */
-    public static final int RES_OK_OR_FAILURE = 10;
-
-    /**
-     * Result of test execution, muted failure found.
-     */
-    private static final int RES_MUTED_FAILURE = 2;
-
-    /**
-     * Result of suite: Critical failure, no results.
-     */
-    public static final int RES_CRITICAL_FAILURE = 3;
 
     /**
      * Runs registered all the times.
@@ -80,8 +66,15 @@ public class RunStat {
      */
     private String name;
 
+    /**
+     * @deprecated {@link #latestRuns} should be used.
+     */
+    @Deprecated
     @Nullable
     SortedMap<TestId, Integer> latestRunResults;
+
+    @Nullable
+    SortedMap<TestId, RunInfo> latestRuns;
 
     /**
      * @param name Name of test or suite.
@@ -90,8 +83,8 @@ public class RunStat {
         this.name = name;
     }
 
-    public void addTestRun(TestOccurrence testOccurrence) {
-        addTestRunToLatest(testOccurrence);
+    public void addTestRun(TestOccurrence testOccurrence, Boolean changesExist) {
+        addTestRunToLatest(testOccurrence, changesStatus(changesExist));
 
         runs++;
 
@@ -106,7 +99,14 @@ public class RunStat {
         lastUpdatedMs = System.currentTimeMillis();
     }
 
-    public void addTestRunToLatest(TestOccurrence testOccurrence) {
+    private ChangesState changesStatus(Boolean changesExist) {
+        if (changesExist == null)
+            return ChangesState.UNKNOWN;
+
+        return changesExist ? ChangesState.EXIST : ChangesState.NONE;
+    }
+
+    public void addTestRunToLatest(TestOccurrence testOccurrence, ChangesState changesState) {
         TestId id = extractFullId(testOccurrence.getId());
         if (id == null) {
             System.err.println("Unable to parse TestOccurrence.id: " + id);
@@ -114,7 +114,7 @@ public class RunStat {
             return;
         }
 
-        addRunToLatest(id, testToResCode(testOccurrence));
+        addRunToLatest(id, new RunInfo(testToResCode(testOccurrence), changesState));
     }
 
     private static TestId extractFullId(String id) {
@@ -147,29 +147,27 @@ public class RunStat {
             String substring = id.substring(absBuildIdx, absBuildIdx + buildIdEndIdx);
 
             return Integer.valueOf(substring);
-        } catch (Exception ignored) {
+        }
+        catch (Exception ignored) {
             return null;
         }
     }
 
-    private int testToResCode(TestOccurrence testOccurrence) {
-        int resCode;
-        if (testOccurrence.isFailedTest())
-            resCode = testOccurrence.isNotMutedOrIgnoredTest() ? RES_FAILURE : RES_MUTED_FAILURE;
-        else
-            resCode = RES_OK;
+    private RunStatus testToResCode(TestOccurrence testOccurrence) {
+        if (!testOccurrence.isFailedTest())
+            return RES_OK;
 
-        return resCode;
+        return testOccurrence.isNotMutedOrIgnoredTest() ? RES_FAILURE : RES_MUTED_FAILURE;
     }
 
-    private void addRunToLatest(TestId id, int resCode) {
-        if (latestRunResults == null)
-            latestRunResults = new TreeMap<>();
+    private void addRunToLatest(TestId id, RunInfo runInfo) {
+        if (latestRuns == null)
+            latestRuns = new TreeMap<>();
 
-        latestRunResults.put(id, resCode);
+        latestRuns.put(id, runInfo);
 
-        if (latestRunResults.size() > MAX_LATEST_RUNS)
-            latestRunResults.remove(latestRunResults.firstKey());
+        if (latestRuns.size() > MAX_LATEST_RUNS)
+            latestRuns.remove(latestRuns.firstKey());
     }
 
     public String name() {
@@ -210,7 +208,6 @@ public class RunStat {
         return 1.0f * getFailuresCount() / runs;
     }
 
-
     /**
      * @return float representing fail rate
      */
@@ -224,21 +221,21 @@ public class RunStat {
     }
 
     public int getFailuresCount() {
-        if (latestRunResults == null)
+        if (latestRuns == null)
             return 0;
 
-        return (int) latestRunResults.values().stream().filter(res -> res != RES_OK).count();
+        return (int)latestRuns.values().stream().filter(res -> res.status != RES_OK).count();
     }
 
     public int getCriticalFailuresCount() {
-        if (latestRunResults == null)
+        if (latestRuns == null)
             return 0;
 
-        return (int) latestRunResults.values().stream().filter(res -> res == RES_CRITICAL_FAILURE).count();
+        return (int)latestRuns.values().stream().filter(res -> res.status == RES_CRITICAL_FAILURE).count();
     }
 
     public int getRunsCount() {
-        return latestRunResults == null ? 0 : latestRunResults.size();
+        return latestRuns == null ? 0 : latestRuns.size();
     }
 
     public String getFailPercentPrintable() {
@@ -256,11 +253,12 @@ public class RunStat {
     public long getAverageDurationMs() {
         if (runsWithDuration == 0)
             return 0;
-        return (long) (1.0 * totalDurationMs / runsWithDuration);
+        return (long)(1.0 * totalDurationMs / runsWithDuration);
     }
 
     public void addBuildRun(Build build) {
         runs++;
+//        build.lastChanges
 
         //todo ? add duration from statistics
         /*
@@ -272,17 +270,17 @@ public class RunStat {
         if (!build.isSuccess())
             failures++;
 
-        int resCode = build.isSuccess() ? RES_OK : RES_FAILURE;
+        RunStatus resCode = build.isSuccess() ? RES_OK : RES_FAILURE;
 
-        setBuildResCode(build.getId(), resCode);
+        setBuildResCode(build.getId(), new RunInfo(resCode, ChangesState.UNKNOWN));
     }
 
-    private void setBuildResCode(Integer buildId, int resCode) {
-        addRunToLatest(new TestId(buildId, 0), resCode);
+    private void setBuildResCode(Integer buildId, RunInfo runInfo) {
+        addRunToLatest(new TestId(buildId, 0), runInfo);
     }
 
     public void setBuildCriticalError(Integer bId) {
-        setBuildResCode(bId, RES_CRITICAL_FAILURE);
+        setBuildResCode(bId, new RunInfo(RES_CRITICAL_FAILURE, ChangesState.UNKNOWN));
     }
 
     /**
@@ -290,9 +288,9 @@ public class RunStat {
      */
     @Override public String toString() {
         return "RunStat{" +
-                "name='" + name + '\'' +
-                ", failRate=" + getFailPercentPrintable() + "%" +
-                '}';
+            "name='" + name + '\'' +
+            ", failRate=" + getFailPercentPrintable() + "%" +
+            '}';
     }
 
     /**
@@ -300,10 +298,10 @@ public class RunStat {
      */
     @Nullable
     public List<Integer> getLatestRunResults() {
-        if (latestRunResults == null)
+        if (latestRuns == null)
             return Collections.emptyList();
 
-        return new ArrayList<>(latestRunResults.values());
+        return latestRuns.values().stream().map(info -> info.status.code).collect(Collectors.toList());
     }
 
     private int[] concatArr(int[] arr1, int[] arr2) {
@@ -316,7 +314,7 @@ public class RunStat {
 
     @Nullable
     public TestId detectTemplate(EventTemplate t) {
-        if (latestRunResults == null)
+        if (latestRuns == null)
             return null;
 
         int centralEvtBuild = t.beforeEvent().length;
@@ -326,12 +324,12 @@ public class RunStat {
         assert centralEvtBuild < template.length;
         assert centralEvtBuild >= 0;
 
-        Set<Map.Entry<TestId, Integer>> entries = latestRunResults.entrySet();
+        Set<Map.Entry<TestId, RunInfo>> entries = latestRuns.entrySet();
 
         if (entries.size() < template.length)
             return null;
 
-        List<Map.Entry<TestId, Integer>> histAsArr = new ArrayList<>(entries);
+        List<Map.Entry<TestId, RunInfo>> histAsArr = new ArrayList<>(entries);
 
         TestId detectedAt = null;
         if (t.shouldBeFirst()) {
@@ -352,18 +350,18 @@ public class RunStat {
     }
 
     @Nullable
-    private TestId checkTemplateAtPos(int[] template, int centralEvtBuild, List<Map.Entry<TestId, Integer>> histAsArr,
+    private TestId checkTemplateAtPos(int[] template, int centralEvtBuild, List<Map.Entry<TestId, RunInfo>> histAsArr,
         int idx) {
         for (int tIdx = 0; tIdx < template.length; tIdx++) {
-            Integer curStatus = histAsArr.get(idx + tIdx).getValue();
+            RunInfo curStatus = histAsArr.get(idx + tIdx).getValue();
 
             if (curStatus == null)
                 break;
 
-            int tmpl = template[tIdx];
+            RunStatus tmpl = RunStatus.byCode(template[tIdx]);
 
-            if ((tmpl == RES_OK_OR_FAILURE && (curStatus == RES_OK || curStatus == RES_FAILURE))
-                || curStatus == tmpl) {
+            if ((tmpl == RunStatus.RES_OK_OR_FAILURE && (curStatus.status == RES_OK || curStatus.status == RES_FAILURE))
+                || curStatus.status == tmpl) {
                 if (tIdx == template.length - 1)
                     return histAsArr.get(idx + centralEvtBuild).getKey();
             }
@@ -380,24 +378,119 @@ public class RunStat {
 
     @Nullable
     public String getFlakyComments() {
-        if (latestRunResults == null)
+        if (latestRuns == null)
             return null;
 
         int statusChange = 0;
-        Integer prev = null;
-        for (Integer next : latestRunResults.values()) {
-            if (prev != null && next != null) {
-                if (!prev.equals(next))
+
+        RunInfo prev = null;
+
+        for (RunInfo cur : latestRuns.values()) {
+            if (prev != null && cur != null) {
+                if (prev.status != cur.status
+                    && cur.changesState == ChangesState.NONE
+                    && prev.changesState != ChangesState.UNKNOWN)
                     statusChange++;
             }
-            prev = next;
+            prev = cur;
         }
 
-        if (statusChange <= 6)
+        if (statusChange < 1)
             return null;
 
         return "Test seems to be flaky: " +
-                    "change status [" + statusChange + "/" + latestRunResults.size() + "]";
+            "change status [" + statusChange + "/" + latestRuns.size() + "]";
+    }
+
+    /**
+     * Migrate data from latestRunResults to latestRuns.
+     *
+     * @deprecated need to be remove after migrate.
+     */
+    @Deprecated
+    public void migrateLatestRuns(){
+        if(latestRunResults == null)
+            return;
+
+        if (latestRuns == null)
+            latestRuns = new TreeMap<>();
+        else
+            latestRuns.clear();
+
+        for (Map.Entry<TestId, Integer> entry : latestRunResults.entrySet()) {
+            latestRuns.put(entry.getKey(), new RunInfo(RunStatus.byCode(entry.getValue()), ChangesState.UNKNOWN));
+        }
+    }
+
+    /**
+     * Status of run.
+     */
+    public enum RunStatus {
+        /** Result: success. */
+        RES_OK(0),
+        /** Result: general failure of test or suite. */
+        RES_FAILURE(1),
+        /** RES OK or RES FAILURE */
+        RES_OK_OR_FAILURE(10),
+        /** Result of test execution, muted failure found. */
+        RES_MUTED_FAILURE(2),
+        /** Result of suite: Critical failure, no results. */
+        RES_CRITICAL_FAILURE(3);
+
+        /** Mapping of status int -> object. */
+        private static Map<Integer, RunStatus> holder = Stream.of(values()).collect(Collectors.toMap(RunStatus::getCode, i -> i));
+
+        /** Represent status in int. */
+        int code;
+
+        /** */
+        RunStatus(int code) {
+            this.code = code;
+        }
+
+        /**
+         * @return Status as int.
+         */
+        public int getCode() {
+            return code;
+        }
+
+        /**
+         * @param code Status as int.
+         * @return Status of build.
+         */
+        public static RunStatus byCode(int code) {
+            return holder.get(code);
+        }
+    }
+
+    /** Changes state for run. */
+    public enum ChangesState {
+        /** Unknown number of changes for run. */
+        UNKNOWN,
+        /** Run without changes. */
+        NONE,
+        /** Run with changes. */
+        EXIST
+    }
+
+    /**
+     * Run info for storage in cache.
+     */
+    public static class RunInfo {
+        /** Status of run. */
+        RunStatus status;
+
+        /** State of changes for run. */
+        ChangesState changesState;
+
+        /**
+         *
+         */
+        public RunInfo(RunStatus status, ChangesState changesState) {
+            this.status = status;
+            this.changesState = changesState;
+        }
     }
 
     public static class TestId implements Comparable<TestId> {
@@ -425,9 +518,9 @@ public class RunStat {
                 return true;
             if (o == null || getClass() != o.getClass())
                 return false;
-            TestId id = (TestId) o;
+            TestId id = (TestId)o;
             return buildId == id.buildId &&
-                    testId == id.testId;
+                testId == id.testId;
         }
 
         /**
@@ -457,9 +550,9 @@ public class RunStat {
          */
         @Override public String toString() {
             return MoreObjects.toStringHelper(this)
-                    .add("buildId", buildId)
-                    .add("testId", testId)
-                    .toString();
+                .add("buildId", buildId)
+                .add("testId", testId)
+                .toString();
         }
     }
 

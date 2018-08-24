@@ -362,6 +362,24 @@ public class DbMigrations {
                 issuesOldCache.destroy();
             }
         });
+
+        applyMigration("latestRunResultsToLatestRuns", () -> {
+            System.out.println("Total entry for migrate : " + testHistCache.size());
+            int i = 0;
+            for (Cache.Entry<?, RunStat> next : testHistCache) {
+                TestInBranch key = (TestInBranch)next.getKey();
+                RunStat value = next.getValue();
+
+                value.migrateLatestRuns();
+
+                testHistCache.put(key, value);
+
+                if (i % 1000 == 0)
+                    System.out.println("Migrating entry: count : " + i);
+
+                i++;
+            }
+        });
     }
 
     private <K, V> void applyV1toV2Migration(String full, Cache<K, V> cache) {
