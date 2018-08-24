@@ -72,6 +72,7 @@
         if(buildType!=null) {
             curReqParms += "?buildType=" + buildType;
         }
+
         var branch = findGetParameter("branch");
         if(branch!=null) {
             curReqParms += "&branch=" + branch;
@@ -108,26 +109,40 @@
     }
 
     function showBuildHistory(result) {
+        var res = "<table><tr><th>Id</th><th>Total tests</th><th>Failed tests</th><th>Ignored tests</th>" +
+            "<th>Muted tests</th><th>Total issues*</th><th>Total run time</th></tr>";
+
         for (var i = 0; i < result.length; i++) {
-            var build = result[i]
+            var build = result[i];
 
-            var res = "<table><tr><th>Id</th><th>Total tests</th><th>Failed tests</th><th>Ignored tests</th>" +
-                "<th>Muted tests</th><th>Total issues*</th><th>Total run time</th></tr>";
+            res += "<tr><td>" + build.id + "</td><td>" + build.testOccurrences.count + "</td>" +
+                "<td>" + build.testOccurrences.failed + "</td>" +
+                "<td>" + build.testOccurrences.ignored + "</td>" +
+                "<td>" + build.testOccurrences.muted + "</td><td>";
 
-            for (var i = 0; i < result.length; i++) {
-                var build = result[i];
-                res += "<tr><td>" + build.id + "</td><td>" + build.testOccurrences.count + "</td>" +
-                    "<td>" + build.testOccurrences.failed + "</td>" +
-                    "<td>" + (build.testOccurrences.count - build.testOccurrences.passed -
-                     build.testOccurrences.failed - build.testOccurrences.muted) + "</td>" +
-                    "<td>"+ build.testOccurrences.muted + "</td><td>?</td>" +
-                    "<td>" + getDuration(getDate(build.finishDate) - getDate(build.startDate)) + "</td></tr>";
+            var issuesArr = getRelatedIssues(build.id);
+            for(var j = 0; j < issuesArr.length; j++) {
+                var issue = issuesArr[j];
+                res += "" + (j + 1) + ". <a href='" + issue.url + "'>" + issue.id + "</a><br>"
             }
 
-            res +="</table><br>* count and the list of TC configurations with links";
-            return res;
+            res += "</td><td>" + getDuration(getDate(build.finishDate) - getDate(build.startDate)) + "</td></tr>";
         }
 
+        res +="</table><br>* count and the list of TC configurations with links";
+        return res;
+    }
+    
+    function getRelatedIssues(buildId) {
+        var issuesArr = "";
+        $.ajax({
+            url: "rest/build/relatedIssues?buildId=" + buildId,
+            success: function (result) {
+                issuesArr = result;
+            },
+            async:false
+        });
+        return issuesArr;
     }
 
     function getDate(d) {
@@ -137,24 +152,15 @@
 
     function getDuration(ms){
         var sec = ms / 1000;
-        var h = sec / 3600 ^ 0 ;
-        var m = (sec - h * 3600) / 60 ^ 0 ;
-        var s = sec - h * 3600 - m * 60 ;
+        var h = sec / 3600 ^ 0;
+        var m = (sec - h * 3600) / 60 ^ 0;
+        var s = sec - h * 3600 - m * 60;
         return '' + h + 'h ' + m + 'm ' + s + 's';
-    }
-
-    function showBuildTestsStatistics(result) {
-        var url = "rest/build/value?buildHref=" + result;
-        $.ajax({
-            url: url,
-            success: result,
-            error: showErrInLoadStatus
-        });
-        return result;
     }
 
 </script>
 <div id="loadStatus"></div>
 <div id="statistics"></div>
+<div id="version"></div>
 </body>
 </html>
