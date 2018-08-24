@@ -35,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -253,9 +254,10 @@ public class IgniteTeamcityHelper implements ITeamcity {
     @Deprecated
     public List<CompletableFuture<File>> standardProcessLogs(int... buildIds) {
         List<CompletableFuture<File>> futures = new ArrayList<>();
-        for (int buildId : buildIds) {
+
+        for (int buildId : buildIds)
             futures.add(standardProcessOfBuildLog(buildId));
-        }
+
         return futures;
     }
 
@@ -276,21 +278,21 @@ public class IgniteTeamcityHelper implements ITeamcity {
         final TestLogHandler lastTestCp = new TestLogHandler();
         lastTestCp.setSaveLastTestToFile(dumpLastTest);
 
-        final LogsAnalyzer analyzer = new LogsAnalyzer(threadDumpCp, lastTestCp);
+        final Function<File, File> analyzer = new LogsAnalyzer(threadDumpCp, lastTestCp);
 
         final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
 
         return fut2.thenApplyAsync(file -> {
-            LogCheckResult logCheckResult = new LogCheckResult();
+            LogCheckResult logCheckRes = new LogCheckResult();
 
             if (dumpLastTest)
-                logCheckResult.setLastStartedTest(lastTestCp.getLastTestName());
+                logCheckRes.setLastStartedTest(lastTestCp.getLastTestName());
 
-            logCheckResult.setTests(lastTestCp.getTests());
+            logCheckRes.setTests(lastTestCp.getTests());
 
-            System.err.println(logCheckResult);
+            System.err.println(logCheckRes);
 
-            return new T2<>(file, logCheckResult);
+            return new T2<>(file, logCheckRes);
         }).thenApply(T2::get1);
     }
 
@@ -302,8 +304,10 @@ public class IgniteTeamcityHelper implements ITeamcity {
         }, executor);
     }
 
+    @Deprecated
     public List<CompletableFuture<File>> standardProcessAllBuildHistory(String buildTypeId, String branch) {
         List<BuildRef> allBuilds = getFinishedBuildsIncludeSnDepFailed(buildTypeId, branch);
+
         return standardProcessLogs(allBuilds.stream().mapToInt(BuildRef::getId).toArray());
     }
 
@@ -322,7 +326,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    public CompletableFuture<List<BuildType>> getProjectSuites(String projectId) {
+    @Override public CompletableFuture<List<BuildType>> getProjectSuites(String projectId) {
         return supplyAsync(() -> getProjectSuitesSync(projectId), executor);
     }
 

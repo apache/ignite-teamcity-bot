@@ -24,23 +24,31 @@ import org.apache.ignite.ci.tcmodel.conf.bt.Parameters;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Created by Дмитрий on 01.11.2017.
+ * Build statistics reported by TC, data is stored in properties
  */
 @XmlRootElement(name = "properties")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Statistics extends Parameters {
-
+    /**
+     * @return build duration in millis or null.
+     */
     @Nullable public Long getBuildDuration() {
         String duration = getParameter("BuildDuration");
         if (duration == null)
             return null;
+
         return Long.parseLong(duration);
     }
 
+    /**
+     * @return source update duration in millis.
+     */
     @Nullable public Long getSourceUpdateDuration() {
         String duration = getParameter(  "buildStageDuration:sourcesUpdate");
+
         if (duration == null)
             return null;
+
         return Long.parseLong(duration);
     }
 }

@@ -21,11 +21,11 @@ import java.time.Duration;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Created by dpavlov on 02.11.2017.
+ * Time and duration util.
  */
 public class TimeUtil {
     /**
-     * @param ms
+     * @param ms millis passed.
      * @return string representation of time duration
      */
     public static String getDurationPrintable(@Nullable Long ms) {
@@ -39,6 +39,10 @@ public class TimeUtil {
         return durationStr;
     }
 
+    /**
+     * @param durationStr Duration string.
+     * @return human readable string of duration.
+     */
     private static String humanReadableFormat(String durationStr) {
         return durationStr
             .substring(2)

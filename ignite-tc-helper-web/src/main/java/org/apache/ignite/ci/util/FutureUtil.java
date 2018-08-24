@@ -17,26 +17,24 @@
 
 package org.apache.ignite.ci.util;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-
-import org.apache.ignite.ci.BuildChainProcessor;
+import java.util.concurrent.Future;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Created by Дмитрий on 23.02.2018.
+ * Async computation util.
  */
 public class FutureUtil {
     /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(FutureUtil.class);
 
     /**
      * @param fut Future.
      * @return result or null if calculation failed
      */
-    @Nullable public static <V> V getResultSilent(CompletableFuture<V> fut) {
+    @Nullable public static <V> V getResultSilent(Future<V> fut) {
         V logCheckRes = null;
 
         try {

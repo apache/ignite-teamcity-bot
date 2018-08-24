@@ -23,27 +23,27 @@ import java.net.URLEncoder;
 import javax.annotation.Nullable;
 
 /**
- * Created by dpavlov on 31.10.2017.
+ * URL escaping Util
  */
 public class UrlUtil {
     private static final String ENC = "UTF-8";
 
-    public static String escape(@Nullable final String value) {
+    public static String escape(@Nullable final String val) {
         try {
-            return URLEncoder.encode(Strings.nullToEmpty(value), ENC);
+            return URLEncoder.encode(Strings.nullToEmpty(val), ENC);
         }
         catch (UnsupportedEncodingException e) {
             e.printStackTrace();
-            return value;
+            return val;
         }
     }
 
-    public static String escapeOrB64(String value) {
-        if (Strings.nullToEmpty(value).contains("/")) {
-            String idForRestEncoded = Base64Util.encodeUtf8String(value);
+    public static String escapeOrB64(String val) {
+        if (Strings.nullToEmpty(val).contains("/")) {
+            String idForRestEncoded = Base64Util.encodeUtf8String(val);
             return "($base64:" + idForRestEncoded + ")";
         }
         else
-            return escape(value);
+            return escape(val);
     }
 }

@@ -28,7 +28,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import jersey.repackaged.com.google.common.base.Throwables;
-import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.Expirable;
@@ -44,7 +43,8 @@ import org.slf4j.LoggerFactory;
  * Component for storing catchable results into ignite and get updates
  */
 public class BackgroundUpdater {
-    private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(BackgroundUpdater.class);
 
     /** Expire milliseconds, provide cached result with flag to update */
     private static final long EXPIRE_MS = TimeUnit.MINUTES.toMillis(1);

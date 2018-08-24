@@ -20,7 +20,7 @@ package org.apache.ignite.ci.tcmodel.result.problems;
 import javax.xml.bind.annotation.XmlAttribute;
 
 /**
- * Created by dpavlov on 03.08.2017
+ * One build problem. Contains its type.
  */
 public class ProblemOccurrence {
     public static final String BUILD_FAILURE_ON_MESSAGE = "BuildFailureOnMessage";

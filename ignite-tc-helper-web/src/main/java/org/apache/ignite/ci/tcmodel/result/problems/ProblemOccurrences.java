@@ -24,7 +24,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.ignite.ci.tcmodel.result.ProblemOccurrencesRef;
 
 /**
- * Created by dpavlov on 03.08.2017
+ * List of problems associated with build.
  */
 @XmlRootElement(name = "problemOccurrences")
 public class ProblemOccurrences extends ProblemOccurrencesRef {
