@@ -36,7 +36,7 @@ import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
 
 /**
- * Created by Дмитрий on 20.07.2017
+ * Local class for running specific checks
  *
  * https://confluence.jetbrains.com/display/TCD10/REST+API
  */
@@ -80,9 +80,7 @@ public class IgniteTeamcityHelperRunnerExample {
             // final String branchName = "pull/3554/head";
             String buildTypeIdAll = "IgniteTests24Java8_RunAll";
             String buildTypeIdAllP = "id8xIgniteGridGainTestsJava8_RunAll";
-            String buildTypeIdRe = "IgniteTests24Java8_IgniteReproducingSuite";
-            String buildTypeId = "IgniteTests24Java8_LicensesJavadoc";
-            String dotNetLongRun = "IgniteTests24Java8_IgnitePlatformNetLongRunning";
+
             helper.triggerBuild(buildTypeIdAll, branchName, true, false);
         }
 
@@ -106,9 +104,6 @@ public class IgniteTeamcityHelperRunnerExample {
             for (File next : collect)
                 System.out.println("Cached locally: [" + next.getCanonicalPath() + "], " + next.toURI().toURL());
         }
-
-        //sendGet(helper.host(), helper.basicAuthToken());
-
     }
 
     private static void checkBuildTypes(IgniteTeamcityHelper helper) throws InterruptedException, ExecutionException {
@@ -165,13 +160,14 @@ public class IgniteTeamcityHelperRunnerExample {
 
     private static void checkRunAll(BuildTypeFull type) {
         System.err.println(type);
+
         final List<SnapshotDependency> dependencies = type.dependencies();
-        for (Iterator<SnapshotDependency> iterator = dependencies.iterator(); iterator.hasNext(); ) {
-            SnapshotDependency next = iterator.next();
+
+        for (SnapshotDependency next : dependencies) {
             final String runBuild = next.getProperty("run-build-if-dependency-failed");
-            if (!"RUN_ADD_PROBLEM".equals(runBuild)) {
+
+            if (!"RUN_ADD_PROBLEM".equals(runBuild))
                 System.err.println("Incorrect configuration for dependency from [" + next.bt().getName() + "]");
-            }
         }
     }
 

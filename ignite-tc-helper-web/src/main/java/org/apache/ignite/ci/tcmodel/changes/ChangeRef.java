@@ -22,7 +22,7 @@ import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.result.AbstractRef;
 
 /**
- * Created by Дмитрий on 18.02.2018.
+ * Change short version.
  */
 @Persisted
 public class ChangeRef extends AbstractRef {

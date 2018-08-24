@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Created by dpavlov on 20.10.2017.
+ * Any property in builds or other configs.
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Property {
