@@ -1,0 +1,28 @@
+{
+  "branches": [
+    {
+      "id": "master",
+      "chains": [
+        {
+          "serverId": "apache",
+          "suiteId": "IgniteTests24Java8_RunAll",
+          "branchForRest": "\u003cdefault\u003e",
+          "triggerBuild": true,
+          "triggerBuildQuietPeriod": 30 //triggering quiet period in minutes
+        }
+      ]
+    }
+    /* // uncomment it for release monitoring
+    {
+      "id": "ignite-2.7",
+      "chains": [
+        {
+          "serverId": "apache",
+          "suiteId": "IgniteTests24Java8_RunAll",
+          "branchForRest": "ignite-2.7"
+        }
+      ]
+    }
+    */
+  ]
+}
