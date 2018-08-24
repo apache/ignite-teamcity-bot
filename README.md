@@ -13,4 +13,22 @@ Major use cases are following:
 
 This tool is available on [https://mtcga.gridgain.com/](https://mtcga.gridgain.com/) - requires apache CI credentials.
 
-Should you have any questions please contact dpavlov@apache.org
+Should you have any questions please contact Ignite Developers at dev@ignite.apache.org or dpavlov@apache.org
+
+## Development
+### Project setup
+Locally code can be set up using IntelliJ idea and gradle project import.
+Locally it can be run using org.apache.ignite.ci.web.Launcher.main() method.
+The bot will create necessary configs in ~/.ignite-teamcity-helper - it is bot Home directory.
+In can be changed with org.apache.ignite.ci.ITcHelper.TEAMCITY_HELPER_HOME system property.
+
+Examples of configs can be found in [conf](conf) directory.
+
+### Build
+Build can be done using following commands
+- gradle clean
+- gradle build
+
+Resulting distribution can be found in projectRoot\jetty-launcher\build\distributions.
+Distribution will contain start script in \bin folder.
+
