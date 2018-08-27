@@ -115,7 +115,7 @@
         for (var i = 0; i < result.length; i++) {
             var build = result[i];
 
-            res += "<tr><td>" + build.id + "</td><td>" + build.testOccurrences.count + "</td>" +
+            res += "<tr><td><a href='" + build.webUrl + "'>" + build.id + "</a></td><td>" + build.testOccurrences.count + "</td>" +
                 "<td>" + build.testOccurrences.failed + "</td>" +
                 "<td>" + build.testOccurrences.ignored + "</td>" +
                 "<td>" + build.testOccurrences.muted + "</td><td>";
