@@ -27,7 +27,7 @@ import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.PasswordEncoder;
 
 /**
- * Created by Дмитрий on 21.05.2016
+ * Class for sending email with configured credentials.
  */
 public class EmailSender {
     public static void main(String[] args) {

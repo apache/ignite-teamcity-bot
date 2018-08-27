@@ -22,7 +22,7 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 
 /**
- * Created by dpavlov on 20.09.2017
+ * Test occurrence. Can be provided by build as list of occurrences.
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class TestOccurrence {

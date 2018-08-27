@@ -24,7 +24,7 @@ import org.apache.ignite.ci.tcmodel.user.UserRef;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Created by Дмитрий on 18.02.2018
+ * VCS change reported by Teamcity
  */
 @XmlRootElement(name = "change")
 @Persisted

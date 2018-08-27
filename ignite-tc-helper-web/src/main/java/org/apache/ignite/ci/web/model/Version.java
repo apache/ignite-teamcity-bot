@@ -18,8 +18,11 @@
 package org.apache.ignite.ci.web.model;
 
 @SuppressWarnings("PublicField") public class Version {
+    /** Default contact. */
+    public static final String DEFAULT_CONTACT = "dev@ignite.apache.org";
+
     /** TC Helper Version. */
-    public String version = "20180817";
+    public String version = "20180823";
 
     /** Ignite version. */
     public String ignVer;
@@ -27,8 +30,17 @@ package org.apache.ignite.ci.web.model;
     /** Ignite version. */
     public String ignVerFull;
 
-    /** TC Helper Source web. */
+    /** TC Helper GitHub Mirror. */
     public String srcWebUrl = "https://github.com/apache/ignite-teamcity-bot";
+
+    /** TC Helper GitHub Mirror. */
+    public String gitHubMirror = srcWebUrl;
+
+    /** TC Bot Source */
+    public String apacheGitUrl = "https://gitbox.apache.org/repos/asf/ignite-teamcity-bot.git";
+
+    /** Contact email. */
+    public String contactEmail = DEFAULT_CONTACT;
 
     public Version() {}
 }

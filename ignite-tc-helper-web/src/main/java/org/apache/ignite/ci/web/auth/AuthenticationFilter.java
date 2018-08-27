@@ -18,7 +18,24 @@
 package org.apache.ignite.ci.web.auth;
 
 import com.google.common.base.Throwables;
-import org.apache.ignite.ci.BuildChainProcessor;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.StringTokenizer;
+import javax.annotation.security.DenyAll;
+import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
+import javax.crypto.BadPaddingException;
+import javax.servlet.ServletContext;
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.container.ResourceInfo;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.Provider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -32,25 +49,13 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.security.DenyAll;
-import javax.annotation.security.PermitAll;
-import javax.annotation.security.RolesAllowed;
-import javax.crypto.BadPaddingException;
-import javax.servlet.ServletContext;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.container.ResourceInfo;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.Provider;
-import java.lang.reflect.Method;
-import java.util.*;
-
-
+/**
+ * Filters all Jetty request and performs authentication and authorization.
+ */
 @Provider
 public class AuthenticationFilter implements ContainerRequestFilter {
-    private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationFilter.class);
 
     @Context
     private ResourceInfo resourceInfo;

@@ -22,8 +22,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
 /**
- * Full test occurrence returned by
- * https://ci.ignite.apache.org/app/rest/latest/testOccurrences/id:5454,build:(id:931136)
+ * Full test occurrence optionally with text details returned by REST,
+ *
+ * See example of XML, e.g. here
+ * https://ci.ignite.apache.org/app/rest/latest/testOccurrences/id:17264,build:(id:1705802)
  */
 @XmlRootElement(name = "testOccurrence")
 public class TestOccurrenceFull extends TestOccurrence {

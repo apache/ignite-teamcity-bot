@@ -27,7 +27,7 @@ import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Full build type settings
+ * Full build type settings.
  */
 @XmlRootElement(name = "buildType")
 @XmlAccessorType(XmlAccessType.FIELD)

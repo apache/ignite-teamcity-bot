@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 /**
  *
  */
+@SuppressWarnings("PublicField")
 public class ChainAtServer {
     /** Server ID to access config files within helper. */
     @Nullable public String serverId;
@@ -68,14 +69,14 @@ public class ChainAtServer {
     /**
      * @return {@code True} If automatic build triggering enabled.
      */
-    @Nonnull public boolean isTriggerBuild() {
+    public boolean isTriggerBuild() {
         return triggerBuild == null ? false : triggerBuild;
     }
 
     /**
      * @return Quiet period in minutes between triggering builds or zero if period is not set and should be ignored.
      */
-    @Nonnull public int getTriggerBuildQuietPeriod() {
+    public int getTriggerBuildQuietPeriod() {
         return triggerBuildQuietPeriod == null ? 0 : triggerBuildQuietPeriod;
     }
 }

@@ -104,7 +104,7 @@ public class HelperConfig {
 
     public static File resolveWorkDir() {
         File workDir = null;
-        String property = System.getProperty(IgniteTeamcityHelper.TEAMCITY_HELPER_HOME);
+        String property = System.getProperty(ITcHelper.TEAMCITY_HELPER_HOME);
         if (isNullOrEmpty(property)) {
             String conf = ".ignite-teamcity-helper";
             String prop = System.getProperty("user.home");

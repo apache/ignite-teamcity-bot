@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.issue;
 
 import java.util.*;
+import org.apache.ignite.ci.web.model.Version;
 
 public class Notification {
     String addr;
@@ -103,11 +104,10 @@ public class Notification {
             "\t-- For case fix will require some time please mute test and set label Muted_Test to issue \n" +
             "\t- If you know which change caused failure please contact change author directly\n" +
             "\t- If you don't know which change caused failure please send message to dev list to find out\n" +
-            "Should you have any questions please contact dpavlov@apache.org or write to dev.list \n" +
+            "Should you have any questions please contact " + Version.DEFAULT_CONTACT + " \n" +
             "Best Regards,\nMTCGA.Bot \n" +
             "Notification generated at " + new Date(ts).toString() + " \n";
     }
-
 
     private String messageTailHtml() {
         return "<ul><li>If your changes can led to this failure(s), please create issue with label MakeTeamCityGreenAgain and assign it to you." +
@@ -116,7 +116,7 @@ public class Notification {
             "</ul></li>" +
             "<li>If you know which change caused failure please contact change author directly</li>" +
             "<li>If you don't know which change caused failure please send message to dev list to find out</li></ul><br>" +
-            "Should you have any questions please contact dpavlov@apache.org or write to dev.list<br><br>" +
+            "Should you have any questions please contact " + Version.DEFAULT_CONTACT + " <br><br>" +
             "Best Regards,<br>MTCGA.Bot<br>" +
             "Notification generated at " + new Date(ts).toString() + "<br>";
     }

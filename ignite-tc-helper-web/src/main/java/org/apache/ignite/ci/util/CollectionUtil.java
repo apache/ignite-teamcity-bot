@@ -23,11 +23,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Created by Дмитрий on 07.11.2017.
+ * Collection util.
  */
 public class CollectionUtil {
-    public static <T> List<T> top(Stream<T> data, int count, Comparator<T> comp) {
+    public static <T> List<T> top(Stream<T> data, int cnt, Comparator<T> comp) {
         Comparator<T> reversedComp = comp.reversed();
-        return data.sorted(reversedComp).limit(count).collect(Collectors.toList());
+        return data.sorted(reversedComp).limit(cnt).collect(Collectors.toList());
     }
 }

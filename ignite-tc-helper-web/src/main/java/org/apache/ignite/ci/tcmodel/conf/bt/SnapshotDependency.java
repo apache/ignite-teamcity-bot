@@ -24,7 +24,7 @@ import javax.xml.bind.annotation.XmlElement;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 
 /**
- * Created by dpavlov on 01.11.2017.
+ * Snapshot dependency.
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class SnapshotDependency {
@@ -40,6 +40,7 @@ public class SnapshotDependency {
     public String getProperty(String id) {
         if (properties == null)
             return null;
+
         return properties.getParameter(id);
     }
 

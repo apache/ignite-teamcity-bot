@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -76,18 +77,21 @@ import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
 
     //V1 caches, 1024 parts
-    public static final String STAT = "stat";
-    public static final String TEST_OCCURRENCE_FULL = "testOccurrenceFull";
-    public static final String FINISHED_BUILDS = "finishedBuilds";
-    public static final String PROBLEMS = "problems";
 
     //V2 caches, 32 parts
     public static final String TESTS_OCCURRENCES = "testOccurrences";
     public static final String TESTS_RUN_STAT = "testsRunStat";
+    public static final String CALCULATED_STATISTIC = "calculatedStatistic";
     public static final String LOG_CHECK_RESULT = "logCheckResult";
     public static final String CHANGE_INFO_FULL = "changeInfoFull";
     public static final String CHANGES_LIST = "changesList";
     public static final String ISSUES_USAGES_LIST = "issuesUsagesList";
+    public static final String TEST_FULL = "testFull";
+    public static final String BUILD_PROBLEMS = "buildProblems";
+    public static final String BUILD_STATISTICS = "buildStatistics";
+    public static final String BUILD_HIST_FINISHED = "buildHistFinished";
+    public static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
+    public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
 
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
     public static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
@@ -127,20 +131,80 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             testOccurrencesCache(), this::addTestOccurrencesToStat,
             this::migrateOccurrencesToLatest,
             buildsCache(), this::addBuildOccurrenceToFailuresStat,
-            buildsFailureRunStatCache(), testRunStatCache());
+            buildsFailureRunStatCache(), testRunStatCache(),
+            testFullCache(),
+            buildProblemsCache(),
+            buildStatisticsCache(),
+            buildHistCache(),
+            buildHistIncFailedCache());
     }
 
+    /**
+     * Creates atomic cache with 32 parts.
+     * @param name Cache name.
+     */
+    private <K, V> IgniteCache<K, V> getOrCreateCacheV2(String name) {
+        return ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(name));
+    }
+
+    /**
+     * Creates transactional cache with 32 parts.
+     * @param name Cache name.
+     */
+    private <K, V> IgniteCache<K, V> getOrCreateCacheV2Tx(String name) {
+        return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(name));
+    }
+
+    /**
+     * @return {@link Build}s cache, 32 parts.
+     */
     private IgniteCache<String, Build> buildsCache() {
         return getOrCreateCacheV2(ignCacheNme(BUILDS));
     }
 
+    /**
+     * @return {@link TestOccurrences} instances cache, 32 parts.
+     */
     private IgniteCache<String, TestOccurrences> testOccurrencesCache() {
         return getOrCreateCacheV2(ignCacheNme(TESTS_OCCURRENCES));
     }
 
-    private <K, V> IgniteCache<K, V> getOrCreateCacheV2(String name) {
-        return ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(name));
+    /**
+     * @return {@link TestOccurrenceFull} instances cache, 32 parts.
+     */
+    private IgniteCache<String, TestOccurrenceFull> testFullCache() {
+        return getOrCreateCacheV2(ignCacheNme(TEST_FULL));
     }
+
+    /**
+     * @return Build {@link ProblemOccurrences} instances cache, 32 parts.
+     */
+    private IgniteCache<String, ProblemOccurrences> buildProblemsCache() {
+        return getOrCreateCacheV2(ignCacheNme(BUILD_PROBLEMS));
+    }
+
+    /**
+     * @return Build {@link Statistics} instances cache, 32 parts.
+     */
+    private IgniteCache<String, Statistics> buildStatisticsCache() {
+        return getOrCreateCacheV2(ignCacheNme(BUILD_STATISTICS));
+    }
+
+
+    /**
+     * @return Build history: {@link BuildRef} lists cache, 32 parts.
+     */
+    private IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistCache() {
+        return getOrCreateCacheV2Tx(ignCacheNme(BUILD_HIST_FINISHED));
+    }
+
+    /**
+     * @return Build history: {@link BuildRef} lists cache, 32 parts, transaactional
+     */
+    public IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistIncFailedCache() {
+        return getOrCreateCacheV2Tx(ignCacheNme(BUILD_HIST_FINISHED_OR_FAILED));
+    }
+
 
     /** {@inheritDoc} */
     @Override public CompletableFuture<List<BuildType>> getProjectSuites(String projectId) {
@@ -152,18 +216,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return serverId;
     }
 
-    private <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction) {
-        return loadIfAbsent(cacheName, key, loadFunction, (V v) -> true);
-    }
-
     private <K, V> V loadIfAbsentV2(String cacheName, K key, Function<K, V> loadFunction) {
         return loadIfAbsent(getOrCreateCacheV2(ignCacheNme(cacheName)), key, loadFunction, (V v) -> true);
-    }
-
-    private <K, V> V loadIfAbsent(String cacheName, K key, Function<K, V> loadFunction, Predicate<V> saveValueFilter) {
-        final IgniteCache<K, V> cache = ignite.getOrCreateCache(ignCacheNme(cacheName));
-
-        return loadIfAbsent(cache, key, loadFunction, saveValueFilter);
     }
 
     private <K, V> V loadIfAbsent(IgniteCache<K, V> cache, K key, Function<K, V> loadFunction) {
@@ -188,9 +242,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
-    private <K, V> V timedLoadIfAbsentOrMerge(String cacheName, int seconds, K key, BiFunction<K, V, V> loadWithMerge) {
-        final IgniteCache<K, Expirable<V>> hist = ignite.getOrCreateCache(ignCacheNme(cacheName));
-        @Nullable final Expirable<V> persistedBuilds = hist.get(key);
+    private <K, V> V timedLoadIfAbsentOrMerge(IgniteCache<K, Expirable<V>> cache, int seconds, K key,
+        BiFunction<K, V, V> loadWithMerge) {
+        @Nullable final Expirable<V> persistedBuilds = cache.get(key);
 
         int fields = ObjectInterner.internFields(persistedBuilds);
 
@@ -199,11 +253,20 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 return persistedBuilds.getData();
         }
 
-        V apply = loadWithMerge.apply(key, persistedBuilds != null ? persistedBuilds.getData() : null);
+        Lock lock = cache.lock(key);
+        lock.lock();
 
-        final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), apply);
+        V apply;
+        try {
+            apply = loadWithMerge.apply(key, persistedBuilds != null ? persistedBuilds.getData() : null);
 
-        hist.put(key, newVal);
+            final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), apply);
+
+            cache.put(key, newVal);
+        }
+        finally {
+            lock.unlock();
+        }
 
         return apply;
     }
@@ -212,7 +275,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        return timedLoadIfAbsentOrMerge(FINISHED_BUILDS, 60, suiteInBranch,
+        return timedLoadIfAbsentOrMerge(buildHistCache(), 60, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> builds;
                 try {
@@ -226,6 +289,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                     else
                         throw e;
                 }
+
                 return mergeByIdToHistoricalOrder(persistedValue, builds);
             });
     }
@@ -233,6 +297,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @NotNull
     private List<BuildRef> mergeByIdToHistoricalOrder(List<BuildRef> persistedVal, List<BuildRef> mostActualVal) {
         final SortedMap<Integer, BuildRef> merge = new TreeMap<>();
+
         if (persistedVal != null)
             persistedVal.forEach(b -> merge.put(b.getId(), b));
 
@@ -247,14 +312,14 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        return timedLoadIfAbsentOrMerge("finishedBuildsIncludeFailed", 60, suiteInBranch,
+        return timedLoadIfAbsentOrMerge(buildHistIncFailedCache(), 60, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch);
 
-                return mergeByIdToHistoricalOrder(persistedValue,
-                    failed);
+                return mergeByIdToHistoricalOrder(persistedValue, failed);
             });
     }
+
 
     /** {@inheritDoc} */
     @Override public CompletableFuture<List<BuildRef>> getRunningBuilds(String branch) {
@@ -384,14 +449,14 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc}*/
     @Override public ProblemOccurrences getProblems(Build build) {
         String href = build.problemOccurrences.href;
-        
-        return loadIfAbsent(PROBLEMS,
+
+        return loadIfAbsent(
+            buildProblemsCache(),
             href,
             k -> {
                 ProblemOccurrences problems = teamcity.getProblems(build);
 
                 registerCriticalBuildProblemInStat(build, problems);
-
 
                 return problems;
             });
@@ -435,15 +500,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
         return loadIfAbsent(testOccurrencesCache(),
             hrefForDb,  //hack to avoid test reloading from store in case of href filter replaced
-            hrefIgnored -> {
-                TestOccurrences loadedTests = teamcity.getTests(href, normalizedBranch);
-
-
-                //todo first touch of build here will cause build and its stat will be diverged
-                addTestOccurrencesToStat(loadedTests, normalizedBranch);
-
-                return loadedTests;
-            });
+            hrefIgnored -> teamcity.getTests(href, normalizedBranch));
     }
 
     private void addTestOccurrencesToStat(TestOccurrences val) {
@@ -451,18 +508,17 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     private void addTestOccurrencesToStat(TestOccurrences val, String normalizedBranch) {
-        for (TestOccurrence next : val.getTests()) {
-            addTestOccurrenceToStat(next, normalizedBranch);
-        }
+        for (TestOccurrence next : val.getTests())
+            addTestOccurrenceToStat(next, normalizedBranch, null);
     }
 
     /** {@inheritDoc} */
-    @Override public Statistics getBuildStat(String href) {
-        return loadIfAbsent(STAT,
+    @Override public Statistics getBuildStatistics(String href) {
+        return loadIfAbsent(buildStatisticsCache(),
             href,
             href1 -> {
                 try {
-                    return teamcity.getBuildStat(href1);
+                    return teamcity.getBuildStatistics(href1);
                 }
                 catch (Exception e) {
                     if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
@@ -478,10 +534,22 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
         return CacheUpdateUtil.loadAsyncIfAbsent(
-            ignite.getOrCreateCache(ignCacheNme(TEST_OCCURRENCE_FULL)),
+            testFullCache(),
             href,
             testOccFullFutures,
-            teamcity::getTestFull);
+            href1 -> {
+                try {
+                    return teamcity.getTestFull(href1);
+                }
+                catch (Exception e) {
+                    if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                        System.err.println("TestOccurrenceFull not found for href : " + href);
+
+                        return CompletableFuture.completedFuture(new TestOccurrenceFull());
+                    }
+                    throw e;
+                }
+            });
     }
 
     /** {@inheritDoc} */
@@ -558,7 +626,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return key -> key == null ? null : testRunStatCache().get(key);
     }
 
-
     private Stream<RunStat> allTestAnalysis() {
         return StreamSupport.stream(testRunStatCache().spliterator(), false)
             .map(Cache.Entry::getValue);
@@ -566,6 +633,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     private IgniteCache<TestInBranch, RunStat> testRunStatCache() {
         return getOrCreateCacheV2(ignCacheNme(TESTS_RUN_STAT));
+    }
+
+    private IgniteCache<Integer, Boolean> calculatedStatistic() {
+        return getOrCreateCacheV2(ignCacheNme(CALCULATED_STATISTIC));
     }
 
     /** {@inheritDoc} */
@@ -589,7 +660,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return getOrCreateCacheV2(ignCacheNme(LOG_CHECK_RESULT));
     }
 
-    private void addTestOccurrenceToStat(TestOccurrence next, String normalizedBranch) {
+    private void addTestOccurrenceToStat(TestOccurrence next, String normalizedBranch, Boolean changesExist) {
         String name = next.getName();
         if (Strings.isNullOrEmpty(name))
             return;
@@ -607,7 +678,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             if (val == null)
                 val = new RunStat(key.getName());
 
-            val.addTestRun(testOccurrence);
+            val.addTestRun(testOccurrence, changesExist);
 
             entry.setValue(val);
 
@@ -616,9 +687,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     private void migrateOccurrencesToLatest(TestOccurrences val) {
-        for (TestOccurrence next : val.getTests()) {
+        for (TestOccurrence next : val.getTests())
             migrateTestOneOcurrToAddToLatest(next);
-        }
     }
 
     private void migrateTestOneOcurrToAddToLatest(TestOccurrence next) {
@@ -639,7 +709,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             if (val == null)
                 val = new RunStat(key.name);
 
-            val.addTestRunToLatest(testOccurrence);
+            val.addTestRunToLatest(testOccurrence, RunStat.ChangesState.UNKNOWN);
 
             entry.setValue(val);
 
@@ -684,6 +754,18 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         int fields = ObjectInterner.internFields(logCheckResult);
 
         return logCheckResult.getLastThreadDump();
+    }
+
+    /** {@inheritDoc} */
+    @Override public void calculateBuildStatistic(SingleBuildRunCtx ctx) {
+        if (calculatedStatistic().containsKey(ctx.buildId()))
+            return;
+
+        for (TestOccurrence testOccurrence : ctx.getTests()) {
+            addTestOccurrenceToStat(testOccurrence, normalizeBranch(ctx.getBuild()), !ctx.getChanges().isEmpty());
+        }
+
+        calculatedStatistic().put(ctx.buildId(), true);
     }
 
     /**

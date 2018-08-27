@@ -225,10 +225,11 @@ public class IssueDetector {
 
         boolean issueFound = false;
 
-        RunStat.TestId testId = runStat.detectTemplate(EventTemplates.newCriticalFailure);
-        if (testId != null && suiteFailure.hasCriticalProblem != null && suiteFailure.hasCriticalProblem) {
-            int buildId = testId.getBuildId();
-            IssueKey issueKey = new IssueKey(srvId, buildId, suiteId);
+        RunStat.TestId firstFailedTestId = runStat.detectTemplate(EventTemplates.newCriticalFailure);
+
+        if (firstFailedTestId != null && suiteFailure.hasCriticalProblem != null && suiteFailure.hasCriticalProblem) {
+            int firstFailedBuildId = firstFailedTestId.getBuildId();
+            IssueKey issueKey = new IssueKey(srvId, firstFailedBuildId, suiteId);
 
             if (issuesStorage.cache().containsKey(issueKey))
                 return false; //duplicate
@@ -239,7 +240,7 @@ public class IssueDetector {
             issue.webUrl = suiteFailure.webToHist;
             issue.displayType = "New Critical Failure";
 
-            locateChanges(teamcity, buildId, issue);
+            locateChanges(teamcity, firstFailedBuildId, issue);
 
             logger.info("Register new issue for suite fail: " + issue);
 

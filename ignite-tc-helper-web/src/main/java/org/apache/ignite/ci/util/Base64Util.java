@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 /**
- * Created by dpavlov on 02.08.2017
+ * Base 64 encoding util.
  */
 public class Base64Util {
     private static final Charset CHARSET = StandardCharsets.UTF_8;

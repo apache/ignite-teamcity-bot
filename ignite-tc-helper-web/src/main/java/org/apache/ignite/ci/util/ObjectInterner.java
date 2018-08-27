@@ -28,6 +28,9 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Class with util method for custom strings deduplication (intern analogue).
+ */
 public class ObjectInterner {
     private static final LoadingCache<String, String> stringCache
         = CacheBuilder

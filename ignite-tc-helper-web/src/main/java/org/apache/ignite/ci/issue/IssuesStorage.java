@@ -23,9 +23,11 @@ import org.apache.ignite.IgniteCache;
 import javax.cache.Cache;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.ignite.ci.db.TcHelperDb;
+
+import static org.apache.ignite.ci.IgnitePersistentTeamcity.BOT_DETECTED_ISSUES;
 
 public class IssuesStorage {
-    public static final String ISSUES = "issues";
     private Ignite ignite;
 
     public IssuesStorage(Ignite ignite) {
@@ -33,7 +35,11 @@ public class IssuesStorage {
     }
 
     IgniteCache<IssueKey, Issue> cache() {
-        return ignite.getOrCreateCache(ISSUES);
+        return botDetectedIssuesCache(ignite);
+    }
+
+    public static IgniteCache<IssueKey, Issue> botDetectedIssuesCache(Ignite ignite) {
+        return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(BOT_DETECTED_ISSUES));
     }
 
     public List<Issue> all() {

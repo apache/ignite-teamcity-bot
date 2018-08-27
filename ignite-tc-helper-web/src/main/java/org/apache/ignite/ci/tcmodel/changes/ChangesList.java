@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.ignite.ci.db.Persisted;
 
 /**
- * Created by Дмитрий on 18.02.2018.
+ * List of changes from TC.
  */
 @XmlRootElement(name = "changes")
 @Persisted
