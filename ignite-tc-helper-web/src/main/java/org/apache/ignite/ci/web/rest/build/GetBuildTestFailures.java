@@ -18,12 +18,11 @@
 package org.apache.ignite.ci.web.rest.build;
 
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
+import com.google.common.collect.Lists;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -36,11 +35,11 @@ import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.BackgroundUpdater;
@@ -51,6 +50,8 @@ import org.apache.ignite.ci.web.model.current.UpdateInfo;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 @Path(GetBuildTestFailures.BUILD)
 @Produces(MediaType.APPLICATION_JSON)
@@ -131,7 +132,6 @@ public class GetBuildTestFailures {
                     (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE,
                     false, false, teamcity, failRateBranch);
 
-
             pubCtx.ifPresent(ctx -> {
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(serverId, ctx.branchName());
 
@@ -148,5 +148,27 @@ public class GetBuildTestFailures {
         res.postProcess(runningUpdates.get());
 
         return res;
+    }
+
+    @GET
+    @Path("history")
+    public List<Build> getBuildHistory(
+        @Nullable @QueryParam("buildType") String buildType,
+        @Nullable @QueryParam("branch") String branch,
+        @Nullable @QueryParam("count") Integer count) {
+        String buildTypeId = isNullOrEmpty(buildType) ? "IgniteTests24Java8_RunAll" : buildType;
+        String branchName = isNullOrEmpty(branch) ? ITeamcity.DEFAULT : branch;
+        int cnt = count == null ? 50 : count;
+
+        final ITcHelper tcHelper = CtxListener.getTcHelper(context);
+        final String srvId = tcHelper.primaryServerId();
+
+        final ICredentialsProv creds = ICredentialsProv.get(req);
+
+        try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds)) {
+
+            return Lists.reverse(teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchName))
+                .stream().limit(cnt).map(v -> teamcity.getBuild(v.href)).collect(Collectors.toList());
+        }
     }
 }
