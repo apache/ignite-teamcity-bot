@@ -89,11 +89,19 @@ public class Build extends BuildRef implements IVersionedEntity {
     }
 
     public Date getFinishDate() {
+        return getDate(finishDate);
+    }
+
+    public Date getStartDate() {
+        return getDate(startDate);
+    }
+
+    private Date getDate(String date) {
         try {
-            if (finishDate == null)
+            if (date == null)
                 return null;
             SimpleDateFormat f = new SimpleDateFormat("yyyyMMdd'T'HHmmssZ");
-            return f.parse(finishDate);
+            return f.parse(date);
         }
         catch (ParseException e) {
             throw new IllegalStateException(e);

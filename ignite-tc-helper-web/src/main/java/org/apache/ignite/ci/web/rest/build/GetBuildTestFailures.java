@@ -17,12 +17,15 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import com.google.common.collect.Lists;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -36,6 +39,8 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.result.issues.IssueRef;
@@ -43,6 +48,8 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.issues.IssueUsage;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
+import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
@@ -91,7 +98,7 @@ public class GetBuildTestFailures {
         @QueryParam("serverId") String serverId,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs)
-            throws ServiceUnauthorizedException {
+        throws ServiceUnauthorizedException {
 
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
 
@@ -154,39 +161,42 @@ public class GetBuildTestFailures {
 
     @GET
     @Path("history")
-    public List<Build> getBuildHistory(
+    public List<BuildStatisticsSummary> getBuildHistory(
+        @Nullable @QueryParam("server") String server,
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("count") Integer count) {
+        String srvId = isNullOrEmpty(server) ? "apache" : server;
         String buildTypeId = isNullOrEmpty(buildType) ? "IgniteTests24Java8_RunAll" : buildType;
-        String branchName = isNullOrEmpty(branch) ? ITeamcity.DEFAULT : branch;
+        String branchName = isNullOrEmpty(branch) ? "refs/heads/master" : branch;
         int cnt = count == null ? 50 : count;
 
         final ITcHelper tcHelper = CtxListener.getTcHelper(context);
-        final String srvId = tcHelper.primaryServerId();
 
         final ICredentialsProv creds = ICredentialsProv.get(req);
 
         try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds)) {
 
-            return Lists.reverse(teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchName))
-                .stream().limit(cnt).map(v -> teamcity.getBuild(v.href)).collect(Collectors.toList());
-        }
-    }
+            List<BuildRef> finishedBuilds = teamcity.getFinishedBuildsIncludeSnDepFailed(
+                buildTypeId,
+                branchName);
 
-    @GET
-    @Path("relatedIssues")
-    public List<IssueRef> getRelatedIssues(
-        @QueryParam("buildId") Integer buildId) {
-        final ITcHelper tcHelper = CtxListener.getTcHelper(context);
-        final String srvId = tcHelper.primaryServerId();
+            final List<Build> builds = finishedBuilds.stream()
+                .filter(ref -> !ref.isFakeStub())
+                .sorted(Comparator.comparing(BuildRef::getId).reversed())
+                .limit(cnt)
+                .map(v -> teamcity.getBuild(v.href))
+                .collect(Collectors.toList());
 
-        final ICredentialsProv creds = ICredentialsProv.get(req);
+            List<BuildStatisticsSummary> buildStatisticsList = new ArrayList<>();
 
-        try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds)) {
+            for (Build build : builds){
+                BuildStatisticsSummary stat = new BuildStatisticsSummary(build);
+                stat.initialize(teamcity);
+                buildStatisticsList.add(stat);
+            }
 
-            return teamcity.getIssuesUsagesList(teamcity.getBuild(buildId).relatedIssuesRef.href)
-                .getIssuesUsagesNonNull().stream().map(IssueUsage::getIssue).collect(Collectors.toList());
+            return buildStatisticsList;
         }
     }
 }
