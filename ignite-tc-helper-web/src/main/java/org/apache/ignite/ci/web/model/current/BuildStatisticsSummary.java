@@ -50,7 +50,7 @@ public class BuildStatisticsSummary {
     }
 
     private long getExitCodeProblemsCount() {
-        return getProblemsStream().filter(ProblemOccurrence :: isExitCode).count();
+        return getProblemsStream().filter(ProblemOccurrence::isExitCode).count();
     }
 
     private long getOomeProblemCount() {
@@ -63,6 +63,16 @@ public class BuildStatisticsSummary {
 
     private long getSnapshotDepProblemCount() {
         return getProblemsStream().filter(ProblemOccurrence::isShaphotDepProblem).count();
+    }
+
+    private long getOtherProblemCount() {
+        return getProblemsStream().filter(p ->
+            !p.isFailedTests()
+                && !p.isShaphotDepProblem()
+                && !p.isExecutionTimeout()
+                && !p.isJvmCrash()
+                && !p.isExitCode()
+                && !p.isOome()).count();
     }
 
     private Stream<ProblemOccurrence> getProblemsStream() {
@@ -81,6 +91,9 @@ public class BuildStatisticsSummary {
         addKnownProblemCnt(res, "EXIT CODE", getExitCodeProblemsCount());
         addKnownProblemCnt(res, "FAILED TESTS", getFailedTestsProblemCount());
         addKnownProblemCnt(res, "SNAPSHOT DEPENDENCY ERROR", getSnapshotDepProblemCount());
+        addKnownProblemCnt(res, "OTHER", getOtherProblemCount());
+
+        res.insert(0, "ALL [" + build.problemOccurrences.count + "]" + (res.length() != 0 ? ": " : " "));
 
         return res.toString();
     }

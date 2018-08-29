@@ -25,4 +25,8 @@ import javax.xml.bind.annotation.XmlAttribute;
 public class ProblemOccurrencesRef {
     /** Href without host name to obtain full problems list. */
     @XmlAttribute public String href;
+
+    @XmlAttribute public long count;
+
+    @XmlAttribute public long newFailed;
 }
