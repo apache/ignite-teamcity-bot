@@ -16,7 +16,7 @@
         }
         td, th {
 
-            padding: 3px 7px 2px 7px;
+            padding: 10px 5px 10px 5px;
         }
         th {
             text-align: left;
@@ -147,7 +147,7 @@
                 "<td>" + buildStatistics.build.testOccurrences.failed + "</td>" +
                 "<td>" + buildStatistics.build.testOccurrences.ignored + "</td>" +
                 "<td>" + buildStatistics.build.testOccurrences.muted + "</td>" +
-                "<td>" + buildStatistics.result + "<p>";
+                "<td><p>" + buildStatistics.result + "</p>";
 
             var issuesArr = buildStatistics.relatedIssues;
 
@@ -156,16 +156,19 @@
 
                 for (var j = 0; j < issuesArr.length; j++) {
                     var issue = issuesArr[j];
-                    res += "" + (j + 1) + ". <a href='" + issue.url + "'>" + issue.id + "</a><br>";
+
+                    if (j !== 0) res += ", ";
+
+                    res += "<a href='" + issue.url + "'>" + issue.id + "</a>";
                 }
 
-                res += "</p></details></p>";
+                res += "</p></details>";
             }
 
             res += "</td><td>" + buildStatistics.durationPrintable + "</td></tr>";
         }
 
-        res += "</table><br><br>min: " + problemCountMin + "; max: " + problemCountMax +
+        res += "</table><br>min: " + problemCountMin + "; max: " + problemCountMax +
             "; median: " + (Math.round(median(problemCounts) * 1000) / 1000) +
             "; average: " + (Math.round(average / result.length * 1000) / 1000) + "<br><br>";
 
@@ -173,6 +176,7 @@
 
     }
 </script>
+<br>
 <div id="loadStatus"></div>
 <div id="statistics"></div>
 <div id="version"></div>
