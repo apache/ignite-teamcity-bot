@@ -270,16 +270,21 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
         return apply;
     }
-
     /** {@inheritDoc} */
     @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch) {
+
+        return getFinishedBuilds(projectId, branch, DEFAULT_BUILDS_COUNT);
+    }
+
+    /** {@inheritDoc} */
+    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Integer cnt) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
         return timedLoadIfAbsentOrMerge(buildHistCache(), 60, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> builds;
                 try {
-                    builds = teamcity.getFinishedBuilds(projectId, branch);
+                    builds = teamcity.getFinishedBuilds(projectId, branch, cnt);
                 }
                 catch (Exception e) {
                     if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
@@ -310,11 +315,17 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
+
+        return getFinishedBuildsIncludeSnDepFailed(projectId, branch, DEFAULT_BUILDS_COUNT);
+    }
+
+    /** {@inheritDoc} */
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer cnt) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
         return timedLoadIfAbsentOrMerge(buildHistIncFailedCache(), 60, suiteInBranch,
             (key, persistedValue) -> {
-                List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch);
+                List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, cnt);
 
                 return mergeByIdToHistoricalOrder(persistedValue, failed);
             });
