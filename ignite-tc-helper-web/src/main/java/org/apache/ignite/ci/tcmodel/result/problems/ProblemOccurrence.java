@@ -40,7 +40,7 @@ public class ProblemOccurrence {
         return "TC_FAILED_TESTS".equals(type);
     }
 
-    public boolean isShaphotDepProblem() {
+    public boolean isSnapshotDepProblem() {
         return "SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE".equals(type);
     }
 

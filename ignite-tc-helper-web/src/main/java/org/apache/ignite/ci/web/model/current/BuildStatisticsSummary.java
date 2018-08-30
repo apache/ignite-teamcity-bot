@@ -62,13 +62,13 @@ public class BuildStatisticsSummary {
     }
 
     private long getSnapshotDepProblemCount() {
-        return getProblemsStream().filter(ProblemOccurrence::isShaphotDepProblem).count();
+        return getProblemsStream().filter(ProblemOccurrence::isSnapshotDepProblem).count();
     }
 
     private long getOtherProblemCount() {
         return getProblemsStream().filter(p ->
             !p.isFailedTests()
-                && !p.isShaphotDepProblem()
+                && !p.isSnapshotDepProblem()
                 && !p.isExecutionTimeout()
                 && !p.isJvmCrash()
                 && !p.isExitCode()
