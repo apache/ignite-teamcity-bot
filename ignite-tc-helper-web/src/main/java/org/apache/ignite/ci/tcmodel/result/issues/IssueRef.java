@@ -19,6 +19,12 @@ package org.apache.ignite.ci.tcmodel.result.issues;
 
 import javax.xml.bind.annotation.XmlAttribute;
 
+/**
+ * Issue short version from list of build's related issues.
+ *
+ * See example of XML, e.g. here
+ * https://ci.ignite.apache.org/app/rest/latest/builds/id:1694977/relatedIssues
+ */
 public class IssueRef {
     @XmlAttribute public String id;
     @XmlAttribute public String url;

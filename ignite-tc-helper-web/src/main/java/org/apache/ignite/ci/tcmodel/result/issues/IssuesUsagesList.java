@@ -22,6 +22,12 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+/**
+ * List of build's related issues from TC.
+ *
+ * See example of XML, e.g. here
+ * https://ci.ignite.apache.org/app/rest/latest/builds/id:1694977/relatedIssues
+ */
 @XmlRootElement(name = "issuesUsages")
 public class IssuesUsagesList {
     @XmlElement(name = "issueUsage")

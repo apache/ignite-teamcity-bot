@@ -23,6 +23,12 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 
+/**
+ * Build's related issue from TC.
+ *
+ * See example of XML, e.g. here
+ * https://ci.ignite.apache.org/app/rest/latest/builds/id:1694977/relatedIssues
+ */
 @XmlRootElement(name = "IssueUsage")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class IssueUsage {

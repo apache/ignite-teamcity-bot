@@ -20,10 +20,10 @@ package org.apache.ignite.ci.tcmodel.result;
 import javax.xml.bind.annotation.XmlAttribute;
 
 /**
- * Related issues reference
+ * Related issues reference.
  */
 public class RelatedIssuesRef {
-    /** Href without host name to obtain full issues list. */
+    /** Href without host name to obtain full related issues list. */
     @XmlAttribute public String href;
 }
 
