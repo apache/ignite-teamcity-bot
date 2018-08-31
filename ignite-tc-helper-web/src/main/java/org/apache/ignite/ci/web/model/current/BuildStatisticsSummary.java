@@ -28,11 +28,12 @@ import org.apache.ignite.ci.tcmodel.result.issues.IssueRef;
 import org.apache.ignite.ci.tcmodel.result.issues.IssueUsage;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.util.TimeUtil;
+import org.apache.ignite.ci.web.IBackgroundUpdatable;
 
 /**
  * Summary of build statistics.
  */
-public class BuildStatisticsSummary {
+public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpdatable {
     /** Build with test and problems references. */
     public Build build;
 
@@ -163,5 +164,9 @@ public class BuildStatisticsSummary {
     @Override public int hashCode() {
 
         return Objects.hash(build, problems, relatedIssues, durationPrintable, getResult());
+    }
+
+    @Override public void setUpdateRequired(boolean update) {
+        updateRequired = update;
     }
 }

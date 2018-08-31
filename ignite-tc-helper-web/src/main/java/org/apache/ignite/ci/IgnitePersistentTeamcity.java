@@ -36,6 +36,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
@@ -242,14 +243,14 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
-    private <K, V> V timedLoadIfAbsentOrMerge(IgniteCache<K, Expirable<V>> cache, int seconds, K key,
+    private <K, V> V timedLoadIfAbsentOrMerge(IgniteCache<K, Expirable<V>> cache, int seconds, long cnt, K key,
         BiFunction<K, V, V> loadWithMerge) {
         @Nullable final Expirable<V> persistedBuilds = cache.get(key);
 
         int fields = ObjectInterner.internFields(persistedBuilds);
 
         if (persistedBuilds != null) {
-            if (persistedBuilds.isAgeLessThanSecs(seconds))
+            if (persistedBuilds.isAgeLessThanSecs(seconds) && persistedBuilds.isLastCntGreaterThanCurrentCnt(cnt))
                 return persistedBuilds.getData();
         }
 
@@ -260,7 +261,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         try {
             apply = loadWithMerge.apply(key, persistedBuilds != null ? persistedBuilds.getData() : null);
 
-            final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), apply);
+            final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), cnt, apply);
 
             cache.put(key, newVal);
         }
@@ -280,7 +281,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Integer cnt) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        return timedLoadIfAbsentOrMerge(buildHistCache(), 60, suiteInBranch,
+        List<BuildRef> buildRefs = timedLoadIfAbsentOrMerge(buildHistCache(), 60, cnt, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> builds;
                 try {
@@ -297,6 +298,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
                 return mergeByIdToHistoricalOrder(persistedValue, builds);
             });
+
+        return buildRefs.stream().skip(cnt < buildRefs.size() ? buildRefs.size() - cnt : 0).collect(Collectors.toList());
     }
 
     @NotNull
@@ -304,7 +307,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         final SortedMap<Integer, BuildRef> merge = new TreeMap<>();
 
         if (persistedVal != null)
-            persistedVal.forEach(b -> merge.put(b.getId(), b));
+            persistedVal.stream().forEach(b -> merge.put(b.getId(), b));
 
         mostActualVal.forEach(b -> merge.put(b.getId(), b)); //to overwrite data from persistence by values from REST
 
@@ -323,7 +326,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer cnt) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        return timedLoadIfAbsentOrMerge(buildHistIncFailedCache(), 60, suiteInBranch,
+        return timedLoadIfAbsentOrMerge(buildHistIncFailedCache(), 60, cnt, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, cnt);
 
@@ -348,8 +351,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     public static int getTriggerRelCacheValidSecs(int defaultSecs) {
         long msSinceTrigger = System.currentTimeMillis() - lastTriggerMs;
-        long secondsSinceTigger = TimeUnit.MILLISECONDS.toSeconds(msSinceTrigger);
-        return Math.min((int)secondsSinceTigger, defaultSecs);
+        long secondsSinceTrigger = TimeUnit.MILLISECONDS.toSeconds(msSinceTrigger);
+        return Math.min((int)secondsSinceTrigger, defaultSecs);
     }
 
     /** {@inheritDoc} */
