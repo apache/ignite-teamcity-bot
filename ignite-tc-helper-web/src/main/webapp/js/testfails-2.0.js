@@ -166,6 +166,9 @@ function showChainCurrentStatusData(server, settings) {
  * Or empty string if no blockers found.
  */
 function addBlockersData(server, settings) {
+    if (findGetParameter("action") != "Latest")
+        return "";
+
     var blockers = "";
 
     for (var i = 0; i < server.suites.length; i++) {
