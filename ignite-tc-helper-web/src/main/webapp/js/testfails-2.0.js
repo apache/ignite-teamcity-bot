@@ -148,7 +148,7 @@ function showChainCurrentStatusData(server, settings) {
     for (var i = 0; i < server.suites.length; i++) {
         var suite = server.suites[i];
 
-        res += showSuiteData(suite, settings, false);
+        res += showSuiteData(suite, settings);
     }
 
     res += "<tr><td colspan='4'>&nbsp;</td></tr>";
@@ -171,16 +171,46 @@ function addBlockersData(server, settings) {
     for (var i = 0; i < server.suites.length; i++) {
         var suite = server.suites[i];
 
-        blockers += showSuiteData(suite, settings, true);
+        suite = suiteWithCriticalFailuresOnly(suite);
+
+        if (suite != null)
+            blockers += showSuiteData(suite, settings);
     }
 
     if (blockers != "") {
-        blockers = "<tr bgcolor='#F5F5FF'><td colspan='4' class='table-title'><b>Possible Blockers</b></td></tr>" +
+        blockers = "<tr bgcolor='#F5F5FF'><th colspan='4' class='table-title'><b>Possible Blockers</b></th></tr>" +
             blockers +
-            "<tr bgcolor='#F5F5FF'><td colspan='4' class='table-title'><b>Other failures</b></td></tr>";
+            "<tr bgcolor='#F5F5FF'><th colspan='4' class='table-title'><b>Other failures</b></th></tr>";
     }
 
     return blockers;
+}
+
+/**
+ * Copy suite and remove flaky tests from the copy.
+ *
+ * @param suite - see SuiteCurrentStatus Java class.
+ * @returns Suite without flaky tests. Or null - if suite have only flaky tests.
+ */
+function suiteWithCriticalFailuresOnly(suite) {
+    var suite0 = Object.assign({}, suite);
+    var j = 0;
+
+    suite0.testFailures = suite0.testFailures.slice();
+
+    while (j < suite0.testFailures.length) {
+        var testFailure = suite0.testFailures[j];
+
+        if (isNewFailedTest(testFailure) || testFailure.name.includes("(last started)"))
+            j++;
+        else
+            suite0.testFailures.splice(j, 1);
+    }
+
+    if (suite0.testFailures.length > 0 || suite0.result != "")
+        return suite0;
+
+    return null;
 }
 
 function triggerBuild(serverId, suiteId, branchName, top) {
@@ -268,13 +298,9 @@ function triggerBuilds(serverId, suiteIdList, branchName, top) {
  *
  * @param suite - see SuiteCurrentStatus Java class.
  * @param settings - see Settings JavaScript class.
- * @param criticalOnly - true if we need to show only 0.0% tests. False otherwise.
  * @returns {string} Table rows with suite data.
  */
-function showSuiteData(suite, settings, criticalOnly) {
-    if (criticalOnly && !containsCtriticalFailures(suite))
-        return "";
-
+function showSuiteData(suite, settings) {
     var moreInfoTxt = "";
 
     if (isDefinedAndFilled(suite.userCommits) && suite.userCommits != "") {
@@ -404,8 +430,7 @@ function showSuiteData(suite, settings, criticalOnly) {
     for (var i = 0; i < suite.testFailures.length; i++) {
         var testFailure = suite.testFailures[i];
 
-        if (!criticalOnly || isNewFailedTest(testFailure) || testFailure.name.includes("(last started)"))
-            res += showTestFailData(testFailure, true, settings);
+        res += showTestFailData(testFailure, true, settings);
     }
 
     if (isDefinedAndFilled(suite.webUrlThreadDump)) {
@@ -423,31 +448,13 @@ function showSuiteData(suite, settings, criticalOnly) {
 }
 
 /**
- * Check suite for critical failures like suite timeout, compilation fail and new failed tests.
- *
- * @param suite - see SuiteCurrentStatus Java class.
- * @returns {boolean} True - if suite contains critical failures.
- */
-function containsCtriticalFailures(suite) {
-    if (suite.result != "")
-        return true;
-
-    for (let testFailure of suite.testFailures) {
-        if (isNewFailedTest(testFailure))
-            return true;
-    }
-
-    return false;
-}
-
-/**
  * Check that given test is new.
  *
  * @param testFailure - see TestFailure Java class.
  * @returns {boolean} True - if test is new. False - otherwise.
  */
 function isNewFailedTest(testFailure) {
-    return testFailure.failureRate == "0,0" || testFailure.flakyComments == null;
+    return Number.parseFloat(testFailure.failureRate) < 4.0 || testFailure.flakyComments == null;
 }
 
 function failureRateToColor(failureRate) {
