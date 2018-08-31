@@ -104,7 +104,11 @@ public interface ITeamcity extends AutoCloseable {
     CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch);
 
     default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist) {
-        return getFinishedBuilds(projectId, branchNameForHist).stream().mapToInt(BuildRef::getId).toArray();
+        return getBuildNumbersFromHistory(projectId, branchNameForHist, DEFAULT_BUILDS_COUNT);
+    }
+
+    default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist, Integer cnt) {
+        return getFinishedBuilds(projectId, branchNameForHist, cnt).stream().mapToInt(BuildRef::getId).toArray();
     }
 
     Build getBuild(String href);
