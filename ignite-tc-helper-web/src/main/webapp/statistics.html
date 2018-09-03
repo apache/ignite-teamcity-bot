@@ -123,7 +123,7 @@
     }
 
     function showBuildHistory(result) {
-        var res = "<table><tr><th>Id</th><th>Total tests</th><th>Failed tests</th><th>Ignored tests</th>" +
+        var res = "<table><tr><th>#</th><th>Id</th><th>Total tests</th><th>Failed tests</th><th>Ignored tests</th>" +
             "<th>Muted tests</th><th>Total issues</th><th>Total run time</th></tr>";
 
         var problemCountMin = result[0].build.problemOccurrences.count;
@@ -142,7 +142,8 @@
 
             average += problemCounts[i] / buildStatistics.build.testOccurrences.failed;
 
-            res += "<tr><td><a href='" + buildStatistics.build.webUrl + "'>" + buildStatistics.build.id + "</a></td>" +
+            res += "<tr><td>" + (i + 1) + "</td>" +
+                "<td><a href='" + buildStatistics.build.webUrl + "'>" + buildStatistics.build.id + "</a></td>" +
                 "<td>" + buildStatistics.build.testOccurrences.count + "</td>" +
                 "<td>" + buildStatistics.build.testOccurrences.failed + "</td>" +
                 "<td>" + buildStatistics.build.testOccurrences.ignored + "</td>" +
