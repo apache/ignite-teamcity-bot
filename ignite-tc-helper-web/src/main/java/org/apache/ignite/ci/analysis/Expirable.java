@@ -59,7 +59,7 @@ public class Expirable<D> {
         return getAgeMs() < TimeUnit.SECONDS.toMillis(seconds);
     }
 
-    public boolean isLastCntGreaterThanCurrentCnt(long cnt){
+    public boolean hasCounterGreaterThan(long cnt){
         return cnt > this.cnt;
     }
 }

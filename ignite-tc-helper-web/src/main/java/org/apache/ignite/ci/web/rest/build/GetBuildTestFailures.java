@@ -199,12 +199,7 @@ public class GetBuildTestFailures {
         }
     }
 
-
-    @GET
-    @Path("historyNoCache")
-    public BuildStatisticsSummary getBuildStatisticsSummaryNoCache(
-        @Nullable @QueryParam("server") String server,
-        @QueryParam("buildId") int buildId) {
+    private BuildStatisticsSummary getBuildStatisticsSummaryNoCache(String server, int buildId) {
 
         String srvId = isNullOrEmpty(server) ? "apache" : server;
 

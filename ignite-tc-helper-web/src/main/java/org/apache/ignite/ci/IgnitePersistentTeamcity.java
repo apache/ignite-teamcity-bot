@@ -250,7 +250,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         int fields = ObjectInterner.internFields(persistedBuilds);
 
         if (persistedBuilds != null) {
-            if (persistedBuilds.isAgeLessThanSecs(seconds) && persistedBuilds.isLastCntGreaterThanCurrentCnt(cnt))
+            if (persistedBuilds.isAgeLessThanSecs(seconds) && persistedBuilds.hasCounterGreaterThan(cnt))
                 return persistedBuilds.getData();
         }
 
@@ -299,7 +299,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 return mergeByIdToHistoricalOrder(persistedValue, builds);
             });
 
-        return buildRefs.stream().skip(cnt < buildRefs.size() ? buildRefs.size() - cnt : 0).collect(Collectors.toList());
+        return buildRefs.stream()
+            .skip(cnt < buildRefs.size() ? buildRefs.size() - cnt : 0)
+            .collect(Collectors.toList());
     }
 
     @NotNull
@@ -307,7 +309,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         final SortedMap<Integer, BuildRef> merge = new TreeMap<>();
 
         if (persistedVal != null)
-            persistedVal.stream().forEach(b -> merge.put(b.getId(), b));
+            persistedVal.forEach(b -> merge.put(b.getId(), b));
 
         mostActualVal.forEach(b -> merge.put(b.getId(), b)); //to overwrite data from persistence by values from REST
 
