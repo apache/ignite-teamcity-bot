@@ -464,18 +464,22 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc}*/
     @Override public ProblemOccurrences getProblems(Build build) {
-        String href = build.problemOccurrences.href;
+        if (build.problemOccurrences != null) {
+            String href = build.problemOccurrences.href;
 
-        return loadIfAbsent(
-            buildProblemsCache(),
-            href,
-            k -> {
-                ProblemOccurrences problems = teamcity.getProblems(build);
+            return loadIfAbsent(
+                buildProblemsCache(),
+                href,
+                k -> {
+                    ProblemOccurrences problems = teamcity.getProblems(build);
 
-                registerCriticalBuildProblemInStat(build, problems);
+                    registerCriticalBuildProblemInStat(build, problems);
 
-                return problems;
-            });
+                    return problems;
+                });
+        }
+        else
+            return new ProblemOccurrences();
     }
 
     private void registerCriticalBuildProblemInStat(Build build, ProblemOccurrences problems) {

@@ -389,7 +389,10 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     public ProblemOccurrences getProblems(Build build) {
-        return getJaxbUsingHref(build.problemOccurrences.href, ProblemOccurrences.class);
+        if (build.problemOccurrences != null)
+            return getJaxbUsingHref(build.problemOccurrences.href, ProblemOccurrences.class);
+        else
+            return new ProblemOccurrences();
     }
 
     public TestOccurrences getTests(String href, String normalizedBranch) {
