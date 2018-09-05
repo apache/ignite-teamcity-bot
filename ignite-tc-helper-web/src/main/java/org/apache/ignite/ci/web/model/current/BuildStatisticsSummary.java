@@ -17,12 +17,17 @@
 
 package org.apache.ignite.ci.web.model.current;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.issues.IssueRef;
 import org.apache.ignite.ci.tcmodel.result.issues.IssueUsage;
@@ -38,7 +43,7 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
     public Build build;
 
     /** List of problem occurrences. */
-    private List<ProblemOccurrence> problems;
+    private Map<String, List<ProblemOccurrence>> problems = new HashMap<>();
 
     /** List of related issues. */
     public List<IssueRef> relatedIssues;
@@ -56,7 +61,7 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
     /** Initialize build statistics. */
     public void initialize(@Nonnull final ITeamcity teamcity) {
 
-        problems = teamcity.getProblems(build).getProblemsNonNull();
+        getProblems(teamcity, build);
 
         relatedIssues = teamcity.getIssuesUsagesList(build.relatedIssuesRef.href).getIssuesUsagesNonNull().stream()
             .map(IssueUsage::getIssue).collect(Collectors.toList());
@@ -67,32 +72,48 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
         result = getResult();
     }
 
-    private long getExecutionTimeoutCount() {
-        return getProblemsStream().filter(ProblemOccurrence::isExecutionTimeout).count();
+    private void getProblems(@Nonnull final ITeamcity teamcity, Build build){
+        if (build.isComposite()) {
+            List<BuildRef> snapshotDep = build.getSnapshotDependenciesNonNull().stream()
+                .filter(b -> !b.isSuccess())
+                .collect(Collectors.toList());
+
+            for (BuildRef buildRef : snapshotDep){
+                Build buildDep = teamcity.getBuild(buildRef.href);
+
+                getProblems(teamcity, buildDep);
+            }
+        } else
+            problems.put(build.buildTypeId, teamcity.getProblems(build).getProblemsNonNull());
+
     }
 
-    private long getJvmCrashProblemCount() {
-        return getProblemsStream().filter(ProblemOccurrence::isJvmCrash).count();
+    private long getExecutionTimeoutCount(String buildTypeId) {
+        return getProblemsStream(buildTypeId).filter(ProblemOccurrence::isExecutionTimeout).count();
     }
 
-    private long getExitCodeProblemsCount() {
-        return getProblemsStream().filter(ProblemOccurrence::isExitCode).count();
+    private long getJvmCrashProblemCount(String buildTypeId) {
+        return getProblemsStream(buildTypeId).filter(ProblemOccurrence::isJvmCrash).count();
     }
 
-    private long getOomeProblemCount() {
-        return getProblemsStream().filter(ProblemOccurrence::isOome).count();
+    private long getExitCodeProblemsCount(String buildTypeId) {
+        return getProblemsStream(buildTypeId).filter(ProblemOccurrence::isExitCode).count();
     }
 
-    private long getFailedTestsProblemCount() {
-        return getProblemsStream().filter(ProblemOccurrence::isFailedTests).count();
+    private long getOomeProblemCount(String buildTypeId) {
+        return getProblemsStream(buildTypeId).filter(ProblemOccurrence::isOome).count();
     }
 
-    private long getSnapshotDepProblemCount() {
-        return getProblemsStream().filter(ProblemOccurrence::isSnapshotDepProblem).count();
+    private long getFailedTestsProblemCount(String buildTypeId) {
+        return getProblemsStream(buildTypeId).filter(ProblemOccurrence::isFailedTests).count();
     }
 
-    private long getOtherProblemCount() {
-        return getProblemsStream().filter(p ->
+    private long getSnapshotDepProblemCount(String buildTypeId) {
+        return getProblemsStream(buildTypeId).filter(ProblemOccurrence::isSnapshotDepProblem).count();
+    }
+
+    private long getOtherProblemCount(String buildTypeId) {
+        return getProblemsStream(buildTypeId).filter(p ->
             !p.isFailedTests()
                 && !p.isSnapshotDepProblem()
                 && !p.isExecutionTimeout()
@@ -101,11 +122,11 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
                 && !p.isOome()).count();
     }
 
-    private Stream<ProblemOccurrence> getProblemsStream() {
+    private Stream<ProblemOccurrence> getProblemsStream(String buildTypeId) {
         if (problems == null)
             return Stream.empty();
 
-        return problems.stream().filter(Objects::nonNull);
+        return problems.get(buildTypeId).stream().filter(Objects::nonNull);
     }
 
     /**
@@ -114,19 +135,27 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
      * @return printable result.
      */
     private String getResult() {
-        StringBuilder res = new StringBuilder();
+        StringBuilder fullResult = new StringBuilder();
 
-        addKnownProblemCnt(res, "TIMEOUT", getExecutionTimeoutCount());
-        addKnownProblemCnt(res, "JVM CRASH", getJvmCrashProblemCount());
-        addKnownProblemCnt(res, "OOMe", getOomeProblemCount());
-        addKnownProblemCnt(res, "EXIT CODE", getExitCodeProblemsCount());
-        addKnownProblemCnt(res, "FAILED TESTS", getFailedTestsProblemCount());
-        addKnownProblemCnt(res, "SNAPSHOT DEPENDENCY ERROR", getSnapshotDepProblemCount());
-        addKnownProblemCnt(res, "OTHER", getOtherProblemCount());
+        for (Map.Entry<String, List<ProblemOccurrence>> buildProblems : problems.entrySet()) {
 
-        res.insert(0, "ALL [" + build.problemOccurrences.count + "]" + (res.length() != 0 ? ": " : " "));
+            StringBuilder res = new StringBuilder();
 
-        return res.toString();
+            addKnownProblemCnt(res, "TIMEOUT", (getExecutionTimeoutCount(buildProblems.getKey())));
+            addKnownProblemCnt(res, "JVM CRASH", getJvmCrashProblemCount(buildProblems.getKey()));
+            addKnownProblemCnt(res, "OOMe", getOomeProblemCount(buildProblems.getKey()));
+            addKnownProblemCnt(res, "EXIT CODE", getExitCodeProblemsCount(buildProblems.getKey()));
+            addKnownProblemCnt(res, "FAILED TESTS", getFailedTestsProblemCount(buildProblems.getKey()));
+            addKnownProblemCnt(res, "SNAPSHOT DEPENDENCY ERROR", getSnapshotDepProblemCount(buildProblems.getKey()));
+            addKnownProblemCnt(res, "OTHER", getOtherProblemCount(buildProblems.getKey()));
+
+            res.insert(0, buildProblems.getKey() + " [" + buildProblems.getValue().size() + "]" + (res.length() != 0 ? ": " : " "));
+
+            fullResult.append(res)
+                .append("<br>");
+        }
+
+        return fullResult.toString();
     }
 
     /**
@@ -140,8 +169,7 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
                 res.append(", ");
 
             res.append(nme)
-                .append(" ")
-                .append(execToCnt > 1 ? "[" + execToCnt + "]" : "");
+                .append(execToCnt > 1 ? " [" + execToCnt + "]" : "");
         }
     }
 
