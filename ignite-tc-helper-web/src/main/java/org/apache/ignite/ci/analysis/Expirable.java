@@ -60,6 +60,6 @@ public class Expirable<D> {
     }
 
     public boolean hasCounterGreaterThan(long cnt){
-        return cnt > this.cnt;
+        return cnt < this.cnt;
     }
 }

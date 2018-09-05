@@ -29,9 +29,10 @@ import org.apache.ignite.ci.tcmodel.result.ProblemOccurrencesRef;
 @XmlRootElement(name = "problemOccurrences")
 public class ProblemOccurrences extends ProblemOccurrencesRef {
     @XmlElement(name = "problemOccurrence")
-    private List<ProblemOccurrence> problemOccurrences;
+    public List<ProblemOccurrence> problemOccurrences;
 
     public List<ProblemOccurrence> getProblemsNonNull() {
         return problemOccurrences == null ? Collections.emptyList() : problemOccurrences;
     }
 }
+
