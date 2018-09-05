@@ -32,7 +32,7 @@ import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.issue.EventTemplates;
-import org.apache.ignite.ci.issue.IssueRef;
+import org.apache.ignite.ci.issue.ProblemRef;
 import org.apache.ignite.ci.logs.LogMsgToWarn;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
@@ -78,7 +78,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 
     public List<String> warnings = new ArrayList<>();
 
-    @Nullable public IssueRef problemRef;
+    @Nullable public ProblemRef problemRef;
 
     @Nullable public String flakyComments;
 
@@ -209,12 +209,12 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
             RunStat.TestId testId = latestRunsSrc.detectTemplate(EventTemplates.newFailure);
 
             if (testId != null)
-                problemRef = new IssueRef("New Failure");
+                problemRef = new ProblemRef("New Failure");
 
             RunStat.TestId recentContributedTestId = latestRunsSrc.detectTemplate(EventTemplates.newContributedTestFailure);
 
             if (recentContributedTestId != null)
-                problemRef = new IssueRef("Recently contributed test failure");
+                problemRef = new ProblemRef("Recently contributed test failure");
 
             flakyComments = latestRunsSrc.getFlakyComments();
         }

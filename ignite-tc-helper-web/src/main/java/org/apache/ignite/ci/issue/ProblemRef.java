@@ -17,11 +17,11 @@
 
 package org.apache.ignite.ci.issue;
 
-public class IssueRef {
+public class ProblemRef {
     public String name;
     public String webUrl;
 
-    public IssueRef(String name) {
+    public ProblemRef(String name) {
         this.name = name;
     }
 }
