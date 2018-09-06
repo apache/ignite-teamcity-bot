@@ -143,9 +143,11 @@ function showChainCurrentStatusData(server, settings) {
 
     res += "</td></tr>";
 
+    res += addBlockersData(server, settings);
 
     for (var i = 0; i < server.suites.length; i++) {
         var suite = server.suites[i];
+
         res += showSuiteData(suite, settings);
     }
 
@@ -153,6 +155,65 @@ function showChainCurrentStatusData(server, settings) {
     res += "</table>"
 
     return res;
+}
+
+/**
+ * Creates table with possible blockers.
+ *
+ * @param server - see ChainAtServerCurrentStatus Java class.
+ * @param settings - see Settings JavaScript class.
+ * @returns {string} Table rows with possible blockers and table headers.
+ * Or empty string if no blockers found.
+ */
+function addBlockersData(server, settings) {
+    if (findGetParameter("action") != "Latest")
+        return "";
+
+    var blockers = "";
+
+    for (var i = 0; i < server.suites.length; i++) {
+        var suite = server.suites[i];
+
+        suite = suiteWithCriticalFailuresOnly(suite);
+
+        if (suite != null)
+            blockers += showSuiteData(suite, settings);
+    }
+
+    if (blockers != "") {
+        blockers = "<tr bgcolor='#F5F5FF'><th colspan='4' class='table-title'><b>Possible Blockers</b></th></tr>" +
+            blockers +
+            "<tr bgcolor='#F5F5FF'><th colspan='4' class='table-title'><b>Other failures</b></th></tr>";
+    }
+
+    return blockers;
+}
+
+/**
+ * Copy suite and remove flaky tests from the copy.
+ *
+ * @param suite - see SuiteCurrentStatus Java class.
+ * @returns Suite without flaky tests. Or null - if suite have only flaky tests.
+ */
+function suiteWithCriticalFailuresOnly(suite) {
+    var suite0 = Object.assign({}, suite);
+    var j = 0;
+
+    suite0.testFailures = suite0.testFailures.slice();
+
+    while (j < suite0.testFailures.length) {
+        var testFailure = suite0.testFailures[j];
+
+        if (isNewFailedTest(testFailure) || testFailure.name.includes("(last started)"))
+            j++;
+        else
+            suite0.testFailures.splice(j, 1);
+    }
+
+    if (suite0.testFailures.length > 0 || suite0.result != "")
+        return suite0;
+
+    return null;
 }
 
 function triggerBuild(serverId, suiteId, branchName, top) {
@@ -235,7 +296,13 @@ function triggerBuilds(serverId, suiteIdList, branchName, top) {
     });
 }
 
-//@param suite - see SuiteCurrentStatus
+/**
+ * Create html string with table rows, containing suite data.
+ *
+ * @param suite - see SuiteCurrentStatus Java class.
+ * @param settings - see Settings JavaScript class.
+ * @returns {string} Table rows with suite data.
+ */
 function showSuiteData(suite, settings) {
     var moreInfoTxt = "";
 
@@ -364,7 +431,9 @@ function showSuiteData(suite, settings) {
     res += " </tr>";
 
     for (var i = 0; i < suite.testFailures.length; i++) {
-        res += showTestFailData(suite.testFailures[i], true, settings);
+        var testFailure = suite.testFailures[i];
+
+        res += showTestFailData(testFailure, true, settings);
     }
 
     if (isDefinedAndFilled(suite.webUrlThreadDump)) {
@@ -379,6 +448,16 @@ function showSuiteData(suite, settings) {
     res += "<tr><td>&nbsp;</td><td width='12px'>&nbsp;</td><td colspan='2'></td></tr>";
 
     return res;
+}
+
+/**
+ * Check that given test is new.
+ *
+ * @param testFailure - see TestFailure Java class.
+ * @returns {boolean} True - if test is new. False - otherwise.
+ */
+function isNewFailedTest(testFailure) {
+    return Number.parseFloat(testFailure.failureRate) < 4.0 || testFailure.flakyComments == null;
 }
 
 function failureRateToColor(failureRate) {
