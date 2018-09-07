@@ -88,6 +88,16 @@
             curReqParms += "&count=" + count;
         }
 
+        var sinceDate = findGetParameter("sinceDate");
+        if(sinceDate!=null) {
+            curReqParms += "&sinceDate=" + sinceDate;
+        }
+
+        var untilDate = findGetParameter("untilDate");
+        if(untilDate!=null) {
+            curReqParms += "&untilDate=" + untilDate;
+        }
+
         curReqParms = curReqParms.replace("&","?");
 
         return curReqParms;

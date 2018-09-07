@@ -18,6 +18,7 @@
 package org.apache.ignite.ci;
 
 import java.io.File;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -62,19 +63,31 @@ public interface ITeamcity extends AutoCloseable {
     /**
      * @param projectId suite ID (string without spaces)
      * @param branch
+     * @param cnt builds count
+     * @return list of builds in historical order, recent builds coming last
+     */
+    default List<BuildRef> getFinishedBuilds(String projectId, String branch, Integer cnt) {
+        return getFinishedBuilds(projectId, branch, cnt, null, null);
+    };
+
+    /**
+     * @param projectId suite ID (string without spaces)
+     * @param branch
      * @return list of builds in historical order, recent builds coming last
      */
     default List<BuildRef> getFinishedBuilds(String projectId, String branch) {
-        return getFinishedBuilds(projectId, branch, DEFAULT_BUILDS_COUNT);
+        return getFinishedBuilds(projectId, branch, DEFAULT_BUILDS_COUNT, null, null);
     };
 
     /**
      * @param projectId suite ID (string without spaces)
      * @param branch
      * @param cnt builds count
+     * @param sinceDate
+     * @param untilDate
      * @return list of builds in historical order, recent builds coming last
      */
-    List<BuildRef> getFinishedBuilds(String projectId, String branch, Integer cnt);
+    List<BuildRef> getFinishedBuilds(String projectId, String branch, Integer cnt, Date sinceDate, Date untilDate);
 
     /**
      * Includes snapshot dependencies failed builds into list
@@ -84,7 +97,7 @@ public interface ITeamcity extends AutoCloseable {
      * @return list of builds in historical order, recent builds coming last
      */
     default List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch){
-        return getFinishedBuilds(projectId, branch, DEFAULT_BUILDS_COUNT);
+        return getFinishedBuilds(projectId, branch, DEFAULT_BUILDS_COUNT, null, null);
     };
 
     /**
@@ -104,11 +117,19 @@ public interface ITeamcity extends AutoCloseable {
     CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch);
 
     default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist) {
-        return getBuildNumbersFromHistory(projectId, branchNameForHist, DEFAULT_BUILDS_COUNT);
+        return getBuildNumbersFromHistory(projectId, branchNameForHist, DEFAULT_BUILDS_COUNT, null, null);
+    }
+
+    default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist, Date sinceDate, Date untilDate) {
+        return getBuildNumbersFromHistory(projectId, branchNameForHist, DEFAULT_BUILDS_COUNT, sinceDate, untilDate);
     }
 
     default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist, Integer cnt) {
-        return getFinishedBuilds(projectId, branchNameForHist, cnt).stream().mapToInt(BuildRef::getId).toArray();
+        return getBuildNumbersFromHistory(projectId, branchNameForHist, cnt, null, null);
+    }
+
+    default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist, Integer cnt, Date sinceDate, Date untilDate) {
+        return getFinishedBuilds(projectId, branchNameForHist, cnt, sinceDate, untilDate).stream().mapToInt(BuildRef::getId).toArray();
     }
 
     Build getBuild(String href);

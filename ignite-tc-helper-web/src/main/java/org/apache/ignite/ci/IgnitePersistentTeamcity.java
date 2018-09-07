@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -32,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -243,7 +245,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
-    private <K, V> V timedLoadIfAbsentOrMerge(IgniteCache<K, Expirable<V>> cache, int seconds, long cnt, K key,
+    private <K, V> V timedLoadIfAbsentOrMerge(IgniteCache<K, Expirable<V>> cache, int seconds, Integer cnt, K key,
         BiFunction<K, V, V> loadWithMerge) {
         @Nullable final Expirable<V> persistedBuilds = cache.get(key);
 
@@ -271,21 +273,16 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
         return apply;
     }
-    /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch) {
-
-        return getFinishedBuilds(projectId, branch, DEFAULT_BUILDS_COUNT);
-    }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Integer cnt) {
+    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Integer cnt, Date sinceDate, Date untilDate) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
         List<BuildRef> buildRefs = timedLoadIfAbsentOrMerge(buildHistCache(), 60, cnt, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> builds;
                 try {
-                    builds = teamcity.getFinishedBuilds(projectId, branch, cnt);
+                        builds = teamcity.getFinishedBuilds(projectId, branch, cnt);
                 }
                 catch (Exception e) {
                     if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
@@ -295,6 +292,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                     else
                         throw e;
                 }
+
 
                 return mergeByIdToHistoricalOrder(persistedValue, builds);
             });

@@ -17,7 +17,11 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.servlet.ServletContext;
@@ -154,12 +158,18 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("server") String server,
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
-        @Nullable @QueryParam("count") Integer count)
-        throws ServiceUnauthorizedException {
+        @Nullable @QueryParam("count") Integer count,
+        @Nullable @QueryParam("sinceDate") String sinceDate,
+        @Nullable @QueryParam("untilDate") String untilDate)
+        throws ServiceUnauthorizedException, ParseException {
+
+        DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
 
         String srvId = isNullOrEmpty(server) ? "apache" : server;
         String buildTypeId = isNullOrEmpty(buildType) ? "IgniteTests24Java8_RunAll" : buildType;
         String branchName = isNullOrEmpty(branch) ? "refs/heads/master" : branch;
+        Date sinceDateFilter = isNullOrEmpty(sinceDate) ? null : dateFormat.parse(sinceDate);
+        Date untilDateFilter = isNullOrEmpty(untilDate) ? null : dateFormat.parse(untilDate);
         int cnt = count == null ? 50 : count;
 
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
@@ -170,7 +180,7 @@ public class GetBuildTestFailures {
 
         try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov)) {
 
-            int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, cnt);
+            int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, cnt, sinceDateFilter, untilDateFilter);
 
             BuildStatisticsSummary[] buildsStatistics = new BuildStatisticsSummary[finishedBuilds.length];
 
