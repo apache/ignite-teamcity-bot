@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -200,7 +201,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /**
-     * @return Build history: {@link BuildRef} lists cache, 32 parts, transaactional
+     * @return Build history: {@link BuildRef} lists cache, 32 parts, transactional
      */
     public IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistIncFailedCache() {
         return getOrCreateCacheV2Tx(ignCacheNme(BUILD_HIST_FINISHED_OR_FAILED));
@@ -243,14 +244,15 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
-    private <K, V> V timedLoadIfAbsentOrMerge(IgniteCache<K, Expirable<V>> cache, int seconds, long cnt, K key,
+    private <K, V> V timedLoadIfAbsentOrMerge(IgniteCache<K, Expirable<V>> cache, int seconds, AtomicLong cnt, K key,
         BiFunction<K, V, V> loadWithMerge) {
         @Nullable final Expirable<V> persistedBuilds = cache.get(key);
 
         int fields = ObjectInterner.internFields(persistedBuilds);
 
         if (persistedBuilds != null) {
-            if (persistedBuilds.isAgeLessThanSecs(seconds) && persistedBuilds.hasCounterGreaterThan(cnt))
+            if (persistedBuilds.isAgeLessThanSecs(seconds) &&
+                (cnt.get() == 0 || persistedBuilds.hasCounterGreaterThan(cnt.get())))
                 return persistedBuilds.getData();
         }
 
@@ -261,7 +263,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         try {
             apply = loadWithMerge.apply(key, persistedBuilds != null ? persistedBuilds.getData() : null);
 
-            final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), cnt, apply);
+            final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), cnt.get(), apply);
 
             cache.put(key, newVal);
         }
@@ -271,17 +273,14 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
         return apply;
     }
-    /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch) {
-
-        return getFinishedBuilds(projectId, branch, DEFAULT_BUILDS_COUNT);
-    }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Integer cnt) {
+    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Long cnt) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        List<BuildRef> buildRefs = timedLoadIfAbsentOrMerge(buildHistCache(), 60, cnt, suiteInBranch,
+        AtomicLong realCnt = new AtomicLong(cnt == null ? 0 : cnt);
+
+        List<BuildRef> buildRefs = timedLoadIfAbsentOrMerge(buildHistCache(), 60, realCnt, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> builds;
                 try {
@@ -296,8 +295,15 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                         throw e;
                 }
 
-                return mergeByIdToHistoricalOrder(persistedValue, builds);
+                List<BuildRef> mergedBuilds = mergeByIdToHistoricalOrder(persistedValue, builds);
+
+                realCnt.set(mergedBuilds.size());
+
+                return mergedBuilds;
             });
+
+        if (cnt == null)
+            return buildRefs;
 
         return buildRefs.stream()
             .skip(cnt < buildRefs.size() ? buildRefs.size() - cnt : 0)
@@ -319,16 +325,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     //loads build history with following parameter: defaultFilter:false,state:finished
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
-
-        return getFinishedBuildsIncludeSnDepFailed(projectId, branch, DEFAULT_BUILDS_COUNT);
-    }
-
-    /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer cnt) {
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        return timedLoadIfAbsentOrMerge(buildHistIncFailedCache(), 60, cnt, suiteInBranch,
+        AtomicLong realCnt = new AtomicLong(cnt);
+
+        return timedLoadIfAbsentOrMerge(buildHistIncFailedCache(), 60, realCnt, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, cnt);
 

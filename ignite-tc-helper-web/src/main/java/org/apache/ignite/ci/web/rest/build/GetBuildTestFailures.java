@@ -154,13 +154,13 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("server") String server,
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
-        @Nullable @QueryParam("count") Integer count)
+        @Nullable @QueryParam("count") Long count)
         throws ServiceUnauthorizedException {
 
         String srvId = isNullOrEmpty(server) ? "apache" : server;
         String buildTypeId = isNullOrEmpty(buildType) ? "IgniteTests24Java8_RunAll" : buildType;
         String branchName = isNullOrEmpty(branch) ? "refs/heads/master" : branch;
-        int cnt = count == null ? 50 : count;
+        long cnt = count == null ? 50 : count;
 
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
 

@@ -357,18 +357,18 @@ public class IgniteTeamcityHelper implements ITeamcity {
         boolean dfltFilter,
         @Nullable String state){
 
-        return getBuildHistory(buildTypeId, branchName, dfltFilter, state, DEFAULT_BUILDS_COUNT);
+        return getBuildHistory(buildTypeId, branchName, dfltFilter, state, null);
     }
 
     private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
         @Nullable String branchName,
         boolean dfltFilter,
         @Nullable String state,
-        @Nullable Integer cnt) {
+        @Nullable Long cnt) {
         String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId + "";
         String stateFilter = isNullOrEmpty(state) ? "" : (",state:" + state);
         String branchFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
-        String cntFilter = cnt == null ? "" : ",count:" + cnt;
+        long cntFilter = cnt == null ? DEFAULT_BUILDS_COUNT : cnt;
 
         return sendGetXmlParseJaxb(host + "app/rest/latest/builds"
             + "?locator="
@@ -376,7 +376,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             + btFilter
             + stateFilter
             + branchFilter
-            + cntFilter, Builds.class).getBuildsNonNull();
+            + ",count:" + cntFilter, Builds.class).getBuildsNonNull();
     }
 
     public BuildTypeFull getBuildType(String buildTypeId) {
@@ -434,12 +434,12 @@ public class IgniteTeamcityHelper implements ITeamcity {
     @Override public List<BuildRef> getFinishedBuilds(String projectId,
         String branch) {
 
-        return getFinishedBuilds(projectId, branch, DEFAULT_BUILDS_COUNT);
+        return getFinishedBuilds(projectId, branch, null);
     }
 
     /** {@inheritDoc} */
     public List<BuildRef> getFinishedBuilds(String projectId,
-        String branch, Integer cnt) {
+        String branch, Long cnt) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             true,
@@ -450,11 +450,11 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     /** {@inheritDoc} */
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, DEFAULT_BUILDS_COUNT);
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null);
     }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer cnt) {
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt) {
         return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, cnt);
     }
 
@@ -472,7 +472,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         @Nullable final String projectId,
         @Nullable final String branch,
         @Nonnull final String state,
-        @Nonnull final Integer cnt) {
+        @Nullable final Long cnt) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             false,
@@ -485,7 +485,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         @Nullable final String branch,
         @Nonnull final String state) {
 
-        return getBuildsInState(projectId, branch, state, DEFAULT_BUILDS_COUNT);
+        return getBuildsInState(projectId, branch, state, null);
     }
 
     public String serverId() {
