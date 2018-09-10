@@ -357,41 +357,20 @@ public class IgniteTeamcityHelper implements ITeamcity {
     private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
         @Nullable String branchName,
         boolean dfltFilter,
-        @Nullable String state,
-        @Nullable Integer cnt){
-
-        return getBuildHistory(buildTypeId, branchName, dfltFilter, state, cnt, null, null);
-    }
-
-    private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
-        @Nullable String branchName,
-        boolean dfltFilter,
         @Nullable String state){
 
-        return getBuildHistory(buildTypeId, branchName, dfltFilter, state, DEFAULT_BUILDS_COUNT, null, null);
+        return getBuildHistory(buildTypeId, branchName, dfltFilter, state, null, null);
     }
 
     private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
         @Nullable String branchName,
         boolean dfltFilter,
         @Nullable String state,
-        @Nullable Date sinceDate,
-        @Nullable Date untilDate){
-
-        return getBuildHistory(buildTypeId, branchName, dfltFilter, state, DEFAULT_BUILDS_COUNT, sinceDate, untilDate);
-    }
-
-    private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
-        @Nullable String branchName,
-        boolean dfltFilter,
-        @Nullable String state,
-        @Nullable Integer cnt,
         @Nullable Date sinceDate,
         @Nullable Date untilDate) {
         String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId + "";
         String stateFilter = isNullOrEmpty(state) ? "" : (",state:" + state);
         String branchFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
-        String cntFilter = cnt == null ? "" : ",count:" + cnt;
         String sinceDateFilter = sinceDate == null ? "" : ",sinceDate:" + getDateYyyyMmDdTHhMmSsZ(sinceDate);
         String untilDateFilter = untilDate == null ? "" : ",untilDate:" + getDateYyyyMmDdTHhMmSsZ(untilDate);
 
@@ -401,7 +380,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             + btFilter
             + stateFilter
             + branchFilter
-            + cntFilter
+            + ",count:" + DEFAULT_BUILDS_COUNT
             + sinceDateFilter
             + untilDateFilter, Builds.class).getBuildsNonNull();
     }
@@ -466,23 +445,18 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     /** {@inheritDoc} */
     public List<BuildRef> getFinishedBuilds(String projectId,
-        String branch, Integer cnt, Date sinceDate, Date untilDate) {
+        String branch, Date sinceDate, Date untilDate) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             true,
-            null, cnt, sinceDate, untilDate);
+            null, sinceDate, untilDate);
 
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
 
     /** {@inheritDoc} */
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, DEFAULT_BUILDS_COUNT);
-    }
-
-    /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer cnt) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, cnt);
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED);
     }
 
     /** {@inheritDoc} */
@@ -498,21 +472,12 @@ public class IgniteTeamcityHelper implements ITeamcity {
     private List<BuildRef> getBuildsInState(
         @Nullable final String projectId,
         @Nullable final String branch,
-        @Nonnull final String state,
-        @Nonnull final Integer cnt) {
+        @Nonnull final String state) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             false,
-            state, cnt);
+            state);
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
-    }
-
-    private List<BuildRef> getBuildsInState(
-        @Nullable final String projectId,
-        @Nullable final String branch,
-        @Nonnull final String state) {
-
-        return getBuildsInState(projectId, branch, state, DEFAULT_BUILDS_COUNT);
     }
 
     public String serverId() {

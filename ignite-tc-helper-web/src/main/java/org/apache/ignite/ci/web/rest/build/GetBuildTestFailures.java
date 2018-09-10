@@ -158,7 +158,6 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("server") String server,
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
-        @Nullable @QueryParam("count") Integer count,
         @Nullable @QueryParam("sinceDate") String sinceDate,
         @Nullable @QueryParam("untilDate") String untilDate)
         throws ServiceUnauthorizedException, ParseException {
@@ -170,7 +169,6 @@ public class GetBuildTestFailures {
         String branchName = isNullOrEmpty(branch) ? "refs/heads/master" : branch;
         Date sinceDateFilter = isNullOrEmpty(sinceDate) ? null : dateFormat.parse(sinceDate);
         Date untilDateFilter = isNullOrEmpty(untilDate) ? null : dateFormat.parse(untilDate);
-        int cnt = count == null ? 50 : count;
 
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
 
@@ -180,7 +178,7 @@ public class GetBuildTestFailures {
 
         try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov)) {
 
-            int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, cnt, sinceDateFilter, untilDateFilter);
+            int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, sinceDateFilter, untilDateFilter);
 
             BuildStatisticsSummary[] buildsStatistics = new BuildStatisticsSummary[finishedBuilds.length];
 
