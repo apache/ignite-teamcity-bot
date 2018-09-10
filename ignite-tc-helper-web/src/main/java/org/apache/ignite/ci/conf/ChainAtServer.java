@@ -22,7 +22,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- *
+ * Pair of serverId and suiteId.
  */
 @SuppressWarnings("PublicField")
 public class ChainAtServer {
@@ -32,11 +32,14 @@ public class ChainAtServer {
     /** Suite identifier by teamcity identification for root chain. */
     @Nonnull public String suiteId;
 
-    /** Automatic build triggering. */
-    @Nullable private Boolean triggerBuild;
+    public ChainAtServer() {
 
-    /** Automatic build triggering quiet period in minutes. */
-    @Nullable private Integer triggerBuildQuietPeriod;
+    }
+
+    public ChainAtServer(ChainAtServer o) {
+        this.serverId = o.serverId;
+        this.suiteId = o.suiteId;
+    }
 
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
@@ -49,14 +52,12 @@ public class ChainAtServer {
         ChainAtServer srv = (ChainAtServer)o;
 
         return Objects.equals(serverId, srv.serverId) &&
-            Objects.equals(suiteId, srv.suiteId) &&
-            Objects.equals(triggerBuild, srv.triggerBuild) &&
-            Objects.equals(triggerBuildQuietPeriod, srv.triggerBuildQuietPeriod);
+            Objects.equals(suiteId, srv.suiteId);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(serverId, suiteId, triggerBuild, triggerBuildQuietPeriod);
+        return Objects.hash(serverId, suiteId);
     }
 
     /**
@@ -64,19 +65,5 @@ public class ChainAtServer {
      */
     @Nullable public String getServerId() {
         return serverId;
-    }
-
-    /**
-     * @return {@code True} If automatic build triggering enabled.
-     */
-    public boolean isTriggerBuild() {
-        return triggerBuild == null ? false : triggerBuild;
-    }
-
-    /**
-     * @return Quiet period in minutes between triggering builds or zero if period is not set and should be ignored.
-     */
-    public int getTriggerBuildQuietPeriod() {
-        return triggerBuildQuietPeriod == null ? 0 : triggerBuildQuietPeriod;
     }
 }
