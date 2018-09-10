@@ -19,7 +19,9 @@ package org.apache.ignite.ci.web.model.current;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -42,6 +44,8 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
 
     /** List of problem occurrences. */
     private List<ProblemOccurrence> problems;
+
+    public Map<String, Map<String, Long>> dependenciesProblems;
 
     /** List of related issues. */
     public List<IssueRef> relatedIssues;
@@ -77,6 +81,8 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
         snapshotDependencies = getSnapshotDependencies(teamcity, build);
 
         problems = getProblems(teamcity);
+
+        dependenciesProblems = getFullRes();
 
         shortRes = getShortRes();
 
@@ -184,69 +190,42 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
     }
 
     /**
-     * Full build run result (snapshot-dependencies printable result).
+     * Full build run result (snapshot-dependencies result).
      *
      * @return printable result;
      */
-    private List<String> getFullRes(){
-        List<String> fullRes = new ArrayList<>();
+    private Map<String, Map<String, Long>> getFullRes(){
+        Map<String, Map<String, Long>> buildProblemOccurrences = new HashMap<>();
 
         List<BuildRef> snapshotDependencyWithProblems = getSnapshotDependenciesWithProblems();
 
         for (BuildRef build : snapshotDependencyWithProblems)
-            fullRes.add(getRes(build.buildTypeId));
+            buildProblemOccurrences.put(build.buildTypeId, getBuildTypeOccurrences(build.buildTypeId));
 
-        return fullRes.stream()
-            .sorted()
-            .collect(Collectors.toList());
+        return buildProblemOccurrences;
     }
 
     /**
-     * Short build run result (without snapshot-dependencies printable result).
+     * Short build run result (without snapshot-dependencies result).
      *
      * @return printable result;
      */
-    private String getShortRes(){
-        return getRes(null);
+    private Map<String, Long> getShortRes(){ return getBuildTypeOccurrences(null);
     }
 
-    /**
-     * Build run result for buildTypeId.
-     *
-     * @param buildTypeId buildTypeId.
-     *
-     * @return printable result.
-     */
-    private String getRes(String buildTypeId){
-        StringBuilder res = new StringBuilder();
 
-        addKnownProblemCnt(res, ProblemOccurrence.TC_EXECUTION_TIMEOUT, getExecutionTimeoutCount(buildTypeId));
-        addKnownProblemCnt(res, ProblemOccurrence.TC_JVM_CRASH, getJvmCrashProblemCount(buildTypeId));
-        addKnownProblemCnt(res, ProblemOccurrence.TC_OOME, getOomeProblemCount(buildTypeId));
-        addKnownProblemCnt(res, ProblemOccurrence.TC_EXIT_CODE, getExitCodeProblemsCount(buildTypeId));
-        addKnownProblemCnt(res, ProblemOccurrence.TC_FAILED_TESTS, getFailedTestsProblemCount(buildTypeId));
-        addKnownProblemCnt(res, ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR, getSnapshotDepProblemCount(buildTypeId));
-        addKnownProblemCnt(res, ProblemOccurrence.OTHER, getOtherProblemCount(buildTypeId));
+    private Map<String, Long> getBuildTypeOccurrences(String buildTypeId){
+        Map<String, Long> occurrences = new HashMap<>();
 
-        res.insert(0, (buildTypeId != null ? buildTypeId : "TOTAL") + " [" + getAllProblemsCount(buildTypeId) + "]"
-            + (res.length() != 0 ? ": " : " "));
+        occurrences.put(ProblemOccurrence.TC_EXECUTION_TIMEOUT, getExecutionTimeoutCount(buildTypeId));
+        occurrences.put(ProblemOccurrence.TC_JVM_CRASH, getJvmCrashProblemCount(buildTypeId));
+        occurrences.put(ProblemOccurrence.TC_OOME, getOomeProblemCount(buildTypeId));
+        occurrences.put(ProblemOccurrence.TC_EXIT_CODE, getExitCodeProblemsCount(buildTypeId));
+        occurrences.put(ProblemOccurrence.TC_FAILED_TESTS, getFailedTestsProblemCount(buildTypeId));
+        occurrences.put(ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR, getSnapshotDepProblemCount(buildTypeId));
+        occurrences.put(ProblemOccurrence.OTHER, getOtherProblemCount(buildTypeId));
 
-        return res.toString();
-    }
-
-    /**
-     * @param res Response.
-     * @param nme Name of problem.
-     * @param execToCnt Execute to count.
-     */
-    private void addKnownProblemCnt(StringBuilder res, String nme, long execToCnt) {
-        if (execToCnt > 0) {
-            if (res.length() > 0)
-                res.append(", ");
-
-            res.append(nme)
-                .append(execToCnt > 1 ? " [" + execToCnt + "]" : "");
-        }
+        return occurrences;
     }
 
     /** {@inheritDoc} */
