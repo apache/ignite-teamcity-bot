@@ -3,6 +3,9 @@
 //triggerConfirm & triggerDialog element should be provided on page (may be hidden)
 var g_initMoreInfoDone = false;
 
+/** Object used to notify git. See ChainAtServerCurrentStatus Java class. */
+var g_srv_to_notify_git;
+
 //@param results - TestFailuresSummary
 function showChainOnServersResults(result) {
     var minFailRateP = findGetParameter("minFailRate");
@@ -10,14 +13,24 @@ function showChainOnServersResults(result) {
 
     var maxFailRateP = findGetParameter("maxFailRate");
     var maxFailRate = maxFailRateP == null ? 100 : parseFloat(maxFailRateP);
-    return showChainResultsWithSettings(result, new Settings(minFailRate, maxFailRate));
+
+    return showChainResultsWithSettings(result, new Settings(minFailRate, maxFailRate, result.javaFlags));
 }
 
 class Settings {
-    constructor(minFailRate, maxFailRate) {
+    constructor(minFailRate, maxFailRate, javaFlags) {
         this.minFailRate = minFailRate;
         this.maxFailRate = maxFailRate;
+        this.javaFlags = javaFlags;
     }
+
+    isTeamCityAvailable() {
+        return this.javaFlags & 1;
+    };
+
+    isGithubAvailable() {
+        return this.javaFlags & 2
+    };
 }
 
 //@param results - TestFailuresSummary
@@ -67,7 +80,7 @@ function showChainCurrentStatusData(server, settings) {
         altTxt += "duration: " + server.durationPrintable;
 
     res += "<table border='0px'>";
-    res += "<tr bgcolor='#F5F5FF'><td colspan='4'><b><a href='" + server.webToHist + "'>";
+    res += "<tr bgcolor='#F5F5FF'><td colspan='3'><b><a href='" + server.webToHist + "'>";
 
     if (isDefinedAndFilled(server.chainName)) {
         res += server.chainName + " ";
@@ -141,7 +154,13 @@ function showChainCurrentStatusData(server, settings) {
         res += "<div class='content'>" + mInfo + "</div></span>";
     }
 
-    res += "</td></tr>";
+    if (settings.isGithubAvailable()) {
+        g_srv_to_notify_git = server;
+
+        res += "</td><td><button onclick='notifyGit()'>Update PR status</button></td></tr>";
+    }
+    else
+        res += "</td><td>&nbsp;</td></tr>";
 
     res += addBlockersData(server, settings);
 
@@ -216,6 +235,59 @@ function suiteWithCriticalFailuresOnly(suite) {
         return suite0;
 
     return null;
+}
+
+/**
+ * Send POST request to change PR status.
+ *
+ * @returns {string}
+ */
+function notifyGit() {
+    var server = g_srv_to_notify_git;
+    var suites = 0;
+    var tests = 0;
+
+    for (let suite of server.suites) {
+        if (suite.result != "") {
+            suites++;
+
+            continue;
+        }
+
+        for (let testFailure of suite.testFailures) {
+            if (isNewFailedTest(testFailure))
+                tests++;
+        }
+    }
+
+    var state;
+    var desc;
+
+    if (suites == 0 && tests == 0) {
+        state = "success";
+        desc = "No blockers found.";
+    }
+    else {
+        state = "failure";
+        desc = suites + " critical suites, " + tests + " failed tests.";
+    }
+
+    var msg = {
+        state: state,
+        target_url: server.webToHist,
+        description: desc,
+        context: "TeamCity"
+    };
+
+    var notifyGitUrl = "rest/pr/notifyGit"  + parmsForRest();
+
+    $.ajax({
+        url: notifyGitUrl,
+        type: 'POST',
+        data: {notifyMsg: JSON.stringify(msg)},
+        success: function(result) {$("#loadStatus").html(result);},
+        error: showErrInLoadStatus
+    });
 }
 
 function triggerBuild(serverId, suiteId, branchName, top) {

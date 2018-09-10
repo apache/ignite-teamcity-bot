@@ -52,6 +52,7 @@ import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -822,9 +823,34 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         teamcity.triggerBuild(id, name, cleanRebuild, queueAtTop);
     }
 
-    @Override
-    public void setAuthToken(String token) {
+    /** {@inheritDoc} */
+    @Override public boolean isTeamCityTokenAvailable() {
+        return teamcity.isTeamCityTokenAvailable();
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setAuthToken(String token) {
         teamcity.setAuthToken(token);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isGitTokenAvailable() {
+        return teamcity.isGitTokenAvailable();
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setGitToken(String token) {
+        teamcity.setGitToken(token);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean notifyGit(String url, String body) {
+        return teamcity.notifyGit(url, body);
+    }
+
+    /** {@inheritDoc} */
+    @Override public PullRequest getPullRequest(String branch) {
+        return teamcity.getPullRequest(branch);
     }
 
     /** {@inheritDoc} */
