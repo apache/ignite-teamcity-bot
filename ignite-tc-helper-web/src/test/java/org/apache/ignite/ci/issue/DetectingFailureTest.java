@@ -27,6 +27,9 @@ import static org.apache.ignite.ci.analysis.RunStat.ChangesState.UNKNOWN;
 import static org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence.STATUS_SUCCESS;
 import static org.junit.Assert.*;
 
+/**
+ * Issue detection test
+ */
 public class DetectingFailureTest {
     @Test
     public void detectFirstFailure() {
@@ -52,8 +55,11 @@ public class DetectingFailureTest {
         assertNull(stat.detectTemplate(EventTemplates.fixOfFailure));
     }
 
-    @NotNull private String fakeTestId(int i1) {
-        return "id:10231,build:(id:" + i1 + ")";
+    /**
+     * @param buildId Build Id.
+     */
+    @NotNull private String fakeTestId(int buildId) {
+        return "id:10231,build:(id:" + buildId + ")";
     }
 
     @Test
@@ -96,7 +102,7 @@ public class DetectingFailureTest {
         for (int i = 0; i < 50; i++) {
             occurrence.status = ints[i] == 0 ? Build.STATUS_SUCCESS : "FAILURE";
 
-            stat.addTestRunToLatest(occurrence.setId(fakeTestId(100 + i)), UNKNOWN);
+            stat.addTestRunToLatest(occurrence.setId(fakeTestId(100 + i)), RunStat.ChangesState.NONE);
         }
 
         occurrence.status = "FAILED";
@@ -143,5 +149,47 @@ public class DetectingFailureTest {
         RunStat.TestId testId = contributedTestStat.detectTemplate(EventTemplates.newContributedTestFailure);
         assertNotNull(testId);
         assertEquals(firstFailedBuildId, testId.getBuildId());
+    }
+
+
+    @Test
+    public void detectSuiteFailureIsOnlyOnce() {
+        RunStat stat = new RunStat("");
+
+        Build occurrence = new Build();
+
+        int startBuildId = 113;
+        int okOrFailedBuildsCnt = 5;
+        for (int i = 0; i < okOrFailedBuildsCnt; i++) {
+            occurrence.setId(startBuildId + i);
+            boolean ok = (int)(Math.random() * 1000) % 2 == 0;
+            occurrence.status = ok ? Build.STATUS_SUCCESS : "FAILURE";
+
+            stat.addBuildRun(occurrence);
+        }
+
+        int firstFailedBuildId = startBuildId + okOrFailedBuildsCnt;
+
+        int timedOutBuildCnt = 4;
+        for (int i = 0; i < timedOutBuildCnt; i++)
+            stat.setBuildCriticalError(firstFailedBuildId + i);
+
+        RunStat.TestId testId = stat.detectTemplate(EventTemplates.newCriticalFailure);
+
+        assertNotNull(testId);
+        assertEquals(firstFailedBuildId, testId.getBuildId());
+
+
+        for (int i = 0; i < 4; i++)
+            stat.setBuildCriticalError(timedOutBuildCnt + firstFailedBuildId + i);
+
+        RunStat.TestId testId2 = stat.detectTemplate(EventTemplates.newCriticalFailure);
+
+        System.out.println(stat.getLatestRunResults());
+        System.out.println(testId);
+        System.out.println(testId2);
+
+        assertEquals(testId, testId2);
+
     }
 }

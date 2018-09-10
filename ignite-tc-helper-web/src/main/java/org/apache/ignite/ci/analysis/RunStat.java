@@ -279,8 +279,12 @@ public class RunStat {
         addRunToLatest(new TestId(buildId, 0), runInfo);
     }
 
-    public void setBuildCriticalError(Integer bId) {
-        setBuildResCode(bId, new RunInfo(RES_CRITICAL_FAILURE, ChangesState.UNKNOWN));
+    /**
+     * Sets build status as having critical failure
+     * @param buildId Build id.
+     */
+    public void setBuildCriticalError(Integer buildId) {
+        setBuildResCode(buildId, new RunInfo(RES_CRITICAL_FAILURE, ChangesState.UNKNOWN));
     }
 
     /**
