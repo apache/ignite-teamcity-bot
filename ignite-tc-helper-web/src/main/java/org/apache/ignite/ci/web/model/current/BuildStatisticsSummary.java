@@ -68,6 +68,9 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
     /** Initialize build statistics. */
     public void initialize(@Nonnull final ITeamcity teamcity) {
 
+        if (build.isFakeStub())
+            return;
+
         relatedIssues = teamcity.getIssuesUsagesList(build.relatedIssuesRef.href).getIssuesUsagesNonNull().stream()
             .map(IssueUsage::getIssue).collect(Collectors.toList());
 

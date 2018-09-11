@@ -22,6 +22,7 @@ import com.google.common.base.Throwables;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -32,7 +33,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -244,7 +244,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
-    private <K, V> V timedLoadIfAbsentOrMerge(IgniteCache<K, Expirable<V>> cache, int seconds, AtomicLong cnt, K key,
+    private <K, V> V timedLoadIfAbsentOrMerge(IgniteCache<K, Expirable<V>> cache, int seconds, Long cnt, K key,
         BiFunction<K, V, V> loadWithMerge) {
         @Nullable final Expirable<V> persistedBuilds = cache.get(key);
 
@@ -252,7 +252,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
         if (persistedBuilds != null) {
             if (persistedBuilds.isAgeLessThanSecs(seconds) &&
-                (cnt.get() == 0 || persistedBuilds.hasCounterGreaterThan(cnt.get())))
+                (cnt == null || persistedBuilds.hasCounterGreaterThan(cnt)))
                 return persistedBuilds.getData();
         }
 
@@ -263,7 +263,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         try {
             apply = loadWithMerge.apply(key, persistedBuilds != null ? persistedBuilds.getData() : null);
 
-            final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), cnt.get(), apply);
+            final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), ((List)apply).size(), apply);
 
             cache.put(key, newVal);
         }
@@ -278,9 +278,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Long cnt) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        AtomicLong realCnt = new AtomicLong(cnt == null ? 0 : cnt);
-
-        List<BuildRef> buildRefs = timedLoadIfAbsentOrMerge(buildHistCache(), 60, realCnt, suiteInBranch,
+        List<BuildRef> buildRefs = timedLoadIfAbsentOrMerge(buildHistCache(), 60, cnt, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> builds;
                 try {
@@ -295,11 +293,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                         throw e;
                 }
 
-                List<BuildRef> mergedBuilds = mergeByIdToHistoricalOrder(persistedValue, builds);
-
-                realCnt.set(mergedBuilds.size());
-
-                return mergedBuilds;
+                return mergeByIdToHistoricalOrder(persistedValue, builds);
             });
 
         if (cnt == null)
@@ -328,9 +322,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        AtomicLong realCnt = new AtomicLong(cnt);
-
-        return timedLoadIfAbsentOrMerge(buildHistIncFailedCache(), 60, realCnt, suiteInBranch,
+        return timedLoadIfAbsentOrMerge(buildHistIncFailedCache(), 60, cnt, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, cnt);
 
