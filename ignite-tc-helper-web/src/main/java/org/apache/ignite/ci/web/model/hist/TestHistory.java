@@ -21,6 +21,7 @@ import com.google.common.base.Objects;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Summary of failures - all history and recent runs for suite or for suite.
@@ -35,7 +36,7 @@ public class TestHistory {
     /** Latest runs, 0,1,2 values for each run. */
     @Nullable public List<Integer> latestRuns;
 
-    public void init(RunStat stat) {
+    public void init(@NotNull RunStat stat) {
         recent.failures = stat.getFailuresCount();
         recent.runs = stat.getRunsCount();
         recent.failureRate = stat.getFailPercentPrintable();
@@ -44,9 +45,10 @@ public class TestHistory {
         allTime.runs = stat.getRunsAllHist();
         allTime.failureRate = stat.getFailPercentAllHistPrintable();
 
-        latestRuns = stat != null ? stat.getLatestRunResults() : null;
+        latestRuns = stat.getLatestRunResults();
     }
 
+    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
@@ -59,6 +61,7 @@ public class TestHistory {
             Objects.equal(latestRuns, hist.latestRuns);
     }
 
+    /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(allTime, recent, latestRuns);
     }

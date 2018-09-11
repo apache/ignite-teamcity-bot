@@ -22,7 +22,7 @@ package org.apache.ignite.ci.web.model;
     public static final String DEFAULT_CONTACT = "dev@ignite.apache.org";
 
     /** TC Helper Version. */
-    public String version = "20180910";
+    public String version = "20180911";
 
     /** Ignite version. */
     public String ignVer;

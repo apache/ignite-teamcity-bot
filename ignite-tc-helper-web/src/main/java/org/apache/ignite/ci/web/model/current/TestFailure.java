@@ -46,7 +46,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 /**
  * UI model for test failure, probably merged with its history
  */
-@SuppressWarnings("WeakerAccess") public class TestFailure {
+@SuppressWarnings({"WeakerAccess", "PublicField"}) public class TestFailure {
     /** Test full Name */
     public String name;
 
@@ -62,10 +62,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
      */
     public Integer curFailures;
 
-    /** Latest runs, 0,1,2 values for each run. */
-    @Nullable public List<Integer> latestRuns;
-
-    /** Link to test history */
+    /** Link to test history for current branch. */
     @Nullable public String webUrl;
 
     /** Link to mentioned issue (if any) */
@@ -83,6 +80,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 
     @Nullable public ProblemRef problemRef;
 
+    /** Non null flaky comments means there is flakiness detected in the base branch. */
     @Nullable public String flakyComments;
 
     /** History cur branch. If it is absent, history is to be taken from histBaseBranch. */
@@ -93,18 +91,24 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
      */
     @NotNull public TestHistory histBaseBranch = new TestHistory();
 
+
+    /** Link to test history for current branch. */
+    @Nullable public String webUrlBaseBranch;
+
     /**
      * @param failure
      * @param testFullOpt all related full test ocurrences
      * @param teamcity
      * @param projectId
      * @param branchName
+     * @param baseBranchName base branch name (e.g. master).
      */
     public void initFromOccurrence(@Nonnull final ITestFailureOccurrences failure,
         @Nonnull final Stream<TestOccurrenceFull> testFullOpt,
         @Nonnull final ITeamcity teamcity,
         @Nullable final String projectId,
-        @Nullable final String branchName) {
+        @Nullable final String branchName,
+        @Nullable final String baseBranchName) {
         name = failure.getName();
         investigated = failure.isInvestigated();
         curFailures = failure.failuresCount();
@@ -141,6 +145,10 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
             if (webUrl == null)
                 if (full.test != null && full.test.id != null)
                     webUrl = buildWebLink(teamcity, full.test.id, projectId, branchName);
+
+            if (webUrlBaseBranch == null)
+                if (full.test != null && full.test.id != null)
+                    webUrlBaseBranch = buildWebLink(teamcity, full.test.id, projectId, baseBranchName);
         });
 
     }
@@ -205,24 +213,28 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
             flakyComments = stat.getFlakyComments();
         }
 
-        RunStat latestRunsSrcInBranch = null;
+        RunStat statForProblemsDetection = null;
 
         if (!curBranchNormalized.equals(failRateNormalizedBranch)) {
             TestInBranch testInBranchS = new TestInBranch(name, curBranchNormalized);
 
-            latestRunsSrcInBranch = runStatSupplier.apply(testInBranchS);
+            statForProblemsDetection = runStatSupplier.apply(testInBranchS);
+
+            if(statForProblemsDetection!=null) {
+                histCurBranch = new TestHistory();
+
+                histCurBranch.init(statForProblemsDetection);
+            }
         } else
-            latestRunsSrcInBranch = stat;
+            statForProblemsDetection = stat;
 
-        latestRuns = latestRunsSrcInBranch != null ? latestRunsSrcInBranch.getLatestRunResults() : null;
-
-        if (latestRunsSrcInBranch != null) {
-            RunStat.TestId testId = latestRunsSrcInBranch.detectTemplate(EventTemplates.newFailure);
+        if (statForProblemsDetection != null) {
+            RunStat.TestId testId = statForProblemsDetection.detectTemplate(EventTemplates.newFailure);
 
             if (testId != null)
                 problemRef = new ProblemRef("New Failure");
 
-            RunStat.TestId recentContributedTestId = latestRunsSrcInBranch.detectTemplate(EventTemplates.newContributedTestFailure);
+            RunStat.TestId recentContributedTestId = statForProblemsDetection.detectTemplate(EventTemplates.newContributedTestFailure);
 
             if (recentContributedTestId != null)
                 problemRef = new ProblemRef("Recently contributed test failure");
@@ -248,13 +260,15 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
             Objects.equal(durationPrintable, failure.durationPrintable) &&
             Objects.equal(warnings, failure.warnings) &&
             Objects.equal(histBaseBranch, failure.histBaseBranch) &&
-            Objects.equal(histCurBranch, failure.histCurBranch);
+            Objects.equal(histCurBranch, failure.histCurBranch)&&
+            Objects.equal(webUrlBaseBranch, failure.webUrlBaseBranch)  ;
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(name, suiteName, testName, curFailures,
-            webUrl, webIssueUrl, webIssueText, investigated, durationPrintable, warnings, histBaseBranch, histCurBranch);
+            webUrl, webIssueUrl, webIssueText, investigated, durationPrintable, warnings, histBaseBranch, histCurBranch,
+            webUrlBaseBranch);
     }
 
     /** {@inheritDoc} */

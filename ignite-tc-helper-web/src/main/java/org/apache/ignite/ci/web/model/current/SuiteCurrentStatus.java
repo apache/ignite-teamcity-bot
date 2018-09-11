@@ -64,6 +64,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Web Href. to suite runs history */
     public String webToHist = "";
 
+    /** Web Href. to suite runs history in base branch */
+    public String webToHistBaseBranch = "";
+
     /** Web Href. to suite particular run */
     public String webToBuild = "";
 
@@ -112,11 +115,11 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final MultBuildRunCtx suite,
         @Nullable final ITcAnalytics tcAnalytics,
-        @Nullable final String failRateBranch) {
+        @Nullable final String baseBranch) {
 
         name = suite.suiteName();
 
-        String failRateNormalizedBranch = normalizeBranch(failRateBranch);
+        String failRateNormalizedBranch = normalizeBranch(baseBranch);
         String curBranchNormalized = normalizeBranch(suite.branchName());
 
         String suiteId = suite.suiteId();
@@ -133,6 +136,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         durationPrintable = getDurationPrintable(suite.getBuildDuration());
         contactPerson = suite.getContactPerson();
         webToHist = buildWebLink(teamcity, suite);
+        webToHistBaseBranch = buildWebLink(teamcity, suite, baseBranch);
         webToBuild = buildWebLinkToBuild(teamcity, suite);
 
         Stream<? extends ITestFailureOccurrences> tests = suite.getFailedTests();
@@ -151,7 +155,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             Stream<TestOccurrenceFull> stream = suite.getFullTests(occurrence);
 
             final TestFailure failure = new TestFailure();
-            failure.initFromOccurrence(occurrence, stream, teamcity, suite.projectId(), suite.branchName());
+            failure.initFromOccurrence(occurrence, stream, teamcity, suite.projectId(), suite.branchName(), baseBranch);
             if (tcAnalytics != null)
                 failure.initStat(tcAnalytics.getTestRunStatProvider(), failRateNormalizedBranch, curBranchNormalized);
 
@@ -159,7 +163,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         });
 
         suite.getTopLongRunning().forEach(occurrence -> {
-            final TestFailure failure = createOrrucForLongRun(teamcity, suite, tcAnalytics, occurrence, failRateBranch);
+            final TestFailure failure = createOrrucForLongRun(teamcity, suite, tcAnalytics, occurrence, baseBranch);
 
             topLongRunning.add(failure);
         });
@@ -270,7 +274,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         Stream<TestOccurrenceFull> stream = suite.getFullTests(occurrence);
 
-        failure.initFromOccurrence(occurrence, stream, teamcity, suite.projectId(), suite.branchName());
+        failure.initFromOccurrence(occurrence, stream, teamcity, suite.projectId(), suite.branchName(), failRateBranch);
 
         if (tcAnalytics != null) {
             failure.initStat(tcAnalytics.getTestRunStatProvider(),
@@ -302,7 +306,13 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     }
 
     private static String buildWebLink(ITeamcity teamcity, MultBuildRunCtx suite) {
-        final String branch = branchForLink(suite.branchName());
+        String branchName = suite.branchName();
+
+        return buildWebLink(teamcity, suite, branchName);
+    }
+
+    @NotNull private static String buildWebLink(ITeamcity teamcity, MultBuildRunCtx suite, String branchName) {
+        final String branch = branchForLink(branchName);
         return teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
             + "&branch=" + escape(branch)
             + "&tab=buildTypeStatusDiv";
@@ -323,6 +333,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             Objects.equal(result, status.result) &&
             Objects.equal(hasCriticalProblem, status.hasCriticalProblem) &&
             Objects.equal(webToHist, status.webToHist) &&
+            Objects.equal(webToHistBaseBranch, status.webToHistBaseBranch) &&
             Objects.equal(webToBuild, status.webToBuild) &&
             Objects.equal(contactPerson, status.contactPerson) &&
             Objects.equal(testFailures, status.testFailures) &&
@@ -346,7 +357,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(name, result, hasCriticalProblem, webToHist, webToBuild, contactPerson, testFailures,
+        return Objects.hashCode(name, result, hasCriticalProblem, webToHist, webToHistBaseBranch, webToBuild,
+            contactPerson, testFailures,
             topLongRunning, webUrlThreadDump, runningBuildCount, queuedBuildCount, serverId,
             suiteId, branchName, failures, runs, failureRate,
             failsAllHist, criticalFails, userCommits, failedTests, durationPrintable,

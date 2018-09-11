@@ -403,7 +403,7 @@ public class RunStat {
             return null;
 
         return "Test seems to be flaky: " +
-            "change status [" + statusChange + "/" + latestRuns.size() + "]";
+            "changed its status [" + statusChange + "/" + latestRuns.size() + "] without code modifications";
     }
 
     /**
@@ -421,9 +421,8 @@ public class RunStat {
         else
             latestRuns.clear();
 
-        for (Map.Entry<TestId, Integer> entry : latestRunResults.entrySet()) {
+        for (Map.Entry<TestId, Integer> entry : latestRunResults.entrySet())
             latestRuns.put(entry.getKey(), new RunInfo(RunStatus.byCode(entry.getValue()), ChangesState.UNKNOWN));
-        }
     }
 
     /**

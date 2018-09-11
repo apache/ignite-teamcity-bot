@@ -181,9 +181,11 @@ function addBlockersData(server, settings) {
     }
 
     if (blockers != "") {
-        blockers = "<tr bgcolor='#F5F5FF'><th colspan='4' class='table-title'><b>Possible Blockers</b></th></tr>" +
+        blockers = "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>Possible Blockers</b></th>" +
+            "<th  class='table-title'>Base Branch</th></tr>" +
             blockers +
-            "<tr bgcolor='#F5F5FF'><th colspan='4' class='table-title'><b>Other failures</b></th></tr>";
+            "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>Other failures</b></th>" +
+            "<th  class='table-title'>Base Branch</th></tr>";
     }
 
     return blockers;
@@ -334,7 +336,7 @@ function showSuiteData(suite, settings) {
     }
 
     if(isDefinedAndFilled(suite.problemRef)) {
-        res += "<span title='"+testFail.problemRef.name +"'>&#128030;</span> "
+        res += "<span title='"+ suite.problemRef.name +"'>&#128030;</span> "
     }
 
     var color = failureRateToColor(suite.failureRate);
@@ -422,7 +424,7 @@ function showSuiteData(suite, settings) {
     res += "<td>"; //fail rate
     if(isDefinedAndFilled(suite.hasCriticalProblem) && suite.hasCriticalProblem
         && isDefinedAndFilled(suite.criticalFails) && isDefinedAndFilled(suite.criticalFails.failures)) {
-        res += "<a href='" + suite.webToHist + "'>";
+        res += "<a href='" + suite.webToHistBaseBranch + "'>";
         res += "Critical F.R.: "+ suite.criticalFails.failureRate + "% </a> " ;
     } else {
         res+="&nbsp;";
@@ -457,7 +459,14 @@ function showSuiteData(suite, settings) {
  * @returns {boolean} True - if test is new. False - otherwise.
  */
 function isNewFailedTest(testFailure) {
-    return Number.parseFloat(testFailure.failureRate) < 4.0 || testFailure.flakyComments == null;
+    if(!isDefinedAndFilled(testFailure.histBaseBranch))
+        return true;
+
+    var hist = testFailure.histBaseBranch;
+    if(!isDefinedAndFilled(hist.recent))
+        return true;
+
+    return Number.parseFloat(hist.recent.failureRate) < 4.0 && testFailure.flakyComments == null;
 }
 
 function failureRateToColor(failureRate) {
@@ -507,31 +516,20 @@ function showTestFailData(testFail, isFailureShown, settings) {
         res += "<span style='opacity: 0.75'> ";
     }
 
-    var bold = false;
-    if (isFailureShown && !isDefinedAndFilled(findGetParameter("reportMode"))) {
-        var altForWarn = "";
-        if (!isDefinedAndFilled(testFail.failureRate) || !isDefinedAndFilled(testFail.runs)) {
-            altForWarn = "No fail rate info, probably new failure or suite critical failure";
-        // } else if (testFail.failures < 2) {
-        //     altForWarn = "Test failures count is low < 2, probably new test introduced";
-        } else if (testFail.runs < 10) {
-            altForWarn = "Test runs count is low < 10, probably new test introduced";
-            //todo move to server side
-        }
+    // has both base and current, draw current latest runs here.
+    var comparePage = isDefinedAndFilled(testFail.histCurBranch) && isDefinedAndFilled(testFail.histCurBranch.latestRuns)
+                     && isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns);
 
-        if (altForWarn != "") {
-            // res += "<img src='https://image.flaticon.com/icons/svg/159/159469.svg' width=11px height=11px title='" + altForWarn + "' > ";
-            res += "<span title='" + altForWarn + "' >&#9888;</span>";
-
-            bold = true;
-            res += "<b>";
-        }
-    }
+    var baseBranchMarks = "";
 
     if(isFailureShown && isDefinedAndFilled(testFail.flakyComments) && testFail.flakyComments) {
-        res += "<span title='"+testFail.flakyComments+"'><b>"+"&asymp;"+"</b></span> "
+        baseBranchMarks += "<span title='"+testFail.flakyComments+"'><b>"+"&asymp;"+"</b></span> "
     }
 
+    if(!comparePage)
+        res+=baseBranchMarks;
+
+    var bold = false;
     if(isFailureShown && isDefinedAndFilled(testFail.problemRef)) {
         res += "<span title='"+testFail.problemRef.name +"'>&#128030;</span>"
         if(!bold)
@@ -540,12 +538,19 @@ function showTestFailData(testFail, isFailureShown, settings) {
         bold = true;
     }
 
+    var haveWeb = isDefinedAndFilled(testFail.webUrl);
+    if (haveWeb)
+        res += "<a href='" + testFail.webUrl + "'>";
 
-    if (isDefinedAndFilled(testFail.latestRuns)) {
-        res += drawLatestRuns(testFail.latestRuns);
-    }
+    if(comparePage)
+        res += drawLatestRuns(testFail.histCurBranch.latestRuns);
+    else if(isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns))
+        res += drawLatestRuns(testFail.histBaseBranch.latestRuns); // has only base branch
 
-    res+= "</td><td>";
+    if (haveWeb)
+        res += "</a> ";
+
+    res += "</td><td>";
     res += "<span style='background-color: " + color + "; width:8px; height:8px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
 
     if (isDefinedAndFilled(testFail.curFailures) && testFail.curFailures > 1)
@@ -563,7 +568,6 @@ function showTestFailData(testFail, isFailureShown, settings) {
     else
         res += testFail.name;
 
-    var haveWeb = isDefinedAndFilled(testFail.webUrl);
     var histContent = "";
 
     //see class TestHistory
@@ -575,9 +579,13 @@ function showTestFailData(testFail, isFailureShown, settings) {
         hist = null;
 
     if (isFailureShown && hist!=null) {
+        if(comparePage)  {
+             histContent += baseBranchMarks + " ";
+        }
+
         var testFailTitle = "";
 
-        if(isDefinedAndFilled(hist.recent))
+        if(isDefinedAndFilled(hist.recent) && isDefinedAndFilled(hist.recent.failures))
             testFailTitle = "recent rate: " + hist.recent.failures + " fails / " + hist.recent.runs + " runs" ;
 
         if(isDefinedAndFilled(hist.allTime) && isDefinedAndFilled(hist.allTime.failures)) {
@@ -592,14 +600,13 @@ function showTestFailData(testFail, isFailureShown, settings) {
         if (isDefinedAndFilled(hist.recent) && isDefinedAndFilled(hist.recent.failureRate))
             histContent += "(fail rate " + hist.recent.failureRate + "%)";
         else
-            histContent += "(fails: " + hist.recent.failures + "/" + hist.recent.runs + ")";
-            
-        if(isDefinedAndFilled(testFail.histCurBranch)) {
-            //todo presence of this indicates that PR is checked, need to draw latest
-        }
-        
+            histContent += "(no data)";
+
         histContent += "</span>";
 
+        if(comparePage)  {
+             histContent += " " + drawLatestRuns(testFail.histBaseBranch.latestRuns); // has both base and current, draw current base runs here.
+        }
     } else if (haveWeb) {
         histContent += " (test history)";
     }
@@ -638,13 +645,15 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
     res += "<td>";
 
-    if (haveWeb)
-        res += "<a href='" + testFail.webUrl + "'>";
+    var haveBaseBranchWeb = isDefinedAndFilled(testFail.webUrlBaseBranch);
+    if (haveBaseBranchWeb)
+        res += "<a href='" + testFail.webUrlBaseBranch + "'>";
 
     res += histContent;
 
-    if (haveWeb)
+    if (haveBaseBranchWeb)
         res += "</a>";
+
     res += "&nbsp;</td>";
 
     res += "</td></tr>";
