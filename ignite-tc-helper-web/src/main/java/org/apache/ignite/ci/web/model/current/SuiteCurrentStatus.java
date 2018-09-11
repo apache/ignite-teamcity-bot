@@ -40,6 +40,7 @@ import org.apache.ignite.ci.analysis.TestLogCheckResult;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 import org.jetbrains.annotations.NotNull;
 

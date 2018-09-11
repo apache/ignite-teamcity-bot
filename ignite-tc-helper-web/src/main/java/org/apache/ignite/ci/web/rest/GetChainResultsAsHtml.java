@@ -39,6 +39,7 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
+import org.apache.ignite.ci.web.model.hist.TestHistory;
 
 import static java.lang.Float.parseFloat;
 import static javax.ws.rs.core.MediaType.TEXT_HTML;
@@ -141,7 +142,7 @@ public class GetChainResultsAsHtml {
 
 
 
-    private boolean isDefinedAndFilled(Integer failures) {
+    private boolean isDefinedAndFilled(Object failures) {
         return failures!=null;
     }
 
@@ -242,7 +243,9 @@ public class GetChainResultsAsHtml {
 
         boolean haveIssue = isDefinedAndFilled(testFail.webIssueUrl) && isDefinedAndFilled(testFail.webIssueText);
 
-        String color = failureRateToColor(testFail.failureRate);
+        String color = (isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.recent))
+            ? failureRateToColor(testFail.histBaseBranch.recent.failureRate)
+            : "white";
 
         boolean investigated = testFail.investigated;
         if(investigated) {
@@ -264,17 +267,42 @@ public class GetChainResultsAsHtml {
 
         boolean haveWeb = isDefinedAndFilled(testFail.webUrl);
         String histContent = "";
-        if (testFail.failures != null && testFail.runs != null) {
-            histContent += " <span title='" + testFail.failures + " fails / " + testFail.runs + " runs in all tracked branches in helper DB'>";
-            if (isDefinedAndFilled(testFail.failureRate))
-                histContent += "(fail rate " + testFail.failureRate + "%)";
+
+        TestHistory hist;
+
+        if(isDefinedAndFilled(testFail.histBaseBranch))
+            hist = testFail.histBaseBranch;
+        else
+            hist = null;
+
+        if (hist!=null) {
+            String testFailTitle = "";
+
+            if(isDefinedAndFilled(hist.recent))
+                testFailTitle = "recent rate: " + hist.recent.failures + " fails / " + hist.recent.runs + " runs" ;
+
+            if(isDefinedAndFilled(hist.allTime) && isDefinedAndFilled(hist.allTime.failures)) {
+                testFailTitle +=
+                    "; all history: " + hist.allTime.failureRate + "% ["+
+                        hist.allTime.failures + " fails / " +
+                        hist.allTime.runs + " runs] " ;
+            }
+
+            histContent += " <span title='" +testFailTitle + "'>";
+
+            if (isDefinedAndFilled(hist.recent) && isDefinedAndFilled(hist.recent.failureRate))
+                histContent += "(fail rate " + hist.recent.failureRate + "%)";
             else
-                histContent += "(fails: " + testFail.failures + "/" + testFail.runs + ")";
+                histContent += "(fails: " + hist.recent.failures + "/" + hist.recent.runs + ")";
+
+            if(isDefinedAndFilled(testFail.histCurBranch)) {
+                //todo presence of this indicates that PR is checked, need to draw latest
+            }
+
             histContent += "</span>";
-        }
-        else if (haveWeb) {
+        } else if (haveWeb)
             histContent += " (test history)";
-        }
+
         if (haveWeb)
             res += "<a href='" + testFail.webUrl + "'>";
         res += histContent;
@@ -282,9 +310,8 @@ public class GetChainResultsAsHtml {
             res += "</a>";
 
 
-        if(investigated) {
+        if(investigated)
             res += "</span> ";
-        }
 
         res += " <br>";
         return res;

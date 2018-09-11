@@ -334,7 +334,7 @@ function showSuiteData(suite, settings) {
     }
 
     if(isDefinedAndFilled(suite.problemRef)) {
-        res += "<img width='12px' height='12px' src='img/error-icon-4.png' title='" + suite.problemRef.name + "'> ";
+        res += "<span title='"+testFail.problemRef.name +"'>&#128030;</span> "
     }
 
     var color = failureRateToColor(suite.failureRate);
@@ -497,7 +497,9 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
     var haveIssue = isDefinedAndFilled(testFail.webIssueUrl) && isDefinedAndFilled(testFail.webIssueText)
 
-    var color = isFailureShown ? failureRateToColor(testFail.failureRate) : "white";
+    var color = (isFailureShown && isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.recent))
+        ? failureRateToColor(testFail.histBaseBranch.recent.failureRate)
+        : "white";
 
     var investigated = isDefinedAndFilled(testFail.investigated) && testFail.investigated;
     if (investigated) {
@@ -531,8 +533,6 @@ function showTestFailData(testFail, isFailureShown, settings) {
     }
 
     if(isFailureShown && isDefinedAndFilled(testFail.problemRef)) {
-        //res += "<img width='12px' height='12px' src='img/error-icon-4.png' title='" + testFail.problemRef.name + "'> ";
-
         res += "<span title='"+testFail.problemRef.name +"'>&#128030;</span>"
         if(!bold)
            res += "<b>";
@@ -565,21 +565,39 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
     var haveWeb = isDefinedAndFilled(testFail.webUrl);
     var histContent = "";
-    if (isFailureShown && testFail.failures != null && testFail.runs != null) {
-        var testFailTitle = "recent rate: " + testFail.failures + " fails / " + testFail.runs + " runs" ;
 
-        if(isDefinedAndFilled(testFail.failsAllHist) && isDefinedAndFilled(testFail.failsAllHist.failures)) {
+    //see class TestHistory
+    var hist;
+
+    if(isDefinedAndFilled(testFail.histBaseBranch))
+        hist = testFail.histBaseBranch
+    else
+        hist = null;
+
+    if (isFailureShown && hist!=null) {
+        var testFailTitle = "";
+
+        if(isDefinedAndFilled(hist.recent))
+            testFailTitle = "recent rate: " + hist.recent.failures + " fails / " + hist.recent.runs + " runs" ;
+
+        if(isDefinedAndFilled(hist.allTime) && isDefinedAndFilled(hist.allTime.failures)) {
             testFailTitle +=
-                 "; all history: " + testFail.failsAllHist.failureRate + "% ["+
-                  testFail.failsAllHist.failures + " fails / " +
-                  testFail.failsAllHist.runs + " runs] " ;
+                 "; all history: " + hist.allTime.failureRate + "% ["+
+                  hist.allTime.failures + " fails / " +
+                  hist.allTime.runs + " runs] " ;
         }
 
         histContent += " <span title='" +testFailTitle + "'>";
-        if (isDefinedAndFilled(testFail.failureRate))
-            histContent += "(fail rate " + testFail.failureRate + "%)";
+        
+        if (isDefinedAndFilled(hist.recent) && isDefinedAndFilled(hist.recent.failureRate))
+            histContent += "(fail rate " + hist.recent.failureRate + "%)";
         else
-            histContent += "(fails: " + testFail.failures + "/" + testFail.runs + ")";
+            histContent += "(fails: " + hist.recent.failures + "/" + hist.recent.runs + ")";
+            
+        if(isDefinedAndFilled(testFail.histCurBranch)) {
+            //todo presence of this indicates that PR is checked, need to draw latest
+        }
+        
         histContent += "</span>";
 
     } else if (haveWeb) {

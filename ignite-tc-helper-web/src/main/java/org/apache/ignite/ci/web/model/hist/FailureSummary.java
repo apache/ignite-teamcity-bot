@@ -15,11 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.model.current;
+package org.apache.ignite.ci.web.model.hist;
 
 import com.google.common.base.Objects;
 import javax.annotation.Nullable;
 
+/**
+ * Test failure summary: contains statistic of failures and total runs for suite or for test.
+ */
 public class FailureSummary {
     /** Registered number of failures from TC helper DB */
     @Nullable public Integer failures;

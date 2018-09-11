@@ -35,6 +35,9 @@ import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
 import org.apache.ignite.ci.logs.LogMsgToWarn;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.web.model.hist.FailureSummary;
+import org.apache.ignite.ci.web.model.hist.TestHistory;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.ci.util.TimeUtil.getDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
@@ -43,7 +46,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 /**
  * UI model for test failure, probably merged with its history
  */
-@SuppressWarnings("WeakerAccess") public class TestFailure extends FailureSummary {
+@SuppressWarnings("WeakerAccess") public class TestFailure {
     /** Test full Name */
     public String name;
 
@@ -53,14 +56,14 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
     /** test short name with class and method */
     @Nullable public String testName;
 
-    /** Current filtered failures count, Usually 1 for get current */
+    /**
+     * Current filtered failures count, Usually 1 for get current (latest),
+     * may indicate several failures for history (merged recent runs).
+     */
     public Integer curFailures;
 
     /** Latest runs, 0,1,2 values for each run. */
     @Nullable public List<Integer> latestRuns;
-
-    /** Failure summary in tracked branch according to all runs history. */
-    @Nonnull public FailureSummary failsAllHist = new FailureSummary();
 
     /** Link to test history */
     @Nullable public String webUrl;
@@ -81,6 +84,14 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
     @Nullable public ProblemRef problemRef;
 
     @Nullable public String flakyComments;
+
+    /** History cur branch. If it is absent, history is to be taken from histBaseBranch. */
+    @Nullable public TestHistory histCurBranch;
+
+    /**
+     * This history is created only for PR/Branch failures, it contains data from the base branch (e.g. master).
+     */
+    @NotNull public TestHistory histBaseBranch = new TestHistory();
 
     /**
      * @param failure
@@ -173,6 +184,11 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
             + "&tab=testDetails";
     }
 
+    /**
+     * @param runStatSupplier Run stat supplier.
+     * @param failRateNormalizedBranch Base branch: Fail rate and flakyness detection normalized branch.
+     * @param curBranchNormalized Cur branch normalized.
+     */
     public void initStat(@Nullable final Function<TestInBranch, RunStat> runStatSupplier,
         String failRateNormalizedBranch,
         String curBranchNormalized) {
@@ -184,14 +200,9 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         final RunStat stat = runStatSupplier.apply(testInBranch);
 
         if (stat != null) {
-            failures = stat.getFailuresCount();
-            runs = stat.getRunsCount();
-            failureRate = stat.getFailPercentPrintable();
+            histBaseBranch.init(stat);
 
-            failsAllHist.failures = stat.getFailuresAllHist();
-            failsAllHist.runs = stat.getRunsAllHist();
-            failsAllHist.failureRate = stat.getFailPercentAllHistPrintable();
-
+            flakyComments = stat.getFlakyComments();
         }
 
         RunStat latestRunsSrcInBranch = null;
@@ -216,7 +227,6 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
             if (recentContributedTestId != null)
                 problemRef = new ProblemRef("Recently contributed test failure");
 
-            flakyComments = latestRunsSrcInBranch.getFlakyComments();
         }
     }
 
@@ -232,21 +242,19 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
             Objects.equal(suiteName, failure.suiteName) &&
             Objects.equal(testName, failure.testName) &&
             Objects.equal(curFailures, failure.curFailures) &&
-            Objects.equal(failures, failure.failures) &&
-            Objects.equal(runs, failure.runs) &&
-            Objects.equal(failureRate, failure.failureRate) &&
-            Objects.equal(failsAllHist, failure.failsAllHist) &&
             Objects.equal(webUrl, failure.webUrl) &&
             Objects.equal(webIssueUrl, failure.webIssueUrl) &&
             Objects.equal(webIssueText, failure.webIssueText) &&
-            Objects.equal(durationPrintable, failure.durationPrintable)&&
-            Objects.equal(warnings, failure.warnings);
+            Objects.equal(durationPrintable, failure.durationPrintable) &&
+            Objects.equal(warnings, failure.warnings) &&
+            Objects.equal(histBaseBranch, failure.histBaseBranch) &&
+            Objects.equal(histCurBranch, failure.histCurBranch);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(name, suiteName, testName, curFailures, failures, runs, failureRate, failsAllHist,
-            webUrl, webIssueUrl, webIssueText, investigated, durationPrintable, warnings);
+        return Objects.hashCode(name, suiteName, testName, curFailures,
+            webUrl, webIssueUrl, webIssueText, investigated, durationPrintable, warnings, histBaseBranch, histCurBranch);
     }
 
     /** {@inheritDoc} */
