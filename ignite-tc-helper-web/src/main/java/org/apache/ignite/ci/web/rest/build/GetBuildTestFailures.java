@@ -17,7 +17,9 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.servlet.ServletContext;
@@ -36,6 +38,7 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
@@ -150,7 +153,7 @@ public class GetBuildTestFailures {
 
     @GET
     @Path("history")
-    public BuildStatisticsSummary[] getBuildsHistory(
+    public List<BuildStatisticsSummary> getBuildsHistory(
         @Nullable @QueryParam("server") String server,
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
@@ -172,7 +175,7 @@ public class GetBuildTestFailures {
 
             int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, cnt);
 
-            BuildStatisticsSummary[] buildsStatistics = new BuildStatisticsSummary[finishedBuilds.length];
+            List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
 
             for (int i = 0; i < finishedBuilds.length; i++) {
                 int buildId = finishedBuilds[i];
@@ -182,9 +185,12 @@ public class GetBuildTestFailures {
                 param.setBranch(branchName);
                 param.setServerId(srvId);
 
-                buildsStatistics[finishedBuilds.length - 1 - i] = updater.get(
+                BuildStatisticsSummary buildsStatistic = updater.get(
                     BUILDS_STATISTICS_SUMMARY_CACHE_NAME, prov, param,
                     (k) -> getBuildStatisticsSummaryNoCache(srvId, buildId), false);
+
+                if (!buildsStatistic.build.isFakeStub())
+                    buildsStatistics.add(buildsStatistic);
             }
 
             return buildsStatistics;
