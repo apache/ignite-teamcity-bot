@@ -17,10 +17,12 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
+import java.util.ArrayList;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.List;
 import java.util.Date;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -154,7 +156,7 @@ public class GetBuildTestFailures {
 
     @GET
     @Path("history")
-    public BuildStatisticsSummary[] getBuildsHistory(
+    public List<BuildStatisticsSummary> getBuildsHistory(
         @Nullable @QueryParam("server") String server,
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
@@ -180,7 +182,7 @@ public class GetBuildTestFailures {
 
             int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, sinceDateFilter, untilDateFilter);
 
-            BuildStatisticsSummary[] buildsStatistics = new BuildStatisticsSummary[finishedBuilds.length];
+            List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
 
             for (int i = 0; i < finishedBuilds.length; i++) {
                 int buildId = finishedBuilds[i];
@@ -190,9 +192,12 @@ public class GetBuildTestFailures {
                 param.setBranch(branchName);
                 param.setServerId(srvId);
 
-                buildsStatistics[finishedBuilds.length - 1 - i] = updater.get(
+                BuildStatisticsSummary buildsStatistic = updater.get(
                     BUILDS_STATISTICS_SUMMARY_CACHE_NAME, prov, param,
                     (k) -> getBuildStatisticsSummaryNoCache(srvId, buildId), false);
+
+                if (!buildsStatistic.build.isFakeStub())
+                    buildsStatistics.add(buildsStatistic);
             }
 
             return buildsStatistics;
