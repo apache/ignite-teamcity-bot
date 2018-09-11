@@ -457,7 +457,9 @@ function showSuiteData(suite, settings) {
  * @returns {boolean} True - if test is new. False - otherwise.
  */
 function isNewFailedTest(testFailure) {
-    return Number.parseFloat(testFailure.failureRate) < 4.0 || testFailure.flakyComments == null;
+    var recent = testFailure.histBaseBranch.recent;
+
+    return recent != null && Number.parseFloat(recent.failureRate) < 4.0 || testFailure.flakyComments == null;
 }
 
 function failureRateToColor(failureRate) {
