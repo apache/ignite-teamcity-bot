@@ -184,7 +184,7 @@ function addBlockersData(server, settings) {
         blockers = "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>Possible Blockers</b></th>" +
             "<th  class='table-title'>Base Branch</th></tr>" +
             blockers +
-            "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>Other failures</b></th>" +
+            "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>All Failures</b></th>" +
             "<th  class='table-title'>Base Branch</th></tr>";
     }
 
@@ -666,7 +666,7 @@ function drawLatestRuns(latestRuns) {
         return "";
 
     var res = "";
-    res += "<nobr><span style='white-space: nowrap; width:" + (latestRuns.length  * 2) + "px; display: inline-block;' title='Latest master runs history from right to left is oldest to newest. Red-failed,green-passed,black-timeout'>";
+    res += "<nobr><span style='white-space: nowrap; width:" + (latestRuns.length  * 1) + "px; display: inline-block;' title='Latest master runs history from right to left is oldest to newest. Red-failed,green-passed,black-timeout'>";
 
     var len = 1;
     var prevState = null;
@@ -704,7 +704,7 @@ function drawLatestRunsBlock(state, len) {
     else if (state == 3)
         runColor = "black";
 
-    return "<span style='background-color: " + runColor + "; width:" + (len * 2) + "px; height:10px; display: inline-block;'></span>";
+    return "<span style='background-color: " + runColor + "; width:" + (len * 1) + "px; height:10px; display: inline-block;'></span>";
 }
 
 

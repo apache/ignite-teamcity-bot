@@ -182,7 +182,15 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
 
         return problems.stream()
             .filter(Objects::nonNull)
-            .filter(p -> buildTypeId == null || buildTypeId.equals(p.buildRef.buildTypeId)
+            .filter(p -> {
+                    if (buildTypeId == null)
+                        return true;
+                    if (p.buildRef == null && buildTypeId == null)
+                        return true;
+                    if (p.buildRef != null && buildTypeId.equals(p.buildRef.buildTypeId))
+                        return true;
+                    return false;
+                }
             );
     }
 
