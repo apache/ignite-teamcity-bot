@@ -17,13 +17,11 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -36,27 +34,30 @@ import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
+import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 @Path(GetBuildTestFailures.BUILD)
 @Produces(MediaType.APPLICATION_JSON)
 public class GetBuildTestFailures {
     public static final String BUILD = "build";
     public static final String TEST_FAILURES_SUMMARY_CACHE_NAME = BUILD + "TestFailuresSummary";
+    public static final String BUILDS_STATISTICS_SUMMARY_CACHE_NAME = BUILD + "sStatisticsSummary";
     @Context
     private ServletContext context;
 
@@ -88,7 +89,7 @@ public class GetBuildTestFailures {
         @QueryParam("serverId") String serverId,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs)
-            throws ServiceUnauthorizedException {
+        throws ServiceUnauthorizedException {
 
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
 
@@ -131,7 +132,6 @@ public class GetBuildTestFailures {
                     (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE,
                     false, false, teamcity, failRateBranch);
 
-
             pubCtx.ifPresent(ctx -> {
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(serverId, ctx.branchName());
 
@@ -148,5 +148,68 @@ public class GetBuildTestFailures {
         res.postProcess(runningUpdates.get());
 
         return res;
+    }
+
+    @GET
+    @Path("history")
+    public List<BuildStatisticsSummary> getBuildsHistory(
+        @Nullable @QueryParam("server") String server,
+        @Nullable @QueryParam("buildType") String buildType,
+        @Nullable @QueryParam("branch") String branch,
+        @Nullable @QueryParam("count") Long count)
+        throws ServiceUnauthorizedException {
+
+        String srvId = isNullOrEmpty(server) ? "apache" : server;
+        String buildTypeId = isNullOrEmpty(buildType) ? "IgniteTests24Java8_RunAll" : buildType;
+        String branchName = isNullOrEmpty(branch) ? "refs/heads/master" : branch;
+        long cnt = count == null ? 50 : count;
+
+        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
+
+        final ITcHelper tcHelper = CtxListener.getTcHelper(context);
+
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov)) {
+
+            int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, cnt);
+
+            List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
+
+            for (int i = 0; i < finishedBuilds.length; i++) {
+                int buildId = finishedBuilds[i];
+
+                FullQueryParams param = new FullQueryParams();
+                param.setBuildId(buildId);
+                param.setBranch(branchName);
+                param.setServerId(srvId);
+
+                BuildStatisticsSummary buildsStatistic = updater.get(
+                    BUILDS_STATISTICS_SUMMARY_CACHE_NAME, prov, param,
+                    (k) -> getBuildStatisticsSummaryNoCache(srvId, buildId), false);
+
+                if (!buildsStatistic.build.isFakeStub())
+                    buildsStatistics.add(buildsStatistic);
+            }
+
+            return buildsStatistics;
+        }
+    }
+
+    private BuildStatisticsSummary getBuildStatisticsSummaryNoCache(String server, int buildId) {
+
+        String srvId = isNullOrEmpty(server) ? "apache" : server;
+
+        final ITcHelper tcHelper = CtxListener.getTcHelper(context);
+
+        final ICredentialsProv creds = ICredentialsProv.get(req);
+
+        try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds)) {
+
+            BuildStatisticsSummary stat = new BuildStatisticsSummary(teamcity.getBuild(buildId));
+            stat.initialize(teamcity);
+
+            return stat;
+        }
     }
 }

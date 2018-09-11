@@ -15,18 +15,29 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.result;
+package org.apache.ignite.ci.tcmodel.result.issues;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 
 /**
- * Problem occurrences reference, short version with only reference
+ * Build's related issue from TC.
+ *
+ * See example of XML, e.g. here
+ * https://ci.ignite.apache.org/app/rest/latest/builds/id:1694977/relatedIssues
  */
-public class ProblemOccurrencesRef {
-    /** Href without host name to obtain full problems list. */
-    @XmlAttribute public String href;
+@XmlRootElement(name = "IssueUsage")
+@XmlAccessorType(XmlAccessType.FIELD)
+public class IssueUsage {
+    @XmlElement(name = "issue")
+    private IssueRef issue;
+    @XmlElement(name = "changes")
+    private ChangesList changesList;
 
-    @XmlAttribute public long count;
-
-    @XmlAttribute public long newFailed;
+    public IssueRef getIssue(){
+        return issue;
+    }
 }

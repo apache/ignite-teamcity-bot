@@ -38,7 +38,7 @@ import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.analysis.TestLogCheckResult;
 import org.apache.ignite.ci.issue.EventTemplates;
-import org.apache.ignite.ci.issue.IssueRef;
+import org.apache.ignite.ci.issue.ProblemRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 import org.jetbrains.annotations.NotNull;
@@ -105,7 +105,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public String durationPrintable;
 
-    @Nullable public IssueRef problemRef;
+    @Nullable public ProblemRef problemRef;
 
 
     public void initFromContext(@Nonnull final ITeamcity teamcity,
@@ -244,12 +244,12 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             RunStat.TestId testId = latestRunsSrc.detectTemplate(EventTemplates.newFailure);
 
             if (testId != null)
-                problemRef = new IssueRef("New Failure");
+                problemRef = new ProblemRef("New Failure");
 
             RunStat.TestId buildIdCritical  = latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailure);
 
             if (buildIdCritical != null)
-                problemRef = new IssueRef("New Critical Failure");
+                problemRef = new ProblemRef("New Critical Failure");
         }
     }
 

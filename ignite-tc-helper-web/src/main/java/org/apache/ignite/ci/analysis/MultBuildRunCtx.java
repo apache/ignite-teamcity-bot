@@ -125,7 +125,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     public boolean hasNontestBuildProblem() {
         return problems != null && problems.stream().anyMatch(problem ->
             !problem.isFailedTests()
-                && !problem.isShaphotDepProblem()
+                && !problem.isSnapshotDepProblem()
                 && !ProblemOccurrence.BUILD_FAILURE_ON_MESSAGE.equals(problem.type));
         //todo what to do with BuildFailureOnMessage, now it is ignored
     }
@@ -135,7 +135,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     private Optional<ProblemOccurrence> getBuildProblemExceptTestOrSnapshot() {
-        return problems.stream().filter(p -> !p.isFailedTests() && !p.isShaphotDepProblem()).findAny();
+        return problems.stream().filter(p -> !p.isFailedTests() && !p.isSnapshotDepProblem()).findAny();
     }
 
     public List<SingleBuildRunCtx> getBuilds() {
@@ -244,7 +244,7 @@ public class MultBuildRunCtx implements ISuiteResults {
             Stream<ProblemOccurrence> stream =
                 problems.stream().filter(p ->
                     !p.isFailedTests()
-                        && !p.isShaphotDepProblem()
+                        && !p.isSnapshotDepProblem()
                         && !p.isExecutionTimeout()
                         && !p.isJvmCrash()
                         && !p.isExitCode()

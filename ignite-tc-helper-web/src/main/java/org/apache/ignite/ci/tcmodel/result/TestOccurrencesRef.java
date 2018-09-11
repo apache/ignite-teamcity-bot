@@ -29,5 +29,7 @@ public class TestOccurrencesRef {
     @XmlAttribute public Integer count;
     @XmlAttribute public Integer passed;
     @XmlAttribute public Integer failed;
+    @XmlAttribute public Integer newFailed;
+    @XmlAttribute public Integer ignored;
     @XmlAttribute public Integer muted;
 }

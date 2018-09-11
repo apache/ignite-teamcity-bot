@@ -33,6 +33,7 @@ import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
@@ -52,6 +53,7 @@ import static org.apache.ignite.ci.db.DbMigrations.TESTS_COUNT_7700;
 public interface ITeamcity extends AutoCloseable {
 
     String DEFAULT = "<default>";
+    long DEFAULT_BUILDS_COUNT = 1000;
 
     CompletableFuture<List<BuildType>> getProjectSuites(String projectId);
 
@@ -62,7 +64,17 @@ public interface ITeamcity extends AutoCloseable {
      * @param branch
      * @return list of builds in historical order, recent builds coming last
      */
-    List<BuildRef> getFinishedBuilds(String projectId, String branch);
+    default List<BuildRef> getFinishedBuilds(String projectId, String branch) {
+        return getFinishedBuilds(projectId, branch, null);
+    };
+
+    /**
+     * @param projectId suite ID (string without spaces)
+     * @param branch
+     * @param cnt builds count
+     * @return list of builds in historical order, recent builds coming last
+     */
+    List<BuildRef> getFinishedBuilds(String projectId, String branch, Long cnt);
 
     /**
      * Includes snapshot dependencies failed builds into list
@@ -71,7 +83,19 @@ public interface ITeamcity extends AutoCloseable {
      * @param branch branch in TC identification
      * @return list of builds in historical order, recent builds coming last
      */
-    List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch);
+    default List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch){
+        return getFinishedBuilds(projectId, branch, null);
+    };
+
+    /**
+     * Includes snapshot dependencies failed builds into list
+     *
+     * @param projectId suite ID (string without spaces)
+     * @param branch branch in TC identification
+     * @param cnt builds count
+     * @return list of builds in historical order, recent builds coming last
+     */
+    List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt);
 
     /**   */
     CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch);
@@ -80,7 +104,11 @@ public interface ITeamcity extends AutoCloseable {
     CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch);
 
     default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist) {
-        return getFinishedBuilds(projectId, branchNameForHist).stream().mapToInt(BuildRef::getId).toArray();
+        return getBuildNumbersFromHistory(projectId, branchNameForHist, null);
+    }
+
+    default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist, Long cnt) {
+        return getFinishedBuilds(projectId, branchNameForHist, cnt).stream().mapToInt(BuildRef::getId).toArray();
     }
 
     Build getBuild(String href);
@@ -113,6 +141,8 @@ public interface ITeamcity extends AutoCloseable {
     Change getChange(String href);
 
     ChangesList getChangesList(String href);
+
+    IssuesUsagesList getIssuesUsagesList(String href);
 
     /**
      * Runs deep collection of all related statistics for particular build

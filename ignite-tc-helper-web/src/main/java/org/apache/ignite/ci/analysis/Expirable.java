@@ -27,14 +27,16 @@ import org.apache.ignite.ci.db.Persisted;
 public class Expirable<D> {
     private final long ts;
     private final D data;
+    private final long cnt;
 
     public Expirable(D data) {
-        this(System.currentTimeMillis(), data);
+        this(System.currentTimeMillis(), 1, data);
     }
 
-    public Expirable(long ts, D data) {
+    public Expirable(long ts, long cnt, D data) {
         this.ts = ts;
         this.data = data;
+        this.cnt = cnt;
     }
 
     public long getTs() {
@@ -45,11 +47,19 @@ public class Expirable<D> {
         return data;
     }
 
+    public long getCnt(){
+        return cnt;
+    }
+
     public long getAgeMs() {
         return System.currentTimeMillis() - ts;
     }
 
     public boolean isAgeLessThanSecs(int seconds) {
         return getAgeMs() < TimeUnit.SECONDS.toMillis(seconds);
+    }
+
+    public boolean hasCounterGreaterThan(long cnt){
+        return cnt < this.cnt;
     }
 }

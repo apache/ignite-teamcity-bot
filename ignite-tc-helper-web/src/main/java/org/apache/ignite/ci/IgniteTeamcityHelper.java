@@ -62,6 +62,7 @@ import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.hist.Builds;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
@@ -354,18 +355,28 @@ public class IgniteTeamcityHelper implements ITeamcity {
     private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
         @Nullable String branchName,
         boolean dfltFilter,
-        @Nullable String state) {
+        @Nullable String state){
+
+        return getBuildHistory(buildTypeId, branchName, dfltFilter, state, null);
+    }
+
+    private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
+        @Nullable String branchName,
+        boolean dfltFilter,
+        @Nullable String state,
+        @Nullable Long cnt) {
         String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId + "";
         String stateFilter = isNullOrEmpty(state) ? "" : (",state:" + state);
-        String brachFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
+        String branchFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
+        long cntFilter = cnt == null ? DEFAULT_BUILDS_COUNT : cnt;
 
         return sendGetXmlParseJaxb(host + "app/rest/latest/builds"
             + "?locator="
             + "defaultFilter:" + dfltFilter
             + btFilter
             + stateFilter
-            + brachFilter
-            + ",count:1000", Builds.class).getBuildsNonNull();
+            + branchFilter
+            + ",count:" + cntFilter, Builds.class).getBuildsNonNull();
     }
 
     public BuildTypeFull getBuildType(String buildTypeId) {
@@ -378,7 +389,16 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     public ProblemOccurrences getProblems(Build build) {
-        return getJaxbUsingHref(build.problemOccurrences.href, ProblemOccurrences.class);
+        if (build.problemOccurrences != null) {
+            ProblemOccurrences problemOccurrences = getJaxbUsingHref(build.problemOccurrences.href, ProblemOccurrences.class);
+
+            problemOccurrences.problemOccurrences
+                .forEach(p -> p.buildRef = build);
+
+            return problemOccurrences;
+        }
+        else
+            return new ProblemOccurrences();
     }
 
     public TestOccurrences getTests(String href, String normalizedBranch) {
@@ -401,6 +421,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return getJaxbUsingHref(href, ChangesList.class);
     }
 
+    public IssuesUsagesList getIssuesUsagesList(String href) { return getJaxbUsingHref(href, IssuesUsagesList.class); }
+
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {
         return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), elem);
     }
@@ -411,17 +433,29 @@ public class IgniteTeamcityHelper implements ITeamcity {
     /** {@inheritDoc} */
     @Override public List<BuildRef> getFinishedBuilds(String projectId,
         String branch) {
+
+        return getFinishedBuilds(projectId, branch, null);
+    }
+
+    /** {@inheritDoc} */
+    public List<BuildRef> getFinishedBuilds(String projectId,
+        String branch, Long cnt) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             true,
-            null);
+            null, cnt);
 
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
 
     /** {@inheritDoc} */
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED);
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null);
+    }
+
+    /** {@inheritDoc} */
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt) {
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, cnt);
     }
 
     /** {@inheritDoc} */
@@ -437,12 +471,21 @@ public class IgniteTeamcityHelper implements ITeamcity {
     private List<BuildRef> getBuildsInState(
         @Nullable final String projectId,
         @Nullable final String branch,
-        @Nonnull final String state) {
+        @Nonnull final String state,
+        @Nullable final Long cnt) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             false,
-            state);
+            state, cnt);
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
+    }
+
+    private List<BuildRef> getBuildsInState(
+        @Nullable final String projectId,
+        @Nullable final String branch,
+        @Nonnull final String state) {
+
+        return getBuildsInState(projectId, branch, state, null);
     }
 
     public String serverId() {
