@@ -15,18 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.result;
+package org.apache.ignite.ci.issue;
 
-import javax.xml.bind.annotation.XmlAttribute;
+public class ProblemRef {
+    public String name;
+    public String webUrl;
 
-/**
- * Problem occurrences reference, short version with only reference
- */
-public class ProblemOccurrencesRef {
-    /** Href without host name to obtain full problems list. */
-    @XmlAttribute public String href;
-
-    @XmlAttribute public long count;
-
-    @XmlAttribute public long newFailed;
+    public ProblemRef(String name) {
+        this.name = name;
+    }
 }

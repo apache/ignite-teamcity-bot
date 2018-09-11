@@ -52,6 +52,8 @@ public class BuildRef extends AbstractRef {
 
     @XmlAttribute public Boolean composite;
 
+    @XmlAttribute public String webUrl;
+
     /**
      * @return Build ID
      */

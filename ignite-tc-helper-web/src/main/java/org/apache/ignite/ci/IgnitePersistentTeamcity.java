@@ -22,6 +22,7 @@ import com.google.common.base.Throwables;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -36,6 +37,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
@@ -57,6 +59,7 @@ import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
@@ -84,6 +87,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     public static final String LOG_CHECK_RESULT = "logCheckResult";
     public static final String CHANGE_INFO_FULL = "changeInfoFull";
     public static final String CHANGES_LIST = "changesList";
+    public static final String ISSUES_USAGES_LIST = "issuesUsagesList";
     public static final String TEST_FULL = "testFull";
     public static final String BUILD_PROBLEMS = "buildProblems";
     public static final String BUILD_STATISTICS = "buildStatistics";
@@ -197,7 +201,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /**
-     * @return Build history: {@link BuildRef} lists cache, 32 parts, transaactional
+     * @return Build history: {@link BuildRef} lists cache, 32 parts, transactional
      */
     public IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistIncFailedCache() {
         return getOrCreateCacheV2Tx(ignCacheNme(BUILD_HIST_FINISHED_OR_FAILED));
@@ -240,14 +244,15 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
-    private <K, V> V timedLoadIfAbsentOrMerge(IgniteCache<K, Expirable<V>> cache, int seconds, K key,
+    private <K, V> V timedLoadIfAbsentOrMerge(IgniteCache<K, Expirable<V>> cache, int seconds, Long cnt, K key,
         BiFunction<K, V, V> loadWithMerge) {
         @Nullable final Expirable<V> persistedBuilds = cache.get(key);
 
         int fields = ObjectInterner.internFields(persistedBuilds);
 
         if (persistedBuilds != null) {
-            if (persistedBuilds.isAgeLessThanSecs(seconds))
+            if (persistedBuilds.isAgeLessThanSecs(seconds) &&
+                (cnt == null || persistedBuilds.hasCounterGreaterThan(cnt)))
                 return persistedBuilds.getData();
         }
 
@@ -258,7 +263,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         try {
             apply = loadWithMerge.apply(key, persistedBuilds != null ? persistedBuilds.getData() : null);
 
-            final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), apply);
+            final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), ((List)apply).size(), apply);
 
             cache.put(key, newVal);
         }
@@ -270,14 +275,14 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch) {
+    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Long cnt) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        return timedLoadIfAbsentOrMerge(buildHistCache(), 60, suiteInBranch,
+        List<BuildRef> buildRefs = timedLoadIfAbsentOrMerge(buildHistCache(), 60, cnt, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> builds;
                 try {
-                    builds = teamcity.getFinishedBuilds(projectId, branch);
+                    builds = teamcity.getFinishedBuilds(projectId, branch, cnt);
                 }
                 catch (Exception e) {
                     if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
@@ -290,6 +295,13 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
                 return mergeByIdToHistoricalOrder(persistedValue, builds);
             });
+
+        if (cnt == null)
+            return buildRefs;
+
+        return buildRefs.stream()
+            .skip(cnt < buildRefs.size() ? buildRefs.size() - cnt : 0)
+            .collect(Collectors.toList());
     }
 
     @NotNull
@@ -307,12 +319,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     //loads build history with following parameter: defaultFilter:false,state:finished
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        return timedLoadIfAbsentOrMerge(buildHistIncFailedCache(), 60, suiteInBranch,
+        return timedLoadIfAbsentOrMerge(buildHistIncFailedCache(), 60, cnt, suiteInBranch,
             (key, persistedValue) -> {
-                List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch);
+                List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, cnt);
 
                 return mergeByIdToHistoricalOrder(persistedValue, failed);
             });
@@ -335,8 +347,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     public static int getTriggerRelCacheValidSecs(int defaultSecs) {
         long msSinceTrigger = System.currentTimeMillis() - lastTriggerMs;
-        long secondsSinceTigger = TimeUnit.MILLISECONDS.toSeconds(msSinceTrigger);
-        return Math.min((int)secondsSinceTigger, defaultSecs);
+        long secondsSinceTrigger = TimeUnit.MILLISECONDS.toSeconds(msSinceTrigger);
+        return Math.min((int)secondsSinceTrigger, defaultSecs);
     }
 
     /** {@inheritDoc} */
@@ -446,18 +458,22 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc}*/
     @Override public ProblemOccurrences getProblems(Build build) {
-        String href = build.problemOccurrences.href;
+        if (build.problemOccurrences != null) {
+            String href = build.problemOccurrences.href;
 
-        return loadIfAbsent(
-            buildProblemsCache(),
-            href,
-            k -> {
-                ProblemOccurrences problems = teamcity.getProblems(build);
+            return loadIfAbsent(
+                buildProblemsCache(),
+                href,
+                k -> {
+                    ProblemOccurrences problems = teamcity.getProblems(build);
 
-                registerCriticalBuildProblemInStat(build, problems);
+                    registerCriticalBuildProblemInStat(build, problems);
 
-                return problems;
-            });
+                    return problems;
+                });
+        }
+        else
+            return new ProblemOccurrences();
     }
 
     private void registerCriticalBuildProblemInStat(Build build, ProblemOccurrences problems) {
@@ -589,6 +605,24 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                     throw e;
             }
         });
+    }
+
+    @Override public IssuesUsagesList getIssuesUsagesList(String href) {
+        IssuesUsagesList issuesUsages =  loadIfAbsentV2(ISSUES_USAGES_LIST, href, href1 -> {
+            try {
+                return teamcity.getIssuesUsagesList(href1);
+            }
+            catch (Exception e) {
+                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                    System.err.println("Issues Usage List not found for href : " + href);
+
+                    return new IssuesUsagesList();
+                }
+                else
+                    throw e;
+            }
+        });
+        return issuesUsages;
     }
 
     /** {@inheritDoc} */

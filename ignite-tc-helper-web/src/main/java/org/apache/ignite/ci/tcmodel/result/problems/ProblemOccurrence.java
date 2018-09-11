@@ -18,34 +18,41 @@
 package org.apache.ignite.ci.tcmodel.result.problems;
 
 import javax.xml.bind.annotation.XmlAttribute;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
 /**
  * One build problem. Contains its type.
  */
 public class ProblemOccurrence {
     public static final String BUILD_FAILURE_ON_MESSAGE = "BuildFailureOnMessage";
-    private static final String TC_EXIT_CODE = "TC_EXIT_CODE";
-    private static final String TC_OOME = "TC_OOME";
+    public static final String TC_EXIT_CODE = "TC_EXIT_CODE";
+    public static final String TC_OOME = "TC_OOME";
+    public static final String TC_EXECUTION_TIMEOUT = "TC_EXECUTION_TIMEOUT";
+    public static final String TC_FAILED_TESTS = "TC_FAILED_TESTS";
+    public static final String TC_JVM_CRASH = "TC_JVM_CRASH";
+    public static final String OTHER = "OTHER";
+    public static final String SNAPSHOT_DEPENDENCY_ERROR = "SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE";
 
     @XmlAttribute public String id;
     @XmlAttribute public String identity;
     @XmlAttribute public String type;
     @XmlAttribute public String href;
+    public BuildRef buildRef;
 
     public boolean isExecutionTimeout() {
-        return "TC_EXECUTION_TIMEOUT".equals(type);
+        return TC_EXECUTION_TIMEOUT.equals(type);
     }
 
     public boolean isFailedTests() {
-        return "TC_FAILED_TESTS".equals(type);
+        return TC_FAILED_TESTS.equals(type);
     }
 
-    public boolean isShaphotDepProblem() {
-        return "SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE".equals(type);
+    public boolean isSnapshotDepProblem() {
+        return SNAPSHOT_DEPENDENCY_ERROR.equals(type);
     }
 
     public boolean isJvmCrash() {
-        return "TC_JVM_CRASH".equals(type);
+        return TC_JVM_CRASH.equals(type);
     }
 
     public boolean isOome() {
@@ -54,5 +61,14 @@ public class ProblemOccurrence {
 
     public boolean isExitCode() {
         return TC_EXIT_CODE.equals(type);
+    }
+
+    public boolean isOther(){
+        return !isFailedTests()
+            && !isSnapshotDepProblem()
+            && !isExecutionTimeout()
+            && !isJvmCrash()
+            && !isExitCode()
+            && !isOome();
     }
 }

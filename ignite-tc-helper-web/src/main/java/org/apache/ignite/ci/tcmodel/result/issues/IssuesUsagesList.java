@@ -15,24 +15,35 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.result.problems;
+package org.apache.ignite.ci.tcmodel.result.issues;
 
 import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.ignite.ci.tcmodel.result.ProblemOccurrencesRef;
 
 /**
- * List of problems associated with build.
+ * List of build's related issues from TC.
+ *
+ * See example of XML, e.g. here
+ * https://ci.ignite.apache.org/app/rest/latest/builds/id:1694977/relatedIssues
  */
-@XmlRootElement(name = "problemOccurrences")
-public class ProblemOccurrences extends ProblemOccurrencesRef {
-    @XmlElement(name = "problemOccurrence")
-    public List<ProblemOccurrence> problemOccurrences;
+@XmlRootElement(name = "issuesUsages")
+public class IssuesUsagesList {
+    @XmlElement(name = "issueUsage")
+    private List<IssueUsage> issuesUsages;
 
-    public List<ProblemOccurrence> getProblemsNonNull() {
-        return problemOccurrences == null ? Collections.emptyList() : problemOccurrences;
+    @XmlElement Integer count;
+
+    @XmlElement String href;
+
+    public List<IssueUsage> getIssuesUsagesNonNull() {
+        return issuesUsages == null ? Collections.emptyList() : issuesUsages;
+    }
+
+    @Override public String toString() {
+        return "IssuesUsagesList{" +
+            "issuesUsages=" + issuesUsages +
+            '}';
     }
 }
-
