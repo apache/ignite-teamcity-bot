@@ -194,29 +194,29 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 
         }
 
-        RunStat latestRunsSrc = null;
+        RunStat latestRunsSrcInBranch = null;
 
         if (!curBranchNormalized.equals(failRateNormalizedBranch)) {
             TestInBranch testInBranchS = new TestInBranch(name, curBranchNormalized);
 
-            latestRunsSrc = runStatSupplier.apply(testInBranchS);
+            latestRunsSrcInBranch = runStatSupplier.apply(testInBranchS);
         } else
-            latestRunsSrc = stat;
+            latestRunsSrcInBranch = stat;
 
-        latestRuns = latestRunsSrc != null ? latestRunsSrc.getLatestRunResults() : null;
+        latestRuns = latestRunsSrcInBranch != null ? latestRunsSrcInBranch.getLatestRunResults() : null;
 
-        if (latestRunsSrc != null) {
-            RunStat.TestId testId = latestRunsSrc.detectTemplate(EventTemplates.newFailure);
+        if (latestRunsSrcInBranch != null) {
+            RunStat.TestId testId = latestRunsSrcInBranch.detectTemplate(EventTemplates.newFailure);
 
             if (testId != null)
                 problemRef = new IssueRef("New Failure");
 
-            RunStat.TestId recentContributedTestId = latestRunsSrc.detectTemplate(EventTemplates.newContributedTestFailure);
+            RunStat.TestId recentContributedTestId = latestRunsSrcInBranch.detectTemplate(EventTemplates.newContributedTestFailure);
 
             if (recentContributedTestId != null)
                 problemRef = new IssueRef("Recently contributed test failure");
 
-            flakyComments = latestRunsSrc.getFlakyComments();
+            flakyComments = latestRunsSrcInBranch.getFlakyComments();
         }
     }
 
