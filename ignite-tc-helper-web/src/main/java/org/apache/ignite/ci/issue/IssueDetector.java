@@ -348,7 +348,7 @@ public class IssueDetector {
 
                 executorService = Executors.newScheduledThreadPool(1);
 
-                executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
+                executorService.scheduleWithFixedDelay(this::checkFailures, 0, 15, TimeUnit.MINUTES);
 
                 if (Boolean.valueOf(System.getProperty(CheckQueueJob.AUTO_TRIGGERING_BUILD_DISABLED)))
                     logger.info("Automatic build triggering was disabled.");
@@ -367,7 +367,24 @@ public class IssueDetector {
         // SchedulerFuture<?> future = ignite.scheduler().scheduleLocal(this::checkFailures, "? * * * * *");
     }
 
+    /**
+     *
+     */
     private void checkFailures() {
+        try {
+            checkFailuresEx();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+
+            logger.error("Failure periodic check failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     *
+     */
+    private void checkFailuresEx() {
         int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
 
         GetTrackedBranchTestResults.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
