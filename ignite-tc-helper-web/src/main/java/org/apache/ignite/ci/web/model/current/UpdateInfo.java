@@ -29,6 +29,9 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
     /** GitHub auth token availability flag. */
     public static int GITHUB_FLAG = 2;
 
+    /** JIRA auth token availability flag. */
+    public static int JIRA_FLAG = 2;
+
     /** Flags to use in javascript. */
     public Integer javaFlags = 0;
 
@@ -59,5 +62,8 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 
         if (teamcity.isGitTokenAvailable())
             javaFlags = javaFlags | GITHUB_FLAG;
+
+        if (teamcity.isJiraTokenAvailable())
+            javaFlags = javaFlags | JIRA_FLAG;
     }
 }

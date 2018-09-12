@@ -44,7 +44,8 @@ public class BuildRef extends AbstractRef {
 
     public static final String STATE_QUEUED = "queued";
 
-    @XmlAttribute private String state;
+    /** Current state of build. */
+    @XmlAttribute public String state;
 
     @XmlAttribute(name = "number") public String buildNumber;
 
@@ -52,6 +53,7 @@ public class BuildRef extends AbstractRef {
 
     @XmlAttribute public Boolean composite;
 
+    /** Build page URL. */
     @XmlAttribute public String webUrl;
 
     /**
