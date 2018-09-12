@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
@@ -240,7 +241,40 @@ public interface ITeamcity extends AutoCloseable {
      */
     void triggerBuild(String id, String name, boolean cleanRebuild, boolean queueAtTop);
 
+    /**
+     * @return {@code True} if TeamCity authorization token is available.
+     */
+    boolean isTeamCityTokenAvailable();
+
+    /**
+     * @param token TeamCity authorization token.
+     */
     void setAuthToken(String token);
+
+    /**
+     * @return {@code True} if GitHub authorization token is available.
+     */
+    boolean isGitTokenAvailable();
+
+    /**
+     * @param token GitHub authorization token.
+     */
+    void setGitToken(String token);
+
+    /**
+     * Send POST request with given body.
+     *
+     * @param url Url.
+     * @param body Request body.
+     * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
+     */
+    boolean notifyGit(String url, String body);
+
+    /**
+     * @param branch TeamCity's branch name. Looks like "pull/123/head".
+     * @return Pull Request.
+     */
+    PullRequest getPullRequest(String branch);
 
     default void setAuthData(String user, String password) {
         setAuthToken(

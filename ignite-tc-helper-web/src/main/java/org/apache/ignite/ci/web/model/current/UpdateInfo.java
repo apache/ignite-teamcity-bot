@@ -17,10 +17,21 @@
 
 package org.apache.ignite.ci.web.model.current;
 
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+
 /**
  * Created by Дмитрий on 19.02.2018
  */
 @SuppressWarnings("WeakerAccess") public class UpdateInfo {
+    /** TeamCity auth token availability flag. */
+    public static int TEAMCITY_FLAG = 1;
+
+    /** GitHub auth token availability flag. */
+    public static int GITHUB_FLAG = 2;
+
+    /** Flags to use in javascript. */
+    public Integer javaFlags = 0;
+
     /** Update required, set by background updater. */
     public boolean updateRequired = false;
 
@@ -37,5 +48,16 @@ package org.apache.ignite.ci.web.model.current;
         this.hashCodeHex = info.hashCodeHex;
 
         return this;
+    }
+
+    /**
+     * @param teamcity TeamCity to get info about tokens.
+     */
+    public void setJavaFlags(IAnalyticsEnabledTeamcity teamcity) {
+        if (teamcity.isTeamCityTokenAvailable())
+            javaFlags = javaFlags | TEAMCITY_FLAG;
+
+        if (teamcity.isGitTokenAvailable())
+            javaFlags = javaFlags | GITHUB_FLAG;
     }
 }
