@@ -291,24 +291,27 @@ public class IgniteTeamcityHelper implements ITeamcity {
                 " queueAtTop=\"" + queueAtTop + "\"" +
                 "/>";
 
-        String parameter = "<build branchName=\"" + xmlEscapeText(branchName) + "\">\n" +
+        String comments = " <comment><text>Build triggered from Ignite TC Bot" +
+            " [cleanRebuild=" + cleanRebuild + ", top=" + queueAtTop + "]</text></comment>\n";
+
+        String param = "<build branchName=\"" + xmlEscapeText(branchName) + "\">\n" +
             "    <buildType id=\"" +
             buildTypeId + "\"/>\n" +
-            "    <comment><text>Build triggered from [" + this.getClass().getSimpleName()
-            + ",cleanRebuild=" + cleanRebuild + "]</text></comment>\n" +
+            comments +
             triggeringOptions +
             //some fake property to avoid merging build in queue
             "    <properties>\n" +
             "        <property name=\"build.query.loginTs\" value=\"" + System.currentTimeMillis() + "\"/>\n" +
-           // "        <property name=\"testSuite\" value=\"org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest\"/>\n" +
+            // "        <property name=\"testSuite\" value=\"org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest\"/>\n" +
             "    </properties>\n" +
             "</build>";
+
         String url = host + "app/rest/buildQueue";
         try {
             logger.info("Triggering build: buildTypeId={}, branchName={}, cleanRebuild={}, queueAtTop={}",
                 buildTypeId, branchName, cleanRebuild, queueAtTop);
 
-            HttpUtil.sendPostAsString(basicAuthTok, url, parameter);
+            HttpUtil.sendPostAsString(basicAuthTok, url, param);
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
