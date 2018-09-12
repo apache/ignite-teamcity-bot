@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.pr;
 
+import com.google.common.base.Strings;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.POST;
 import org.apache.ignite.ci.*;
@@ -65,48 +66,59 @@ public class GetPrTestFailures {
     @GET
     @Path("updates")
     public UpdateInfo getPrFailuresUpdates(
-        @Nullable @QueryParam("serverId") String serverId,
+        @Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @Nonnull @QueryParam("branchForTc") String branchForTc,
-        @Nonnull @QueryParam("action") String action,
-        @Nullable @QueryParam("count") Integer count) {
+        @Nonnull @QueryParam("action") String act,
+        @Nullable @QueryParam("count") Integer cnt,
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc) {
 
-        return new UpdateInfo().copyFrom(getPrFailures(serverId, suiteId, branchForTc, action, count));
+        return new UpdateInfo().copyFrom(getPrFailures(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc));
     }
 
     @GET
     @Path("results")
     public TestFailuresSummary getPrFailures(
-        @Nullable @QueryParam("serverId") String serverId,
+        @Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @Nonnull @QueryParam("branchForTc") String branchForTc,
-        @Nonnull @QueryParam("action") String action,
-        @Nullable @QueryParam("count") Integer count) {
+        @Nonnull @QueryParam("action") String act,
+        @Nullable @QueryParam("count") Integer cnt,
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc) {
 
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
 
-        final FullQueryParams key = new FullQueryParams(serverId, suiteId, branchForTc, action, count);
+        final FullQueryParams key = new FullQueryParams(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc);
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
         return updater.get(CURRENT_PR_FAILURES, prov, key,
-                (k) -> getPrFailuresNoCache(k.getServerId(), k.getSuiteId(), k.getBranchForTc(), k.getAction(), k.getCount()),
+                (k) -> getPrFailuresNoCache(k.getServerId(), k.getSuiteId(), k.getBranchForTc(), k.getAction(), k.getCount(), baseBranchForTc),
                 true);
     }
 
+    /**
+     * @param srvId Server id.
+     * @param suiteId Suite id.
+     * @param branchForTc Branch name in TC identification.
+     * @param act Action.
+     * @param cnt Count.
+     * @param baseBranchForTc Base branch name in TC identification.
+     */
     @GET
     @Path("resultsNoCache")
     @NotNull public TestFailuresSummary getPrFailuresNoCache(
         @Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @Nonnull @QueryParam("branchForTc") String branchForTc,
-        @Nonnull @QueryParam("action") String action,
-        @Nullable @QueryParam("count") Integer count) {
+        @Nonnull @QueryParam("action") String act,
+        @Nullable @QueryParam("count") Integer cnt,
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc) {
 
         final ITcHelper tcHelper = CtxListener.getTcHelper(context);
         final ICredentialsProv creds = ICredentialsProv.get(req);
 
-        return getTestFailuresSummary(tcHelper, creds, srvId, suiteId, branchForTc, action, count);
+        return getTestFailuresSummary(tcHelper, creds, srvId, suiteId, branchForTc, act, cnt, baseBranchForTc);
     }
 
     /**
@@ -114,9 +126,10 @@ public class GetPrTestFailures {
      * @param creds Credentials.
      * @param srvId Server id.
      * @param suiteId Suite id.
-     * @param branchForTc Branch name.
+     * @param branchForTc Branch name in TC identification.
      * @param act Action.
      * @param cnt Count.
+     * @param baseBranchForTc Base branch name in TC identification.
      * @return Test failures summary.
      */
     public static TestFailuresSummary getTestFailuresSummary(
@@ -126,8 +139,8 @@ public class GetPrTestFailures {
         String suiteId,
         String branchForTc,
         String act,
-        Integer cnt
-    ) {
+        Integer cnt,
+        @Nullable String baseBranchForTc) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -166,12 +179,12 @@ public class GetPrTestFailures {
                 ? ProcessLogsMode.SUITE_NOT_COMPLETE
                 : ProcessLogsMode.DISABLED;
 
-            String failRateBranch = ITeamcity.DEFAULT;
+            String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
 
             Optional<FullChainRunCtx> pubCtx = BuildChainProcessor.processBuildChains(teamcity, rebuild, chains,
                 logs,
                 singleBuild,
-                true, teamcity, failRateBranch);
+                true, teamcity, baseBranch);
 
             final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverId(), branchForTc);
             pubCtx.ifPresent(ctx -> {
@@ -184,7 +197,7 @@ public class GetPrTestFailures {
                         runningUpdates.addAndGet(cnt0);
 
                     //fail rate reference is always default (master)
-                    chainStatus.initFromContext(teamcity, ctx, teamcity, failRateBranch);
+                    chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranch);
                 }
             });
 

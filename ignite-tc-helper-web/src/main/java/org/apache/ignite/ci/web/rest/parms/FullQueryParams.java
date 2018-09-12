@@ -35,7 +35,7 @@ public class FullQueryParams {
     public static final String CHAIN = "Chain";
     public static final int DEFAULT_COUNT = 10;
 
-    /** Tracked branch name */
+    /** Tracked branch name (branch naming in terms of bot). */
     @Nullable @QueryParam("branch") String branch;
 
     /** Server For not tracked branches. */
@@ -57,15 +57,20 @@ public class FullQueryParams {
     @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs;
     private Integer buildId;
 
+    /** TC identified base branch: null means the same as &lt;default>, master. For not tracked branches. */
+    @Nullable @QueryParam("baseBranchForTc") private String baseBranchForTc;
+
     public FullQueryParams() {
     }
 
-    public FullQueryParams(String serverId, String suiteId, String branchForTc, String action, Integer count) {
+    public FullQueryParams(String serverId, String suiteId, String branchForTc, String action, Integer count,
+        String baseBranchForTc) {
         this.serverId = serverId;
         this.suiteId = suiteId;
         this.branchForTc = branchForTc;
         this.action = action;
         this.count = count;
+        this.baseBranchForTc = baseBranchForTc;
     }
 
     @Nullable public String getBranch() {
@@ -96,12 +101,15 @@ public class FullQueryParams {
         return checkAllLogs;
     }
 
+    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
+
         FullQueryParams param = (FullQueryParams)o;
+
         return Objects.equal(branch, param.branch) &&
             Objects.equal(serverId, param.serverId) &&
             Objects.equal(suiteId, param.suiteId) &&
@@ -109,11 +117,14 @@ public class FullQueryParams {
             Objects.equal(action, param.action) &&
             Objects.equal(count, param.count) &&
             Objects.equal(checkAllLogs, param.checkAllLogs) &&
-            Objects.equal(buildId, param.buildId);
+            Objects.equal(buildId, param.buildId) &&
+            Objects.equal(baseBranchForTc, param.baseBranchForTc);
     }
 
+    /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(branch, serverId, suiteId, branchForTc, action, count, checkAllLogs, buildId);
+        return Objects.hashCode(branch, serverId, suiteId, branchForTc, action, count, checkAllLogs, buildId,
+            baseBranchForTc);
     }
 
     public void setBranch(@Nullable String branch) {
@@ -134,6 +145,7 @@ public class FullQueryParams {
             .add("count", count)
             .add("checkAllLogs", checkAllLogs)
             .add("buildId", buildId)
+            .add("baseBranchForTc", baseBranchForTc)
             .toString();
     }
 

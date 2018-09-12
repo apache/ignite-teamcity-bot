@@ -51,6 +51,10 @@ function parmsForRest() {
         curReqParms += "&count=" + count;
     }
 
+    var baseBranchForTc = findGetParameter("baseBranchForTc");
+    if(baseBranchForTc != null) {
+        curReqParms += "&baseBranchForTc=" + baseBranchForTc;
+    }
     return curReqParms;
 }
 

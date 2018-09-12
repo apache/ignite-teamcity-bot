@@ -91,7 +91,8 @@ public class ObserverTask extends TimerTask {
     private String generateComment(Build build, BuildInfo info) {
         StringBuilder res = new StringBuilder();
         TestFailuresSummary summary = GetPrTestFailures.getTestFailuresSummary(
-            helper, info.prov, info.srvId, build.getBuildType().getId(), build.branchName, "Latest", null);
+            helper, info.prov, info.srvId, build.getBuildType().getId(), build.branchName,
+            "Latest", null, null);
 
         if (summary != null) {
             for (ChainAtServerCurrentStatus server : summary.servers) {
