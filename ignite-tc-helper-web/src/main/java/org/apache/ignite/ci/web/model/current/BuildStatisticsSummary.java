@@ -18,7 +18,6 @@
 package org.apache.ignite.ci.web.model.current;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +28,7 @@ import javax.annotation.Nonnull;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.issues.IssueRef;
 import org.apache.ignite.ci.tcmodel.result.issues.IssueUsage;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
@@ -39,41 +39,66 @@ import org.apache.ignite.ci.web.IBackgroundUpdatable;
  * Summary of build statistics.
  */
 public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpdatable {
+    /** Short problem names. */
+    public static final String TOTAL = "TOTAL";
+
+    private static Map<String, String> shortProblemNames = new HashMap<>();
+
+    static {
+        shortProblemNames.put(TOTAL, "TT");
+        shortProblemNames.put(ProblemOccurrence.TC_EXECUTION_TIMEOUT, "ET");
+        shortProblemNames.put(ProblemOccurrence.TC_JVM_CRASH, "JC");
+        shortProblemNames.put(ProblemOccurrence.TC_OOME, "OO");
+        shortProblemNames.put(ProblemOccurrence.TC_EXIT_CODE, "EC");
+        shortProblemNames.put(ProblemOccurrence.TC_FAILED_TESTS, "FT");
+        shortProblemNames.put(ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR, "SD");
+        shortProblemNames.put(ProblemOccurrence.OTHER, "OT");
+    }
+
     /** Build with test and problems references. */
-    public Build build;
+    public Integer buildId;
+
+    /** Test occurrences. */
+    public TestOccurrencesRef testOccurrences;
 
     /** List of problem occurrences. */
-    private List<ProblemOccurrence> problems;
+    private List<ProblemOccurrence> problemOccurrenceList;
 
+    /** Snapshot-dependencies build run result. */
     public Map<String, Map<String, Long>> dependenciesProblems;
 
     /** List of related issues. */
-    public List<IssueRef> relatedIssues;
+    private List<IssueRef> relatedIssues;
 
     /** Duration printable. */
     public String durationPrintable;
 
     /** Short build run result (without snapshot-dependencies printable result). */
-    public String shortRes;
-
-    /** Snapshot-dependencies build run result. */
-    public List<String> fullRes;
-
-    /** Snapshot-dependency. */
-    private List<BuildRef> snapshotDependencies;
+    public Map<String, Long> totalProblems;
 
     /** Build problems count. */
     public long problemsCount;
 
-    public BuildStatisticsSummary(Build build){
-        this.build = build;
+    /** Is fake stub. */
+    public boolean isFakeStub;
+
+    /**
+     * @param buildId Build id.
+     */
+    public BuildStatisticsSummary(Integer buildId){
+        this.buildId = buildId;
     }
 
     /** Initialize build statistics. */
     public void initialize(@Nonnull final ITeamcity teamcity) {
+        Build build = teamcity.getBuild(buildId);
 
-        if (build.isFakeStub())
+        isFakeStub = build.isFakeStub();
+
+        if (isFakeStub)
             return;
+
+        testOccurrences = build.testOccurrences;
 
         relatedIssues = teamcity.getIssuesUsagesList(build.relatedIssuesRef.href).getIssuesUsagesNonNull().stream()
             .map(IssueUsage::getIssue).collect(Collectors.toList());
@@ -81,17 +106,19 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
         durationPrintable = TimeUtil
             .getDurationPrintable(build.getFinishDate().getTime() - build.getStartDate().getTime());
 
-        snapshotDependencies = getSnapshotDependencies(teamcity, build);
+        List<BuildRef> snapshotDependencies = getSnapshotDependencies(teamcity, build);
 
-        problems = getProblems(teamcity);
+        List<BuildRef> snapshotDependenciesWithProblems = getBuildsWithProblems(snapshotDependencies);
 
-        dependenciesProblems = getFullRes();
+        problemOccurrenceList = getProblems(teamcity, snapshotDependenciesWithProblems);
 
-        shortRes = getShortRes();
+        //dependenciesProblems = getFullRes(snapshotDependenciesWithProblems);
 
-        fullRes = getFullRes();
+        totalProblems = getShortRes();
 
         problemsCount = getAllProblemsCount(null);
+
+        problemOccurrenceList = null;
     }
 
     private long getExecutionTimeoutCount(String buildTypeId) {
@@ -131,15 +158,11 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
      *
      * @param teamcity Teamcity.
      */
-    private List<ProblemOccurrence> getProblems(@Nonnull final ITeamcity teamcity){
-        if (snapshotDependencies == null)
-            return Collections.emptyList();
+    private List<ProblemOccurrence> getProblems(@Nonnull final ITeamcity teamcity, List<BuildRef> builds){
 
         List<ProblemOccurrence> problemOccurrences = new ArrayList<>();
 
-        List<BuildRef> snapshotDependencyWithProblems = getSnapshotDependenciesWithProblems();
-
-        for (BuildRef buildRef : snapshotDependencyWithProblems)
+        for (BuildRef buildRef : builds)
             problemOccurrences.addAll(teamcity
                 .getProblems(teamcity.getBuild(buildRef.href))
                 .getProblemsNonNull());
@@ -170,11 +193,8 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
     /**
      * Snapshot-dependencies without status "Success".
      */
-    private List<BuildRef> getSnapshotDependenciesWithProblems(){
-        if (snapshotDependencies == null)
-            return Collections.emptyList();
-
-        return snapshotDependencies.stream()
+    private List<BuildRef> getBuildsWithProblems(List<BuildRef> builds){
+        return builds.stream()
             .filter(b -> !b.isSuccess())
             .collect(Collectors.toList());
     }
@@ -183,10 +203,10 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
      * @param buildTypeId Build type id (if null - for all problems).
      */
     private Stream<ProblemOccurrence> getProblemsStream(String buildTypeId) {
-        if (problems == null)
+        if (problemOccurrenceList == null)
             return Stream.empty();
 
-        return problems.stream()
+        return problemOccurrenceList.stream()
             .filter(Objects::nonNull)
             .filter(p -> buildTypeId == null || buildTypeId.equals(p.buildRef.buildTypeId)
             );
@@ -197,12 +217,10 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
      *
      * @return printable result;
      */
-    private Map<String, Map<String, Long>> getFullRes(){
+    private Map<String, Map<String, Long>> getFullRes(List<BuildRef> builds){
         Map<String, Map<String, Long>> buildProblemOccurrences = new HashMap<>();
 
-        List<BuildRef> snapshotDependencyWithProblems = getSnapshotDependenciesWithProblems();
-
-        for (BuildRef build : snapshotDependencyWithProblems)
+        for (BuildRef build : builds)
             buildProblemOccurrences.put(build.buildTypeId, getBuildTypeOccurrences(build.buildTypeId));
 
         return buildProblemOccurrences;
@@ -220,13 +238,14 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
     private Map<String, Long> getBuildTypeOccurrences(String buildTypeId){
         Map<String, Long> occurrences = new HashMap<>();
 
-        occurrences.put(ProblemOccurrence.TC_EXECUTION_TIMEOUT, getExecutionTimeoutCount(buildTypeId));
-        occurrences.put(ProblemOccurrence.TC_JVM_CRASH, getJvmCrashProblemCount(buildTypeId));
-        occurrences.put(ProblemOccurrence.TC_OOME, getOomeProblemCount(buildTypeId));
-        occurrences.put(ProblemOccurrence.TC_EXIT_CODE, getExitCodeProblemsCount(buildTypeId));
-        occurrences.put(ProblemOccurrence.TC_FAILED_TESTS, getFailedTestsProblemCount(buildTypeId));
-        occurrences.put(ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR, getSnapshotDepProblemCount(buildTypeId));
-        occurrences.put(ProblemOccurrence.OTHER, getOtherProblemCount(buildTypeId));
+        occurrences.put(shortProblemNames.get(TOTAL), getAllProblemsCount(buildTypeId));
+        occurrences.put(shortProblemNames.get(ProblemOccurrence.TC_EXECUTION_TIMEOUT), getExecutionTimeoutCount(buildTypeId));
+        occurrences.put(shortProblemNames.get(ProblemOccurrence.TC_JVM_CRASH), getJvmCrashProblemCount(buildTypeId));
+        occurrences.put(shortProblemNames.get(ProblemOccurrence.TC_OOME), getOomeProblemCount(buildTypeId));
+        occurrences.put(shortProblemNames.get(ProblemOccurrence.TC_EXIT_CODE), getExitCodeProblemsCount(buildTypeId));
+        occurrences.put(shortProblemNames.get(ProblemOccurrence.TC_FAILED_TESTS), getFailedTestsProblemCount(buildTypeId));
+        occurrences.put(shortProblemNames.get(ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR), getSnapshotDepProblemCount(buildTypeId));
+        occurrences.put(shortProblemNames.get(ProblemOccurrence.OTHER), getOtherProblemCount(buildTypeId));
 
         return occurrences;
     }
@@ -236,7 +255,6 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
         updateRequired = update;
     }
 
-    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
@@ -247,19 +265,19 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
         BuildStatisticsSummary that = (BuildStatisticsSummary)o;
 
         return problemsCount == that.problemsCount &&
-            Objects.equals(build, that.build) &&
-            Objects.equals(problems, that.problems) &&
+            isFakeStub == that.isFakeStub &&
+            Objects.equals(buildId, that.buildId) &&
+            Objects.equals(testOccurrences, that.testOccurrences) &&
+            Objects.equals(problemOccurrenceList, that.problemOccurrenceList) &&
+            Objects.equals(dependenciesProblems, that.dependenciesProblems) &&
             Objects.equals(relatedIssues, that.relatedIssues) &&
             Objects.equals(durationPrintable, that.durationPrintable) &&
-            Objects.equals(getShortRes(), that.getShortRes()) &&
-            Objects.equals(getFullRes(), that.getFullRes()) &&
-            Objects.equals(snapshotDependencies, that.snapshotDependencies);
+            Objects.equals(totalProblems, that.totalProblems);
     }
 
-    /** {@inheritDoc} */
     @Override public int hashCode() {
 
-        return Objects.hash(build, problems, relatedIssues, durationPrintable, getShortRes(), getFullRes(),
-            snapshotDependencies, problemsCount);
+        return Objects.hash(buildId, testOccurrences, problemOccurrenceList, dependenciesProblems, relatedIssues, durationPrintable,
+            totalProblems, problemsCount, isFakeStub);
     }
 }

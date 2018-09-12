@@ -25,7 +25,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
@@ -277,11 +279,15 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Date sinceDate, Date untilDate) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
+        final Set<Integer> realLoadedBuildIds = new HashSet<>();
+
         List<BuildRef> buildRefs = timedLoadIfAbsentOrMerge(buildHistCache(), 60, suiteInBranch,
             (key, persistedValue) -> {
                 List<BuildRef> builds;
                 try {
-                        builds = teamcity.getFinishedBuilds(projectId, branch, cnt);
+                        builds = teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate);
+
+                        realLoadedBuildIds.addAll(builds.stream().map(BuildRef::getId).collect(Collectors.toList()));
                 }
                 catch (Exception e) {
                     if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
@@ -296,11 +302,20 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             });
 
         if (sinceDate != null && untilDate != null)
-            return buildRefs.stream()
-            .filter(p -> {
-                Date date = getBuild(p.href).getFinishDate();
+            buildRefs =  buildRefs.stream()
+            .filter(b -> {
+                if (realLoadedBuildIds.contains(b.getId()))
+                    return true;
 
-                return (date.after(sinceDate) || date.equals(sinceDate)) && (date.before(untilDate) || date.equals(untilDate));
+                Build build = getBuild(b.href);
+
+                if (build.isFakeStub())
+                    return false;
+
+                Date date = build.getFinishDate();
+
+                return (date.after(sinceDate) || date.equals(sinceDate)) &&
+                    (date.before(untilDate) || date.equals(untilDate));
             })
             .collect(Collectors.toList());
 

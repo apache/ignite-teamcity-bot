@@ -164,7 +164,7 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("untilDate") String untilDate)
         throws ServiceUnauthorizedException, ParseException {
 
-        DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+        DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
 
         String srvId = isNullOrEmpty(server) ? "apache" : server;
         String buildTypeId = isNullOrEmpty(buildType) ? "IgniteTests24Java8_RunAll" : buildType;
@@ -196,7 +196,7 @@ public class GetBuildTestFailures {
                     BUILDS_STATISTICS_SUMMARY_CACHE_NAME, prov, param,
                     (k) -> getBuildStatisticsSummaryNoCache(srvId, buildId), false);
 
-                if (!buildsStatistic.build.isFakeStub())
+                if (!buildsStatistic.isFakeStub)
                     buildsStatistics.add(buildsStatistic);
             }
 
@@ -214,7 +214,7 @@ public class GetBuildTestFailures {
 
         try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds)) {
 
-            BuildStatisticsSummary stat = new BuildStatisticsSummary(teamcity.getBuild(buildId));
+            BuildStatisticsSummary stat = new BuildStatisticsSummary(buildId);
             stat.initialize(teamcity);
 
             return stat;

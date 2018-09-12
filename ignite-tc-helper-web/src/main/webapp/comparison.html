@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <title>Ignite Teamcity - statistics master's branch</title>
+    <link rel="icon" href="img/leaf-icon-png-7066.png">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="css/style-1.5.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="js/common-1.6.js"></script>
+    <script type="text/javascript" src="http://momentjs.com/downloads/moment.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <style>
+        .stat{
+            width: 70%;
+            border-collapse: collapse;
+        }
+        .stat td, .stat th {
+
+            padding: 10px 5px 10px 5px;
+        }
+        .data1, .data2{
+            text-align: center;
+            vertical-align: middle;
+        }
+        .section{
+            font-weight: bold;
+        }
+
+        .stat .field{
+            padding-left: 15px;
+        }
+
+        .stat th {
+            text-align: left;
+            padding: 5px;
+            background-color: #f5f5ff;
+            color: #000000;
+        }
+        .stat tr:nth-child(odd) { background-color: #fafaff; }
+    </style>
+</head>
+<body>
+<script>
+    var oneWeekAgo = new Date();
+    var twoWeekAgo = new Date();
+
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    twoWeekAgo.setDate(twoWeekAgo.getDate() - 14);
+
+    function dateRangePickerParam(data1, data2) {
+        return {
+            "maxSpan": { "days": 7 },
+            "locale": {
+                "format": "DD/MM/YYYY", "separator": " - ", "applyLabel": "Apply", "cancelLabel": "Cancel",
+                "fromLabel": "From", "toLabel": "To", "customRangeLabel": "Custom", "weekLabel": "W",
+                "daysOfWeek": [ "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" ],
+                "monthNames": [ "January", "February", "March", "April", "May", "June", "July",
+                    "August", "September", "October", "November", "December" ],
+                "firstDay": 1
+            },
+            "startDate": moment(data1).format("DD-MM-YYYY"), "endDate": moment(data2).format("DD-MM-YYYY")
+        }
+    }
+
+    const prOcc = ["TT", "ET", "JC", "OO", "EC", "FT", "SD", "OT"];
+    const tOcc = ["count", "passed", "failed", "ignored", "muted"];
+
+    function printStatistics(num, map) {
+        var stat = {};
+
+        for (var i = 0; i < prOcc.length; i++) {
+            stat[prOcc[i] + '-min'] = map[0].totalProblems[prOcc[i]];
+            stat[prOcc[i] + '-max'] = map[0].totalProblems[prOcc[i]];
+        }
+        for (var k = 0; k < tOcc.length; k++) {
+            stat[tOcc[k] + '-min'] = map[0].testOccurrences[tOcc[k]];
+            stat[tOcc[k] + '-max'] = map[0].testOccurrences[tOcc[k]];
+        }
+
+        for (var j = 1; j < map.length; j++) {
+            for (var i = 0; i < prOcc.length; i++) {
+                if (map[j].totalProblems[prOcc[i]] > stat[prOcc[i] + '-max']) stat[prOcc[i] + '-max'] = map[j].totalProblems[prOcc[i]];
+                if (map[j].totalProblems[prOcc[i]] < stat[prOcc[i] + '-min']) stat[prOcc[i] + '-min'] = map[j].totalProblems[prOcc[i]];
+            }
+            for (var k = 0; k < tOcc.length; k++) {
+                if (map[j].testOccurrences[tOcc[k]] > stat[tOcc[k] + '-max']) stat[tOcc[k] + '-max'] = map[j].testOccurrences[tOcc[k]];
+                if (map[j].testOccurrences[tOcc[k]] < stat[tOcc[k] + '-min']) stat[tOcc[k] + '-min'] = map[j].testOccurrences[tOcc[k]];
+            }
+        }
+
+        for (var i = 0; i < prOcc.length; i++) {
+            $('#' + prOcc[i] + num).html(stat[prOcc[i] + '-min'] + " - " + 0 + " - " + stat[prOcc[i] + '-max']);
+        }
+        for (var k = 0; k < tOcc.length; k++) {
+            $('#' + tOcc[k] + num).html(stat[tOcc[k] + '-min'] + " - " + 0 + " - " + stat[tOcc[k] + '-max']);
+        }
+    }
+
+    $(document).ready(function() {
+        loadData(1, moment(oneWeekAgo).format("DDMMYYYY"), moment().format("DDMMYYYY"));
+        loadData(2, moment(twoWeekAgo).format("DDMMYYYY"), moment(oneWeekAgo).format("DDMMYYYY"));
+    });
+
+    function loadGif(num) {
+        $('.data' + num).html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=15px height=15px>");
+    }
+
+    function loadData(num, sinceDate, untilDate) {
+        loadGif(num);
+        $.ajax(
+            {
+                url: 'rest/build/history?sinceDate=' + sinceDate + '000001&untilDate=' + untilDate + '235959',
+                success: function (result) {
+                    $('#log' + num).html(JSON.stringify(result));
+                    printStatistics(num, result);
+                },
+                complete: function (result) {
+                    // do something, not critical.
+                }
+            }
+        );
+    }
+
+    $(function() {
+        $('input[name="daterange1"]').daterangepicker(
+            dateRangePickerParam(oneWeekAgo, new Date()), function (start, end, label) {
+                loadData(1, start.format("DDMMYYYY"), end.format("DDMMYYYY"));
+        });
+    });
+
+    $(function() {
+        $('input[name="daterange2"]').daterangepicker(
+            dateRangePickerParam(twoWeekAgo, oneWeekAgo), function (start, end, label) {
+                loadData(2, start.format("DDMMYYYY"), end.format("DDMMYYYY"));
+        });
+    });
+
+</script>
+<br><br>
+<table class="stat">
+    <tr>
+        <th class="section">DATE INTERVAL</th>
+        <th style="text-align: center;"><input type='text' name='daterange1'/></th>
+        <th style="text-align: center;"><input type='text' name='daterange2'/></th>
+    </tr>
+    <tr><td class="section">TESTS</td><td></td><td></td></tr>
+    <tr><td class="field">COUNT</td><td class="data1" id="count1"></td><td class="data2" id="count2"> </td></tr>
+    <tr><td class="field">PASSED</td><td class="data1" id="passed1"> </td><td class="data2" id="passed2"> </td></tr>
+    <tr><td class="field">FAILED</td><td class="data1" id="failed1"> </td><td class="data2" id="failed2"> </td></tr>
+    <tr><td class="field">IGNORED</td><td class="data1" id="ignored1"> </td><td class="data2" id="ignored2"> </td></tr>
+    <tr><td class="field">MUTED</td><td class="data1" id="muted1"> </td><td class="data2" id="muted2"> </td></tr>
+    <tr><td class="section">PROBLEMS</td><td></td><td></td></tr>
+    <tr><td class="field">TOTAL</td><td class="data1" id="TT1"></td><td class="data2" id="TT2"> </td></tr>
+    <tr><td class="field">EXECUTION_TIMEOUT</td><td class="data1" id="ET1"> </td><td class="data2" id="ET2"> </td></tr>
+    <tr><td class="field">JVM_CRASH</td><td class="data1" id="JC1"> </td><td class="data2" id="JC2"> </td></tr>
+    <tr><td class="field">OOME</td><td class="data1" id="OO1"> </td><td class="data2" id="OO2"> </td></tr>
+    <tr><td class="field">EXIT_CODE</td><td class="data1" id="EC1"> </td><td class="data2" id="EC2"> </td></tr>
+    <tr><td class="field">FAILED_TESTS</td><td class="data1" id="FT1"> </td><td class="data2" id="FT2"> </td></tr>
+    <tr><td class="field">SNAPSHOT_DEPENDENCY_ERROR</td><td class="data1" id="SD1"> </td><td class="data2" id="SD2"> </td></tr>
+    <tr><td class="field">OTHER</td><td class="data1" id="OT1"> </td><td class="data2" id="OT2"> </td></tr>
+</table><br>
+<div>
+    <details><summary>log1</summary><p id="log1"></p></details>
+    <details><summary>log2</summary><p id="log2"></p></details>
+</div>
+<div id="version"></div>
+</body>
+</html>
