@@ -20,6 +20,7 @@ package org.apache.ignite.ci.util;
 import com.google.common.base.Stopwatch;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -81,18 +82,18 @@ public class HttpUtil {
     /**
      * Send GET request to the GitHub url.
      *
-     * @param githubAuthToken Authorization token.
+     * @param githubAuthTok Authorization OAuth token.
      * @param url URL.
      * @return Input stream from connection.
      * @throws IOException If failed.
      */
-    public static InputStream sendGetToGit(String githubAuthToken, String url) throws IOException {
+    public static InputStream sendGetToGit(String githubAuthTok, String url) throws IOException {
         Stopwatch started = Stopwatch.createStarted();
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
 
         con.setRequestProperty("accept-charset", StandardCharsets.UTF_8.toString());
-        con.setRequestProperty("Authorization", "token " + githubAuthToken);
+        con.setRequestProperty("Authorization", "token " + githubAuthTok);
         con.setRequestProperty("Connection", "Keep-Alive");
         con.setRequestProperty("Keep-Alive", "header");
 
@@ -178,6 +179,41 @@ public class HttpUtil {
         con.setRequestProperty("Connection", "Keep-Alive");
         con.setRequestProperty("Keep-Alive", "header");
         con.setRequestProperty("content-type", "application/json");
+
+        con.setRequestMethod("POST");
+
+        con.setDoOutput(true);
+
+        try (OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream(), charset)){
+            writer.write(body); // Write POST query string (if any needed).
+        }
+
+        logger.info("\nSending 'POST' request to URL : " + url + "\n" + body);
+
+        try (InputStream inputStream = getInputStream(con)){
+            return readIsToString(inputStream);
+        }
+    }
+
+    /**
+     * Send POST request to the GitHub url.
+     *
+     * @param jiraAuthTok Authorization Base64 token.
+     * @param url URL.
+     * @param body Request POST params.
+     * @return Response body from given url.
+     * @throws IOException If failed.
+     */
+    public static String sendPostAsStringToJira(String jiraAuthTok, String url, String body) throws IOException {
+        URL obj = new URL(url);
+        HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+        Charset charset = StandardCharsets.UTF_8;
+
+        con.setRequestProperty("accept-charset", charset.toString());
+        con.setRequestProperty("Authorization", "Basic " + jiraAuthTok);
+        con.setRequestProperty("content-type", "application/json");
+        con.setRequestProperty("Connection", "Keep-Alive");
+        con.setRequestProperty("Keep-Alive", "header");
 
         con.setRequestMethod("POST");
 

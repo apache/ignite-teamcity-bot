@@ -23,6 +23,7 @@ import com.google.common.cache.CacheBuilder;
 import java.util.List;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.conf.BranchesTracked;
+import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -56,6 +57,10 @@ public class TcHelper implements ITcHelper {
     private TcUpdatePool tcUpdatePool = new TcUpdatePool();
     private IssuesStorage issuesStorage;
     private IssueDetector detector;
+
+    /** Build observer. */
+    private BuildObserver buildObserver;
+
     private UserAndSessionsStorage userAndSessionsStorage;
 
     public TcHelper(Ignite ignite) {
@@ -65,6 +70,7 @@ public class TcHelper implements ITcHelper {
         userAndSessionsStorage = new UserAndSessionsStorage(ignite);
 
         detector = new IssueDetector(ignite, issuesStorage, userAndSessionsStorage);
+        buildObserver = new BuildObserver(this);
     }
 
     /** {@inheritDoc} */
@@ -75,6 +81,11 @@ public class TcHelper implements ITcHelper {
     /** {@inheritDoc} */
     @Override public IssueDetector issueDetector() {
         return detector;
+    }
+
+    /** {@inheritDoc} */
+    @Override public BuildObserver buildObserver() {
+        return buildObserver;
     }
 
     /** {@inheritDoc} */
@@ -150,6 +161,8 @@ public class TcHelper implements ITcHelper {
         tcUpdatePool.stop();
 
         detector.stop();
+
+        buildObserver.stop();
     }
 
     public ExecutorService getService() {

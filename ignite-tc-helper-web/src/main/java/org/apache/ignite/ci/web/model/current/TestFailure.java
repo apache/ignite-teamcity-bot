@@ -242,6 +242,18 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         }
     }
 
+    /**
+     * @return {@code True} if this failure is appeared in the current branch.
+     */
+    public boolean isNewFailedTest() {
+        FailureSummary recent = histBaseBranch.recent;
+
+        boolean lowFailureRate = recent != null && recent.failureRate != null &&
+            Float.valueOf(recent.failureRate.replace(',', '.')) < 4.;
+
+        return lowFailureRate && flakyComments == null;
+    }
+
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)

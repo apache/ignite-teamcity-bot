@@ -77,7 +77,6 @@ import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
  *
  */
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
-
     //V1 caches, 1024 parts
 
     //V2 caches, 32 parts
@@ -817,10 +816,15 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public void triggerBuild(String id, String name, boolean cleanRebuild, boolean queueAtTop) {
+    @Override public Build triggerBuild(String id, String name, boolean cleanRebuild, boolean queueAtTop) {
         lastTriggerMs = System.currentTimeMillis();
 
-        teamcity.triggerBuild(id, name, cleanRebuild, queueAtTop);
+        return teamcity.triggerBuild(id, name, cleanRebuild, queueAtTop);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setAuthToken(String tok) {
+        teamcity.setAuthToken(tok);
     }
 
     /** {@inheritDoc} */
@@ -829,8 +833,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public void setAuthToken(String token) {
-        teamcity.setAuthToken(token);
+    @Override public void setGitToken(String tok) {
+        teamcity.setGitToken(tok);
     }
 
     /** {@inheritDoc} */
@@ -839,18 +843,28 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public void setGitToken(String token) {
-        teamcity.setGitToken(token);
+    @Override public void setJiraToken(String tok) {
+        teamcity.setJiraToken(tok);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isJiraTokenAvailable() {
+        return teamcity.isJiraTokenAvailable();
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean commentJiraTicket(String ticket, String comment) {
+        return teamcity.commentJiraTicket(ticket, comment);
+    }
+
+    /** {@inheritDoc} */
+    @Override public PullRequest getPullRequest(String branchForTc) {
+        return teamcity.getPullRequest(branchForTc);
     }
 
     /** {@inheritDoc} */
     @Override public boolean notifyGit(String url, String body) {
         return teamcity.notifyGit(url, body);
-    }
-
-    /** {@inheritDoc} */
-    @Override public PullRequest getPullRequest(String branch) {
-        return teamcity.getPullRequest(branch);
     }
 
     /** {@inheritDoc} */

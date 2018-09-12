@@ -27,6 +27,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -83,6 +84,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
+import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
 
 /**
  * Class for access to Teamcity REST API without any caching.
@@ -105,6 +107,9 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     /** GitHub authorization token. */
     private String gitAuthTok;
+
+    /** JIRA authorization token. */
+    private String jiraBasicAuthTok;
 
     private final String configName; //main properties file name
     private final String tcName;
@@ -131,6 +136,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
         setGitToken(HelperConfig.prepareGithubHttpAuthToken(props));
 
+        setJiraToken(HelperConfig.prepareJiraHttpAuthToken(props));
+
         final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
 
         logsDir = ensureDirExist(logsDirFile);
@@ -139,13 +146,18 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
+    @Override public void setAuthToken(String tok) {
+        basicAuthTok = tok;
+    }
+
+    /** {@inheritDoc} */
     @Override public boolean isTeamCityTokenAvailable() {
         return basicAuthTok != null;
     }
 
     /** {@inheritDoc} */
-    @Override public void setAuthToken(String token) {
-        basicAuthTok = token;
+    @Override public void setGitToken(String tok) {
+        gitAuthTok = tok;
     }
 
     /** {@inheritDoc} */
@@ -154,33 +166,40 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override public void setGitToken(String token) {
-        gitAuthTok = token;
+    @Override public void setJiraToken(String tok) {
+        jiraBasicAuthTok = tok;
     }
 
     /** {@inheritDoc} */
-    @Override public boolean notifyGit(String url, String body) {
+    @Override public boolean isJiraTokenAvailable() {
+        return jiraBasicAuthTok != null;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean commentJiraTicket(String ticket, String comment) {
         try {
-            HttpUtil.sendPostAsStringToGit(gitAuthTok, url, body);
+            String url = "https://issues.apache.org/jira/rest/api/2/issue/" + ticket + "/comment";
+
+            HttpUtil.sendPostAsStringToJira(jiraBasicAuthTok, url, "{\"body\": \"" + comment + "\"}");
 
             return true;
         }
         catch (IOException e) {
-            logger.error("Failed to notify Git [errMsg="+e.getMessage()+']');
+            logger.error("Failed to notify JIRA [errMsg="+e.getMessage()+']');
 
             return false;
         }
     }
 
     /** {@inheritDoc} */
-    @Override public PullRequest getPullRequest(String branch) {
+    @Override public PullRequest getPullRequest(String branchForTc) {
         String id = null;
 
-        for (int i = 5; i < branch.length(); i++) {
-            char c = branch.charAt(i);
+        for (int i = 5; i < branchForTc.length(); i++) {
+            char c = branchForTc.charAt(i);
 
             if (!Character.isDigit(c)) {
-                id = branch.substring(5, i);
+                id = branchForTc.substring(5, i);
 
                 break;
             }
@@ -195,6 +214,20 @@ public class IgniteTeamcityHelper implements ITeamcity {
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean notifyGit(String url, String body) {
+        try {
+            HttpUtil.sendPostAsStringToGit(gitAuthTok, url, body);
+
+            return true;
+        }
+        catch (IOException e) {
+            logger.error("Failed to notify Git [errMsg="+e.getMessage()+']');
+
+            return false;
         }
     }
 
@@ -259,31 +292,13 @@ public class IgniteTeamcityHelper implements ITeamcity {
             .thenApply(LogCheckTask::getResult);
     }
 
-    /**
-     * @param t Text to process.
-     */
-    private String xmlEscapeText(CharSequence t) {
-        StringBuilder sb = new StringBuilder();
-        for(int i = 0; i < t.length(); i++){
-            char c = t.charAt(i);
-            switch(c){
-                case '<': sb.append("&lt;"); break;
-                case '>': sb.append("&gt;"); break;
-                case '\"': sb.append("&quot;"); break;
-                case '&': sb.append("&amp;"); break;
-                case '\'': sb.append("&apos;"); break;
-                default:
-                    if(c>0x7e)
-                        sb.append("&#").append((int)c).append(";");
-                    else
-                        sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
-
     /** {@inheritDoc} */
-    @Override public void triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
+    @Override public Build triggerBuild(
+        String buildTypeId,
+        String branchName,
+        boolean cleanRebuild,
+        boolean queueAtTop
+    ) {
         String triggeringOptions =
             " <triggeringOptions" +
                 " cleanSources=\"" + cleanRebuild + "\"" +
@@ -307,11 +322,17 @@ public class IgniteTeamcityHelper implements ITeamcity {
             "</build>";
 
         String url = host + "app/rest/buildQueue";
+
         try {
             logger.info("Triggering build: buildTypeId={}, branchName={}, cleanRebuild={}, queueAtTop={}",
                 buildTypeId, branchName, cleanRebuild, queueAtTop);
 
-            HttpUtil.sendPostAsString(basicAuthTok, url, param);
+            try (StringReader reader = new StringReader(HttpUtil.sendPostAsString(basicAuthTok, url, param))) {
+                return XmlUtil.load(Build.class, reader);
+            }
+            catch (JAXBException e) {
+                throw Throwables.propagate(e);
+            }
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);

@@ -32,7 +32,7 @@ public class PullRequest {
     /** Pull Request title. */
     private String title;
 
-    /** Pull Request url to get statuses. */
+    /** Pull Request statuses URL. */
     @SerializedName("statuses_url") private String statusesUrl;
 
     /**
