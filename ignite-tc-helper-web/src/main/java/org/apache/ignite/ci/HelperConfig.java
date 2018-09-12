@@ -132,14 +132,14 @@ public class HelperConfig {
      * @return Null or decoded auth token for Github.
      */
     @Nullable static String prepareGithubHttpAuthToken(Properties props) {
-        String pwd = props.getProperty(GITHUB_AUTH_TOKEN);
+        String tok = props.getProperty(GITHUB_AUTH_TOKEN);
 
-        if (isNullOrEmpty(pwd))
+        if (isNullOrEmpty(tok))
             return null;
 
-        pwd = PasswordEncoder.decode(pwd);
+        tok = PasswordEncoder.decode(tok);
 
-        return pwd;
+        return tok;
     }
 
     /**

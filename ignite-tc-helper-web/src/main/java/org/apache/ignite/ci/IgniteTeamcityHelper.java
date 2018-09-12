@@ -205,7 +205,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
             }
         }
 
-        String pr = "https://api.github.com/repos/" + serverId() + "/ignite/pulls/" + id;
+        //todo github address can be probably associated with server
+        String pr = "https://api.github.com/repos/apache/ignite/pulls/" + id;
 
         try (InputStream is = HttpUtil.sendGetToGit(gitAuthTok, pr)) {
             InputStreamReader reader = new InputStreamReader(is);
