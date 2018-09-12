@@ -48,7 +48,14 @@ public class HelperConfig {
     @Deprecated
     private static final String PASSWORD = "password";
     public static final String ENCODED_PASSWORD = "encoded_password";
+
+    /** GitHub authorization token property name. */
     public static final String GITHUB_AUTH_TOKEN = "github.auth_token";
+
+    /** JIRA authorization token property name. */
+    public static final String JIRA_AUTH_TOKEN = "jira.auth_token";
+
+    /** Slack authorization token property name. */
     public static final String SLACK_AUTH_TOKEN = "slack.auth_token";
     public static final String SLACK_CHANNEL = "slack.channel";
     public static final String LOGS = "logs";
@@ -131,6 +138,21 @@ public class HelperConfig {
             return null;
 
         pwd = PasswordEncoder.decode(pwd);
+
+        return pwd;
+    }
+
+    /**
+     * Extract JIRA basic authorization token from properties.
+     *
+     * @param props Properties, where token is placed.
+     * @return Null or decoded auth token for Github.
+     */
+    @Nullable static String prepareJiraHttpAuthToken(Properties props) {
+        String pwd = props.getProperty(JIRA_AUTH_TOKEN);
+
+        if (isNullOrEmpty(pwd))
+            return null;
 
         return pwd;
     }

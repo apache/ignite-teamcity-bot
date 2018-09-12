@@ -103,22 +103,44 @@ public class GetPrTestFailures {
         @Nonnull @QueryParam("action") String action,
         @Nullable @QueryParam("count") Integer count) {
 
-        final TestFailuresSummary res = new TestFailuresSummary();
-        final AtomicInteger runningUpdates = new AtomicInteger();
-
         final ITcHelper tcHelper = CtxListener.getTcHelper(context);
         final ICredentialsProv creds = ICredentialsProv.get(req);
 
+        return getTestFailuresSummary(tcHelper, creds, srvId, suiteId, branchForTc, action, count);
+    }
+
+    /**
+     * @param helper Helper.
+     * @param creds Credentials.
+     * @param srvId Server id.
+     * @param suiteId Suite id.
+     * @param branchForTc Branch name.
+     * @param act Action.
+     * @param cnt Count.
+     * @return Test failures summary.
+     */
+    public static TestFailuresSummary getTestFailuresSummary(
+        ITcHelper helper,
+        ICredentialsProv creds,
+        String srvId,
+        String suiteId,
+        String branchForTc,
+        String act,
+        Integer cnt
+    ) {
+        final TestFailuresSummary res = new TestFailuresSummary();
+        final AtomicInteger runningUpdates = new AtomicInteger();
+
         //using here non persistent TC allows to skip update statistic
-        try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds)) {
+        try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds)) {
             res.setJavaFlags(teamcity);
 
             LatestRebuildMode rebuild;
-            if (FullQueryParams.HISTORY.equals(action))
+            if (FullQueryParams.HISTORY.equals(act))
                 rebuild = LatestRebuildMode.ALL;
-            else if (FullQueryParams.LATEST.equals(action))
+            else if (FullQueryParams.LATEST.equals(act))
                 rebuild = LatestRebuildMode.LATEST;
-            else if (FullQueryParams.CHAIN.equals(action))
+            else if (FullQueryParams.CHAIN.equals(act))
                 rebuild = LatestRebuildMode.NONE;
             else
                 rebuild = LatestRebuildMode.LATEST;
@@ -129,7 +151,7 @@ public class GetPrTestFailures {
 
             long limit;
             if (rebuild == LatestRebuildMode.ALL)
-                limit = count == null ? 10 : count;
+                limit = cnt == null ? 10 : cnt;
             else
                 limit = 1;
 
@@ -156,9 +178,10 @@ public class GetPrTestFailures {
                 if (ctx.isFakeStub())
                     chainStatus.setBuildNotFound(true);
                 else {
-                    int cnt = (int)ctx.getRunningUpdates().count();
-                    if (cnt > 0)
-                        runningUpdates.addAndGet(cnt);
+                    int cnt0 = (int)ctx.getRunningUpdates().count();
+
+                    if (cnt0 > 0)
+                        runningUpdates.addAndGet(cnt0);
 
                     //fail rate reference is always default (master)
                     chainStatus.initFromContext(teamcity, ctx, teamcity, failRateBranch);
@@ -179,8 +202,8 @@ public class GetPrTestFailures {
         @Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @Nonnull @QueryParam("branchForTc") String branchForTc,
-        @Nonnull @QueryParam("action") String action,
-        @Nullable @QueryParam("count") Integer count,
+        @Nonnull @QueryParam("action") String act,
+        @Nullable @QueryParam("count") Integer cnt,
         @Nonnull @FormParam("notifyMsg") String msg) {
         if (!branchForTc.startsWith("pull/"))
             return "Given branch is not a pull request. Notify works only for pull requests.";

@@ -9,6 +9,7 @@
 
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
     <script src="js/common-1.6.js"></script>
     <script>
 $(document).ready(function() {
@@ -21,6 +22,7 @@ $(document).ready(function() {
 
 function loadData() {
     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+
     $.ajax({
         url: "rest/branches/version",
         success: showVersionInfo,
@@ -50,6 +52,7 @@ function loadData() {
         success: function(result) {
             $("#loadStatus").html("");
             showBuildsOnServers(result);
+            showRunAllForm(result);
         },
         error: showErrInLoadStatus
     });
@@ -108,6 +111,55 @@ function showBuildsOnServers(result) {
     }
     $("#buildsCheck").html(res);
 }
+
+/**
+ * This form allows user to start TeamCity Run All build.
+ */
+function showRunAllForm(result) {
+    var res = "";
+
+    for (var i = 0; i < result.length; i++) {
+        var serverId = result[i];
+
+        res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
+        res+="Pull Request #<input type='text' name='prId' onkeypress='return trigBuild(event)'> ";
+        res+="<button onclick='trigBuild()'>Run All</button>";
+    }
+
+    $("#runAll").html(res);
+}
+
+/**
+ * Start Run All build on TeamCity and comment in JIRA ticket when build will be finished.
+ */
+function trigBuild(event) {
+    if (event != null && event.key != "Enter")
+        return;
+
+    var fields = document.getElementById("runAll").children;
+    var url = "rest/build/trigger?suiteId=IgniteTests24Java8_RunAll";
+    var prId = null;
+
+    for (let field of fields) {
+        if (field.name == "serverId")
+            url += "&serverId=" + field.value;
+
+        if (field.name == "prId") {
+            url += "&branchName=pull%2F" + field.value + "%2Fhead";
+            prId = field.value;
+        }
+    }
+
+    url += "&observe=true"
+
+    $.ajax({
+        url: url,
+        success: function(result) {
+            $("#runAll").html("Run All test build was started for PR #" + prId);
+        },
+        error: showErrInLoadStatus
+    });
+}
 </script>
 </head>
 <body>
@@ -132,6 +184,9 @@ Check build:   <br>
 <div id="buildsCheck"></div>
 <br>
 
+TeamCity Run All:   <br>
+<div id="runAll"></div>
+<br>
 
 <a href="ignval.html">Ignite Log Values pretty-print</a><br>
 

@@ -18,6 +18,7 @@
 package org.apache.ignite.ci;
 
 import java.util.List;
+import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -41,6 +42,11 @@ public interface ITcHelper {
     IssuesStorage issues();
 
     IssueDetector issueDetector();
+
+    /**
+     * @return Build observer.
+     */
+    BuildObserver buildObserver();
 
     IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov);
 
