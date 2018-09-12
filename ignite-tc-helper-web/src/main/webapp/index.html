@@ -123,7 +123,7 @@ function showRunAllForm(result) {
 
         res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
         res+="Pull Request #<input type='text' name='prId' onkeypress='return trigBuild(event)'> ";
-        res+="<button onclick='trigBuild()'>Run All</button>";
+        res+="<button onclick='trigBuild()'>Run All</button><br>";
     }
 
     $("#runAll").html(res);

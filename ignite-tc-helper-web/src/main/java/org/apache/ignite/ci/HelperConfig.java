@@ -181,6 +181,10 @@ public class HelperConfig {
         if (!filled)
             return null;
 
+        return userPwdToToken(user, pwd);
+    }
+
+    @NotNull public static String userPwdToToken(String user, String pwd) {
         return Base64Util.encodeUtf8String(user + ":" + pwd);
     }
 

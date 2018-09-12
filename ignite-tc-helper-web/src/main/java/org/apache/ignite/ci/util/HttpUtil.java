@@ -40,35 +40,36 @@ import org.slf4j.LoggerFactory;
  * Methods for sending HTTP requests
  */
 public class HttpUtil {
+    /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(HttpUtil.class);
 
     private static String readIsToString(InputStream inputStream) throws IOException {
         BufferedReader in = new BufferedReader(
             new InputStreamReader(inputStream));
         String inputLine;
-        StringBuilder response = new StringBuilder();
+        StringBuilder res = new StringBuilder();
 
         while ((inputLine = in.readLine()) != null) {
-            response.append(inputLine);
-            response.append("\n");
+            res.append(inputLine);
+            res.append("\n");
         }
-        return response.toString();
+        return res.toString();
     }
 
     /**
      * Send GET request to the TeamCity url.
      *
-     * @param basicAuthToken Authorization token.
+     * @param basicAuthTok Authorization token.
      * @param url URL.
      * @return Input stream from connection.
      * @throws IOException If failed.
      */
-    public static InputStream sendGetWithBasicAuth(String basicAuthToken, String url) throws IOException {
+    public static InputStream sendGetWithBasicAuth(String basicAuthTok, String url) throws IOException {
         final Stopwatch started = Stopwatch.createStarted();
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
 
-        con.setRequestProperty("Authorization", "Basic " + basicAuthToken);
+        con.setRequestProperty("Authorization", "Basic " + basicAuthTok);
         con.setRequestProperty("Connection", "Keep-Alive");
         con.setRequestProperty("Keep-Alive", "header");
         con.setRequestProperty("accept-charset", StandardCharsets.UTF_8.toString());
@@ -109,8 +110,8 @@ public class HttpUtil {
         }
     }
 
-    public static String sendPostAsString(String basicAuthToken, String url, String body) throws IOException {
-        try (InputStream inputStream = sendPostWithBasicAuth(basicAuthToken, url, body)){
+    public static String sendPostAsString(String basicAuthTok, String url, String body) throws IOException {
+        try (InputStream inputStream = sendPostWithBasicAuth(basicAuthTok, url, body)){
             return readIsToString(inputStream);
         }
     }
@@ -156,6 +157,10 @@ public class HttpUtil {
         if (resCode == 401)
             throw new ServiceUnauthorizedException("Service " + con.getURL() + " returned forbidden error.");
 
+        if (resCode == 404)
+            throw new FileNotFoundException("Service " + con.getURL() + " returned not found error."
+                + readIsToString(con.getErrorStream()));
+
         throw new IllegalStateException("Invalid Response Code : " + resCode + ":\n"
                 + readIsToString(con.getErrorStream()));
     }
@@ -163,19 +168,19 @@ public class HttpUtil {
     /**
      * Send POST request to the GitHub url.
      *
-     * @param githubAuthToken Authorization token.
+     * @param githubAuthTok Authorization token.
      * @param url URL.
      * @param body Request POST params.
      * @return Response body from given url.
      * @throws IOException If failed.
      */
-    public static String sendPostAsStringToGit(String githubAuthToken, String url, String body) throws IOException {
+    public static String sendPostAsStringToGit(String githubAuthTok, String url, String body) throws IOException {
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
         Charset charset = StandardCharsets.UTF_8;
 
         con.setRequestProperty("accept-charset", charset.toString());
-        con.setRequestProperty("Authorization", "token " + githubAuthToken);
+        con.setRequestProperty("Authorization", "token " + githubAuthTok);
         con.setRequestProperty("Connection", "Keep-Alive");
         con.setRequestProperty("Keep-Alive", "header");
         con.setRequestProperty("content-type", "application/json");
