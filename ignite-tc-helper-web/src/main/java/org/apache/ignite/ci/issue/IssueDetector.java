@@ -348,7 +348,7 @@ public class IssueDetector {
 
                 executorService = Executors.newScheduledThreadPool(1);
 
-                executorService.scheduleWithFixedDelay(this::checkFailures, 0, 15, TimeUnit.MINUTES);
+                executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
 
                 if (Boolean.valueOf(System.getProperty(CheckQueueJob.AUTO_TRIGGERING_BUILD_DISABLED)))
                     logger.info("Automatic build triggering was disabled.");
@@ -364,7 +364,6 @@ public class IssueDetector {
 
             throw e;
         }
-        // SchedulerFuture<?> future = ignite.scheduler().scheduleLocal(this::checkFailures, "? * * * * *");
     }
 
     /**
