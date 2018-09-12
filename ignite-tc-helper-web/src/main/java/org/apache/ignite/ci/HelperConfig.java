@@ -48,6 +48,7 @@ public class HelperConfig {
     @Deprecated
     private static final String PASSWORD = "password";
     public static final String ENCODED_PASSWORD = "encoded_password";
+    public static final String GITHUB_AUTH_TOKEN = "github.auth_token";
     public static final String SLACK_AUTH_TOKEN = "slack.auth_token";
     public static final String SLACK_CHANNEL = "slack.channel";
     public static final String LOGS = "logs";
@@ -117,19 +118,45 @@ public class HelperConfig {
         return ensureDirExist(workDir);
     }
 
+    /**
+     * Extract GitHub authorization token from properties.
+     *
+     * @param props Properties, where token is placed.
+     * @return Null or decoded auth token for Github.
+     */
+    @Nullable static String prepareGithubHttpAuthToken(Properties props) {
+        String pwd = props.getProperty(GITHUB_AUTH_TOKEN);
+
+        if (isNullOrEmpty(pwd))
+            return null;
+
+        pwd = PasswordEncoder.decode(pwd);
+
+        return pwd;
+    }
+
+    /**
+     * Extract TeamCity authorization token from properties.
+     *
+     * @param props Properties, where token is placed.
+     * @param configName Configuration name.
+     * @return Null or decoded auth token for Github.
+     */
     @Nullable static String prepareBasicHttpAuthToken(Properties props, String configName) {
         final String user = getMandatoryProperty(props, USERNAME, configName);
         String pwd = props.getProperty(PASSWORD);
         boolean filled = !isNullOrEmpty(pwd);
-        if(!filled) {
+
+        if (!filled) {
             String enc = props.getProperty(ENCODED_PASSWORD);
+
             if(!isNullOrEmpty(enc)) {
                 pwd = PasswordEncoder.decode(enc);
                 filled = true;
             }
         }
 
-        if(!filled)
+        if (!filled)
             return null;
 
         return Base64Util.encodeUtf8String(user + ":" + pwd);

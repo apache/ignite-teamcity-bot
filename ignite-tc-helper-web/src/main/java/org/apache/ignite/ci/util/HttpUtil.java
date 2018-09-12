@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.util;
 
 import com.google.common.base.Stopwatch;
-import org.apache.ignite.ci.BuildChainProcessor;
+import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +56,14 @@ public class HttpUtil {
         return response.toString();
     }
 
+    /**
+     * Send GET request to the TeamCity url.
+     *
+     * @param basicAuthToken Authorization token.
+     * @param url URL.
+     * @return Input stream from connection.
+     * @throws IOException If failed.
+     */
     public static InputStream sendGetWithBasicAuth(String basicAuthToken, String url) throws IOException {
         final Stopwatch started = Stopwatch.createStarted();
         URL obj = new URL(url);
@@ -66,12 +74,34 @@ public class HttpUtil {
         con.setRequestProperty("Keep-Alive", "header");
         con.setRequestProperty("accept-charset", StandardCharsets.UTF_8.toString());
 
-        int resCode = con.getResponseCode();
+        logger.info(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
+            + "ms : Sending 'GET' request to : " + url);
+
+        return getInputStream(con);
+    }
+
+    /**
+     * Send GET request to the GitHub url.
+     *
+     * @param githubAuthToken Authorization token.
+     * @param url URL.
+     * @return Input stream from connection.
+     * @throws IOException If failed.
+     */
+    public static InputStream sendGetToGit(String githubAuthToken, String url) throws IOException {
+        Stopwatch started = Stopwatch.createStarted();
+        URL obj = new URL(url);
+        HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+
+        con.setRequestProperty("accept-charset", StandardCharsets.UTF_8.toString());
+        con.setRequestProperty("Authorization", "token " + githubAuthToken);
+        con.setRequestProperty("Connection", "Keep-Alive");
+        con.setRequestProperty("Keep-Alive", "header");
 
         logger.info(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
             + "ms : Sending 'GET' request to : " + url);
 
-        return getInputStream(url, con, resCode);
+        return getInputStream(con);
     }
 
     public static void sendGetCopyToFile(String tok, String url, File file) throws IOException {
@@ -105,24 +135,65 @@ public class HttpUtil {
             writer.write(body); // Write POST query string (if any needed).
         }
 
-        int resCode = con.getResponseCode();
-
         logger.info("\nSending 'POST' request to URL : " + url + "\n" + body);
 
-        return getInputStream(url, con, resCode);
+        return getInputStream(con);
 
     }
 
-    private static InputStream getInputStream(String url, HttpURLConnection con, int resCode) throws IOException {
-        if (resCode == 200) {
-            return con.getInputStream();
-        }
+    /**
+     * Get input stream for successful connection. Throws exception if connection response wasn't successful.
+     *
+     * @param con Http connection.
+     * @return Input stream from connection.
+     * @throws IOException If failed.
+     */
+    private static InputStream getInputStream(HttpURLConnection con) throws IOException {
+        int resCode = con.getResponseCode();
 
-        if (resCode == 401) {
-            throw new ServiceUnauthorizedException("Service " + url + " returned forbidden error");
-        }
+        // Successful responses (with code 200+).
+        if (resCode / 100 == 2)
+            return con.getInputStream();
+
+        if (resCode == 401)
+            throw new ServiceUnauthorizedException("Service " + con.getURL() + " returned forbidden error.");
 
         throw new IllegalStateException("Invalid Response Code : " + resCode + ":\n"
-                + readIsToString(con.getInputStream()));
+                + readIsToString(con.getErrorStream()));
+    }
+
+    /**
+     * Send POST request to the GitHub url.
+     *
+     * @param githubAuthToken Authorization token.
+     * @param url URL.
+     * @param body Request POST params.
+     * @return Response body from given url.
+     * @throws IOException If failed.
+     */
+    public static String sendPostAsStringToGit(String githubAuthToken, String url, String body) throws IOException {
+        URL obj = new URL(url);
+        HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+        Charset charset = StandardCharsets.UTF_8;
+
+        con.setRequestProperty("accept-charset", charset.toString());
+        con.setRequestProperty("Authorization", "token " + githubAuthToken);
+        con.setRequestProperty("Connection", "Keep-Alive");
+        con.setRequestProperty("Keep-Alive", "header");
+        con.setRequestProperty("content-type", "application/json");
+
+        con.setRequestMethod("POST");
+
+        con.setDoOutput(true);
+
+        try (OutputStreamWriter writer = new OutputStreamWriter(con.getOutputStream(), charset)){
+            writer.write(body); // Write POST query string (if any needed).
+        }
+
+        logger.info("\nSending 'POST' request to URL : " + url + "\n" + body);
+
+        try (InputStream inputStream = getInputStream(con)){
+            return readIsToString(inputStream);
+        }
     }
 }
