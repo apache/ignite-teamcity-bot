@@ -32,6 +32,7 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.model.SimpleResult;
@@ -56,6 +57,7 @@ public class TriggerBuild {
         @Nullable @QueryParam("top") Boolean top,
         @Nullable @QueryParam("observe") Boolean observe
     ) {
+        String errors = "";
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
         if (!prov.hasAccess(srvId))
@@ -64,33 +66,37 @@ public class TriggerBuild {
         ITcHelper helper = CtxListener.getTcHelper(context);
 
         try (final ITeamcity teamcity = helper.server(srvId, prov)) {
-            PullRequest pr = teamcity.getPullRequest(branchName);
-
-            String ticketId = "";
-
-            if (pr.getTitle().startsWith("IGNITE-")) {
-                int beginIdx = 7;
-                int endIdx = 7;
-
-                while (endIdx < pr.getTitle().length() && Character.isDigit(pr.getTitle().charAt(endIdx)))
-                    endIdx++;
-
-                ticketId = pr.getTitle().substring(beginIdx, endIdx);
-            }
-
-            if (ticketId.equals(""))
-                return new SimpleResult("PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
-                    " Please, rename PR according to the" +
-                    " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
-                    "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>.");
-
             Build build = teamcity.triggerBuild(suiteId, branchName, false, top != null && top);
 
-            if (observe != null && observe)
-                helper.buildObserver().observe(build, srvId, prov, "ignite-" + ticketId);
+            if (observe != null && observe) {
+                PullRequest pr = teamcity.getPullRequest(branchName);
+
+                String ticketId = "";
+
+                if (pr.getTitle().startsWith("IGNITE-")) {
+                    int beginIdx = 7;
+                    int endIdx = 7;
+
+                    while (endIdx < pr.getTitle().length() && Character.isDigit(pr.getTitle().charAt(endIdx)))
+                        endIdx++;
+
+                    ticketId = pr.getTitle().substring(beginIdx, endIdx);
+                }
+
+                if (!ticketId.equals(""))
+                    helper.buildObserver().observe(build, srvId, prov, "ignite-" + ticketId);
+                else {
+                    errors += "<br>" +
+                        "JIRA ticket will not be notified after the tests are completed - " +
+                        "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
+                        " Please, rename PR according to the" +
+                        " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
+                        "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>.";
+                }
+            }
         }
 
-        return new SimpleResult("OK");
+        return new SimpleResult("Tests started." + errors);
     }
 
     @GET
