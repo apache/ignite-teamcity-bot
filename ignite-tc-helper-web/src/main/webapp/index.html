@@ -135,7 +135,7 @@ function showRunAllForm(result) {
  * Start Run All build on TeamCity and comment in JIRA ticket when build will be finished.
  */
 function trigBuild(event) {
-    if (event != null && event.key != "Enter")
+    if (event != null && event.key !== "Enter")
         return;
 
     var fields = document.getElementById("runAll").children;
@@ -143,16 +143,16 @@ function trigBuild(event) {
     var prId = null;
 
     for (let field of fields) {
-        if (field.name == "serverId")
+        if (field.name === "serverId")
             url += "&serverId=" + field.value;
 
-        if (field.name == "prId") {
+        if (field.name === "prId") {
             url += "&branchName=pull%2F" + field.value + "%2Fhead";
             prId = field.value;
         }
     }
 
-    url += "&observe=true"
+    url += "&observe=true";
 
     $.ajax({
         url: url,

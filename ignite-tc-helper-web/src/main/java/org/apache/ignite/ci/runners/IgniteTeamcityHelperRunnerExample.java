@@ -77,9 +77,10 @@ public class IgniteTeamcityHelperRunnerExample {
             //branch example:
             final String branchName = "<default>";
             // String branchName = "refs/heads/master";
-            // final String branchName = "pull/3554/head";
+            //  final String branchName = "pull/4750/head";
             String buildTypeIdAll = "IgniteTests24Java8_RunAll";
             String buildTypeIdAllP = "id8xIgniteGridGainTestsJava8_RunAll";
+            //  buildTypeIdAll="IgniteTests24Java8_Queries1";
 
             helper.triggerBuild(buildTypeIdAll, branchName, true, false);
         }

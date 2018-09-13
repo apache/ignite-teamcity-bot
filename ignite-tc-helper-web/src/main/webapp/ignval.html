@@ -23,7 +23,7 @@
           var ll = 0;
           for (var i = 0; i < value.length; i++) {
               var ch = value.charAt(i);
-              if (ch == "[") {
+              if (ch === "[") {
                   t++;
 
                   res += ch + nl(t);
@@ -31,7 +31,7 @@
 
                   continue;
               }
-              if (ch == "]") {
+              if (ch === "]") {
                   t--;
                   res += nl(t) + ch;
                   ll=100;
@@ -39,14 +39,14 @@
                   continue;
               }
 
-              if (ch == '\n') {
+              if (ch === "\n") {
                   res += nl(t);
                   ll=0;
 
                   continue;
               }
 
-              if(ch == ',' && ll>2) {
+              if(ch === "," && ll>2) {
                   res += ch+ nl(t);
                   ll=0;
                   continue;
@@ -86,8 +86,9 @@
     </script>
 </head>
 <body>
-<textarea  rows="6" cols="150" id="taInput"></textarea><br>
-<button onclick="doConvert()">Format</button><br>
+<textarea rows="6" cols="150" id="taInput"></textarea><br>
+<button onclick="doConvert()">Format</button>
+<br>
 <div id="divResult" style=" font-family: monospace;"></div>
 </body>
 </html>

@@ -12,93 +12,95 @@
 </head>
 <body>
 <script>
-var g_shownDataHashCodeHex = ""
+    var g_shownDataHashCodeHex = "";
 
-$(document).ready(function() {
-    $.getScript("js/testfails-2.1.js", function(data, textStatus, jqxhr){ });
+    $(document).ready(function () {
+        $.getScript("js/testfails-2.1.js", function (data, textStatus, jqxhr) {
+        });
 
-    $( document ).tooltip();
+        $(document).tooltip();
 
-    loadData();
-     //todo fix setInterval( function() { checkForUpdate(); }, 60000);
+        loadData();
+        //todo fix setInterval( function() { checkForUpdate(); }, 60000);
 
-    $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
-});
-
-
-function parmsForRest() {
-    var curReqParms = "";
-
-    var branch = findGetParameter("branch");
-    if(branch!=null)
-        curReqParms += "?branch=" + branch;
-
-    var count = findGetParameter("count");
-    if(count!=null)
-        curReqParms += "&count=" + count;
-
-    var checkAllLogs = findGetParameter("checkAllLogs");
-    if(checkAllLogs!=null)
-        curReqParms += "&checkAllLogs=" + checkAllLogs;
-
-    return curReqParms;
-}
+        $.ajax({url: "rest/branches/version", success: showVersionInfo, error: showErrInLoadStatus});
+    });
 
 
-function checkForUpdate() {
-    var curFailuresUrl = "rest/tracked/mergedUpdates" + parmsForRest();
+    function parmsForRest() {
+        var curReqParms = "";
 
-    $.ajax({
-        url: curFailuresUrl,
-        success: function(result) {
-           if (g_shownDataHashCodeHex!="" && isDefinedAndFilled(result.hashCodeHex)) {
-                if(g_shownDataHashCodeHex==result.hashCodeHex) {
-                    var updRunning = isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0
-                    var fastCheckNeeded = result.updateRequired || updRunning;
-                    var ms = fastCheckNeeded ? 6000 : 60000 ;
+        var branch = findGetParameter("branch");
+        if (branch != null)
+            curReqParms += "?branch=" + branch;
 
-                    setTimeout(checkForUpdate, ms);
+        var count = findGetParameter("count");
+        if (count != null)
+            curReqParms += "&count=" + count;
 
-                    if(!result.updateRequired)
-                        $("#loadStatus").html("");
+        var checkAllLogs = findGetParameter("checkAllLogs");
+        if (checkAllLogs != null)
+            curReqParms += "&checkAllLogs=" + checkAllLogs;
+
+        return curReqParms;
+    }
+
+
+    function checkForUpdate() {
+        var curFailuresUrl = "rest/tracked/mergedUpdates" + parmsForRest();
+
+        $.ajax({
+            url: curFailuresUrl,
+            success: function (result) {
+                if (g_shownDataHashCodeHex !== "" && isDefinedAndFilled(result.hashCodeHex)) {
+                    if (g_shownDataHashCodeHex === result.hashCodeHex) {
+                        var updRunning = isDefinedAndFilled(result.runningUpdates) && result.runningUpdates > 0
+                        var fastCheckNeeded = result.updateRequired || updRunning;
+                        var ms = fastCheckNeeded ? 6000 : 60000;
+
+                        setTimeout(checkForUpdate, ms);
+
+                        if (!result.updateRequired)
+                            $("#loadStatus").html("");
+                    } else {
+                        loadData(); // data changed, show new
+                    }
                 } else {
-                    loadData(); // data changed, show new
+                    loadData();
                 }
-            } else {
-                loadData();
-            }
-        },
-        error: showErrInLoadStatus
-    });
-}
+            },
+            error: showErrInLoadStatus
+        });
+    }
 
-function loadData() {
-    var curFailuresUrl = "rest/tracked/mergedResults" + parmsForRest();
-    
-    $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait. Loading merged runs may require significant time.");
-    $.ajax({
-        url: curFailuresUrl,
-        success: function(result) {
-           if(result.updateRequired || (isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0)) {
-                setTimeout(checkForUpdate, 3000)
-                $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Updating");
-            } else {
-                $("#loadStatus").html("");
-            }
-            showData(result);
+    function loadData() {
+        var curFailuresUrl = "rest/tracked/mergedResults" + parmsForRest();
 
-            g_shownDataHashCodeHex = isDefinedAndFilled(result.hashCodeHex) ? result.hashCodeHex : "";
-        },
-        error: showErrInLoadStatus
-    });
-}
+        $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait. Loading merged runs may require significant time.");
+        $.ajax({
+            url: curFailuresUrl,
+            success: function (result) {
+                if (result.updateRequired || (isDefinedAndFilled(result.runningUpdates) && result.runningUpdates > 0)) {
+                    setTimeout(checkForUpdate, 3000);
 
-function showData(result) {
-    var repMode = "./all.html" + parmsForRest() + "&reportMode=" + true;
+                    $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Updating");
+                } else {
+                    $("#loadStatus").html("");
+                }
+                showData(result);
 
-    $("#divFailures").html(showChainOnServersResults(result)
-        + " <a href='"+ repMode + "'>report mode</a>");
-}
+                g_shownDataHashCodeHex = isDefinedAndFilled(result.hashCodeHex) ? result.hashCodeHex : "";
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
+    function showData(result) {
+        var repMode = "./all.html" + parmsForRest() + "&reportMode=" + true;
+
+        $("#divFailures").html(showChainOnServersResults(result)
+            + " <a href='" + repMode + "'>report mode</a>");
+    }
 
 </script>
 
@@ -107,6 +109,6 @@ function showData(result) {
 <div id="divFailures"></div>
 
 <div id="version"></div>
-<div style="visibility:none"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
+<div style="visibility:hidden;"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
 </body>
 </html>
