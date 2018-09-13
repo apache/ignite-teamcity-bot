@@ -157,7 +157,7 @@ function trigBuild(event) {
     $.ajax({
         url: url,
         success: function(result) {
-            $("#runAll").html("Run All test build was started for PR #" + prId);
+            $("#runAll").html(result.result);
         },
         error: showErrInLoadStatus
     });
