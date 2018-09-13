@@ -482,12 +482,11 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     public ProblemOccurrences getProblems(Build build) {
         if (build.problemOccurrences != null) {
-            ProblemOccurrences problemOccurrences = getJaxbUsingHref(build.problemOccurrences.href, ProblemOccurrences.class);
+            ProblemOccurrences coll = getJaxbUsingHref(build.problemOccurrences.href, ProblemOccurrences.class);
 
-            problemOccurrences.problemOccurrences
-                .forEach(p -> p.buildRef = build);
+            coll.getProblemsNonNull().forEach(p -> p.buildRef = build);
 
-            return problemOccurrences;
+            return coll;
         }
         else
             return new ProblemOccurrences();

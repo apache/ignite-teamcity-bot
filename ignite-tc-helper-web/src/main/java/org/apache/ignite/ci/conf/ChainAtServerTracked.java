@@ -46,7 +46,7 @@ public class ChainAtServerTracked extends ChainAtServer {
     }
 
     /**
-     * @return
+     * @return branch in TC indentification to queue builds
      */
     @Nonnull public String getBranchForRestMandatory() {
         checkState(!isNullOrEmpty(branchForRest), "Invalid config: branchForRest should be filled " + this);
