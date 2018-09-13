@@ -50,7 +50,7 @@ function showChainResultsWithSettings(result, settings) {
         res += "]";
     }
     res += "</td></tr>";
-    res+="</table>"
+    res += "</table>";
 
     for (var i = 0; i < result.servers.length; i++) {
         var server = result.servers[i];
@@ -93,7 +93,7 @@ function showChainCurrentStatusData(server, settings) {
     res += "tests " + server.failedTests + " suites " + server.failedToFinish + "";
     res += " </a>";
     res += "]";
-    res += "</b>"
+    res += "</b>";
 
     var mInfo = "";
 
@@ -107,14 +107,14 @@ function showChainCurrentStatusData(server, settings) {
 
         //may check failure here in case mode show all
 
-        if (suitesFailedList.length != 0)
+        if (suitesFailedList.length !== 0)
             suitesFailedList += ",";
 
         suitesFailedList += suite.suiteId;
         cntFailed++;
     }
 
-    if (suitesFailedList.length != 0 && isDefinedAndFilled(server.serverId) && isDefinedAndFilled(suite.branchName)) {
+    if (suitesFailedList.length !== 0 && isDefinedAndFilled(server.serverId) && isDefinedAndFilled(suite.branchName)) {
         mInfo += "Trigger failed " + cntFailed + " builds";
         mInfo += " <a href='javascript:void(0);' ";
         mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + suite.branchName + "\", false)' ";
@@ -128,7 +128,7 @@ function showChainCurrentStatusData(server, settings) {
     mInfo += altTxt + "<br>";
 
     if (isDefinedAndFilled(server.topLongRunning) && server.topLongRunning.length > 0) {
-        mInfo += "Top long running:<br>"
+        mInfo += "Top long running:<br>";
 
         mInfo += "<table>";
         for (var i = 0; i < server.topLongRunning.length; i++) {
@@ -139,7 +139,7 @@ function showChainCurrentStatusData(server, settings) {
 
 
     if (isDefinedAndFilled(server.logConsumers) && server.logConsumers.length > 0) {
-        mInfo += "Top Log Consumers:<br>"
+        mInfo += "Top Log Consumers:<br>";
 
         mInfo += "<table>";
         for (var i = 0; i < server.logConsumers.length; i++) {
@@ -171,7 +171,7 @@ function showChainCurrentStatusData(server, settings) {
     }
 
     res += "<tr><td colspan='4'>&nbsp;</td></tr>";
-    res += "</table>"
+    res += "</table>";
 
     return res;
 }
@@ -185,7 +185,7 @@ function showChainCurrentStatusData(server, settings) {
  * Or empty string if no blockers found.
  */
 function addBlockersData(server, settings) {
-    if (findGetParameter("action") != "Latest")
+    if (findGetParameter("action") !== "Latest")
         return "";
 
     var blockers = "";
@@ -199,7 +199,7 @@ function addBlockersData(server, settings) {
             blockers += showSuiteData(suite, settings);
     }
 
-    if (blockers != "") {
+    if (blockers !== "") {
         blockers = "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>Possible Blockers</b></th>" +
             "<th  class='table-title'>Base Branch</th></tr>" +
             blockers +
@@ -231,7 +231,7 @@ function suiteWithCriticalFailuresOnly(suite) {
             suite0.testFailures.splice(j, 1);
     }
 
-    if (suite0.testFailures.length > 0 || suite0.result != "")
+    if (suite0.testFailures.length > 0 || suite0.result !== "")
         return suite0;
 
     return null;
@@ -263,7 +263,7 @@ function notifyGit() {
     var state;
     var desc;
 
-    if (suites == 0 && tests == 0) {
+    if (suites === 0 && tests === 0) {
         state = "success";
         desc = "No blockers found.";
     }
@@ -301,10 +301,12 @@ function triggerBuild(serverId, suiteId, branchName, top) {
             "top": queueAtTop
         },
         success: function(result) {
-            $("#triggerDialog").html("Trigger builds at server: " + serverId + "<br>" +
+            var dialog = $("#triggerDialog");
+
+            dialog.html("Trigger builds at server: " + serverId + "<br>" +
                 " Suite: " + suiteId + "<br>Branch:" + branchName + "<br>Top: " + top +
                 "<br><br> Result: " + result.result);
-            $("#triggerDialog").dialog({
+            dialog.dialog({
                 modal: true,
                 buttons: {
                     "Ok": function() {
@@ -329,9 +331,11 @@ function triggerBuilds(serverId, suiteIdList, branchName, top) {
         var suite = partsOfStr[i];
         res += "Suite ID: " + suite + "<br>";
     }
-    $("#triggerConfirm").html(res);
+    var triggerConfirm = $("#triggerConfirm");
 
-    $("#triggerConfirm").dialog({
+    triggerConfirm.html(res);
+
+    triggerConfirm.dialog({
         modal: true,
         buttons: {
             "Run": function() {
@@ -347,10 +351,12 @@ function triggerBuilds(serverId, suiteIdList, branchName, top) {
                         "top": queueAtTop
                     },
                     success: function(result) {
-                        $("#triggerDialog").html("Trigger builds at server: " + serverId + "<br>" +
+                        var dialog = $("#triggerDialog");
+
+                        dialog.html("Trigger builds at server: " + serverId + "<br>" +
                             " Suites " + suiteIdList + "<br>Branch:" + branchName + "<br>Top: " + top +
                             "<br><br> Result: " + result.result);
-                        $("#triggerDialog").dialog({
+                        dialog.dialog({
                             modal: true,
                             buttons: {
                                 "Ok": function() {
@@ -380,7 +386,7 @@ function triggerBuilds(serverId, suiteIdList, branchName, top) {
 function showSuiteData(suite, settings) {
     var moreInfoTxt = "";
 
-    if (isDefinedAndFilled(suite.userCommits) && suite.userCommits != "") {
+    if (isDefinedAndFilled(suite.userCommits) && suite.userCommits !== "") {
         moreInfoTxt += "Last commits from: " + suite.userCommits + " <br>";
     }
 
@@ -434,11 +440,11 @@ function showSuiteData(suite, settings) {
         res += " " + suite.contactPerson + "";
     }
 
-    if (isDefinedAndFilled(suite.runningBuildCount) && suite.runningBuildCount != 0) {
+    if (isDefinedAndFilled(suite.runningBuildCount) && suite.runningBuildCount !== 0) {
         res += " <img src='https://image.flaticon.com/icons/png/128/2/2745.png' width=12px height=12px> ";
         res += " " + suite.runningBuildCount + " running";
     }
-    if (isDefinedAndFilled(suite.queuedBuildCount) && suite.queuedBuildCount != 0) {
+    if (isDefinedAndFilled(suite.queuedBuildCount) && suite.queuedBuildCount !== 0) {
         res += " <img src='https://d30y9cdsu7xlg0.cloudfront.net/png/273613-200.png' width=12px height=12px> ";
         res += "" + suite.queuedBuildCount + " queued";
     }
@@ -458,7 +464,7 @@ function showSuiteData(suite, settings) {
     mInfo += moreInfoTxt;
 
     if (isDefinedAndFilled(suite.topLongRunning) && suite.topLongRunning.length > 0) {
-        mInfo += "Top long running:<br>"
+        mInfo += "Top long running:<br>";
 
         mInfo += "<table>";
         for (var i = 0; i < suite.topLongRunning.length; i++) {
@@ -468,7 +474,7 @@ function showSuiteData(suite, settings) {
     }
 
     if (isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length > 0) {
-        mInfo += "Warn Only:<br>"
+        mInfo += "Warn Only:<br>";
         mInfo += "<table>";
         for (var i = 0; i < suite.warnOnly.length; i++) {
             mInfo += showTestFailData(suite.warnOnly[i], false, settings);
@@ -477,7 +483,7 @@ function showSuiteData(suite, settings) {
     }
 
     if (isDefinedAndFilled(suite.logConsumers) && suite.logConsumers.length > 0) {
-        mInfo += "Top Log Consumers:<br>"
+        mInfo += "Top Log Consumers:<br>";
         mInfo += "<table>";
         for (var i = 0; i < suite.logConsumers.length; i++) {
             mInfo += showTestFailData(suite.logConsumers[i], false, settings);
@@ -555,7 +561,7 @@ function failureRateToColor(failureRate) {
         redSaturation = 255;
         greenSaturation += colorCorrect * 5;
     } else {
-        greenSaturation = 255 - (colorCorrect - 50) * 5;;
+        greenSaturation = 255 - (colorCorrect - 50) * 5;
         redSaturation = 255 - (colorCorrect - 50) * 5;
     }
     return rgbToHex(redSaturation, greenSaturation, blueSaturation);
@@ -603,7 +609,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
     var bold = false;
     if(isFailureShown && isDefinedAndFilled(testFail.problemRef)) {
-        res += "<span title='"+testFail.problemRef.name +"'>&#128030;</span>"
+        res += "<span title='"+testFail.problemRef.name +"'>&#128030;</span>";
         if(!bold)
            res += "<b>";
 
@@ -633,7 +639,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
         res += testFail.webIssueText;
         res += "</a>";
         res += ": ";
-    };
+    }
 
     if (isDefinedAndFilled(testFail.suiteName) && isDefinedAndFilled(testFail.testName))
         res += "<font color='grey'>" + testFail.suiteName + ":</font> " + testFail.testName;
@@ -646,7 +652,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
     var hist;
 
     if(isDefinedAndFilled(testFail.histBaseBranch))
-        hist = testFail.histBaseBranch
+        hist = testFail.histBaseBranch;
     else
         hist = null;
 
@@ -701,14 +707,14 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
         res += "<div class='content'>";
 
-        res += "<p class='logMsg'>"
+        res += "<p class='logMsg'>";
         for (var i = 0; i < testFail.warnings.length; i++) {
-            res + "&nbsp; &nbsp; ";
-            res + "&nbsp; &nbsp; ";
+            res += "&nbsp; &nbsp; ";
+            res += "&nbsp; &nbsp; ";
             res += testFail.warnings[i];
             res += " <br>";
         }
-        res += "</p>"
+        res += "</p>";
 
         res += "</div></span>";
 
@@ -747,7 +753,7 @@ function drawLatestRuns(latestRuns) {
 
         if (prevState == null) {
             //skip
-        } else if (prevState == runCode) {
+        } else if (prevState === runCode) {
             len++;
         } else {
             res += drawLatestRunsBlock(prevState, len);
@@ -767,13 +773,13 @@ function drawLatestRuns(latestRuns) {
 function drawLatestRunsBlock(state, len) {
     var runColor = "white";
 
-    if (state == 0)
+    if (state === 0)
         runColor = "green";
-    else if (state == 1)
+    else if (state === 1)
         runColor = "red";
-    else if (state == 2)
+    else if (state === 2)
         runColor = "grey";
-    else if (state == 3)
+    else if (state === 3)
         runColor = "black";
 
     return "<span style='background-color: " + runColor + "; width:" + (len * 1) + "px; height:10px; display: inline-block;'></span>";
@@ -781,8 +787,10 @@ function drawLatestRunsBlock(state, len) {
 
 
 function initMoreInfo() {
-    $(".header").unbind("click");
-    $(".header").click(function() {
+    var header = $(".header");
+
+    header.unbind("click");
+    header.click(function() {
         $header = $(this);
         //getting the next element
         $content = $header.next();
@@ -795,6 +803,5 @@ function initMoreInfo() {
                 return $content.is(":visible") ? "Hide <<" : "More >>";
             });
         });
-
     });
 }

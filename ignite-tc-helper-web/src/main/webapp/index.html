@@ -83,15 +83,15 @@ function showSuitesForPrCheckData(result) {
         var chainAtServer = result[i];
         //res+="<a href='pr.html?serverId=private&branchForTc=ignite-gg-12790-1&suiteId=id8xIgniteGridGainTests_RunAll="+id+"'>Check PR</a><br>";
 
-        res+="<form action='pr.html'>";
-        res+="Server: <input type='text' name='serverId' value=" + chainAtServer.serverId +" readonly>" ;
-        res+="Chain: <input type='text' name='suiteId' style='width: 30%;' value=" + chainAtServer.suiteId +">" ;
-        res+="Branch: <input type='text' name='branchForTc' required> "
-        res+="Base branch: <input type='text' name='baseBranchForTc'> "
-        res+="<input type='submit' name='action' value='Latest'>";
+        res += "<form action='pr.html'>";
+        res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId + " readonly>";
+        res += "Chain: <input type='text' name='suiteId' value=" + chainAtServer.suiteId + ">";
+        res += "Branch: <input type='text' name='branchForTc' required> ";
+        res += "Base branch: <input type='text' name='baseBranchForTc'> ";
+        res += "<input type='submit' name='action' value='Latest'>";
         // res+="<input type='submit' name='action' value='Chain'>";
-        res+="<input type='submit' name='action' value='History'>";
-        res+="</form>";
+        res += "<input type='submit' name='action' value='History'>";
+        res += "</form>";
     }
     $("#suitesForPrCheck").html(res);
 }
@@ -106,7 +106,7 @@ function showBuildsOnServers(result) {
         res+="<form action='build.html'>";
         res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
         res+="Check Logs: <input type='text' name='checkAllLogs' style='width: 20%;' value='true' readonly>" ;
-        res+="Build Id: <input type='text' name='buildId' required> "
+        res+="Build Id: <input type='text' name='buildId' required> ";
         res+="<input type='submit' name='action' value='Check'>";
         res+="</form>";
     }

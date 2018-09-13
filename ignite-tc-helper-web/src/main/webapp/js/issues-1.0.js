@@ -1,13 +1,12 @@
-
 //@param results - TestFailuresSummary
 //@param settings - Settings (JS class)
 function showIssues(result) {
     var res = "";
     res += "Build problems";
-        res += "<br>";
+    res += "<br>";
 
     if (!isDefinedAndFilled(result.issues)) {
-       return res;
+        return res;
     }
 
     for (var i = 0; i < result.issues.length; i++) {
@@ -21,15 +20,15 @@ function showIssues(result) {
 
         res += " " + issue.issueKey.testOrBuildName;
 
-        if(isDefinedAndFilled(issue.addressNotified)) {
+        if (isDefinedAndFilled(issue.addressNotified)) {
             res += " Users Notified: [";
 
-             for (var j = 0; j < issue.addressNotified.length; j++) {
+            for (var j = 0; j < issue.addressNotified.length; j++) {
                 var addressNotified = issue.addressNotified[j];
 
-                res+=addressNotified + ", "
-             }
-             res+="]";
+                res += addressNotified + ", "
+            }
+            res += "]";
         }
 
         res += "<br><br>";
