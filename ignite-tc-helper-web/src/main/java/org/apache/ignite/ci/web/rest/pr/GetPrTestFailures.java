@@ -187,6 +187,9 @@ public class GetPrTestFailures {
                 true, teamcity, baseBranch);
 
             final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverId(), branchForTc);
+
+            chainStatus.baseBranchForTc = baseBranch;
+
             pubCtx.ifPresent(ctx -> {
                 if (ctx.isFakeStub())
                     chainStatus.setBuildNotFound(true);

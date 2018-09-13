@@ -17,7 +17,10 @@
 
 package org.apache.ignite.ci.conf;
 
+import com.google.common.base.Strings;
+
 import java.util.Objects;
+import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -31,6 +34,9 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 public class ChainAtServerTracked extends ChainAtServer {
     /** Branch identifier by TC identification for REST api */
     @Nonnull public String branchForRest;
+
+    /** TC identified base branch: null means the same as &lt;default>, master. For not tracked branches. */
+    @Nullable public String baseBranchForTc;
 
     /** Automatic build triggering. */
     @Nullable private Boolean triggerBuild;
@@ -46,7 +52,7 @@ public class ChainAtServerTracked extends ChainAtServer {
     }
 
     /**
-     * @return branch in TC indentification to queue builds
+     * @return branch in TC indentification to queue build results.
      */
     @Nonnull public String getBranchForRestMandatory() {
         checkState(!isNullOrEmpty(branchForRest), "Invalid config: branchForRest should be filled " + this);
@@ -54,8 +60,22 @@ public class ChainAtServerTracked extends ChainAtServer {
         return branchForRest;
     }
 
-    /** {@inheritDoc} */
-    @Override public boolean equals(Object o) {
+    /**
+     * @return base (etalon) branch in TC indentification t builds
+     */
+    @Nonnull
+    public Optional<String> getBaseBranchForTc() {
+        if (Strings.isNullOrEmpty(baseBranchForTc))
+            return Optional.empty();
+
+        return Optional.ofNullable(baseBranchForTc);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object o) {
         if (this == o)
             return true;
 

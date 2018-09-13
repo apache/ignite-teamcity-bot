@@ -19,6 +19,7 @@ package org.apache.ignite.ci.tcmodel.result.problems;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * One build problem. Contains its type.
@@ -37,7 +38,11 @@ public class ProblemOccurrence {
     @XmlAttribute public String identity;
     @XmlAttribute public String type;
     @XmlAttribute public String href;
-    public BuildRef buildRef;
+    /**
+     * Build reference, may be filled by TC and by
+     * May be null for old persisted entries.
+     */
+    @Nullable public BuildRef buildRef;
 
     public boolean isExecutionTimeout() {
         return TC_EXECUTION_TIMEOUT.equals(type);

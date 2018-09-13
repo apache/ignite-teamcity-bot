@@ -118,14 +118,14 @@ function showChainCurrentStatusData(server, settings) {
         cntFailed++;
     }
 
-    if (suitesFailedList.length !== 0 && isDefinedAndFilled(server.serverId) && isDefinedAndFilled(suite.branchName)) {
+    if (suitesFailedList.length !== 0 && isDefinedAndFilled(server.serverId) && isDefinedAndFilled(server.branchName)) {
         mInfo += "Trigger failed " + cntFailed + " builds";
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + suite.branchName + "\", false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + server.branchName + "\", false)' ";
         mInfo += " title='trigger builds'>in queue</a> ";
 
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + suite.branchName + "\", true)' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + server.branchName + "\", true)' ";
         mInfo += " title='trigger builds'>on top</a><br>";
     }
 
@@ -135,8 +135,8 @@ function showChainCurrentStatusData(server, settings) {
         mInfo += "Top long running:<br>";
 
         mInfo += "<table>";
-        for (var i = 0; i < server.topLongRunning.length; i++) {
-            mInfo += showTestFailData(server.topLongRunning[i], false, settings);
+        for (var j = 0; j < server.topLongRunning.length; j++) {
+            mInfo += showTestFailData(server.topLongRunning[j], false, settings);
         }
         mInfo += "</table>";
     }
@@ -146,8 +146,8 @@ function showChainCurrentStatusData(server, settings) {
         mInfo += "Top Log Consumers:<br>";
 
         mInfo += "<table>";
-        for (var i = 0; i < server.logConsumers.length; i++) {
-            mInfo += showTestFailData(server.logConsumers[i], false, settings);
+        for (var k = 0; k < server.logConsumers.length; k++) {
+            mInfo += showTestFailData(server.logConsumers[k], false, settings);
         }
         mInfo += "</table>";
     }
@@ -158,13 +158,21 @@ function showChainCurrentStatusData(server, settings) {
         res += "<div class='content'>" + mInfo + "</div></span>";
     }
 
+    res += "</td><td>";
     if (settings.isGithubAvailable()) {
         g_srv_to_notify_git = server;
-
-        res += "</td><td><button onclick='notifyGit()'>Update PR status</button></td></tr>";
+        res += "<button onclick='notifyGit()'>Update PR status</button>";
     }
-    else
-        res += "</td><td>&nbsp;</td></tr>";
+
+    if (isDefinedAndFilled(server.baseBranchForTc)) {
+        if (settings.isGithubAvailable())
+            res+="<br>";
+
+        res += "Base branch";
+        res += ": " + server.baseBranchForTc.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    res += "&nbsp;</td></tr>";
 
     res += addBlockersData(server, settings);
 
