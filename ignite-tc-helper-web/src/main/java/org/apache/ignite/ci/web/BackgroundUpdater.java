@@ -27,11 +27,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.Expirable;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.lang.IgniteClosure;
 import org.jetbrains.annotations.NotNull;
@@ -147,7 +147,7 @@ public class BackgroundUpdater {
                 () -> new Expirable<V>(loadAndSaveCall.call()));
         }
         catch (ExecutionException e) {
-            throw Throwables.propagate(e);
+            throw ExceptionUtil.propagateException(e);
         }
 
         if (isRefreshRequired(expirable, triggerSensitive)) {

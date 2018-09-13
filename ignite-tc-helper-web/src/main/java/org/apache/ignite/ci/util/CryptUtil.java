@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.util;
 
-import jersey.repackaged.com.google.common.base.Throwables;
+import com.google.common.base.Throwables;
 import org.jetbrains.annotations.NotNull;
 
 import javax.crypto.*;

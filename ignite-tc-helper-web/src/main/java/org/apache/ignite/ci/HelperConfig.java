@@ -26,10 +26,10 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Properties;
 import javax.ws.rs.QueryParam;
-import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.util.Base64Util;
+import org.apache.ignite.ci.util.ExceptionUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -201,7 +201,7 @@ public class HelperConfig {
         try(final FileReader json = new FileReader(file)) {
             return new Gson().fromJson(json, BranchesTracked.class);
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw ExceptionUtil.propagateException(e);
         }
     }
 
