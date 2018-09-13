@@ -86,11 +86,11 @@ function showSuitesForPrCheckData(result) {
         res += "<form action='pr.html'>";
         res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId + " readonly>";
         res += "Chain: <input type='text' name='suiteId' value=" + chainAtServer.suiteId + ">";
-        res += "Branch: <input type='text' name='branchForTc' required> ";
-        res += "Base branch: <input type='text' name='baseBranchForTc'> ";
-        res += "<input type='submit' name='action' value='Latest'>";
+        res += "Base branch: <input type='text' name='baseBranchForTc'  title='Etalon branch,e.g refs/heads/master'> ";
+        res += "<b>Branch:</b> <input type='text' name='branchForTc' title='Tested branch, e.g. pull/4790/head or ignite-9349' required> ";
+        res += "<input type='submit' name='action' value='Latest' title='Show latest runs'>";
         // res+="<input type='submit' name='action' value='Chain'>";
-        res += "<input type='submit' name='action' value='History'>";
+        res += "<input type='submit' name='action' value='History' title='Show last 10 runs merged'>";
         res += "</form>";
     }
     $("#suitesForPrCheck").html(res);

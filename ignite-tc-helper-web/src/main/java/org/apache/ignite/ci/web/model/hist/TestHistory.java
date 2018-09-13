@@ -36,7 +36,13 @@ public class TestHistory {
     /** Latest runs, 0,1,2 values for each run. */
     @Nullable public List<Integer> latestRuns;
 
-    public void init(@NotNull RunStat stat) {
+    /** Non null flaky comments means there is flakiness detected in the the branch. */
+    @Nullable public String flakyComments;
+
+    public void init(@Nullable RunStat stat) {
+        if (stat == null)
+            return;
+
         recent.failures = stat.getFailuresCount();
         recent.runs = stat.getRunsCount();
         recent.failureRate = stat.getFailPercentPrintable();
@@ -46,6 +52,8 @@ public class TestHistory {
         allTime.failureRate = stat.getFailPercentAllHistPrintable();
 
         latestRuns = stat.getLatestRunResults();
+
+        flakyComments = stat.getFlakyComments();
     }
 
     /** {@inheritDoc} */

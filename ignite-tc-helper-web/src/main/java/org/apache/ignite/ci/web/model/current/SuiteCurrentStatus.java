@@ -109,6 +109,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public String durationPrintable;
 
+    /**
+     * Advisory mark there is problem in this suite.
+     */
     @Nullable public ProblemRef problemRef;
 
 
@@ -246,19 +249,20 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             latestRunsSrc = stat;
 
         if (latestRunsSrc != null) {
-            RunStat.TestId testId = latestRunsSrc.detectTemplate(EventTemplates.newFailure);
+            RunStat.TestId testId = latestRunsSrc.detectTemplate(EventTemplates.newFailureForFlakyTest); //extended runs required for suite
 
             if (testId != null)
                 problemRef = new ProblemRef("New Failure");
 
-            RunStat.TestId buildIdCritical  = latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailure);
+            RunStat.TestId buildIdCritical = latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailure);
 
             if (buildIdCritical != null)
                 problemRef = new ProblemRef("New Critical Failure");
         }
     }
 
-    @NotNull public static TestFailure createOccurForLogConsumer(Map.Entry<String, Long> entry) {
+    @NotNull
+    public static TestFailure createOccurForLogConsumer(Map.Entry<String, Long> entry) {
         TestFailure failure = new TestFailure();
         long sizeMb = entry.getValue() / 1024 / 1024;
         failure.name = entry.getKey() + " " + sizeMb + " Mbytes";

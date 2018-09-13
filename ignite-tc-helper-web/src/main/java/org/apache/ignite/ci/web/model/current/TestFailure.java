@@ -80,9 +80,6 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 
     @Nullable public ProblemRef problemRef;
 
-    /** Non null flaky comments means there is flakiness detected in the base branch. */
-    @Nullable public String flakyComments;
-
     /** History cur branch. If it is absent, history is to be taken from histBaseBranch. */
     @Nullable public TestHistory histCurBranch;
 
@@ -207,11 +204,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 
         final RunStat stat = runStatSupplier.apply(testInBranch);
 
-        if (stat != null) {
-            histBaseBranch.init(stat);
-
-            flakyComments = stat.getFlakyComments();
-        }
+        histBaseBranch.init(stat);
 
         RunStat statForProblemsDetection = null;
 
@@ -251,7 +244,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         boolean lowFailureRate = recent != null && recent.failureRate != null &&
             Float.valueOf(recent.failureRate.replace(',', '.')) < 4.;
 
-        return lowFailureRate && flakyComments == null;
+        return lowFailureRate && histBaseBranch.flakyComments == null;
     }
 
     /** {@inheritDoc} */

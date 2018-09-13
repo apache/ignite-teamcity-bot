@@ -14,14 +14,18 @@ function showChainOnServersResults(result) {
     var maxFailRateP = findGetParameter("maxFailRate");
     var maxFailRate = maxFailRateP == null ? 100 : parseFloat(maxFailRateP);
 
-    return showChainResultsWithSettings(result, new Settings(minFailRate, maxFailRate, result.javaFlags));
+    var hideFlakyFailuresP = findGetParameter("hideFlakyFailures");
+    var hideFlakyFailures = hideFlakyFailuresP == null ? false : "true"===hideFlakyFailuresP;
+
+    return showChainResultsWithSettings(result, new Settings(minFailRate, maxFailRate, result.javaFlags, hideFlakyFailures));
 }
 
 class Settings {
-    constructor(minFailRate, maxFailRate, javaFlags) {
+    constructor(minFailRate, maxFailRate, javaFlags, hideFlakyFailures) {
         this.minFailRate = minFailRate;
         this.maxFailRate = maxFailRate;
         this.javaFlags = javaFlags;
+        this.hideFlakyFailures = hideFlakyFailures;
     }
 
     isTeamCityAvailable() {
@@ -420,7 +424,7 @@ function showSuiteData(suite, settings) {
     var color = failureRateToColor(suite.failureRate);
 
     if (isDefinedAndFilled(suite.latestRuns)) {
-        res += drawLatestRuns(suite.latestRuns);
+        res += drawLatestRuns(suite.latestRuns) + " ";
     }
 
     res +="</td><td colspan='2'>";
@@ -533,18 +537,23 @@ function showSuiteData(suite, settings) {
 /**
  * Check that given test is new.
  *
- * @param testFailure - see TestFailure Java class.
+ * @param testFail - see TestFailure Java class.
  * @returns {boolean} True - if test is new. False - otherwise.
  */
-function isNewFailedTest(testFailure) {
-    if(!isDefinedAndFilled(testFailure.histBaseBranch))
+function isNewFailedTest(testFail) {
+    if(!isDefinedAndFilled(testFail.histBaseBranch))
         return true;
 
-    var hist = testFailure.histBaseBranch;
+    var hist = testFail.histBaseBranch;
     if(!isDefinedAndFilled(hist.recent))
         return true;
 
-    return Number.parseFloat(hist.recent.failureRate) < 4.0 && testFailure.flakyComments == null;
+    var flakyCommentsInBase =
+        isDefinedAndFilled(testFail.histBaseBranch.flakyComments)
+            ? testFail.histBaseBranch.flakyComments
+            : null;
+
+    return Number.parseFloat(hist.recent.failureRate) < 4.0 && flakyCommentsInBase == null;
 }
 
 function failureRateToColor(failureRate) {
@@ -570,22 +579,38 @@ function failureRateToColor(failureRate) {
 
 //@param testFail - see TestFailure
 function showTestFailData(testFail, isFailureShown, settings) {
-    if (isDefinedAndFilled(testFail.failureRate) &&
-        isFailureShown) {
-        if (parseFloat(testFail.failureRate) < settings.minFailRate)
-            return ""; //test is hidden
+    var failRateDefined =
+        isDefinedAndFilled(testFail.histBaseBranch)
+        && isDefinedAndFilled(testFail.histBaseBranch.recent)
+        && isDefinedAndFilled(testFail.histBaseBranch.recent.failureRate);
 
-        if (parseFloat(testFail.failureRate) > settings.maxFailRate)
-            return ""; //test is hidden
+    var failRate = failRateDefined ? testFail.histBaseBranch.recent.failureRate : null;
+
+    var flakyCommentsInBase =
+        isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.flakyComments)
+            ? testFail.histBaseBranch.flakyComments
+            : null;
+
+    if (isFailureShown) {
+        if (failRate != null) {
+            if (parseFloat(failRate) < settings.minFailRate)
+                return ""; //test is hidden
+
+            if (parseFloat(failRate) > settings.maxFailRate)
+                return ""; //test is hidden
+        }
+
+        if (flakyCommentsInBase != null && settings.hideFlakyFailures)
+            return ""; // test is hidder
     }
 
     var res = "";
     res += "<tr><td align='right' valign='top' colspan='2'>";
 
-    var haveIssue = isDefinedAndFilled(testFail.webIssueUrl) && isDefinedAndFilled(testFail.webIssueText)
+    var haveIssue = isDefinedAndFilled(testFail.webIssueUrl) && isDefinedAndFilled(testFail.webIssueText);
 
-    var color = (isFailureShown && isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.recent))
-        ? failureRateToColor(testFail.histBaseBranch.recent.failureRate)
+    var color = (isFailureShown && failRateDefined)
+        ? failureRateToColor(failRate)
         : "white";
 
     var investigated = isDefinedAndFilled(testFail.investigated) && testFail.investigated;
@@ -596,16 +621,25 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
     // has both base and current, draw current latest runs here.
     var comparePage = isDefinedAndFilled(testFail.histCurBranch) && isDefinedAndFilled(testFail.histCurBranch.latestRuns)
-                     && isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns);
+        && isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns);
 
     var baseBranchMarks = "";
 
-    if(isFailureShown && isDefinedAndFilled(testFail.flakyComments) && testFail.flakyComments) {
-        baseBranchMarks += "<span title='"+testFail.flakyComments+"'><b>"+"&asymp;"+"</b></span> "
+    if (isFailureShown && flakyCommentsInBase != null) {
+        baseBranchMarks += "<span title='" + flakyCommentsInBase + "' style=\"color: #303030; font-size: 125%;\">" + "&#9858;" + "</span> "; //&asymp;
     }
 
-    if(!comparePage)
-        res+=baseBranchMarks;
+    if (comparePage) {
+        var flakyCommentsInCur =
+            isDefinedAndFilled(testFail.histCurBranch) && isDefinedAndFilled(testFail.histCurBranch.flakyComments)
+                ? testFail.histCurBranch.flakyComments
+                : null;
+
+        baseBranchMarks += "<span title='" + flakyCommentsInCur + "' style=\"color: #303030; font-size: 125%;\"><b>" + "&#9858;" + "</b></span> "; //&asymp;
+    }
+    else {
+        res += baseBranchMarks;
+    }
 
     var bold = false;
     if(isFailureShown && isDefinedAndFilled(testFail.problemRef)) {
@@ -628,7 +662,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
     if (haveWeb)
         res += "</a> ";
 
-    res += "</td><td>";
+    res += "</td><td valign='top'>";
     res += "<span style='background-color: " + color + "; width:8px; height:8px; display: inline-block; border-width: 1px; border-color: black; border-style: solid; '></span> ";
 
     if (isDefinedAndFilled(testFail.curFailures) && testFail.curFailures > 1)
@@ -765,7 +799,7 @@ function drawLatestRuns(latestRuns) {
     if (prevState != null) {
         res += drawLatestRunsBlock(prevState, len);
     }
-    res += "</span></nobr> ";
+    res += "</span></nobr>";
 
     return res;
 }
