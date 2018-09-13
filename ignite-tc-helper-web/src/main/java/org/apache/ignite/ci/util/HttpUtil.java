@@ -93,8 +93,10 @@ public class HttpUtil {
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
 
+        if (githubAuthTok != null)
+            con.setRequestProperty("Authorization", "token " + githubAuthTok);
+
         con.setRequestProperty("accept-charset", StandardCharsets.UTF_8.toString());
-        con.setRequestProperty("Authorization", "token " + githubAuthTok);
         con.setRequestProperty("Connection", "Keep-Alive");
         con.setRequestProperty("Keep-Alive", "header");
 
