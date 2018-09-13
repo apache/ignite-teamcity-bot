@@ -635,7 +635,8 @@ function showTestFailData(testFail, isFailureShown, settings) {
                 ? testFail.histCurBranch.flakyComments
                 : null;
 
-        baseBranchMarks += "<span title='" + flakyCommentsInCur + "' style=\"color: #303030; font-size: 125%;\"><b>" + "&#9858;" + "</b></span> "; //&asymp;
+        if(flakyCommentsInCur!=null)
+            res += "<span title='" + flakyCommentsInCur + "' style=\"color: #303030; font-size: 125%;\">" + "&#9858;" + "</span> "; //&asymp;
     }
     else {
         res += baseBranchMarks;
