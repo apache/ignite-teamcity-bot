@@ -14,12 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.di;
 
-package org.apache.ignite.ci;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 
-/**
- * Combination of REST data and persisted statistics.
- */
-public interface IAnalyticsEnabledTeamcity extends ITeamcity, ITcAnalytics {
-    public void init(IgniteTeamcityHelper teamcity);
+public interface IServerProv {
+    IAnalyticsEnabledTeamcity createServer(String serverId);
 }

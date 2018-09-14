@@ -21,10 +21,14 @@ import java.util.concurrent.ExecutorService;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
+
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.di.IgniteTcBotModule;
 
 /**
  */
@@ -35,6 +39,7 @@ public class CtxListener implements ServletContextListener {
 
     public static final String UPDATER = "updater";
 
+    public static final String INJECTOR = "injector";
 
     private static final String POOL = "pool";
 
@@ -51,11 +56,19 @@ public class CtxListener implements ServletContextListener {
     }
 
     @Override public void contextInitialized(ServletContextEvent sctxEvt) {
-        final Ignite ignite = TcHelperDb.start();
-        final ServletContext ctx = sctxEvt.getServletContext();
-        ctx.setAttribute(IGNITE, ignite);
 
-        TcHelper tcHelper = new TcHelper(ignite);
+        IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
+        final ServletContext ctx = sctxEvt.getServletContext();
+
+        Injector injector = Guice.createInjector(igniteTcBotModule);
+
+        ctx.setAttribute(INJECTOR, injector);
+
+        final Ignite ignite = TcHelperDb.start();
+        ctx.setAttribute(IGNITE, ignite);
+        igniteTcBotModule.setIgnite(ignite);
+
+        TcHelper tcHelper = new TcHelper(ignite, injector);
 
         BackgroundUpdater backgroundUpdater = new BackgroundUpdater(tcHelper);
 

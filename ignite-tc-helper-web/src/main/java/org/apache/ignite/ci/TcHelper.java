@@ -21,8 +21,11 @@ import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.util.List;
+
+import com.google.inject.Injector;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.conf.BranchesTracked;
+import org.apache.ignite.ci.di.IServerProv;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
@@ -57,19 +60,21 @@ public class TcHelper implements ITcHelper {
     private TcUpdatePool tcUpdatePool = new TcUpdatePool();
     private IssuesStorage issuesStorage;
     private IssueDetector detector;
+    private Injector injector;
 
     /** Build observer. */
     private BuildObserver buildObserver;
 
     private UserAndSessionsStorage userAndSessionsStorage;
 
-    public TcHelper(Ignite ignite) {
+    public TcHelper(Ignite ignite, Injector injector) {
         this.ignite = ignite;
 
         issuesStorage = new IssuesStorage(ignite);
         userAndSessionsStorage = new UserAndSessionsStorage(ignite);
 
         detector = new IssueDetector(ignite, issuesStorage, userAndSessionsStorage);
+        this.injector = injector;
         buildObserver = new BuildObserver(this);
     }
 
@@ -94,8 +99,8 @@ public class TcHelper implements ITcHelper {
             throw new IllegalStateException("Shutdown");
 
         Callable<IAnalyticsEnabledTeamcity> call = () -> {
-            IAnalyticsEnabledTeamcity teamcity = new IgnitePersistentTeamcity(ignite,
-                Strings.emptyToNull(srvId));
+            IAnalyticsEnabledTeamcity teamcity = injector.getInstance(IServerProv.class)
+                    .createServer(srvId);
 
             teamcity.setExecutor(getService());
 

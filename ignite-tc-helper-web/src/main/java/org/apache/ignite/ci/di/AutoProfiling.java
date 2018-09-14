@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.di;
 
-package org.apache.ignite.ci;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-/**
- * Combination of REST data and persisted statistics.
- */
-public interface IAnalyticsEnabledTeamcity extends ITeamcity, ITcAnalytics {
-    public void init(IgniteTeamcityHelper teamcity);
+@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.METHOD)
+public @interface AutoProfiling {
 }
