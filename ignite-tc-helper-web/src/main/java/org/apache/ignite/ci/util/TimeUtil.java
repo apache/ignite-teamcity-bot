@@ -49,4 +49,13 @@ public class TimeUtil {
             .replaceAll("(\\d[HMS])(?!$)", "$1 ")
             .toLowerCase();
     }
+
+    public static String getDurationPrintableNanos(long ns) {
+        String durationStr = Duration.ofNanos(ns).toString();
+
+        if (durationStr.length() > 2)
+            return humanReadableFormat(durationStr);
+
+        return durationStr;
+    }
 }

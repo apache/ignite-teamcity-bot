@@ -32,9 +32,13 @@ public class IgniteTcBotModule extends AbstractModule {
     private Ignite ignite;
 
     protected void configure() {
+        ProfilingInterceptor profilingInterceptor = new ProfilingInterceptor();
+
         bindInterceptor(Matchers.any(),
                 Matchers.annotatedWith(AutoProfiling.class),
-                new ProfilingInterceptor());
+                profilingInterceptor);
+
+        bind(ProfilingInterceptor.class).toInstance(profilingInterceptor);
 
         bind(Ignite.class).toProvider(new Provider<Ignite>() {
             @Override

@@ -51,6 +51,10 @@ public class CtxListener implements ServletContextListener {
         return (ITcHelper)ctx.getAttribute(TC_HELPER);
     }
 
+    public static Injector getInjector(ServletContext ctx) {
+        return (Injector)ctx.getAttribute(INJECTOR);
+    }
+
     public static BackgroundUpdater getBackgroundUpdater(ServletContext ctx) {
         return (BackgroundUpdater)ctx.getAttribute(UPDATER);
     }
