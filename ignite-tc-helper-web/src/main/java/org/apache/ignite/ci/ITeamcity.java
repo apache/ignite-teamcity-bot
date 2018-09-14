@@ -85,7 +85,7 @@ public interface ITeamcity extends AutoCloseable {
      * @return list of builds in historical order, recent builds coming last
      */
     default List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch){
-        return getFinishedBuilds(projectId, branch, null);
+        return getFinishedBuildsIncludeSnDepFailed(projectId, branch, null);
     };
 
     /**

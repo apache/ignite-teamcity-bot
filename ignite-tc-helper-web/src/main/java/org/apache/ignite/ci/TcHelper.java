@@ -179,7 +179,7 @@ public class TcHelper implements ITcHelper {
         String ticket
     ) {
         try (IAnalyticsEnabledTeamcity teamcity = server(srvId, prov)) {
-            List<BuildRef> builds = teamcity.getFinishedBuilds(buildTypeId, branchForTc);
+            List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchForTc);
             BuildRef build = builds.get(builds.size() - 1);
             String comment;
 
