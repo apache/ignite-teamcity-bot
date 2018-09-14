@@ -23,18 +23,18 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 /**
  *
  */
-class BuildInfo {
+public class BuildInfo {
     /** Build. */
-    final Build build;
+    public final Build build;
 
     /** Server id. */
-    final String srvId;
+    public final String srvId;
 
     /** */
-    final ICredentialsProv prov;
+    public final ICredentialsProv prov;
 
-    /** JIRA ticket name. */
-    final String ticket;
+    /** JIRA ticket full name. */
+    public final String ticket;
 
     /**
      * @param build Build.

@@ -853,8 +853,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public boolean commentJiraTicket(String ticket, String comment) {
-        return teamcity.commentJiraTicket(ticket, comment);
+    @Override public boolean sendJiraComment(String ticket, String comment) {
+        return teamcity.sendJiraComment(ticket, comment);
     }
 
     /** {@inheritDoc} */

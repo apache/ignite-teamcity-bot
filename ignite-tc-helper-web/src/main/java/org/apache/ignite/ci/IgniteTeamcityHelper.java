@@ -176,7 +176,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override public boolean commentJiraTicket(String ticket, String comment) {
+    @Override public boolean sendJiraComment(String ticket, String comment) {
         try {
             String url = "https://issues.apache.org/jira/rest/api/2/issue/" + ticket + "/comment";
 
@@ -195,6 +195,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     @Override public PullRequest getPullRequest(String branchForTc) {
         String id = null;
 
+        // Get PR id from string "pull/XXXX/head"
         for (int i = 5; i < branchForTc.length(); i++) {
             char c = branchForTc.charAt(i);
 

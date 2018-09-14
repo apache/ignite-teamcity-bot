@@ -52,7 +52,6 @@ function loadData() {
         success: function(result) {
             $("#loadStatus").html("");
             showBuildsOnServers(result);
-            showRunAllForm(result);
         },
         error: showErrInLoadStatus
     });
@@ -111,56 +110,6 @@ function showBuildsOnServers(result) {
         res+="</form>";
     }
     $("#buildsCheck").html(res);
-}
-
-/**
- * This form allows user to start TeamCity Run All build.
- */
-function showRunAllForm(result) {
-    var res = "";
-
-    for (var i = 0; i < result.length; i++) {
-        var serverId = result[i];
-
-        res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
-        res+="Pull Request #<input type='text' name='prId' onkeypress='return trigBuild(event)'> ";
-        res+="<button onclick='trigBuild()'>Run All</button><br>";
-    }
-
-    //todo enabled this once feature is ready
-    // $("#runAll").html(res);
-}
-
-/**
- * Start Run All build on TeamCity and comment in JIRA ticket when build will be finished.
- */
-function trigBuild(event) {
-    if (event != null && event.key !== "Enter")
-        return;
-
-    var fields = document.getElementById("runAll").children;
-    var url = "rest/build/trigger?suiteId=IgniteTests24Java8_RunAll";
-    var prId = null;
-
-    for (let field of fields) {
-        if (field.name === "serverId")
-            url += "&serverId=" + field.value;
-
-        if (field.name === "prId") {
-            url += "&branchName=pull%2F" + field.value + "%2Fhead";
-            prId = field.value;
-        }
-    }
-
-    url += "&observe=true";
-
-    $.ajax({
-        url: url,
-        success: function(result) {
-            $("#runAll").html(result.result);
-        },
-        error: showErrInLoadStatus
-    });
 }
 </script>
 </head>
