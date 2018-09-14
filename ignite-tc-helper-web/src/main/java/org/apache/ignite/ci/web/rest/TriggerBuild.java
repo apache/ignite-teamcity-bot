@@ -84,6 +84,19 @@ public class TriggerBuild {
         @Nullable @QueryParam("suiteId") String suiteId,
         @Nullable @QueryParam("ticketId") String ticketId
     ) {
+        try {
+            return commentJiraEx(srvId, branchForTc, suiteId, ticketId);
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            //todo better exception handling at jersey level
+
+            throw e;
+        }
+    }
+
+    @NotNull
+    public SimpleResult commentJiraEx(@QueryParam("serverId") @Nullable String srvId, @QueryParam("branchName") @Nullable String branchForTc, @QueryParam("suiteId") @Nullable String suiteId, @QueryParam("ticketId") @Nullable String ticketId) {
         System.out.println("commentJira ");
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
