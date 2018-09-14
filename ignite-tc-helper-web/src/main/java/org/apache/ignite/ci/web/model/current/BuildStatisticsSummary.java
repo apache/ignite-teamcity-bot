@@ -17,7 +17,11 @@
 
 package org.apache.ignite.ci.web.model.current;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +62,8 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
     /** Build with test and problems references. */
     public Integer buildId;
 
+    public String date;
+
     /** Test occurrences. */
     public TestOccurrencesRef testOccurrences;
 
@@ -92,6 +98,10 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
     /** Initialize build statistics. */
     public void initialize(@Nonnull final ITeamcity teamcity) {
         Build build = teamcity.getBuild(buildId);
+
+        DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy'T'HH:mm:ss");
+        dateFormat.format(build.getFinishDate());
+        date = dateFormat.format(build.getFinishDate());
 
         isFakeStub = build.isFakeStub();
 

@@ -13,13 +13,13 @@
     <script src="js/common-1.6.js"></script>
     <script type="text/javascript" src="http://momentjs.com/downloads/moment.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <script src="https://d3js.org/d3.v4.min.js"></script>
     <style>
         .stat{
             width: 70%;
             border-collapse: collapse;
         }
         .stat td, .stat th {
-
             padding: 10px 5px 10px 5px;
         }
         .data1, .data2{
@@ -40,10 +40,81 @@
             background-color: #f5f5ff;
             color: #000000;
         }
-        .stat tr:nth-child(odd) { background-color: #fafaff; }
+        tr:nth-child(odd) { background-color: #fafaff; }
     </style>
 </head>
 <body>
+
+<br><br>
+<table class="stat">
+    <tr>
+        <th class="section">DATE INTERVAL</th>
+        <th style="text-align: center;"><input type='text' name='daterange1'/></th>
+        <th style="text-align: center;"><input type='text' name='daterange2'/></th>
+    </tr>
+    <tr><td class="section">TESTS</td><td></td><td></td></tr>
+    <tr><td class="field">COUNT</td>
+        <td class="data1" id="count1" title="min - average - max"></td>
+        <td class="data2" id="count2" title="min - average - max"></td>
+    </tr>
+    <tr><td class="field">PASSED</td>
+        <td class="data1" id="passed1" title="min - average - max"></td>
+        <td class="data2" id="passed2" title="min - average - max"></td>
+    </tr>
+    <tr><td class="field">FAILED</td>
+        <td class="data1" id="failed1" title="min - average - max"></td>
+        <td class="data2" id="failed2" title="min - average - max"></td>
+    </tr>
+    <tr><td class="field">IGNORED</td>
+        <td class="data1" id="ignored1" title="min - average - max"></td>
+        <td class="data2" id="ignored2" title="min - average - max"></td>
+    </tr>
+    <tr><td class="field">MUTED</td>
+        <td class="data1" id="muted1" title="min - average - max"></td>
+        <td class="data2" id="muted2" title="min - average - max"></td></tr>
+    <tr><td class="section">PROBLEMS</td><td></td><td></td></tr>
+    <tr><td class="field">TOTAL</td>
+        <td class="data1" id="TT1" title="min - average - max"></td>
+        <td class="data2" id="TT2" title="min - average - max"></td></tr>
+    <tr><td></td>
+        <td style="text-align: center;"><svg id="graph1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graph2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">EXECUTION_TIMEOUT</td>
+        <td class="data1" id="ET1" title="min - average - max"></td>
+        <td class="data2" id="ET2" title="min - average - max"></td>
+    </tr>
+    <tr><td class="field">JVM_CRASH</td>
+        <td class="data1" id="JC1" title="min - average - max"></td>
+        <td class="data2" id="JC2" title="min - average - max"></td>
+    </tr>
+    <tr><td class="field">OOME</td>
+        <td class="data1" id="OO1" title="min - average - max"></td>
+        <td class="data2" id="OO2" title="min - average - max"></td>
+    </tr>
+    <tr><td class="field">EXIT_CODE</td>
+        <td class="data1" id="EC1" title="min - average - max"></td>
+        <td class="data2" id="EC2" title="min - average - max"></td>
+    </tr>
+    <tr><td class="field">FAILED_TESTS</td>
+        <td class="data1" id="FT1" title="min - average - max"></td>
+        <td class="data2" id="FT2" title="min - average - max"></td>
+    </tr>
+    <tr><td class="field">SNAPSHOT_DEPENDENCY_ERROR</td>
+        <td class="data1" id="SD1" title="min - average - max"></td>
+        <td class="data2" id="SD2" title="min - average - max"></td>
+    </tr>
+    <tr><td class="field">OTHER</td>
+        <td class="data1" id="OT1" title="min - average - max"></td>
+        <td class="data2" id="OT2" title="min - average - max"></td></tr>
+</table><br>
+<div>
+    <details><summary>log1</summary><p id="log1"></p></details>
+    <details><summary>log2</summary><p id="log2"></p></details>
+</div>
+<div id="version"></div>
+<div id="dates"></div>
+<div id="totals"></div>
 <script>
     var oneWeekAgo = new Date();
     var twoWeekAgo = new Date();
@@ -69,19 +140,33 @@
     const prOcc = ["TT", "ET", "JC", "OO", "EC", "FT", "SD", "OT"];
     const tOcc = ["count", "passed", "failed", "ignored", "muted"];
 
+    function median(arr){
+        arr = arr.sort(function(a, b){ return a - b; });
+        var i = arr.length / 2;
+        return i % 1 == 0 ? (arr[i - 1] + arr[i]) / 2 : arr[Math.floor(i)];
+    }
+
     function printStatistics(num, map) {
+        var forGraph = [];
+        var parseTime = d3.timeParse("%d-%m-%YT%H:%M:%S");
+
         var stat = {};
 
         for (var i = 0; i < prOcc.length; i++) {
             stat[prOcc[i] + '-min'] = map[0].totalProblems[prOcc[i]];
             stat[prOcc[i] + '-max'] = map[0].totalProblems[prOcc[i]];
         }
+
         for (var k = 0; k < tOcc.length; k++) {
             stat[tOcc[k] + '-min'] = map[0].testOccurrences[tOcc[k]];
             stat[tOcc[k] + '-max'] = map[0].testOccurrences[tOcc[k]];
         }
 
-        for (var j = 1; j < map.length; j++) {
+        for (var j = 0; j < map.length; j++) {
+            forGraph[j] = {};
+            forGraph[j].date = parseTime(map[j].date);
+            forGraph[j].total = map[j].totalProblems.TT;
+
             for (var i = 0; i < prOcc.length; i++) {
                 if (map[j].totalProblems[prOcc[i]] > stat[prOcc[i] + '-max']) stat[prOcc[i] + '-max'] = map[j].totalProblems[prOcc[i]];
                 if (map[j].totalProblems[prOcc[i]] < stat[prOcc[i] + '-min']) stat[prOcc[i] + '-min'] = map[j].totalProblems[prOcc[i]];
@@ -98,6 +183,9 @@
         for (var k = 0; k < tOcc.length; k++) {
             $('#' + tOcc[k] + num).html(stat[tOcc[k] + '-min'] + " - " + 0 + " - " + stat[tOcc[k] + '-max']);
         }
+
+        drawGraph(num, forGraph);
+
     }
 
     $(document).ready(function() {
@@ -129,44 +217,69 @@
         $('input[name="daterange1"]').daterangepicker(
             dateRangePickerParam(oneWeekAgo, new Date()), function (start, end, label) {
                 loadData(1, start.format("DDMMYYYY"), end.format("DDMMYYYY"));
-        });
+            });
     });
 
     $(function() {
         $('input[name="daterange2"]').daterangepicker(
             dateRangePickerParam(twoWeekAgo, oneWeekAgo), function (start, end, label) {
                 loadData(2, start.format("DDMMYYYY"), end.format("DDMMYYYY"));
-        });
+            });
     });
 
+
+
+    function drawGraph(num, data) {
+        d3.selectAll("#graph" + num + "> *").remove();
+        d3.selectAll('.axis').remove();
+
+        svg = d3.select("#graph" + num).append("svg:svg");
+        margin = {top: 20, right: 20, bottom: 30, left: 50};
+/*      width = +svg.attr("width") - margin.left - margin.right,
+        height = +svg.attr("height") - margin.top - margin.bottom,*/
+        width = +400 - margin.left - margin.right;
+        height = +200 - margin.top - margin.bottom;
+        g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        x = d3.scaleTime().range([0, width]);
+        y = d3.scaleLinear().range([height, 0]);
+
+
+        line = d3.line()
+            .curve(d3.curveBasis)
+            .x(function(d) { return x(d.date); })
+            .y(function(d) { return y(d.total); });
+
+
+        x.domain(d3.extent(data, function(d) { return d.date; }));
+        y.domain(d3.extent(data, function(d) { return d.total; }));
+
+        g.append("svg:g")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x))
+            .select(".domain")
+            .remove();
+
+        g.append("svg:g")
+            .call(d3.axisLeft(y))
+            .append("text")
+            .attr("fill", "#000")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 6)
+            .attr("dy", "0.71em")
+            .attr("text-anchor", "end")
+            .text("Total problems");
+
+        g.append("svg:path")
+            .datum(data)
+            .attr("fill", "none")
+            .attr("stroke", "steelblue")
+            .attr("stroke-linejoin", "round")
+            .attr("stroke-linecap", "round")
+            .attr("stroke-width", 1.5)
+            .attr("d", line);
+    }
+
 </script>
-<br><br>
-<table class="stat">
-    <tr>
-        <th class="section">DATE INTERVAL</th>
-        <th style="text-align: center;"><input type='text' name='daterange1'/></th>
-        <th style="text-align: center;"><input type='text' name='daterange2'/></th>
-    </tr>
-    <tr><td class="section">TESTS</td><td></td><td></td></tr>
-    <tr><td class="field">COUNT</td><td class="data1" id="count1"></td><td class="data2" id="count2"> </td></tr>
-    <tr><td class="field">PASSED</td><td class="data1" id="passed1"> </td><td class="data2" id="passed2"> </td></tr>
-    <tr><td class="field">FAILED</td><td class="data1" id="failed1"> </td><td class="data2" id="failed2"> </td></tr>
-    <tr><td class="field">IGNORED</td><td class="data1" id="ignored1"> </td><td class="data2" id="ignored2"> </td></tr>
-    <tr><td class="field">MUTED</td><td class="data1" id="muted1"> </td><td class="data2" id="muted2"> </td></tr>
-    <tr><td class="section">PROBLEMS</td><td></td><td></td></tr>
-    <tr><td class="field">TOTAL</td><td class="data1" id="TT1"></td><td class="data2" id="TT2"> </td></tr>
-    <tr><td class="field">EXECUTION_TIMEOUT</td><td class="data1" id="ET1"> </td><td class="data2" id="ET2"> </td></tr>
-    <tr><td class="field">JVM_CRASH</td><td class="data1" id="JC1"> </td><td class="data2" id="JC2"> </td></tr>
-    <tr><td class="field">OOME</td><td class="data1" id="OO1"> </td><td class="data2" id="OO2"> </td></tr>
-    <tr><td class="field">EXIT_CODE</td><td class="data1" id="EC1"> </td><td class="data2" id="EC2"> </td></tr>
-    <tr><td class="field">FAILED_TESTS</td><td class="data1" id="FT1"> </td><td class="data2" id="FT2"> </td></tr>
-    <tr><td class="field">SNAPSHOT_DEPENDENCY_ERROR</td><td class="data1" id="SD1"> </td><td class="data2" id="SD2"> </td></tr>
-    <tr><td class="field">OTHER</td><td class="data1" id="OT1"> </td><td class="data2" id="OT2"> </td></tr>
-</table><br>
-<div>
-    <details><summary>log1</summary><p id="log1"></p></details>
-    <details><summary>log2</summary><p id="log2"></p></details>
-</div>
-<div id="version"></div>
 </body>
 </html>
