@@ -302,15 +302,18 @@ function notifyGit() {
     });
 }
 
-function triggerBuild(serverId, suiteId, branchName, top) {
+function triggerBuild(serverId, suiteId, branchName, top, observe, ticketId) {
     var queueAtTop = isDefinedAndFilled(top) && top;
+
     $.ajax({
         url: 'rest/build/trigger',
         data: {
             "serverId": serverId,
             "suiteId": suiteId,
             "branchName": branchName,
-            "top": queueAtTop
+            "top": queueAtTop,
+            "observe": observe,
+            "ticketId": ticketId
         },
         success: function(result) {
             var dialog = $("#triggerDialog");
@@ -385,6 +388,39 @@ function triggerBuilds(serverId, suiteIdList, branchName, top) {
                 $(this).dialog("close");
             }
         }
+    });
+}
+
+function commentJira(serverId, suiteId, branchName, ticketId) {
+    $("#notifyJira").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px>" +
+        " Please wait. First action for PR run-all data may require significant time.");
+
+    $.ajax({
+        url: 'rest/build/commentJira',
+        data: {
+            "serverId": serverId,
+            "suiteId": suiteId,
+            "branchName": branchName,
+            "ticketId": ticketId
+        },
+        success: function(result) {$("#notifyJira").html("");
+            var dialog = $("#triggerDialog");
+
+            dialog.html("Trigger builds at server: " + serverId + "<br>" +
+                " Suite: " + suiteId + "<br>Branch:" + branchName + "<br>Top: " +
+                "<br><br> Result: " + result.result);
+            dialog.dialog({
+                modal: true,
+                buttons: {
+                    "Ok": function() {
+                        $(this).dialog("close");
+                    }
+                }
+            });
+
+            loadData(); // should be defined by page
+        },
+        error: showErrInLoadStatus
     });
 }
 

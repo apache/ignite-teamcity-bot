@@ -59,4 +59,14 @@ public interface ITcHelper {
     Collection<String> getServerIds();
 
     List<String> getTrackedBranchesIds();
+
+    /**
+     * @param srvId Server id.
+     * @param prov Credentials.
+     * @param buildTypeId Suite name.
+     * @param branchForTc Branch for TeamCity.
+     * @param ticket JIRA ticket full name.
+     * @return {@code True} if JIRA was notified.
+     */
+    boolean notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc, String ticket);
 }

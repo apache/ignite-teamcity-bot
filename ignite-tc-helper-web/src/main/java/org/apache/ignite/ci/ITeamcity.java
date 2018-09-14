@@ -287,11 +287,11 @@ public interface ITeamcity extends AutoCloseable {
     PullRequest getPullRequest(String branch);
 
     /**
-     * @param ticket JIRA ticket name.
+     * @param ticket JIRA ticket full name.
      * @param comment Comment to be placed in the ticket conversation.
      * @return {@code True} if ticket was succesfully commented. Otherwise - {@code false}.
      */
-    boolean commentJiraTicket(String ticket, String comment);
+    boolean sendJiraComment(String ticket, String comment);
 
 
     default void setAuthData(String user, String password) {
