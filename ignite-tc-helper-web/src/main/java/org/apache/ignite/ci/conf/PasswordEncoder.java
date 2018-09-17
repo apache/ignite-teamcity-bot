@@ -105,8 +105,8 @@ public class PasswordEncoder {
         Preconditions.checkState(decode.equals(pass));
     }
 
-    public static void main2(String[] args) {
-        String tok = HelperConfig.userPwdToToken("ignitetcbot", "mmm");
+    public static void main3(String[] args) {
+        String tok = HelperConfig.userPwdToToken("ignitetcbot", "222");
         String encode = encode(tok);
         System.err.println("Encoded: " +  HelperConfig.JIRA_AUTH_TOKEN + "=" + encode);
         String decode = decode(encode);
