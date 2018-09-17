@@ -36,6 +36,7 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.model.SimpleResult;
+import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -73,7 +74,7 @@ public class TriggerBuild {
                 jiraRes = observeJira(srvId, branchForTc, ticketId, helper, teamcity, build, prov);
         }
 
-        return new SimpleResult("Tests started." + (!jiraRes.equals("") ? "<br>" + jiraRes : ""));
+        return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
 
     @GET
@@ -112,7 +113,7 @@ public class TriggerBuild {
 
                 ticketId = getTicketId(pr);
 
-                if (ticketId.equals("")) {
+                if (ticketId.isEmpty()) {
                     jiraRes = "JIRA ticket can't be commented - " +
                         "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
                         " Please, rename PR according to the" +
@@ -124,10 +125,10 @@ public class TriggerBuild {
         }
 
         if (helper.notifyJira(srvId, prov, suiteId, branchForTc, "ignite-" + ticketId))
-            return new SimpleResult("JIRA commented." + (!jiraRes.equals("") ? jiraRes : ""));
+            return new SimpleResult("JIRA commented." + (!jiraRes.isEmpty() ? jiraRes : ""));
         else
             // TODO Write catched exceptions to the response.
-            return new SimpleResult("JIRA wasn't commented." + (!jiraRes.equals("") ? "<br>" + jiraRes : ""));
+            return new SimpleResult("JIRA wasn't commented." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
 
     /**
@@ -149,12 +150,12 @@ public class TriggerBuild {
         Build build,
         ICredentialsProv prov
     ) {
-        if (ticketId == null || ticketId.equals("")) {
+        if (F.isEmpty(ticketId)) {
             PullRequest pr = teamcity.getPullRequest(branchForTc);
 
             ticketId = getTicketId(pr);
 
-            if (ticketId.equals("")) {
+            if (ticketId.isEmpty()) {
                 return "JIRA ticket will not be notified after the tests are completed - " +
                     "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
                     " Please, rename PR according to the" +
