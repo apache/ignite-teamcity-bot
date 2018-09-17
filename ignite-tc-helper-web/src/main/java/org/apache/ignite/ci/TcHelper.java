@@ -180,6 +180,10 @@ public class TcHelper implements ITcHelper {
     ) {
         try (IAnalyticsEnabledTeamcity teamcity = server(srvId, prov)) {
             List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchForTc);
+
+            if (builds.isEmpty())
+                return false;
+
             BuildRef build = builds.get(builds.size() - 1);
             String comment;
 
@@ -193,9 +197,8 @@ public class TcHelper implements ITcHelper {
                 return false;
             }
 
-            if ("finished".equals(build.state)) {
+            if ("finished".equals(build.state))
                 return teamcity.sendJiraComment(ticket, comment);
-            }
 
             return false;
         }
