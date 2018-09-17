@@ -158,7 +158,7 @@ public class TcHelper implements ITcHelper {
     }
 
     //todo get from persistence
-    public Collection<String> getServerIds() {
+    @Override public Collection<String> getServerIds() {
         return getTrackedBranches().getServerIds();
     }
 
@@ -193,9 +193,8 @@ public class TcHelper implements ITcHelper {
                 return false;
             }
 
-            if (build.state.equals("finished")) {
-                if (teamcity.sendJiraComment(ticket, comment))
-                    return true;
+            if ("finished".equals(build.state)) {
+                return teamcity.sendJiraComment(ticket, comment);
             }
 
             return false;
@@ -224,7 +223,7 @@ public class TcHelper implements ITcHelper {
 
         if (summary != null) {
             for (ChainAtServerCurrentStatus server : summary.servers) {
-                if (!server.serverName().equals("apache"))
+                if (!"apache".equals(server.serverName()))
                     continue;
 
                 Map<String, List<SuiteCurrentStatus>> fails = findFailures(server);
@@ -234,7 +233,7 @@ public class TcHelper implements ITcHelper {
                         res.append("{color:#d04437}").append(suite.name).append("{color}");
                         res.append(" [[tests ").append(suite.failedTests);
 
-                        if (suite.result != null && !suite.result.equals(""))
+                        if (suite.result != null && !suite.result.isEmpty())
                             res.append(' ').append(suite.result);
 
                         res.append('|').append(suite.webToBuild).append("]]\\n");
