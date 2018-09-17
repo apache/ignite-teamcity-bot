@@ -21,5 +21,5 @@ package org.apache.ignite.ci;
  * Combination of REST data and persisted statistics.
  */
 public interface IAnalyticsEnabledTeamcity extends ITeamcity, ITcAnalytics {
-    public void init(IgniteTeamcityHelper teamcity);
+    public void init(ITeamcity conn);
 }

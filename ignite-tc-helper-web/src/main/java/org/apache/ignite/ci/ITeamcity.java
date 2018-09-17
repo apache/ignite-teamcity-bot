@@ -307,4 +307,6 @@ public interface ITeamcity extends AutoCloseable {
      * @return List of teamcity agents.
      */
     List<Agent> agents(boolean connected, boolean authorized);
+
+    void init(String serverId);
 }

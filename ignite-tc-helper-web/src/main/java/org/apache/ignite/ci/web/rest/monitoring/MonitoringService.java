@@ -44,11 +44,12 @@ public class MonitoringService {
     @Path("profiling")
     public List<String> getHotMethods() {
         ProfilingInterceptor instance = CtxListener.getInjector(ctx).getInstance(ProfilingInterceptor.class);
-        Map<String, AtomicLong> map = instance.getMap();
+        Map<String, ProfilingInterceptor.Invocation> map = instance.getMap();
 
         Stream<HotSpot> hotSpotStream = map.entrySet().stream().map(entry -> {
             HotSpot hotSpot = new HotSpot();
-            hotSpot.setNanos(entry.getValue().get());
+            hotSpot.setNanos(entry.getValue().getNanos());
+            hotSpot.setCount(entry.getValue().getCount());
             hotSpot.method = entry.getKey();
             return hotSpot;
         });

@@ -18,19 +18,22 @@ package org.apache.ignite.ci.di;
 
 import com.google.common.base.Strings;
 import com.google.inject.AbstractModule;
-import com.google.inject.Inject;
-import com.google.inject.Injector;
-import com.google.inject.Provider;
 import com.google.inject.matcher.Matchers;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
+
+import javax.inject.Inject;
+import javax.inject.Provider;
 
 public class IgniteTcBotModule extends AbstractModule {
     @Deprecated
     private Ignite ignite;
 
+    /** {@inheritDoc} */
+    @Override
     protected void configure() {
         ProfilingInterceptor profilingInterceptor = new ProfilingInterceptor();
 
@@ -47,6 +50,9 @@ public class IgniteTcBotModule extends AbstractModule {
             }
         });
 
+        //Simple connection
+        bind(ITeamcity.class).to(IgniteTeamcityHelper.class);
+        //With REST persistence
         bind(IAnalyticsEnabledTeamcity.class).to(IgnitePersistentTeamcity.class);
         bind(IServerProv.class).toInstance(
                 new MyIServerProv()
@@ -59,17 +65,20 @@ public class IgniteTcBotModule extends AbstractModule {
         this.ignite = ignite;
     }
 
-    private class MyIServerProv implements IServerProv {
+    private static class MyIServerProv implements IServerProv {
         @Inject
-        Injector injector;
+        Provider<IAnalyticsEnabledTeamcity> tcPersistProv;
 
+        @Inject
+        Provider<ITeamcity> tcConnProv;
 
         @Override
         public IAnalyticsEnabledTeamcity createServer(String serverId) {
-            IgniteTeamcityHelper igniteTeamcityHelper = new IgniteTeamcityHelper(Strings.emptyToNull(serverId));
+            ITeamcity tcConn = tcConnProv.get();
+            tcConn.init(Strings.emptyToNull(serverId));
 
-            IAnalyticsEnabledTeamcity instance = injector.getInstance(IAnalyticsEnabledTeamcity.class);
-            instance.init(igniteTeamcityHelper);
+            IAnalyticsEnabledTeamcity instance = tcPersistProv.get();
+            instance.init(tcConn);
 
             return instance;
         }

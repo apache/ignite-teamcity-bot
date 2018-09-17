@@ -50,6 +50,7 @@ import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.LogCheckTask;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.logs.BuildLogStreamChecker;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
@@ -98,25 +99,33 @@ public class IgniteTeamcityHelper implements ITeamcity {
     private static final Logger logger = LoggerFactory.getLogger(IgniteTeamcityHelper.class);
 
     private Executor executor;
-    private final File logsDir;
+    private File logsDir;
     /** Normalized Host address, ends with '/'. */
-    private final String host;
+    private String host;
 
     /** TeamCity authorization token. */
     private String basicAuthTok;
 
-    /** GitHub authorization token. */
+    /** GitHub authorization token.  */
     private String gitAuthTok;
 
-    /** JIRA authorization token. */
+    /**  JIRA authorization token. */
     private String jiraBasicAuthTok;
 
-    private final String configName; //main properties file name
-    private final String tcName;
+    private String configName; //main properties file name
+    private String tcName;
 
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
     public IgniteTeamcityHelper(@Nullable String tcName) {
+        init(tcName);
+    }
+
+    //for DI
+    public IgniteTeamcityHelper() {
+    }
+
+    public void init(@Nullable String tcName) {
         this.tcName = tcName;
         final File workDir = HelperConfig.resolveWorkDir();
 
@@ -176,6 +185,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public boolean sendJiraComment(String ticket, String comment) {
         try {
             String url = "https://issues.apache.org/jira/rest/api/2/issue/" + ticket + "/comment";
@@ -192,6 +202,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public PullRequest getPullRequest(String branchForTc) {
         String id = null;
 
@@ -220,6 +231,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public boolean notifyGit(String url, String body) {
         try {
             HttpUtil.sendPostAsStringToGit(gitAuthTok, url, body);
@@ -234,6 +246,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public List<Agent> agents(boolean connected, boolean authorized) {
         String url = "app/rest/agents?locator=connected:" + connected + ",authorized:" + authorized;
 
@@ -245,6 +258,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             .collect(Collectors.toList());
     }
 
+    @AutoProfiling
     public CompletableFuture<File> downloadBuildLogZip(int buildId) {
         boolean archive = true;
         Supplier<File> supplier = () -> {
@@ -271,6 +285,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return supplyAsync(supplier, executor);
     }
 
+    @AutoProfiling
     @Override public CompletableFuture<LogCheckResult> analyzeBuildLog(Integer buildId, SingleBuildRunCtx ctx) {
         final Stopwatch started = Stopwatch.createStarted();
 
@@ -295,6 +310,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public Build triggerBuild(
         String buildTypeId,
         String branchName,
@@ -390,6 +406,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         }).thenApply(T2::get1);
     }
 
+    @AutoProfiling
     public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
         final CompletableFuture<List<File>> clearFileF = unzip(fut);
         return clearFileF.thenApplyAsync(files -> {
@@ -434,7 +451,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             try (InputStream inputStream = HttpUtil.sendGetWithBasicAuth(basicAuthTok, url)) {
                 final InputStreamReader reader = new InputStreamReader(inputStream);
 
-                return XmlUtil.load(rootElem, reader);
+                return loadXml(rootElem, reader);
             }
         }
         catch (IOException e) {
@@ -443,6 +460,11 @@ public class IgniteTeamcityHelper implements ITeamcity {
         catch (JAXBException e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    @AutoProfiling
+    protected  <T> T loadXml(Class<T> rootElem, InputStreamReader reader) throws JAXBException {
+        return XmlUtil.load(rootElem, reader);
     }
 
     private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
@@ -472,15 +494,20 @@ public class IgniteTeamcityHelper implements ITeamcity {
             + ",count:" + cntFilter, Builds.class).getBuildsNonNull();
     }
 
+    @AutoProfiling
     public BuildTypeFull getBuildType(String buildTypeId) {
         return sendGetXmlParseJaxb(host + "app/rest/latest/buildTypes/id:" +
             buildTypeId, BuildTypeFull.class);
     }
 
+    @Override
+    @AutoProfiling
     public Build getBuild(String href) {
         return getJaxbUsingHref(href, Build.class);
     }
 
+    @Override
+    @AutoProfiling
     public ProblemOccurrences getProblems(Build build) {
         if (build.problemOccurrences != null) {
             ProblemOccurrences coll = getJaxbUsingHref(build.problemOccurrences.href, ProblemOccurrences.class);
@@ -493,26 +520,38 @@ public class IgniteTeamcityHelper implements ITeamcity {
             return new ProblemOccurrences();
     }
 
+    @Override
+    @AutoProfiling
     public TestOccurrences getTests(String href, String normalizedBranch) {
         return getJaxbUsingHref(href, TestOccurrences.class);
     }
 
+    @Override
+    @AutoProfiling
     public Statistics getBuildStatistics(String href) {
         return getJaxbUsingHref(href, Statistics.class);
     }
 
+    @Override
+    @AutoProfiling
     public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
         return supplyAsync(() -> getJaxbUsingHref(href, TestOccurrenceFull.class), executor);
     }
 
+    @Override
+    @AutoProfiling
     public Change getChange(String href) {
         return getJaxbUsingHref(href, Change.class);
     }
 
+    @Override
+    @AutoProfiling
     public ChangesList getChangesList(String href) {
         return getJaxbUsingHref(href, ChangesList.class);
     }
 
+    @Override
+    @AutoProfiling
     public IssuesUsagesList getIssuesUsagesList(String href) { return getJaxbUsingHref(href, IssuesUsagesList.class); }
 
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {
@@ -523,6 +562,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public List<BuildRef> getFinishedBuilds(String projectId,
         String branch) {
 
@@ -530,6 +570,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
+    @Override
+    @AutoProfiling
     public List<BuildRef> getFinishedBuilds(String projectId,
         String branch, Long cnt) {
         List<BuildRef> finished = getBuildHistory(projectId,
@@ -541,22 +583,26 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
+    @Override
+    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
         return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null);
     }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt) {
+    @Override
+    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt) {
         return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, cnt);
     }
 
     /** {@inheritDoc} */
-    @Override public CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch) {
+    @Override
+    @AutoProfiling public CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch) {
         return supplyAsync(() -> getBuildsInState(null, branch, BuildRef.STATE_RUNNING), executor);
     }
 
     /** {@inheritDoc} */
-    @Override public CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch) {
+    @Override
+    @AutoProfiling public CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch) {
         return supplyAsync(() -> getBuildsInState(null, branch, BuildRef.STATE_QUEUED), executor);
     }
 
@@ -580,6 +626,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return getBuildsInState(projectId, branch, state, null);
     }
 
+    @Override
     public String serverId() {
         return tcName;
     }
@@ -621,14 +668,17 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return task;
     }
 
+    @Override
     public void setExecutor(ExecutorService executor) {
         this.executor = executor;
     }
 
+    @AutoProfiling
     public Users getUsers() {
         return getJaxbUsingHref("app/rest/latest/users", Users.class);
     }
 
+    @AutoProfiling
     public User getUserByUsername(String username) {
         return getJaxbUsingHref("app/rest/latest/users/username:" + username, User.class);
     }

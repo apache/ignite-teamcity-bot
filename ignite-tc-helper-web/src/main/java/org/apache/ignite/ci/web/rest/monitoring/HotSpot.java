@@ -23,6 +23,7 @@ public class HotSpot {
     public String duration;
 
     private long ns;
+    private int count;
 
     public long getNanos() {
         return ns;
@@ -32,11 +33,16 @@ public class HotSpot {
     public String toString() {
         return "HotSpot{" +
                 "method='" + method + '\'' +
-                ", duration='" +  TimeUtil.getDurationPrintableNanos(ns) + "'" +
+                ", count='" + count + "'" +
+                ", duration='" + TimeUtil.getDurationPrintableNanos(ns) + "'" +
                 '}';
     }
 
     public void setNanos(long l) {
         ns = l;
+    }
+
+    public void setCount(int count) {
+        this.count = count;
     }
 }

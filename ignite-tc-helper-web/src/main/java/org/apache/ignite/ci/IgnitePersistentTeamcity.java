@@ -106,7 +106,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     @Inject
     private Ignite ignite;
-    private IgniteTeamcityHelper teamcity;
+    /**
+     * Teamcity
+     */
+    private ITeamcity teamcity;
     private String serverId;
 
     /**
@@ -123,6 +126,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     //todo: not good code to keep it static
     private static long lastTriggerMs = System.currentTimeMillis();
 
+    @Deprecated
     public IgnitePersistentTeamcity(Ignite ignite, @Nullable String srvId) {
         this(ignite, new IgniteTeamcityHelper(srvId));
     }
@@ -136,11 +140,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         this.ignite = ignite;
     }
 
-    public void init(IgniteTeamcityHelper teamcity) {
-        this.teamcity = teamcity;
-        this.serverId = teamcity.serverId();
+    public void init(ITeamcity conn) {
+        this.teamcity = conn;
+        this.serverId = conn.serverId();
 
-        DbMigrations migrations = new DbMigrations(ignite, teamcity.serverId());
+        DbMigrations migrations = new DbMigrations(ignite, conn.serverId());
 
         migrations.dataMigration(
                 testOccurrencesCache(), this::addTestOccurrencesToStat,
@@ -154,6 +158,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 buildHistIncFailedCache());
     }
 
+    @Override
+    public void init(String serverId) {
+        throw new UnsupportedOperationException();
+    }
     /**
      * Creates atomic cache with 32 parts.
      * @param name Cache name.

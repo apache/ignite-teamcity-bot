@@ -25,10 +25,35 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ProfilingInterceptor implements MethodInterceptor {
-    Map<String, AtomicLong> totalTime = new ConcurrentHashMap<>();
+    Map<String, Invocation> totalTime = new ConcurrentHashMap<>();
+
+    public static class Invocation {
+        private final AtomicLong timeNanos = new AtomicLong();
+        private final AtomicInteger callsCnt = new AtomicInteger();
+        private String name;
+
+        public Invocation(String name) {
+            this.name = name;
+        }
+
+        public long addAndGet(long elapsed) {
+            callsCnt.incrementAndGet();
+
+            return timeNanos.addAndGet(elapsed);
+        }
+
+        public long getNanos() {
+            return timeNanos.get();
+        }
+
+        public int getCount() {
+            return callsCnt.get();
+        }
+    }
 
     @Override
     public Object invoke(MethodInvocation invocation) throws Throwable {
@@ -42,16 +67,14 @@ public class ProfilingInterceptor implements MethodInterceptor {
             long elapsed = started.elapsed(TimeUnit.NANOSECONDS);
 
             String fullKey = cls + "." + mtd;
-            long totalElapsed = totalTime.computeIfAbsent(fullKey, (k) -> {
-                return new AtomicLong();
-            }).addAndGet(elapsed);
-            String duration = Duration.ofNanos(totalElapsed).toString();
+            long totalElapsed = totalTime.computeIfAbsent(fullKey, Invocation::new).addAndGet(elapsed);
+            //String duration = Duration.ofNanos(totalElapsed).toString();
 
-            System.out.println(fullKey + ": " + duration + " ");
+            // System.out.println(fullKey + ": " + duration + " ");
         }
     }
 
-    public Map<String, AtomicLong> getMap() {
+    public Map<String, Invocation> getMap() {
         return Collections.unmodifiableMap(totalTime);
     }
 }
