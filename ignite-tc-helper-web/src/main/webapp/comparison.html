@@ -50,6 +50,13 @@
         <td style="text-align: center;"><svg id="graphTT1" width="500" height="200"></svg></td>
         <td style="text-align: center;"><svg id="graphTT2" width="500" height="200"></svg></td>
     </tr>
+    <tr><td class="field">SUBTOTAL<br><p style="font-size:10px">WITHOUT FAILED TESTS, SNAPSHOT DEPENDENCY ERROR, OTHER</p></td>
+        <td class="data1" id="ST1" title="min - median - max"></td>
+        <td class="data2" id="ST2" title="min - median - max"></td></tr>
+    <tr><td></td>
+        <td style="text-align: center;"><svg id="graphST1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphST2" width="500" height="200"></svg></td>
+    </tr>
     <tr><td class="field">EXECUTION_TIMEOUT</td>
         <td class="data1" id="ET1" title="min - median - max"></td>
         <td class="data2" id="ET2" title="min - median - max"></td>
@@ -83,11 +90,9 @@
     <details><summary>log2</summary><p id="log2"></p></details>
 </div>
 <div id="version"></div>
-<div id="dates"></div>
-<div id="totals"></div>
 <script>
-    var oneWeekAgo = new Date();
-    var twoWeekAgo = new Date();
+    let oneWeekAgo = new Date();
+    let twoWeekAgo = new Date();
 
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     twoWeekAgo.setDate(twoWeekAgo.getDate() - 14);
@@ -110,19 +115,15 @@
     const prOcc = ["TT", "ET", "JC", "OO", "EC", "FT", "SD", "OT"];
     const tOcc = ["count", "passed", "failed", "ignored", "muted"];
 
-    function median(arr){
-        var newArr = arr.slice();
+    function getMinMaxMedian(arr) {
+        let newArr = arr.slice();
         newArr = newArr.sort(function(a, b){ return a - b; });
-        var i = newArr.length / 2;
-        return i % 1 == 0 ? (newArr[i - 1] + newArr[i]) / 2 : newArr[Math.floor(i)];
-    }
-
-    function max(arr){
-        return Math.max(...arr);
-    }
-
-    function min(arr){
-        return Math.min(...arr);
+        let i = newArr.length / 2;
+        let result = {};
+        result.median = i % 1 == 0 ? (newArr[i - 1] + newArr[i]) / 2 : newArr[Math.floor(i)];
+        result.min = newArr[0];
+        result.max = newArr[newArr.length - 1];
+        return result;
     }
 
     function parseMedian(string) {
@@ -130,59 +131,70 @@
     }
 
     function printStatistics(num, map) {
-        var parseTime = d3.timeParse("%d-%m-%YT%H:%M:%S");
+        const parseTime = d3.timeParse("%d-%m-%YT%H:%M:%S");
 
-        var statistics = {};
-        var dates = [];
+        let statistics = {};
+        let dates = [];
 
-        for (var i = 0; i < prOcc.length; i++) {
+        for (let i = 0; i < prOcc.length; i++) {
             statistics[prOcc[i]] = [];
         }
 
-        for (var k = 0; k < tOcc.length; k++) {
+        for (let k = 0; k < tOcc.length; k++) {
             statistics[tOcc[k]] = [];
         }
 
-        for (var j = 0; j < map.length; j++) {
+        statistics['ST'] = [];
+
+        for (let j = 0; j < map.length; j++) {
             dates[j] = parseTime(map[j].date)
 
-            for (var i = 0; i < prOcc.length; i++) {
+            for (let i = 0; i < prOcc.length; i++) {
                 statistics[prOcc[i]][j] = map[j].totalProblems[prOcc[i]];
             }
-            for (var k = 0; k < tOcc.length; k++) {
+
+            for (let k = 0; k < tOcc.length; k++) {
                 statistics[tOcc[k]][j] = map[j].testOccurrences[tOcc[k]];
             }
+
+            statistics['ST'][j] = statistics['TT'][j] - statistics['FT'][j] - statistics['SD'][j];
         }
 
-        var anotherNum = (num === 1) ? 2 : 1;
-        var thisMedian, anotherMedian;
+        const anotherNum = (num === 1) ? 2 : 1;
+        let anotherMedian;
+        let result = {};
 
-        for (var i = 0; i < prOcc.length; i++) {
+        for (let i = 0; i < prOcc.length; i++) {
 
             document.getElementById(prOcc[i] + 1).style.background = null;
             document.getElementById(prOcc[i] + 2).style.background = null;
 
-            thisMedian = median(statistics[prOcc[i]]);
+            result = getMinMaxMedian(statistics[prOcc[i]]);
             anotherMedian = parseMedian(document.getElementById(prOcc[i] + anotherNum).innerHTML);
 
-            $('#' + prOcc[i] + num).html(min(statistics[prOcc[i]]) +
-                " - " + thisMedian +  " - " + max(statistics[prOcc[i]]));
+            $('#' + prOcc[i] + num).html(result.min + " - " + result.median +  " - " + result.max);
 
             if (!isNaN(anotherMedian)){
-                if (thisMedian > anotherMedian){
+                if (result.median > anotherMedian){
                     document.getElementById(prOcc[i] + num).style.backgroundColor = "#ffeee9";
-                } else if (thisMedian < anotherMedian){
+                } else if (result.median < anotherMedian){
                     document.getElementById(prOcc[i] + anotherNum).style.backgroundColor = "#ffeee9";
                 }
             }
         }
 
-        for (var k = 0; k < tOcc.length; k++) {
-            $('#' + tOcc[k] + num).html(min(statistics[tOcc[k]]) +
-                " - " + median(statistics[tOcc[k]]) + " - " + max(statistics[tOcc[k]]));
+        for (let k = 0; k < tOcc.length; k++) {
+            result = getMinMaxMedian(statistics[tOcc[k]]);
+
+            $('#' + tOcc[k] + num).html(result.min + " - " + result.median + " - " + result.max);
         }
 
-        drawGraph('TT', num, dates, statistics['TT']);
+        result = getMinMaxMedian(statistics['ST']);
+
+        $('#' + 'ST' + num).html(result.min + " - " + result.median + " - " + result.max);
+
+        drawGraph('TT', num, dates, statistics['TT'], "TOTAL");
+        drawGraph('ST', num, dates, statistics['ST'], "SUBTOTAL");
     }
 
     $(document).ready(function() {
@@ -224,8 +236,8 @@
             });
     });
 
-    function drawGraph(prefix, num, dates, counts) {
-        var data = [];
+    function drawGraph(prefix, num, dates, counts, text) {
+        let data = [];
 
         for (let i = 0; i < dates.length; i++) {
             data[i] = {};
@@ -270,7 +282,7 @@
             .attr("y", 6)
             .attr("dy", "0.71em")
             .attr("text-anchor", "end")
-            .text("Total problems");
+            .text(text);
 
         g.append("svg:path")
             .datum(data)
