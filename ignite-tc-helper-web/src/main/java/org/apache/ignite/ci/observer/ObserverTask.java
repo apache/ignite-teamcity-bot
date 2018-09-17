@@ -48,7 +48,7 @@ public class ObserverTask extends TimerTask {
             try (IAnalyticsEnabledTeamcity teamcity = helper.server(info.srvId, info.prov)) {
                 Build build = teamcity.getBuild(info.build.getId());
 
-                if (!build.state.equals("finished"))
+                if (!"finished".equals(build.state))
                     continue;
             }
 

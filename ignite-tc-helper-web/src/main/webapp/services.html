@@ -56,7 +56,7 @@ function showSuitesForTeamCityRunData(result) {
         res += "Server: <input type='text' name='serverId' value='" + chainAtServer.serverId + "' readonly>";
         res += "Chain: <input type='text' name='suiteId' value='" + chainAtServer.suiteId + "' readonly>";
         res += "Branch: <input type='text' name='branchForTc' required> ";
-        res += "Ticket#: <input type='text' name='ticketId'>";
+        res += "Ticket: <input type='text' name='ticketId'>";
         res += "<button name='jira' type='button' onclick='trigBuild(\"tests\")'>Start tests</button>";
         res += "<button name='jira' onclick='trigBuild(\"tests+jira\")'>Start tests and comment JIRA ticket on ready</button>";
         //res += "<button name='git' onclick='trigBuild(\"tests+jira\")'>Start tests and comment GitHub PR on ready</button>";
@@ -86,7 +86,7 @@ function showCommentJiraForm(result) {
         res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId +" readonly>" ;
         res += "Chain: <input type='text' name='suiteId' value='" + chainAtServer.suiteId + "' readonly>";
         res += "Branch: <input type='text' name='branchForTc' required> ";
-        res += "Ticket #<input type='text' name='ticketId'> ";
+        res += "Ticket: <input type='text' name='ticketId'> ";
         res += "<button name='action' onclick='notifyJira()'>Notify</button>";
     }
 
@@ -102,10 +102,10 @@ function trigBuild(trigCase) {
 
     var srvId = fields.namedItem("serverId").value;
     var suiteId = fields.namedItem("suiteId").value;
-    var branchName = fields.namedItem("branchForTc").value;
-    var ticketId = fields.namedItem("ticketId").value;
+    var branchName = branchForTc(fields.namedItem("branchForTc").value);
+    var ticketId = jiraTicketNumber(fields.namedItem("ticketId").value);
 
-    triggerBuild(srvId, suiteId, branchName, false, trigCase != "tests", ticketId)
+    triggerBuild(srvId, suiteId, branchName, false, trigCase !== "tests", ticketId)
 }
 
 /**
@@ -116,14 +116,43 @@ function notifyJira() {
 
     var srvId = fields.namedItem("serverId").value;
     var suiteId = fields.namedItem("suiteId").value;
-    var branchName = fields.namedItem("branchForTc").value;
-    var ticketId = fields.namedItem("ticketId").value;
+    var branchName = branchForTc(fields.namedItem("branchForTc").value);
+    var ticketId = jiraTicketNumber(fields.namedItem("ticketId").value);
 
     commentJira(srvId, suiteId, branchName, ticketId)
+}
+
+/**
+ * Converts PR number to branch for TeamCity.
+ *
+ * @param pr - Pull Request number.
+ * @returns {String} Branch for TeamCity.
+ */
+function branchForTc(pr) {
+    var regExpr = /(\d*)/i;
+
+    if (regExpr.exec(pr)[0] === pr)
+        return "pull/" + regExpr.exec(pr)[0] + "/head";
+
+    return pr;
+}
+
+/**
+ * Converts JIRA ticket full name to the tickets number.
+ *
+ * @param ticket - JIRA ticket.
+ * @returns {string} JIRA ticket number.
+ */
+function jiraTicketNumber(ticket) {
+    var regExpr = /(ignite-)?(\d*)/i;
+
+    return regExpr.exec(ticket)[2];
 }
     </script>
 </head>
 <body>
+<div id="loadStatus"></div>
+<div><a href=".">Home</a><br></div>
 
 TeamCity Run All:   <br>
 <div id="suitesForRunAll"></div>
@@ -141,9 +170,6 @@ Notify JIRA:   <br>
     </form>
 </div>
 <br>-->
-<div id="loadStatus"></div>
-<div><a href=".">Home</a><br></div>
-<div id="divFailures"></div>
 
 <div id="version"></div>
 
