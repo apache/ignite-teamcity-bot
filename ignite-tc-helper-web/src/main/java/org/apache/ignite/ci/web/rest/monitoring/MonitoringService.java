@@ -65,11 +65,13 @@ public class MonitoringService {
     public List<String> getCacheStat() {
         Ignite ignite = CtxListener.getInjector(ctx).getInstance(Ignite.class);
 
-
         List<String> res = new ArrayList<>();
-        for (Iterator<String> iterator = ignite.cacheNames().iterator(); iterator.hasNext(); ) {
-            String next = iterator.next();
+        final Collection<String> strings = ignite.cacheNames();
 
+        final ArrayList<String> cacheNames = new ArrayList<>(strings);
+        cacheNames.sort(String::compareTo);
+
+        for (String next : cacheNames) {
             IgniteCache<?, ?> cache = ignite.cache(next);
 
             if (cache == null)
