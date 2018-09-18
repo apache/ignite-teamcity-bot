@@ -277,24 +277,22 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         if (persistedBuilds != null
                 && (persistedBuilds.isAgeLessThanSecs(seconds)
                 && (cnt == null || persistedBuilds.hasCounterGreaterThan(cnt)))) {
-            List<BuildRef> data = persistedBuilds.getData();
-
             ObjectInterner.internFields(persistedBuilds);
 
-            return data;
+            return persistedBuilds.getData();
         }
 
         Lock lock = lockBuildHistEntry(cache, key);
 
         try {
-            if (persistedBuilds != null
-                    && (persistedBuilds.isAgeLessThanSecs(seconds)
-                    && (cnt == null || persistedBuilds.hasCounterGreaterThan(cnt)))) {
-                List<BuildRef> data = persistedBuilds.getData();
+            if (!noLocks) {
+                if (persistedBuilds != null
+                        && (persistedBuilds.isAgeLessThanSecs(seconds)
+                        && (cnt == null || persistedBuilds.hasCounterGreaterThan(cnt)))) {
+                    ObjectInterner.internFields(persistedBuilds);
 
-                ObjectInterner.internFields(persistedBuilds);
-
-                return data;
+                    return persistedBuilds.getData();
+                }
             }
 
             //todo sinceBuild:(number:) // --todo -10 build numbers
