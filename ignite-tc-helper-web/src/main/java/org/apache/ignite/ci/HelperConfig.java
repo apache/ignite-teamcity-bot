@@ -26,10 +26,10 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Properties;
 import javax.ws.rs.QueryParam;
-import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.util.Base64Util;
+import org.apache.ignite.ci.util.ExceptionUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,6 +48,14 @@ public class HelperConfig {
     @Deprecated
     private static final String PASSWORD = "password";
     public static final String ENCODED_PASSWORD = "encoded_password";
+
+    /** GitHub authorization token property name. */
+    public static final String GITHUB_AUTH_TOKEN = "github.auth_token";
+
+    /** JIRA authorization token property name. */
+    public static final String JIRA_AUTH_TOKEN = "jira.auth_token";
+
+    /** Slack authorization token property name. */
     public static final String SLACK_AUTH_TOKEN = "slack.auth_token";
     public static final String SLACK_CHANNEL = "slack.channel";
     public static final String LOGS = "logs";
@@ -117,21 +125,68 @@ public class HelperConfig {
         return ensureDirExist(workDir);
     }
 
+    /**
+     * Extract GitHub authorization token from properties.
+     *
+     * @param props Properties, where token is placed.
+     * @return Null or decoded auth token for Github.
+     */
+    @Nullable static String prepareGithubHttpAuthToken(Properties props) {
+        String tok = props.getProperty(GITHUB_AUTH_TOKEN);
+
+        if (isNullOrEmpty(tok))
+            return null;
+
+        tok = PasswordEncoder.decode(tok);
+
+        return tok;
+    }
+
+    /**
+     * Extract JIRA basic authorization token from properties.
+     *
+     * @param props Properties, where token is placed.
+     * @return Null or decoded auth token for Github.
+     */
+    @Nullable static String prepareJiraHttpAuthToken(Properties props) {
+        String tok = props.getProperty(JIRA_AUTH_TOKEN);
+
+        if (isNullOrEmpty(tok))
+            return null;
+
+        tok = PasswordEncoder.decode(tok);
+
+        return tok;
+    }
+
+    /**
+     * Extract TeamCity authorization token from properties.
+     *
+     * @param props Properties, where token is placed.
+     * @param configName Configuration name.
+     * @return Null or decoded auth token for Github.
+     */
     @Nullable static String prepareBasicHttpAuthToken(Properties props, String configName) {
         final String user = getMandatoryProperty(props, USERNAME, configName);
         String pwd = props.getProperty(PASSWORD);
         boolean filled = !isNullOrEmpty(pwd);
-        if(!filled) {
+
+        if (!filled) {
             String enc = props.getProperty(ENCODED_PASSWORD);
+
             if(!isNullOrEmpty(enc)) {
                 pwd = PasswordEncoder.decode(enc);
                 filled = true;
             }
         }
 
-        if(!filled)
+        if (!filled)
             return null;
 
+        return userPwdToToken(user, pwd);
+    }
+
+    @NotNull public static String userPwdToToken(String user, String pwd) {
         return Base64Util.encodeUtf8String(user + ":" + pwd);
     }
 
@@ -148,7 +203,7 @@ public class HelperConfig {
         try(final FileReader json = new FileReader(file)) {
             return new Gson().fromJson(json, BranchesTracked.class);
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw ExceptionUtil.propagateException(e);
         }
     }
 

@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.web.rest;
 
+import com.google.common.base.Strings;
 import java.util.Arrays;
 import java.util.List;
 import javax.servlet.ServletContext;
@@ -27,11 +28,15 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.model.SimpleResult;
+import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -47,22 +52,141 @@ public class TriggerBuild {
     @GET
     @Path("trigger")
     public SimpleResult triggerBuild(
-        @Nullable @QueryParam("serverId") String serverId,
-        @Nullable @QueryParam("branchName") String branchName,
+        @Nullable @QueryParam("serverId") String srvId,
+        @Nullable @QueryParam("branchName") String branchForTc,
         @Nullable @QueryParam("suiteId") String suiteId,
-        @Nullable @QueryParam("top") Boolean top) {
-
+        @Nullable @QueryParam("top") Boolean top,
+        @Nullable @QueryParam("observe") Boolean observe,
+        @Nullable @QueryParam("ticketId") String ticketId
+    ) {
+        String jiraRes = "";
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        if(!prov.hasAccess(serverId)) {
-            throw ServiceUnauthorizedException.noCreds(serverId);
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
+
+        ITcHelper helper = CtxListener.getTcHelper(context);
+
+        try (final ITeamcity teamcity = helper.server(srvId, prov)) {
+            Build build = teamcity.triggerBuild(suiteId, branchForTc, false, top != null && top);
+
+            if (observe != null && observe)
+                jiraRes = observeJira(srvId, branchForTc, ticketId, helper, teamcity, build, prov);
         }
 
-        try (final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId, prov)) {
-            helper.triggerBuild(suiteId, branchName, false, top != null && top);
+        return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
+    }
+
+    @GET
+    @Path("commentJira")
+    public SimpleResult commentJira(
+        @Nullable @QueryParam("serverId") String srvId,
+        @Nullable @QueryParam("branchName") String branchForTc,
+        @Nullable @QueryParam("suiteId") String suiteId,
+        @Nullable @QueryParam("ticketId") String ticketId
+    ) {
+        try {
+            return commentJiraEx(srvId, branchForTc, suiteId, ticketId);
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            //todo better exception handling at jersey level
+
+            throw e;
+        }
+    }
+
+    @NotNull
+    public SimpleResult commentJiraEx(@QueryParam("serverId") @Nullable String srvId, @QueryParam("branchName") @Nullable String branchForTc, @QueryParam("suiteId") @Nullable String suiteId, @QueryParam("ticketId") @Nullable String ticketId) {
+        System.out.println("commentJira ");
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
+
+        ITcHelper helper = CtxListener.getTcHelper(context);
+        String jiraRes = "";
+
+        try (final ITeamcity teamcity = helper.server(srvId, prov)) {
+            if (Strings.isNullOrEmpty(ticketId)) {
+                PullRequest pr = teamcity.getPullRequest(branchForTc);
+
+                ticketId = getTicketId(pr);
+
+                if (ticketId.isEmpty()) {
+                    jiraRes = "JIRA ticket can't be commented - " +
+                        "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
+                        " Please, rename PR according to the" +
+                        " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
+                        "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>" +
+                        " or enter ticket id in the form.";
+                }
+            }
         }
 
-        return new SimpleResult("OK");
+        if (helper.notifyJira(srvId, prov, suiteId, branchForTc, "ignite-" + ticketId))
+            return new SimpleResult("JIRA commented." + (!jiraRes.isEmpty() ? jiraRes : ""));
+        else
+            // TODO Write catched exceptions to the response.
+            return new SimpleResult("JIRA wasn't commented." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param branchForTc Branch for TeamCity.
+     * @param ticketId JIRA ticket number.
+     * @param helper Helper.
+     * @param teamcity TeamCity.
+     * @param build Build.
+     * @param prov Credentials.
+     * @return Message with result.
+     */
+    private String observeJira(
+        String srvId,
+        String branchForTc,
+        @Nullable String ticketId,
+        ITcHelper helper,
+        ITeamcity teamcity,
+        Build build,
+        ICredentialsProv prov
+    ) {
+        if (F.isEmpty(ticketId)) {
+            PullRequest pr = teamcity.getPullRequest(branchForTc);
+
+            ticketId = getTicketId(pr);
+
+            if (ticketId.isEmpty()) {
+                return "JIRA ticket will not be notified after the tests are completed - " +
+                    "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
+                    " Please, rename PR according to the" +
+                    " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
+                    "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>.";
+            }
+        }
+
+        helper.buildObserver().observe(build, srvId, prov, "ignite-" + ticketId);
+
+        return "JIRA ticket IGNITE-" + ticketId + " will be notified after the tests are completed.";
+    }
+
+    /**
+     * @param pr Pull Request.
+     * @return JIRA ticket number.
+     */
+    @NotNull private String getTicketId(PullRequest pr) {
+        String ticketId = "";
+
+        if (pr.getTitle().startsWith("IGNITE-")) {
+            int beginIdx = 7;
+            int endIdx = 7;
+
+            while (endIdx < pr.getTitle().length() && Character.isDigit(pr.getTitle().charAt(endIdx)))
+                endIdx++;
+
+            ticketId = pr.getTitle().substring(beginIdx, endIdx);
+        }
+
+        return ticketId;
     }
 
     @GET

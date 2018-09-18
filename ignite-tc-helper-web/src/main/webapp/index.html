@@ -9,6 +9,7 @@
 
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
     <script src="js/common-1.6.js"></script>
     <script>
 $(document).ready(function() {
@@ -21,6 +22,7 @@ $(document).ready(function() {
 
 function loadData() {
     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+
     $.ajax({
         url: "rest/branches/version",
         success: showVersionInfo,
@@ -80,14 +82,15 @@ function showSuitesForPrCheckData(result) {
         var chainAtServer = result[i];
         //res+="<a href='pr.html?serverId=private&branchForTc=ignite-gg-12790-1&suiteId=id8xIgniteGridGainTests_RunAll="+id+"'>Check PR</a><br>";
 
-        res+="<form action='pr.html'>";
-        res+="Server: <input type='text' name='serverId' value=" + chainAtServer.serverId +" readonly>" ;
-        res+="Chain: <input type='text' name='suiteId' style='width: 30%;' value=" + chainAtServer.suiteId +" readonly>" ;
-        res+="Branch: <input type='text' name='branchForTc' required> "
-        res+="<input type='submit' name='action' value='Latest'>";
+        res += "<form action='pr.html'>";
+        res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId + " readonly>";
+        res += "Chain: <input type='text' name='suiteId' value=" + chainAtServer.suiteId + ">";
+        res += "Base branch: <input type='text' name='baseBranchForTc'  title='Etalon branch,e.g refs/heads/master'> ";
+        res += "<b>Branch:</b> <input type='text' name='branchForTc' title='Tested branch, e.g. pull/4790/head or ignite-9349' required> ";
+        res += "<input type='submit' name='action' value='Latest' title='Show latest runs'>";
         // res+="<input type='submit' name='action' value='Chain'>";
-        res+="<input type='submit' name='action' value='History'>";
-        res+="</form>";
+        res += "<input type='submit' name='action' value='History' title='Show last 10 runs merged'>";
+        res += "</form>";
     }
     $("#suitesForPrCheck").html(res);
 }
@@ -102,7 +105,7 @@ function showBuildsOnServers(result) {
         res+="<form action='build.html'>";
         res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
         res+="Check Logs: <input type='text' name='checkAllLogs' style='width: 20%;' value='true' readonly>" ;
-        res+="Build Id: <input type='text' name='buildId' required> "
+        res+="Build Id: <input type='text' name='buildId' required> ";
         res+="<input type='submit' name='action' value='Check'>";
         res+="</form>";
     }
@@ -132,9 +135,12 @@ Check build:   <br>
 <div id="buildsCheck"></div>
 <br>
 
+TeamCity Run All:   <br>
+<div id="runAll"></div>
+<br>
 
-<a href="ignval.html">Ignite Log Values pretty-print</a><br>
-
+<a href="ignval.html">Ignite Log Values pretty-print</a> &nbsp;
+<a href="monitoring.html">Bot moniroting page</a> <br>
 <div id="loadStatus"></div>
 <div id="version"></div>
 

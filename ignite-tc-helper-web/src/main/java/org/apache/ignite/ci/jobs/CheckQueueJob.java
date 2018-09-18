@@ -70,6 +70,18 @@ public class CheckQueueJob implements Runnable {
 
     /** {@inheritDoc} */
     @Override public void run() {
+        try {
+            runEx();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+
+            logger.error("Check Queue periodic check failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**   */
+    public void runEx() {
         String branch = FullQueryParams.DEFAULT_BRANCH_NAME;
 
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
@@ -207,7 +219,7 @@ public class CheckQueueJob implements Runnable {
                 continue;
             }
 
-            logger.debug("Checking queue for server {}.", srv);
+            logger.info("Checking queue for server {}.", srv);
 
             chainsBySrv.computeIfAbsent(srv, v -> new ArrayList<>()).add(chain);
         }

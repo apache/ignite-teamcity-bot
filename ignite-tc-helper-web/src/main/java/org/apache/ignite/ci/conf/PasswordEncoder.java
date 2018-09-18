@@ -90,11 +90,26 @@ public class PasswordEncoder {
     }
 
     public static void main(String[] args) {
-        String pass = "mmm";
+        String pass = "ddd";
         String encode = encode(pass);
-        System.err.println("Encoded: " +
-            HelperConfig.ENCODED_PASSWORD + "=" + encode);
+        System.err.println("Encoded: " +  HelperConfig.GITHUB_AUTH_TOKEN + "=" + encode);
         String decode = decode(encode);
         Preconditions.checkState(decode.equals(pass));
+    }
+
+    public static void main1(String[] args) {
+        String pass = "mmm";
+        String encode = encode(pass);
+        System.err.println("Encoded: " +  HelperConfig.ENCODED_PASSWORD + "=" + encode);
+        String decode = decode(encode);
+        Preconditions.checkState(decode.equals(pass));
+    }
+
+    public static void main3(String[] args) {
+        String tok = HelperConfig.userPwdToToken("ignitetcbot", "222");
+        String encode = encode(tok);
+        System.err.println("Encoded: " +  HelperConfig.JIRA_AUTH_TOKEN + "=" + encode);
+        String decode = decode(encode);
+        Preconditions.checkState(decode.equals(tok));
     }
 }

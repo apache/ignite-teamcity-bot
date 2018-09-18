@@ -21,11 +21,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.gson.Gson;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.io.UncheckedIOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -50,6 +52,8 @@ import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.LogCheckTask;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.logs.BuildLogStreamChecker;
 import org.apache.ignite.ci.logs.LogsAnalyzer;
 import org.apache.ignite.ci.logs.handlers.TestLogHandler;
@@ -83,28 +87,47 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
+import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
 
 /**
  * Class for access to Teamcity REST API without any caching.
  *
  * See more info about API
  * https://confluence.jetbrains.com/display/TCD10/REST+API
+ * https://developer.github.com/v3/
  */
 public class IgniteTeamcityHelper implements ITeamcity {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(IgniteTeamcityHelper.class);
 
     private Executor executor;
-    private final File logsDir;
+    private File logsDir;
     /** Normalized Host address, ends with '/'. */
-    private final String host;
+    private String host;
+
+    /** TeamCity authorization token. */
     private String basicAuthTok;
-    private final String configName; //main properties file name
-    private final String tcName;
+
+    /** GitHub authorization token.  */
+    private String gitAuthTok;
+
+    /**  JIRA authorization token. */
+    private String jiraBasicAuthTok;
+
+    private String configName; //main properties file name
+    private String tcName;
 
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
     public IgniteTeamcityHelper(@Nullable String tcName) {
+        init(tcName);
+    }
+
+    //for DI
+    public IgniteTeamcityHelper() {
+    }
+
+    public void init(@Nullable String tcName) {
         this.tcName = tcName;
         final File workDir = HelperConfig.resolveWorkDir();
 
@@ -122,6 +145,10 @@ public class IgniteTeamcityHelper implements ITeamcity {
             e.printStackTrace();
         }
 
+        setGitToken(HelperConfig.prepareGithubHttpAuthToken(props));
+
+        setJiraToken(HelperConfig.prepareJiraHttpAuthToken(props));
+
         final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
 
         logsDir = ensureDirExist(logsDirFile);
@@ -129,11 +156,99 @@ public class IgniteTeamcityHelper implements ITeamcity {
         this.executor =  MoreExecutors.directExecutor();
     }
 
-    public void setAuthToken(String token) {
-        basicAuthTok = token;
+    /** {@inheritDoc} */
+    @Override public void setAuthToken(String tok) {
+        basicAuthTok = tok;
     }
 
     /** {@inheritDoc} */
+    @Override public boolean isTeamCityTokenAvailable() {
+        return basicAuthTok != null;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setGitToken(String tok) {
+        gitAuthTok = tok;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isGitTokenAvailable() {
+        return gitAuthTok != null;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setJiraToken(String tok) {
+        jiraBasicAuthTok = tok;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isJiraTokenAvailable() {
+        return jiraBasicAuthTok != null;
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public boolean sendJiraComment(String ticket, String comment) {
+        try {
+            String url = "https://issues.apache.org/jira/rest/api/2/issue/" + ticket + "/comment";
+
+            HttpUtil.sendPostAsStringToJira(jiraBasicAuthTok, url, "{\"body\": \"" + comment + "\"}");
+
+            return true;
+        }
+        catch (IOException e) {
+            logger.error("Failed to notify JIRA [errMsg="+e.getMessage()+']');
+
+            return false;
+        }
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public PullRequest getPullRequest(String branchForTc) {
+        String id = null;
+
+        // Get PR id from string "pull/XXXX/head"
+        for (int i = 5; i < branchForTc.length(); i++) {
+            char c = branchForTc.charAt(i);
+
+            if (!Character.isDigit(c)) {
+                id = branchForTc.substring(5, i);
+
+                break;
+            }
+        }
+
+        //todo github address can be probably associated with server
+        String pr = "https://api.github.com/repos/apache/ignite/pulls/" + id;
+
+        try (InputStream is = HttpUtil.sendGetToGit(gitAuthTok, pr)) {
+            InputStreamReader reader = new InputStreamReader(is);
+
+            return new Gson().fromJson(reader, PullRequest.class);
+        }
+        catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public boolean notifyGit(String url, String body) {
+        try {
+            HttpUtil.sendPostAsStringToGit(gitAuthTok, url, body);
+
+            return true;
+        }
+        catch (IOException e) {
+            logger.error("Failed to notify Git [errMsg="+e.getMessage()+']');
+
+            return false;
+        }
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
     @Override public List<Agent> agents(boolean connected, boolean authorized) {
         String url = "app/rest/agents?locator=connected:" + connected + ",authorized:" + authorized;
 
@@ -145,6 +260,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             .collect(Collectors.toList());
     }
 
+    @AutoProfiling
     public CompletableFuture<File> downloadBuildLogZip(int buildId) {
         boolean archive = true;
         Supplier<File> supplier = () -> {
@@ -171,6 +287,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return supplyAsync(supplier, executor);
     }
 
+    @AutoProfiling
     @Override public CompletableFuture<LogCheckResult> analyzeBuildLog(Integer buildId, SingleBuildRunCtx ctx) {
         final Stopwatch started = Stopwatch.createStarted();
 
@@ -194,31 +311,14 @@ public class IgniteTeamcityHelper implements ITeamcity {
             .thenApply(LogCheckTask::getResult);
     }
 
-    /**
-     * @param t Text to process.
-     */
-    private String xmlEscapeText(CharSequence t) {
-        StringBuilder sb = new StringBuilder();
-        for(int i = 0; i < t.length(); i++){
-            char c = t.charAt(i);
-            switch(c){
-                case '<': sb.append("&lt;"); break;
-                case '>': sb.append("&gt;"); break;
-                case '\"': sb.append("&quot;"); break;
-                case '&': sb.append("&amp;"); break;
-                case '\'': sb.append("&apos;"); break;
-                default:
-                    if(c>0x7e)
-                        sb.append("&#").append((int)c).append(";");
-                    else
-                        sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
-
     /** {@inheritDoc} */
-    @Override public void triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
+    @AutoProfiling
+    @Override public Build triggerBuild(
+        String buildTypeId,
+        String branchName,
+        boolean cleanRebuild,
+        boolean queueAtTop
+    ) {
         String triggeringOptions =
             " <triggeringOptions" +
                 " cleanSources=\"" + cleanRebuild + "\"" +
@@ -226,24 +326,33 @@ public class IgniteTeamcityHelper implements ITeamcity {
                 " queueAtTop=\"" + queueAtTop + "\"" +
                 "/>";
 
-        String parameter = "<build branchName=\"" + xmlEscapeText(branchName) + "\">\n" +
+        String comments = " <comment><text>Build triggered from Ignite TC Bot" +
+            " [cleanRebuild=" + cleanRebuild + ", top=" + queueAtTop + "]</text></comment>\n";
+
+        String param = "<build branchName=\"" + xmlEscapeText(branchName) + "\">\n" +
             "    <buildType id=\"" +
             buildTypeId + "\"/>\n" +
-            "    <comment><text>Build triggered from [" + this.getClass().getSimpleName()
-            + ",cleanRebuild=" + cleanRebuild + "]</text></comment>\n" +
+            comments +
             triggeringOptions +
             //some fake property to avoid merging build in queue
             "    <properties>\n" +
             "        <property name=\"build.query.loginTs\" value=\"" + System.currentTimeMillis() + "\"/>\n" +
-           // "        <property name=\"testSuite\" value=\"org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest\"/>\n" +
+            // "        <property name=\"testSuite\" value=\"org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest\"/>\n" +
             "    </properties>\n" +
             "</build>";
+
         String url = host + "app/rest/buildQueue";
+
         try {
             logger.info("Triggering build: buildTypeId={}, branchName={}, cleanRebuild={}, queueAtTop={}",
                 buildTypeId, branchName, cleanRebuild, queueAtTop);
 
-            HttpUtil.sendPostAsString(basicAuthTok, url, parameter);
+            try (StringReader reader = new StringReader(HttpUtil.sendPostAsString(basicAuthTok, url, param))) {
+                return XmlUtil.load(Build.class, reader);
+            }
+            catch (JAXBException e) {
+                throw Throwables.propagate(e);
+            }
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -299,6 +408,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         }).thenApply(T2::get1);
     }
 
+    @AutoProfiling
     public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
         final CompletableFuture<List<File>> clearFileF = unzip(fut);
         return clearFileF.thenApplyAsync(files -> {
@@ -343,7 +453,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             try (InputStream inputStream = HttpUtil.sendGetWithBasicAuth(basicAuthTok, url)) {
                 final InputStreamReader reader = new InputStreamReader(inputStream);
 
-                return XmlUtil.load(rootElem, reader);
+                return loadXml(rootElem, reader);
             }
         }
         catch (IOException e) {
@@ -354,11 +464,16 @@ public class IgniteTeamcityHelper implements ITeamcity {
         }
     }
 
+    @AutoProfiling
+    protected  <T> T loadXml(Class<T> rootElem, InputStreamReader reader) throws JAXBException {
+        return XmlUtil.load(rootElem, reader);
+    }
+
     private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
         @Nullable String branchName,
         boolean dfltFilter,
         @Nullable String state){
-
+      
         return getBuildHistory(buildTypeId, branchName, dfltFilter, state, null, null);
     }
 
@@ -373,7 +488,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         String branchFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
         String sinceDateFilter = sinceDate == null ? "" : ",sinceDate:" + getDateYyyyMmDdTHhMmSsZ(sinceDate);
         String untilDateFilter = untilDate == null ? "" : ",untilDate:" + getDateYyyyMmDdTHhMmSsZ(untilDate);
-
+      
         return sendGetXmlParseJaxb(host + "app/rest/latest/builds"
             + "?locator="
             + "defaultFilter:" + dfltFilter
@@ -391,48 +506,65 @@ public class IgniteTeamcityHelper implements ITeamcity {
             .replace("+", "%2B");
     }
 
+    @AutoProfiling
     public BuildTypeFull getBuildType(String buildTypeId) {
         return sendGetXmlParseJaxb(host + "app/rest/latest/buildTypes/id:" +
             buildTypeId, BuildTypeFull.class);
     }
 
+    @Override
+    @AutoProfiling
     public Build getBuild(String href) {
         return getJaxbUsingHref(href, Build.class);
     }
 
+    @Override
+    @AutoProfiling
     public ProblemOccurrences getProblems(Build build) {
         if (build.problemOccurrences != null) {
-            ProblemOccurrences problemOccurrences = getJaxbUsingHref(build.problemOccurrences.href, ProblemOccurrences.class);
-            problemOccurrences.problemOccurrences
-                .forEach(p -> p.buildRef = build);
+            ProblemOccurrences coll = getJaxbUsingHref(build.problemOccurrences.href, ProblemOccurrences.class);
 
-            return problemOccurrences;
+            coll.getProblemsNonNull().forEach(p -> p.buildRef = build);
+
+            return coll;
         }
         else
             return new ProblemOccurrences();
     }
 
+    @Override
+    @AutoProfiling
     public TestOccurrences getTests(String href, String normalizedBranch) {
         return getJaxbUsingHref(href, TestOccurrences.class);
     }
 
+    @Override
+    @AutoProfiling
     public Statistics getBuildStatistics(String href) {
         return getJaxbUsingHref(href, Statistics.class);
     }
 
+    @Override
+    @AutoProfiling
     public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
         return supplyAsync(() -> getJaxbUsingHref(href, TestOccurrenceFull.class), executor);
     }
 
+    @Override
+    @AutoProfiling
     public Change getChange(String href) {
         return getJaxbUsingHref(href, Change.class);
     }
 
+    @Override
+    @AutoProfiling
     public ChangesList getChangesList(String href) {
         return getJaxbUsingHref(href, ChangesList.class);
     }
 
     /** {@inheritDoc} */
+    @Override
+    @AutoProfiling
     public IssuesUsagesList getIssuesUsagesList(String href) { return getJaxbUsingHref(href, IssuesUsagesList.class); }
 
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {
@@ -451,22 +583,25 @@ public class IgniteTeamcityHelper implements ITeamcity {
             null,
             sinceDate,
             untilDate);
-
+  
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
+    @Override
+    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
         return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED);
     }
 
     /** {@inheritDoc} */
-    @Override public CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch) {
+    @Override
+    @AutoProfiling public CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch) {
         return supplyAsync(() -> getBuildsInState(null, branch, BuildRef.STATE_RUNNING), executor);
     }
 
     /** {@inheritDoc} */
-    @Override public CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch) {
+    @Override
+    @AutoProfiling public CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch) {
         return supplyAsync(() -> getBuildsInState(null, branch, BuildRef.STATE_QUEUED), executor);
     }
 
@@ -480,7 +615,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
             state);
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
-
+  
+    @Override
     public String serverId() {
         return tcName;
     }
@@ -522,16 +658,18 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return task;
     }
 
+    @Override
     public void setExecutor(ExecutorService executor) {
         this.executor = executor;
     }
 
+    @AutoProfiling
     public Users getUsers() {
         return getJaxbUsingHref("app/rest/latest/users", Users.class);
     }
 
+    @AutoProfiling
     public User getUserByUsername(String username) {
         return getJaxbUsingHref("app/rest/latest/users/username:" + username, User.class);
     }
-
 }

@@ -364,10 +364,26 @@ public class IssueDetector {
 
             throw e;
         }
-        // SchedulerFuture<?> future = ignite.scheduler().scheduleLocal(this::checkFailures, "? * * * * *");
     }
 
+    /**
+     *
+     */
     private void checkFailures() {
+        try {
+            checkFailuresEx();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+
+            logger.error("Failure periodic check failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     *
+     */
+    private void checkFailuresEx() {
         int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
 
         GetTrackedBranchTestResults.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,

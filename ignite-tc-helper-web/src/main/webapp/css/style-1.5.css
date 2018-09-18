@@ -24,6 +24,14 @@ table, tr, td {
  	border-spacing: 0px;
 }
 
+.table-title
+{
+	border: solid black;
+	border-width: 1px 0;
+	font-size: 20px;
+	padding: 5px;
+}
+
 .logMsg {
 	font-family: Arial;
 	font-size: 12px;

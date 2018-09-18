@@ -17,6 +17,10 @@
 
 package org.apache.ignite.ci.issue;
 
+/**
+ * Reference to some Issue with current suite or test detected by the Bot.
+ * Currently contains only display name.
+ */
 public class ProblemRef {
     public String name;
     public String webUrl;

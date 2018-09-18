@@ -37,6 +37,8 @@ public class ExceptionUtil {
         if (any.isPresent())
             return (RuntimeException)any.get();
 
-        throw Throwables.propagate(e);
+        Throwables.throwIfUnchecked(e);
+
+        throw new RuntimeException(e);
     }
 }

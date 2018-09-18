@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Services</title>
+    <link rel="icon" href="img/leaf-icon-png-7066.png">
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+    <link rel="stylesheet" href="css/style-1.5.css">
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <script src="js/common-1.6.js"></script>
+    <script src="js/testfails-2.1.js"></script>
+
+    <script>
+$(document).ready(function() {
+    $.getScript("js/common-1.6.js", function(data, textStatus, jqxhr){ });
+
+    $( document ).tooltip();
+    loadData();
+});
+
+function loadData() {
+    $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+
+    $.ajax({
+        url: "rest/branches/version",
+        success: showVersionInfo,
+        error: showErrInLoadStatus
+    });
+
+    $.ajax({
+        url: "rest/branches/suites",
+        success: function(result) {
+            $("#loadStatus").html("");
+            showSuitesForTeamCityRunData(result);
+            showCommentJiraForm(result);
+        },
+        error: showErrInLoadStatus
+    });
+}
+
+function showSuitesForTeamCityRunData(result) {
+    var res = "";
+
+    for (var i = 0; i < result.length; i++) {
+        var chainAtServer = result[i];
+
+        // TODO multiple servers
+        if (chainAtServer.serverId != "apache")
+            continue;
+
+        res += "Server: <input type='text' name='serverId' value='" + chainAtServer.serverId + "' readonly>";
+        res += "Chain: <input type='text' name='suiteId' value='" + chainAtServer.suiteId + "' readonly>";
+        res += "Branch: <input type='text' name='branchForTc' required> ";
+        res += "Ticket: <input type='text' name='ticketId'>";
+        res += "<button name='jira' type='button' onclick='trigBuild(\"tests\")'>Start tests</button>";
+        res += "<button name='jira' onclick='trigBuild(\"tests+jira\")'>Start tests and comment JIRA ticket on ready</button>";
+        //res += "<button name='git' onclick='trigBuild(\"tests+jira\")'>Start tests and comment GitHub PR on ready</button>";
+        /*
+        res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
+        res+="Pull Request #<input type='text' name='prId' onkeypress='return trigBuild(event)'> ";
+        res+="<button onclick='trigBuild()'>Run All</button><br>";
+        */
+    }
+
+    $("#suitesForRunAll").html(res);
+}
+
+/**
+ * This form allows user to start TeamCity Run All build.
+ */
+function showCommentJiraForm(result) {
+    var res = "";
+
+    for (var i = 0; i < result.length; i++) {
+        var chainAtServer = result[i];
+
+        // TODO multiple servers
+        if (chainAtServer.serverId != "apache")
+            continue;
+
+        res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId +" readonly>" ;
+        res += "Chain: <input type='text' name='suiteId' value='" + chainAtServer.suiteId + "' readonly>";
+        res += "Branch: <input type='text' name='branchForTc' required> ";
+        res += "Ticket: <input type='text' name='ticketId'> ";
+        res += "<button name='action' onclick='notifyJira()'>Notify</button>";
+    }
+
+    //todo enabled this once feature is ready
+    $("#notifyJira").html(res);
+}
+
+/**
+ * Start Run All build on TeamCity and comment in JIRA ticket when build will be finished.
+ */
+function trigBuild(trigCase) {
+    var fields = document.getElementById("suitesForRunAll").children;
+
+    var srvId = fields.namedItem("serverId").value;
+    var suiteId = fields.namedItem("suiteId").value;
+    var branchName = branchForTc(fields.namedItem("branchForTc").value);
+    var ticketId = jiraTicketNumber(fields.namedItem("ticketId").value);
+
+    triggerBuild(srvId, suiteId, branchName, false, trigCase !== "tests", ticketId)
+}
+
+/**
+ * Comment in JIRA ticket with results for the given PR.
+ */
+function notifyJira() {
+    var fields = document.getElementById("notifyJira").children;
+
+    var srvId = fields.namedItem("serverId").value;
+    var suiteId = fields.namedItem("suiteId").value;
+    var branchName = branchForTc(fields.namedItem("branchForTc").value);
+    var ticketId = jiraTicketNumber(fields.namedItem("ticketId").value);
+
+    commentJira(srvId, suiteId, branchName, ticketId)
+}
+
+/**
+ * Converts PR number to branch for TeamCity.
+ *
+ * @param pr - Pull Request number.
+ * @returns {String} Branch for TeamCity.
+ */
+function branchForTc(pr) {
+    var regExpr = /(\d*)/i;
+
+    if (regExpr.exec(pr)[0] === pr)
+        return "pull/" + regExpr.exec(pr)[0] + "/head";
+
+    return pr;
+}
+
+/**
+ * Converts JIRA ticket full name to the tickets number.
+ *
+ * @param ticket - JIRA ticket.
+ * @returns {string} JIRA ticket number.
+ */
+function jiraTicketNumber(ticket) {
+    var regExpr = /(ignite-)?(\d*)/i;
+
+    return regExpr.exec(ticket)[2];
+}
+    </script>
+</head>
+<body>
+<div id="loadStatus"></div>
+<div><a href=".">Home</a><br></div>
+
+TeamCity Run All:   <br>
+<div id="suitesForRunAll"></div>
+<br>
+
+Notify JIRA:   <br>
+<div id="notifyJira"></div>
+
+<!--Notify GitHub:   <br>
+<div id="notifyGitHub">
+    <form>
+        Server: <input type='text' name='serverId' value="apache" readonly>
+        Branch: <input type='text' name='branchForTc' required>
+        <input type='submit' name='action' value='Notify'>
+    </form>
+</div>
+<br>-->
+
+<div id="version"></div>
+
+<div style="visibility:hidden"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
+</body>
+</html>

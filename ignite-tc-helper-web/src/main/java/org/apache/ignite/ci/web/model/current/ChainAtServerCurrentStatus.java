@@ -78,6 +78,8 @@ public class ChainAtServerCurrentStatus {
     /** Special flag if chain entry point not found */
     public boolean buildNotFound;
 
+    @Nullable public String baseBranchForTc;
+
     public ChainAtServerCurrentStatus(String serverId, String branchTc) {
         this.serverId = serverId;
         this.branchName = branchTc;
@@ -86,7 +88,7 @@ public class ChainAtServerCurrentStatus {
     public void initFromContext(ITeamcity teamcity,
         FullChainRunCtx ctx,
         @Nullable ITcAnalytics tcAnalytics,
-        @Nullable String failRateBranch) {
+        @Nullable String baseBranchTc) {
         failedTests = 0;
         failedToFinish = 0;
         //todo mode with not failed
@@ -95,7 +97,7 @@ public class ChainAtServerCurrentStatus {
         stream.forEach(
             suite -> {
                 final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
-                suiteCurStatus.initFromContext(teamcity, suite, tcAnalytics, failRateBranch);
+                suiteCurStatus.initFromContext(teamcity, suite, tcAnalytics, baseBranchTc);
 
                 failedTests += suiteCurStatus.failedTests;
                 if (suite.hasAnyBuildProblemExceptTestOrSnapshot())
@@ -119,7 +121,7 @@ public class ChainAtServerCurrentStatus {
                 MultBuildRunCtx suite = pairCtxAndOccur.get1();
                 ITestFailureOccurrences longRunningOccur = pairCtxAndOccur.get2();
 
-                TestFailure failure = createOrrucForLongRun(teamcity, suite, tcAnalytics, longRunningOccur, failRateBranch);
+                TestFailure failure = createOrrucForLongRun(teamcity, suite, tcAnalytics, longRunningOccur, baseBranchTc);
 
                 failure.testName = "[" + suite.suiteName() + "] " + failure.testName; //may be separate field
 

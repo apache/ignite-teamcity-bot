@@ -18,6 +18,7 @@
 package org.apache.ignite.ci;
 
 import java.util.List;
+import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -42,6 +43,11 @@ public interface ITcHelper {
 
     IssueDetector issueDetector();
 
+    /**
+     * @return Build observer.
+     */
+    BuildObserver buildObserver();
+
     IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov);
 
     ITcAnalytics tcAnalytics(String serverId);
@@ -53,4 +59,14 @@ public interface ITcHelper {
     Collection<String> getServerIds();
 
     List<String> getTrackedBranchesIds();
+
+    /**
+     * @param srvId Server id.
+     * @param prov Credentials.
+     * @param buildTypeId Suite name.
+     * @param branchForTc Branch for TeamCity.
+     * @param ticket JIRA ticket full name.
+     * @return {@code True} if JIRA was notified.
+     */
+    boolean notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc, String ticket);
 }

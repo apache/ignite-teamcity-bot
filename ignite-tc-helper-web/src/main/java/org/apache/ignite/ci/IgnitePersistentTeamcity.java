@@ -36,7 +36,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -44,6 +43,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.cache.Cache;
+import javax.inject.Inject;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.analysis.Expirable;
@@ -55,6 +55,8 @@ import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -79,7 +81,6 @@ import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
  *
  */
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
-
     //V1 caches, 1024 parts
 
     //V2 caches, 32 parts
@@ -104,11 +105,17 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     public static final String BUILD_QUEUE = "buildQueue";
     public static final String RUNNING_BUILDS = "runningBuilds";
 
-    private final Ignite ignite;
-    private final IgniteTeamcityHelper teamcity;
-    private final String serverId;
+    @Inject
+    private Ignite ignite;
+    /**
+     * Teamcity
+     */
+    private ITeamcity teamcity;
+    private String serverId;
 
-    /** cached loads of full test occurrence. */
+    /**
+     * cached loads of full test occurrence.
+     */
     private ConcurrentMap<String, CompletableFuture<TestOccurrenceFull>> testOccFullFutures = new ConcurrentHashMap<>();
 
     /** cached loads of queued builds for branch. */
@@ -120,29 +127,44 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     //todo: not good code to keep it static
     private static long lastTriggerMs = System.currentTimeMillis();
 
+    private static final boolean noLocks = true;
+
+    @Deprecated
     public IgnitePersistentTeamcity(Ignite ignite, @Nullable String srvId) {
         this(ignite, new IgniteTeamcityHelper(srvId));
     }
 
+    //for DI
+    public IgnitePersistentTeamcity() {}
+
+
     private IgnitePersistentTeamcity(Ignite ignite, IgniteTeamcityHelper teamcity) {
+        init(teamcity);
         this.ignite = ignite;
-        this.teamcity = teamcity;
-        this.serverId = teamcity.serverId();
-
-        DbMigrations migrations = new DbMigrations(ignite, teamcity.serverId());
-
-        migrations.dataMigration(
-            testOccurrencesCache(), this::addTestOccurrencesToStat,
-            this::migrateOccurrencesToLatest,
-            buildsCache(), this::addBuildOccurrenceToFailuresStat,
-            buildsFailureRunStatCache(), testRunStatCache(),
-            testFullCache(),
-            buildProblemsCache(),
-            buildStatisticsCache(),
-            buildHistCache(),
-            buildHistIncFailedCache());
     }
 
+    public void init(ITeamcity conn) {
+        this.teamcity = conn;
+        this.serverId = conn.serverId();
+
+        DbMigrations migrations = new DbMigrations(ignite, conn.serverId());
+
+        migrations.dataMigration(
+                testOccurrencesCache(), this::addTestOccurrencesToStat,
+                this::migrateOccurrencesToLatest,
+                buildsCache(), this::addBuildOccurrenceToFailuresStat,
+                buildsFailureRunStatCache(), testRunStatCache(),
+                testFullCache(),
+                buildProblemsCache(),
+                buildStatisticsCache(),
+                buildHistCache(),
+                buildHistIncFailedCache());
+    }
+
+    @Override
+    public void init(String serverId) {
+        throw new UnsupportedOperationException();
+    }
     /**
      * Creates atomic cache with 32 parts.
      * @param name Cache name.
@@ -211,6 +233,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public CompletableFuture<List<BuildType>> getProjectSuites(String projectId) {
         return teamcity.getProjectSuites(projectId);
     }
@@ -246,33 +269,85 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
-    private <K, V> V timedLoadIfAbsentOrMerge(IgniteCache<K, Expirable<V>> cache, int seconds, K key,
-        BiFunction<K, V, V> loadWithMerge) {
-        @Nullable final Expirable<V> persistedBuilds = cache.get(key);
+    protected  <K> List<BuildRef> loadBuildHistory(IgniteCache<K, Expirable<List<BuildRef>>> cache,
+                                                                int seconds,
+                                                                K key,
+                                                                Function<K, List<BuildRef>> realLoad) {
+        @Nullable Expirable<List<BuildRef>> persistedBuilds = readBuildHistEntry(  cache, (K) key);
 
-        int fields = ObjectInterner.internFields(persistedBuilds);
+        if (persistedBuilds != null
+                && (persistedBuilds.isAgeLessThanSecs(seconds))) {
+            ObjectInterner.internFields(persistedBuilds);
 
-        if (persistedBuilds != null) {
-            if (persistedBuilds.isAgeLessThanSecs(seconds))
-                return persistedBuilds.getData();
+            return persistedBuilds.getData();
         }
 
-        Lock lock = cache.lock(key);
-        lock.lock();
+        Lock lock = lockBuildHistEntry(cache, key);
 
-        V apply;
         try {
-            apply = loadWithMerge.apply(key, persistedBuilds != null ? persistedBuilds.getData() : null);
+            if (!noLocks) {
+                if (persistedBuilds != null
+                        && (persistedBuilds.isAgeLessThanSecs(seconds))) {
+                    ObjectInterner.internFields(persistedBuilds);
 
-            final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), apply);
+                    return persistedBuilds.getData();
+                }
+            }
 
-            cache.put(key, newVal);
+            //todo sinceBuild:(number:) // --todo -10 build numbers
+
+            List<BuildRef> dataFromRest;
+            try {
+                dataFromRest = realLoad.apply(key);
+            }
+            catch (Exception e) {
+                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                    System.err.println("Build history not found for build : " + key);
+                    dataFromRest = Collections.emptyList();
+                }
+                else
+                    throw e;
+            }
+            final List<BuildRef> persistedList = persistedBuilds != null ? persistedBuilds.getData() : null;
+            final List<BuildRef> buildRefs = mergeHistoryMaps(persistedList, dataFromRest);
+
+            final Expirable<List<BuildRef>> newVal
+                    = new Expirable<>(System.currentTimeMillis(), buildRefs);
+
+            saveBuildHistoryEntry(cache, key, newVal);
+
+            return buildRefs;
         }
         finally {
-            lock.unlock();
+            if (!noLocks)
+                lock.unlock();
         }
+    }
 
-        return apply;
+    @AutoProfiling
+    @SuppressWarnings("WeakerAccess")
+    protected <K> void saveBuildHistoryEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key, Expirable<List<BuildRef>> newVal) {
+        cache.put(key, newVal);
+    }
+
+
+    @AutoProfiling
+    @SuppressWarnings("WeakerAccess")
+    protected <K> Expirable<List<BuildRef>> readBuildHistEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key) {
+        return cache.get(key);
+    }
+
+    @AutoProfiling
+    @SuppressWarnings("WeakerAccess")
+    protected  <K> Lock lockBuildHistEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key) {
+        if(noLocks)
+            return null;
+
+        Lock lock = cache.lock(key);
+
+        lock.lock();
+
+        return lock;
     }
 
     /** {@inheritDoc} */
@@ -320,10 +395,25 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             .collect(Collectors.toList());
 
         return buildRefs;
+/**    @AutoProfiling
+    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Date sinceDate, Date untilDate) {
+        final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
+
+        List<BuildRef> buildRefs = loadBuildHistory(buildHistCache(), 60, cnt, suiteInBranch,
+            (key) -> teamcity.getFinishedBuilds(projectId, branch, cnt));
+
+        if (cnt == null)
+            return buildRefs;
+
+        return buildRefs.stream()
+            .skip(cnt < buildRefs.size() ? buildRefs.size() - cnt : 0)
+            .collect(Collectors.toList()); */
     }
 
     @NotNull
-    private List<BuildRef> mergeByIdToHistoricalOrder(List<BuildRef> persistedVal, List<BuildRef> mostActualVal) {
+    @AutoProfiling
+    @SuppressWarnings("WeakerAccess")
+    protected List<BuildRef> mergeHistoryMaps(@Nullable List<BuildRef> persistedVal, List<BuildRef> mostActualVal) {
         final SortedMap<Integer, BuildRef> merge = new TreeMap<>();
 
         if (persistedVal != null)
@@ -337,15 +427,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     //loads build history with following parameter: defaultFilter:false,state:finished
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        return timedLoadIfAbsentOrMerge(buildHistIncFailedCache(), 60, suiteInBranch,
-            (key, persistedValue) -> {
-                List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch);
-
-                return mergeByIdToHistoricalOrder(persistedValue, failed);
-            });
+        return loadBuildHistory(buildHistIncFailedCache(), 60, suiteInBranch,
+            (key) -> teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch));
     }
 
 
@@ -385,6 +472,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @Nullable
+    @AutoProfiling
     @Override public Build getBuild(String href) {
         final IgniteCache<String, Build> cache = buildsCache();
 
@@ -475,6 +563,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc}*/
+    @AutoProfiling
     @Override public ProblemOccurrences getProblems(Build build) {
         if (build.problemOccurrences != null) {
             String href = build.problemOccurrences.href;
@@ -527,6 +616,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public TestOccurrences getTests(String href, String normalizedBranch) {
         String hrefForDb = DbMigrations.removeCountFromRef(href);
 
@@ -545,6 +635,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public Statistics getBuildStatistics(String href) {
         return loadIfAbsent(buildStatisticsCache(),
             href,
@@ -564,6 +655,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
         return CacheUpdateUtil.loadAsyncIfAbsent(
             testFullCache(),
@@ -585,6 +677,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public Change getChange(String href) {
         return loadIfAbsentV2(CHANGE_INFO_FULL, href, href1 -> {
             try {
@@ -608,6 +701,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public ChangesList getChangesList(String href) {
         return loadIfAbsentV2(CHANGES_LIST, href, href1 -> {
             try {
@@ -623,6 +717,25 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                     throw e;
             }
         });
+    }
+
+    @AutoProfiling
+    @Override public IssuesUsagesList getIssuesUsagesList(String href) {
+        IssuesUsagesList issuesUsages =  loadIfAbsentV2(ISSUES_USAGES_LIST, href, href1 -> {
+            try {
+                return teamcity.getIssuesUsagesList(href1);
+            }
+            catch (Exception e) {
+                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                    System.err.println("Issues Usage List not found for href : " + href);
+
+                    return new IssuesUsagesList();
+                }
+                else
+                    throw e;
+            }
+        });
+        return issuesUsages;
     }
 
     /** {@inheritDoc} */
@@ -751,6 +864,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
+    @Override
     public List<RunStat> topFailingSuite(int cnt) {
         return CollectionUtil.top(buildsFailureAnalysis(), cnt, Comparator.comparing(RunStat::getFailRate));
     }
@@ -776,6 +890,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             k -> teamcity.analyzeBuildLog(buildId, ctx));
     }
 
+
+    @AutoProfiling
+    @Override
     public String getThreadDumpCached(Integer buildId) {
         IgniteCache<Integer, LogCheckResult> entries = logCheckResultCache();
 
@@ -836,15 +953,56 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public void triggerBuild(String id, String name, boolean cleanRebuild, boolean queueAtTop) {
+    @AutoProfiling
+    @Override public Build triggerBuild(String id, String name, boolean cleanRebuild, boolean queueAtTop) {
         lastTriggerMs = System.currentTimeMillis();
 
-        teamcity.triggerBuild(id, name, cleanRebuild, queueAtTop);
+        return teamcity.triggerBuild(id, name, cleanRebuild, queueAtTop);
     }
 
-    @Override
-    public void setAuthToken(String token) {
-        teamcity.setAuthToken(token);
+    /** {@inheritDoc} */
+    @Override public void setAuthToken(String tok) {
+        teamcity.setAuthToken(tok);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isTeamCityTokenAvailable() {
+        return teamcity.isTeamCityTokenAvailable();
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setGitToken(String tok) {
+        teamcity.setGitToken(tok);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isGitTokenAvailable() {
+        return teamcity.isGitTokenAvailable();
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setJiraToken(String tok) {
+        teamcity.setJiraToken(tok);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isJiraTokenAvailable() {
+        return teamcity.isJiraTokenAvailable();
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean sendJiraComment(String ticket, String comment) {
+        return teamcity.sendJiraComment(ticket, comment);
+    }
+
+    /** {@inheritDoc} */
+    @Override public PullRequest getPullRequest(String branchForTc) {
+        return teamcity.getPullRequest(branchForTc);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean notifyGit(String url, String body) {
+        return teamcity.notifyGit(url, body);
     }
 
     /** {@inheritDoc} */

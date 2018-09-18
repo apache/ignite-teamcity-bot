@@ -13,7 +13,7 @@
 </head>
 <body>
 <script>
-var g_shownDataHashCodeHex = ""
+var g_shownDataHashCodeHex = "";
 
 $(document).ready(function() {
     $.getScript("js/issues-1.0.js", function(data, textStatus, jqxhr){ });
@@ -29,7 +29,7 @@ $(document).ready(function() {
 function parmsForRest() {
     var curReqParms = "";
     var branch = findGetParameter("branch");
-    if(branch!=null) {
+    if (branch != null) {
         curReqParms += "?branch=" + branch;
     }
 
@@ -42,8 +42,8 @@ function checkForUpdate() {
     $.ajax({
         url: issuesUrl,
         success: function(result) {
-           if (g_shownDataHashCodeHex!="" && isDefinedAndFilled(result.hashCodeHex)) {
-                if(g_shownDataHashCodeHex==result.hashCodeHex) {
+           if (g_shownDataHashCodeHex!=="" && isDefinedAndFilled(result.hashCodeHex)) {
+                if(g_shownDataHashCodeHex===result.hashCodeHex) {
                     var updRunning = isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0
                     var fastCheckNeeded = result.updateRequired || updRunning;
                     var ms = fastCheckNeeded ? 3000 : 30000 ;
@@ -71,7 +71,8 @@ function loadData() {
         url: curFailuresUrl,
         success: function(result) {
             if(result.updateRequired || (isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0)) {
-                setTimeout(checkForUpdate, 3000)
+                setTimeout(checkForUpdate, 3000);
+
                 $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Updating");
             } else {
                 $("#loadStatus").html("");
@@ -94,6 +95,6 @@ function showData(result) {
 <div id="divFailures"></div>
 
 <div id="version"></div>
-<div style="visibility:none"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
+<div style="visibility:hidden;"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
 </body>
 </html>

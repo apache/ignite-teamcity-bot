@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
@@ -87,7 +88,6 @@ public interface ITeamcity extends AutoCloseable {
      * @return List of builds in historical order, recent builds coming last.
      */
     List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch);
-
 
     /**   */
     CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch);
@@ -247,9 +247,60 @@ public interface ITeamcity extends AutoCloseable {
      * @param cleanRebuild Rebuild all dependencies.
      * @param queueAtTop Put at the top of the build queue.
      */
-    void triggerBuild(String id, String name, boolean cleanRebuild, boolean queueAtTop);
+    Build triggerBuild(String id, String name, boolean cleanRebuild, boolean queueAtTop);
 
-    void setAuthToken(String token);
+    /**
+     * @param tok TeamCity authorization token.
+     */
+    void setAuthToken(String tok);
+
+    /**
+     * @return {@code True} if TeamCity authorization token is available.
+     */
+    boolean isTeamCityTokenAvailable();
+
+    /**
+     * @param token GitHub authorization token.
+     */
+    void setGitToken(String token);
+
+    /**
+     * @return {@code True} if GitHub authorization token is available.
+     */
+    boolean isGitTokenAvailable();
+
+    /**
+     * @param tok Jira authorization token.
+     */
+    void setJiraToken(String tok);
+
+    /**
+     * @return {@code True} if JIRA authorization token is available.
+     */
+    boolean isJiraTokenAvailable();
+
+    /**
+     * Send POST request with given body.
+     *
+     * @param url Url.
+     * @param body Request body.
+     * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
+     */
+    boolean notifyGit(String url, String body);
+
+    /**
+     * @param branch TeamCity's branch name. Looks like "pull/123/head".
+     * @return Pull Request.
+     */
+    PullRequest getPullRequest(String branch);
+
+    /**
+     * @param ticket JIRA ticket full name.
+     * @param comment Comment to be placed in the ticket conversation.
+     * @return {@code True} if ticket was succesfully commented. Otherwise - {@code false}.
+     */
+    boolean sendJiraComment(String ticket, String comment);
+
 
     default void setAuthData(String user, String password) {
         setAuthToken(
@@ -264,4 +315,6 @@ public interface ITeamcity extends AutoCloseable {
      * @return List of teamcity agents.
      */
     List<Agent> agents(boolean connected, boolean authorized);
+
+    void init(String serverId);
 }

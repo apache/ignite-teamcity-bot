@@ -31,8 +31,7 @@
      // The ID token you need to pass to your backend:
      var id_token = googleUser.getAuthResponse().id_token;
      console.log("ID Token: " + id_token);
- };
-
+ }
 
  $(document).ready(function() {
      setupLogon();
@@ -59,7 +58,7 @@
 
  function setupLogon() {
      var exitParm = findGetParameter("exit");
-     if(isDefinedAndFilled(exitParm) && exitParm=="true") {
+     if(isDefinedAndFilled(exitParm) && exitParm==="true") {
         tcHelperLogout();
      }
 

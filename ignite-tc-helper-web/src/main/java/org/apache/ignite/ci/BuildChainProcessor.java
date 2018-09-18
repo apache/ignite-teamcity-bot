@@ -47,6 +47,16 @@ public class BuildChainProcessor {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
 
+    /**
+     * @param teamcity Teamcity.
+     * @param includeLatestRebuild Include latest rebuild.
+     * @param builds Builds.
+     * @param procLogs Process logs.
+     * @param includeScheduled Include scheduled.
+     * @param showContacts Show contacts.
+     * @param tcAnalytics Tc analytics.
+     * @param baseBranch Base branch, stable branch to take fail rates from.
+     */
     public static Optional<FullChainRunCtx> processBuildChains(
         ITeamcity teamcity,
         LatestRebuildMode includeLatestRebuild,
@@ -55,14 +65,14 @@ public class BuildChainProcessor {
         boolean includeScheduled,
         boolean showContacts,
         @Nullable ITcAnalytics tcAnalytics,
-        @Nullable String failRateBranch) {
+        @Nullable String baseBranch) {
 
         final Properties responsible = showContacts ? getContactPersonProperties(teamcity) : null;
 
         final FullChainRunCtx val = loadChainsContext(teamcity, builds,
             includeLatestRebuild,
             procLogs, responsible, includeScheduled, tcAnalytics,
-            failRateBranch);
+            baseBranch);
 
         return Optional.of(val);
     }

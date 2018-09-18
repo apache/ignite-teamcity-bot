@@ -45,11 +45,11 @@
             for (var i = 0; i < result.length; i++) {
                 var serverId = result[i];
 
-                res+="<form action='build-comparator.html'>";
-                res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>";
-                res+="Build Id: <input type='text' name='buildId' required> ";
-                res+="<input type='submit' name='action' value='Get tests list'>";
-                res+="</form>";
+                res += "<form action='build-comparator.html'>";
+                res += "Server: <input type='text' name='serverId' value=" + serverId + " readonly>";
+                res += "Build Id: <input type='text' name='buildId' required> ";
+                res += "<input type='submit' name='action' value='Get tests list'>";
+                res += "</form>";
             }
             $("#testsSet").html(res);
         }

@@ -38,7 +38,7 @@ public class IssueUsage {
     private ChangesList changesList;
 
     /**
-     *
+     * Get issue.
      */
     public IssueRef getIssue(){
         return issue;

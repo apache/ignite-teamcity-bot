@@ -17,7 +17,7 @@ function findGetParameter(parameterName) {
 
 function componentToHex(c) {
     var hex = c.toString(16);
-    return hex.length == 1 ? "0" + hex : hex;
+    return hex.length === 1 ? "0" + hex : hex;
 }
 
 function rgbToHex(r, g, b) {
@@ -28,19 +28,19 @@ function rgbToHex(r, g, b) {
 function showErrInLoadStatus(jqXHR, exception) {
     if (jqXHR.status === 0) {
         $("#loadStatus").html('Not connect.\n Verify Network.');
-    } else if (jqXHR.status == 404) {
+    } else if (jqXHR.status === 404) {
         $("#loadStatus").html('Requested page not found. [404]');
-    } else if (jqXHR.status == 401) {
+    } else if (jqXHR.status === 401) {
         $("#loadStatus").html('Unauthorized [401]');
 
         setTimeout(function() {
             window.location.href = "/login.html" + "?backref=" + encodeURIComponent(window.location.href);
         }, 1000);
-    } else if (jqXHR.status == 403) {
+    } else if (jqXHR.status === 403) {
         $("#loadStatus").html('Forbidden [403]');
-    } else if (jqXHR.status == 424) {
+    } else if (jqXHR.status === 424) {
         $("#loadStatus").html('Dependency problem: [424]: ' + jqXHR.responseText);
-    } else if (jqXHR.status == 500) {
+    } else if (jqXHR.status === 500) {
         $("#loadStatus").html('Internal Server Error [500].');
     } else if (exception === 'parsererror') {
         $("#loadStatus").html('Requested JSON parse failed.');
@@ -78,7 +78,7 @@ function showVersionInfo(result) {
     $("#version").html(res);
 }
 
-$(document).ready(function() {
+$(document).ready(function () {
     setupTokenManual();
     setupMenu();
 });
@@ -94,13 +94,12 @@ function setupMenu() {
     $.ajax({
         url: "rest/user/currentUserName",
         success: showMenu,
-        error:  function () {
+        error: function () {
             //not logged in
 
             showMenu({});
         }
     });
-
 }
 
 function showMenu(menuData) {
@@ -119,6 +118,7 @@ function showMenu(menuData) {
         res += "<div class=\"navbar\">";
         res += "<a href=\"/\">Home</a>";
         res += "<a href=\"/compare.html\">Compare builds</a>";
+        res += "<a href=\"/services.html\">Services</a>";
 
 
         res += "<div class='topnav-right'>";
@@ -154,39 +154,38 @@ function resetMenu() {
     setupMenu();
 }
 
-
-
-
 function setupTokenManual(result) {
     $.ajaxSetup({
-        beforeSend: function(xhr) {
+        beforeSend: function (xhr) {
             try {
                 var fullTok = window.sessionStorage.getItem("token");
 
                 if (isDefinedAndFilled(fullTok))
                     xhr.setRequestHeader("Authorization", "Token " + fullTok);
                 else {
-                    var fullTok = window.localStorage.getItem("token");
+                    fullTok = window.localStorage.getItem("token");
 
                     if (isDefinedAndFilled(fullTok))
                         xhr.setRequestHeader("Authorization", "Token " + fullTok);
                 }
-            } catch (e) {}
+            } catch (e) {
+            }
         }
     });
 }
 
 function tcHelperLogout() {
     try {
-                    var fullTok = window.sessionStorage.getItem("token");
+        var fullTok = window.sessionStorage.getItem("token");
 
-                    if (isDefinedAndFilled(fullTok))
-                        window.sessionStorage.removeItem("token");
+        if (isDefinedAndFilled(fullTok))
+            window.sessionStorage.removeItem("token");
 
-                        var fullTok = window.localStorage.getItem("token");
+        fullTok = window.localStorage.getItem("token");
 
-                        if (isDefinedAndFilled(fullTok))
-                            window.localStorage.removeItem("token");
+        if (isDefinedAndFilled(fullTok))
+            window.localStorage.removeItem("token");
 
-      } catch (e) {}
+    } catch (e) {
+    }
 }

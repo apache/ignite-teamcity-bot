@@ -37,8 +37,11 @@ public class BranchesTracked {
         return branches.stream().map(BranchTracked::getId).collect(Collectors.toList());
     }
 
-    public Set<ChainAtServer> chainAtServers() {
-        return branches.stream().flatMap(BranchTracked::getChainsStream).collect(Collectors.toSet());
+    public Set<ChainAtServer> getSuitesUnique() {
+        return branches.stream()
+            .flatMap(BranchTracked::getChainsStream)
+            .map(ChainAtServer::new) // to produce object with another equals
+            .collect(Collectors.toSet());
     }
 
     public Optional<BranchTracked> get(String branch) {

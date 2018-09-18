@@ -9,15 +9,15 @@
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 
     <script src="js/common-1.6.js"></script>
-    <script src="js/testfails-2.0.js"></script>
+    <script src="js/testfails-2.1.js"></script>
 </head>
 <body>
 <script>
-var g_shownDataHashCodeHex = ""
+var g_shownDataHashCodeHex = "";
 var g_updTimer = null;
 
 $(document).ready(function() {
-    $.getScript("js/testfails-2.0.js", function(data, textStatus, jqxhr){ });
+    $.getScript("js/testfails-2.1.js", function(data, textStatus, jqxhr){ });
     
     $( document ).tooltip();
     loadData();
@@ -25,40 +25,38 @@ $(document).ready(function() {
 
     $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 
-    if(g_updTimer==null) {
-        g_updTimer=setTimeout(tstTimeout, 3200);
+    if (g_updTimer == null) {
+        g_updTimer = setTimeout(tstTimeout, 3200);
     }
     setInterval(tstTimeout, 10000);
 });
 
 function tstTimeout() {
 
-    if(g_updTimer!=null) {
+    if (g_updTimer != null) {
         clearTimeout(g_updTimer);
-        g_updTimer=null;
+        g_updTimer = null;
     }
 
-
-var d = new Date();
-var n = d.getTime();
+    var d = new Date();
+    var n = d.getTime();
 
     // $(document.body).prepend("timeout at "+n+"<br>");
 
-
-    if(g_updTimer==null) {
-        g_updTimer=setTimeout(tstTimeout, 3200);
+    if (g_updTimer == null) {
+        g_updTimer = setTimeout(tstTimeout, 3200);
     }
 }
 
 function parmsForRest() {
     var curReqParms = "";
     var branch = findGetParameter("branch");
-    if(branch!=null) {
+    if (branch != null) {
         curReqParms += "?branch=" + branch;
     }
 
     var checkAllLogs = findGetParameter("checkAllLogs");
-    if(checkAllLogs!=null) {
+    if (checkAllLogs != null) {
         curReqParms += "&checkAllLogs=" + checkAllLogs;
     }
     return curReqParms;
@@ -70,8 +68,8 @@ function checkForUpdate() {
     $.ajax({
         url: curFailuresUrl,
         success: function(result) {
-           if (g_shownDataHashCodeHex!="" && isDefinedAndFilled(result.hashCodeHex)) {
-                if(g_shownDataHashCodeHex==result.hashCodeHex) {
+           if (g_shownDataHashCodeHex!=="" && isDefinedAndFilled(result.hashCodeHex)) {
+                if(g_shownDataHashCodeHex===result.hashCodeHex) {
                     var updRunning = isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0
                     var fastCheckNeeded = result.updateRequired || updRunning;
                     var ms = fastCheckNeeded ? 3000 : 30000 ;
@@ -99,7 +97,8 @@ function loadData() {
         url: curFailuresUrl,
         success: function(result) {
             if(result.updateRequired || (isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0)) {
-                setTimeout(checkForUpdate, 3000)
+                setTimeout(checkForUpdate, 3000);
+
                 $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Updating");
             } else {
                 $("#loadStatus").html("");
@@ -125,6 +124,6 @@ function showData(result) {
 <div id="divFailures"></div>
 
 <div id="version"></div>
-<div style="visibility:none"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
+<div style="visibility:hidden;"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
 </body>
 </html>

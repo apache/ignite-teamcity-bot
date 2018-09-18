@@ -160,9 +160,13 @@ public class GetTrackedBranchTestResults {
                     final String srvId = chainTracked.serverId;
 
                     final String branchForTc = chainTracked.getBranchForRestMandatory();
-                    final String failRateBranch = branchForTc; //branch is tracked, so fail rate should be taken from branch data
+
+                    //branch is tracked, so fail rate should be taken from this branch data (otherwise it is specified).
+                    final String baseBranchTc = chainTracked.getBaseBranchForTc().orElse(branchForTc);
 
                     final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
+
+                    chainStatus.baseBranchForTc = baseBranchTc;
 
                     try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds)) {
 
@@ -188,16 +192,15 @@ public class GetTrackedBranchTestResults {
 
                         Optional<FullChainRunCtx> chainCtxOpt
                             = BuildChainProcessor.processBuildChains(teamcity,
-                            rebuild, chains,
-                            logs,
-                            includeScheduled, true, teamcity, failRateBranch);
+                            rebuild, chains, logs,
+                            includeScheduled, true, teamcity, baseBranchTc);
 
                         chainCtxOpt.ifPresent(ctx -> {
                             int cnt = (int)ctx.getRunningUpdates().count();
                             if (cnt > 0)
                                 runningUpdates.addAndGet(cnt);
 
-                            chainStatus.initFromContext(teamcity, ctx, teamcity, failRateBranch);
+                            chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranchTc);
                         });
                     }
                     return chainStatus;
