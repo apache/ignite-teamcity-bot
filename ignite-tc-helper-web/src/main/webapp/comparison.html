@@ -226,21 +226,20 @@
 
         $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 
-        if(g_updTimer==null) {
-            g_updTimer=setTimeout(tstTimeout, 3200);
+        if(g_updTimer == null) {
+            g_updTimer = setTimeout(tstTimeout, 3200);
         }
         setInterval(tstTimeout, 10000);
     });
 
     function tstTimeout() {
-
-        if(g_updTimer!=null) {
+        if (g_updTimer != null) {
             clearTimeout(g_updTimer);
-            g_updTimer=null;
+            g_updTimer = null;
         }
 
-        if(g_updTimer==null) {
-            g_updTimer=setTimeout(tstTimeout, 3200);
+        if (g_updTimer == null) {
+            g_updTimer = setTimeout(tstTimeout, 3200);
         }
     }
 

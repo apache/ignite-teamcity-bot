@@ -163,7 +163,6 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("sinceDate") String sinceDate,
         @Nullable @QueryParam("untilDate") String untilDate)
         throws ServiceUnauthorizedException, ParseException {
-
         DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
 
         String srvId = isNullOrEmpty(server) ? "apache" : server;
@@ -205,7 +204,6 @@ public class GetBuildTestFailures {
     }
 
     private BuildStatisticsSummary getBuildStatisticsSummaryNoCache(String server, int buildId) {
-
         String srvId = isNullOrEmpty(server) ? "apache" : server;
 
         final ITcHelper tcHelper = CtxListener.getTcHelper(context);

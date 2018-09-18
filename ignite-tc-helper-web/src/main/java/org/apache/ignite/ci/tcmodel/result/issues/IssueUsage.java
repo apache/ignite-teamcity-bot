@@ -37,6 +37,9 @@ public class IssueUsage {
     @XmlElement(name = "changes")
     private ChangesList changesList;
 
+    /**
+     *
+     */
     public IssueRef getIssue(){
         return issue;
     }

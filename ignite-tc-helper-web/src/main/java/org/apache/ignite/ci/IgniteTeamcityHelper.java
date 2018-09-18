@@ -386,7 +386,6 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     public String getDateYyyyMmDdTHhMmSsZ(Date date){
-
         return new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")
             .format(date)
             .replace("+", "%2B");
@@ -404,7 +403,6 @@ public class IgniteTeamcityHelper implements ITeamcity {
     public ProblemOccurrences getProblems(Build build) {
         if (build.problemOccurrences != null) {
             ProblemOccurrences problemOccurrences = getJaxbUsingHref(build.problemOccurrences.href, ProblemOccurrences.class);
-
             problemOccurrences.problemOccurrences
                 .forEach(p -> p.buildRef = build);
 
@@ -434,6 +432,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return getJaxbUsingHref(href, ChangesList.class);
     }
 
+    /** {@inheritDoc} */
     public IssuesUsagesList getIssuesUsagesList(String href) { return getJaxbUsingHref(href, IssuesUsagesList.class); }
 
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {
@@ -449,7 +448,9 @@ public class IgniteTeamcityHelper implements ITeamcity {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             true,
-            null, sinceDate, untilDate);
+            null,
+            sinceDate,
+            untilDate);
 
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }

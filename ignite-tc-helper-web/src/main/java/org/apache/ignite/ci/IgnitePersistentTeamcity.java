@@ -203,7 +203,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /**
-     * @return Build history: {@link BuildRef} lists cache, 32 parts, transactional
+     * @return Build history: {@link BuildRef} lists cache, 32 parts, transactional.
      */
     public IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistIncFailedCache() {
         return getOrCreateCacheV2Tx(ignCacheNme(BUILD_HIST_FINISHED_OR_FAILED));
@@ -625,6 +625,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         });
     }
 
+    /** {@inheritDoc} */
     @Override public IssuesUsagesList getIssuesUsagesList(String href) {
         IssuesUsagesList issuesUsages =  loadIfAbsentV2(ISSUES_USAGES_LIST, href, href1 -> {
             try {

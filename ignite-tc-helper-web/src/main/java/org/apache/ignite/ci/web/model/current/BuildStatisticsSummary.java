@@ -18,10 +18,8 @@
 package org.apache.ignite.ci.web.model.current;
 
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +31,6 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
-import org.apache.ignite.ci.tcmodel.result.issues.IssueRef;
-import org.apache.ignite.ci.tcmodel.result.issues.IssueUsage;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.util.TimeUtil;
 import org.apache.ignite.ci.web.IBackgroundUpdatable;
@@ -133,7 +129,6 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
      * @param teamcity Teamcity.
      */
     private List<ProblemOccurrence> getProblems(@Nonnull final ITeamcity teamcity, List<BuildRef> builds){
-
         List<ProblemOccurrence> problemOccurrences = new ArrayList<>();
 
         for (BuildRef buildRef : builds)
@@ -182,8 +177,7 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
 
         return problemOccurrenceList.stream()
             .filter(Objects::nonNull)
-            .filter(p -> buildTypeId == null || buildTypeId.equals(p.buildRef.buildTypeId)
-            );
+            .filter(p -> buildTypeId == null || buildTypeId.equals(p.buildRef.buildTypeId));
     }
 
     /**
@@ -191,7 +185,9 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
      *
      * @return printable result;
      */
-    private Map<String, Long> getRes(){ return getBuildTypeProblemsCount(null); }
+    private Map<String, Long> getRes(){
+        return getBuildTypeProblemsCount(null);
+    }
 
 
     /**
@@ -215,5 +211,30 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
     /** {@inheritDoc} */
     @Override public void setUpdateRequired(boolean update) {
         updateRequired = update;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+
+        if (!(o instanceof BuildStatisticsSummary))
+            return false;
+
+        BuildStatisticsSummary that = (BuildStatisticsSummary)o;
+
+        return isFakeStub == that.isFakeStub &&
+            Objects.equals(buildId, that.buildId) &&
+            Objects.equals(startDate, that.startDate) &&
+            Objects.equals(testOccurrences, that.testOccurrences) &&
+            Objects.equals(problemOccurrenceList, that.problemOccurrenceList) &&
+            Objects.equals(durationPrintable, that.durationPrintable) &&
+            Objects.equals(totalProblems, that.totalProblems);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hash(buildId, startDate, testOccurrences, problemOccurrenceList,
+            durationPrintable, totalProblems, isFakeStub);
     }
 }
