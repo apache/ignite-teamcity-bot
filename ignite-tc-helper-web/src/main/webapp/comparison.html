@@ -25,7 +25,7 @@
     </tr>
     <tr><td class="section">TESTS</td><td></td><td></td></tr>
     <tr><td class="field">COUNT</td>
-        <td><img id="clickGraphCount" src='/img/line-graphic-sketch.png' height="14px" width="25px"></td>
+        <td><img id="clickGraphCount" src='/img/browser.png'></td>
         <td class="data1" id="Count1" title="min - median - max"></td>
         <td class="data2" id="Count2" title="min - median - max"></td>
     </tr>
@@ -35,7 +35,7 @@
         <td style="text-align: center;"><svg id="graphCount2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">PASSED</td>
-        <td><img id="clickGraphPassed" src='/img/line-graphic-sketch.png' height="14px" width="25px"></td>
+        <td><img id="clickGraphPassed" src='/img/browser.png'></td>
         <td class="data1" id="Passed1" title="min - median - max"></td>
         <td class="data2" id="Passed2" title="min - median - max"></td>
     </tr>
@@ -45,7 +45,7 @@
         <td style="text-align: center;"><svg id="graphPassed2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">FAILED</td>
-        <td><img id="clickGraphFailed" src='/img/line-graphic-sketch.png' height="14px" width="25px"></td>
+        <td><img id="clickGraphFailed" src='/img/browser.png'></td>
         <td class="data1" id="Failed1" title="min - median - max"></td>
         <td class="data2" id="Failed2" title="min - median - max"></td>
     </tr>
@@ -55,7 +55,7 @@
         <td style="text-align: center;"><svg id="graphFailed2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">IGNORED</td>
-        <td><img id="clickGraphIgnored" src='/img/line-graphic-sketch.png' height="14px" width="25px"></td>
+        <td><img id="clickGraphIgnored" src='/img/browser.png'></td>
         <td class="data1" id="Ignored1" title="min - median - max"></td>
         <td class="data2" id="Ignored2" title="min - median - max"></td>
     </tr>
@@ -65,7 +65,7 @@
         <td style="text-align: center;"><svg id="graphIgnored2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">MUTED</td>
-        <td><img id="clickGraphMuted" src='/img/line-graphic-sketch.png' height="14px" width="25px"></td>
+        <td><img id="clickGraphMuted" src='/img/browser.png'></td>
         <td class="data1" id="Muted1" title="min - median - max"></td>
         <td class="data2" id="Muted2" title="min - median - max"></td></tr>
     <tr id="showGraphMuted" style="display: none;"><td></td>
@@ -76,7 +76,7 @@
     <tr><td class="section">PROBLEMS</td><td></td><td></td></tr>
     <tr style="display: none;"><td></td><td></td><td></td></tr>
     <tr><td class="field">TOTAL</td>
-        <td><img id="clickGraphTT" src='/img/line-graphic-sketch.png' height="14px" width="25px"></td>
+        <td><img id="clickGraphTT" src='/img/browser.png'></td>
         <td class="data1" id="TT1" title="min - median - max"></td>
         <td class="data2" id="TT2" title="min - median - max"></td></tr>
     <tr id="showGraphTT" style="display: none;"><td></td>
@@ -85,7 +85,7 @@
         <td style="text-align: center;"><svg id="graphTT2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">EXECUTION TIMEOUT</td>
-        <td><img id="clickGraphET" src='/img/line-graphic-sketch.png' height="14px" width="25px"></td>
+        <td><img id="clickGraphET" src='/img/browser.png'></td>
         <td class="data1" id="ET1" title="min - median - max"></td>
         <td class="data2" id="ET2" title="min - median - max"></td>
     </tr>
@@ -95,7 +95,7 @@
         <td style="text-align: center;"><svg id="graphET2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">JVM CRASH</td>
-        <td><img id="clickGraphJC" src='/img/line-graphic-sketch.png' height="14px" width="25px"></td>
+        <td><img id="clickGraphJC" src='/img/browser.png'></td>
         <td class="data1" id="JC1" title="min - median - max"></td>
         <td class="data2" id="JC2" title="min - median - max"></td>
     </tr>
@@ -105,7 +105,7 @@
         <td style="text-align: center;"><svg id="graphJC2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">OOME</td>
-        <td><img id="clickGraphOO" src='/img/line-graphic-sketch.png' height="14px" width="25px"></td>
+        <td><img id="clickGraphOO" src='/img/browser.png'></td>
         <td class="data1" id="OO1" title="min - median - max"></td>
         <td class="data2" id="OO2" title="min - median - max"></td>
     </tr>
@@ -115,7 +115,7 @@
         <td style="text-align: center;"><svg id="graphOO2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">EXIT CODE</td>
-        <td><img id="clickGraphEC" src='/img/line-graphic-sketch.png' height="14px" width="25px"></td>
+        <td><img id="clickGraphEC" src='/img/browser.png'></td>
         <td class="data1" id="EC1" title="min - median - max"></td>
         <td class="data2" id="EC2" title="min - median - max"></td>
     </tr>
@@ -129,6 +129,7 @@
 <script>
     let oneWeekAgo = new Date();
     let twoWeekAgo = new Date();
+    let g_updTimer = null;
 
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     twoWeekAgo.setDate(twoWeekAgo.getDate() - 14);
@@ -174,10 +175,7 @@
 
         for (let i = 0; i < prOcc.length; i++) {
             statistics[prOcc[i]] = [];
-        }
-
-        for (let k = 0; k < tOcc.length; k++) {
-            statistics[tOcc[k]] = [];
+            statistics[tOcc[i]] = [];
         }
 
         for (let j = 0; j < map.length; j++) {
@@ -185,10 +183,7 @@
 
             for (let i = 0; i < prOcc.length; i++) {
                 statistics[prOcc[i]][j] = map[j].totalProblems[prOcc[i]];
-            }
-
-            for (let k = 0; k < tOcc.length; k++) {
-                statistics[tOcc[k]][j] = map[j].testOccurrences[tOcc[k].toLowerCase()];
+                statistics[tOcc[i]][j] = map[j].testOccurrences[tOcc[i].toLowerCase()];
             }
         }
 
@@ -216,23 +211,18 @@
                 }
             }
 
+            result = getMinMaxMedian(statistics[tOcc[i]]);
+
+            $('#' + tOcc[i] + num).html(result.min + " - " + result.median + " - " + result.max);
+
             drawGraph(prOcc[i], num, dates, statistics[prOcc[i]], prOcc[i]);
-        }
-
-        for (let k = 0; k < tOcc.length; k++) {
-            result = getMinMaxMedian(statistics[tOcc[k]]);
-
-            $('#' + tOcc[k] + num).html(result.min + " - " + result.median + " - " + result.max);
-
-            drawGraph(tOcc[k], num, dates, statistics[tOcc[k]], tOcc[k]);
+            drawGraph(tOcc[i], num, dates, statistics[tOcc[i]], tOcc[i]);
         }
     }
 
     $(document).ready(function() {
-        //$( document ).tooltip();
         loadData(1, moment(oneWeekAgo).format("DDMMYYYY"), moment().format("DDMMYYYY"));
         loadData(2, moment(twoWeekAgo).format("DDMMYYYY"), moment(oneWeekAgo).format("DDMMYYYY"));
-        //todo fix setInterval( function() { checkForUpdate(); }, 30000);
 
         $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 
@@ -248,9 +238,6 @@
             clearTimeout(g_updTimer);
             g_updTimer=null;
         }
-
-        var d = new Date();
-        var n = d.getTime();
 
         if(g_updTimer==null) {
             g_updTimer=setTimeout(tstTimeout, 3200);
@@ -288,26 +275,19 @@
             });
     });
 
-    for (let k = 0; k < tOcc.length; k++) {
-
-    }
-
     for (let i = 0; i < prOcc.length; i++) {
         $("#clickGraph" + prOcc[i]).click(function() {
             document.getElementById("showGraph" + prOcc[i]).style.display === 'none' ?
                 document.getElementById("showGraph" + prOcc[i]).style.display = null :
                 document.getElementById("showGraph" + prOcc[i]).style.display = 'none';
         });
-    }
 
-    for (let k = 0; k < tOcc.length; k++) {
-        $("#clickGraph" + tOcc[k]).click(function() {
-            document.getElementById("showGraph" + tOcc[k]).style.display === 'none' ?
-                document.getElementById("showGraph" + tOcc[k]).style.display = null :
-                document.getElementById("showGraph" + tOcc[k]).style.display = 'none';
+        $("#clickGraph" + tOcc[i]).click(function() {
+            document.getElementById("showGraph" + tOcc[i]).style.display === 'none' ?
+                document.getElementById("showGraph" + tOcc[i]).style.display = null :
+                document.getElementById("showGraph" + tOcc[i]).style.display = 'none';
         });
     }
-
 
     function drawGraph(prefix, num, dates, counts, text) {
         let data = [];
