@@ -50,45 +50,39 @@
         <td style="text-align: center;"><svg id="graphTT1" width="500" height="200"></svg></td>
         <td style="text-align: center;"><svg id="graphTT2" width="500" height="200"></svg></td>
     </tr>
-    <tr><td class="field">SUBTOTAL<br><p style="font-size:10px">WITHOUT FAILED TESTS, SNAPSHOT DEPENDENCY ERROR, OTHER</p></td>
-        <td class="data1" id="ST1" title="min - median - max"></td>
-        <td class="data2" id="ST2" title="min - median - max"></td></tr>
-    <tr><td></td>
-        <td style="text-align: center;"><svg id="graphST1" width="500" height="200"></svg></td>
-        <td style="text-align: center;"><svg id="graphST2" width="500" height="200"></svg></td>
-    </tr>
-    <tr><td class="field">EXECUTION_TIMEOUT</td>
+    <tr><td class="field">EXECUTION TIMEOUT</td>
         <td class="data1" id="ET1" title="min - median - max"></td>
         <td class="data2" id="ET2" title="min - median - max"></td>
     </tr>
-    <tr><td class="field">JVM_CRASH</td>
+    <tr><td></td>
+        <td style="text-align: center;"><svg id="graphET1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphET2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">JVM CRASH</td>
         <td class="data1" id="JC1" title="min - median - max"></td>
         <td class="data2" id="JC2" title="min - median - max"></td>
+    </tr>
+    <tr><td></td>
+        <td style="text-align: center;"><svg id="graphJC1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphJC2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">OOME</td>
         <td class="data1" id="OO1" title="min - median - max"></td>
         <td class="data2" id="OO2" title="min - median - max"></td>
     </tr>
-    <tr><td class="field">EXIT_CODE</td>
+    <tr><td></td>
+        <td style="text-align: center;"><svg id="graphOO1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphOO2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">EXIT CODE</td>
         <td class="data1" id="EC1" title="min - median - max"></td>
         <td class="data2" id="EC2" title="min - median - max"></td>
     </tr>
-    <tr><td class="field">FAILED_TESTS</td>
-        <td class="data1" id="FT1" title="min - median - max"></td>
-        <td class="data2" id="FT2" title="min - median - max"></td>
+    <tr><td></td>
+        <td style="text-align: center;"><svg id="graphEC1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphEC2" width="500" height="200"></svg></td>
     </tr>
-    <tr><td class="field">SNAPSHOT_DEPENDENCY_ERROR</td>
-        <td class="data1" id="SD1" title="min - median - max"></td>
-        <td class="data2" id="SD2" title="min - median - max"></td>
-    </tr>
-    <tr><td class="field">OTHER</td>
-        <td class="data1" id="OT1" title="min - median - max"></td>
-        <td class="data2" id="OT2" title="min - median - max"></td></tr>
 </table><br>
-<div>
-    <details><summary>log1</summary><p id="log1"></p></details>
-    <details><summary>log2</summary><p id="log2"></p></details>
-</div>
 <div id="version"></div>
 <script>
     let oneWeekAgo = new Date();
@@ -112,7 +106,7 @@
         }
     }
 
-    const prOcc = ["TT", "ET", "JC", "OO", "EC", "FT", "SD", "OT"];
+    const prOcc = ["TT", "ET", "JC", "OO", "EC"];
     const tOcc = ["count", "passed", "failed", "ignored", "muted"];
 
     function getMinMaxMedian(arr) {
@@ -127,7 +121,7 @@
     }
 
     function parseMedian(string) {
-        return parseInt(string.substring(string.indexOf("-") + 2, string.lastIndexOf("-") - 1))
+        return parseInt(string.substring(string.indexOf("-") + 2, string.lastIndexOf("-") - 1));
     }
 
     function printStatistics(num, map) {
@@ -144,10 +138,8 @@
             statistics[tOcc[k]] = [];
         }
 
-        statistics['ST'] = [];
-
         for (let j = 0; j < map.length; j++) {
-            dates[j] = parseTime(map[j].date)
+            dates[j] = parseTime(map[j].startDate);
 
             for (let i = 0; i < prOcc.length; i++) {
                 statistics[prOcc[i]][j] = map[j].totalProblems[prOcc[i]];
@@ -156,8 +148,6 @@
             for (let k = 0; k < tOcc.length; k++) {
                 statistics[tOcc[k]][j] = map[j].testOccurrences[tOcc[k]];
             }
-
-            statistics['ST'][j] = statistics['TT'][j] - statistics['FT'][j] - statistics['SD'][j];
         }
 
         const anotherNum = (num === 1) ? 2 : 1;
@@ -177,30 +167,52 @@
             if (!isNaN(anotherMedian)){
                 if (result.median > anotherMedian){
                     document.getElementById(prOcc[i] + num).style.backgroundColor = "#ffeee9";
+                    document.getElementById(prOcc[i] + anotherNum).style.backgroundColor = "#e5ffe8";
                 } else if (result.median < anotherMedian){
                     document.getElementById(prOcc[i] + anotherNum).style.backgroundColor = "#ffeee9";
+                    document.getElementById(prOcc[i] + num).style.backgroundColor = "#e5ffe8";
                 }
             }
+
+            drawGraph(prOcc[i], num, dates, statistics[prOcc[i]], prOcc[i]);
         }
 
         for (let k = 0; k < tOcc.length; k++) {
             result = getMinMaxMedian(statistics[tOcc[k]]);
 
             $('#' + tOcc[k] + num).html(result.min + " - " + result.median + " - " + result.max);
+
         }
-
-        result = getMinMaxMedian(statistics['ST']);
-
-        $('#' + 'ST' + num).html(result.min + " - " + result.median + " - " + result.max);
-
-        drawGraph('TT', num, dates, statistics['TT'], "TOTAL");
-        drawGraph('ST', num, dates, statistics['ST'], "SUBTOTAL");
     }
 
     $(document).ready(function() {
+        //$( document ).tooltip();
         loadData(1, moment(oneWeekAgo).format("DDMMYYYY"), moment().format("DDMMYYYY"));
         loadData(2, moment(twoWeekAgo).format("DDMMYYYY"), moment(oneWeekAgo).format("DDMMYYYY"));
+        //todo fix setInterval( function() { checkForUpdate(); }, 30000);
+
+        $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
+
+        if(g_updTimer==null) {
+            g_updTimer=setTimeout(tstTimeout, 3200);
+        }
+        setInterval(tstTimeout, 10000);
     });
+
+    function tstTimeout() {
+
+        if(g_updTimer!=null) {
+            clearTimeout(g_updTimer);
+            g_updTimer=null;
+        }
+
+        var d = new Date();
+        var n = d.getTime();
+
+        if(g_updTimer==null) {
+            g_updTimer=setTimeout(tstTimeout, 3200);
+        }
+    }
 
     function loadGif(num) {
         $('.data' + num).html("<img src='/img/loading.gif' width=15px height=15px>");
@@ -212,12 +224,9 @@
             {
                 url: 'rest/build/history?sinceDate=' + sinceDate + '000001&untilDate=' + untilDate + '235959',
                 success: function (result) {
-                    $('#log' + num).html(JSON.stringify(result));
                     printStatistics(num, result);
                 },
-                complete: function (result) {
-                    // do something, not critical.
-                }
+                error: showErrInLoadStatus
             }
         );
     }
@@ -250,9 +259,7 @@
 
         svg = d3.select("#graph" + prefix + num).append("svg:svg");
         margin = {top: 20, right: 20, bottom: 30, left: 50};
-        /*  width = +svg.attr("width") - margin.left - margin.right,
-            height = +svg.attr("height") - margin.top - margin.bottom,*/
-        width = +400 - margin.left - margin.right;
+        width = +600 - margin.left - margin.right;
         height = +200 - margin.top - margin.bottom;
         g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
