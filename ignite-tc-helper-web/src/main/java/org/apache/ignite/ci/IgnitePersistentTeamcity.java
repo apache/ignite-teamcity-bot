@@ -125,6 +125,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     //todo: not good code to keep it static
     private static long lastTriggerMs = System.currentTimeMillis();
 
+    public static final boolean noLocks = false;
+
     @Deprecated
     public IgnitePersistentTeamcity(Ignite ignite, @Nullable String srvId) {
         this(ignite, new IgniteTeamcityHelper(srvId));
@@ -320,7 +322,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             return buildRefs;
         }
         finally {
-            lock.unlock();
+            if (!noLocks)
+                lock.unlock();
         }
     }
 
@@ -340,6 +343,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @AutoProfiling
     @SuppressWarnings("WeakerAccess")
     protected  <K> Lock lockBuildHistEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key) {
+        if(noLocks)
+            return null;
+
         Lock lock = cache.lock(key);
 
         lock.lock();
