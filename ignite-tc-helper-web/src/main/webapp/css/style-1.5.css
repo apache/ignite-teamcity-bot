@@ -142,6 +142,6 @@ form li:after
 	color: #000000;
 }
 
-.stat tr:nth-child(odd) {
+.stat tr:nth-child(4n - 1) {
 	background-color: #fafaff;
 }
