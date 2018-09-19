@@ -59,7 +59,7 @@ public class BuildChainProcessor {
      * @param showContacts Show contacts.
      * @param tcAnalytics Tc analytics.
      * @param baseBranch Base branch, stable branch to take fail rates from.
-     * @param executor
+     * @param executor Executor service to process TC requests in it.
      */
     public static Optional<FullChainRunCtx> processBuildChains(
             ITeamcity teamcity,
@@ -116,16 +116,12 @@ public class BuildChainProcessor {
                 .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
                 .filter(ref -> ensureUnique(unique, ref));
 
-
         uniqueBuldsInvolved
-                .map((buildRef) -> executor.submit(() -> {
-                    return replaceWithRecent(teamcity, includeLatestRebuild, unique, buildRef, entryPoints.size());
-                }))
+                .map((buildRef) -> executor.submit(
+                        () -> replaceWithRecent(teamcity, includeLatestRebuild, unique, buildRef, entryPoints.size())))
                 .map(FutureUtil::getResult)
-                .map((s) -> executor.submit(()-> {
-                    return processBuildList(teamcity, buildsCtxMap, s);
-                        }
-                ))
+                .map((s) -> executor.submit(
+                        () -> processBuildList(teamcity, buildsCtxMap, s)))
                 .forEach(FutureUtil::getResult);
 
         ArrayList<MultBuildRunCtx> contexts = new ArrayList<>(buildsCtxMap.values());

@@ -133,7 +133,7 @@ public class GetPrTestFailures {
      * @param act Action.
      * @param cnt Count.
      * @param baseBranchForTc Base branch name in TC identification.
-     * @param executorService
+     * @param executorService Executor service to process TC communication requests there.
      * @return Test failures summary.
      */
     public static TestFailuresSummary getTestFailuresSummary(
