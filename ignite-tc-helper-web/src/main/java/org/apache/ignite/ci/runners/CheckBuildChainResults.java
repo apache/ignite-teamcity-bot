@@ -29,6 +29,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.ITeamcity;
@@ -217,7 +219,8 @@ public class CheckBuildChainResults {
                 FullChainRunCtx ctx = BuildChainProcessor.loadChainsContext(teamcity,
                     singletonList(next),
                     LatestRebuildMode.NONE,
-                    ProcessLogsMode.DISABLED, null, false, null, ITeamcity.DEFAULT);
+                    ProcessLogsMode.DISABLED, null, false, null,
+                        ITeamcity.DEFAULT, MoreExecutors.newDirectExecutorService());
                 if (ctx == null)
                     return null;
 

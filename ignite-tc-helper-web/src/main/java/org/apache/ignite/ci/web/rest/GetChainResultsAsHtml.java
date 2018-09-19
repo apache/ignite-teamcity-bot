@@ -28,6 +28,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
@@ -72,7 +74,7 @@ public class GetChainResultsAsHtml {
                 BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,
                     Collections.singletonList(build),
                     ProcessLogsMode.SUITE_NOT_COMPLETE,
-                    false, false, teamcity, failRateBranch);
+                    false, false, teamcity, failRateBranch, MoreExecutors.newDirectExecutorService());
 
             ctxOptional.ifPresent(ctx -> {
                 ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
