@@ -23,11 +23,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.cache.Cache;
+
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteScheduler;
 import org.apache.ignite.ci.HelperConfig;
@@ -386,15 +386,18 @@ public class IssueDetector {
     private void checkFailuresEx() {
         int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
 
+        ExecutorService executor = MoreExecutors.newDirectExecutorService();
+
         GetTrackedBranchTestResults.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
-            false, buildsToQry, backgroundOpsTcHelper, backgroundOpsCreds);
+            false, buildsToQry, backgroundOpsTcHelper, backgroundOpsCreds, executor);
 
         TestFailuresSummary failures =
             GetTrackedBranchTestResults.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
                 false,
                 1,
                 backgroundOpsTcHelper,
-                backgroundOpsCreds);
+                backgroundOpsCreds,
+                    executor);
 
         registerIssuesLater(failures, backgroundOpsTcHelper, backgroundOpsCreds);
     }
