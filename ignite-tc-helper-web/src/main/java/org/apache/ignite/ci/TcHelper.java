@@ -206,7 +206,7 @@ public class TcHelper implements ITcHelper {
      * @param srvId Server id.
      * @param prov Credentials.
      * @param webUrl Build URL.
-     * @param executorService
+     * @param executorService Executor service to process TC communication requests there.
      * @return Comment, which should be sent to the JIRA ticket.
      */
     private String generateJiraComment(
@@ -215,7 +215,7 @@ public class TcHelper implements ITcHelper {
             String srvId,
             ICredentialsProv prov,
             String webUrl,
-            ExecutorService executorService
+            @Nullable ExecutorService executorService
     ) {
         StringBuilder res = new StringBuilder();
         TestFailuresSummary summary = GetPrTestFailures.getTestFailuresSummary(
