@@ -16,6 +16,9 @@
  */
 package org.apache.ignite.ci.web.rest.monitoring;
 
+import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.CacheMetrics;
 import org.apache.ignite.ci.di.ProfilingInterceptor;
 import org.apache.ignite.ci.web.CtxListener;
 
@@ -26,10 +29,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -57,5 +57,35 @@ public class MonitoringService {
         return hotSpotStream.sorted(Comparator.comparing(HotSpot::getNanos).reversed())
                 .limit(100)
                 .map(HotSpot::toString).collect(Collectors.toList());
+    }
+
+    @GET
+    @PermitAll
+    @Path("caches")
+    public List<String> getCacheStat() {
+        Ignite ignite = CtxListener.getInjector(ctx).getInstance(Ignite.class);
+
+        List<String> res = new ArrayList<>();
+        final Collection<String> strings = ignite.cacheNames();
+
+        final ArrayList<String> cacheNames = new ArrayList<>(strings);
+        cacheNames.sort(String::compareTo);
+
+        for (String next : cacheNames) {
+            IgniteCache<?, ?> cache = ignite.cache(next);
+
+            if (cache == null)
+                continue;
+            CacheMetrics metrics = cache.metrics();
+
+            int size = cache.size();
+            //float averageGetTime = metrics.getAverageGetTime();
+            // float averagePutTime = metrics.getAveragePutTime();
+
+            // res.add(next + ": " + size + " get " + averageGetTime + " put " + averagePutTime);
+
+            res.add(next + ": " + size);
+        }
+        return res;
     }
 }

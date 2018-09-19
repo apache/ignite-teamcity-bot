@@ -37,9 +37,17 @@
             success: function(result) {
                 $("#loadStatus").html("");
 
-
                 showProfiling(result);
+            },
+            error: showErrInLoadStatus
+        });
 
+        $.ajax({
+            url: "rest/monitoring/caches",
+            success: function(result) {
+                $("#loadStatus").html("");
+
+                showCaches(result);
             },
             error: showErrInLoadStatus
         });
@@ -53,10 +61,20 @@
         $("#profiling").html(res);
     }
 
+    function showCaches(result) {
+        var res = "" ;
+        for (var i = 0; i < result.length; i++) {
+            res += result[i] + "<br>";
+        }
+        $("#caches").html(res);
+    }
+
 </script>
 
 Profiling Data:
 <div id="profiling" style="font-family: monospace"></div>
+Caches Data:
+<div id="caches" style="font-family: monospace"></div>
 <div id="loadStatus"></div>
 <div id="version"></div>
 

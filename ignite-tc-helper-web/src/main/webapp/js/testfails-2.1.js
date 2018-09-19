@@ -211,13 +211,19 @@ function addBlockersData(server, settings) {
             blockers += showSuiteData(suite, settings);
     }
 
-    if (blockers !== "") {
-        blockers = "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>Possible Blockers</b></th>" +
-            "<th  class='table-title'>Base Branch</th></tr>" +
-            blockers +
-            "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>All Failures</b></th>" +
-            "<th  class='table-title'>Base Branch</th></tr>";
+    if (blockers === "") {
+        blockers = "<tr bgcolor='#D6F7C1'><th colspan='3' class='table-title'>" +
+            "<b>Possible Blockers not found!</b></th>" +
+            "<th class='table-title'>Base Branch</th></tr>";
     }
+    else {
+        blockers = "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>Possible Blockers</b></th>" +
+            "<th class='table-title'>Base Branch</th></tr>" +
+            blockers
+    }
+
+    blockers += "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>All Failures</b></th>" +
+        "<th class='table-title'>Base Branch</th></tr>";
 
     return blockers;
 }

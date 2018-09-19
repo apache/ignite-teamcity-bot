@@ -33,7 +33,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -125,6 +124,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     //todo: not good code to keep it static
     private static long lastTriggerMs = System.currentTimeMillis();
+
+    private static final boolean noLocks = true;
 
     @Deprecated
     public IgnitePersistentTeamcity(Ignite ignite, @Nullable String srvId) {
@@ -266,34 +267,88 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
-    private <K, V extends List> V timedLoadIfAbsentOrMerge(IgniteCache<K, Expirable<V>> cache, int seconds, Long cnt, K key,
-        BiFunction<K, V, V> loadWithMerge) {
-        @Nullable final Expirable<V> persistedBuilds = cache.get(key);
+    protected  <K> List<BuildRef> loadBuildHistory(IgniteCache<K, Expirable<List<BuildRef>>> cache,
+                                                                int seconds,
+                                                                Long cnt,
+                                                                K key,
+                                                                Function<K, List<BuildRef>> realLoad) {
+        @Nullable Expirable<List<BuildRef>> persistedBuilds = readBuildHistEntry(  cache, (K) key);
 
-        int fields = ObjectInterner.internFields(persistedBuilds);
+        if (persistedBuilds != null
+                && (persistedBuilds.isAgeLessThanSecs(seconds)
+                && (cnt == null || persistedBuilds.hasCounterGreaterThan(cnt)))) {
+            ObjectInterner.internFields(persistedBuilds);
 
-        if (persistedBuilds != null) {
-            if (persistedBuilds.isAgeLessThanSecs(seconds) &&
-                (cnt == null || persistedBuilds.hasCounterGreaterThan(cnt)))
-                return persistedBuilds.getData();
+            return persistedBuilds.getData();
         }
 
-        Lock lock = cache.lock(key);
-        lock.lock();
+        Lock lock = lockBuildHistEntry(cache, key);
 
-        V apply;
         try {
-            apply = loadWithMerge.apply(key, persistedBuilds != null ? persistedBuilds.getData() : null);
+            if (!noLocks) {
+                if (persistedBuilds != null
+                        && (persistedBuilds.isAgeLessThanSecs(seconds)
+                        && (cnt == null || persistedBuilds.hasCounterGreaterThan(cnt)))) {
+                    ObjectInterner.internFields(persistedBuilds);
 
-            final Expirable<V> newVal = new Expirable<>(System.currentTimeMillis(), apply.size(), apply);
+                    return persistedBuilds.getData();
+                }
+            }
 
-            cache.put(key, newVal);
+            //todo sinceBuild:(number:) // --todo -10 build numbers
+
+            List<BuildRef> dataFromRest;
+            try {
+                dataFromRest = realLoad.apply(key);
+            }
+            catch (Exception e) {
+                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                    System.err.println("Build history not found for build : " + key);
+                    dataFromRest = Collections.emptyList();
+                }
+                else
+                    throw e;
+            }
+            final List<BuildRef> persistedList = persistedBuilds != null ? persistedBuilds.getData() : null;
+            final List<BuildRef> buildRefs = mergeHistoryMaps(persistedList, dataFromRest);
+
+            final Expirable<List<BuildRef>> newVal
+                    = new Expirable<>(System.currentTimeMillis(), buildRefs.size(), buildRefs);
+
+            saveBuildHistoryEntry(cache, key, newVal);
+
+            return buildRefs;
         }
         finally {
-            lock.unlock();
+            if (!noLocks)
+                lock.unlock();
         }
+    }
 
-        return apply;
+    @AutoProfiling
+    @SuppressWarnings("WeakerAccess")
+    protected <K> void saveBuildHistoryEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key, Expirable<List<BuildRef>> newVal) {
+        cache.put(key, newVal);
+    }
+
+
+    @AutoProfiling
+    @SuppressWarnings("WeakerAccess")
+    protected <K> Expirable<List<BuildRef>> readBuildHistEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key) {
+        return cache.get(key);
+    }
+
+    @AutoProfiling
+    @SuppressWarnings("WeakerAccess")
+    protected  <K> Lock lockBuildHistEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key) {
+        if(noLocks)
+            return null;
+
+        Lock lock = cache.lock(key);
+
+        lock.lock();
+
+        return lock;
     }
 
     /** {@inheritDoc} */
@@ -301,23 +356,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Long cnt) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        List<BuildRef> buildRefs = timedLoadIfAbsentOrMerge(buildHistCache(), 60, cnt, suiteInBranch,
-            (key, persistedValue) -> {
-                List<BuildRef> builds;
-                try {
-                    builds = teamcity.getFinishedBuilds(projectId, branch, cnt);
-                }
-                catch (Exception e) {
-                    if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                        System.err.println("Build history not found for build : " + projectId + " in " + branch);
-                        builds = Collections.emptyList();
-                    }
-                    else
-                        throw e;
-                }
-
-                return mergeByIdToHistoricalOrder(persistedValue, builds);
-            });
+        List<BuildRef> buildRefs = loadBuildHistory(buildHistCache(), 60, cnt, suiteInBranch,
+            (key) -> teamcity.getFinishedBuilds(projectId, branch, cnt));
 
         if (cnt == null)
             return buildRefs;
@@ -328,7 +368,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     @NotNull
-    private List<BuildRef> mergeByIdToHistoricalOrder(List<BuildRef> persistedVal, List<BuildRef> mostActualVal) {
+    @AutoProfiling
+    @SuppressWarnings("WeakerAccess")
+    protected List<BuildRef> mergeHistoryMaps(@Nullable List<BuildRef> persistedVal, List<BuildRef> mostActualVal) {
         final SortedMap<Integer, BuildRef> merge = new TreeMap<>();
 
         if (persistedVal != null)
@@ -346,12 +388,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        return timedLoadIfAbsentOrMerge(buildHistIncFailedCache(), 60, cnt, suiteInBranch,
-            (key, persistedValue) -> {
-                List<BuildRef> failed = teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, cnt);
-
-                return mergeByIdToHistoricalOrder(persistedValue, failed);
-            });
+        return loadBuildHistory(buildHistIncFailedCache(), 60, cnt, suiteInBranch,
+            (key) -> teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, cnt));
     }
 
 

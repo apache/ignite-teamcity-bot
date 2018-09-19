@@ -20,6 +20,8 @@ package org.apache.ignite.ci.tcmodel.hist;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
+
+import com.google.common.base.Objects;
 import org.apache.ignite.ci.tcmodel.result.AbstractRef;
 
 /**
@@ -101,5 +103,26 @@ public class BuildRef extends AbstractRef {
      */
     public boolean isComposite() {
         return composite != null && composite;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        BuildRef buildRef = (BuildRef) o;
+        return Objects.equal(id, buildRef.id) &&
+                Objects.equal(buildTypeId, buildRef.buildTypeId) &&
+                Objects.equal(branchName, buildRef.branchName) &&
+                Objects.equal(status, buildRef.status) &&
+                Objects.equal(state, buildRef.state) &&
+                Objects.equal(buildNumber, buildRef.buildNumber) &&
+                Objects.equal(defaultBranch, buildRef.defaultBranch) &&
+                Objects.equal(composite, buildRef.composite) &&
+                Objects.equal(webUrl, buildRef.webUrl);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id, buildTypeId, branchName, status, state, buildNumber, defaultBranch, composite, webUrl);
     }
 }
