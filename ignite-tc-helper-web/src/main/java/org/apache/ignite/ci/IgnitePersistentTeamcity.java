@@ -25,9 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
@@ -35,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -348,74 +347,96 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return lock;
     }
 
-/*    *//** {@inheritDoc} *//*
-    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Date sinceDate, Date untilDate) {
-        final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
-
-        final Set<Integer> realLoadedBuildIds = new HashSet<>();
-
-        List<BuildRef> buildRefs = timedLoadIfAbsentOrMerge(buildHistCache(), 60, suiteInBranch,
-            (key, persistedValue) -> {
-                List<BuildRef> builds;
-                try {
-                        builds = teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate);
-
-                        realLoadedBuildIds.addAll(builds.stream().map(BuildRef::getId).collect(Collectors.toList()));
-                }
-                catch (Exception e) {
-                    if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                        System.err.println("Build history not found for build : " + projectId + " in " + branch);
-                        builds = Collections.emptyList();
-                    }
-                    else
-                        throw e;
-                }
-
-                return mergeByIdToHistoricalOrder(persistedValue, builds);
-            });
-
-        if (sinceDate != null && untilDate != null)
-            buildRefs =  buildRefs.stream()
-            .filter(b -> {
-                if (realLoadedBuildIds.contains(b.getId()))
-                    return true;
-
-                Build build = getBuild(b.href);
-
-                if (build.isFakeStub())
-                    return false;
-
-                Date date = build.getFinishDate();
-
-                return (date.after(sinceDate) || date.equals(sinceDate)) &&
-                    (date.before(untilDate) || date.equals(untilDate));
-            })
-            .collect(Collectors.toList());
-
-        return buildRefs;*/
     @AutoProfiling
     @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Date sinceDate, Date untilDate) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
+        final List<BuildRef> buildsFromRest = new ArrayList<>();
+
         List<BuildRef> buildRefs = loadBuildHistory(buildHistCache(), 60, suiteInBranch,
-            (key) -> teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate));
+            (key) -> {
+            buildsFromRest.addAll(teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate));
 
-        if (sinceDate != null && untilDate != null)
-            buildRefs =  buildRefs.stream()
-                .filter(b -> {
-                    if (b.isFakeStub())
-                        return false;
+            return buildsFromRest;
+            });
 
-                    Build build = getBuild(b.href);
+        if (sinceDate != null && untilDate != null) {
+            if (!buildsFromRest.isEmpty()){
+                int firstBuildId = buildRefs.indexOf(buildsFromRest.get(buildsFromRest.size() - 1));
 
-                    Date date = build.getStartDate();
+                if (firstBuildId == 0)
+                    return buildsFromRest;
 
-                    return (date.after(sinceDate) || date.equals(sinceDate)) &&
-                        (date.before(untilDate) || date.equals(untilDate));
-                })
-                .collect(Collectors.toList());
+                int prevFirstBuildId = firstBuildId- 1;
+
+                Build prevFirstBuild = getBuild((buildRefs.get(prevFirstBuildId).href));
+
+                if (prevFirstBuild.getStartDate().before(sinceDate))
+                    return buildsFromRest;
+            }
+
+            int idSince = binarySearchDate(buildRefs, 0, buildRefs.size(), sinceDate, true);
+            idSince = idSince > 0 ? idSince : (idSince == -2 ? 0 : -1);
+            int idUntil = idSince < 0 ? -1 : binarySearchDate(buildRefs, idSince, buildRefs.size(), untilDate, false);
+            idUntil = idUntil > 0 ? idUntil : (idUntil == -2 ? buildRefs.size() - 1 : -1);
+
+            if (idSince == -1 || idUntil == -1)
+                return Collections.emptyList();
+            else
+                return buildRefs.subList(idSince, idUntil + 1).stream()
+                    .filter(b -> !b.isFakeStub())
+                    .collect(Collectors.toList());
+        }
 
         return buildRefs;
+    }
+
+    /**
+     * @param buildRefs Build refs list.
+     * @param fromIndex From index.
+     * @param toIndex To index.
+     * @param key Key.
+     * @param since {@code true} If key is sinceDate, {@code false} is untilDate.
+     *
+     * @return {@value >= 0} Build id from list with min interval between key. If since {@code true}, min interval
+     * between key and same day or later. If since {@code false}, min interval between key and same day or earlier;
+     * {@value -1} If sinceDate after last list element date or untilDate before first list element;
+     * {@value -2} If sinceDate before first list element or untilDate after last list element.
+     */
+    private int binarySearchDate(List<BuildRef> buildRefs, int fromIndex, int toIndex, Date key, boolean since){
+        int low = fromIndex;
+        int high = toIndex - 1;
+        long minDiff = key.getTime();
+        int minDiffId = fromIndex;
+        long temp;
+        Build highBuild = getBuild(buildRefs.get(high).href);
+        Build lowBuild = getBuild(buildRefs.get(low).href);
+
+        if (((since && highBuild.getStartDate().before(key))) || (!since && lowBuild.getStartDate().after(key)))
+            return -1;
+
+        if ((highBuild.getStartDate().before(key)) || lowBuild.getStartDate().after(key))
+            return -2;
+
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            Build midVal = getBuild(buildRefs.get(mid).href);
+
+            if (midVal.getStartDate().after(key))
+                high = mid - 1;
+            else if(midVal.getStartDate().before(key))
+                low = mid + 1;
+            else
+                return mid;
+
+            temp = midVal.getStartDate().getTime() - key.getTime();
+
+            if ((temp > 0 == since) && (Math.abs(temp) < minDiff)) {
+                minDiff = Math.abs(temp);
+                minDiffId = mid;
+            }
+        }
+        return minDiffId;
     }
 
     @NotNull
