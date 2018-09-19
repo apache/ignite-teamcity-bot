@@ -30,6 +30,9 @@ public class ExceptionUtil {
      * @param e Exception.
      */
     public static RuntimeException propagateException(Exception e) {
+        if(e instanceof InterruptedException)
+            Thread.currentThread().interrupt();
+
         final Optional<Throwable> any = Throwables.getCausalChain(e)
             .stream()
             .filter(th -> (th instanceof ServiceUnauthorizedException)).findAny();

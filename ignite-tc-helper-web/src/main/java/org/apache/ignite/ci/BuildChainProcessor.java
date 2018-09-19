@@ -121,12 +121,12 @@ public class BuildChainProcessor {
                 .map((buildRef) -> executor.submit(() -> {
                     return replaceWithRecent(teamcity, includeLatestRebuild, unique, buildRef, entryPoints.size());
                 }))
-                .map(FutureUtil::getResultSilent)
+                .map(FutureUtil::getResult)
                 .map((s) -> executor.submit(()-> {
                     return processBuildList(teamcity, buildsCtxMap, s);
                         }
                 ))
-                .forEach(FutureUtil::getResultSilent);
+                .forEach(FutureUtil::getResult);
 
         ArrayList<MultBuildRunCtx> contexts = new ArrayList<>(buildsCtxMap.values());
 
