@@ -20,6 +20,7 @@ package org.apache.ignite.ci.web.rest.pr;
 import com.google.common.base.Strings;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.POST;
+
 import org.apache.ignite.ci.*;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
@@ -48,6 +49,7 @@ import javax.ws.rs.core.MediaType;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -58,7 +60,7 @@ public class GetPrTestFailures {
     public static final String CURRENT_PR_FAILURES = "currentPrFailures";
 
     @Context
-    private ServletContext context;
+    private ServletContext ctx;
 
     @Context
     private HttpServletRequest req;
@@ -86,7 +88,7 @@ public class GetPrTestFailures {
         @Nullable @QueryParam("count") Integer cnt,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc) {
 
-        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
+        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(ctx);
 
         final FullQueryParams key = new FullQueryParams(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc);
 
@@ -115,10 +117,11 @@ public class GetPrTestFailures {
         @Nullable @QueryParam("count") Integer cnt,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc) {
 
-        final ITcHelper tcHelper = CtxListener.getTcHelper(context);
+        final ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
         final ICredentialsProv creds = ICredentialsProv.get(req);
 
-        return getTestFailuresSummary(tcHelper, creds, srvId, suiteId, branchForTc, act, cnt, baseBranchForTc);
+        return getTestFailuresSummary(tcHelper, creds, srvId, suiteId, branchForTc, act, cnt, baseBranchForTc,
+                CtxListener.getPool(ctx));
     }
 
     /**
@@ -130,17 +133,19 @@ public class GetPrTestFailures {
      * @param act Action.
      * @param cnt Count.
      * @param baseBranchForTc Base branch name in TC identification.
+     * @param executorService
      * @return Test failures summary.
      */
     public static TestFailuresSummary getTestFailuresSummary(
-        ITcHelper helper,
-        ICredentialsProv creds,
-        String srvId,
-        String suiteId,
-        String branchForTc,
-        String act,
-        Integer cnt,
-        @Nullable String baseBranchForTc) {
+            ITcHelper helper,
+            ICredentialsProv creds,
+            String srvId,
+            String suiteId,
+            String branchForTc,
+            String act,
+            Integer cnt,
+            @Nullable String baseBranchForTc,
+            @Nullable ExecutorService executorService) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -184,7 +189,7 @@ public class GetPrTestFailures {
             Optional<FullChainRunCtx> pubCtx = BuildChainProcessor.processBuildChains(teamcity, rebuild, chains,
                 logs,
                 singleBuild,
-                true, teamcity, baseBranch);
+                true, teamcity, baseBranch, executorService);
 
             final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverId(), branchForTc);
 
@@ -224,7 +229,7 @@ public class GetPrTestFailures {
         if (!branchForTc.startsWith("pull/"))
             return "Given branch is not a pull request. Notify works only for pull requests.";
 
-        ITcHelper tcHelper = CtxListener.getTcHelper(context);
+        ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
         final ICredentialsProv creds = ICredentialsProv.get(req);
 
         try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds)) {

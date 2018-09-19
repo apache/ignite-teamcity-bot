@@ -47,6 +47,7 @@ import javax.ws.rs.core.MediaType;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -60,7 +61,7 @@ public class GetTrackedBranchTestResults {
     public static final String ALL_TEST_FAILURES_SUMMARY = "AllTestFailuresSummary";
 
     @Context
-    private ServletContext context;
+    private ServletContext ctx;
 
     @Context
     private HttpServletRequest request;
@@ -86,7 +87,7 @@ public class GetTrackedBranchTestResults {
             @Nullable @QueryParam("branch") String branchOrNull,
             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
-        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
+        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(ctx);
 
         FullQueryParams param = new FullQueryParams();
         param.setBranch(branchOrNull);
@@ -104,10 +105,11 @@ public class GetTrackedBranchTestResults {
             @Nullable @QueryParam("branch") String branch,
             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
-        final ITcHelper helper = CtxListener.getTcHelper(context);
+        final ITcHelper helper = CtxListener.getTcHelper(ctx);
         final ICredentialsProv creds = ICredentialsProv.get(request);
 
-        return getTrackedBranchTestFailures(branch, checkAllLogs, 1, helper, creds);
+        return getTrackedBranchTestFailures(branch, checkAllLogs, 1, helper, creds,
+                CtxListener.getPool(ctx));
     }
 
     @GET
@@ -124,7 +126,7 @@ public class GetTrackedBranchTestResults {
     public TestFailuresSummary getAllTestFails(@Nullable @QueryParam("branch") String branchOrNull,
                                                @Nullable @QueryParam("count") Integer count,
                                                @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
+        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(ctx);
         FullQueryParams fullKey = new FullQueryParams();
         fullKey.setBranch(branchOrNull);
         fullKey.setCount(count == null ? FullQueryParams.DEFAULT_COUNT : count);
@@ -146,7 +148,8 @@ public class GetTrackedBranchTestResults {
             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
             int buildResultMergeCnt,
             ITcHelper helper,
-            ICredentialsProv creds) {
+            ICredentialsProv creds,
+            @Nullable ExecutorService pool) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -193,7 +196,8 @@ public class GetTrackedBranchTestResults {
                         Optional<FullChainRunCtx> chainCtxOpt
                             = BuildChainProcessor.processBuildChains(teamcity,
                             rebuild, chains, logs,
-                            includeScheduled, true, teamcity, baseBranchTc);
+                            includeScheduled, true, teamcity, baseBranchTc,
+                                pool);
 
                         chainCtxOpt.ifPresent(ctx -> {
                             int cnt = (int)ctx.getRunningUpdates().count();
@@ -221,10 +225,10 @@ public class GetTrackedBranchTestResults {
     public TestFailuresSummary getAllTestFailsNoCache(@Nullable @QueryParam("branch") String branchOpt,
                                                       @QueryParam("count") Integer cnt,
                                                       @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        final ITcHelper helper = CtxListener.getTcHelper(context);
+        final ITcHelper helper = CtxListener.getTcHelper(ctx);
         final ICredentialsProv creds = ICredentialsProv.get(request);
         int cntLimit = cnt == null ? FullQueryParams.DEFAULT_COUNT : cnt;
 
-        return getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, helper, creds );
+        return getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, helper, creds, CtxListener.getPool(ctx));
     }
 }

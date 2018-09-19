@@ -20,18 +20,13 @@ package org.apache.ignite.ci;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.google.inject.Injector;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.di.IServerProv;
-import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -44,15 +39,15 @@ import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.rest.pr.GetPrTestFailures;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.apache.ignite.ci.analysis.RunStat.MAX_LATEST_RUNS;
 import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
@@ -184,7 +179,8 @@ public class TcHelper implements ITcHelper {
             String comment;
 
             try {
-                comment = generateJiraComment(buildTypeId, build.branchName, srvId, prov, build.webUrl);
+                comment = generateJiraComment(buildTypeId, build.branchName, srvId, prov, build.webUrl,
+                        getService());
             }
             catch (RuntimeException e) {
                 logger.error("Exception happened during generating comment for JIRA " +
@@ -208,19 +204,21 @@ public class TcHelper implements ITcHelper {
      * @param srvId Server id.
      * @param prov Credentials.
      * @param webUrl Build URL.
+     * @param executorService
      * @return Comment, which should be sent to the JIRA ticket.
      */
     private String generateJiraComment(
-        String buildTypeId,
-        String branchForTc,
-        String srvId,
-        ICredentialsProv prov,
-        String webUrl
+            String buildTypeId,
+            String branchForTc,
+            String srvId,
+            ICredentialsProv prov,
+            String webUrl,
+            ExecutorService executorService
     ) {
         StringBuilder res = new StringBuilder();
         TestFailuresSummary summary = GetPrTestFailures.getTestFailuresSummary(
             this, prov, srvId, buildTypeId, branchForTc,
-            "Latest", null, null);
+            "Latest", null, null, executorService);
 
         if (summary != null) {
             for (ChainAtServerCurrentStatus server : summary.servers) {

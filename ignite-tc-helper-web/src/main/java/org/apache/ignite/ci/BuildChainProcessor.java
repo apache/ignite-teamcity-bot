@@ -25,10 +25,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
@@ -38,6 +40,7 @@ import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.util.FutureUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -56,23 +59,25 @@ public class BuildChainProcessor {
      * @param showContacts Show contacts.
      * @param tcAnalytics Tc analytics.
      * @param baseBranch Base branch, stable branch to take fail rates from.
+     * @param executor
      */
     public static Optional<FullChainRunCtx> processBuildChains(
-        ITeamcity teamcity,
-        LatestRebuildMode includeLatestRebuild,
-        Collection<BuildRef> builds,
-        ProcessLogsMode procLogs,
-        boolean includeScheduled,
-        boolean showContacts,
-        @Nullable ITcAnalytics tcAnalytics,
-        @Nullable String baseBranch) {
+            ITeamcity teamcity,
+            LatestRebuildMode includeLatestRebuild,
+            Collection<BuildRef> builds,
+            ProcessLogsMode procLogs,
+            boolean includeScheduled,
+            boolean showContacts,
+            @Nullable ITcAnalytics tcAnalytics,
+            @Nullable String baseBranch,
+            @Nullable ExecutorService executor) {
 
         final Properties responsible = showContacts ? getContactPersonProperties(teamcity) : null;
 
         final FullChainRunCtx val = loadChainsContext(teamcity, builds,
             includeLatestRebuild,
             procLogs, responsible, includeScheduled, tcAnalytics,
-            baseBranch);
+            baseBranch, executor);
 
         return Optional.of(val);
     }
@@ -82,14 +87,17 @@ public class BuildChainProcessor {
     }
 
     public static <R> FullChainRunCtx loadChainsContext(
-        ITeamcity teamcity,
-        Collection<BuildRef> entryPoints,
-        LatestRebuildMode includeLatestRebuild,
-        ProcessLogsMode procLog,
-        @Nullable Properties contactPersonProps,
-        boolean includeScheduledInfo,
-        @Nullable ITcAnalytics tcAnalytics,
-        @Nullable String failRateBranch) {
+            ITeamcity teamcity,
+            Collection<BuildRef> entryPoints,
+            LatestRebuildMode includeLatestRebuild,
+            ProcessLogsMode procLog,
+            @Nullable Properties contactPersonProps,
+            boolean includeScheduledInfo,
+            @Nullable ITcAnalytics tcAnalytics,
+            @Nullable String failRateBranch,
+            @Nullable ExecutorService executor1) {
+
+        ExecutorService executor = executor1 == null ? MoreExecutors.newDirectExecutorService() : executor1;
 
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
@@ -101,47 +109,24 @@ public class BuildChainProcessor {
         Map<Integer, BuildRef> unique = new ConcurrentHashMap<>();
         Map<String, MultBuildRunCtx> buildsCtxMap = new ConcurrentHashMap<>();
 
-        entryPoints.stream()
-            .parallel()
-            .unordered()
-            .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
-            .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
-            .filter(ref -> ensureUnique(unique, ref))
-            .flatMap((BuildRef buildRef) -> {
-                    if (includeLatestRebuild == LatestRebuildMode.NONE)
-                        return Stream.of(buildRef);
+        Stream<? extends BuildRef> uniqueBuldsInvolved = entryPoints.stream()
+                .parallel()
+                .unordered()
+                .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
+                .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
+                .filter(ref -> ensureUnique(unique, ref));
 
-                    final String branch = getBranchOrDefault(buildRef.branchName);
 
-                    final List<BuildRef> builds = teamcity.getFinishedBuilds(buildRef.buildTypeId, branch);
-
-                    if (includeLatestRebuild == LatestRebuildMode.LATEST) {
-                        BuildRef recentRef = builds.stream().max(Comparator.comparing(BuildRef::getId)).orElse(buildRef);
-
-                        return Stream.of(recentRef.isFakeStub() ? buildRef : recentRef);
-                    }
-
-                    if (includeLatestRebuild == LatestRebuildMode.ALL) {
-                        return builds.stream()
-                            .filter(ref -> !ref.isFakeStub())
-                            .filter(ref -> ensureUnique(unique, ref))
-                            .sorted(Comparator.comparing(BuildRef::getId).reversed())
-                            .limit(entryPoints.size()); // applying same limit
-                    }
-
-                    throw new UnsupportedOperationException("invalid mode " + includeLatestRebuild);
-                }
-            )
-            .forEach((BuildRef buildRef) -> {
-                Build build = teamcity.getBuild(buildRef.href);
-
-                if (build == null || build.isFakeStub())
-                    return;
-
-                MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(build.buildTypeId, k -> new MultBuildRunCtx(build));
-
-                ctx.addBuild(teamcity.loadTestsAndProblems(build, ctx));
-            });
+        uniqueBuldsInvolved
+                .map((buildRef) -> executor.submit(() -> {
+                    return replaceWithRecent(teamcity, includeLatestRebuild, unique, buildRef, entryPoints.size());
+                }))
+                .map(FutureUtil::getResultSilent)
+                .map((s) -> executor.submit(()-> {
+                    return processBuildList(teamcity, buildsCtxMap, s);
+                        }
+                ))
+                .forEach(FutureUtil::getResultSilent);
 
         ArrayList<MultBuildRunCtx> contexts = new ArrayList<>(buildsCtxMap.values());
 
@@ -177,6 +162,56 @@ public class BuildChainProcessor {
         fullChainRunCtx.addAllSuites(contexts);
 
         return fullChainRunCtx;
+    }
+
+    @NotNull
+    public static Stream<? extends BuildRef> processBuildList(ITeamcity teamcity,
+                                                              Map<String, MultBuildRunCtx> buildsCtxMap,
+                                                              Stream<? extends BuildRef> list) {
+        list.forEach((BuildRef ref) -> {
+            processBuildAndAddToCtx(teamcity, buildsCtxMap, ref);
+        });
+
+        return list;
+    }
+
+    public static void processBuildAndAddToCtx(ITeamcity teamcity, Map<String, MultBuildRunCtx> buildsCtxMap, BuildRef buildRef) {
+        Build build = teamcity.getBuild(buildRef.href);
+
+        if (build == null || build.isFakeStub())
+            return;
+
+        MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(build.buildTypeId, k -> new MultBuildRunCtx(build));
+
+        ctx.addBuild(teamcity.loadTestsAndProblems(build, ctx));
+    }
+
+    @NotNull
+    public static Stream< BuildRef> replaceWithRecent(ITeamcity teamcity,
+                                                      LatestRebuildMode includeLatestRebuild,
+                                                      Map<Integer, BuildRef> unique, BuildRef buildRef, int countLimit) {
+        if (includeLatestRebuild == LatestRebuildMode.NONE)
+            return Stream.of(buildRef);
+
+        final String branch = getBranchOrDefault(buildRef.branchName);
+
+        final List<BuildRef> builds = teamcity.getFinishedBuilds(buildRef.buildTypeId, branch);
+
+        if (includeLatestRebuild == LatestRebuildMode.LATEST) {
+            BuildRef recentRef = builds.stream().max(Comparator.comparing(BuildRef::getId)).orElse(buildRef);
+
+            return Stream.of(recentRef.isFakeStub() ? buildRef : recentRef);
+        }
+
+        if (includeLatestRebuild == LatestRebuildMode.ALL) {
+            return builds.stream()
+                .filter(ref -> !ref.isFakeStub())
+                .filter(ref -> ensureUnique(unique, ref))
+                .sorted(Comparator.comparing(BuildRef::getId).reversed())
+                .limit(countLimit); // applying same limit
+        }
+
+        throw new UnsupportedOperationException("invalid mode " + includeLatestRebuild);
     }
 
     @NotNull private static String getBranchOrDefault(@Nullable String branchName) {
