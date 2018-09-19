@@ -275,8 +275,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                                                                 Function<K, List<BuildRef>> realLoad) {
         @Nullable Expirable<List<BuildRef>> persistedBuilds = readBuildHistEntry(  cache, (K) key);
 
-        if (persistedBuilds != null
-                && (persistedBuilds.isAgeLessThanSecs(seconds))) {
+        if (persistedBuilds != null && (persistedBuilds.isAgeLessThanSecs(seconds))) {
             ObjectInterner.internFields(persistedBuilds);
 
             return persistedBuilds.getData();
@@ -286,8 +285,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
         try {
             if (!noLocks) {
-                if (persistedBuilds != null
-                        && (persistedBuilds.isAgeLessThanSecs(seconds))) {
+                if (persistedBuilds != null && (persistedBuilds.isAgeLessThanSecs(seconds))) {
                     ObjectInterner.internFields(persistedBuilds);
 
                     return persistedBuilds.getData();
@@ -350,7 +348,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return lock;
     }
 
-    /** {@inheritDoc} */
+/*    *//** {@inheritDoc} *//*
     @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Date sinceDate, Date untilDate) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
@@ -394,20 +392,30 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             })
             .collect(Collectors.toList());
 
-        return buildRefs;
-/**    @AutoProfiling
+        return buildRefs;*/
+    @AutoProfiling
     @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Date sinceDate, Date untilDate) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        List<BuildRef> buildRefs = loadBuildHistory(buildHistCache(), 60, cnt, suiteInBranch,
-            (key) -> teamcity.getFinishedBuilds(projectId, branch, cnt));
+        List<BuildRef> buildRefs = loadBuildHistory(buildHistCache(), 60, suiteInBranch,
+            (key) -> teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate));
 
-        if (cnt == null)
-            return buildRefs;
+        if (sinceDate != null && untilDate != null)
+            buildRefs =  buildRefs.stream()
+                .filter(b -> {
+                    if (b.isFakeStub())
+                        return false;
 
-        return buildRefs.stream()
-            .skip(cnt < buildRefs.size() ? buildRefs.size() - cnt : 0)
-            .collect(Collectors.toList()); */
+                    Build build = getBuild(b.href);
+
+                    Date date = build.getStartDate();
+
+                    return (date.after(sinceDate) || date.equals(sinceDate)) &&
+                        (date.before(untilDate) || date.equals(untilDate));
+                })
+                .collect(Collectors.toList());
+
+        return buildRefs;
     }
 
     @NotNull
@@ -719,26 +727,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         });
     }
 
-    @AutoProfiling
-    @Override public IssuesUsagesList getIssuesUsagesList(String href) {
-        IssuesUsagesList issuesUsages =  loadIfAbsentV2(ISSUES_USAGES_LIST, href, href1 -> {
-            try {
-                return teamcity.getIssuesUsagesList(href1);
-            }
-            catch (Exception e) {
-                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                    System.err.println("Issues Usage List not found for href : " + href);
-
-                    return new IssuesUsagesList();
-                }
-                else
-                    throw e;
-            }
-        });
-        return issuesUsages;
-    }
-
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public IssuesUsagesList getIssuesUsagesList(String href) {
         IssuesUsagesList issuesUsages =  loadIfAbsentV2(ISSUES_USAGES_LIST, href, href1 -> {
             try {
