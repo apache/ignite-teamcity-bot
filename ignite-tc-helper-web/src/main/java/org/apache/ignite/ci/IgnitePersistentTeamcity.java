@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -71,6 +72,8 @@ import org.apache.ignite.ci.util.CacheUpdateUtil;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXParseException;
 
 import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
@@ -79,6 +82,9 @@ import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
  *
  */
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(IgniteTeamcityHelper.class);
+
     //V1 caches, 1024 parts
 
     //V2 caches, 32 parts
@@ -267,12 +273,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
-    protected  <K> List<BuildRef> loadBuildHistory(IgniteCache<K, Expirable<List<BuildRef>>> cache,
-                                                                int seconds,
-                                                                Long cnt,
-                                                                K key,
-                                                                Function<K, List<BuildRef>> realLoad) {
-        @Nullable Expirable<List<BuildRef>> persistedBuilds = readBuildHistEntry(  cache, (K) key);
+    protected <K> List<BuildRef> loadBuildHistory(IgniteCache<K, Expirable<List<BuildRef>>> cache,
+                                                  int seconds,
+                                                  Long cnt,
+                                                  K key,
+                                                  BiFunction<K, Integer, List<BuildRef>> realLoad) {
+        @Nullable Expirable<List<BuildRef>> persistedBuilds = readBuildHistEntry(cache, (K) key);
 
         if (persistedBuilds != null
                 && (persistedBuilds.isAgeLessThanSecs(seconds)
@@ -297,9 +303,25 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
             //todo sinceBuild:(number:) // --todo -10 build numbers
 
+            Integer sinceBuildNumber = null;
+            if(persistedBuilds!=null) {
+                List<BuildRef> prevData = persistedBuilds.getData();
+                if (prevData.size() > 10) {
+                    BuildRef buildRef = prevData.get(prevData.size() - 10);
+
+                    if (!Strings.isNullOrEmpty(buildRef.buildNumber)) {
+                        try {
+                            sinceBuildNumber = Integer.valueOf(buildRef.buildNumber);
+                        } catch (NumberFormatException e) {
+                            logger.info("", e);
+                        }
+                    }
+                }
+            }
             List<BuildRef> dataFromRest;
             try {
-                dataFromRest = realLoad.apply(key);
+                dataFromRest = realLoad.apply(key, sinceBuildNumber);
+
             }
             catch (Exception e) {
                 if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
@@ -353,11 +375,15 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Long cnt) {
+    @Override public List<BuildRef> getFinishedBuilds(String projectId,
+                                                      String branch,
+                                                      Long cnt,
+                                                      Integer ignored) {
+        //todo may be support sinceBuildNo
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
         List<BuildRef> buildRefs = loadBuildHistory(buildHistCache(), 60, cnt, suiteInBranch,
-            (key) -> teamcity.getFinishedBuilds(projectId, branch, cnt));
+            (key, sinceBuildNumber) -> teamcity.getFinishedBuilds(projectId, branch, cnt, sinceBuildNumber));
 
         if (cnt == null)
             return buildRefs;
@@ -385,11 +411,14 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt) {
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId,
+                                                                        String branch,
+                                                                        Long cnt,
+                                                                        Integer ignored) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
         return loadBuildHistory(buildHistIncFailedCache(), 60, cnt, suiteInBranch,
-            (key) -> teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, cnt));
+            (key, sinceBuildNumber) -> teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, cnt, sinceBuildNumber));
     }
 
 
