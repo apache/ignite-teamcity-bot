@@ -541,11 +541,13 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId,
+                                                                        String branch,
+                                                                        Integer ignored) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
         return loadBuildHistory(buildHistIncFailedCache(), 60, suiteInBranch,
-            (key) -> teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch));
+            (key, sinceBuildNumber) -> teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, sinceBuildNumber));
     }
 
 

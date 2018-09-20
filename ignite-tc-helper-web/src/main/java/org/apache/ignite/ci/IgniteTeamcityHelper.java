@@ -613,6 +613,12 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     /** {@inheritDoc} */
     @Override
+    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildNumber) {
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED);
+    }
+
+    /** {@inheritDoc} */
+    @Override
     @AutoProfiling public CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch) {
         return supplyAsync(() -> getBuildsInState(null, branch, BuildRef.STATE_RUNNING), executor);
     }
@@ -630,8 +636,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             false,
-            state,
-            null);
+            state);
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
 

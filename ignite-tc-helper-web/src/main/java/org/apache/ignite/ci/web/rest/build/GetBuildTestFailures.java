@@ -182,7 +182,7 @@ public class GetBuildTestFailures {
 
         try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov)) {
 
-            int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, cnt);
+            int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, sinceDateFilter, untilDateFilter);
 
             List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
 
