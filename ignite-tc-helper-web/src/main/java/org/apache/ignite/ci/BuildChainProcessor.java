@@ -114,15 +114,21 @@ public class BuildChainProcessor {
                 .unordered()
                 .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
                 .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
-                .filter(ref -> ensureUnique(unique, ref));
+                .filter(ref -> ensureUnique(unique, ref))
+                ;
 
-        uniqueBuldsInvolved
+        final List<Future<Stream<BuildRef>>> phase1Submitted = uniqueBuldsInvolved
                 .map((buildRef) -> executor.submit(
                         () -> replaceWithRecent(teamcity, includeLatestRebuild, unique, buildRef, entryPoints.size())))
+                .collect(Collectors.toList());
+
+        final List<Future<? extends Stream<? extends BuildRef>>> phase2Submitted = phase1Submitted.stream()
                 .map(FutureUtil::getResult)
                 .map((s) -> executor.submit(
                         () -> processBuildList(teamcity, buildsCtxMap, s)))
-                .forEach(FutureUtil::getResult);
+                .collect(Collectors.toList());
+
+        phase2Submitted.forEach(FutureUtil::getResult);
 
         ArrayList<MultBuildRunCtx> contexts = new ArrayList<>(buildsCtxMap.values());
 
