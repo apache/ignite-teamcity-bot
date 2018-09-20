@@ -473,11 +473,11 @@ public class IgniteTeamcityHelper implements ITeamcity {
                                            boolean dfltFilter,
                                            @Nullable String state,
                                            @Nullable Long cnt,
-                                           @Nullable Integer sinceBuildNumber) {
+                                           @Nullable Integer sinceBuildId) {
         String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId;
         String stateFilter = isNullOrEmpty(state) ? "" : (",state:" + state);
         String branchFilter = isNullOrEmpty(branchName) ? "" : ",branch:" + branchName;
-        String buildNoFilter = sinceBuildNumber == null ? "" : ",sinceBuild:(number:" + sinceBuildNumber + ")";
+        String buildNoFilter = sinceBuildId == null ? "" : ",sinceBuild:(id:" + sinceBuildId + ")";
         long cntFilter = cnt == null ? DEFAULT_BUILDS_COUNT : cnt;
 
         return sendGetXmlParseJaxb(host + "app/rest/latest/builds"
@@ -571,13 +571,13 @@ public class IgniteTeamcityHelper implements ITeamcity {
     public List<BuildRef> getFinishedBuilds(String projectId,
                                             String branch,
                                             Long cnt,
-                                            @Nullable Integer sinceBuildNumber) {
+                                            @Nullable Integer sinceBuildId) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             true,
             null,
             cnt,
-            sinceBuildNumber);
+            sinceBuildId);
 
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
@@ -585,13 +585,13 @@ public class IgniteTeamcityHelper implements ITeamcity {
     /** {@inheritDoc} */
     @Override
     @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null);
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null, null);
     }
 
     /** {@inheritDoc} */
     @Override
-    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt, Integer sinceBuildNumber) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, cnt);
+    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt, Integer sinceBuildId) {
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, cnt, sinceBuildId);
     }
 
     /** {@inheritDoc} */
@@ -607,14 +607,15 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     private List<BuildRef> getBuildsInState(
-        @Nullable final String projectId,
-        @Nullable final String branch,
-        @Nonnull final String state,
-        @Nullable final Long cnt) {
+            @Nullable final String projectId,
+            @Nullable final String branch,
+            @Nonnull final String state,
+            @Nullable final Long cnt,
+            @Nullable final Integer sinceBuildId) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             false,
-            state, cnt, null);
+            state, cnt, sinceBuildId);
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
 
@@ -623,7 +624,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         @Nullable final String branch,
         @Nonnull final String state) {
 
-        return getBuildsInState(projectId, branch, state, null);
+        return getBuildsInState(projectId, branch, state, null, null);
     }
 
     @Override

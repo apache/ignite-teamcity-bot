@@ -70,13 +70,13 @@ public interface ITeamcity extends AutoCloseable {
     };
 
     /**
-     * @param projectId suite ID (string without spaces)
-     * @param branch
-     * @param cnt builds count
-     * @param sinceBuildNumber
-     * @return list of builds in historical order, recent builds coming last
+     * @param projectId suite ID (string without spaces).
+     * @param branch Branch name in TC identification.
+     * @param cnt builds count.
+     * @param sinceBuildId Some build ID in the past to to use as minimal build to export.
+     * @return list of builds in historical order, recent builds coming last.
      */
-    List<BuildRef> getFinishedBuilds(String projectId, String branch, Long cnt, Integer sinceBuildNumber);
+    List<BuildRef> getFinishedBuilds(String projectId, String branch, Long cnt, Integer sinceBuildId);
 
     /**
      * Includes snapshot dependencies failed builds into list
@@ -95,10 +95,10 @@ public interface ITeamcity extends AutoCloseable {
      * @param projectId suite ID (string without spaces)
      * @param branch branch in TC identification
      * @param cnt builds count
-     * @param sinceBuildNumber limit builds export with some build number, not operational for Persistent connection
+     * @param sinceBuildId limit builds export with some build number, not operational for Persistent connection
      * @return list of builds in historical order, recent builds coming last
      */
-    List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt, Integer sinceBuildNumber);
+    List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt, Integer sinceBuildId);
 
     /**   */
     CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch);

@@ -36,6 +36,8 @@ import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.BadRequestException;
+
 /**
  * Methods for sending HTTP requests
  */
@@ -158,12 +160,15 @@ public class HttpUtil {
         if (resCode / 100 == 2)
             return con.getInputStream();
 
+        if (resCode == 400)
+            throw new BadRequestException(readIsToString(con.getErrorStream()));
+
         if (resCode == 401)
             throw new ServiceUnauthorizedException("Service " + con.getURL() + " returned forbidden error.");
 
         if (resCode == 404)
             throw new FileNotFoundException("Service " + con.getURL() + " returned not found error."
-                + readIsToString(con.getErrorStream()));
+                    + readIsToString(con.getErrorStream()));
 
         throw new IllegalStateException("Invalid Response Code : " + resCode + ":\n"
                 + readIsToString(con.getErrorStream()));
