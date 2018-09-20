@@ -59,7 +59,7 @@ dependencies {
     compile (project(":ignite-tc-helper-web"))  {
         transitive = false
     }
-    def jettyVer = '9.4.6.v20170531'
+
     compile group: 'org.eclipse.jetty', name: 'jetty-util', version: jettyVer
     compile group: 'org.eclipse.jetty', name: 'jetty-server', version: jettyVer
     compile group: 'org.eclipse.jetty', name: 'jetty-webapp', version: jettyVer
