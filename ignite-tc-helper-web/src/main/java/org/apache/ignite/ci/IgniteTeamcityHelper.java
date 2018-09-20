@@ -462,8 +462,9 @@ public class IgniteTeamcityHelper implements ITeamcity {
         }
     }
 
+    @SuppressWarnings("WeakerAccess")
     @AutoProfiling
-    protected  <T> T loadXml(Class<T> rootElem, InputStreamReader reader) throws JAXBException {
+    protected <T> T loadXml(Class<T> rootElem, InputStreamReader reader) throws JAXBException {
         return XmlUtil.load(rootElem, reader);
     }
 
@@ -568,14 +569,15 @@ public class IgniteTeamcityHelper implements ITeamcity {
     @Override
     @AutoProfiling
     public List<BuildRef> getFinishedBuilds(String projectId,
-                                            String branch, Long cnt,
+                                            String branch,
+                                            Long cnt,
                                             @Nullable Integer sinceBuildNumber) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             true,
             null,
-                cnt,
-                sinceBuildNumber);
+            cnt,
+            sinceBuildNumber);
 
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }

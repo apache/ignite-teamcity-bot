@@ -79,35 +79,36 @@ import org.xml.sax.SAXParseException;
 import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
 
 /**
- *
+ * Apache Ignite based cache over teamcity responses
  */
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
     /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(IgniteTeamcityHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(IgnitePersistentTeamcity.class);
 
-    //V1 caches, 1024 parts
-
-    //V2 caches, 32 parts
-    public static final String TESTS_OCCURRENCES = "testOccurrences";
-    public static final String TESTS_RUN_STAT = "testsRunStat";
-    public static final String CALCULATED_STATISTIC = "calculatedStatistic";
-    public static final String LOG_CHECK_RESULT = "logCheckResult";
-    public static final String CHANGE_INFO_FULL = "changeInfoFull";
-    public static final String CHANGES_LIST = "changesList";
-    public static final String ISSUES_USAGES_LIST = "issuesUsagesList";
-    public static final String TEST_FULL = "testFull";
-    public static final String BUILD_PROBLEMS = "buildProblems";
-    public static final String BUILD_STATISTICS = "buildStatistics";
-    public static final String BUILD_HIST_FINISHED = "buildHistFinished";
-    public static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
+    //V2 caches, 32 parts (V1 caches were 1024 parts)
+    private static final String TESTS_OCCURRENCES = "testOccurrences";
+    private static final String TESTS_RUN_STAT = "testsRunStat";
+    private static final String CALCULATED_STATISTIC = "calculatedStatistic";
+    private static final String LOG_CHECK_RESULT = "logCheckResult";
+    private static final String CHANGE_INFO_FULL = "changeInfoFull";
+    private static final String CHANGES_LIST = "changesList";
+    private static final String ISSUES_USAGES_LIST = "issuesUsagesList";
+    private static final String TEST_FULL = "testFull";
+    private static final String BUILD_PROBLEMS = "buildProblems";
+    private static final String BUILD_STATISTICS = "buildStatistics";
+    private static final String BUILD_HIST_FINISHED = "buildHistFinished";
+    private static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
 
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
-    public static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
+    private static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
     public static final String BUILDS = "builds";
 
-    public static final String BUILD_QUEUE = "buildQueue";
-    public static final String RUNNING_BUILDS = "runningBuilds";
+    private static final String BUILD_QUEUE = "buildQueue";
+    private static final String RUNNING_BUILDS = "runningBuilds";
+
+    /** Number of builds to re-query from TC to be sure some builds in the middle are not lost. */
+    private static final int MAX_BUILDS_IN_PAST_TO_RELOAD = 5;
 
     @Inject
     private Ignite ignite;
@@ -140,7 +141,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     //for DI
     public IgnitePersistentTeamcity() {}
-
 
     private IgnitePersistentTeamcity(Ignite ignite, IgniteTeamcityHelper teamcity) {
         init(teamcity);
@@ -303,15 +303,15 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
             //todo sinceBuild:(number:) // --todo -10 build numbers
 
-            Integer sinceBuildNumber = null;
-            if(persistedBuilds!=null) {
+            Integer sinceBuildNum = null;
+            if (persistedBuilds != null) {
                 List<BuildRef> prevData = persistedBuilds.getData();
-                if (prevData.size() > 10) {
-                    BuildRef buildRef = prevData.get(prevData.size() - 10);
+                if (prevData.size() >= MAX_BUILDS_IN_PAST_TO_RELOAD) {
+                    BuildRef buildRef = prevData.get(prevData.size() - MAX_BUILDS_IN_PAST_TO_RELOAD);
 
                     if (!Strings.isNullOrEmpty(buildRef.buildNumber)) {
                         try {
-                            sinceBuildNumber = Integer.valueOf(buildRef.buildNumber);
+                            sinceBuildNum = Integer.valueOf(buildRef.buildNumber);
                         } catch (NumberFormatException e) {
                             logger.info("", e);
                         }
@@ -320,8 +320,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             }
             List<BuildRef> dataFromRest;
             try {
-                dataFromRest = realLoad.apply(key, sinceBuildNumber);
-
+                dataFromRest = realLoad.apply(key, sinceBuildNum);
             }
             catch (Exception e) {
                 if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
@@ -362,8 +361,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     @AutoProfiling
     @SuppressWarnings("WeakerAccess")
-    protected  <K> Lock lockBuildHistEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key) {
-        if(noLocks)
+    protected <K> Lock lockBuildHistEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key) {
+        if (noLocks)
             return null;
 
         Lock lock = cache.lock(key);

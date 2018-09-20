@@ -396,7 +396,8 @@ public class IssueDetector {
                 false,
                 1,
                 backgroundOpsTcHelper,
-                backgroundOpsCreds, executor);
+                backgroundOpsCreds,
+                executor);
 
         registerIssuesLater(failures, backgroundOpsTcHelper, backgroundOpsCreds);
     }
