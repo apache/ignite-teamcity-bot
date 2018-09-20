@@ -23,7 +23,6 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Collections;
 
-import ch.qos.logback.classic.LoggerContext;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.CacheAtomicityMode;
@@ -39,11 +38,6 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.jetbrains.annotations.NotNull;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
-import ch.qos.logback.core.rolling.RollingFileAppender;
-import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.ignite.ci.web.Launcher.waitStopSignal;
@@ -77,7 +71,6 @@ public class TcHelperDb {
     }
 
     public static Ignite start() {
-
         final File workDir = HelperConfig.resolveWorkDir();
         configLogger(workDir);
 
@@ -145,42 +138,8 @@ public class TcHelperDb {
     }
 
     private static void configLogger(File workDir) {
-        LoggerContext logCtx = (LoggerContext) LoggerFactory.getILoggerFactory();
-
-        PatternLayoutEncoder logEncoder  = new PatternLayoutEncoder();
-        logEncoder.setContext(logCtx);
-        logEncoder.setPattern("%-12date{YYYY-MM-dd HH:mm:ss.SSS} %-5level [%t] - %msg%n");
-        logEncoder.start();
-
-        RollingFileAppender rollingFa = new RollingFileAppender();
-        rollingFa.setContext(logCtx);
-        rollingFa.setName("logFile");
-        rollingFa.setEncoder(logEncoder);
-        rollingFa.setAppend(true);
-
-        final File logs = new File(workDir, "tchelper_logs");
-        HelperConfig.ensureDirExist(logs);
-
-        rollingFa.setFile(new File(logs, "logfile.log").getAbsolutePath());
-
-        TimeBasedRollingPolicy logFilePolicy = new TimeBasedRollingPolicy();
-        logFilePolicy.setContext(logCtx);
-        logFilePolicy.setParent(rollingFa);
-        logFilePolicy.setFileNamePattern(new File(logs, "logfile-%d{yyyy-MM-dd_HH}.log").getAbsolutePath());
-        logFilePolicy.setMaxHistory(7);
-        logFilePolicy.start();
-
-        //todo use logFilePolicy.getActiveFileName()
-
-        rollingFa.setRollingPolicy(logFilePolicy);
-        rollingFa.start();
-
-        Logger log = logCtx.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
-        log.setAdditive(false);
-        log.setLevel(Level.INFO);
-        log.detachAndStopAllAppenders();
-
-        log.addAppender(rollingFa);
+        final String subdir = "tchelper_logs";
+        Ignite2Configurer.configLogger(workDir, subdir);
     }
 
     public static Ignite startClient() {
@@ -198,8 +157,12 @@ public class TcHelperDb {
     }
 
     private static void setupDisco(IgniteConfiguration cfg) {
-        final TcpDiscoverySpi spi = new TcpDiscoverySpi();
         final int locPort = 54433;
+        setupSinglePortDisco(cfg, locPort);
+    }
+
+    private static void setupSinglePortDisco(IgniteConfiguration cfg, int locPort) {
+        final TcpDiscoverySpi spi = new TcpDiscoverySpi();
         spi.setLocalPort(locPort);
         spi.setLocalPortRange(1);
         spi.setIpFinder(new LocalOnlyTcpDiscoveryIpFinder(locPort));
