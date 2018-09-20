@@ -64,5 +64,5 @@ dependencies {
     compile group: 'org.eclipse.jetty', name: 'jetty-server', version: jettyVer
     compile group: 'org.eclipse.jetty', name: 'jetty-webapp', version: jettyVer
 
-    compile group: 'com.google.guava', name: 'guava', version: '22.0'
+    compile group: 'com.google.guava', name: 'guava', version: guavaVer
 }

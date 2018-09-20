@@ -26,7 +26,7 @@ repositories {
     mavenLocal()
 }
 
-mainClassName = 'org.apache.ignite.ci.TcHelperDbLauncher'
+mainClassName = 'org.apache.ignite.ci.TcBotIgniteServerLauncher'
 applicationDefaultJvmArgs = ["-Dteamcity.helper.home=../work",
                              "-Dteamcity.bot.regionsize=16", // 16g Durable Memory region
                              "-server",
@@ -51,4 +51,11 @@ dependencies {
         transitive = false
     }
 
+    compile group: 'com.google.guava', name: 'guava', version: guavaVer
+
+    compile group: 'ch.qos.logback', name: 'logback-core', version: logbackVer
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVer
+
+    compile group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
+    compile group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
 }

@@ -23,12 +23,19 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.configuration.DataRegionConfiguration;
+import org.apache.ignite.configuration.DataStorageConfiguration;
+import org.apache.ignite.configuration.IgniteConfiguration;
+import org.apache.ignite.configuration.WALMode;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 
 public class Ignite2Configurer {
-    static void configLogger(File workDir, String subdir) {
+    public static void configLogger(File workDir, String subdir) {
         LoggerContext logCtx = (LoggerContext) LoggerFactory.getILoggerFactory();
 
         PatternLayoutEncoder logEncoder  = new PatternLayoutEncoder();
@@ -45,7 +52,6 @@ public class Ignite2Configurer {
         final File logs = new File(workDir, subdir);
         HelperConfig.ensureDirExist(logs);
 
-        rollingFa.setFile(new File(logs, "logfile.log").getAbsolutePath());
 
         TimeBasedRollingPolicy logFilePolicy = new TimeBasedRollingPolicy();
         logFilePolicy.setContext(logCtx);
@@ -54,7 +60,9 @@ public class Ignite2Configurer {
         logFilePolicy.setMaxHistory(7);
         logFilePolicy.start();
 
-        //todo use logFilePolicy.getActiveFileName()
+        final String activeFileName = logFilePolicy.getActiveFileName();
+
+        rollingFa.setFile(new File(activeFileName).getAbsolutePath());
 
         rollingFa.setRollingPolicy(logFilePolicy);
         rollingFa.start();
@@ -65,5 +73,54 @@ public class Ignite2Configurer {
         log.detachAndStopAllAppenders();
 
         log.addAppender(rollingFa);
+    }
+
+    public static void setIgniteHome(IgniteConfiguration cfg, File workDir) {
+        try {
+            cfg.setIgniteHome(workDir.getCanonicalPath());
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            cfg.setIgniteHome(workDir.getAbsolutePath());
+        }
+    }
+
+    @NotNull
+    public static DataRegionConfiguration getDataRegionConfiguration() {
+        final DataRegionConfiguration regConf = new DataRegionConfiguration()
+            .setPersistenceEnabled(true);
+
+        String regSzGb = System.getProperty(ITcHelper.TEAMCITY_BOT_REGIONSIZE);
+
+        if (regSzGb != null) {
+            try {
+                int szGb = Integer.parseInt(regSzGb);
+
+                String msg = "Using custom size of region: " + szGb + "Gb";
+                LoggerFactory.getLogger(Ignite2Configurer.class).info(msg);
+                System.out.println(msg);
+
+                regConf.setMaxSize(szGb * 1024L * 1024 * 1024);
+            }
+            catch (NumberFormatException e) {
+                e.printStackTrace();
+
+                LoggerFactory.getLogger(Ignite2Configurer.class).error("Unable to setup region", e);
+            }
+        } else {
+            String msg = "Using default size of region.";
+            LoggerFactory.getLogger(Ignite2Configurer.class).info(msg);
+            System.out.println(msg);
+        }
+        return regConf;
+    }
+
+    static DataStorageConfiguration getDataStorageConfiguration(DataRegionConfiguration regConf) {
+        return new DataStorageConfiguration()
+                .setWalMode(WALMode.LOG_ONLY)
+                .setWalHistorySize(1)
+                .setCheckpointFrequency(5 * 60 * 1000)
+                .setWriteThrottlingEnabled(true)
+                .setDefaultDataRegionConfiguration(regConf);
     }
 }
