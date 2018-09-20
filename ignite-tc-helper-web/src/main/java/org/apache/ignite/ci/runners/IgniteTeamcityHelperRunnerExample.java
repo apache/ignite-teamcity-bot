@@ -19,7 +19,6 @@ package  org.apache.ignite.ci.runners;
 
 import com.google.common.base.Throwables;
 import java.io.File;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +29,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+
 import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
@@ -57,7 +57,7 @@ public class IgniteTeamcityHelperRunnerExample {
                 if (bt.getName().toLowerCase().contains("pds")
                     // || bt.getName().toLowerCase().contains("cache")
                     ) {
-                    int[] ints = helper.getBuildNumbersFromHistory(bt.getName(), branchNameForHist);
+                    int[] ints = helper.getBuildNumbersFromHistory(bt.getName(), branchNameForHist, null);
 
                     List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(ints);
                     List<File> collect = getFuturesResults(fileFutList);

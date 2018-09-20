@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -43,6 +44,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.cache.Cache;
 import javax.inject.Inject;
+
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.analysis.Expirable;
@@ -73,37 +75,43 @@ import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
 import org.eclipse.jetty.util.AtomicBiInteger;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXParseException;
 
 import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
 
 /**
- *
+ * Apache Ignite based cache over teamcity responses
  */
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
-    //V1 caches, 1024 parts
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(IgnitePersistentTeamcity.class);
 
-    //V2 caches, 32 parts
-    public static final String TESTS_OCCURRENCES = "testOccurrences";
-    public static final String TESTS_RUN_STAT = "testsRunStat";
-    public static final String CALCULATED_STATISTIC = "calculatedStatistic";
-    public static final String LOG_CHECK_RESULT = "logCheckResult";
-    public static final String CHANGE_INFO_FULL = "changeInfoFull";
-    public static final String CHANGES_LIST = "changesList";
-    public static final String ISSUES_USAGES_LIST = "issuesUsagesList";
-    public static final String TEST_FULL = "testFull";
-    public static final String BUILD_PROBLEMS = "buildProblems";
-    public static final String BUILD_STATISTICS = "buildStatistics";
-    public static final String BUILD_HIST_FINISHED = "buildHistFinished";
-    public static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
+    //V2 caches, 32 parts (V1 caches were 1024 parts)
+    private static final String TESTS_OCCURRENCES = "testOccurrences";
+    private static final String TESTS_RUN_STAT = "testsRunStat";
+    private static final String CALCULATED_STATISTIC = "calculatedStatistic";
+    private static final String LOG_CHECK_RESULT = "logCheckResult";
+    private static final String CHANGE_INFO_FULL = "changeInfoFull";
+    private static final String CHANGES_LIST = "changesList";
+    private static final String ISSUES_USAGES_LIST = "issuesUsagesList";
+    private static final String TEST_FULL = "testFull";
+    private static final String BUILD_PROBLEMS = "buildProblems";
+    private static final String BUILD_STATISTICS = "buildStatistics";
+    private static final String BUILD_HIST_FINISHED = "buildHistFinished";
+    private static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
 
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
-    public static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
+    private static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
     public static final String BUILDS = "builds";
 
-    public static final String BUILD_QUEUE = "buildQueue";
-    public static final String RUNNING_BUILDS = "runningBuilds";
+    private static final String BUILD_QUEUE = "buildQueue";
+    private static final String RUNNING_BUILDS = "runningBuilds";
+
+    /** Number of builds to re-query from TC to be sure some builds in the middle are not lost. */
+    private static final int MAX_BUILDS_IN_PAST_TO_RELOAD = 5;
 
     @Inject
     private Ignite ignite;
@@ -136,7 +144,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     //for DI
     public IgnitePersistentTeamcity() {}
-
 
     private IgnitePersistentTeamcity(Ignite ignite, IgniteTeamcityHelper teamcity) {
         init(teamcity);
@@ -267,11 +274,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
-    protected  <K> List<BuildRef> loadBuildHistory(IgniteCache<K, Expirable<List<BuildRef>>> cache,
-                                                                int seconds,
-                                                                K key,
-                                                                Function<K, List<BuildRef>> realLoad) {
-        @Nullable Expirable<List<BuildRef>> persistedBuilds = readBuildHistEntry(  cache, (K) key);
+    protected <K> List<BuildRef> loadBuildHistory(IgniteCache<K, Expirable<List<BuildRef>>> cache,
+                                                  int seconds,
+                                                  K key,
+                                                  BiFunction<K, Integer, List<BuildRef>> realLoad) {
+        @Nullable Expirable<List<BuildRef>> persistedBuilds = readBuildHistEntry(cache, (K) key);
 
         if (persistedBuilds != null && (persistedBuilds.isAgeLessThanSecs(seconds))) {
             ObjectInterner.internFields(persistedBuilds);
@@ -292,9 +299,24 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
             //todo sinceBuild:(number:) // --todo -10 build numbers
 
+            Integer sinceBuildNum = null;
+            if (persistedBuilds != null) {
+                List<BuildRef> prevData = persistedBuilds.getData();
+                if (prevData.size() >= MAX_BUILDS_IN_PAST_TO_RELOAD) {
+                    BuildRef buildRef = prevData.get(prevData.size() - MAX_BUILDS_IN_PAST_TO_RELOAD);
+
+                    if (!Strings.isNullOrEmpty(buildRef.buildNumber)) {
+                        try {
+                            sinceBuildNum = Integer.valueOf(buildRef.buildNumber);
+                        } catch (NumberFormatException e) {
+                            logger.info("", e);
+                        }
+                    }
+                }
+            }
             List<BuildRef> dataFromRest;
             try {
-                dataFromRest = realLoad.apply(key);
+                dataFromRest = realLoad.apply(key, sinceBuildNum);
             }
             catch (Exception e) {
                 if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
@@ -335,8 +357,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     @AutoProfiling
     @SuppressWarnings("WeakerAccess")
-    protected  <K> Lock lockBuildHistEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key) {
-        if(noLocks)
+    protected <K> Lock lockBuildHistEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key) {
+        if (noLocks)
             return null;
 
         Lock lock = cache.lock(key);
@@ -346,19 +368,24 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return lock;
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch, Date sinceDate, Date untilDate) {
+    @Override public List<BuildRef> getFinishedBuilds(String projectId,
+                                                      String branch,
+                                                      Date sinceDate,
+                                                      Date untilDate,
+                                                      Integer ignored) {
+        //todo may be support sinceBuildNo
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
         final List<BuildRef> buildsFromRest = new ArrayList<>();
 
         List<BuildRef> buildRefs = loadBuildHistory(buildHistCache(), 60, suiteInBranch,
-            (key) -> {
-            buildsFromRest.addAll(teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate));
+            (key, sinceBuildNumber) -> {
+                buildsFromRest.addAll(teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate, sinceBuildNumber));
 
-            return buildsFromRest;
+                return buildsFromRest;
             });
-
         if (sinceDate != null || untilDate != null) {
             if (!buildsFromRest.isEmpty() && sinceDate != null){
                 int firstBuildId = buildRefs.indexOf(buildsFromRest.get(buildsFromRest.size() - 1));

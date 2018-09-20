@@ -18,7 +18,6 @@
 package org.apache.ignite.ci;
 
 import java.io.File;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -68,7 +67,7 @@ public interface ITeamcity extends AutoCloseable {
      * @return List of builds in historical order, recent builds coming last.
      */
     default List<BuildRef> getFinishedBuilds(String projectId, String branch) {
-        return getFinishedBuilds(projectId, branch, null, null);
+        return getFinishedBuilds(projectId, branch, null, null, null);
     };
 
     /**
@@ -76,18 +75,31 @@ public interface ITeamcity extends AutoCloseable {
      * @param branch Branch in TC identification.
      * @param sinceDate Since date.
      * @param untilDate Until date.
+     * @param sinceBuildNumber Since build number.
      * @return List of builds in historical order in date interval, recent builds coming last.
      */
-    List<BuildRef> getFinishedBuilds(String projectId, String branch, Date sinceDate, Date untilDate);
+    List<BuildRef> getFinishedBuilds(String projectId, String branch, Date sinceDate, Date untilDate, Integer sinceBuildNumber);
 
     /**
-     * Includes snapshot dependencies failed builds into list.
+     * Includes snapshot dependencies failed builds into list
      *
-     * @param projectId Suite ID (string without spaces).
-     * @param branch Branch in TC identification.
-     * @return List of builds in historical order, recent builds coming last.
+     * @param projectId suite ID (string without spaces)
+     * @param branch branch in TC identification
+     * @return list of builds in historical order, recent builds coming last
      */
-    List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch);
+    default List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch){
+        return getFinishedBuildsIncludeSnDepFailed(projectId, branch, null);
+    };
+
+    /**
+     * Includes snapshot dependencies failed builds into list
+     *
+     * @param projectId suite ID (string without spaces)
+     * @param branch branch in TC identification
+     * @param sinceBuildNumber limit builds export with some build number, not operational for Persistent connection.
+     * @return list of builds in historical order, recent builds coming last
+     */
+    List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildNumber);
 
     /**   */
     CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch);
@@ -112,7 +124,7 @@ public interface ITeamcity extends AutoCloseable {
      * @return List of build numbers in historical order in date interval, recent builds coming last.
      */
     default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist, Date sinceDate, Date untilDate) {
-        return getFinishedBuilds(projectId, branchNameForHist, sinceDate, untilDate).stream().mapToInt(BuildRef::getId).toArray();
+        return getFinishedBuilds(projectId, branchNameForHist, sinceDate, untilDate, null).stream().mapToInt(BuildRef::getId).toArray();
     }
 
     Build getBuild(String href);

@@ -74,8 +74,10 @@ public class HttpUtil {
         con.setRequestProperty("Keep-Alive", "header");
         con.setRequestProperty("accept-charset", StandardCharsets.UTF_8.toString());
 
+        int resCode = con.getResponseCode();
+
         logger.info(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
-            + "ms : Sending 'GET' request to : " + url);
+            + "ms : Sending 'GET' request to : " + url + " Response: " + resCode);
 
         return getInputStream(con);
     }

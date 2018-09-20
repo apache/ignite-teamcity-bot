@@ -53,4 +53,30 @@ public class FutureUtil {
 
         return logCheckRes;
     }
+
+    /**
+     * @param fut Future.
+     * @return result or null if calculation failed
+     */
+    @Nullable public static <V> V getResult(Future<V> fut) {
+        V logCheckRes = null;
+
+        try {
+            logCheckRes = fut.get();
+        }
+        catch (InterruptedException e) {
+            logger.info("Future get reported interrupt ", e);
+
+            throw ExceptionUtil.propagateException(e);
+        }
+        catch (ExecutionException e) {
+            e.printStackTrace();
+
+            logger.error("Failed to get future result", e);
+
+            throw ExceptionUtil.propagateException(e);
+        }
+
+        return logCheckRes;
+    }
 }

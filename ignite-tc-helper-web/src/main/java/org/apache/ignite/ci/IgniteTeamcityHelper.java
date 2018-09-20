@@ -464,8 +464,9 @@ public class IgniteTeamcityHelper implements ITeamcity {
         }
     }
 
+    @SuppressWarnings("WeakerAccess")
     @AutoProfiling
-    protected  <T> T loadXml(Class<T> rootElem, InputStreamReader reader) throws JAXBException {
+    protected <T> T loadXml(Class<T> rootElem, InputStreamReader reader) throws JAXBException {
         return XmlUtil.load(rootElem, reader);
     }
 
@@ -473,8 +474,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
         @Nullable String branchName,
         boolean dfltFilter,
         @Nullable String state){
-      
-        return getBuildHistory(buildTypeId, branchName, dfltFilter, state, null, null);
+
+        return getBuildHistory(buildTypeId, branchName, dfltFilter, state, null, null, null);
     }
 
     private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
@@ -482,19 +483,22 @@ public class IgniteTeamcityHelper implements ITeamcity {
         boolean dfltFilter,
         @Nullable String state,
         @Nullable Date sinceDate,
-        @Nullable Date untilDate) {
+        @Nullable Date untilDate,
+        @Nullable Integer sinceBuildNumber)  {
         String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId + "";
         String stateFilter = isNullOrEmpty(state) ? "" : (",state:" + state);
         String branchFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
         String sinceDateFilter = sinceDate == null ? "" : ",sinceDate:" + getDateYyyyMmDdTHhMmSsZ(sinceDate);
         String untilDateFilter = untilDate == null ? "" : ",untilDate:" + getDateYyyyMmDdTHhMmSsZ(untilDate);
-      
+        String buildNoFilter = sinceBuildNumber == null ? "" : ",sinceBuild:(number:" + sinceBuildNumber + ")";
+
         return sendGetXmlParseJaxb(host + "app/rest/latest/builds"
             + "?locator="
             + "defaultFilter:" + dfltFilter
             + btFilter
             + stateFilter
             + branchFilter
+            + buildNoFilter
             + ",count:" + DEFAULT_BUILDS_COUNT
             + sinceDateFilter
             + untilDateFilter, Builds.class).getBuildsNonNull();
@@ -575,15 +579,29 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public List<BuildRef> getFinishedBuilds(String projectId,
+        String branch) {
+
+        return getFinishedBuilds(projectId, branch, null, null, null);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    @AutoProfiling
     public List<BuildRef> getFinishedBuilds(String projectId,
-        String branch, Date sinceDate, Date untilDate) {
+                                            String branch,
+                                            Date sinceDate,
+                                            Date untilDate,
+                                            @Nullable Integer sinceBuildNumber) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             true,
             null,
             sinceDate,
-            untilDate);
-  
+            untilDate,
+            sinceBuildNumber);
+
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
 
@@ -612,10 +630,11 @@ public class IgniteTeamcityHelper implements ITeamcity {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             false,
-            state);
+            state,
+            null);
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
-  
+
     @Override
     public String serverId() {
         return tcName;
@@ -672,4 +691,5 @@ public class IgniteTeamcityHelper implements ITeamcity {
     public User getUserByUsername(String username) {
         return getJaxbUsingHref("app/rest/latest/users/username:" + username, User.class);
     }
+
 }

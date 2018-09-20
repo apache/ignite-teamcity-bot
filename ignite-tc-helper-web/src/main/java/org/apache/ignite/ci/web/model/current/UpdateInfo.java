@@ -24,13 +24,13 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
  */
 @SuppressWarnings("WeakerAccess") public class UpdateInfo {
     /** TeamCity auth token availability flag. */
-    public static int TEAMCITY_FLAG = 1;
+    public static final int TEAMCITY_FLAG = 1;
 
     /** GitHub auth token availability flag. */
-    public static int GITHUB_FLAG = 2;
+    public static final int GITHUB_FLAG = 2;
 
     /** JIRA auth token availability flag. */
-    public static int JIRA_FLAG = 2;
+    public static final int JIRA_FLAG = 4;
 
     /** Flags to use in javascript. */
     public Integer javaFlags = 0;
@@ -58,12 +58,12 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
      */
     public void setJavaFlags(IAnalyticsEnabledTeamcity teamcity) {
         if (teamcity.isTeamCityTokenAvailable())
-            javaFlags = javaFlags | TEAMCITY_FLAG;
+            javaFlags |= TEAMCITY_FLAG;
 
         if (teamcity.isGitTokenAvailable())
-            javaFlags = javaFlags | GITHUB_FLAG;
+            javaFlags |= GITHUB_FLAG;
 
         if (teamcity.isJiraTokenAvailable())
-            javaFlags = javaFlags | JIRA_FLAG;
+            javaFlags |= JIRA_FLAG;
     }
 }

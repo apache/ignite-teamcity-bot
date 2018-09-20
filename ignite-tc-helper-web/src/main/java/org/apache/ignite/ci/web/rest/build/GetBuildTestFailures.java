@@ -17,23 +17,6 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
-import java.util.ArrayList;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.List;
-import java.util.Date;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -55,6 +38,24 @@ import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Date;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -136,7 +137,7 @@ public class GetBuildTestFailures {
                 BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,
                     Collections.singletonList(build),
                     (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE,
-                    false, false, teamcity, failRateBranch);
+                    false, false, teamcity, failRateBranch, CtxListener.getPool(context));
 
             pubCtx.ifPresent(ctx -> {
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(serverId, ctx.branchName());
@@ -181,7 +182,7 @@ public class GetBuildTestFailures {
 
         try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov)) {
 
-            int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, sinceDateFilter, untilDateFilter);
+            int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, cnt);
 
             List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
 
