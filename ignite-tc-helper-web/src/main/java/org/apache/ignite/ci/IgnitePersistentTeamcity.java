@@ -130,6 +130,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** cached loads of running builds for branch. */
     private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> runningBuildsFuts = new ConcurrentHashMap<>();
 
+    /**   */
+    private ConcurrentMap<SuiteInBranch, Long> lastQueuedHistory = new ConcurrentHashMap<>();
+
     //todo: not good code to keep it static
     private static long lastTriggerMs = System.currentTimeMillis();
 
@@ -274,15 +277,15 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
-    protected <K> List<BuildRef> loadBuildHistory(IgniteCache<K, Expirable<List<BuildRef>>> cache,
-                                                  int seconds,
-                                                  Long cnt,
-                                                  K key,
-                                                  BiFunction<K, Integer, List<BuildRef>> realLoad) {
-        @Nullable Expirable<List<BuildRef>> persistedBuilds = readBuildHistEntry(cache, (K) key);
+    protected List<BuildRef> loadBuildHistory(IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> cache,
+                                              int seconds,
+                                              Long cnt,
+                                              SuiteInBranch key,
+                                              BiFunction<SuiteInBranch, Integer, List<BuildRef>> realLoad) {
+        @Nullable Expirable<List<BuildRef>> persistedBuilds = readBuildHistEntry(cache, key);
 
         if (persistedBuilds != null
-                && (persistedBuilds.isAgeLessThanSecs(seconds)
+                && (isHistoryAgeLessThanSecs(key, seconds, persistedBuilds)
                 && (cnt == null || persistedBuilds.hasCounterGreaterThan(cnt)))) {
             ObjectInterner.internFields(persistedBuilds);
 
@@ -294,7 +297,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         try {
             if (!noLocks) {
                 if (persistedBuilds != null
-                        && (persistedBuilds.isAgeLessThanSecs(seconds)
+                        && (isHistoryAgeLessThanSecs(key, seconds, persistedBuilds)
                         && (cnt == null || persistedBuilds.hasCounterGreaterThan(cnt)))) {
                     ObjectInterner.internFields(persistedBuilds);
 
@@ -334,10 +337,16 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             final List<BuildRef> persistedList = persistedBuilds != null ? persistedBuilds.getData() : null;
             final List<BuildRef> buildRefs = mergeHistoryMaps(persistedList, dataFromRest);
 
-            final Expirable<List<BuildRef>> newVal
-                    = new Expirable<>(System.currentTimeMillis(), buildRefs.size(), buildRefs);
+            final Expirable<List<BuildRef>> newVal = new Expirable<>(0L, buildRefs.size(), buildRefs);
 
+            if (persistedList != null && persistedList.equals(buildRefs)) {
+                lastQueuedHistory.put(key, System.currentTimeMillis());
+
+                return buildRefs;
+            }
             saveBuildHistoryEntry(cache, key, newVal);
+
+            lastQueuedHistory.put(key, System.currentTimeMillis());
 
             return buildRefs;
         }
@@ -345,6 +354,16 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             if (!noLocks)
                 lock.unlock();
         }
+    }
+
+    private boolean isHistoryAgeLessThanSecs(SuiteInBranch key, int seconds, Expirable<List<BuildRef>> persistedBuilds) {
+        Long loaded = lastQueuedHistory.get(key);
+        if (loaded == null)
+            return false;
+
+        long ageMs = System.currentTimeMillis() - loaded;
+
+        return ageMs < TimeUnit.SECONDS.toMillis(seconds);
     }
 
     @AutoProfiling
