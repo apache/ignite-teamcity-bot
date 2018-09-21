@@ -484,13 +484,13 @@ public class IgniteTeamcityHelper implements ITeamcity {
         @Nullable String state,
         @Nullable Date sinceDate,
         @Nullable Date untilDate,
-        @Nullable Integer sinceBuildNumber)  {
+        @Nullable Integer sinceBuildId)  {
         String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId + "";
         String stateFilter = isNullOrEmpty(state) ? "" : (",state:" + state);
         String branchFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
         String sinceDateFilter = sinceDate == null ? "" : ",sinceDate:" + getDateYyyyMmDdTHhMmSsZ(sinceDate);
         String untilDateFilter = untilDate == null ? "" : ",untilDate:" + getDateYyyyMmDdTHhMmSsZ(untilDate);
-        String buildNoFilter = sinceBuildNumber == null ? "" : ",sinceBuild:(number:" + sinceBuildNumber + ")";
+        String buildNoFilter = sinceBuildId == null ? "" : ",sinceBuild:(id:" + sinceBuildId + ")";
 
         return sendGetXmlParseJaxb(host + "app/rest/latest/builds"
             + "?locator="
@@ -583,7 +583,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     @Override public List<BuildRef> getFinishedBuilds(String projectId,
         String branch) {
 
-        return getFinishedBuilds(projectId, branch, null, null, null);
+        return getFinishedBuilds(projectId, branch, null, null);
     }
 
     /** {@inheritDoc} */
@@ -593,14 +593,14 @@ public class IgniteTeamcityHelper implements ITeamcity {
                                             String branch,
                                             Date sinceDate,
                                             Date untilDate,
-                                            @Nullable Integer sinceBuildNumber) {
+                                            @Nullable Integer sinceBuildId) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             true,
             null,
             sinceDate,
             untilDate,
-            sinceBuildNumber);
+            sinceBuildId);
 
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
@@ -608,13 +608,13 @@ public class IgniteTeamcityHelper implements ITeamcity {
     /** {@inheritDoc} */
     @Override
     @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED);
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null);
     }
 
     /** {@inheritDoc} */
     @Override
-    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildNumber) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED);
+    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId) {
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, sinceBuildId);
     }
 
     /** {@inheritDoc} */
@@ -630,14 +630,24 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     private List<BuildRef> getBuildsInState(
-        @Nullable final String projectId,
-        @Nullable final String branch,
-        @Nonnull final String state) {
+            @Nullable final String projectId,
+            @Nullable final String branch,
+            @Nonnull final String state,
+            @Nullable final Integer sinceBuildId) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             false,
-            state);
+            state,
+            sinceBuildId);
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
+    }
+
+    private List<BuildRef> getBuildsInState(
+        @Nullable final String projectId,
+        @Nullable final String branch,
+        @Nonnull final String state) {
+
+        return getBuildsInState(projectId, branch, state, null);
     }
 
     @Override

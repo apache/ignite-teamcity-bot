@@ -44,6 +44,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.cache.Cache;
 import javax.inject.Inject;
+import javax.ws.rs.BadRequestException;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
@@ -73,7 +74,6 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.util.CacheUpdateUtil;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
-import org.eclipse.jetty.util.AtomicBiInteger;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -223,6 +223,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return getOrCreateCacheV2(ignCacheNme(BUILD_STATISTICS));
     }
 
+
     /**
      * @return Build history: {@link BuildRef} lists cache, 32 parts.
      */
@@ -297,33 +298,33 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 }
             }
 
-            //todo sinceBuild:(number:) // --todo -10 build numbers
-
-            Integer sinceBuildNum = null;
+            Integer sinceBuildId;
             if (persistedBuilds != null) {
                 List<BuildRef> prevData = persistedBuilds.getData();
                 if (prevData.size() >= MAX_BUILDS_IN_PAST_TO_RELOAD) {
                     BuildRef buildRef = prevData.get(prevData.size() - MAX_BUILDS_IN_PAST_TO_RELOAD);
 
-                    if (!Strings.isNullOrEmpty(buildRef.buildNumber)) {
-                        try {
-                            sinceBuildNum = Integer.valueOf(buildRef.buildNumber);
-                        } catch (NumberFormatException e) {
-                            logger.info("", e);
-                        }
-                    }
+                    sinceBuildId = buildRef.getId();
+                } else {
+                    sinceBuildId = null;
                 }
-            }
+            } else
+                sinceBuildId = null;
+
             List<BuildRef> dataFromRest;
             try {
-                dataFromRest = realLoad.apply(key, sinceBuildNum);
-            }
-            catch (Exception e) {
+                dataFromRest = realLoad.apply(key, sinceBuildId);
+            } catch (Exception e) {
                 if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
                     System.err.println("Build history not found for build : " + key);
                     dataFromRest = Collections.emptyList();
-                }
-                else
+                } else if (Throwables.getRootCause(e) instanceof BadRequestException) {
+                    //probably referenced build not found
+                    if (sinceBuildId != null)
+                        dataFromRest = realLoad.apply(key, null);
+                    else
+                        throw e;
+                } else
                     throw e;
             }
             final List<BuildRef> persistedList = persistedBuilds != null ? persistedBuilds.getData() : null;
@@ -380,12 +381,13 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
         final List<BuildRef> buildsFromRest = new ArrayList<>();
 
-        List<BuildRef> buildRefs = loadBuildHistory(buildHistCache(), 60, suiteInBranch,
-            (key, sinceBuildNumber) -> {
-                buildsFromRest.addAll(teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate, sinceBuildNumber));
+        List<BuildRef> buildRefs = loadBuildHistory(buildHistCache(), 90, suiteInBranch,
+            (key, sinceBuildId) -> {
+            buildsFromRest.addAll(teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate, sinceBuildId));
 
-                return buildsFromRest;
-            });
+            return buildsFromRest;
+        });
+
         if (sinceDate != null || untilDate != null) {
             if (!buildsFromRest.isEmpty() && sinceDate != null){
                 int firstBuildId = buildRefs.indexOf(buildsFromRest.get(buildsFromRest.size() - 1));
@@ -546,8 +548,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                                                                         Integer ignored) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        return loadBuildHistory(buildHistIncFailedCache(), 60, suiteInBranch,
-            (key, sinceBuildNumber) -> teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, sinceBuildNumber));
+        return loadBuildHistory(buildHistIncFailedCache(), 91, suiteInBranch,
+            (key, sinceBuildId) -> teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, sinceBuildId));
     }
 
 

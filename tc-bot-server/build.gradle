@@ -26,33 +26,24 @@ repositories {
     mavenLocal()
 }
 
-mainClassName = 'org.apache.ignite.ci.TcHelperJettyLauncher'
+mainClassName = 'org.apache.ignite.ci.TcBotIgniteServerLauncher'
 applicationDefaultJvmArgs = ["-Dteamcity.helper.home=../work",
                              "-Dteamcity.bot.regionsize=16", // 16g Durable Memory region
-                             "-Dhttp.maxConnections=120",
                              "-server",
-                             "-Xmx10g",
+                             "-Xmx2g",
                              "-XX:+AlwaysPreTouch",
                              "-XX:+UseG1GC",
                              "-XX:+ScavengeBeforeFullGC",
                              "-XX:+UseStringDeduplication",
                              "-Djava.rmi.server.hostname=app02",
                              "-Dcom.sun.management.jmxremote",
-                             "-Dcom.sun.management.jmxremote.port=9010",
+                             "-Dcom.sun.management.jmxremote.port=9011",
                              "-Dcom.sun.management.jmxremote.local.only=false",
                              "-Dcom.sun.management.jmxremote.authenticate=false",
                              "-Dcom.sun.management.jmxremote.ssl=false"]
 
 distributions {
-    main {
-        contents {
-            into('war') {
-                from { new File(project(':ignite-tc-helper-web').getBuildDir(), "libs/ignite-tc-helper-web.war")}
 
-                fileMode = 0755
-            }
-        }
-    }
 }
 
 dependencies {
@@ -60,9 +51,11 @@ dependencies {
         transitive = false
     }
 
-    compile group: 'org.eclipse.jetty', name: 'jetty-util', version: jettyVer
-    compile group: 'org.eclipse.jetty', name: 'jetty-server', version: jettyVer
-    compile group: 'org.eclipse.jetty', name: 'jetty-webapp', version: jettyVer
-
     compile group: 'com.google.guava', name: 'guava', version: guavaVer
+
+    compile group: 'ch.qos.logback', name: 'logback-core', version: logbackVer
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVer
+
+    compile group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
+    compile group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
 }

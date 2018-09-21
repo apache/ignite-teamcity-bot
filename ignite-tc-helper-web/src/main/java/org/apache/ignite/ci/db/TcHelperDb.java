@@ -18,19 +18,15 @@
 package org.apache.ignite.ci.db;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Collections;
 
-import ch.qos.logback.classic.LoggerContext;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.IgniteTeamcityHelper;
 import org.apache.ignite.configuration.*;
 import org.apache.ignite.logger.slf4j.Slf4jLogger;
 import org.apache.ignite.spi.IgniteSpiContext;
@@ -39,11 +35,6 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.jetbrains.annotations.NotNull;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
-import ch.qos.logback.core.rolling.RollingFileAppender;
-import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.ignite.ci.web.Launcher.waitStopSignal;
@@ -52,8 +43,8 @@ import static org.apache.ignite.ci.web.Launcher.waitStopSignal;
  *
  */
 public class TcHelperDb {
-    /** Logger. */
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(IgniteTeamcityHelper.class);
+       /** Logger. */
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(TcHelperDb.class);
 
     public static void main(String[] args) {
         Ignite ignite = start();
@@ -77,29 +68,21 @@ public class TcHelperDb {
     }
 
     public static Ignite start() {
-
         final File workDir = HelperConfig.resolveWorkDir();
-        configLogger(workDir);
+        Ignite2Configurer.configLogger(workDir, "tchelper_logs");
 
         final IgniteConfiguration cfg = new IgniteConfiguration();
-        setWork(cfg, workDir);
+        Ignite2Configurer.setIgniteHome(cfg, workDir);
 
         setupDisco(cfg);
         cfg.setConsistentId("TcHelper");
         cfg.setGridLogger(new Slf4jLogger());
 
+        final DataRegionConfiguration regConf = Ignite2Configurer.getDataRegionConfiguration();
 
-        final DataRegionConfiguration regConf = new DataRegionConfiguration()
-            .setPersistenceEnabled(true);
+        final DataStorageConfiguration dsCfg = Ignite2Configurer.getDataStorageConfiguration(regConf);
 
-        setupRegSize(regConf);
-
-        final DataStorageConfiguration dsCfg = new DataStorageConfiguration()
-            .setWalMode(WALMode.LOG_ONLY)
-            .setWalHistorySize(1)
-            .setCheckpointFrequency(5 * 60 * 1000)
-            .setWriteThrottlingEnabled(true)
-            .setDefaultDataRegionConfiguration(regConf);
+        dsCfg.setPageSize(4 * 1024);
 
         cfg.setDataStorageConfiguration(dsCfg);
 
@@ -114,73 +97,6 @@ public class TcHelperDb {
         System.out.println("Activate Completed");
 
         return ignite;
-    }
-
-    /**
-     * @param regConf Reg conf.
-     */
-    private static void setupRegSize(DataRegionConfiguration regConf) {
-        String regSzGb = System.getProperty(ITcHelper.TEAMCITY_BOT_REGIONSIZE);
-
-        if (regSzGb != null) {
-            try {
-                int szGb = Integer.parseInt(regSzGb);
-
-                String msg = "Using custom size of region: " + szGb + "Gb";
-                logger.info(msg);
-                System.out.println(msg);
-
-                regConf.setMaxSize(szGb * 1024L * 1024 * 1024);
-            }
-            catch (NumberFormatException e) {
-                e.printStackTrace();
-
-                logger.error("Unable to setup region", e);
-            }
-        } else {
-            String msg = "Using default size of region.";
-            logger.info(msg);
-            System.out.println(msg);
-        }
-    }
-
-    private static void configLogger(File workDir) {
-        LoggerContext logCtx = (LoggerContext) LoggerFactory.getILoggerFactory();
-
-        PatternLayoutEncoder logEncoder  = new PatternLayoutEncoder();
-        logEncoder.setContext(logCtx);
-        logEncoder.setPattern("%-12date{YYYY-MM-dd HH:mm:ss.SSS} %-5level [%t] - %msg%n");
-        logEncoder.start();
-
-        RollingFileAppender rollingFa = new RollingFileAppender();
-        rollingFa.setContext(logCtx);
-        rollingFa.setName("logFile");
-        rollingFa.setEncoder(logEncoder);
-        rollingFa.setAppend(true);
-
-        final File logs = new File(workDir, "tchelper_logs");
-        HelperConfig.ensureDirExist(logs);
-
-        rollingFa.setFile(new File(logs, "logfile.log").getAbsolutePath());
-
-        TimeBasedRollingPolicy logFilePolicy = new TimeBasedRollingPolicy();
-        logFilePolicy.setContext(logCtx);
-        logFilePolicy.setParent(rollingFa);
-        logFilePolicy.setFileNamePattern(new File(logs, "logfile-%d{yyyy-MM-dd_HH}.log").getAbsolutePath());
-        logFilePolicy.setMaxHistory(7);
-        logFilePolicy.start();
-
-        //todo use logFilePolicy.getActiveFileName()
-
-        rollingFa.setRollingPolicy(logFilePolicy);
-        rollingFa.start();
-
-        Logger log = logCtx.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
-        log.setAdditive(false);
-        log.setLevel(Level.INFO);
-        log.detachAndStopAllAppenders();
-
-        log.addAppender(rollingFa);
     }
 
     public static Ignite startClient() {
@@ -198,23 +114,17 @@ public class TcHelperDb {
     }
 
     private static void setupDisco(IgniteConfiguration cfg) {
-        final TcpDiscoverySpi spi = new TcpDiscoverySpi();
         final int locPort = 54433;
+        setupSinglePortDisco(cfg, locPort);
+    }
+
+    private static void setupSinglePortDisco(IgniteConfiguration cfg, int locPort) {
+        final TcpDiscoverySpi spi = new TcpDiscoverySpi();
         spi.setLocalPort(locPort);
         spi.setLocalPortRange(1);
         spi.setIpFinder(new LocalOnlyTcpDiscoveryIpFinder(locPort));
 
         cfg.setDiscoverySpi(spi);
-    }
-
-    private static void setWork(IgniteConfiguration cfg, File workDir) {
-        try {
-            cfg.setIgniteHome(workDir.getCanonicalPath());
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            cfg.setIgniteHome(workDir.getAbsolutePath());
-        }
     }
 
     public static void stop(Ignite ignite) {
