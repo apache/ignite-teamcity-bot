@@ -165,14 +165,12 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("sinceDate") String sinceDate,
         @Nullable @QueryParam("untilDate") String untilDate)
-        throws ServiceUnauthorizedException, ParseException {
-        DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
-
+        throws ServiceUnauthorizedException {
         String srvId = isNullOrEmpty(server) ? "apache" : server;
         String buildTypeId = isNullOrEmpty(buildType) ? "IgniteTests24Java8_RunAll" : buildType;
         String branchName = isNullOrEmpty(branch) ? "refs/heads/master" : branch;
-        Date sinceDateFilter = isNullOrEmpty(sinceDate) ? null : dateFormat.parse(sinceDate);
-        Date untilDateFilter = isNullOrEmpty(untilDate) ? null : dateFormat.parse(untilDate);
+        Date sinceDateFilter = isNullOrEmpty(sinceDate) ? null : dateParse(sinceDate);
+        Date untilDateFilter = isNullOrEmpty(untilDate) ? null : dateParse(untilDate);
 
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
 
@@ -203,6 +201,17 @@ public class GetBuildTestFailures {
             }
 
             return buildsStatistics;
+        }
+    }
+
+    private Date dateParse(String date){
+        DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
+
+        try {
+            return dateFormat.parse(date);
+        }
+        catch (ParseException e) {
+            return null;
         }
     }
 
