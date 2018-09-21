@@ -69,7 +69,7 @@ public class TcHelperDb {
 
     public static Ignite start() {
         final File workDir = HelperConfig.resolveWorkDir();
-        Ignite2Configurer.configLogger(workDir, "tchelper_logs");
+        Ignite2Configurer.configLogger(workDir, "tcbot_logs");
 
         final IgniteConfiguration cfg = new IgniteConfiguration();
         Ignite2Configurer.setIgniteHome(cfg, workDir);
