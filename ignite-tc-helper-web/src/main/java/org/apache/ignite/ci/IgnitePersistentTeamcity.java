@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -565,12 +566,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @AutoProfiling
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId,
                                                                         String branch,
-                                                                        Long cnt,
                                                                         Integer ignored) {
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
-        return loadBuildHistory(buildHistIncFailedCache(), 91, cnt, suiteInBranch,
-            (key, sinceBuildId) -> teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, cnt, sinceBuildId));
+        return loadBuildHistory(buildHistIncFailedCache(), 91, suiteInBranch,
+            (key, sinceBuildId) -> teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, sinceBuildId));
     }
 
 
