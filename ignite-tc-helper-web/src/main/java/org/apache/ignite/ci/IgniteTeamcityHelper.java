@@ -644,10 +644,13 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
 
-    private List<BuildRef> getBuildsInState(
-        @Nullable final String projectId,
-        @Nullable final String branch,
-        @Nonnull final String state) {
+
+    @SuppressWarnings("WeakerAccess")
+    @AutoProfiling
+    protected List<BuildRef> getBuildsInState(
+            @Nullable final String projectId,
+            @Nullable final String branch,
+            @Nonnull final String state) {
 
         return getBuildsInState(projectId, branch, state, null);
     }

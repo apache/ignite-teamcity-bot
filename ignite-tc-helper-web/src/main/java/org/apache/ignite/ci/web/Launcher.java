@@ -72,17 +72,26 @@ public class Launcher {
             boolean stop = waitStopSignal();
 
             if (stop) {
-                try {
-                    server.stop();
-                }
-                catch (Exception e) {
-                    e.printStackTrace();
-                }
+                stopSilent(server);
             }
 
         };
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            stopSilent(server);
+        }));
+
         new Thread(r).start();
         server.start();
+    }
+
+    public static void stopSilent(Server server) {
+        try {
+            server.stop();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public static boolean waitStopSignal() {
