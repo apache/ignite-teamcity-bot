@@ -19,6 +19,7 @@ package org.apache.ignite.ci.web.rest.monitoring;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
+import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.ci.di.ProfilingInterceptor;
 import org.apache.ignite.ci.web.CtxListener;
 
@@ -84,7 +85,10 @@ public class MonitoringService {
 
             // res.add(next + ": " + size + " get " + averageGetTime + " put " + averagePutTime);
 
-            res.add(next + ": " + size);
+
+            Affinity<Object> affinity = ignite.affinity(next);
+
+            res.add(next + ": " + size + " parts " +  affinity.partitions());
         }
         return res;
     }

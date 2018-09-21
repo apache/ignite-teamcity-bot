@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -105,9 +106,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
     public static final String BUILDS = "builds";
 
-    private static final String BUILD_QUEUE = "buildQueue";
-    private static final String RUNNING_BUILDS = "runningBuilds";
-
     /** Number of builds to re-query from TC to be sure some builds in the middle are not lost. */
     private static final int MAX_BUILDS_IN_PAST_TO_RELOAD = 5;
 
@@ -124,8 +122,14 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      */
     private ConcurrentMap<String, CompletableFuture<TestOccurrenceFull>> testOccFullFutures = new ConcurrentHashMap<>();
 
+    /** cached running builds for branch. */
+    private ConcurrentMap<String, Expirable<List<BuildRef>>> queuedBuilds = new ConcurrentHashMap<>();
+
     /** cached loads of queued builds for branch. */
     private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> queuedBuildsFuts = new ConcurrentHashMap<>();
+
+    /** cached running builds for branch. */
+    private ConcurrentMap<String, Expirable<List<BuildRef>>> runningBuilds = new ConcurrentHashMap<>();
 
     /** cached loads of running builds for branch. */
     private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> runningBuildsFuts = new ConcurrentHashMap<>();
@@ -441,13 +445,61 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
 
+    public <K, V> CompletableFuture<V> loadAsyncIfAbsentOrExpired(ConcurrentMap<K, Expirable<V>> cache,
+                                                                  K key,
+                                                                  ConcurrentMap<K, CompletableFuture<V>> cachedComputations,
+                                                                  Function<K, CompletableFuture<V>> realLoadFunction,
+                                                                  int maxAgeSecs,
+                                                                  boolean alwaysProvidePersisted) {
+        @Nullable final Expirable<V> persistedValue = cache.get(key);
+
+        int fields = ObjectInterner.internFields(persistedValue);
+
+        //   if (fields > 0)
+        //     System.out.println("Interned " + fields + " after get()");
+
+
+        if (persistedValue != null && persistedValue.isAgeLessThanSecs(maxAgeSecs))
+            return CompletableFuture.completedFuture(persistedValue.getData());
+
+        AtomicReference<CompletableFuture<V>> submitRef = new AtomicReference<>();
+
+        CompletableFuture<V> loadFut = cachedComputations.computeIfAbsent(key,
+                k -> {
+                    CompletableFuture<V> future = realLoadFunction.apply(k)
+                            .thenApplyAsync(valueLoaded -> {
+                                cache.put(k, new Expirable<V>(valueLoaded));
+
+                                return valueLoaded;
+                            });
+
+                    submitRef.set(future);
+
+                    return future;
+                }
+        ).thenApply(res -> {
+            CompletableFuture<V> f = submitRef.get();
+
+            if (f != null)
+                cachedComputations.remove(key, f);
+
+            return res;
+        });
+
+        if (alwaysProvidePersisted && persistedValue != null)
+            return CompletableFuture.completedFuture(persistedValue.getData());
+
+        return loadFut;
+    }
+
+
     /** {@inheritDoc} */
     @Override public CompletableFuture<List<BuildRef>> getRunningBuilds(String branch) {
         int defaultSecs = 60;
         int secondsUseCached = getTriggerRelCacheValidSecs(defaultSecs);
 
-        return CacheUpdateUtil.loadAsyncIfAbsentOrExpired(
-            getOrCreateCacheV2(ignCacheNme(RUNNING_BUILDS)),
+        return loadAsyncIfAbsentOrExpired(
+            runningBuilds, //getOrCreateCacheV2(ignCacheNme(RUNNING_BUILDS)),
             Strings.nullToEmpty(branch),
             runningBuildsFuts,
             teamcity::getRunningBuilds,
@@ -466,8 +518,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         int defaultSecs = 60;
         int secondsUseCached = getTriggerRelCacheValidSecs(defaultSecs);
 
-        return CacheUpdateUtil.loadAsyncIfAbsentOrExpired(
-            getOrCreateCacheV2(ignCacheNme(BUILD_QUEUE)),
+        return loadAsyncIfAbsentOrExpired(
+            queuedBuilds, // getOrCreateCacheV2(ignCacheNme(BUILD_QUEUE)),
             Strings.nullToEmpty(branch),
             queuedBuildsFuts,
             teamcity::getQueuedBuilds,
