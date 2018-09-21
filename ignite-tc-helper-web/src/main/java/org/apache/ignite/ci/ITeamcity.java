@@ -18,6 +18,7 @@
 package org.apache.ignite.ci;
 
 import java.io.File;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -143,7 +144,7 @@ public interface ITeamcity extends AutoCloseable {
     public String host();
 
     /**
-     * @param build.
+     * @param build
      * @return
      */
     ProblemOccurrences getProblems(Build build);

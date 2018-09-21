@@ -583,7 +583,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     @Override public List<BuildRef> getFinishedBuilds(String projectId,
         String branch) {
 
-        return getFinishedBuilds(projectId, branch, null, null);
+        return getFinishedBuilds(projectId, branch, null, null, null);
     }
 
     /** {@inheritDoc} */
@@ -638,6 +638,8 @@ public class IgniteTeamcityHelper implements ITeamcity {
             UrlUtil.escape(branch),
             false,
             state,
+            null,
+            null,
             sinceBuildId);
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
