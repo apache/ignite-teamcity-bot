@@ -21,11 +21,11 @@ import java.util.*;
 import org.apache.ignite.ci.web.model.Version;
 
 public class Notification {
-    private static final String DETECTED_ISSUE = "I've detected some new issue on TeamCity to be addressed. " +
+    private static final String DETECTED_ISSUE = "I've detected some new issue on TeamCity to be handled. " +
             "You are more than welcomed to help.";
 
     private static final String IF_YOUR_CHANGES = "If your changes can lead to this failure(s): " +
-            "We're grateful that you were a volunteer to make the contribution to this project," +
+            "We're grateful that you were a volunteer to make the contribution to this project, " +
             "but things change and you may no longer be able to finalize your contribution.";
 
     private static final String YOUR_ACTION = "Could you respond to this email and indicate if you wish to continue and fix test failures" +
@@ -116,19 +116,19 @@ public class Notification {
 
 
     private String messageTailPlainText() {
-        return  "\t - Here’s a reminder of what contributors were agreed to do " +
+        return  "\t - Here's a reminder of what contributors were agreed to do " +
                 HTC_REF + " \n" +
                 "\t - Should you have any questions please contact " + Version.DEFAULT_CONTACT + " \n\n" +
-                "Best Regards,\nIgnite Teamcity Bot \n" +
+                "Best Regards,\nApache Ignite TeamCity Bot \n" +
                 "Notification generated at " + new Date(ts).toString() + " \n";
     }
 
     private String messageTailHtml() {
-        return "<ul><li>Here’s a reminder of what contributors were agreed to do " +
+        return "<ul><li>Here's a reminder of what contributors were agreed to do " +
                 "<a href='" + HTC_REF  + "'>How to contribute</a>." +  "</li>" +
                 "<li>Should you have any questions please contact " + Version.DEFAULT_CONTACT + " </li></ul><br>" +
 
-            "Best Regards,<br>Ignite Teamcity Bot<br>" +
+            "Best Regards,<br>Apache Ignite TeamCity Bot<br>" +
             "Notification generated at " + new Date(ts).toString() + "<br>";
     }
 

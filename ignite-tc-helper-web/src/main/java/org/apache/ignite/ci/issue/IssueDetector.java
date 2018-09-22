@@ -307,7 +307,7 @@ public class IssueDetector {
 
                         firstFailedTestId = null;
                     } else
-                        displayType = "New stable failure of flaky test";
+                        displayType = "New stable failure of a flaky test";
                 }
             }
         }
