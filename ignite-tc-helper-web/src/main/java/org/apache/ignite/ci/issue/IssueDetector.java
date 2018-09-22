@@ -285,25 +285,25 @@ public class IssueDetector {
         if (runStat == null)
             return false;
 
-        RunStat.TestId firstFailedTestId  = null;
+        RunStat.TestId firstFailedTestId;
         String displayType = null;
 
-        if (firstFailedTestId == null) {
-            firstFailedTestId = runStat.detectTemplate(EventTemplates.newContributedTestFailure);
+        firstFailedTestId = runStat.detectTemplate(EventTemplates.newContributedTestFailure);
+
+        if (firstFailedTestId != null)
             displayType = "Recently contributed test failed";
-        }
 
         if (firstFailedTestId == null) {
             firstFailedTestId = runStat.detectTemplate(EventTemplates.newFailure);
-            displayType = "New test failure";
 
             if (firstFailedTestId != null) {
+                displayType = "New test failure";
                 final String flakyComments = runStat.getFlakyComments();
 
                 if (!Strings.isNullOrEmpty(flakyComments)) {
                     if (runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) == null) {
                         logger.info("Skipping registering new issue for test fail:" +
-                            " Test seems to be flaky " + name + ": " + flakyComments);
+                                " Test seems to be flaky " + name + ": " + flakyComments);
 
                         firstFailedTestId = null;
                     } else
@@ -316,6 +316,7 @@ public class IssueDetector {
             return false;
 
         int buildId = firstFailedTestId.getBuildId();
+
         IssueKey issueKey = new IssueKey(srvId, buildId, name);
 
         if (issuesStorage.cache().containsKey(issueKey))

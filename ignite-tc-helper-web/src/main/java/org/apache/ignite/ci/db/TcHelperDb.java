@@ -27,6 +27,7 @@ import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.web.model.Version;
 import org.apache.ignite.configuration.*;
 import org.apache.ignite.logger.slf4j.Slf4jLogger;
 import org.apache.ignite.spi.IgniteSpiContext;
@@ -49,7 +50,7 @@ public class TcHelperDb {
     public static void main(String[] args) {
         Ignite ignite = start();
 
-        System.out.println("Starting Ignite DB only");
+        System.out.println("Starting Ignite DB only, " + Version.VERSION);
 
         Runnable r = () -> {
             boolean stop = waitStopSignal();
@@ -86,11 +87,11 @@ public class TcHelperDb {
 
         cfg.setDataStorageConfiguration(dsCfg);
 
-        System.out.println("Starting Ignite Server Node");
+        System.out.println("Starting Ignite Server Node, " + Version.VERSION);
 
         final Ignite ignite = Ignition.start(cfg);
 
-        System.out.println("Activating Ignite Server Node");
+        System.out.println("Activating Ignite Server Node, " + Version.VERSION);
 
         ignite.cluster().active(true);
 

@@ -20,6 +20,8 @@ package org.apache.ignite.ci.issue;
 import java.util.*;
 import org.apache.ignite.ci.web.model.Version;
 
+import static org.apache.ignite.ci.web.model.Version.GITHUB_REF;
+
 public class Notification {
     private static final String DETECTED_ISSUE = "I've detected some new issue on TeamCity to be handled. " +
             "You are more than welcomed to help.";
@@ -104,14 +106,14 @@ public class Notification {
         return "Hi Igniters,<br><br>" +
                 " " + DETECTED_ISSUE + "<br><br>" +
                 " " + IF_YOUR_CHANGES + "<br>" +
-                " " + YOUR_ACTION + "<br>";
+                " " + YOUR_ACTION + "<br><br>";
     }
 
     private String messageHeaderPlainText() {
         return "Hi Igniters,\n\n" +
                 " " + DETECTED_ISSUE + "\n\n" +
                 " " + IF_YOUR_CHANGES + "\n" +
-                " " + YOUR_ACTION + "\n";
+                " " + YOUR_ACTION + "\n\n";
     }
 
 
@@ -119,17 +121,19 @@ public class Notification {
         return  "\t - Here's a reminder of what contributors were agreed to do " +
                 HTC_REF + " \n" +
                 "\t - Should you have any questions please contact " + Version.DEFAULT_CONTACT + " \n\n" +
-                "Best Regards,\nApache Ignite TeamCity Bot \n" +
+                "Best Regards,\n" +
+                "Apache Ignite TeamCity Bot \n" +
+                GITHUB_REF + "\n" +
                 "Notification generated at " + new Date(ts).toString() + " \n";
     }
 
     private String messageTailHtml() {
         return "<ul><li>Here's a reminder of what contributors were agreed to do " +
-                "<a href='" + HTC_REF  + "'>How to contribute</a>." +  "</li>" +
+                "<a href='" + HTC_REF + "'>How to Contribute</a>." + "</li>" +
                 "<li>Should you have any questions please contact " + Version.DEFAULT_CONTACT + " </li></ul><br>" +
-
-            "Best Regards,<br>Apache Ignite TeamCity Bot<br>" +
-            "Notification generated at " + new Date(ts).toString() + "<br>";
+                "Best Regards,<br>" +
+                "<a href='" + GITHUB_REF + "'>Apache Ignite TeamCity Bot<a><br>" +
+                "Notification generated at " + new Date(ts).toString() + "<br>";
     }
 
     public String countIssues() {
