@@ -184,7 +184,7 @@ public class CheckQueueJob implements Runnable {
             String login = user.username;
 
             if (selfLogin.equalsIgnoreCase(login)) {
-                final String msg = MessageFormat.format("Queued build {0} was early triggered by me (user {1}). Will not start build.", ref.getId(), login);
+                final String msg = MessageFormat.format("Queued build {0} was early triggered by me (user {1}). Will not startIgnite build.", ref.getId(), login);
 
                 logger.info(msg);
 

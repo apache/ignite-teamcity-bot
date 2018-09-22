@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.web;
 
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -27,6 +28,7 @@ import com.google.inject.Injector;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.TcHelper;
+import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.IgniteTcBotModule;
 
@@ -35,7 +37,6 @@ import org.apache.ignite.ci.di.IgniteTcBotModule;
 public class CtxListener implements ServletContextListener {
     private static final String TC_HELPER = "tcHelper";
 
-    public static final String IGNITE = "ignite";
 
     public static final String UPDATER = "updater";
 
@@ -44,7 +45,7 @@ public class CtxListener implements ServletContextListener {
     private static final String POOL = "pool";
 
     public static Ignite getIgnite(ServletContext ctx) {
-        return (Ignite)ctx.getAttribute(IGNITE);
+        return getInjector(ctx).getInstance(Ignite.class);
     }
 
     public static ITcHelper getTcHelper(ServletContext ctx) {
@@ -68,9 +69,9 @@ public class CtxListener implements ServletContextListener {
 
         ctx.setAttribute(INJECTOR, injector);
 
-        final Ignite ignite = TcHelperDb.start();
-        ctx.setAttribute(IGNITE, ignite);
-        igniteTcBotModule.setIgnite(ignite);
+        final Ignite1Init instance = injector.getInstance(Ignite1Init.class);
+        final Future<Ignite> submit = instance.submit();
+        igniteTcBotModule.setIgniteFuture(submit);
 
         final TcHelper tcHelper = injector.getInstance(TcHelper.class);
 

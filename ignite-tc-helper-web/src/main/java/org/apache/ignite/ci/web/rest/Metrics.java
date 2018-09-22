@@ -29,7 +29,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
-import org.apache.ignite.Ignite;
+
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -40,7 +40,7 @@ import org.apache.ignite.ci.runners.CheckBuildChainResults;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
+import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.model.chart.ChartData;
 import org.apache.ignite.ci.web.model.chart.TestsMetrics;
 import org.jetbrains.annotations.NotNull;
@@ -100,8 +100,6 @@ public class Metrics {
     @GET
     @Path("failuresPrivateNoCache")
     @NotNull public TestsMetrics getFailuresPrivateNoCache() {
-        Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
-
         //todo take from branches.json
         CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
         final String serverId = "private";

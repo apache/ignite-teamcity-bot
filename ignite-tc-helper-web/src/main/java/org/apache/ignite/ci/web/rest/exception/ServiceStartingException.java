@@ -15,30 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.rest.login;
+package org.apache.ignite.ci.web.rest.exception;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
 @Provider
-public class ServiceUnauthorizedException extends RuntimeException
-        implements ExceptionMapper<ServiceUnauthorizedException> {
-    public ServiceUnauthorizedException(String message) {
-        super(message);
+public class ServiceStartingException extends RuntimeException
+        implements ExceptionMapper<ServiceStartingException> {
+    public ServiceStartingException(Exception e) {
+        super(e);
     }
 
     @SuppressWarnings("unused")
-    public ServiceUnauthorizedException() {
-    }
-
-    public static ServiceUnauthorizedException noCreds(String serverId) {
-        return new ServiceUnauthorizedException("Service [" + serverId + "] is not available for current user");
+    public ServiceStartingException() {
     }
 
     @Override
-    public Response toResponse(ServiceUnauthorizedException exception) {
-        return Response.status(424).entity(exception.getMessage())
+    public Response toResponse(ServiceStartingException exception) {
+        return Response.status(418).entity(exception.getMessage())
                 .type("text/plain").build();
     }
 }

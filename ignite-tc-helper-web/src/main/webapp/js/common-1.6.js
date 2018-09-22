@@ -38,6 +38,8 @@ function showErrInLoadStatus(jqXHR, exception) {
         }, 1000);
     } else if (jqXHR.status === 403) {
         $("#loadStatus").html('Forbidden [403]');
+    } else if( jqXHR.status === 418) {
+        $("#loadStatus").html('Services are starting [418], I’m a teapot');
     } else if (jqXHR.status === 424) {
         $("#loadStatus").html('Dependency problem: [424]: ' + jqXHR.responseText);
     } else if (jqXHR.status === 500) {

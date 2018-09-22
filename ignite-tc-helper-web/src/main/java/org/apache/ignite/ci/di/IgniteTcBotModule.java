@@ -19,18 +19,23 @@ package org.apache.ignite.ci.di;
 import com.google.common.base.Strings;
 import com.google.inject.AbstractModule;
 import com.google.inject.matcher.Matchers;
+import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class IgniteTcBotModule extends AbstractModule {
-    @Deprecated
-    private Ignite ignite;
+    private Future<Ignite> igniteFuture;
 
     /** {@inheritDoc} */
     @Override
@@ -38,10 +43,15 @@ public class IgniteTcBotModule extends AbstractModule {
         configProfiling();
         configTaskMonitor();
 
-        bind(Ignite.class).toProvider(new Provider<Ignite>() {
-            @Override
-            public Ignite get() {
-                return ignite;
+        bind(Ignite.class).toProvider((Provider<Ignite>) () -> {
+            try {
+                return igniteFuture.get(10, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                throw new ServiceStartingException(e);
+            } catch (Exception e) {
+                e.printStackTrace();
+
+                throw ExceptionUtil.propagateException(e);
             }
         });
 
@@ -75,9 +85,8 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(MonitoredTaskInterceptor.class).toInstance(profilingInterceptor);
     }
 
-    @Deprecated
-    public void setIgnite(Ignite ignite) {
-        this.ignite = ignite;
+    public void setIgniteFuture(Future<Ignite> igniteFuture) {
+        this.igniteFuture = igniteFuture;
     }
 
     private static class MyIServerProv implements IServerProv {

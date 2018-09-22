@@ -73,10 +73,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
-import org.apache.ignite.ci.util.HttpUtil;
-import org.apache.ignite.ci.util.UrlUtil;
-import org.apache.ignite.ci.util.XmlUtil;
-import org.apache.ignite.ci.util.ZipUtil;
+import org.apache.ignite.ci.util.*;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -349,7 +346,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
                 return XmlUtil.load(Build.class, reader);
             }
             catch (JAXBException e) {
-                throw Throwables.propagate(e);
+                throw ExceptionUtil.propagateException(e);
             }
         }
         catch (IOException e) {
@@ -458,7 +455,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             throw new UncheckedIOException(e);
         }
         catch (JAXBException e) {
-            throw Throwables.propagate(e);
+            throw ExceptionUtil.propagateException(e);
         }
     }
 

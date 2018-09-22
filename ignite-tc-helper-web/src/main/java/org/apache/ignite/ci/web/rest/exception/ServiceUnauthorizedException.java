@@ -15,35 +15,30 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.util;
+package org.apache.ignite.ci.web.rest.exception;
 
-import com.google.common.base.Throwables;
-import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
-
+import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
-import java.util.Optional;
+import javax.ws.rs.ext.Provider;
 
-/**
- *
- */
-public class ExceptionUtil {
-    /**
-     * @param e Exception.
-     */
-    public static RuntimeException propagateException(Exception e) {
-        if (e instanceof InterruptedException)
-            Thread.currentThread().interrupt();
+@Provider
+public class ServiceUnauthorizedException extends RuntimeException
+        implements ExceptionMapper<ServiceUnauthorizedException> {
+    public ServiceUnauthorizedException(String message) {
+        super(message);
+    }
 
-        final Optional<Throwable> any = Throwables.getCausalChain(e)
-            .stream()
-            .filter(th ->
-                    (th instanceof ExceptionMapper)).findAny();
+    @SuppressWarnings("unused")
+    public ServiceUnauthorizedException() {
+    }
 
-        if (any.isPresent())
-            return (RuntimeException)any.get();
+    public static ServiceUnauthorizedException noCreds(String serverId) {
+        return new ServiceUnauthorizedException("Service [" + serverId + "] is not available for current user");
+    }
 
-        Throwables.throwIfUnchecked(e);
-
-        throw new RuntimeException(e);
+    @Override
+    public Response toResponse(ServiceUnauthorizedException exception) {
+        return Response.status(424).entity(exception.getMessage())
+                .type("text/plain").build();
     }
 }
