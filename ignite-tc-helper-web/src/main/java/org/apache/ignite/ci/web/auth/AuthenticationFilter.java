@@ -18,12 +18,20 @@
 package org.apache.ignite.ci.web.auth;
 
 import com.google.common.base.Throwables;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.StringTokenizer;
+import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.TcHelperUser;
+import org.apache.ignite.ci.user.UserAndSessionsStorage;
+import org.apache.ignite.ci.user.UserSession;
+import org.apache.ignite.ci.util.Base64Util;
+import org.apache.ignite.ci.util.CryptUtil;
+import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
+import org.glassfish.jersey.internal.util.Base64;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.security.DenyAll;
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
@@ -36,19 +44,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
-import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.user.TcHelperUser;
-import org.apache.ignite.ci.user.UserAndSessionsStorage;
-import org.apache.ignite.ci.user.UserSession;
-import org.apache.ignite.ci.util.Base64Util;
-import org.apache.ignite.ci.util.CryptUtil;
-import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
-import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
-import org.glassfish.jersey.internal.util.Base64;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.lang.reflect.Method;
+import java.util.*;
 
 /**
  * Filters all Jetty request and performs authentication and authorization.
@@ -124,9 +121,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         try {
             users.getIgnite();
-        } catch (ServiceStartingException e) {
-            throw e;
         } catch (Exception e) {
+            ExceptionUtil.throwIfRest(e);
+
             requestContext.abortWith(rspUnathorized());
         }
 
