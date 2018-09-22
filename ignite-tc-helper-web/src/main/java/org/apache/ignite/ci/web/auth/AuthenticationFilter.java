@@ -43,7 +43,8 @@ import org.apache.ignite.ci.user.UserSession;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.util.CryptUtil;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
+import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
+import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.glassfish.jersey.internal.util.Base64;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -119,7 +120,17 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         String tokenFull = authString.substring(TOKEN_SCHEME.length()).trim();
 
-        if (!authenticate(requestContext, tokenFull, CtxListener.getTcHelper(context).users())) {
+        final UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
+
+        try {
+            users.getIgnite();
+        } catch (ServiceStartingException e) {
+            throw e;
+        } catch (Exception e) {
+            requestContext.abortWith(rspUnathorized());
+        }
+
+        if (!authenticate(requestContext, tokenFull, users)) {
             requestContext.abortWith(rspUnathorized());
 
             return;
@@ -188,7 +199,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.info("Exception during decrypt " + e.getMessage(), e);
 
             return false;
         }
