@@ -18,6 +18,8 @@
 package org.apache.ignite.ci.issue;
 
 import java.util.*;
+
+import org.apache.ignite.ci.util.TimeUtil;
 import org.apache.ignite.ci.web.model.Version;
 
 import static org.apache.ignite.ci.web.model.Version.GITHUB_REF;
@@ -124,7 +126,7 @@ public class Notification {
                 "Best Regards,\n" +
                 "Apache Ignite TeamCity Bot \n" +
                 GITHUB_REF + "\n" +
-                "Notification generated at " + new Date(ts).toString() + " \n";
+                "Notification generated at " + TimeUtil.timestampToDateTimePrintable(ts) + " \n";
     }
 
     private String messageTailHtml() {
@@ -133,7 +135,7 @@ public class Notification {
                 "<li>Should you have any questions please contact " + Version.DEFAULT_CONTACT + " </li></ul><br>" +
                 "Best Regards,<br>" +
                 "<a href='" + GITHUB_REF + "'>Apache Ignite TeamCity Bot<a><br>" +
-                "Notification generated at " + new Date(ts).toString() + "<br>";
+                "Notification generated at " + TimeUtil.timestampToDateTimePrintable(ts) + "<br>";
     }
 
     public String countIssues() {

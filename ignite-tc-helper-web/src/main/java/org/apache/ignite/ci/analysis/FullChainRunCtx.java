@@ -109,7 +109,7 @@ public class FullChainRunCtx {
      * @return sum of durations of all suites printable.
      */
     @NotNull public String getDurationPrintable() {
-        return (TimeUtil.getDurationPrintable(getTotalDuration()))
+        return (TimeUtil.millisToDurationPrintable(getTotalDuration()))
             + (hasFullDurationInfo() ? "" : "+");
     }
 
@@ -122,7 +122,7 @@ public class FullChainRunCtx {
     }
 
     @NotNull public String getSourceUpdateDurationPrintable() {
-        return (TimeUtil.getDurationPrintable(getTotalSourceUpdateDuration()))
+        return (TimeUtil.millisToDurationPrintable(getTotalSourceUpdateDuration()))
             + (hasFullDurationInfo() ? "" : "+");
     }
 

@@ -55,7 +55,7 @@ public class MonitoringService {
             result.start = invocation.start();
             result.end = invocation.end();
             result.result = invocation.result();
-            result.count = invocation.сount();
+            result.count = invocation.count();
             return result ;
         }).collect(Collectors.toList());
     }

@@ -75,7 +75,7 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
             .map(IssueUsage::getIssue).collect(Collectors.toList());
 
         durationPrintable = TimeUtil
-            .getDurationPrintable(build.getFinishDate().getTime() - build.getStartDate().getTime());
+            .millisToDurationPrintable(build.getFinishDate().getTime() - build.getStartDate().getTime());
 
         snapshotDependencies = getSnapshotDependencies(teamcity, build);
 

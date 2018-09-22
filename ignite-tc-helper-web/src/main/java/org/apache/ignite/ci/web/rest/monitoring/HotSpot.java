@@ -34,7 +34,8 @@ public class HotSpot {
         return "HotSpot{" +
                 "method='" + method + '\'' +
                 ", count='" + count + "'" +
-                ", duration='" + TimeUtil.getDurationPrintableNanos(ns) + "'" +
+                ", duration='" + TimeUtil.nanosToDurationPrintable(ns) + "'" +
+                ", avg='" + TimeUtil.nanosToDurationPrintable(ns/count) + "'" +
                 '}';
     }
 

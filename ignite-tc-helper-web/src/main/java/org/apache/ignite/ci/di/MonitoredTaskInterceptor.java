@@ -19,12 +19,12 @@ package org.apache.ignite.ci.di;
 import com.google.common.base.Strings;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
+import org.apache.ignite.ci.util.TimeUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -43,21 +43,20 @@ public class MonitoredTaskInterceptor implements MethodInterceptor {
         private final AtomicInteger callsCnt = new AtomicInteger();
         private String name;
 
-        public Invocation(String name) {
+        Invocation(String name) {
             this.name = name;
         }
 
-        public void saveStart(long startTs) {
+        void saveStart(long startTs) {
             callsCnt.incrementAndGet();
 
             lastStartTs.set(startTs);
+
+            lastEndTs.set(0);
+            lastResult.set("(running)");
         }
 
-        public int сount() {
-            return callsCnt.get();
-        }
-
-        public void saveEnd(long ts, Object res) {
+        void saveEnd(long ts, Object res) {
             lastEndTs.set(ts);
             lastResult.set(res);
         }
@@ -66,16 +65,18 @@ public class MonitoredTaskInterceptor implements MethodInterceptor {
             return name;
         }
 
+        public int count() {
+            return callsCnt.get();
+        }
+
         public String start() {
             final long l = lastStartTs.get();
-            return l == 0 ? "-" : new Date(l).toString();
-
+            return TimeUtil.timestampToDateTimePrintable(l);
         }
 
         public String end() {
             final long l = lastEndTs.get();
-            return l == 0 ? "-" : new Date(l).toString();
-
+            return TimeUtil.timestampToDateTimePrintable(l);
         }
 
         public String result() {

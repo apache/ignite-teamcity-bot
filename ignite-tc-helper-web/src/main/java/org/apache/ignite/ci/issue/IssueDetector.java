@@ -18,6 +18,8 @@
 package org.apache.ignite.ci.issue;
 
 import com.google.common.base.Strings;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -87,8 +89,7 @@ public class IssueDetector {
     public IssueDetector() {
     }
 
-    public void registerIssuesLater(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
-
+    private void registerIssuesLater(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
         if (!FullQueryParams.DEFAULT_BRANCH_NAME.equals(res.getTrackedBranch()))
             return;
 
@@ -97,7 +98,7 @@ public class IssueDetector {
 
         executorService.schedule(
                 () -> {
-                    boolean newIssFound = registerNewIssues(res, helper, creds);
+                    registerNewIssues(res, helper, creds);
 
                     executorService.schedule(this::sendNewNotifications, 10, TimeUnit.SECONDS);
 
@@ -105,75 +106,10 @@ public class IssueDetector {
         );
     }
 
-    @SuppressWarnings("WeakerAccess")
-    @AutoProfiling
-    protected void sendNewNotifications() {
+
+    private void sendNewNotifications() {
         try {
-            Collection<TcHelperUser> userForPossibleNotifications = new ArrayList<>();
-
-            for(Cache.Entry<String, TcHelperUser> entry : userStorage.users()) {
-                TcHelperUser tcHelperUser = entry.getValue();
-
-                if (Strings.isNullOrEmpty(tcHelperUser.email))
-                    continue;
-
-                if(tcHelperUser.hasSubscriptions())
-                    userForPossibleNotifications.add(tcHelperUser);
-            }
-
-            Map<String, Notification> toBeSent = new HashMap<>();
-
-            for (Issue issue : issuesStorage.all()) {
-                long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
-                long issueAgeMs = System.currentTimeMillis() - detected;
-                if (issueAgeMs > TimeUnit.HOURS.toMillis(2))
-                    continue;
-
-                List<String> addrs = new ArrayList<>();
-
-                String property = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
-                if (property != null)
-                    addrs.add(SLACK + "#" + property);
-
-                for (TcHelperUser next : userForPossibleNotifications) {
-                    if (next.getCredentials(issue.issueKey().server) != null) {
-                        if (next.isSubscribed(issue.trackedBranchName)) {
-                            System.err.println("User " + next + " is candidate for notification " + next.email
-                                + " for " + issue);
-
-                            addrs.add(next.email);
-                        }
-                    }
-                }
-                for (String nextAddr : addrs) {
-                    if (issuesStorage.needNotify(issue.issueKey, nextAddr)) {
-                        toBeSent.computeIfAbsent(nextAddr, addr -> {
-                            Notification notification = new Notification();
-                            notification.ts = System.currentTimeMillis();
-                            notification.addr = addr;
-                            return notification;
-                        }).addIssue(issue);
-                    }
-                }
-            }
-
-            Collection<Notification> values = toBeSent.values();
-            for (Notification next : values) {
-                if(next.addr.startsWith(SLACK)) {
-                    String substring = next.addr.substring(SLACK.length());
-
-                    List<String> messages = next.toSlackMarkup();
-                    for (String msg : messages) {
-                        if (!SlackSender.sendMessage(substring, msg))
-                            break;
-                    }
-                } else {
-                    String builds = next.buildIdToIssue.keySet().toString();
-                    String subj = "[MTCGA]: " + next.countIssues() + " new failures in builds " + builds + " needs to be handled";
-
-                    EmailSender.sendEmail(next.addr, subj, next.toHtml(), next.toPlainText());
-                }
-            }
+            sendNewNotificationsEx();
         } catch (Exception e) {
             System.err.println("Fail to sent notifications");
 
@@ -181,9 +117,93 @@ public class IssueDetector {
         }
     }
 
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @AutoProfiling
-    protected boolean registerNewIssues(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
+    @MonitoredTask(name = "Send Notifications")
+    protected String sendNewNotificationsEx() throws IOException {
+        Collection<TcHelperUser> userForPossibleNotifications = new ArrayList<>();
+
+        for(Cache.Entry<String, TcHelperUser> entry : userStorage.users()) {
+            TcHelperUser tcHelperUser = entry.getValue();
+
+            if (Strings.isNullOrEmpty(tcHelperUser.email))
+                continue;
+
+            if(tcHelperUser.hasSubscriptions())
+                userForPossibleNotifications.add(tcHelperUser);
+        }
+
+        Map<String, Notification> toBeSent = new HashMap<>();
+
+        for (Issue issue : issuesStorage.all()) {
+            long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
+            long issueAgeMs = System.currentTimeMillis() - detected;
+            if (issueAgeMs > TimeUnit.HOURS.toMillis(2))
+                continue;
+
+            List<String> addrs = new ArrayList<>();
+
+            String property = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
+            if (property != null)
+                addrs.add(SLACK + "#" + property);
+
+            for (TcHelperUser next : userForPossibleNotifications) {
+                if (next.getCredentials(issue.issueKey().server) != null) {
+                    if (next.isSubscribed(issue.trackedBranchName)) {
+                        logger.info("User " + next + " is candidate for notification " + next.email
+                            + " for " + issue);
+
+                        addrs.add(next.email);
+                    }
+                }
+            }
+
+            for (String nextAddr : addrs) {
+                if (issuesStorage.needNotify(issue.issueKey, nextAddr)) {
+                    toBeSent.computeIfAbsent(nextAddr, addr -> {
+                        Notification notification = new Notification();
+                        notification.ts = System.currentTimeMillis();
+                        notification.addr = addr;
+                        return notification;
+                    }).addIssue(issue);
+                }
+            }
+        }
+
+        if(toBeSent.isEmpty())
+            return "Noting to notify";
+
+        StringBuilder res = new StringBuilder();
+        Collection<Notification> values = toBeSent.values();
+        for (Notification next : values) {
+            if(next.addr.startsWith(SLACK)) {
+                String slackUser = next.addr.substring(SLACK.length());
+
+                List<String> messages = next.toSlackMarkup();
+
+                for (String msg : messages) {
+                    final boolean send = SlackSender.sendMessage(slackUser, msg);
+
+                    res.append("Send ").append(slackUser).append(": ").append(send);
+                    if (!send)
+                        break;
+                }
+            } else {
+                String builds = next.buildIdToIssue.keySet().toString();
+                String subj = "[MTCGA]: " + next.countIssues() + " new failures in builds " + builds + " needs to be handled";
+
+                EmailSender.sendEmail(next.addr, subj, next.toHtml(), next.toPlainText());
+                res.append("Send ").append(next.addr).append(" subject: ").append(subj);
+            }
+        }
+
+        return res.toString();
+    }
+
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    @AutoProfiling
+    @MonitoredTask(name = "Register new issues")
+    protected String registerNewIssues(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
         int newIssues = 0;
 
         for (ChainAtServerCurrentStatus next : res.servers) {
@@ -208,7 +228,7 @@ public class IssueDetector {
             }
         }
 
-        return (newIssues>0);
+        return "New issues found " + newIssues;
     }
 
     private boolean registerSuiteFailIssues(IAnalyticsEnabledTeamcity teamcity,
@@ -391,7 +411,7 @@ public class IssueDetector {
      *
      */
     @AutoProfiling
-    @MonitoredTask(name = "Detect Issues in Tracked Branch")
+    @MonitoredTask(name = "Detect Issues in tracked branch")
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     protected String checkFailuresEx() {
         int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
@@ -411,7 +431,7 @@ public class IssueDetector {
 
         registerIssuesLater(failures, backgroundOpsTcHelper, backgroundOpsCreds);
 
-        return "Tests :" + failures.failedTests + " Suites " + failures.failedToFinish + " were checked";
+        return "Tests " + failures.failedTests + " Suites " + failures.failedToFinish + " were checked";
     }
 
     public void stop() {
