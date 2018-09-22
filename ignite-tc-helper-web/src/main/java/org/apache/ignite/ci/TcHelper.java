@@ -42,6 +42,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -69,25 +70,23 @@ public class TcHelper implements ITcHelper {
         .softValues()
         .build();
 
-    private Ignite ignite;
     private TcUpdatePool tcUpdatePool = new TcUpdatePool();
+    @Inject
     private IssuesStorage issuesStorage;
+
+    @Inject
     private IssueDetector detector;
-    private Injector injector;
+
+    @Inject
+    private IServerProv serverProv;
 
     /** Build observer. */
     private BuildObserver buildObserver;
 
+    @Inject
     private UserAndSessionsStorage userAndSessionsStorage;
 
-    public TcHelper(Ignite ignite, Injector injector) {
-        this.ignite = ignite;
-
-        issuesStorage = new IssuesStorage(ignite);
-        userAndSessionsStorage = new UserAndSessionsStorage(ignite);
-
-        detector = new IssueDetector(ignite, issuesStorage, userAndSessionsStorage);
-        this.injector = injector;
+    public TcHelper() {
         buildObserver = new BuildObserver(this);
     }
 
@@ -112,8 +111,7 @@ public class TcHelper implements ITcHelper {
             throw new IllegalStateException("Shutdown");
 
         Callable<IAnalyticsEnabledTeamcity> call = () -> {
-            IAnalyticsEnabledTeamcity teamcity = injector.getInstance(IServerProv.class)
-                    .createServer(srvId);
+            IAnalyticsEnabledTeamcity teamcity = serverProv.createServer(srvId);
 
             teamcity.setExecutor(getService());
 

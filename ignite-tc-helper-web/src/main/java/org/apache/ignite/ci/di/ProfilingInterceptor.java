@@ -24,12 +24,13 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ProfilingInterceptor implements MethodInterceptor {
-    Map<String, Invocation> totalTime = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Invocation> totalTime = new ConcurrentHashMap<>();
 
     public static class Invocation {
         private final AtomicLong timeNanos = new AtomicLong();
@@ -67,10 +68,8 @@ public class ProfilingInterceptor implements MethodInterceptor {
             long elapsed = started.elapsed(TimeUnit.NANOSECONDS);
 
             String fullKey = cls + "." + mtd;
-            long totalElapsed = totalTime.computeIfAbsent(fullKey, Invocation::new).addAndGet(elapsed);
-            //String duration = Duration.ofNanos(totalElapsed).toString();
 
-            // System.out.println(fullKey + ": " + duration + " ");
+            totalTime.computeIfAbsent(fullKey, Invocation::new).addAndGet(elapsed);
         }
     }
 

@@ -22,18 +22,18 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.jetbrains.annotations.Nullable;
 
+import javax.inject.Inject;
+import javax.inject.Provider;
+
 public class UserAndSessionsStorage {
     public static final String USERS = "users";
     public static final String USER_SESSIONS = "sessions";
+    @Inject
+    private Provider<Ignite> igniteProvider;
 
-    private Ignite ignite;
-
-    public UserAndSessionsStorage(Ignite ignite) {
-        this.ignite = ignite;
-    }
 
     public IgniteCache<String, TcHelperUser> users() {
-        return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(USERS));
+        return igniteProvider.get().getOrCreateCache(TcHelperDb.getCacheV2TxConfig(USERS));
     }
 
     @Nullable public UserSession getSession(String sessId) {
@@ -42,7 +42,7 @@ public class UserAndSessionsStorage {
 
 
     private IgniteCache<String, UserSession> sessions() {
-        return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(USER_SESSIONS));
+        return igniteProvider.get().getOrCreateCache(TcHelperDb.getCacheV2TxConfig(USER_SESSIONS));
     }
 
     public void putSession(String sessId, UserSession userSession) {

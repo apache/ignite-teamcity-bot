@@ -45,6 +45,7 @@ public class MonitoringService {
     @Path("profiling")
     public List<String> getHotMethods() {
         ProfilingInterceptor instance = CtxListener.getInjector(ctx).getInstance(ProfilingInterceptor.class);
+
         Map<String, ProfilingInterceptor.Invocation> map = instance.getMap();
 
         Stream<HotSpot> hotSpotStream = map.entrySet().stream().map(entry -> {

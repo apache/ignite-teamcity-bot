@@ -72,7 +72,8 @@ public class CtxListener implements ServletContextListener {
         ctx.setAttribute(IGNITE, ignite);
         igniteTcBotModule.setIgnite(ignite);
 
-        TcHelper tcHelper = new TcHelper(ignite, injector);
+        final TcHelper tcHelper = injector.getInstance(TcHelper.class);
+
 
         BackgroundUpdater backgroundUpdater = new BackgroundUpdater(tcHelper);
 

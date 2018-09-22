@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.cache.Cache;
+import javax.inject.Inject;
+import javax.inject.Provider;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.ignite.Ignite;
@@ -37,6 +39,7 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
@@ -68,8 +71,10 @@ public class IssueDetector {
 
     /**Slack prefix, using this for email address will switch notifier to slack (if configured). */
     private static final String SLACK = "slack:";
-    private final Ignite ignite;
-    private final IssuesStorage issuesStorage;
+
+    @Inject
+    private IssuesStorage issuesStorage;
+    @Inject
     private UserAndSessionsStorage userStorage;
 
     private final AtomicBoolean init = new AtomicBoolean();
@@ -77,15 +82,11 @@ public class IssueDetector {
     private ITcHelper backgroundOpsTcHelper;
     private ScheduledExecutorService executorService;
 
-    public IssueDetector(Ignite ignite, IssuesStorage issuesStorage,
-        UserAndSessionsStorage userStorage) {
-        this.ignite = ignite;
-        this.issuesStorage = issuesStorage;
-        this.userStorage = userStorage;
+
+    public IssueDetector( ) {
     }
 
     public void registerIssuesLater(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
-        IgniteScheduler s = ignite.scheduler();
 
         if (!FullQueryParams.DEFAULT_BRANCH_NAME.equals(res.getTrackedBranch()))
             return;
@@ -93,17 +94,19 @@ public class IssueDetector {
         if (creds == null)
             return;
 
-        s.runLocal(
+        executorService.schedule(
                 () -> {
                     boolean newIssFound = registerNewIssues(res, helper, creds);
 
-                    s.runLocal(this::sendNewNotifications, 10, TimeUnit.SECONDS);
+                    executorService.schedule(this::sendNewNotifications, 10, TimeUnit.SECONDS);
 
                 }, 10, TimeUnit.SECONDS
         );
     }
 
-    private void sendNewNotifications() {
+    @SuppressWarnings("WeakerAccess")
+    @AutoProfiling
+    protected void sendNewNotifications() {
         try {
             Collection<TcHelperUser> userForPossibleNotifications = new ArrayList<>();
 
@@ -124,8 +127,6 @@ public class IssueDetector {
                 long issueAgeMs = System.currentTimeMillis() - detected;
                 if (issueAgeMs > TimeUnit.HOURS.toMillis(2))
                     continue;
-
-                String to2 = "slack:dpavlov"; //todo implement direct slask notification
 
                 List<String> addrs = new ArrayList<>();
 
@@ -179,7 +180,7 @@ public class IssueDetector {
         }
     }
 
-
+    @AutoProfiling
     public boolean registerNewIssues(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
         int newIssues = 0;
 
@@ -384,7 +385,9 @@ public class IssueDetector {
     /**
      *
      */
-    private void checkFailuresEx() {
+    @AutoProfiling
+    @SuppressWarnings("WeakerAccess")
+    protected void checkFailuresEx() {
         int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
 
         ExecutorService executor = MoreExecutors.newDirectExecutorService();
