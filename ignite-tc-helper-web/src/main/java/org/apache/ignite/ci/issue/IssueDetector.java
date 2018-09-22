@@ -30,8 +30,6 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 
 import com.google.common.util.concurrent.MoreExecutors;
-import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteScheduler;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -40,6 +38,7 @@ import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
@@ -82,8 +81,10 @@ public class IssueDetector {
     private ITcHelper backgroundOpsTcHelper;
     private ScheduledExecutorService executorService;
 
+    @Inject
+    private Provider<CheckQueueJob> checkQueueJobProv;
 
-    public IssueDetector( ) {
+    public IssueDetector() {
     }
 
     public void registerIssuesLater(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
@@ -180,8 +181,9 @@ public class IssueDetector {
         }
     }
 
+    @SuppressWarnings("WeakerAccess")
     @AutoProfiling
-    public boolean registerNewIssues(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
+    protected boolean registerNewIssues(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
         int newIssues = 0;
 
         for (ChainAtServerCurrentStatus next : res.servers) {
@@ -352,11 +354,14 @@ public class IssueDetector {
 
                 executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
 
-                if (Boolean.valueOf(System.getProperty(CheckQueueJob.AUTO_TRIGGERING_BUILD_DISABLED)))
-                    logger.info("Automatic build triggering was disabled.");
-                else
+
+                    final CheckQueueJob checkQueueJob = checkQueueJobProv.get();
+
+                    checkQueueJob.init(backgroundOpsTcHelper, backgroundOpsCreds);
+
                     executorService.scheduleAtFixedRate(
-                        new CheckQueueJob(backgroundOpsTcHelper, backgroundOpsCreds), 0, 10, TimeUnit.MINUTES);
+                            checkQueueJob, 0, 10, TimeUnit.MINUTES);
+
             }
         }
         catch (Exception e) {
@@ -386,8 +391,9 @@ public class IssueDetector {
      *
      */
     @AutoProfiling
-    @SuppressWarnings("WeakerAccess")
-    protected void checkFailuresEx() {
+    @MonitoredTask(name = "Detect Issues in Tracked Branch")
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    protected String checkFailuresEx() {
         int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
 
         ExecutorService executor = MoreExecutors.newDirectExecutorService();
@@ -404,6 +410,8 @@ public class IssueDetector {
                 executor);
 
         registerIssuesLater(failures, backgroundOpsTcHelper, backgroundOpsCreds);
+
+        return "Tests :" + failures.failedTests + " Suites " + failures.failedToFinish + " were checked";
     }
 
     public void stop() {

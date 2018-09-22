@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class ProfilingInterceptor implements MethodInterceptor {
+public class AutoProfilingInterceptor implements MethodInterceptor {
     private final ConcurrentMap<String, Invocation> totalTime = new ConcurrentHashMap<>();
 
     public static class Invocation {

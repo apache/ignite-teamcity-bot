@@ -127,7 +127,9 @@ function showMenu(menuData) {
             res += "<a onclick='authorizeServer()' href='javascript:void(0);'>Authorize Server</a>";
         }
 
-        res += "<a href='/user.html'>"+userName+"</a>";
+        res += "<a href='/monitoring.html" > +"Server state</a>";
+
+        res += "<a href='/user.html'>" + userName + "</a>";
         var logout = "/login.html" + "?exit=true&backref=" + encodeURIComponent(window.location.href);
         res += "<a href='" + logout + "'>Logout</a>";
 

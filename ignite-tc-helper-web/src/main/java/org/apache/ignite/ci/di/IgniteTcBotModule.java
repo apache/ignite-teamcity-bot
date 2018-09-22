@@ -35,13 +35,8 @@ public class IgniteTcBotModule extends AbstractModule {
     /** {@inheritDoc} */
     @Override
     protected void configure() {
-        ProfilingInterceptor profilingInterceptor = new ProfilingInterceptor();
-
-        bindInterceptor(Matchers.any(),
-                Matchers.annotatedWith(AutoProfiling.class),
-                profilingInterceptor);
-
-        bind(ProfilingInterceptor.class).toInstance(profilingInterceptor);
+        configProfiling();
+        configTaskMonitor();
 
         bind(Ignite.class).toProvider(new Provider<Ignite>() {
             @Override
@@ -59,9 +54,29 @@ public class IgniteTcBotModule extends AbstractModule {
         );
     }
 
+    private void configProfiling() {
+        AutoProfilingInterceptor profilingInterceptor = new AutoProfilingInterceptor();
+
+        bindInterceptor(Matchers.any(),
+                Matchers.annotatedWith(AutoProfiling.class),
+                profilingInterceptor);
+
+        bind(AutoProfilingInterceptor.class).toInstance(profilingInterceptor);
+    }
+
+
+    private void configTaskMonitor() {
+        MonitoredTaskInterceptor profilingInterceptor = new MonitoredTaskInterceptor();
+
+        bindInterceptor(Matchers.any(),
+                Matchers.annotatedWith(MonitoredTask.class),
+                profilingInterceptor);
+
+        bind(MonitoredTaskInterceptor.class).toInstance(profilingInterceptor);
+    }
+
     @Deprecated
     public void setIgnite(Ignite ignite) {
-
         this.ignite = ignite;
     }
 

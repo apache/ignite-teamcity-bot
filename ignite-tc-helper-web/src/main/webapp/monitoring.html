@@ -33,6 +33,16 @@
         });
 
         $.ajax({
+            url: "rest/monitoring/tasks",
+            success: function(result) {
+                $("#loadStatus").html("");
+
+                showTasks(result);
+            },
+            error: showErrInLoadStatus
+        });
+
+        $.ajax({
             url: "rest/monitoring/profiling",
             success: function(result) {
                 $("#loadStatus").html("");
@@ -53,6 +63,29 @@
         });
     }
 
+    function showTasks(result) {
+        var res = "<table>" ;
+        res += "<tr>";
+        res += "<th>Name</th>";
+        res += "<th>Start</th>";
+        res += "<th>Count</th>";
+        res += "<th>End</th>";
+        res += "<th>Result</th>";
+        res += "</tr>";
+        for (var i = 0; i < result.length; i++) {
+            var task = result[i];
+            res += "<tr>";
+            res += "<td>" + task.name + "</td>";
+            res += "<td>" + task.start + "</td>";
+            res += "<td>" + task.count + "</td>";
+            res += "<td>" + task.end + "</td>";
+            res += "<td>" + task.result + "</td>";
+            res += "</tr>";
+        }
+        res += "</table>";
+        $("#tasks").html(res);
+    }
+
     function showProfiling(result) {
         var res = "" ;
         for (var i = 0; i < result.length; i++) {
@@ -70,6 +103,10 @@
     }
 
 </script>
+
+Tasks Monitoring Data:
+<div id="tasks" style="font-family: monospace"></div>
+<br>
 
 Profiling Data:
 <div id="profiling" style="font-family: monospace"></div>

@@ -20,7 +20,8 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
 import org.apache.ignite.cache.affinity.Affinity;
-import org.apache.ignite.ci.di.ProfilingInterceptor;
+import org.apache.ignite.ci.di.AutoProfilingInterceptor;
+import org.apache.ignite.ci.di.MonitoredTaskInterceptor;
 import org.apache.ignite.ci.web.CtxListener;
 
 import javax.annotation.security.PermitAll;
@@ -42,11 +43,31 @@ public class MonitoringService {
 
     @GET
     @PermitAll
+    @Path("tasks")
+    public List<TaskResult> getTaskMonitoring() {
+        MonitoredTaskInterceptor instance = CtxListener.getInjector(ctx).getInstance(MonitoredTaskInterceptor.class);
+
+        final Collection<MonitoredTaskInterceptor.Invocation> list = instance.getList();
+
+        return list.stream().map(invocation -> {
+            final TaskResult result = new TaskResult();
+            result.name = invocation.name();
+            result.start = invocation.start();
+            result.end = invocation.end();
+            result.result = invocation.result();
+            result.count = invocation.сount();
+            return result ;
+        }).collect(Collectors.toList());
+    }
+
+
+    @GET
+    @PermitAll
     @Path("profiling")
     public List<String> getHotMethods() {
-        ProfilingInterceptor instance = CtxListener.getInjector(ctx).getInstance(ProfilingInterceptor.class);
+        AutoProfilingInterceptor instance = CtxListener.getInjector(ctx).getInstance(AutoProfilingInterceptor.class);
 
-        Map<String, ProfilingInterceptor.Invocation> map = instance.getMap();
+        Map<String, AutoProfilingInterceptor.Invocation> map = instance.getMap();
 
         Stream<HotSpot> hotSpotStream = map.entrySet().stream().map(entry -> {
             HotSpot hotSpot = new HotSpot();
@@ -60,6 +81,8 @@ public class MonitoringService {
                 .limit(100)
                 .map(HotSpot::toString).collect(Collectors.toList());
     }
+
+
 
     @GET
     @PermitAll
