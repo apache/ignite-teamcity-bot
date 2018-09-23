@@ -21,7 +21,9 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -54,6 +56,10 @@ public class AutoProfilingInterceptor implements MethodInterceptor {
         public int getCount() {
             return callsCnt.get();
         }
+
+        public String getName() {
+            return name;
+        }
     }
 
     @Override
@@ -73,7 +79,7 @@ public class AutoProfilingInterceptor implements MethodInterceptor {
         }
     }
 
-    public Map<String, Invocation> getMap() {
-        return Collections.unmodifiableMap(totalTime);
+    public Collection<Invocation> getInvocations() {
+        return Collections.unmodifiableCollection(totalTime.values());
     }
 }

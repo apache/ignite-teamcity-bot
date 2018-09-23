@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.web.rest.monitoring;
 
+@SuppressWarnings("WeakerAccess")
 public class TaskResult {
     public String name;
     public String start;

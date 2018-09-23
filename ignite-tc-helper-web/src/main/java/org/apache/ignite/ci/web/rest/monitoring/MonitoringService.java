@@ -56,7 +56,7 @@ public class MonitoringService {
             result.end = invocation.end();
             result.result = invocation.result();
             result.count = invocation.count();
-            return result ;
+            return result;
         }).collect(Collectors.toList());
     }
 
@@ -64,24 +64,24 @@ public class MonitoringService {
     @GET
     @PermitAll
     @Path("profiling")
-    public List<String> getHotMethods() {
+    public List<HotSpot> getHotMethods() {
         AutoProfilingInterceptor instance = CtxListener.getInjector(ctx).getInstance(AutoProfilingInterceptor.class);
 
-        Map<String, AutoProfilingInterceptor.Invocation> map = instance.getMap();
+        Collection<AutoProfilingInterceptor.Invocation> profile = instance.getInvocations();
 
-        Stream<HotSpot> hotSpotStream = map.entrySet().stream().map(entry -> {
+        Stream<HotSpot> hotSpotStream = profile.stream().map(inv -> {
             HotSpot hotSpot = new HotSpot();
-            hotSpot.setNanos(entry.getValue().getNanos());
-            hotSpot.setCount(entry.getValue().getCount());
-            hotSpot.method = entry.getKey();
+
+            hotSpot.setTiming(inv.getNanos(), inv.getCount());
+            hotSpot.method = inv.getName();
+
             return hotSpot;
         });
 
         return hotSpotStream.sorted(Comparator.comparing(HotSpot::getNanos).reversed())
                 .limit(100)
-                .map(HotSpot::toString).collect(Collectors.toList());
+                .collect(Collectors.toList());
     }
-
 
 
     @GET
@@ -112,7 +112,7 @@ public class MonitoringService {
 
             Affinity<Object> affinity = ignite.affinity(next);
 
-            res.add(next + ": " + size + " parts " +  affinity.partitions());
+            res.add(next + ": " + size + " parts " + affinity.partitions());
         }
         return res;
     }

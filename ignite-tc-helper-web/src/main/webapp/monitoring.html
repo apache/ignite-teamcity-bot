@@ -63,8 +63,11 @@
         });
     }
 
+    /**
+     * @param result org.apache.ignite.ci.web.rest.monitoring.TaskResult
+     */
     function showTasks(result) {
-        var res = "<table>" ;
+        var res = "<table class='stat'>" ;
         res += "<tr>";
         res += "<th>Name</th>";
         res += "<th>Start</th>";
@@ -86,11 +89,27 @@
         $("#tasks").html(res);
     }
 
+    /**
+     * @param result org.apache.ignite.ci.web.rest.monitoring.HotSpot
+     */
     function showProfiling(result) {
-        var res = "" ;
+        var res = "<table class='stat'>" ;
+        res += "<tr>";
+        res += "<th>Name</th>";
+        res += "<th>Duration</th>";
+        res += "<th>Count</th>";
+        res += "<th>Avg.Duration</th>";
+        res += "</tr>";
         for (var i = 0; i < result.length; i++) {
-            res += result[i] + "<br>";
+            var inv = result[i];
+            res += "<tr>";
+            res += "<td>" + inv.method + "</td>";
+            res += "<td>" + inv.duration + "</td>";
+            res += "<td>" + inv.count + "</td>";
+            res += "<td>" + inv.avgDuration + "</td>";
+            res += "</tr>";
         }
+        res += "</table>";
         $("#profiling").html(res);
     }
 
