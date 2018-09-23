@@ -18,6 +18,6 @@ package org.apache.ignite.ci.di;
 
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 
-public interface IServerProv {
+public interface IServerFactory {
     IAnalyticsEnabledTeamcity createServer(String serverId);
 }

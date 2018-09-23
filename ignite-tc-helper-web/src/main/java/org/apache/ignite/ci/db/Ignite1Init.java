@@ -34,10 +34,21 @@ import java.io.File;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class Ignite1Init  {
     private static boolean clientMode;
+
+    /**
+     * Reference to Ignite init future.
+     */
+    private AtomicReference<Future<Ignite>> igniteFutureRef =
+            new AtomicReference<>();
+
+    /**
+     * Internally initialized field with instance.
+     */
     private Ignite ignite;
 
     public Ignite1Init() {
@@ -81,7 +92,7 @@ public class Ignite1Init  {
     @AutoProfiling
     protected String activate() {
         System.out.println("Activating Ignite Server Node, " + Version.VERSION);
-        /*try {
+        /* try {
             Thread.sleep(30*1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -123,27 +134,23 @@ public class Ignite1Init  {
     }
 
     @AutoProfiling
-    protected Ignite init() throws InterruptedException {
+    protected Ignite init() {
         if (clientMode)
             Ignition.setClientMode(true);
 
         return startIgnite();
     }
 
-    private ThreadFactory threadFactory = Executors.defaultThreadFactory();
 
-    public Future<Ignite> submit() {
+    public Future<Ignite> getIgniteFuture() {
         final FutureTask<Ignite> futureTask = new FutureTask<>(this::init);
 
-        ExecutorService executor = Executors.newFixedThreadPool(1, r -> {
-            Thread thread = threadFactory.newThread(r);
-            thread.setName("ignite-init");
-            return thread;
-        });
+        if(igniteFutureRef.compareAndSet(null, futureTask)) {
+            final Thread thread = new Thread(futureTask, "ignite-1-init-thread");
+            thread.start();
 
-        // стартуем
-        executor.execute(futureTask);
-
-        return futureTask;
+            return futureTask;
+        } else
+            return igniteFutureRef.get();
     }
 }

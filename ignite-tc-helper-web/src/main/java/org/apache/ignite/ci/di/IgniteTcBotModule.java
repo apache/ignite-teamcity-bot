@@ -16,10 +16,10 @@
  */
 package org.apache.ignite.ci.di;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.inject.AbstractModule;
 import com.google.inject.matcher.Matchers;
-import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
@@ -44,6 +44,8 @@ public class IgniteTcBotModule extends AbstractModule {
         configTaskMonitor();
 
         bind(Ignite.class).toProvider((Provider<Ignite>) () -> {
+            Preconditions.checkNotNull(igniteFuture, "Ignite future is not yet initialized");
+
             try {
                 return igniteFuture.get(10, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
@@ -59,8 +61,8 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(ITeamcity.class).to(IgniteTeamcityHelper.class);
         //With REST persistence
         bind(IAnalyticsEnabledTeamcity.class).to(IgnitePersistentTeamcity.class);
-        bind(IServerProv.class).toInstance(
-                new MyIServerProv()
+        bind(IServerFactory.class).toInstance(
+                new MyIServerFactory()
         );
     }
 
@@ -89,7 +91,7 @@ public class IgniteTcBotModule extends AbstractModule {
         this.igniteFuture = igniteFuture;
     }
 
-    private static class MyIServerProv implements IServerProv {
+    private static class MyIServerFactory implements IServerFactory {
         @Inject
         Provider<IAnalyticsEnabledTeamcity> tcPersistProv;
 

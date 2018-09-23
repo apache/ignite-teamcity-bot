@@ -67,14 +67,13 @@ public class CtxListener implements ServletContextListener {
 
         Injector injector = Guice.createInjector(igniteTcBotModule);
 
-        ctx.setAttribute(INJECTOR, injector);
-
         final Ignite1Init instance = injector.getInstance(Ignite1Init.class);
-        final Future<Ignite> submit = instance.submit();
+        final Future<Ignite> submit = instance.getIgniteFuture();
         igniteTcBotModule.setIgniteFuture(submit);
 
-        final TcHelper tcHelper = injector.getInstance(TcHelper.class);
+        ctx.setAttribute(INJECTOR, injector);
 
+        final TcHelper tcHelper = injector.getInstance(TcHelper.class);
 
         BackgroundUpdater backgroundUpdater = new BackgroundUpdater(tcHelper);
 

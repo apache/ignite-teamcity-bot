@@ -17,7 +17,6 @@
 
 package org.apache.ignite.ci.web;
 
-import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.db.Ignite1Init;
 
 public class LauncherIgniteClientMode {

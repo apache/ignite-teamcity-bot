@@ -20,10 +20,8 @@ package org.apache.ignite.ci;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.inject.Injector;
-import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.conf.BranchesTracked;
-import org.apache.ignite.ci.di.IServerProv;
+import org.apache.ignite.ci.di.IServerFactory;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.observer.BuildObserver;
@@ -78,7 +76,7 @@ public class TcHelper implements ITcHelper {
     private IssueDetector detector;
 
     @Inject
-    private IServerProv serverProv;
+    private IServerFactory serverProv;
 
     /** Build observer. */
     private BuildObserver buildObserver;
