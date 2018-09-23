@@ -90,7 +90,11 @@ public class CtxListener implements ServletContextListener {
     @Override public void contextDestroyed(ServletContextEvent sctxEvt) {
         final ServletContext ctx = sctxEvt.getServletContext();
 
-        TcHelperDb.stop(getIgnite(ctx));
+        try {
+            TcHelperDb.stop(getIgnite(ctx));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         getBackgroundUpdater(ctx).stop();
 

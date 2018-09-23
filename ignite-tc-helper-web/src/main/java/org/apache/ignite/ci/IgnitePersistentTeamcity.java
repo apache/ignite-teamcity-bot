@@ -230,16 +230,16 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
 
     /**
-     * @return Build history: {@link BuildRef} lists cache, 32 parts.
+     * @return Build history: {@link BuildRef} lists cache, 32 parts, transactional.
      */
     private IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistCache() {
         return getOrCreateCacheV2Tx(ignCacheNme(BUILD_HIST_FINISHED));
     }
 
     /**
-     * @return Build history: {@link BuildRef} lists cache, 32 parts, transactional
+     * @return Build history: {@link BuildRef} lists cache, 32 parts, transactional.
      */
-    public IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistIncFailedCache() {
+    private IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistIncFailedCache() {
         return getOrCreateCacheV2Tx(ignCacheNme(BUILD_HIST_FINISHED_OR_FAILED));
     }
 
@@ -402,7 +402,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                                                       String branch,
                                                       Long cnt,
                                                       Integer ignored) {
-        //todo may be support sinceBuildNo
         final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
 
         List<BuildRef> buildRefs = loadBuildHistory(buildHistCache(), 90, cnt, suiteInBranch,
@@ -430,8 +429,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return new ArrayList<>(merge.values());
     }
 
-    //loads build history with following parameter: defaultFilter:false,state:finished
-
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId,
@@ -445,19 +442,13 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
 
-    public <K, V> CompletableFuture<V> loadAsyncIfAbsentOrExpired(ConcurrentMap<K, Expirable<V>> cache,
-                                                                  K key,
-                                                                  ConcurrentMap<K, CompletableFuture<V>> cachedComputations,
-                                                                  Function<K, CompletableFuture<V>> realLoadFunction,
-                                                                  int maxAgeSecs,
-                                                                  boolean alwaysProvidePersisted) {
+    private <K, V> CompletableFuture<V> loadAsyncIfAbsentOrExpired(ConcurrentMap<K, Expirable<V>> cache,
+                                                                   K key,
+                                                                   ConcurrentMap<K, CompletableFuture<V>> cachedComputations,
+                                                                   Function<K, CompletableFuture<V>> realLoadFunction,
+                                                                   int maxAgeSecs,
+                                                                   boolean alwaysProvidePersisted) {
         @Nullable final Expirable<V> persistedValue = cache.get(key);
-
-        int fields = ObjectInterner.internFields(persistedValue);
-
-        //   if (fields > 0)
-        //     System.out.println("Interned " + fields + " after get()");
-
 
         if (persistedValue != null && persistedValue.isAgeLessThanSecs(maxAgeSecs))
             return CompletableFuture.completedFuture(persistedValue.getData());
@@ -468,7 +459,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 k -> {
                     CompletableFuture<V> future = realLoadFunction.apply(k)
                             .thenApplyAsync(valueLoaded -> {
-                                cache.put(k, new Expirable<V>(valueLoaded));
+                                final Expirable<V> cached = new Expirable<>(valueLoaded);
+
+                                ObjectInterner.internFields(cached);
+
+                                cache.put(k, cached);
 
                                 return valueLoaded;
                             });
@@ -499,7 +494,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         int secondsUseCached = getTriggerRelCacheValidSecs(defaultSecs);
 
         return loadAsyncIfAbsentOrExpired(
-            runningBuilds, //getOrCreateCacheV2(ignCacheNme(RUNNING_BUILDS)),
+            runningBuilds,
             Strings.nullToEmpty(branch),
             runningBuildsFuts,
             teamcity::getRunningBuilds,
@@ -519,7 +514,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         int secondsUseCached = getTriggerRelCacheValidSecs(defaultSecs);
 
         return loadAsyncIfAbsentOrExpired(
-            queuedBuilds, // getOrCreateCacheV2(ignCacheNme(BUILD_QUEUE)),
+            queuedBuilds,
             Strings.nullToEmpty(branch),
             queuedBuildsFuts,
             teamcity::getQueuedBuilds,
@@ -683,12 +678,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     private void addTestOccurrencesToStat(TestOccurrences val) {
-        addTestOccurrencesToStat(val, ITeamcity.DEFAULT);
-    }
-
-    private void addTestOccurrencesToStat(TestOccurrences val, String normalizedBranch) {
         for (TestOccurrence next : val.getTests())
-            addTestOccurrenceToStat(next, normalizedBranch, null);
+            addTestOccurrenceToStat(next, ITeamcity.DEFAULT, null);
     }
 
     /** {@inheritDoc} */

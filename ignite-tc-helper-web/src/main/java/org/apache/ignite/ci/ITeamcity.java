@@ -90,7 +90,8 @@ public interface ITeamcity extends AutoCloseable {
     };
 
     /**
-     * Includes snapshot dependencies failed builds into list
+     * Includes 'snapshot dependencies failed' builds into list.
+     * loads build history with following parameter: defaultFilter:false,state:finished
      *
      * @param projectId suite ID (string without spaces)
      * @param branch branch in TC identification
