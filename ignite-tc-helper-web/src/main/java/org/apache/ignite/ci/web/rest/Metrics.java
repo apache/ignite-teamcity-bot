@@ -75,9 +75,10 @@ public class Metrics {
             throw ServiceUnauthorizedException.noCreds(serverId);
         }
 
-        try (ITeamcity teamcity = CtxListener.getTcHelper(context).server(serverId, prov)) {
+        ITeamcity teamcity = CtxListener.getTcHelper(context).server(serverId, prov);
+
             collectHistory(history, teamcity, "IgniteTests24Java8_RunAll", "refs/heads/master");
-        }
+
         return convertToChart(history);
     }
 
@@ -110,11 +111,9 @@ public class Metrics {
             throw ServiceUnauthorizedException.noCreds(serverId);
         }
 
-        try (ITeamcity teamcity = CtxListener.getTcHelper(context).server(serverId, prov)) {
-            teamcity.setExecutor(CtxListener.getPool(context));
+        ITeamcity teamcity = CtxListener.getTcHelper(context).server(serverId, prov);
+        collectHistory(history, teamcity, "id8xIgniteGridGainTestsJava8_RunAll", "refs/heads/master");
 
-            collectHistory(history, teamcity, "id8xIgniteGridGainTestsJava8_RunAll", "refs/heads/master");
-        }
         return convertToChart(history);
     }
 

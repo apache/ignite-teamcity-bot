@@ -34,7 +34,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -308,7 +308,8 @@ public class GenerateStatusHtml {
         final List<Branch> branchesPriv) throws Exception {
 
         ProjectStatus projStatus = new ProjectStatus();
-        try (IgniteTeamcityHelper teamcityHelper = new IgniteTeamcityHelper(tcId)) {
+         IgniteTeamcityConnection teamcityHelper = new IgniteTeamcityConnection(tcId);
+          {
             List<BuildType> suites = teamcityHelper.getProjectSuites(projectId).get();
 
             for (BuildType buildType : suites) {

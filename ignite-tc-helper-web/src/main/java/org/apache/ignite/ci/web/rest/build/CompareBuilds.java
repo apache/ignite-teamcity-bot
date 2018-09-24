@@ -131,15 +131,16 @@ public class CompareBuilds {
         if (!prov.hasAccess(srv))
             throw ServiceUnauthorizedException.noCreds(srv);
 
-        try (IAnalyticsEnabledTeamcity teamcity = helper.server(srv, prov)) {
-            String hrefById = teamcity.getBuildHrefById(buildId);
-            BuildRef buildRef = new BuildRef();
+        IAnalyticsEnabledTeamcity teamcity = helper.server(srv, prov);
 
-            buildRef.setId(buildId);
-            buildRef.href = hrefById;
+        String hrefById = teamcity.getBuildHrefById(buildId);
+        BuildRef buildRef = new BuildRef();
 
-            return tests0(teamcity, buildRef);
-        }
+        buildRef.setId(buildId);
+        buildRef.href = hrefById;
+
+        return tests0(teamcity, buildRef);
+
     }
 
     /** */

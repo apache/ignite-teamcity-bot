@@ -45,7 +45,8 @@ public class ObserverTask extends TimerTask {
     /** {@inheritDoc} */
     @Override public void run() {
         for (BuildInfo info : builds) {
-            try (IAnalyticsEnabledTeamcity teamcity = helper.server(info.srvId, info.prov)) {
+            IAnalyticsEnabledTeamcity teamcity = helper.server(info.srvId, info.prov);
+            {
                 Build build = teamcity.getBuild(info.build.getId());
 
                 if (!"finished".equals(build.state))

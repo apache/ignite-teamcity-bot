@@ -60,7 +60,8 @@ public class GetChainResultsAsHtml {
     public void showChainOnServersResults(StringBuilder res, Integer buildId, String serverId) {
 
         //todo solve report auth problem
-        try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(CtxListener.getIgnite(context), serverId)) {
+        IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(CtxListener.getIgnite(context), serverId);
+         {
             teamcity.setExecutor(CtxListener.getPool(context));
 
             //processChainByRef(teamcity, includeLatestRebuild, build, true, true)

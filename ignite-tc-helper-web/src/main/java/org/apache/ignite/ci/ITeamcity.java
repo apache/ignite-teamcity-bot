@@ -51,7 +51,7 @@ import static org.apache.ignite.ci.db.DbMigrations.TESTS_COUNT_7700;
  * API for calling methods from REST service:
  * https://confluence.jetbrains.com/display/TCD10/REST+API
  */
-public interface ITeamcity extends AutoCloseable {
+public interface ITeamcity {
 
     String DEFAULT = "<default>";
     long DEFAULT_BUILDS_COUNT = 1000;
@@ -213,8 +213,6 @@ public interface ITeamcity extends AutoCloseable {
 
         return ctx;
     }
-
-    @Override void close();
 
     CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut);
 

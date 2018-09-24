@@ -18,19 +18,24 @@
 package org.apache.ignite.ci.web;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import javax.servlet.ServletContext;
+`import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.QueryParam;
 
+import com.google.common.base.Preconditions;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.TcHelper;
-import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.IgniteTcBotModule;
+import org.apache.ignite.ci.user.ICredentialsProv;
+import org.jetbrains.annotations.Nullable;
 
 /**
  */
@@ -60,16 +65,24 @@ public class CtxListener implements ServletContextListener {
         return (BackgroundUpdater)ctx.getAttribute(UPDATER);
     }
 
+    public static IAnalyticsEnabledTeamcity server(@QueryParam("serverId") @Nullable String srvId,
+                                                   ServletContext ctx,
+                                                   HttpServletRequest req) {
+        ITcHelper tcHelper = getTcHelper(ctx);
+        final ICredentialsProv creds = ICredentialsProv.get(req);
+        return tcHelper.server(srvId, creds);
+    }
+
     @Override public void contextInitialized(ServletContextEvent sctxEvt) {
-
         IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
+        Injector injectorPreCreated = Guice.createInjector(igniteTcBotModule);
+
+        Injector injector = igniteTcBotModule.startIgniteInit(injectorPreCreated);
+
+        ITcServerProvider instance = injector.getInstance(ITcServerProvider.class);
+        Preconditions.checkState(instance == injector.getInstance(ITcServerProvider.class));
+
         final ServletContext ctx = sctxEvt.getServletContext();
-
-        Injector injector = Guice.createInjector(igniteTcBotModule);
-
-        final Ignite1Init instance = injector.getInstance(Ignite1Init.class);
-        final Future<Ignite> submit = instance.getIgniteFuture();
-        igniteTcBotModule.setIgniteFuture(submit);
 
         ctx.setAttribute(INJECTOR, injector);
 
@@ -90,8 +103,9 @@ public class CtxListener implements ServletContextListener {
     @Override public void contextDestroyed(ServletContextEvent sctxEvt) {
         final ServletContext ctx = sctxEvt.getServletContext();
 
+        Injector injector = getInjector(ctx);
         try {
-            TcHelperDb.stop(getIgnite(ctx));
+            TcHelperDb.stop(injector.getInstance(Ignite.class));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -100,6 +114,7 @@ public class CtxListener implements ServletContextListener {
 
         TcHelper helper = (TcHelper)getTcHelper(ctx);
         helper.close();
+
     }
 }
 

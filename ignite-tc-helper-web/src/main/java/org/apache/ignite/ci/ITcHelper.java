@@ -30,7 +30,7 @@ import java.util.Collection;
 /**
  * Teamcity Bot main interface
  */
-public interface ITcHelper {
+public interface ITcHelper extends ITcServerProvider {
     /** System property to specify: Teamcity helper home. Ignite home will be set to same dir. */
     public String TEAMCITY_HELPER_HOME = "teamcity.helper.home";
 
@@ -48,7 +48,6 @@ public interface ITcHelper {
      */
     BuildObserver buildObserver();
 
-    IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov);
 
     ITcAnalytics tcAnalytics(String serverId);
 

@@ -61,23 +61,17 @@ public class TcHelper implements ITcHelper {
     /** Stop guard. */
     private AtomicBoolean stop = new AtomicBoolean();
 
-    private final Cache<String, IAnalyticsEnabledTeamcity> srvs
-        = CacheBuilder.<String, String>newBuilder()
-        .maximumSize(100)
-        .expireAfterAccess(16, TimeUnit.MINUTES)
-        .softValues()
-        .build();
+    @Inject
+    private TcUpdatePool tcUpdatePool;
 
-    private TcUpdatePool tcUpdatePool = new TcUpdatePool();
     @Inject
     private IssuesStorage issuesStorage;
 
     @Inject
-    private IssueDetector detector;
+    private ITcServerProvider serverProvider;
 
     @Inject
-    private IServerFactory serverProv;
-
+    private IssueDetector detector;
     /** Build observer. */
     private BuildObserver buildObserver;
 
@@ -108,30 +102,7 @@ public class TcHelper implements ITcHelper {
         if (stop.get())
             throw new IllegalStateException("Shutdown");
 
-        Callable<IAnalyticsEnabledTeamcity> call = () -> {
-            IAnalyticsEnabledTeamcity teamcity = serverProv.createServer(srvId);
-
-            teamcity.setExecutor(getService());
-
-            if (prov != null) {
-                final String user = prov.getUser(srvId);
-                final String password = prov.getPassword(srvId);
-                teamcity.setAuthData(user, password);
-            }
-
-            return teamcity;
-        };
-        String fullKey = Strings.nullToEmpty(prov == null ? null : prov.getUser(srvId)) + ":" + Strings.nullToEmpty(srvId);
-
-        IAnalyticsEnabledTeamcity teamcity;
-        try {
-            teamcity = srvs.get(fullKey, call);
-        }
-        catch (ExecutionException e) {
-            throw ExceptionUtil.propagateException(e);
-        }
-
-        return teamcity;
+        return serverProvider.server(srvId, prov);
     }
 
     /** {@inheritDoc} */
@@ -169,7 +140,8 @@ public class TcHelper implements ITcHelper {
         String branchForTc,
         String ticket
     ) {
-        try (IAnalyticsEnabledTeamcity teamcity = server(srvId, prov)) {
+         IAnalyticsEnabledTeamcity teamcity = server(srvId, prov);
+         {
             List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchForTc);
 
             if (builds.isEmpty())
@@ -329,20 +301,12 @@ public class TcHelper implements ITcHelper {
 
     public void close() {
         if (stop.compareAndSet(false, true)) {
-            srvs.asMap().values().forEach(v -> {
-                try {
-                    v.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+            tcUpdatePool.stop();
+
+            detector.stop();
+
+            buildObserver.stop();
         }
-
-        tcUpdatePool.stop();
-
-        detector.stop();
-
-        buildObserver.stop();
     }
 
     public ExecutorService getService() {

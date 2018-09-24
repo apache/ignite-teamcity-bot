@@ -150,7 +150,8 @@ public class GetPrTestFailures {
         final AtomicInteger runningUpdates = new AtomicInteger();
 
         //using here non persistent TC allows to skip update statistic
-        try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds)) {
+          IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds);
+          {
             res.setJavaFlags(teamcity);
 
             LatestRebuildMode rebuild;
@@ -229,16 +230,15 @@ public class GetPrTestFailures {
         if (!branchForTc.startsWith("pull/"))
             return "Given branch is not a pull request. Notify works only for pull requests.";
 
-        ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
-        final ICredentialsProv creds = ICredentialsProv.get(req);
+        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, ctx, req);
 
-        try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds)) {
-            PullRequest pr = teamcity.getPullRequest(branchForTc);
-            String statusesUrl = pr.getStatusesUrl();
+        PullRequest pr = teamcity.getPullRequest(branchForTc);
+        String statusesUrl = pr.getStatusesUrl();
 
-            teamcity.notifyGit(statusesUrl, msg);
-        }
+        teamcity.notifyGit(statusesUrl, msg);
+
 
         return "Git was notified.";
     }
+
 }

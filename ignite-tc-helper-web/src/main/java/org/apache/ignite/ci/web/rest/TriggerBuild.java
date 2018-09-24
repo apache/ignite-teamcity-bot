@@ -67,12 +67,12 @@ public class TriggerBuild {
 
         ITcHelper helper = CtxListener.getTcHelper(context);
 
-        try (final ITeamcity teamcity = helper.server(srvId, prov)) {
+        final ITeamcity teamcity = helper.server(srvId, prov);
+
             Build build = teamcity.triggerBuild(suiteId, branchForTc, false, top != null && top);
 
             if (observe != null && observe)
                 jiraRes = observeJira(srvId, branchForTc, ticketId, helper, teamcity, build, prov);
-        }
 
         return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
@@ -107,7 +107,8 @@ public class TriggerBuild {
         ITcHelper helper = CtxListener.getTcHelper(context);
         String jiraRes = "";
 
-        try (final ITeamcity teamcity = helper.server(srvId, prov)) {
+          final ITeamcity teamcity = helper.server(srvId, prov);
+          {
             if (Strings.isNullOrEmpty(ticketId)) {
                 PullRequest pr = teamcity.getPullRequest(branchForTc);
 
@@ -207,7 +208,8 @@ public class TriggerBuild {
         if (strings.isEmpty())
             return new SimpleResult("Error: nothing to run");
 
-        try (final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId, prov)) {
+          final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId, prov);
+          {
             boolean queueToTop = top != null && top;
 
             for (String suiteId : strings) {

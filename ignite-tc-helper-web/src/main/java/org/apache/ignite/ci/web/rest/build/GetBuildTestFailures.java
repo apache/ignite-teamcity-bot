@@ -119,7 +119,8 @@ public class GetBuildTestFailures {
         if(!prov.hasAccess(serverId))
             throw ServiceUnauthorizedException.noCreds(serverId);
 
-        try (IAnalyticsEnabledTeamcity teamcity = helper.server(serverId, prov)) {
+        IAnalyticsEnabledTeamcity teamcity = helper.server(serverId, prov);
+          {
             //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
             String hrefById = teamcity.getBuildHrefById(buildId);
             BuildRef build = new BuildRef();
@@ -171,7 +172,8 @@ public class GetBuildTestFailures {
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov)) {
+        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
+    {
 
             int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, cnt);
 
@@ -205,12 +207,11 @@ public class GetBuildTestFailures {
 
         final ICredentialsProv creds = ICredentialsProv.get(req);
 
-        try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds)) {
+        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds);
 
-            BuildStatisticsSummary stat = new BuildStatisticsSummary(teamcity.getBuild(buildId));
-            stat.initialize(teamcity);
+        BuildStatisticsSummary stat = new BuildStatisticsSummary(teamcity.getBuild(buildId));
+        stat.initialize(teamcity);
 
-            return stat;
-        }
+        return stat;
     }
 }

@@ -171,7 +171,8 @@ public class GetTrackedBranchTestResults {
 
                     chainStatus.baseBranchForTc = baseBranchTc;
 
-                    try (IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds)) {
+                     IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds);
+                     {
 
                         final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
                             chainTracked.getSuiteIdMandatory(),
