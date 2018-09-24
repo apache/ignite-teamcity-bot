@@ -150,12 +150,13 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     //for DI
     public IgnitePersistentTeamcity() {}
 
+    @Deprecated
     private IgnitePersistentTeamcity(Ignite ignite, IgniteTeamcityHelper teamcity) {
         init(teamcity);
         this.ignite = ignite;
     }
 
-    public void init(ITeamcity conn) {
+    @Override public void init(ITeamcity conn) {
         this.teamcity = conn;
         this.serverId = conn.serverId();
 

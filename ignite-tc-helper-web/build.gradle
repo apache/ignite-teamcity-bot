@@ -32,6 +32,7 @@ dependencies {
 
     compile group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
     compile group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
+    compile group: 'org.apache.ignite', name: 'ignite-direct-io', version: ignVer
 
     // MIT/X11 license, category A;
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
