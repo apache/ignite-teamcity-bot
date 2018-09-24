@@ -27,6 +27,7 @@ import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
+import org.apache.ignite.ci.web.model.current.BuildsHistory;
 import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
@@ -159,51 +160,24 @@ public class GetBuildTestFailures {
 
     @GET
     @Path("history")
-    public List<BuildStatisticsSummary> getBuildsHistory(
+    public BuildsHistory getBuildsHistory(
         @Nullable @QueryParam("server") String server,
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("sinceDate") String sinceDate,
         @Nullable @QueryParam("untilDate") String untilDate)
         throws ServiceUnauthorizedException, ParseException {
-        DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
+        BuildsHistory buildsHistory = new BuildsHistory.Builder()
+            .branch(branch)
+            .server(server)
+            .buildType(buildType)
+            .sinceDate(sinceDate)
+            .untilDate(untilDate)
+            .build();
 
-        String srvId = isNullOrEmpty(server) ? "apache" : server;
-        String buildTypeId = isNullOrEmpty(buildType) ? "IgniteTests24Java8_RunAll" : buildType;
-        String branchName = isNullOrEmpty(branch) ? "refs/heads/master" : branch;
-        Date sinceDateFilter = isNullOrEmpty(sinceDate) ? null : dateFormat.parse(sinceDate);
-        Date untilDateFilter = isNullOrEmpty(untilDate) ? null : dateFormat.parse(untilDate);
+        buildsHistory.initialize(ICredentialsProv.get(req), context);
 
-        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
-
-        final ITcHelper tcHelper = CtxListener.getTcHelper(context);
-
-        final ICredentialsProv prov = ICredentialsProv.get(req);
-
-        try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov)) {
-
-            int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, sinceDateFilter, untilDateFilter);
-
-            List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
-
-            for (int i = 0; i < finishedBuilds.length; i++) {
-                int buildId = finishedBuilds[i];
-
-                FullQueryParams param = new FullQueryParams();
-                param.setBuildId(buildId);
-                param.setBranch(branchName);
-                param.setServerId(srvId);
-
-                BuildStatisticsSummary buildsStatistic = updater.get(
-                    BUILDS_STATISTICS_SUMMARY_CACHE_NAME, prov, param,
-                    (k) -> getBuildStatisticsSummaryNoCache(srvId, buildId), false);
-
-                if (!buildsStatistic.isFakeStub)
-                    buildsStatistics.add(buildsStatistic);
-            }
-
-            return buildsStatistics;
-        }
+        return buildsHistory;
     }
 
     private BuildStatisticsSummary getBuildStatisticsSummaryNoCache(String server, int buildId) {

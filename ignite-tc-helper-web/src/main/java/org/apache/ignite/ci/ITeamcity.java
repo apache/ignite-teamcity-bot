@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import javafx.application.ConditionalFeature;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.LogCheckResult;
@@ -42,6 +43,7 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.util.Base64Util;
 import org.jetbrains.annotations.NotNull;
 
@@ -151,6 +153,8 @@ public interface ITeamcity extends AutoCloseable {
 
     TestOccurrences getTests(String href, String normalizedBranch);
 
+    TestOccurrences getFailedUnmutedTests(String href, String normalizedBranch);
+
     Statistics getBuildStatistics(String href);
 
     CompletableFuture<TestOccurrenceFull> getTestFull(String href);
@@ -158,6 +162,8 @@ public interface ITeamcity extends AutoCloseable {
     Change getChange(String href);
 
     ChangesList getChangesList(String href);
+
+    CompletableFuture<TestRef> getTestRef(TestOccurrence occurrence);
 
     /**
      * List of build's related issues.

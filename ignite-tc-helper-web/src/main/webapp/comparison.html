@@ -253,7 +253,7 @@
             {
                 url: 'rest/build/history?sinceDate=' + sinceDate + '000001&untilDate=' + untilDate + '235959',
                 success: function (result) {
-                    printStatistics(num, result);
+                    printStatistics(num, result.buildsStatistics);
                 },
                 error: showErrInLoadStatus
             }
