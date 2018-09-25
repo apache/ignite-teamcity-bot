@@ -20,19 +20,27 @@ import com.google.common.base.Preconditions;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.apache.ignite.ci.ITcServerProvider;
+import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.junit.Test;
 
 public class DiContextTest {
+    /**
+     *
+     */
     @Test
     public void checkSingletons() {
         IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
         Injector injector = Guice.createInjector(igniteTcBotModule);
 
         validateInstanceCachedFor(injector, ITcServerProvider.class);
-        validateInstanceCachedFor(injector, IServerFactory.class);
+        validateInstanceCachedFor(injector, ITcServerFactory.class);
+        validateInstanceCachedFor(injector, ObserverTask.class);
     }
 
+    /**
+     *
+     */
     @Test
     public void checkPoolIsOne() {
         IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();

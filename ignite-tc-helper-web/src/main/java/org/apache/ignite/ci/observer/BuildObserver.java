@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.observer;
 
 import java.util.Timer;
-import org.apache.ignite.ci.ITcHelper;
+import javax.inject.Inject;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 
@@ -33,15 +33,14 @@ public class BuildObserver {
     private final Timer timer;
 
     /** Task, which should be done periodically. */
-    private final ObserverTask task;
+    @Inject ObserverTask observerTask;
 
     /**
-     * @param helper Helper.
      */
-    public BuildObserver(ITcHelper helper) {
+    public BuildObserver() {
         timer = new Timer();
 
-        timer.schedule(task = new ObserverTask(helper), period, period);
+        timer.schedule(observerTask, 0, period);
     }
 
     /**
@@ -58,6 +57,6 @@ public class BuildObserver {
      * @param ticket JIRA ticket name.
      */
     public void observe(Build build, String srvId, ICredentialsProv prov, String ticket) {
-        task.builds.add(new BuildInfo(build, srvId, prov, ticket));
+        observerTask.builds.add(new BuildInfo(build, srvId, prov, ticket));
     }
 }
