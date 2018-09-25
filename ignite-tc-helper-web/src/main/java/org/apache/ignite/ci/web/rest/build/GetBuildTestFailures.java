@@ -49,7 +49,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -157,13 +161,14 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("server") String server,
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
-        @Nullable @QueryParam("count") Long count)
+        @Nullable @QueryParam("sinceDate") String sinceDate,
+        @Nullable @QueryParam("untilDate") String untilDate)
         throws ServiceUnauthorizedException {
-
         String srvId = isNullOrEmpty(server) ? "apache" : server;
         String buildTypeId = isNullOrEmpty(buildType) ? "IgniteTests24Java8_RunAll" : buildType;
         String branchName = isNullOrEmpty(branch) ? "refs/heads/master" : branch;
-        long cnt = count == null ? 50 : count;
+        Date sinceDateFilter = isNullOrEmpty(sinceDate) ? null : dateParse(sinceDate);
+        Date untilDateFilter = isNullOrEmpty(untilDate) ? null : dateParse(untilDate);
 
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
 
@@ -173,7 +178,7 @@ public class GetBuildTestFailures {
 
         try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov)) {
 
-            int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, cnt);
+            int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, sinceDateFilter, untilDateFilter);
 
             List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
 
@@ -189,7 +194,7 @@ public class GetBuildTestFailures {
                     BUILDS_STATISTICS_SUMMARY_CACHE_NAME, prov, param,
                     (k) -> getBuildStatisticsSummaryNoCache(srvId, buildId), false);
 
-                if (!buildsStatistic.build.isFakeStub())
+                if (!buildsStatistic.isFakeStub)
                     buildsStatistics.add(buildsStatistic);
             }
 
@@ -197,8 +202,18 @@ public class GetBuildTestFailures {
         }
     }
 
-    private BuildStatisticsSummary getBuildStatisticsSummaryNoCache(String server, int buildId) {
+    private Date dateParse(String date){
+        DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
 
+        try {
+            return dateFormat.parse(date);
+        }
+        catch (ParseException e) {
+            return null;
+        }
+    }
+
+    private BuildStatisticsSummary getBuildStatisticsSummaryNoCache(String server, int buildId) {
         String srvId = isNullOrEmpty(server) ? "apache" : server;
 
         final ITcHelper tcHelper = CtxListener.getTcHelper(context);
@@ -207,7 +222,8 @@ public class GetBuildTestFailures {
 
         try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds)) {
 
-            BuildStatisticsSummary stat = new BuildStatisticsSummary(teamcity.getBuild(buildId));
+            BuildStatisticsSummary stat = new BuildStatisticsSummary(buildId);
+
             stat.initialize(teamcity);
 
             return stat;

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ignite Teamcity - comparison master's branch in the date interval</title>
+    <link rel="icon" href="img/leaf-icon-png-7066.png">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="css/style-1.5.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <script src="js/common-1.6.js"></script>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+</head>
+<body>
+<br>
+<br>
+<table class="stat"  width="100%">
+    <tr>
+        <th class="section"  width="15%">DATE INTERVAL</th>
+        <th  width="5%"></th>
+        <th style="text-align: center;" width="40%"><input type='text' name='daterange1'/></th>
+        <th style="text-align: center;" width="40%"><input type='text' name='daterange2'/></th>
+    </tr>
+    <tr><td class="section">TESTS</td><td></td><td></td></tr>
+    <tr><td class="field">COUNT</td>
+        <td><img id="clickGraphCount" src='/img/browser.png'></td>
+        <td class="data1" id="Count1" title="min - median - max"></td>
+        <td class="data2" id="Count2" title="min - median - max"></td>
+    </tr>
+    <tr id="showGraphCount" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg id="graphCount1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphCount2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">PASSED</td>
+        <td><img id="clickGraphPassed" src='/img/browser.png'></td>
+        <td class="data1" id="Passed1" title="min - median - max"></td>
+        <td class="data2" id="Passed2" title="min - median - max"></td>
+    </tr>
+    <tr id="showGraphPassed" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg id="graphPassed1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphPassed2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">FAILED</td>
+        <td><img id="clickGraphFailed" src='/img/browser.png'></td>
+        <td class="data1" id="Failed1" title="min - median - max"></td>
+        <td class="data2" id="Failed2" title="min - median - max"></td>
+    </tr>
+    <tr id="showGraphFailed" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg id="graphFailed1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphFailed2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">IGNORED</td>
+        <td><img id="clickGraphIgnored" src='/img/browser.png'></td>
+        <td class="data1" id="Ignored1" title="min - median - max"></td>
+        <td class="data2" id="Ignored2" title="min - median - max"></td>
+    </tr>
+    <tr id="showGraphIgnored" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg id="graphIgnored1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphIgnored2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">MUTED</td>
+        <td><img id="clickGraphMuted" src='/img/browser.png'></td>
+        <td class="data1" id="Muted1" title="min - median - max"></td>
+        <td class="data2" id="Muted2" title="min - median - max"></td></tr>
+    <tr id="showGraphMuted" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg id="graphMuted1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphMuted2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="section">PROBLEMS</td><td></td><td></td></tr>
+    <tr style="display: none;"><td></td><td></td><td></td></tr>
+    <tr><td class="field">TOTAL</td>
+        <td><img id="clickGraphTT" src='/img/browser.png'></td>
+        <td class="data1" id="TT1" title="min - median - max"></td>
+        <td class="data2" id="TT2" title="min - median - max"></td></tr>
+    <tr id="showGraphTT" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg id="graphTT1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphTT2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">EXECUTION TIMEOUT</td>
+        <td><img id="clickGraphET" src='/img/browser.png'></td>
+        <td class="data1" id="ET1" title="min - median - max"></td>
+        <td class="data2" id="ET2" title="min - median - max"></td>
+    </tr>
+    <tr id="showGraphET" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg id="graphET1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphET2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">JVM CRASH</td>
+        <td><img id="clickGraphJC" src='/img/browser.png'></td>
+        <td class="data1" id="JC1" title="min - median - max"></td>
+        <td class="data2" id="JC2" title="min - median - max"></td>
+    </tr>
+    <tr id="showGraphJC" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg id="graphJC1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphJC2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">OOME</td>
+        <td><img id="clickGraphOO" src='/img/browser.png'></td>
+        <td class="data1" id="OO1" title="min - median - max"></td>
+        <td class="data2" id="OO2" title="min - median - max"></td>
+    </tr>
+    <tr id="showGraphOO" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg id="graphOO1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphOO2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">EXIT CODE</td>
+        <td><img id="clickGraphEC" src='/img/browser.png'></td>
+        <td class="data1" id="EC1" title="min - median - max"></td>
+        <td class="data2" id="EC2" title="min - median - max"></td>
+    </tr>
+    <tr id="showGraphEC" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg id="graphEC1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphEC2" width="500" height="200"></svg></td>
+    </tr>
+</table><br>
+<div id="version"></div>
+<script>
+    let oneWeekAgo = new Date();
+    let twoWeekAgo = new Date();
+    let g_updTimer = null;
+
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    twoWeekAgo.setDate(twoWeekAgo.getDate() - 14);
+
+    function dateRangePickerParam(data1, data2) {
+        return {
+            "maxSpan": { "days": 7 },
+            "locale": {
+                "format": "DD/MM/YYYY", "separator": " - ", "applyLabel": "Apply", "cancelLabel": "Cancel",
+                "fromLabel": "From", "toLabel": "To", "customRangeLabel": "Custom", "weekLabel": "W",
+                "daysOfWeek": [ "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" ],
+                "monthNames": [ "January", "February", "March", "April", "May", "June", "July",
+                    "August", "September", "October", "November", "December" ],
+                "firstDay": 1
+            },
+            "startDate": moment(data1).format("DD-MM-YYYY"), "endDate": moment(data2).format("DD-MM-YYYY")
+        }
+    }
+
+    const prOcc = ["TT", "ET", "JC", "OO", "EC"];
+    const tOcc = ["Count", "Passed", "Failed", "Ignored", "Muted"];
+
+    function getMinMaxMedian(arr) {
+        let newArr = arr.slice();
+        newArr = newArr.sort(function(a, b){ return a - b; });
+        let i = newArr.length / 2;
+        let result = {};
+        result.median = i % 1 == 0 ? (newArr[i - 1] + newArr[i]) / 2 : newArr[Math.floor(i)];
+        result.min = newArr[0];
+        result.max = newArr[newArr.length - 1];
+        return result;
+    }
+
+    function parseMedian(string) {
+        return parseFloat(string.substring(string.indexOf("-") + 2, string.lastIndexOf("-") - 1));
+    }
+
+    function printStatistics(num, map) {
+        const parseTime = d3.timeParse("%d-%m-%YT%H:%M:%S");
+
+        let statistics = {};
+        let dates = [];
+
+        for (let i = 0; i < prOcc.length; i++) {
+            statistics[prOcc[i]] = [];
+            statistics[tOcc[i]] = [];
+        }
+
+        for (let j = 0; j < map.length; j++) {
+            dates[j] = parseTime(map[j].startDate);
+
+            for (let i = 0; i < prOcc.length; i++) {
+                statistics[prOcc[i]][j] = map[j].totalProblems[prOcc[i]];
+                statistics[tOcc[i]][j] = map[j].testOccurrences[tOcc[i].toLowerCase()];
+            }
+        }
+
+        const anotherNum = (num === 1) ? 2 : 1;
+        let anotherMedian;
+        let result = {};
+
+        for (let i = 0; i < prOcc.length; i++) {
+
+            document.getElementById(prOcc[i] + 1).style.background = null;
+            document.getElementById(prOcc[i] + 2).style.background = null;
+
+            result = getMinMaxMedian(statistics[prOcc[i]]);
+            anotherMedian = parseMedian(document.getElementById(prOcc[i] + anotherNum).innerHTML);
+
+            $('#' + prOcc[i] + num).html(result.min + " - " + result.median +  " - " + result.max);
+
+            if (!isNaN(anotherMedian)){
+                if (result.median > anotherMedian){
+                    document.getElementById(prOcc[i] + num).style.backgroundColor = "#ffeee9";
+                    document.getElementById(prOcc[i] + anotherNum).style.backgroundColor = "#e5ffe8";
+                } else if (result.median < anotherMedian){
+                    document.getElementById(prOcc[i] + anotherNum).style.backgroundColor = "#ffeee9";
+                    document.getElementById(prOcc[i] + num).style.backgroundColor = "#e5ffe8";
+                }
+            }
+
+            result = getMinMaxMedian(statistics[tOcc[i]]);
+
+            $('#' + tOcc[i] + num).html(result.min + " - " + result.median + " - " + result.max);
+
+            drawGraph(prOcc[i], num, dates, statistics[prOcc[i]], prOcc[i]);
+            drawGraph(tOcc[i], num, dates, statistics[tOcc[i]], tOcc[i]);
+        }
+    }
+
+    $(document).ready(function() {
+        loadData(1, moment(oneWeekAgo).format("DDMMYYYY"), moment().format("DDMMYYYY"));
+        loadData(2, moment(twoWeekAgo).format("DDMMYYYY"), moment(oneWeekAgo).format("DDMMYYYY"));
+
+        $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
+
+        if(g_updTimer == null) {
+            g_updTimer = setTimeout(tstTimeout, 3200);
+        }
+        setInterval(tstTimeout, 10000);
+    });
+
+    function tstTimeout() {
+        if (g_updTimer != null) {
+            clearTimeout(g_updTimer);
+            g_updTimer = null;
+        }
+
+        if (g_updTimer == null) {
+            g_updTimer = setTimeout(tstTimeout, 3200);
+        }
+    }
+
+    function loadGif(num) {
+        $('.data' + num).html("<img src='/img/loading.gif' width=15px height=15px>");
+    }
+
+    function loadData(num, sinceDate, untilDate) {
+        loadGif(num);
+        $.ajax(
+            {
+                url: 'rest/build/history?sinceDate=' + sinceDate + '000001&untilDate=' + untilDate + '235959',
+                success: function (result) {
+                    printStatistics(num, result);
+                },
+                error: showErrInLoadStatus
+            }
+        );
+    }
+
+    $(function() {
+        $('input[name="daterange1"]').daterangepicker(
+            dateRangePickerParam(oneWeekAgo, new Date()), function (start, end, label) {
+                loadData(1, start.format("DDMMYYYY"), end.format("DDMMYYYY"));
+            });
+    });
+
+    $(function() {
+        $('input[name="daterange2"]').daterangepicker(
+            dateRangePickerParam(twoWeekAgo, oneWeekAgo), function (start, end, label) {
+                loadData(2, start.format("DDMMYYYY"), end.format("DDMMYYYY"));
+            });
+    });
+
+    for (let i = 0; i < prOcc.length; i++) {
+        $("#clickGraph" + prOcc[i]).click(function() {
+            document.getElementById("showGraph" + prOcc[i]).style.display === 'none' ?
+                document.getElementById("showGraph" + prOcc[i]).style.display = null :
+                document.getElementById("showGraph" + prOcc[i]).style.display = 'none';
+        });
+
+        $("#clickGraph" + tOcc[i]).click(function() {
+            document.getElementById("showGraph" + tOcc[i]).style.display === 'none' ?
+                document.getElementById("showGraph" + tOcc[i]).style.display = null :
+                document.getElementById("showGraph" + tOcc[i]).style.display = 'none';
+        });
+    }
+
+    function drawGraph(prefix, num, dates, counts, text) {
+        let data = [];
+
+        for (let i = 0; i < dates.length; i++) {
+            data[i] = {};
+            data[i].date = dates[i];
+            data[i].count = counts[i];
+        }
+
+        d3.selectAll("#graph" + prefix + num + "> *").remove();
+        d3.selectAll('.axis').remove();
+
+        svg = d3.select("#graph" + prefix + num).append("svg:svg");
+        margin = {top: 20, right: 20, bottom: 30, left: 50};
+        width = +500 - margin.left - margin.right;
+        height = +200 - margin.top - margin.bottom;
+        g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        x = d3.scaleTime().range([0, width]);
+        y = d3.scaleLinear().range([height, 0]);
+
+        line = d3.line()
+            .curve(d3.curveBasis)
+            .x(function(d) { return x(d.date); })
+            .y(function(d) { return y(d.count); });
+
+
+        x.domain(d3.extent(data, function(d) { return d.date; }));
+        y.domain(d3.extent(data, function(d) { return d.count; }));
+
+        g.append("svg:g")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x))
+            .select(".domain")
+            .remove();
+
+        g.append("svg:g")
+            .call(d3.axisLeft(y))
+            .append("text")
+            .attr("fill", "#000")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 6)
+            .attr("dy", "0.71em")
+            .attr("text-anchor", "end")
+            .text(text);
+
+        g.append("svg:path")
+            .datum(data)
+            .attr("fill", "none")
+            .attr("stroke", "steelblue")
+            .attr("stroke-linejoin", "round")
+            .attr("stroke-linecap", "round")
+            .attr("stroke-width", 1.5)
+            .attr("d", line);
+    }
+</script>
+</body>
+</html>

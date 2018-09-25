@@ -41,6 +41,7 @@ public class IssuesUsagesList {
         return issuesUsages == null ? Collections.emptyList() : issuesUsages;
     }
 
+    /** {@inheritDoc} */
     @Override public String toString() {
         return "IssuesUsagesList{" +
             "issuesUsages=" + issuesUsages +

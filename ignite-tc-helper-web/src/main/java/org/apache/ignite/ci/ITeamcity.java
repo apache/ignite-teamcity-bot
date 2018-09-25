@@ -18,6 +18,7 @@
 package org.apache.ignite.ci;
 
 import java.io.File;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -54,6 +55,7 @@ import static org.apache.ignite.ci.db.DbMigrations.TESTS_COUNT_7700;
 public interface ITeamcity extends AutoCloseable {
 
     String DEFAULT = "<default>";
+
     long DEFAULT_BUILDS_COUNT = 1000;
 
     CompletableFuture<List<BuildType>> getProjectSuites(String projectId);
@@ -61,45 +63,45 @@ public interface ITeamcity extends AutoCloseable {
     String serverId();
 
     /**
-     * @param projectId suite ID (string without spaces)
-     * @param branch
-     * @return list of builds in historical order, recent builds coming last
+     * @param projectId Suite ID (string without spaces).
+     * @param branch Branch in TC identification.
+     * @return List of builds in historical order, recent builds coming last.
      */
     default List<BuildRef> getFinishedBuilds(String projectId, String branch) {
-        return getFinishedBuilds(projectId, branch, null, null);
+        return getFinishedBuilds(projectId, branch, null, null, null);
     };
 
     /**
      * @param projectId suite ID (string without spaces).
      * @param branch Branch name in TC identification.
-     * @param cnt builds count.
+     * @param sinceDate Since date.
+     * @param untilDate Until date.
      * @param sinceBuildId Some build ID in the past to to use as minimal build to export.
      * @return list of builds in historical order, recent builds coming last.
      */
-    List<BuildRef> getFinishedBuilds(String projectId, String branch, Long cnt, Integer sinceBuildId);
+    List<BuildRef> getFinishedBuilds(String projectId, String branch, Date sinceDate, Date untilDate, Integer sinceBuildId);
 
     /**
-     * Includes snapshot dependencies failed builds into list
+     * Includes snapshot dependencies failed builds into list.
      *
-     * @param projectId suite ID (string without spaces)
-     * @param branch branch in TC identification
-     * @return list of builds in historical order, recent builds coming last
+     * @param projectId suite ID (string without spaces).
+     * @param branch branch in TC identification.
+     * @return list of builds in historical order, recent builds coming last.
      */
     default List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch){
-        return getFinishedBuildsIncludeSnDepFailed(projectId, branch, null, null);
+        return getFinishedBuildsIncludeSnDepFailed(projectId, branch, null);
     };
 
     /**
      * Includes 'snapshot dependencies failed' builds into list.
      * loads build history with following parameter: defaultFilter:false,state:finished
      *
-     * @param projectId suite ID (string without spaces)
-     * @param branch branch in TC identification
-     * @param cnt builds count
-     * @param sinceBuildId limit builds export with some build number, not operational for Persistent connection
-     * @return list of builds in historical order, recent builds coming last
+     * @param projectId suite ID (string without spaces).
+     * @param branch branch in TC identification.
+     * @param sinceBuildId limit builds export with some build number, not operational for Persistent connection.
+     * @return list of builds in historical order, recent builds coming last.
      */
-    List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt, Integer sinceBuildId);
+    List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId);
 
     /**   */
     CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch);
@@ -107,8 +109,24 @@ public interface ITeamcity extends AutoCloseable {
     /**   */
     CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch);
 
-    default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist, Long cnt) {
-        return getFinishedBuilds(projectId, branchNameForHist, cnt, null).stream().mapToInt(BuildRef::getId).toArray();
+    /**
+     * @param projectId Suite ID (string without spaces).
+     * @param branchNameForHist Branch in TC identification.
+     * @return List of build numbers in historical order, recent builds coming last.
+     */
+    default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist) {
+        return getBuildNumbersFromHistory(projectId, branchNameForHist, null, null);
+    }
+
+    /**
+     * @param projectId Suite ID (string without spaces).
+     * @param branchNameForHist Branch in TC identification.
+     * @param sinceDate Since date.
+     * @param untilDate Until date.
+     * @return List of build numbers in historical order in date interval, recent builds coming last.
+     */
+    default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist, Date sinceDate, Date untilDate) {
+        return getFinishedBuilds(projectId, branchNameForHist, sinceDate, untilDate, null).stream().mapToInt(BuildRef::getId).toArray();
     }
 
     Build getBuild(String href);
@@ -142,13 +160,18 @@ public interface ITeamcity extends AutoCloseable {
 
     ChangesList getChangesList(String href);
 
+    /**
+     * List of build's related issues.
+     *
+     * @param href IssuesUsagesList href.
+     */
     IssuesUsagesList getIssuesUsagesList(String href);
 
     /**
-     * Runs deep collection of all related statistics for particular build
+     * Runs deep collection of all related statistics for particular build.
      *
-     * @param build build from history with references to tests
-     * @return full context
+     * @param build Build from history with references to tests.
+     * @return Full context.
      */
     @Nonnull default MultBuildRunCtx loadTestsAndProblems(@Nonnull Build build) {
         MultBuildRunCtx ctx = new MultBuildRunCtx(build);
@@ -221,9 +244,9 @@ public interface ITeamcity extends AutoCloseable {
     CompletableFuture<File> downloadBuildLogZip(int id);
 
     /**
-     * Returns log analysis. Does not keep not zipped logs on disk
-     * @param buildId biuld ID
-     * @param ctx build results
+     * Returns log analysis. Does not keep not zipped logs on disk.
+     * @param buildId Build ID.
+     * @param ctx Build results.
      * @return
      */
     CompletableFuture<LogCheckResult> analyzeBuildLog(Integer buildId, SingleBuildRunCtx ctx);

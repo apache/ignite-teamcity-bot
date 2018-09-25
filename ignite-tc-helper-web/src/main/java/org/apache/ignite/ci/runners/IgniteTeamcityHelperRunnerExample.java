@@ -57,7 +57,7 @@ public class IgniteTeamcityHelperRunnerExample {
                 if (bt.getName().toLowerCase().contains("pds")
                     // || bt.getName().toLowerCase().contains("cache")
                     ) {
-                    int[] ints = helper.getBuildNumbersFromHistory(bt.getName(), branchNameForHist, null);
+                    int[] ints = helper.getBuildNumbersFromHistory(bt.getName(), branchNameForHist);
 
                     List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(ints);
                     List<File> collect = getFuturesResults(fileFutList);

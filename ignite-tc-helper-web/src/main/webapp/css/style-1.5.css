@@ -137,3 +137,32 @@ form li:after
 	display:block;
 	margin-top:10px;
 }
+.stat{
+	width: 80%;
+	border-collapse: collapse;
+}
+.stat td, .stat th {
+	padding: 10px 5px 10px 5px;
+}
+.data1, .data2{
+	text-align: center;
+	vertical-align: middle;
+}
+.section{
+	font-weight: bold;
+}
+
+.stat .field{
+	padding-left: 15px;
+}
+
+.stat th {
+	text-align: left;
+	padding: 5px;
+	background-color: #f5f5ff;
+	color: #000000;
+}
+
+.stat tr:nth-child(4n - 1) {
+	background-color: #fafaff;
+}
