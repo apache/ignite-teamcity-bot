@@ -22,7 +22,6 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.tcmodel.result.Build;
 
 /**

@@ -17,15 +17,17 @@
 
 package org.apache.ignite.ci.jobs;
 
+import com.google.common.base.Strings;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-
-import com.google.common.base.Strings;
 import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.conf.BranchTracked;
@@ -40,8 +42,6 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.mail.Message;
 
 /**
  * Trigger build if half of agents are available and there is no self-triggered builds in build queue.

@@ -61,44 +61,43 @@ public class GetChainResultsAsHtml {
 
         //todo solve report auth problem
         IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(CtxListener.getIgnite(context), serverId);
-         {
-            teamcity.setExecutor(CtxListener.getPool(context));
 
-            //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
-            String hrefById = teamcity.getBuildHrefById(buildId);
-            BuildRef build = new BuildRef();
-            build.setId(buildId);
-            build.href = hrefById;
-            String failRateBranch = ITeamcity.DEFAULT;
+        teamcity.setExecutor(CtxListener.getPool(context));
 
-            Optional<FullChainRunCtx> ctxOptional =
-                BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,
-                    Collections.singletonList(build),
-                    ProcessLogsMode.SUITE_NOT_COMPLETE,
-                    false, false, teamcity, failRateBranch, MoreExecutors.newDirectExecutorService());
+        //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
+        String hrefById = teamcity.getBuildHrefById(buildId);
+        BuildRef build = new BuildRef();
+        build.setId(buildId);
+        build.href = hrefById;
+        String failRateBranch = ITeamcity.DEFAULT;
 
-            ctxOptional.ifPresent(ctx -> {
-                ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
+        Optional<FullChainRunCtx> ctxOptional =
+            BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,
+                Collections.singletonList(build),
+                ProcessLogsMode.SUITE_NOT_COMPLETE,
+                false, false, teamcity, failRateBranch, MoreExecutors.newDirectExecutorService());
 
-                ctx.getRunningUpdates().forEach(future -> {
-                    try {
-                        future.get();
-                    }
-                    catch (InterruptedException ignored) {
-                        Thread.currentThread().interrupt();
-                    }
-                    catch (ExecutionException e) {
-                        e.printStackTrace();
-                    }
-                });
+        ctxOptional.ifPresent(ctx -> {
+            ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
 
-                status.chainName = ctx.suiteName();
-
-                status.initFromContext(teamcity, ctx, teamcity, failRateBranch);
-
-                res.append(showChainAtServerData(status));
+            ctx.getRunningUpdates().forEach(future -> {
+                try {
+                    future.get();
+                }
+                catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+                catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
             });
-        }
+
+            status.chainName = ctx.suiteName();
+
+            status.initFromContext(teamcity, ctx, teamcity, failRateBranch);
+
+            res.append(showChainAtServerData(status));
+        });
     }
 
     @GET

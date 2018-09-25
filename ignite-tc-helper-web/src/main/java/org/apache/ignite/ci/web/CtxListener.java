@@ -104,6 +104,7 @@ public class CtxListener implements ServletContextListener {
         final ServletContext ctx = sctxEvt.getServletContext();
 
         Injector injector = getInjector(ctx);
+
         try {
             TcHelperDb.stop(injector.getInstance(Ignite.class));
         } catch (Exception e) {
@@ -114,7 +115,6 @@ public class CtxListener implements ServletContextListener {
 
         TcHelper helper = (TcHelper)getTcHelper(ctx);
         helper.close();
-
     }
 }
 

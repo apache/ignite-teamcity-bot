@@ -214,7 +214,6 @@ public class TriggerBuild {
             System.out.println("Triggering [ " + suiteId + "," + branchName + "," + "top=" + queueToTop + "]");
 
             helper.triggerBuild(suiteId, branchName, false, queueToTop);
-
         }
 
         return new SimpleResult("OK");

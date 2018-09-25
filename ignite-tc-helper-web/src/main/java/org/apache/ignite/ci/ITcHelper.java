@@ -48,7 +48,6 @@ public interface ITcHelper extends ITcServerProvider {
      */
     BuildObserver buildObserver();
 
-
     ITcAnalytics tcAnalytics(String serverId);
 
     UserAndSessionsStorage users();

@@ -43,7 +43,7 @@ import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
 public class IgniteTeamcityHelperRunnerExample {
     public static void main(String[] args) throws Exception {
         String serverIdPriv = "private";
-        String serverIdPub = "public";
+        String serverIdPub = "apache";
         final IgniteTeamcityConnection helper = new IgniteTeamcityConnection(serverIdPub); //public_auth_properties
 
         int k = 0;

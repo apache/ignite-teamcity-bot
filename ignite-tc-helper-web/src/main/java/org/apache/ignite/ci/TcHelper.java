@@ -61,22 +61,18 @@ public class TcHelper implements ITcHelper {
     /** Stop guard. */
     private AtomicBoolean stop = new AtomicBoolean();
 
-    @Inject
-    private TcUpdatePool tcUpdatePool;
+    @Inject private TcUpdatePool tcUpdatePool;
 
-    @Inject
-    private IssuesStorage issuesStorage;
+    @Inject private IssuesStorage issuesStorage;
 
-    @Inject
-    private ITcServerProvider serverProvider;
+    @Inject private ITcServerProvider serverProvider;
 
-    @Inject
-    private IssueDetector detector;
+    @Inject private IssueDetector detector;
+
     /** Build observer. */
     private BuildObserver buildObserver;
 
-    @Inject
-    private UserAndSessionsStorage userAndSessionsStorage;
+    @Inject private UserAndSessionsStorage userAndSessionsStorage;
 
     public TcHelper() {
         buildObserver = new BuildObserver(this);

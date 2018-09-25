@@ -158,59 +158,58 @@ public class GetTrackedBranchTestResults {
         res.setTrackedBranch(branchNn);
 
         tracked.chains.stream().parallel()
-                .filter(chainTracked -> creds.hasAccess(chainTracked.serverId))
-                .map(chainTracked -> {
-                    final String srvId = chainTracked.serverId;
+            .filter(chainTracked -> creds.hasAccess(chainTracked.serverId))
+            .map(chainTracked -> {
+                final String srvId = chainTracked.serverId;
 
-                    final String branchForTc = chainTracked.getBranchForRestMandatory();
+                final String branchForTc = chainTracked.getBranchForRestMandatory();
 
-                    //branch is tracked, so fail rate should be taken from this branch data (otherwise it is specified).
-                    final String baseBranchTc = chainTracked.getBaseBranchForTc().orElse(branchForTc);
+                //branch is tracked, so fail rate should be taken from this branch data (otherwise it is specified).
+                final String baseBranchTc = chainTracked.getBaseBranchForTc().orElse(branchForTc);
 
-                    final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
+                final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
 
-                    chainStatus.baseBranchForTc = baseBranchTc;
+                chainStatus.baseBranchForTc = baseBranchTc;
 
-                     IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds);
-                     {
+                IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds);
 
-                        final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
-                            chainTracked.getSuiteIdMandatory(),
-                            branchForTc);
+                final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
+                    chainTracked.getSuiteIdMandatory(),
+                    branchForTc);
 
-                        List<BuildRef> chains = builds.stream()
-                            .filter(ref -> !ref.isFakeStub())
-                            .sorted(Comparator.comparing(BuildRef::getId).reversed())
-                            .limit(buildResultMergeCnt)
-                            .filter(b -> b.getId() != null).collect(Collectors.toList());
+                List<BuildRef> chains = builds.stream()
+                    .filter(ref -> !ref.isFakeStub())
+                    .sorted(Comparator.comparing(BuildRef::getId).reversed())
+                    .limit(buildResultMergeCnt)
+                    .filter(b -> b.getId() != null).collect(Collectors.toList());
 
-                        ProcessLogsMode logs;
-                        if (buildResultMergeCnt > 1)
-                            logs = checkAllLogs != null && checkAllLogs ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED;
-                        else
-                            logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
+                ProcessLogsMode logs;
+                if (buildResultMergeCnt > 1)
+                    logs = checkAllLogs != null && checkAllLogs ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED;
+                else
+                    logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
-                        LatestRebuildMode rebuild = buildResultMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
+                LatestRebuildMode rebuild = buildResultMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
 
-                        boolean includeScheduled = buildResultMergeCnt == 1;
+                boolean includeScheduled = buildResultMergeCnt == 1;
 
-                        Optional<FullChainRunCtx> chainCtxOpt
-                            = BuildChainProcessor.processBuildChains(teamcity,
-                            rebuild, chains, logs,
-                            includeScheduled, true, teamcity, baseBranchTc,
-                                pool);
+                Optional<FullChainRunCtx> chainCtxOpt
+                    = BuildChainProcessor.processBuildChains(teamcity,
+                    rebuild, chains, logs,
+                    includeScheduled, true, teamcity, baseBranchTc,
+                    pool);
 
-                        chainCtxOpt.ifPresent(ctx -> {
-                            int cnt = (int)ctx.getRunningUpdates().count();
-                            if (cnt > 0)
-                                runningUpdates.addAndGet(cnt);
+                chainCtxOpt.ifPresent(ctx -> {
+                    int cnt = (int)ctx.getRunningUpdates().count();
+                    if (cnt > 0)
+                        runningUpdates.addAndGet(cnt);
 
-                            chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranchTc);
-                        });
-                    }
-                    return chainStatus;
-                })
-                .forEach(res::addChainOnServer);
+                    chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranchTc);
+                });
+
+                return chainStatus;
+            })
+            .forEach(res::addChainOnServer);
 
         res.servers.sort(Comparator.comparing(ChainAtServerCurrentStatus::serverName));
 

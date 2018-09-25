@@ -124,7 +124,7 @@ public class GetBuildTestFailures {
             throw ServiceUnauthorizedException.noCreds(serverId);
 
         IAnalyticsEnabledTeamcity teamcity = helper.server(serverId, prov);
-          {
+
             //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
             String hrefById = teamcity.getBuildHrefById(buildId);
             BuildRef build = new BuildRef();
@@ -149,7 +149,7 @@ public class GetBuildTestFailures {
 
                 res.addChainOnServer(chainStatus);
             });
-        }
+
 
         res.postProcess(runningUpdates.get());
 
@@ -178,30 +178,28 @@ public class GetBuildTestFailures {
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
         IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
-    {
 
-            int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, sinceDateFilter, untilDateFilter);
+        int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, sinceDateFilter, untilDateFilter);
 
-            List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
+        List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
 
-            for (int i = 0; i < finishedBuilds.length; i++) {
-                int buildId = finishedBuilds[i];
+        for (int i = 0; i < finishedBuilds.length; i++) {
+            int buildId = finishedBuilds[i];
 
-                FullQueryParams param = new FullQueryParams();
-                param.setBuildId(buildId);
-                param.setBranch(branchName);
-                param.setServerId(srvId);
+            FullQueryParams param = new FullQueryParams();
+            param.setBuildId(buildId);
+            param.setBranch(branchName);
+            param.setServerId(srvId);
 
-                BuildStatisticsSummary buildsStatistic = updater.get(
-                    BUILDS_STATISTICS_SUMMARY_CACHE_NAME, prov, param,
-                    (k) -> getBuildStatisticsSummaryNoCache(srvId, buildId), false);
+            BuildStatisticsSummary buildsStatistic = updater.get(
+                BUILDS_STATISTICS_SUMMARY_CACHE_NAME, prov, param,
+                (k) -> getBuildStatisticsSummaryNoCache(srvId, buildId), false);
 
-                if (!buildsStatistic.isFakeStub)
-                    buildsStatistics.add(buildsStatistic);
-            }
-
-            return buildsStatistics;
+            if (!buildsStatistic.isFakeStub)
+                buildsStatistics.add(buildsStatistic);
         }
+
+        return buildsStatistics;
     }
 
     private Date dateParse(String date){
