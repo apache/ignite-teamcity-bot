@@ -29,6 +29,7 @@ public class IssueRef {
     @XmlAttribute public String id;
     @XmlAttribute public String url;
 
+    /** {@inheritDoc} */
     @Override public String toString() {
         return "IssueRef{" +
             "id='" + id + '\'' +

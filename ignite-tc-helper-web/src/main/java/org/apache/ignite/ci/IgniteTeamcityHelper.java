@@ -29,7 +29,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -466,25 +468,43 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
-                                           @Nullable String branchName,
-                                           boolean dfltFilter,
-                                           @Nullable String state,
-                                           @Nullable Long cnt,
-                                           @Nullable Integer sinceBuildId) {
-        String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId;
+        @Nullable String branchName,
+        boolean dfltFilter,
+        @Nullable String state){
+
+        return getBuildHistory(buildTypeId, branchName, dfltFilter, state, null, null, null);
+    }
+
+    private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
+        @Nullable String branchName,
+        boolean dfltFilter,
+        @Nullable String state,
+        @Nullable Date sinceDate,
+        @Nullable Date untilDate,
+        @Nullable Integer sinceBuildId)  {
+        String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId + "";
         String stateFilter = isNullOrEmpty(state) ? "" : (",state:" + state);
-        String branchFilter = isNullOrEmpty(branchName) ? "" : ",branch:" + branchName;
+        String branchFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
+        String sinceDateFilter = sinceDate == null ? "" : ",sinceDate:" + getDateYyyyMmDdTHhMmSsZ(sinceDate);
+        String untilDateFilter = untilDate == null ? "" : ",untilDate:" + getDateYyyyMmDdTHhMmSsZ(untilDate);
         String buildNoFilter = sinceBuildId == null ? "" : ",sinceBuild:(id:" + sinceBuildId + ")";
-        long cntFilter = cnt == null ? DEFAULT_BUILDS_COUNT : cnt;
 
         return sendGetXmlParseJaxb(host + "app/rest/latest/builds"
-                + "?locator="
-                + "defaultFilter:" + dfltFilter
-                + btFilter
-                + stateFilter
-                + branchFilter
-                + buildNoFilter
-                + ",count:" + cntFilter, Builds.class).getBuildsNonNull();
+            + "?locator="
+            + "defaultFilter:" + dfltFilter
+            + btFilter
+            + stateFilter
+            + branchFilter
+            + buildNoFilter
+            + ",count:" + DEFAULT_BUILDS_COUNT
+            + sinceDateFilter
+            + untilDateFilter, Builds.class).getBuildsNonNull();
+    }
+
+    public String getDateYyyyMmDdTHhMmSsZ(Date date){
+        return new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")
+            .format(date)
+            .replace("+", "%2B");
     }
 
     @AutoProfiling
@@ -543,6 +563,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return getJaxbUsingHref(href, ChangesList.class);
     }
 
+    /** {@inheritDoc} */
     @Override
     @AutoProfiling
     public IssuesUsagesList getIssuesUsagesList(String href) { return getJaxbUsingHref(href, IssuesUsagesList.class); }
@@ -559,7 +580,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
     @Override public List<BuildRef> getFinishedBuilds(String projectId,
         String branch) {
 
-        return getFinishedBuilds(projectId, branch, null, null);
+        return getFinishedBuilds(projectId, branch, null, null, null);
     }
 
     /** {@inheritDoc} */
@@ -567,13 +588,15 @@ public class IgniteTeamcityHelper implements ITeamcity {
     @AutoProfiling
     public List<BuildRef> getFinishedBuilds(String projectId,
                                             String branch,
-                                            Long cnt,
+                                            Date sinceDate,
+                                            Date untilDate,
                                             @Nullable Integer sinceBuildId) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             true,
             null,
-            cnt,
+            sinceDate,
+            untilDate,
             sinceBuildId);
 
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
@@ -582,13 +605,13 @@ public class IgniteTeamcityHelper implements ITeamcity {
     /** {@inheritDoc} */
     @Override
     @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null, null);
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null);
     }
 
     /** {@inheritDoc} */
     @Override
-    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Long cnt, Integer sinceBuildId) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, cnt, sinceBuildId);
+    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId) {
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, sinceBuildId);
     }
 
     /** {@inheritDoc} */
@@ -607,12 +630,14 @@ public class IgniteTeamcityHelper implements ITeamcity {
             @Nullable final String projectId,
             @Nullable final String branch,
             @Nonnull final String state,
-            @Nullable final Long cnt,
             @Nullable final Integer sinceBuildId) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             false,
-            state, cnt, sinceBuildId);
+            state,
+            null,
+            null,
+            sinceBuildId);
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
 
@@ -624,7 +649,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             @Nullable final String branch,
             @Nonnull final String state) {
 
-        return getBuildsInState(projectId, branch, state, null, null);
+        return getBuildsInState(projectId, branch, state, null);
     }
 
     @Override
