@@ -486,7 +486,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
         String branchFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
         String sinceDateFilter = sinceDate == null ? "" : ",sinceDate:" + getDateYyyyMmDdTHhMmSsZ(sinceDate);
         String untilDateFilter = untilDate == null ? "" : ",untilDate:" + getDateYyyyMmDdTHhMmSsZ(untilDate);
-        String buildNoFilter = sinceBuildId == null ? "" : ",sinceBuild:(id:" + sinceBuildId + ")";
+        String buildNoFilter = sinceBuildId == null || !(sinceDateFilter.isEmpty() || untilDateFilter.isEmpty()) ?
+            "" : ",sinceBuild:(id:" + sinceBuildId + ")";
 
         return sendGetXmlParseJaxb(host + "app/rest/latest/builds"
             + "?locator="
