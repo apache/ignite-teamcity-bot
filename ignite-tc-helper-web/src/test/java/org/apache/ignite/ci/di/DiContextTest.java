@@ -19,7 +19,10 @@ package org.apache.ignite.ci.di;
 import com.google.common.base.Preconditions;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITcServerProvider;
+import org.apache.ignite.ci.TcHelper;
+import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.junit.Test;
@@ -58,9 +61,12 @@ public class DiContextTest {
         pool.stop();
     }
 
-    private void validateInstanceCachedFor(Injector injector, Class<?> type) {
-        Preconditions.checkState(injector.getInstance(type) == injector.getInstance(type),
+    private <T> T validateInstanceCachedFor(Injector injector, Class<T> type) {
+        final T firstInstance = injector.getInstance(type);
+        Preconditions.checkState(firstInstance == injector.getInstance(type),
                 "Instance not cached for type " + type);
+
+        return firstInstance;
     }
 
     @Test
@@ -100,5 +106,15 @@ public class DiContextTest {
 
         @MonitoredTask(name = TASK_NME)
         public void doSmth() {}
+    }
+
+    @Test
+    public void checkSingletonTcHelper() {
+        IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
+        Injector injector = Guice.createInjector(igniteTcBotModule);
+
+        validateInstanceCachedFor(injector, ITcHelper.class);
+
+        validateInstanceCachedFor(injector, BuildObserver.class).stop();
     }
 }

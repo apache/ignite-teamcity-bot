@@ -33,14 +33,17 @@ public class BuildObserver {
     private final Timer timer;
 
     /** Task, which should be done periodically. */
-    @Inject ObserverTask observerTask;
+    ObserverTask observerTask;
 
     /**
      */
-    public BuildObserver() {
+    @Inject
+    public BuildObserver( ObserverTask observerTask) {
         timer = new Timer();
 
         timer.schedule(observerTask, 0, period);
+
+        this.observerTask = observerTask;
     }
 
     /**
