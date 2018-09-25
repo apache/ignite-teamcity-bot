@@ -18,8 +18,8 @@
 package org.apache.ignite.ci.util;
 
 import com.google.common.base.Throwables;
-import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 
+import javax.ws.rs.ext.ExceptionMapper;
 import java.util.Optional;
 
 /**
@@ -33,15 +33,22 @@ public class ExceptionUtil {
         if (e instanceof InterruptedException)
             Thread.currentThread().interrupt();
 
-        final Optional<Throwable> any = Throwables.getCausalChain(e)
-            .stream()
-            .filter(th -> (th instanceof ServiceUnauthorizedException)).findAny();
-
-        if (any.isPresent())
-            return (RuntimeException)any.get();
+        throwIfRest(e);
 
         Throwables.throwIfUnchecked(e);
 
         throw new RuntimeException(e);
     }
+
+    public static void throwIfRest(Exception e) {
+        final Optional<Throwable> any = Throwables.getCausalChain(e)
+            .stream()
+            .filter(th ->
+                    (th instanceof ExceptionMapper)).findAny();
+
+        final RuntimeException eRest = (RuntimeException) any.orElse(null);
+        if (eRest != null)
+            throw eRest;
+    }
+
 }

@@ -341,7 +341,7 @@ public class RunStat {
                 detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, 0);
         }
         else {
-            //start from the end to find most recent
+            //startIgnite from the end to find most recent
             for (int idx = histAsArr.size() - template.length; idx >= 0; idx--) {
                 detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, idx);
 

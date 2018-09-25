@@ -38,6 +38,8 @@ function showErrInLoadStatus(jqXHR, exception) {
         }, 1000);
     } else if (jqXHR.status === 403) {
         $("#loadStatus").html('Forbidden [403]');
+    } else if( jqXHR.status === 418) {
+        $("#loadStatus").html('Services are starting [418], I\'m a teapot');
     } else if (jqXHR.status === 424) {
         $("#loadStatus").html('Dependency problem: [424]: ' + jqXHR.responseText);
     } else if (jqXHR.status === 500) {
@@ -127,7 +129,9 @@ function showMenu(menuData) {
             res += "<a onclick='authorizeServer()' href='javascript:void(0);'>Authorize Server</a>";
         }
 
-        res += "<a href='/user.html'>"+userName+"</a>";
+        res += "<a href='/monitoring.html'>Server state</a>";
+
+        res += "<a href='/user.html'>" + userName + "</a>";
         var logout = "/login.html" + "?exit=true&backref=" + encodeURIComponent(window.location.href);
         res += "<a href='" + logout + "'>Logout</a>";
 

@@ -54,6 +54,8 @@ import org.slf4j.LoggerFactory;
  * Migrations to be applied to each TC related caches.
  */
 public class DbMigrations {
+    public static final String BUILD_QUEUE = "buildQueue";
+    public static final String RUNNING_BUILDS = "runningBuilds";
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(DbMigrations.class);
 
@@ -183,7 +185,10 @@ public class DbMigrations {
         });
 
         applyMigration(newBuildsCache, () -> {
-            IgniteCache<String, Build> oldBuilds = getOrCreateIgnCacheV1(BUILD_RESULTS);
+            IgniteCache<String, Build> oldBuilds = ignite.cache(ignCacheNme(BUILD_RESULTS));
+
+            if (oldBuilds == null)
+                return;
 
             int size = oldBuilds.size();
             if (size > 0) {
@@ -278,7 +283,13 @@ public class DbMigrations {
 
         applyMigration(TEST_OCCURRENCE_FULL + "-to-" + testFullCache.getName() + "V2", () -> {
             String cacheNme = ignCacheNme(TEST_OCCURRENCE_FULL);
-            IgniteCache<String, TestOccurrenceFull> oldTestCache = ignite.getOrCreateCache(cacheNme);
+            IgniteCache<String, TestOccurrenceFull> oldTestCache = ignite.cache(cacheNme);
+
+            if (oldTestCache == null) {
+                System.err.println("cache not found");
+
+                return;
+            }
 
             int size = oldTestCache.size();
             if (size > 0) {
@@ -380,6 +391,27 @@ public class DbMigrations {
                 i++;
             }
         });
+
+        applyDestroyCacheMigration(RUNNING_BUILDS);
+
+        applyDestroyCacheMigration(BUILD_QUEUE);
+
+        applyDestroyCacheMigration(FINISHED_BUILDS_INCLUDE_FAILED);
+        applyDestroyCacheMigration(TEST_OCCURRENCE_FULL);
+    }
+
+    public void applyDestroyCacheMigration(String cacheName) {
+        applyMigration("destroy-" + cacheName, () -> {
+            IgniteCache<Object, Object> cache = ignite.cache(ignCacheNme(cacheName));
+
+            if (cache == null) {
+                System.err.println("cache not found");
+
+                return;
+            }
+
+            cache.destroy();
+        });
     }
 
     private <K, V> void applyV1toV2Migration(String full, Cache<K, V> cache) {
@@ -394,8 +426,11 @@ public class DbMigrations {
 
     private <K,V> void v1tov2cacheMigrate(String deprecatedCache, Cache<K, V> newCache) {
         String cacheNme = ignCacheNme(deprecatedCache);
-        IgniteCache<K, V> tests = ignite.getOrCreateCache(cacheNme);
+        IgniteCache<K, V> tests = ignite.cache(cacheNme);
 
+        if (tests == null) {
+            System.err.println("Cache not found");
+        }
 
         int size = tests.size();
         if (size > 0) {

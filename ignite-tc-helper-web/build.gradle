@@ -32,6 +32,7 @@ dependencies {
 
     compile group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
     compile group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
+    compile group: 'org.apache.ignite', name: 'ignite-direct-io', version: ignVer
 
     // MIT/X11 license, category A;
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
@@ -61,5 +62,6 @@ dependencies {
 
     compile group: 'com.ullink.slack', name: 'simpleslackapi', version: '1.2.0'
 
+    compile group: 'javax.inject', name: 'javax.inject', version: '1'
     compile group: 'com.google.inject', name: 'guice', version: '4.2.0'
 }

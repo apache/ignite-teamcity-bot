@@ -34,7 +34,7 @@ import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
+import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;

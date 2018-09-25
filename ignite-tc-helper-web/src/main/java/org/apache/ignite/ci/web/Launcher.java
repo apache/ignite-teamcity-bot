@@ -77,9 +77,11 @@ public class Launcher {
 
         };
 
+        /*
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             stopSilent(server);
         }));
+        */
 
         new Thread(r).start();
         server.start();

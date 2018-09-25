@@ -62,7 +62,12 @@ public class Ignite2Configurer {
 
         final String activeFileName = logFilePolicy.getActiveFileName();
 
-        rollingFa.setFile(new File(activeFileName).getAbsolutePath());
+        String absolutePath = new File(activeFileName).getAbsolutePath();
+
+        String absolutePath1 = new File(logs, "logfile-.log").getAbsolutePath();
+        System.out.println("Start logging using, policy [" + absolutePath + "] and static [" + absolutePath1 + "]");
+
+        rollingFa.setFile(absolutePath1);
 
         rollingFa.setRollingPolicy(logFilePolicy);
         rollingFa.start();

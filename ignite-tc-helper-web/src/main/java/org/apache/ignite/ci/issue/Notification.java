@@ -18,9 +18,26 @@
 package org.apache.ignite.ci.issue;
 
 import java.util.*;
+
+import org.apache.ignite.ci.util.TimeUtil;
 import org.apache.ignite.ci.web.model.Version;
 
+import static org.apache.ignite.ci.web.model.Version.GITHUB_REF;
+
 public class Notification {
+    private static final String DETECTED_ISSUE = "I've detected some new issue on TeamCity to be handled. " +
+            "You are more than welcomed to help.";
+
+    private static final String IF_YOUR_CHANGES = "If your changes can lead to this failure(s): " +
+            "We're grateful that you were a volunteer to make the contribution to this project, " +
+            "but things change and you may no longer be able to finalize your contribution.";
+
+    private static final String YOUR_ACTION = "Could you respond to this email and indicate if you wish to continue and fix test failures" +
+            " or step down and some committer may revert you commit. ";
+
+    private static final String HTC_REF = "https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute";
+
+
     String addr;
     Long ts;
 
@@ -88,37 +105,37 @@ public class Notification {
     }
 
     private String messageHeaderHtml() {
-        return "Hi Ignite Developer,<br><br>" +
-            "I am MTCGA.Bot, and I've detected some issue on TeamCity to be addressed. I hope you can help.<br><br>";
+        return "Hi Igniters,<br><br>" +
+                " " + DETECTED_ISSUE + "<br><br>" +
+                " " + IF_YOUR_CHANGES + "<br>" +
+                " " + YOUR_ACTION + "<br><br>";
     }
 
     private String messageHeaderPlainText() {
-        return "Hi Ignite Developer,\n\n" +
-            "I am MTCGA.Bot, and I've detected some issue on TeamCity to be addressed. I hope you can help.\n\n";
+        return "Hi Igniters,\n\n" +
+                " " + DETECTED_ISSUE + "\n\n" +
+                " " + IF_YOUR_CHANGES + "\n" +
+                " " + YOUR_ACTION + "\n\n";
     }
 
 
     private String messageTailPlainText() {
-        return "\t- If your changes can led to this failure(s), please create issue with label MakeTeamCityGreenAgain and assign it to you.\n" +
-            "\t-- If you have fix, please set ticket to PA state and write to dev list fix is ready \n" +
-            "\t-- For case fix will require some time please mute test and set label Muted_Test to issue \n" +
-            "\t- If you know which change caused failure please contact change author directly\n" +
-            "\t- If you don't know which change caused failure please send message to dev list to find out\n" +
-            "Should you have any questions please contact " + Version.DEFAULT_CONTACT + " \n" +
-            "Best Regards,\nMTCGA.Bot \n" +
-            "Notification generated at " + new Date(ts).toString() + " \n";
+        return  "\t - Here's a reminder of what contributors were agreed to do " +
+                HTC_REF + " \n" +
+                "\t - Should you have any questions please contact " + Version.DEFAULT_CONTACT + " \n\n" +
+                "Best Regards,\n" +
+                "Apache Ignite TeamCity Bot \n" +
+                GITHUB_REF + "\n" +
+                "Notification generated at " + TimeUtil.timestampToDateTimePrintable(ts) + " \n";
     }
 
     private String messageTailHtml() {
-        return "<ul><li>If your changes can led to this failure(s), please create issue with label MakeTeamCityGreenAgain and assign it to you." +
-            "<ul><li>If you have fix, please set ticket to PA state and write to dev list fix is ready</li>" +
-            "<li>For case fix will require some time please mute test and set label Muted_Test to issue</li>" +
-            "</ul></li>" +
-            "<li>If you know which change caused failure please contact change author directly</li>" +
-            "<li>If you don't know which change caused failure please send message to dev list to find out</li></ul><br>" +
-            "Should you have any questions please contact " + Version.DEFAULT_CONTACT + " <br><br>" +
-            "Best Regards,<br>MTCGA.Bot<br>" +
-            "Notification generated at " + new Date(ts).toString() + "<br>";
+        return "<ul><li>Here's a reminder of what contributors were agreed to do " +
+                "<a href='" + HTC_REF + "'>How to Contribute</a>." + "</li>" +
+                "<li>Should you have any questions please contact " + Version.DEFAULT_CONTACT + " </li></ul><br>" +
+                "Best Regards,<br>" +
+                "<a href='" + GITHUB_REF + "'>Apache Ignite TeamCity Bot<a><br>" +
+                "Notification generated at " + TimeUtil.timestampToDateTimePrintable(ts) + "<br>";
     }
 
     public String countIssues() {

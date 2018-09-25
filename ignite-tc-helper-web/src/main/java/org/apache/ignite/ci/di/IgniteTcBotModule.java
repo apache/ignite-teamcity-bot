@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.di;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.inject.AbstractModule;
 import com.google.inject.matcher.Matchers;
@@ -24,29 +25,35 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class IgniteTcBotModule extends AbstractModule {
-    @Deprecated
-    private Ignite ignite;
+    private Future<Ignite> igniteFuture;
 
     /** {@inheritDoc} */
     @Override
     protected void configure() {
-        ProfilingInterceptor profilingInterceptor = new ProfilingInterceptor();
+        configProfiling();
+        configTaskMonitor();
 
-        bindInterceptor(Matchers.any(),
-                Matchers.annotatedWith(AutoProfiling.class),
-                profilingInterceptor);
+        bind(Ignite.class).toProvider((Provider<Ignite>) () -> {
+            Preconditions.checkNotNull(igniteFuture, "Ignite future is not yet initialized");
 
-        bind(ProfilingInterceptor.class).toInstance(profilingInterceptor);
+            try {
+                return igniteFuture.get(10, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                throw new ServiceStartingException(e);
+            } catch (Exception e) {
+                e.printStackTrace();
 
-        bind(Ignite.class).toProvider(new Provider<Ignite>() {
-            @Override
-            public Ignite get() {
-                return ignite;
+                throw ExceptionUtil.propagateException(e);
             }
         });
 
@@ -54,18 +61,37 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(ITeamcity.class).to(IgniteTeamcityHelper.class);
         //With REST persistence
         bind(IAnalyticsEnabledTeamcity.class).to(IgnitePersistentTeamcity.class);
-        bind(IServerProv.class).toInstance(
-                new MyIServerProv()
+        bind(IServerFactory.class).toInstance(
+                new MyIServerFactory()
         );
     }
 
-    @Deprecated
-    public void setIgnite(Ignite ignite) {
+    private void configProfiling() {
+        AutoProfilingInterceptor profilingInterceptor = new AutoProfilingInterceptor();
 
-        this.ignite = ignite;
+        bindInterceptor(Matchers.any(),
+                Matchers.annotatedWith(AutoProfiling.class),
+                profilingInterceptor);
+
+        bind(AutoProfilingInterceptor.class).toInstance(profilingInterceptor);
     }
 
-    private static class MyIServerProv implements IServerProv {
+
+    private void configTaskMonitor() {
+        MonitoredTaskInterceptor profilingInterceptor = new MonitoredTaskInterceptor();
+
+        bindInterceptor(Matchers.any(),
+                Matchers.annotatedWith(MonitoredTask.class),
+                profilingInterceptor);
+
+        bind(MonitoredTaskInterceptor.class).toInstance(profilingInterceptor);
+    }
+
+    public void setIgniteFuture(Future<Ignite> igniteFuture) {
+        this.igniteFuture = igniteFuture;
+    }
+
+    private static class MyIServerFactory implements IServerFactory {
         @Inject
         Provider<IAnalyticsEnabledTeamcity> tcPersistProv;
 

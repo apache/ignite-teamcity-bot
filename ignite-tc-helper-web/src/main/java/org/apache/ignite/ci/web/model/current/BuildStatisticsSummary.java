@@ -96,7 +96,7 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
         testOccurrences = build.testOccurrences;
 
         durationPrintable = TimeUtil
-            .getDurationPrintable(build.getFinishDate().getTime() - build.getStartDate().getTime());
+            .millisToDurationPrintable(build.getFinishDate().getTime() - build.getStartDate().getTime());
 
         List<BuildRef> snapshotDependencies = getSnapshotDependencies(teamcity, build);
 

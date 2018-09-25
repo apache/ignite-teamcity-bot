@@ -21,21 +21,28 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 
 import javax.cache.Cache;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.ignite.ci.db.TcHelperDb;
 
 import static org.apache.ignite.ci.IgnitePersistentTeamcity.BOT_DETECTED_ISSUES;
 
 public class IssuesStorage {
-    private Ignite ignite;
+    @Inject
+    private Provider<Ignite> igniteProvider;
 
-    public IssuesStorage(Ignite ignite) {
-        this.ignite = ignite;
+    public IssuesStorage() {
     }
 
     IgniteCache<IssueKey, Issue> cache() {
-        return botDetectedIssuesCache(ignite);
+        return botDetectedIssuesCache(getIgnite());
+    }
+
+    private Ignite getIgnite() {
+        return igniteProvider.get();
     }
 
     public static IgniteCache<IssueKey, Issue> botDetectedIssuesCache(Ignite ignite) {

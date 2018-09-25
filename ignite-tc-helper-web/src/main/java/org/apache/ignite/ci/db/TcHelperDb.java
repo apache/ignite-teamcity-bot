@@ -17,7 +17,6 @@
 
 package org.apache.ignite.ci.db;
 
-import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,7 +25,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
-import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.web.model.Version;
 import org.apache.ignite.configuration.*;
 import org.apache.ignite.logger.slf4j.Slf4jLogger;
 import org.apache.ignite.spi.IgniteSpiContext;
@@ -35,21 +34,17 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.jetbrains.annotations.NotNull;
 
-import org.slf4j.LoggerFactory;
-
 import static org.apache.ignite.ci.web.Launcher.waitStopSignal;
 
 /**
  *
  */
 public class TcHelperDb {
-       /** Logger. */
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(TcHelperDb.class);
 
     public static void main(String[] args) {
-        Ignite ignite = start();
+        Ignite ignite = new Ignite1Init().startIgnite();
 
-        System.out.println("Starting Ignite DB only");
+        System.out.println("Starting Ignite DB only, " + Version.VERSION);
 
         Runnable r = () -> {
             boolean stop = waitStopSignal();
@@ -67,38 +62,6 @@ public class TcHelperDb {
         new Thread(r).start();
     }
 
-    public static Ignite start() {
-        final File workDir = HelperConfig.resolveWorkDir();
-        Ignite2Configurer.configLogger(workDir, "tchelper_logs");
-
-        final IgniteConfiguration cfg = new IgniteConfiguration();
-        Ignite2Configurer.setIgniteHome(cfg, workDir);
-
-        setupDisco(cfg);
-        cfg.setConsistentId("TcHelper");
-        cfg.setGridLogger(new Slf4jLogger());
-
-        final DataRegionConfiguration regConf = Ignite2Configurer.getDataRegionConfiguration();
-
-        final DataStorageConfiguration dsCfg = Ignite2Configurer.getDataStorageConfiguration(regConf);
-
-        dsCfg.setPageSize(4 * 1024);
-
-        cfg.setDataStorageConfiguration(dsCfg);
-
-        System.out.println("Starting Ignite Server Node");
-
-        final Ignite ignite = Ignition.start(cfg);
-
-        System.out.println("Activating Ignite Server Node");
-
-        ignite.cluster().active(true);
-
-        System.out.println("Activate Completed");
-
-        return ignite;
-    }
-
     public static Ignite startClient() {
         final IgniteConfiguration cfg = new IgniteConfiguration();
 
@@ -113,9 +76,8 @@ public class TcHelperDb {
         return ignite;
     }
 
-    private static void setupDisco(IgniteConfiguration cfg) {
-        final int locPort = 54433;
-        setupSinglePortDisco(cfg, locPort);
+    public static void setupDisco(IgniteConfiguration cfg) {
+        setupSinglePortDisco(cfg, 54433);
     }
 
     private static void setupSinglePortDisco(IgniteConfiguration cfg, int locPort) {

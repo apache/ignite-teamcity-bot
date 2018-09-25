@@ -32,7 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.TimeUnit;
-import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
+import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

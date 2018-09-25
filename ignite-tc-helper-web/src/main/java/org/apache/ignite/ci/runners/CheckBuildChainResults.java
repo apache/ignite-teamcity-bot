@@ -40,6 +40,7 @@ import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
+import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -114,8 +115,7 @@ public class CheckBuildChainResults {
     }
 
     public static void main(String[] args) throws Exception {
-
-        Ignite ignite = TcHelperDb.start();
+        Ignite ignite = new Ignite1Init().startIgnite();
         BuildMetricsHistory history;
         try {
             history = new BuildMetricsHistory();

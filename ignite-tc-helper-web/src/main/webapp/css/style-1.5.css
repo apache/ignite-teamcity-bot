@@ -24,6 +24,20 @@ table, tr, td {
  	border-spacing: 0px;
 }
 
+table.stat td, th {
+
+	padding: 10px 5px 10px 5px;
+}
+
+table.stat th {
+	text-align: left;
+	padding: 5px;
+	background-color: #f5f5ff;
+	color: #000000;
+}
+
+table.stat tr:nth-child(odd) { background-color: #fafaff; }
+
 .table-title
 {
 	border: solid black;
@@ -33,7 +47,6 @@ table, tr, td {
 }
 
 .logMsg {
-	font-family: Arial;
 	font-size: 12px;
 	font-family:'Lucida Console',
     monospace
@@ -80,7 +93,7 @@ table, tr, td {
 
 /* Right-aligned section inside the top navigation */
 .topnav-right {
-  float: right;
+    float: right;
 }
 
 form ul

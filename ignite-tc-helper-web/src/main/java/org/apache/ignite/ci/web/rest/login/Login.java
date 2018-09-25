@@ -30,6 +30,7 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.user.LoginResponse;
 import org.apache.ignite.ci.user.UserSession;
 import org.apache.ignite.ci.web.model.ServerDataResponse;
+import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
@@ -38,7 +39,6 @@ import javax.ws.rs.core.Context;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 
 @Path("login")
 @Produces("application/json")

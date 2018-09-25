@@ -27,9 +27,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.Ignite;
+
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.conf.BranchTracked;
@@ -106,7 +105,7 @@ public class TopTests {
         FailingTest e = new FailingTest();
         e.name = stat.name();
         e.failureRate = stat.getFailPercentPrintable();
-        e.averageDuration = TimeUtil.getDurationPrintable(stat.getAverageDurationMs());
+        e.averageDuration = TimeUtil.millisToDurationPrintable(stat.getAverageDurationMs());
         return e;
     }
 

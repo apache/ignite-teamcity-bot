@@ -14,15 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.di;
 
-package org.apache.ignite.ci.web;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 
-import org.apache.ignite.ci.db.Ignite1Init;
-
-public class LauncherIgniteClientMode {
-    public static void main(String[] args) throws Exception {
-        Ignite1Init.setClientMode(true);
-
-        Launcher.runServer(true);
-    }
+public interface IServerFactory {
+    IAnalyticsEnabledTeamcity createServer(String serverId);
 }

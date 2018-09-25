@@ -40,7 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Component for storing catchable results into ignite and get updates
+ * Component for storing catchable results into guava in mem-caches and get updates
  */
 public class BackgroundUpdater {
     /** Logger. */
