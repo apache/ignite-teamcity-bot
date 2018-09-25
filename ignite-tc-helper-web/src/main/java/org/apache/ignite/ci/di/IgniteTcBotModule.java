@@ -75,6 +75,16 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(IJiraIntegration.class).to(Jira.class).in(new SingletonScope());
     }
 
+    //todo fallback to TC big class
+    private static class Jira implements IJiraIntegration {
+        @Inject ITcHelper helper;
+
+        @Override public boolean notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
+            String ticket) {
+            return helper.notifyJira(srvId, prov, buildTypeId, branchForTc, ticket);
+        }
+    }
+
     private void configProfiling() {
         AutoProfilingInterceptor profilingInterceptor = new AutoProfilingInterceptor();
 
