@@ -443,50 +443,59 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 idUntil = idUntil == -2 ? buildRefs.size() - 1 : idUntil;
             }
 
-            if (idSince == -1 || idUntil == -1)
-                return Collections.emptyList();
-            else if (idSince == -3 || idUntil == -3) {
+            if (idSince == -3 || idUntil == -3) {
                 AtomicBoolean stopFilter = new AtomicBoolean();
                 AtomicBoolean addBuild = new AtomicBoolean();
 
-                    return buildRefs.stream()
-                        .filter(b -> {
-                            if (stopFilter.get())
-                                return addBuild.get();
+                return buildRefs.stream()
+                    .filter(b -> {
+                        if (stopFilter.get())
+                            return addBuild.get();
 
-                            Build build = getBuild(b.href);
+                        Build build = getBuild(b.href);
 
-                            if (build == null || build.isFakeStub())
-                                return false;
+                        if (build == null || build.isFakeStub())
+                            return false;
 
-                            Date date = build.getFinishDate();
+                        Date date = build.getFinishDate();
 
-                            if (sinceDate != null && untilDate != null)
-                                return (date.after(sinceDate) || date.equals(sinceDate)) &&
-                                    (date.before(untilDate) || date.equals(untilDate));
-                            else if (sinceDate != null) {
-                                if (date.after(sinceDate) || date.equals(sinceDate)) {
-                                    stopFilter.set(true);
-                                    addBuild.set(true);
-
-                                    return true;
-                                }
-
-                                return false;
-                            }
+                        if (sinceDate != null && untilDate != null)
+                            if ((date.after(sinceDate) || date.equals(sinceDate)) &&
+                                (date.before(untilDate) || date.equals(untilDate)))
+                                return true;
                             else {
                                 if (date.after(untilDate)) {
                                     stopFilter.set(true);
                                     addBuild.set(false);
-
-                                    return false;
                                 }
+
+                                return false;
+                            }
+                        else if (sinceDate != null) {
+                            if (date.after(sinceDate) || date.equals(sinceDate)) {
+                                stopFilter.set(true);
+                                addBuild.set(true);
 
                                 return true;
                             }
-                        })
-                        .collect(Collectors.toList());
-                }
+
+                            return false;
+                        }
+                        else {
+                            if (date.after(untilDate)) {
+                                stopFilter.set(true);
+                                addBuild.set(false);
+
+                                return false;
+                            }
+
+                            return true;
+                        }
+                    })
+                    .collect(Collectors.toList());
+            }
+            else if (idSince == -1 || idUntil == -1)
+                return Collections.emptyList();
             else
                 return buildRefs.subList(idSince, idUntil + 1);
         }
