@@ -466,14 +466,15 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return XmlUtil.load(rootElem, reader);
     }
 
-    private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
-        @Nullable String branchName,
-        boolean dfltFilter,
-        @Nullable String state){
-
-        return getBuildHistory(buildTypeId, branchName, dfltFilter, state, null, null, null);
-    }
-
+    /**
+     * @param buildTypeId Build type id.
+     * @param branchName Branch name.
+     * @param dfltFilter Default filter.
+     * @param state State.
+     * @param sinceDate Since date.
+     * @param untilDate Until date.
+     * @param sinceBuildId Since build id. Value is ignored if dates filter is present.
+     */
     private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
         @Nullable String branchName,
         boolean dfltFilter,
@@ -481,12 +482,13 @@ public class IgniteTeamcityConnection implements ITeamcity {
         @Nullable Date sinceDate,
         @Nullable Date untilDate,
         @Nullable Integer sinceBuildId)  {
-        String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId + "";
+        String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId;
         String stateFilter = isNullOrEmpty(state) ? "" : (",state:" + state);
         String branchFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
         String sinceDateFilter = sinceDate == null ? "" : ",sinceDate:" + getDateYyyyMmDdTHhMmSsZ(sinceDate);
         String untilDateFilter = untilDate == null ? "" : ",untilDate:" + getDateYyyyMmDdTHhMmSsZ(untilDate);
-        String buildNoFilter = sinceBuildId == null ? "" : ",sinceBuild:(id:" + sinceBuildId + ")";
+        String buildNoFilter = sinceBuildId != null && sinceDateFilter.isEmpty() && untilDateFilter.isEmpty()
+            ? ",sinceBuild:(id:" + sinceBuildId + ")" : "";
 
         return sendGetXmlParseJaxb(host + "app/rest/latest/builds"
             + "?locator="
@@ -580,9 +582,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override
     @AutoProfiling
-    public List<BuildRef> getFinishedBuilds(String projectId,
+    @Override public List<BuildRef> getFinishedBuilds(String projectId,
                                             String branch,
                                             Date sinceDate,
                                             Date untilDate,
@@ -599,14 +600,13 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override
-    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
+    @AutoProfiling @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
         return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null);
     }
 
     /** {@inheritDoc} */
-    @Override
-    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId) {
+
+    @AutoProfiling @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId) {
         return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, sinceBuildId);
     }
 
