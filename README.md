@@ -1,6 +1,6 @@
 # ignite-teamcity-helper
 
-Ignite TC Helper/MTCGA.bot is [Apache Ignite](https://ignite.apache.org/)-based cache over [JetBrains TeamCity](https://jetbrains.ru/products/teamcity/) server(s).
+[Apache Ignite Teamcity Bot](https://cwiki.apache.org/confluence/display/IGNITE/Apache+Ignite+Teamcity+Bot) (MTCGA.bot) is [Apache Ignite](https://ignite.apache.org/)-based cache over [JetBrains TeamCity](https://jetbrains.ru/products/teamcity/) server(s).
 
 This tool intended to monitor [Apache Ignite Teamcity](https://ci.ignite.apache.org/) where [Apache Ignite](https://ignite.apache.org/) is tested.
 
@@ -23,6 +23,13 @@ The bot will create necessary configs in ~/.ignite-teamcity-helper - it is bot H
 In can be changed with org.apache.ignite.ci.ITcHelper.TEAMCITY_HELPER_HOME system property.
 
 Examples of configs can be found in [conf](conf) directory.
+
+### Code inspections, styles and abbreviation rules.
+[Code style](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines) is inherited from Apache Ignite.
+Please install following components for development using IntelliJ IDEA
+* Install [Abbreviation Plugin](https://cwiki.apache.org/confluence/display/IGNITE/Abbreviation+Rules#AbbreviationRules-IntelliJIdeaPlugin)
+* Apply [Code Inspection Profile](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines#CodingGuidelines-C.CodeInspection)
+* Configure [IDEA Codestyle](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines#CodingGuidelines-A.ConfigureIntelliJIDEAcodestyle)
 
 ### Build
 Build can be done using following commands

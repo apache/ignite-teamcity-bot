@@ -534,41 +534,44 @@ public class IgniteTeamcityConnection implements ITeamcity {
             return new ProblemOccurrences();
     }
 
-    @Override
+    /** {@inheritDoc} */
     @AutoProfiling
-    public TestOccurrences getTests(String href, String normalizedBranch) {
+    @Override public TestOccurrences getTests(String href, String normalizedBranch) {
         return getJaxbUsingHref(href, TestOccurrences.class);
     }
 
-    @Override
+    /** {@inheritDoc} */
     @AutoProfiling
-    public Statistics getBuildStatistics(String href) {
+    @Override public Statistics getBuildStatistics(String href) {
         return getJaxbUsingHref(href, Statistics.class);
     }
 
-    @Override
+    /** {@inheritDoc} */
     @AutoProfiling
-    public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
+    @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
         return supplyAsync(() -> getJaxbUsingHref(href, TestOccurrenceFull.class), executor);
     }
 
-    @Override
+    /** {@inheritDoc} */
     @AutoProfiling
-    public Change getChange(String href) {
+    @Override public Change getChange(String href) {
         return getJaxbUsingHref(href, Change.class);
     }
 
-    @Override
+    /** {@inheritDoc} */
     @AutoProfiling
-    public ChangesList getChangesList(String href) {
+    @Override public ChangesList getChangesList(String href) {
         return getJaxbUsingHref(href, ChangesList.class);
     }
 
     /** {@inheritDoc} */
-    @Override
     @AutoProfiling
-    public IssuesUsagesList getIssuesUsagesList(String href) { return getJaxbUsingHref(href, IssuesUsagesList.class); }
+    @Override public IssuesUsagesList getIssuesUsagesList(String href) { return getJaxbUsingHref(href, IssuesUsagesList.class); }
 
+    /**
+     * @param href Href.
+     * @param elem Element class.
+     */
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {
         return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), elem);
     }
@@ -600,13 +603,14 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @AutoProfiling @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
+    @AutoProfiling
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
         return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null);
     }
 
     /** {@inheritDoc} */
-
-    @AutoProfiling @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId) {
+    @AutoProfiling
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId) {
         return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, sinceBuildId);
     }
 
