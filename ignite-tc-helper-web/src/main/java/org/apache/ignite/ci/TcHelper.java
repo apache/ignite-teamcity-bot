@@ -189,10 +189,7 @@ public class TcHelper implements ITcHelper {
                 return false;
             }
 
-            if ("finished".equals(build.state))
-                return teamcity.sendJiraComment(ticket, comment);
-
-            return false;
+            return teamcity.sendJiraComment(ticket, comment);
         }
     }
 
