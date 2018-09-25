@@ -24,6 +24,11 @@ import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.junit.Test;
 
+import java.util.Collection;
+import java.util.Iterator;
+
+import static org.junit.Assert.assertTrue;
+
 public class DiContextTest {
     /**
      *
@@ -53,8 +58,47 @@ public class DiContextTest {
         pool.stop();
     }
 
-    public void validateInstanceCachedFor(Injector injector, Class<?> type) {
+    private void validateInstanceCachedFor(Injector injector, Class<?> type) {
         Preconditions.checkState(injector.getInstance(type) == injector.getInstance(type),
                 "Instance not cached for type " + type);
+    }
+
+    @Test
+    public void testMonitoring() {
+        IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
+        final Injector injector = Guice.createInjector(igniteTcBotModule);
+        final MonitorTest instance = injector.getInstance(MonitorTest.class);
+        final String parameter = "parameter";
+        instance.doSmth(parameter);
+        instance.doSmth();
+        final MonitoredTaskInterceptor interceptor = injector.getInstance(MonitoredTaskInterceptor.class);
+        final Collection<MonitoredTaskInterceptor.Invocation> list = interceptor.getList();
+
+        boolean foundPar = false, found = false;
+        for (MonitoredTaskInterceptor.Invocation next : list) {
+            final String fullParametrized = MonitorTest.TASK_NME + "." + parameter;
+            if (fullParametrized.equals(next.name())) {
+                foundPar = true;
+            }
+
+            if (MonitorTest.TASK_NME .equals(next.name())) {
+                found  = true;
+            }
+        }
+
+        assertTrue(foundPar);
+        assertTrue(found);
+    }
+
+    public static class MonitorTest {
+
+        public static final String TASK_NME = "test";
+
+        @MonitoredTask(name = TASK_NME, nameExtArgIndex=0)
+        public void doSmth(String parameter) {}
+
+
+        @MonitoredTask(name = TASK_NME)
+        public void doSmth() {}
     }
 }

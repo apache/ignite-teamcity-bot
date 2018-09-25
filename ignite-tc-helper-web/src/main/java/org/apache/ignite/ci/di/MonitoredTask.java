@@ -24,4 +24,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.METHOD)
 public @interface MonitoredTask {
     String name() default "";
+
+    /**
+     * Argument index to be used to extend name.
+     */
+    int nameExtArgIndex() default  -1;
 }
