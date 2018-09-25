@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.NotThreadSafe;
-import org.apache.ignite.ci.IgniteTeamcityHelper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

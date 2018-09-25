@@ -35,6 +35,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
@@ -73,23 +74,20 @@ public class IssueDetector {
     /**Slack prefix, using this for email address will switch notifier to slack (if configured). */
     private static final String SLACK = "slack:";
 
-    @Inject
-    private IssuesStorage issuesStorage;
-    @Inject
-    private UserAndSessionsStorage userStorage;
+    @Inject private IssuesStorage issuesStorage;
+    @Inject private UserAndSessionsStorage userStorage;
 
     private final AtomicBoolean init = new AtomicBoolean();
     private ICredentialsProv backgroundOpsCreds;
     private ITcHelper backgroundOpsTcHelper;
     private ScheduledExecutorService executorService;
 
-    @Inject
-    private Provider<CheckQueueJob> checkQueueJobProv;
+    @Inject private Provider<CheckQueueJob> checkQueueJobProv;
 
     public IssueDetector() {
     }
 
-    private void registerIssuesLater(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
+    private void registerIssuesLater(TestFailuresSummary res, ITcServerProvider helper, ICredentialsProv creds) {
         if (!FullQueryParams.DEFAULT_BRANCH_NAME.equals(res.getTrackedBranch()))
             return;
 
@@ -200,17 +198,23 @@ public class IssueDetector {
         return res.toString();
     }
 
+    /**
+     * @param res summary of failures in test
+     * @param srvProvider Server provider.
+     * @param creds
+     * @return
+     */
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @AutoProfiling
     @MonitoredTask(name = "Register new issues")
-    protected String registerNewIssues(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
+    protected String registerNewIssues(TestFailuresSummary res, ITcServerProvider srvProvider, ICredentialsProv creds) {
         int newIssues = 0;
 
         for (ChainAtServerCurrentStatus next : res.servers) {
             if(!creds.hasAccess(next.serverId))
                 continue;
 
-            IAnalyticsEnabledTeamcity teamcity = helper.server(next.serverId, creds);
+            IAnalyticsEnabledTeamcity teamcity = srvProvider.server(next.serverId, creds);
 
             for (SuiteCurrentStatus suiteCurrentStatus : next.suites) {
 
@@ -360,6 +364,9 @@ public class IssueDetector {
         return true;
     }
 
+    /**
+     *
+     */
     public boolean isAuthorized() {
         return backgroundOpsCreds != null && backgroundOpsTcHelper != null;
     }

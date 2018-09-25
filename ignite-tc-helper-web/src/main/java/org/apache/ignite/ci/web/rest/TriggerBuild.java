@@ -67,12 +67,12 @@ public class TriggerBuild {
 
         ITcHelper helper = CtxListener.getTcHelper(context);
 
-        try (final ITeamcity teamcity = helper.server(srvId, prov)) {
-            Build build = teamcity.triggerBuild(suiteId, branchForTc, false, top != null && top);
+        final ITeamcity teamcity = helper.server(srvId, prov);
 
-            if (observe != null && observe)
-                jiraRes = observeJira(srvId, branchForTc, ticketId, helper, teamcity, build, prov);
-        }
+        Build build = teamcity.triggerBuild(suiteId, branchForTc, false, top != null && top);
+
+        if (observe != null && observe)
+            jiraRes = observeJira(srvId, branchForTc, ticketId, helper, teamcity, build, prov);
 
         return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
@@ -106,21 +106,22 @@ public class TriggerBuild {
         ITcHelper helper = CtxListener.getTcHelper(context);
         String jiraRes = "";
 
-        try (final ITeamcity teamcity = helper.server(srvId, prov)) {
-            if (Strings.isNullOrEmpty(ticketId)) {
-                PullRequest pr = teamcity.getPullRequest(branchForTc);
+        final ITeamcity teamcity = helper.server(srvId, prov);
 
-                ticketId = getTicketId(pr);
+        if (Strings.isNullOrEmpty(ticketId)) {
+            PullRequest pr = teamcity.getPullRequest(branchForTc);
 
-                if (ticketId.isEmpty()) {
-                    jiraRes = "JIRA ticket can't be commented - " +
-                        "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
-                        " Please, rename PR according to the" +
-                        " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
-                        "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>" +
-                        " or enter ticket id in the form.";
-                }
+            ticketId = getTicketId(pr);
+
+            if (ticketId.isEmpty()) {
+                jiraRes = "JIRA ticket can't be commented - " +
+                    "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
+                    " Please, rename PR according to the" +
+                    " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
+                    "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>" +
+                    " or enter ticket id in the form.";
             }
+
         }
 
         if (helper.notifyJira(srvId, prov, suiteId, branchForTc, "ignite-" + ticketId))
@@ -198,22 +199,22 @@ public class TriggerBuild {
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        if(!prov.hasAccess(serverId)) {
+        if (!prov.hasAccess(serverId))
             throw ServiceUnauthorizedException.noCreds(serverId);
-        }
 
         List<String> strings = Arrays.asList(suiteIdList.split(","));
         if (strings.isEmpty())
             return new SimpleResult("Error: nothing to run");
 
-        try (final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId, prov)) {
-            boolean queueToTop = top != null && top;
+        final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId, prov);
 
-            for (String suiteId : strings) {
-                System.out.println("Triggering [ " + suiteId + "," + branchName + "," + "top=" + queueToTop + "]");
+        boolean queueToTop = top != null && top;
 
-                helper.triggerBuild(suiteId, branchName, false, queueToTop);
-            }
+        for (String suiteId : strings) {
+            System.out.println("Triggering [ " + suiteId + "," + branchName + "," + "top=" + queueToTop + "]");
+
+            helper.triggerBuild(suiteId, branchName, false, queueToTop);
+
         }
 
         return new SimpleResult("OK");

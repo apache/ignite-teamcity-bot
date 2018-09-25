@@ -30,7 +30,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
@@ -44,7 +44,7 @@ public class IgniteTeamcityHelperRunnerExample {
     public static void main(String[] args) throws Exception {
         String serverIdPriv = "private";
         String serverIdPub = "public";
-        final IgniteTeamcityHelper helper = new IgniteTeamcityHelper(serverIdPub); //public_auth_properties
+        final IgniteTeamcityConnection helper = new IgniteTeamcityConnection(serverIdPub); //public_auth_properties
 
         int k = 0;
         if (k > 0) {
@@ -107,7 +107,7 @@ public class IgniteTeamcityHelperRunnerExample {
         }
     }
 
-    private static void checkBuildTypes(IgniteTeamcityHelper helper) throws InterruptedException, ExecutionException {
+    private static void checkBuildTypes(IgniteTeamcityConnection helper) throws InterruptedException, ExecutionException {
         Map<String, Set<String>> duplicates = new TreeMap<>();
         Map<String, String> suiteToBt = new TreeMap<>();
         List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests").get();

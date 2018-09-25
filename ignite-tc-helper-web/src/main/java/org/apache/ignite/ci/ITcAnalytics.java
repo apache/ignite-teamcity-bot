@@ -24,7 +24,7 @@ import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 
-public interface ITcAnalytics extends AutoCloseable {
+public interface ITcAnalytics {
     List<RunStat> topTestFailing(int cnt);
 
     List<RunStat> topTestsLongRunning(int cnt);
@@ -51,6 +51,4 @@ public interface ITcAnalytics extends AutoCloseable {
      * @param ctx Context as provider build data.
      */
     void calculateBuildStatistic(SingleBuildRunCtx ctx);
-
-    @Override void close();
 }

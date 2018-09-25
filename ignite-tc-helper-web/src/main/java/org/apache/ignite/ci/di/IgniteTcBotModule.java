@@ -19,20 +19,19 @@ package org.apache.ignite.ci.di;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.inject.AbstractModule;
+import com.google.inject.Injector;
+import com.google.inject.internal.SingletonScope;
 import com.google.inject.matcher.Matchers;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
-import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.*;
+import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 public class IgniteTcBotModule extends AbstractModule {
     private Future<Ignite> igniteFuture;
@@ -58,12 +57,13 @@ public class IgniteTcBotModule extends AbstractModule {
         });
 
         //Simple connection
-        bind(ITeamcity.class).to(IgniteTeamcityHelper.class);
+        bind(ITeamcity.class).to(IgniteTeamcityConnection.class);
         //With REST persistence
         bind(IAnalyticsEnabledTeamcity.class).to(IgnitePersistentTeamcity.class);
-        bind(IServerFactory.class).toInstance(
-                new MyIServerFactory()
-        );
+        bind(IServerFactory.class).to(InitializingServerFactory.class).in(new SingletonScope());
+        bind(ITcServerProvider.class).to(TcServerCachingProvider.class).in(new SingletonScope());
+        bind(TcUpdatePool.class).in(new SingletonScope());
+       //todo bind(IssueDetector.clas)
     }
 
     private void configProfiling() {
@@ -91,12 +91,23 @@ public class IgniteTcBotModule extends AbstractModule {
         this.igniteFuture = igniteFuture;
     }
 
-    private static class MyIServerFactory implements IServerFactory {
+    public Injector startIgniteInit(Injector injector) {
+        final Ignite1Init instance = injector.getInstance(Ignite1Init.class);
+        final Future<Ignite> submit = instance.getIgniteFuture();
+        setIgniteFuture(submit);
+
+        return injector;
+    }
+
+    private static class InitializingServerFactory implements IServerFactory {
         @Inject
         Provider<IAnalyticsEnabledTeamcity> tcPersistProv;
 
         @Inject
         Provider<ITeamcity> tcConnProv;
+
+        @Inject
+        TcUpdatePool tcUpdatePool;
 
         @Override
         public IAnalyticsEnabledTeamcity createServer(String serverId) {
@@ -105,6 +116,8 @@ public class IgniteTcBotModule extends AbstractModule {
 
             IAnalyticsEnabledTeamcity instance = tcPersistProv.get();
             instance.init(tcConn);
+
+            instance.setExecutor(tcUpdatePool.getService());
 
             return instance;
         }

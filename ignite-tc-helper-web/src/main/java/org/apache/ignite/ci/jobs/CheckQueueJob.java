@@ -26,6 +26,7 @@ import com.google.common.base.Strings;
 import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
@@ -60,7 +61,7 @@ public class CheckQueueJob implements Runnable {
     private ICredentialsProv creds;
 
     /** */
-    private ITcHelper tcHelper;
+    private ITcServerProvider tcHelper;
 
     /** */
     private final Map<ChainAtServerTracked, Long> startTimes = new HashMap<>();
@@ -68,7 +69,7 @@ public class CheckQueueJob implements Runnable {
     /**
      * @param creds Background credentials provider.
      */
-    public void init(ITcHelper tcHelper, ICredentialsProv creds) {
+    public void init(ITcServerProvider tcHelper, ICredentialsProv creds) {
         this.creds = creds;
         this.tcHelper = tcHelper;
     }

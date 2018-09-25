@@ -55,11 +55,10 @@ public class TopTests {
         @Nullable @QueryParam("count") Integer count) {
         final List<FailingTest> res = new ArrayList<>();
         for (ChainAtServerTracked chainTracked : branchMandatory(branchOrNull).chains) {
-            try (ITcAnalytics teamcity = CtxListener.getTcHelper(context).tcAnalytics( chainTracked.serverId)) {
+            ITcAnalytics teamcity = CtxListener.getTcHelper(context).tcAnalytics(chainTracked.serverId);
 
-                int cnt = count == null ? 10 : count;
-                teamcity.topTestFailing(cnt).stream().map(this::converToUiModel).forEach(res::add);
-            }
+            int cnt = count == null ? 10 : count;
+            teamcity.topTestFailing(cnt).stream().map(this::converToUiModel).forEach(res::add);
         }
         return res;
     }
@@ -71,10 +70,10 @@ public class TopTests {
         @Nullable @QueryParam("count") Integer count) {
         final List<FailingTest> res = new ArrayList<>();
         for (ChainAtServerTracked chainTracked : branchMandatory(branchOrNull).chains) {
-            try (ITcAnalytics teamcity = CtxListener.getTcHelper(context).tcAnalytics(chainTracked.serverId)) {
-                int cnt = count == null ? 10 : count;
-                teamcity.topFailingSuite(cnt).stream().map(this::converToUiModel).forEach(res::add);
-            }
+            ITcAnalytics teamcity = CtxListener.getTcHelper(context).tcAnalytics(chainTracked.serverId);
+
+            int cnt = count == null ? 10 : count;
+            teamcity.topFailingSuite(cnt).stream().map(this::converToUiModel).forEach(res::add);
         }
         return res;
     }
@@ -88,10 +87,10 @@ public class TopTests {
 
         final List<FailingTest> res = new ArrayList<>();
         for (ChainAtServerTracked chainTracked : tracked.chains) {
-            try (ITcAnalytics teamcity = CtxListener.getTcHelper(context).tcAnalytics(chainTracked.serverId)) {
-                int cnt = count == null ? 10 : count;
-                teamcity.topTestsLongRunning(cnt).stream().map(this::converToUiModel).forEach(res::add);
-            }
+            ITcAnalytics teamcity = CtxListener.getTcHelper(context).tcAnalytics(chainTracked.serverId);
+
+            int cnt = count == null ? 10 : count;
+            teamcity.topTestsLongRunning(cnt).stream().map(this::converToUiModel).forEach(res::add);
         }
         return res;
     }

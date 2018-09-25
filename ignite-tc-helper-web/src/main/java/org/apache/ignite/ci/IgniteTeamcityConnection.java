@@ -19,7 +19,6 @@ package org.apache.ignite.ci;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.gson.Gson;
 import java.io.File;
@@ -93,9 +92,9 @@ import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
  * https://confluence.jetbrains.com/display/TCD10/REST+API
  * https://developer.github.com/v3/
  */
-public class IgniteTeamcityHelper implements ITeamcity {
+public class IgniteTeamcityConnection implements ITeamcity {
     /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(IgniteTeamcityHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(IgniteTeamcityConnection.class);
 
     private Executor executor;
     private File logsDir;
@@ -116,12 +115,12 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
-    public IgniteTeamcityHelper(@Nullable String tcName) {
+    public IgniteTeamcityConnection(@Nullable String tcName) {
         init(tcName);
     }
 
     //for DI
-    public IgniteTeamcityHelper() {
+    public IgniteTeamcityConnection() {
     }
 
     public void init(@Nullable String tcName) {
@@ -570,9 +569,6 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {
         return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), elem);
-    }
-
-    @Override public void close() {
     }
 
     /** {@inheritDoc} */

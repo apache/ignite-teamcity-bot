@@ -22,6 +22,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.tcmodel.result.Build;
 
 /**
@@ -45,12 +46,12 @@ public class ObserverTask extends TimerTask {
     /** {@inheritDoc} */
     @Override public void run() {
         for (BuildInfo info : builds) {
-            try (IAnalyticsEnabledTeamcity teamcity = helper.server(info.srvId, info.prov)) {
-                Build build = teamcity.getBuild(info.build.getId());
+            IAnalyticsEnabledTeamcity teamcity = helper.server(info.srvId, info.prov);
 
-                if (!"finished".equals(build.state))
-                    continue;
-            }
+            Build build = teamcity.getBuild(info.build.getId());
+
+            if (!"finished".equals(build.state))
+                continue;
 
             if (helper.notifyJira(info.srvId, info.prov, info.build.buildTypeId, info.build.branchName, info.ticket))
                 builds.remove(info);

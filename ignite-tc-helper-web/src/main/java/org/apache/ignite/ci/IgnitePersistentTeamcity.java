@@ -146,14 +146,14 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     @Deprecated
     public IgnitePersistentTeamcity(Ignite ignite, @Nullable String srvId) {
-        this(ignite, new IgniteTeamcityHelper(srvId));
+        this(ignite, new IgniteTeamcityConnection(srvId));
     }
 
     //for DI
     public IgnitePersistentTeamcity() {}
 
     @Deprecated
-    private IgnitePersistentTeamcity(Ignite ignite, IgniteTeamcityHelper teamcity) {
+    private IgnitePersistentTeamcity(Ignite ignite, IgniteTeamcityConnection teamcity) {
         init(teamcity);
         this.ignite = ignite;
     }
@@ -1030,11 +1030,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override
     public List<RunStat> topFailingSuite(int cnt) {
         return CollectionUtil.top(buildsFailureAnalysis(), cnt, Comparator.comparing(RunStat::getFailRate));
-    }
-
-    /** {@inheritDoc} */
-    @Override public void close() {
-
     }
 
     /** {@inheritDoc} */
