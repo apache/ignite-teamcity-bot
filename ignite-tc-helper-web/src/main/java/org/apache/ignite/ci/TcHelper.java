@@ -140,32 +140,32 @@ public class TcHelper implements ITcHelper {
         String branchForTc,
         String ticket
     ) {
-         IAnalyticsEnabledTeamcity teamcity = server(srvId, prov);
-         {
-            List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchForTc);
+        IAnalyticsEnabledTeamcity teamcity = server(srvId, prov);
 
-            if (builds.isEmpty())
-                return false;
+        List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchForTc);
 
-            BuildRef build = builds.get(builds.size() - 1);
-            String comment;
+        if (builds.isEmpty())
+            return false;
 
-            try {
-                comment = generateJiraComment(buildTypeId, build.branchName, srvId, prov, build.webUrl,
-                        getService());
-            }
-            catch (RuntimeException e) {
-                logger.error("Exception happened during generating comment for JIRA " +
-                    "[build=" + build.getId() + ", errMsg=" + e.getMessage() + ']');
+        BuildRef build = builds.get(builds.size() - 1);
+        String comment;
 
-                return false;
-            }
-
-            if ("finished".equals(build.state))
-                return teamcity.sendJiraComment(ticket, comment);
+        try {
+            comment = generateJiraComment(buildTypeId, build.branchName, srvId, prov, build.webUrl,
+                getService());
+        }
+        catch (RuntimeException e) {
+            logger.error("Exception happened during generating comment for JIRA " +
+                "[build=" + build.getId() + ", errMsg=" + e.getMessage() + ']');
 
             return false;
         }
+
+        if ("finished".equals(build.state))
+            return teamcity.sendJiraComment(ticket, comment);
+
+        return false;
+
     }
 
     /**

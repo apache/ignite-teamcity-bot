@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web;
 
 import java.util.concurrent.ExecutorService;
-`import javax.servlet.ServletContext;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.http.HttpServletRequest;
