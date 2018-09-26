@@ -27,21 +27,21 @@ import org.apache.ignite.ci.user.ICredentialsProv;
  */
 public class BuildObserver {
     /** Time between observing actions in milliseconds. */
-    private final long period = 30 * 60 * 1_000;
+    private static final long PERIOD = 10 * 60 * 1_000;
 
     /** Timer. */
     private final Timer timer;
 
     /** Task, which should be done periodically. */
-    ObserverTask observerTask;
+    private ObserverTask observerTask;
 
     /**
      */
     @Inject
-    public BuildObserver( ObserverTask observerTask) {
+    public BuildObserver(ObserverTask observerTask) {
         timer = new Timer();
 
-        timer.schedule(observerTask, 0, period);
+        timer.schedule(observerTask, 0, PERIOD);
 
         this.observerTask = observerTask;
     }
