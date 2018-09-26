@@ -16,12 +16,18 @@
 <body>
 <br>
 <br>
-<table class="stat"  width="100%">
+<table class="compare"  width="100%">
     <tr>
         <th class="section"  width="15%">DATE INTERVAL</th>
-        <th  width="5%"></th>
+        <th width="5%"></th>
         <th style="text-align: center;" width="40%"><input type='text' name='daterange1'/></th>
         <th style="text-align: center;" width="40%"><input type='text' name='daterange2'/></th>
+    </tr>
+    <tr style="display: none;"></tr><tr style="display: none;"></tr><tr style="display: none;"></tr>
+    <tr id="showInfo" style="display: none;">
+        <td class="section">FEATURES</td><td></td>
+        <td style="text-align: center;" id="info1"></td>
+        <td style="text-align: center;" id="info2"></td>
     </tr>
     <tr><td class="section">TESTS</td><td></td><td></td></tr>
     <tr><td class="field">COUNT</td>
@@ -167,7 +173,11 @@
         return parseFloat(string.substring(string.indexOf("-") + 2, string.lastIndexOf("-") - 1));
     }
 
-    function printStatistics(num, map) {
+    function printStatistics(num, map, sinceDate, untilDate) {
+        clearBackgroundFromAllDataCells();
+        clearGraphs(num);
+
+        const anotherNum = (num === 1) ? 2 : 1;
         const parseTime = d3.timeParse("%d-%m-%YT%H:%M:%S");
 
         let statistics = {};
@@ -187,15 +197,30 @@
             }
         }
 
-        const anotherNum = (num === 1) ? 2 : 1;
+        if (dates.length === 0) {
+            printImportantMessage(num, "#ff0000", "No data for the selected period");
+            fillAllDataCells(num, "");
+
+            return;
+        } else {
+            let firstDate = moment(parseTime(map[0].startDate)).format("DD-MM-YYYY");
+            let lastDate = moment(parseTime(map[map.length - 1].startDate)).format("DD-MM-YYYY");
+
+            if ((sinceDate.format("DD-MM-YYYY") !== firstDate) || (untilDate.format("DD-MM-YYYY") !== lastDate)) {
+                printImportantMessage(num, "#ffb856", "Data for " +
+                    (firstDate === lastDate ? firstDate : ("the period from " + firstDate + " to " + lastDate)) + "");
+            } else {
+                $("#info" + num).html("");
+                if (document.getElementById("info" + anotherNum).innerHTML === "") {
+                    document.getElementById("showInfo").style.display = "none";
+                }
+            }
+        }
+
         let anotherMedian;
         let result = {};
 
         for (let i = 0; i < prOcc.length; i++) {
-
-            document.getElementById(prOcc[i] + 1).style.background = null;
-            document.getElementById(prOcc[i] + 2).style.background = null;
-
             result = getMinMaxMedian(statistics[prOcc[i]]);
             anotherMedian = parseMedian(document.getElementById(prOcc[i] + anotherNum).innerHTML);
 
@@ -221,8 +246,8 @@
     }
 
     $(document).ready(function() {
-        loadData(1, moment(oneWeekAgo).format("DDMMYYYY"), moment().format("DDMMYYYY"));
-        loadData(2, moment(twoWeekAgo).format("DDMMYYYY"), moment(oneWeekAgo).format("DDMMYYYY"));
+        loadData(1, moment(oneWeekAgo), moment());
+        loadData(2, moment(twoWeekAgo), moment(oneWeekAgo));
 
         $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 
@@ -242,18 +267,44 @@
             g_updTimer = setTimeout(tstTimeout, 3200);
         }
     }
+    
+    function clearBackgroundFromAllDataCells(num){
+        document.querySelectorAll(".data" + (num == null ? "1, .data2" : num)).forEach(function (el) {
+            el.style.background = null;
+        });
+    }
+    
+    function fillAllDataCells(num, message) {
+        $('.data' + num).html(message);
+    }
+
+    function clearGraphs(num) {
+        for (let i = 0; i < prOcc.length; i++) {
+            $("#graph" + prOcc[i] + num).empty();
+            $("#graph" + tOcc[i] + num).empty();
+        }
+    }
 
     function loadGif(num) {
-        $('.data' + num).html("<img src='/img/loading.gif' width=15px height=15px>");
+        clearBackgroundFromAllDataCells();
+        clearGraphs(num);
+        fillAllDataCells(num, "<img src='/img/loading.gif' width=15px height=15px>");
+    }
+
+    function printImportantMessage(num, color, message) {
+        $('#info' + num).html("<span style='background:" + color + "; color:white; font-weight:bold;'>" +
+            "&nbsp;&nbsp;!&nbsp;&nbsp;</span>&nbsp;&nbsp;" + message);
+        document.getElementById("showInfo").style.display = null;
     }
 
     function loadData(num, sinceDate, untilDate) {
         loadGif(num);
         $.ajax(
             {
-                url: 'rest/build/history?sinceDate=' + sinceDate + '000001&untilDate=' + untilDate + '235959',
+                url: 'rest/build/history?sinceDate=' + sinceDate.format("DDMMYYYY") +
+                '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959',
                 success: function (result) {
-                    printStatistics(num, result);
+                    printStatistics(num, result, sinceDate, untilDate);
                 },
                 error: showErrInLoadStatus
             }
@@ -263,14 +314,14 @@
     $(function() {
         $('input[name="daterange1"]').daterangepicker(
             dateRangePickerParam(oneWeekAgo, new Date()), function (start, end, label) {
-                loadData(1, start.format("DDMMYYYY"), end.format("DDMMYYYY"));
+                loadData(1, start, end);
             });
     });
 
     $(function() {
         $('input[name="daterange2"]').daterangepicker(
             dateRangePickerParam(twoWeekAgo, oneWeekAgo), function (start, end, label) {
-                loadData(2, start.format("DDMMYYYY"), end.format("DDMMYYYY"));
+                loadData(2, start, end);
             });
     });
 
@@ -296,10 +347,6 @@
             data[i].date = dates[i];
             data[i].count = counts[i];
         }
-
-        d3.selectAll("#graph" + prefix + num + "> *").remove();
-        d3.selectAll('.axis').remove();
-
         svg = d3.select("#graph" + prefix + num).append("svg:svg");
         margin = {top: 20, right: 20, bottom: 30, left: 50};
         width = +500 - margin.left - margin.right;

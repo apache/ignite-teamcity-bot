@@ -408,14 +408,18 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
         List<BuildRef> buildRefs = loadBuildHistory(buildHistCache(), 90, suiteInBranch,
             (key, sinceBuildId) -> {
-            buildsFromRest.addAll(teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate, sinceBuildId));
+            List<BuildRef> reverseList = teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate, sinceBuildId);
+
+            Collections.reverse(reverseList);
+
+            buildsFromRest.addAll(reverseList);
 
             return buildsFromRest;
         });
 
         if (sinceDate != null || untilDate != null) {
             if (!buildsFromRest.isEmpty() && sinceDate != null){
-                int firstBuildId = buildRefs.indexOf(buildsFromRest.get(buildsFromRest.size() - 1));
+                int firstBuildId = buildRefs.indexOf(buildsFromRest.get(0));
 
                 if (firstBuildId == 0)
                     return buildsFromRest;
@@ -457,7 +461,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                         if (build == null || build.isFakeStub())
                             return false;
 
-                        Date date = build.getFinishDate();
+                        Date date = build.getStartDate();
 
                         if (sinceDate != null && untilDate != null)
                             if ((date.after(sinceDate) || date.equals(sinceDate)) &&
