@@ -41,12 +41,9 @@ public class HotSpot {
                 '}';
     }
 
-    public void setCount(int count) {
-        this.count = count;
-    }
-
     public void setTiming(long nanos, int count) {
         this.ns = nanos;
+        this.count = count;
         duration = TimeUtil.nanosToDurationPrintable(ns);
         avgDuration = TimeUtil.nanosToDurationPrintable(ns / count);
     }
