@@ -25,6 +25,10 @@ import com.google.inject.matcher.Matchers;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.*;
 import org.apache.ignite.ci.db.Ignite1Init;
+import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.observer.BuildObserver;
+import org.apache.ignite.ci.observer.ObserverTask;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
@@ -34,19 +38,19 @@ import javax.inject.Provider;
 import java.util.concurrent.*;
 
 public class IgniteTcBotModule extends AbstractModule {
-    private Future<Ignite> igniteFuture;
+    /** Ignite future. */
+    private Future<Ignite> igniteFut;
 
     /** {@inheritDoc} */
-    @Override
-    protected void configure() {
+    @Override protected void configure() {
         configProfiling();
         configTaskMonitor();
 
         bind(Ignite.class).toProvider((Provider<Ignite>) () -> {
-            Preconditions.checkNotNull(igniteFuture, "Ignite future is not yet initialized");
+            Preconditions.checkNotNull(igniteFut, "Ignite future is not yet initialized");
 
             try {
-                return igniteFuture.get(10, TimeUnit.SECONDS);
+                return igniteFut.get(10, TimeUnit.SECONDS);
             } catch (TimeoutException e) {
                 throw new ServiceStartingException(e);
             } catch (Exception e) {
@@ -60,10 +64,25 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(ITeamcity.class).to(IgniteTeamcityConnection.class);
         //With REST persistence
         bind(IAnalyticsEnabledTeamcity.class).to(IgnitePersistentTeamcity.class);
-        bind(IServerFactory.class).to(InitializingServerFactory.class).in(new SingletonScope());
+        bind(ITcServerFactory.class).to(InitializingServerFactory.class).in(new SingletonScope());
         bind(ITcServerProvider.class).to(TcServerCachingProvider.class).in(new SingletonScope());
         bind(TcUpdatePool.class).in(new SingletonScope());
        //todo bind(IssueDetector.clas)
+        bind(ObserverTask.class).in(new SingletonScope());
+        bind(BuildObserver.class).in(new SingletonScope());
+        bind(ITcHelper.class).to(TcHelper.class).in(new SingletonScope());
+
+        bind(IJiraIntegration.class).to(Jira.class).in(new SingletonScope());
+    }
+
+    //todo fallback to TC big class
+    private static class Jira implements IJiraIntegration {
+        @Inject ITcHelper helper;
+
+        @Override public boolean notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
+            String ticket) {
+            return helper.notifyJira(srvId, prov, buildTypeId, branchForTc, ticket);
+        }
     }
 
     private void configProfiling() {
@@ -87,19 +106,19 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(MonitoredTaskInterceptor.class).toInstance(profilingInterceptor);
     }
 
-    public void setIgniteFuture(Future<Ignite> igniteFuture) {
-        this.igniteFuture = igniteFuture;
+    public void setIgniteFut(Future<Ignite> igniteFut) {
+        this.igniteFut = igniteFut;
     }
 
     public Injector startIgniteInit(Injector injector) {
         final Ignite1Init instance = injector.getInstance(Ignite1Init.class);
         final Future<Ignite> submit = instance.getIgniteFuture();
-        setIgniteFuture(submit);
+        setIgniteFut(submit);
 
         return injector;
     }
 
-    private static class InitializingServerFactory implements IServerFactory {
+    private static class InitializingServerFactory implements ITcServerFactory {
         @Inject
         Provider<IAnalyticsEnabledTeamcity> tcPersistProv;
 
@@ -107,12 +126,12 @@ public class IgniteTcBotModule extends AbstractModule {
         Provider<ITeamcity> tcConnProv;
 
         @Inject
-        TcUpdatePool tcUpdatePool;
+        private TcUpdatePool tcUpdatePool;
 
-        @Override
-        public IAnalyticsEnabledTeamcity createServer(String serverId) {
+        /** {@inheritDoc} */
+        @Override public IAnalyticsEnabledTeamcity createServer(String srvId) {
             ITeamcity tcConn = tcConnProv.get();
-            tcConn.init(Strings.emptyToNull(serverId));
+            tcConn.init(Strings.emptyToNull(srvId));
 
             IAnalyticsEnabledTeamcity instance = tcPersistProv.get();
             instance.init(tcConn);

@@ -17,43 +17,82 @@
 
 package org.apache.ignite.ci.observer;
 
+import java.util.HashSet;
 import java.util.Queue;
+import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITcServerProvider;
+import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.MonitoredTask;
+import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Checks observed builds for finished status and comments JIRA ticket.
  */
 public class ObserverTask extends TimerTask {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(ObserverTask.class);
+
     /** Helper. */
-    private final ITcHelper helper;
+    @Inject private ITcServerProvider srvProvider;
+
+    /** Helper. */
+    @Inject private IJiraIntegration jiraIntegration;
 
     /** Builds. */
     final Queue<BuildInfo> builds;
 
     /**
-     * @param helper Helper.
      */
-    ObserverTask(ITcHelper helper) {
-        this.helper = helper;
+    ObserverTask() {
         builds = new ConcurrentLinkedQueue<>();
     }
 
     /** {@inheritDoc} */
     @Override public void run() {
+        try {
+            runObserverTask();
+        }
+        catch (Exception e) {
+            logger.error("Observer task failure: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     *
+     */
+    @AutoProfiling
+    @MonitoredTask(name = "Build Observer")
+    protected String runObserverTask() {
+        int checkedBuilds = 0;
+        int notFinihedBuilds = 0;
+        Set<String> ticketsNotified = new HashSet<>();
+
         for (BuildInfo info : builds) {
-            IAnalyticsEnabledTeamcity teamcity = helper.server(info.srvId, info.prov);
+            checkedBuilds++;
+            IAnalyticsEnabledTeamcity teamcity = srvProvider.server(info.srvId, info.prov);
 
             Build build = teamcity.getBuild(info.build.getId());
 
-            if (!"finished".equals(build.state))
-                continue;
+            if (!"finished".equals(build.state)) {
+                notFinihedBuilds++;
 
-            if (helper.notifyJira(info.srvId, info.prov, info.build.buildTypeId, info.build.branchName, info.ticket))
+                continue;
+            }
+
+            if (jiraIntegration.notifyJira(info.srvId, info.prov, info.build.buildTypeId, info.build.branchName, info.ticket)) {
+                ticketsNotified.add(info.ticket);
+
                 builds.remove(info);
+            }
         }
+
+        return "Checked " + checkedBuilds + " not finished " + notFinihedBuilds + " notified: " + ticketsNotified;
     }
 }

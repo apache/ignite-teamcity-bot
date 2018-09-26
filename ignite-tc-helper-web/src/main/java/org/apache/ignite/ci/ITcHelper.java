@@ -43,10 +43,6 @@ public interface ITcHelper extends ITcServerProvider {
 
     IssueDetector issueDetector();
 
-    /**
-     * @return Build observer.
-     */
-    BuildObserver buildObserver();
 
     ITcAnalytics tcAnalytics(String serverId);
 

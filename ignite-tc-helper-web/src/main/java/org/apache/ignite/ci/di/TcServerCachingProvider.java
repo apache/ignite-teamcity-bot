@@ -30,9 +30,13 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+/**
+ *
+ */
 public class TcServerCachingProvider implements ITcServerProvider {
+    /** Server factory. */
     @Inject
-    private IServerFactory serverFactory;
+    private ITcServerFactory srvFactory;
 
     private final Cache<String, IAnalyticsEnabledTeamcity> srvs
             = CacheBuilder.<String, String>newBuilder()
@@ -41,16 +45,16 @@ public class TcServerCachingProvider implements ITcServerProvider {
             .softValues()
             .build();
 
-    @Override
-    public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov) {
+    /** {@inheritDoc} */
+    @Override public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov) {
         Callable<IAnalyticsEnabledTeamcity> call = () -> {
-            IAnalyticsEnabledTeamcity teamcity = serverFactory.createServer(srvId);
+            IAnalyticsEnabledTeamcity teamcity = srvFactory.createServer(srvId);
 
 
             if (prov != null) {
                 final String user = prov.getUser(srvId);
-                final String password = prov.getPassword(srvId);
-                teamcity.setAuthData(user, password);
+                final String pwd = prov.getPassword(srvId);
+                teamcity.setAuthData(user, pwd);
             }
 
             return teamcity;

@@ -34,6 +34,7 @@ import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.IgniteTcBotModule;
+import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.jetbrains.annotations.Nullable;
 
@@ -115,6 +116,13 @@ public class CtxListener implements ServletContextListener {
 
         TcHelper helper = (TcHelper)getTcHelper(ctx);
         helper.close();
+
+        try {
+            injector.getInstance(BuildObserver.class).stop();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
 

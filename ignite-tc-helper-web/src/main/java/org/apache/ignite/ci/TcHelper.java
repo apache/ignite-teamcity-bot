@@ -17,18 +17,14 @@
 
 package org.apache.ignite.ci;
 
-import com.google.common.base.Strings;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import org.apache.ignite.ci.conf.BranchesTracked;
-import org.apache.ignite.ci.di.IServerFactory;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
-import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
@@ -42,10 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.ignite.ci.analysis.RunStat.MAX_LATEST_RUNS;
@@ -54,7 +47,7 @@ import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
 /**
  * TC Bot implementation
  */
-public class TcHelper implements ITcHelper {
+public class TcHelper implements ITcHelper, IJiraIntegration {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TcHelper.class);
 
@@ -69,13 +62,9 @@ public class TcHelper implements ITcHelper {
 
     @Inject private IssueDetector detector;
 
-    /** Build observer. */
-    private BuildObserver buildObserver;
-
     @Inject private UserAndSessionsStorage userAndSessionsStorage;
 
     public TcHelper() {
-        buildObserver = new BuildObserver(this);
     }
 
     /** {@inheritDoc} */
@@ -86,11 +75,6 @@ public class TcHelper implements ITcHelper {
     /** {@inheritDoc} */
     @Override public IssueDetector issueDetector() {
         return detector;
-    }
-
-    /** {@inheritDoc} */
-    @Override public BuildObserver buildObserver() {
-        return buildObserver;
     }
 
     /** {@inheritDoc} */
@@ -166,7 +150,7 @@ public class TcHelper implements ITcHelper {
      * @param srvId Server id.
      * @param prov Credentials.
      * @param webUrl Build URL.
-     * @param executorService Executor service to process TC communication requests there.
+     * @param executorSvc Executor service to process TC communication requests there.
      * @return Comment, which should be sent to the JIRA ticket.
      */
     private String generateJiraComment(
@@ -175,12 +159,12 @@ public class TcHelper implements ITcHelper {
             String srvId,
             ICredentialsProv prov,
             String webUrl,
-            @Nullable ExecutorService executorService
+            @Nullable ExecutorService executorSvc
     ) {
         StringBuilder res = new StringBuilder();
         TestFailuresSummary summary = GetPrTestFailures.getTestFailuresSummary(
             this, prov, srvId, buildTypeId, branchForTc,
-            "Latest", null, null, executorService);
+            "Latest", null, null, executorSvc);
 
         if (summary != null) {
             for (ChainAtServerCurrentStatus server : summary.servers) {
@@ -296,8 +280,6 @@ public class TcHelper implements ITcHelper {
             tcUpdatePool.stop();
 
             detector.stop();
-
-            buildObserver.stop();
         }
     }
 

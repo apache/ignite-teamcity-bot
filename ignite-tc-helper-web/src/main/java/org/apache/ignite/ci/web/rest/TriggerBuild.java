@@ -31,6 +31,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
@@ -164,7 +165,9 @@ public class TriggerBuild {
             }
         }
 
-        helper.buildObserver().observe(build, srvId, prov, "ignite-" + ticketId);
+        BuildObserver observer = CtxListener.getInjector(context).getInstance(BuildObserver.class);
+
+        observer.observe(build, srvId, prov, "ignite-" + ticketId);
 
         return "JIRA ticket IGNITE-" + ticketId + " will be notified after the tests are completed.";
     }
