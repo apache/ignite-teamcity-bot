@@ -31,10 +31,11 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
+import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
@@ -67,12 +68,12 @@ public class TriggerBuild {
 
         ITcHelper helper = CtxListener.getTcHelper(context);
 
-        try (final ITeamcity teamcity = helper.server(srvId, prov)) {
-            Build build = teamcity.triggerBuild(suiteId, branchForTc, false, top != null && top);
+        final ITeamcity teamcity = helper.server(srvId, prov);
 
-            if (observe != null && observe)
-                jiraRes = observeJira(srvId, branchForTc, ticketId, helper, teamcity, build, prov);
-        }
+        Build build = teamcity.triggerBuild(suiteId, branchForTc, false, top != null && top);
+
+        if (observe != null && observe)
+            jiraRes = observeJira(srvId, branchForTc, ticketId, helper, teamcity, build, prov);
 
         return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
@@ -98,7 +99,6 @@ public class TriggerBuild {
 
     @NotNull
     public SimpleResult commentJiraEx(@QueryParam("serverId") @Nullable String srvId, @QueryParam("branchName") @Nullable String branchForTc, @QueryParam("suiteId") @Nullable String suiteId, @QueryParam("ticketId") @Nullable String ticketId) {
-        System.out.println("commentJira ");
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
         if (!prov.hasAccess(srvId))
@@ -107,21 +107,22 @@ public class TriggerBuild {
         ITcHelper helper = CtxListener.getTcHelper(context);
         String jiraRes = "";
 
-        try (final ITeamcity teamcity = helper.server(srvId, prov)) {
-            if (Strings.isNullOrEmpty(ticketId)) {
-                PullRequest pr = teamcity.getPullRequest(branchForTc);
+        final ITeamcity teamcity = helper.server(srvId, prov);
 
-                ticketId = getTicketId(pr);
+        if (Strings.isNullOrEmpty(ticketId)) {
+            PullRequest pr = teamcity.getPullRequest(branchForTc);
 
-                if (ticketId.isEmpty()) {
-                    jiraRes = "JIRA ticket can't be commented - " +
-                        "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
-                        " Please, rename PR according to the" +
-                        " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
-                        "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>" +
-                        " or enter ticket id in the form.";
-                }
+            ticketId = getTicketId(pr);
+
+            if (ticketId.isEmpty()) {
+                jiraRes = "JIRA ticket can't be commented - " +
+                    "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
+                    " Please, rename PR according to the" +
+                    " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
+                    "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>" +
+                    " or enter ticket id in the form.";
             }
+
         }
 
         if (helper.notifyJira(srvId, prov, suiteId, branchForTc, "ignite-" + ticketId))
@@ -164,7 +165,9 @@ public class TriggerBuild {
             }
         }
 
-        helper.buildObserver().observe(build, srvId, prov, "ignite-" + ticketId);
+        BuildObserver observer = CtxListener.getInjector(context).getInstance(BuildObserver.class);
+
+        observer.observe(build, srvId, prov, "ignite-" + ticketId);
 
         return "JIRA ticket IGNITE-" + ticketId + " will be notified after the tests are completed.";
     }
@@ -199,22 +202,21 @@ public class TriggerBuild {
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        if(!prov.hasAccess(serverId)) {
+        if (!prov.hasAccess(serverId))
             throw ServiceUnauthorizedException.noCreds(serverId);
-        }
 
         List<String> strings = Arrays.asList(suiteIdList.split(","));
         if (strings.isEmpty())
             return new SimpleResult("Error: nothing to run");
 
-        try (final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId, prov)) {
-            boolean queueToTop = top != null && top;
+        final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId, prov);
 
-            for (String suiteId : strings) {
-                System.out.println("Triggering [ " + suiteId + "," + branchName + "," + "top=" + queueToTop + "]");
+        boolean queueToTop = top != null && top;
 
-                helper.triggerBuild(suiteId, branchName, false, queueToTop);
-            }
+        for (String suiteId : strings) {
+            System.out.println("Triggering [ " + suiteId + "," + branchName + "," + "top=" + queueToTop + "]");
+
+            helper.triggerBuild(suiteId, branchName, false, queueToTop);
         }
 
         return new SimpleResult("OK");

@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
+import java.text.ParseException;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -28,14 +29,13 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.current.BuildsHistory;
-import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
-import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
+import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -52,11 +52,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -126,7 +122,8 @@ public class GetBuildTestFailures {
         if(!prov.hasAccess(serverId))
             throw ServiceUnauthorizedException.noCreds(serverId);
 
-        try (IAnalyticsEnabledTeamcity teamcity = helper.server(serverId, prov)) {
+        IAnalyticsEnabledTeamcity teamcity = helper.server(serverId, prov);
+
             //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
             String hrefById = teamcity.getBuildHrefById(buildId);
             BuildRef build = new BuildRef();
@@ -151,7 +148,7 @@ public class GetBuildTestFailures {
 
                 res.addChainOnServer(chainStatus);
             });
-        }
+
 
         res.postProcess(runningUpdates.get());
 
@@ -165,8 +162,7 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("sinceDate") String sinceDate,
-        @Nullable @QueryParam("untilDate") String untilDate)
-        throws ServiceUnauthorizedException, ParseException {
+        @Nullable @QueryParam("untilDate") String untilDate)  throws ParseException {
         BuildsHistory buildsHistory = new BuildsHistory.Builder()
             .branch(branch)
             .server(server)
@@ -187,13 +183,12 @@ public class GetBuildTestFailures {
 
         final ICredentialsProv creds = ICredentialsProv.get(req);
 
-        try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds)) {
+        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds);
 
-            BuildStatisticsSummary stat = new BuildStatisticsSummary(buildId);
+        BuildStatisticsSummary stat = new BuildStatisticsSummary(buildId);
 
-            stat.initialize(teamcity);
+        stat.initialize(teamcity);
 
-            return stat;
-        }
+        return stat;
     }
 }

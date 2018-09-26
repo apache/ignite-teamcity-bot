@@ -19,7 +19,6 @@ package org.apache.ignite.ci;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.gson.Gson;
 import java.io.File;
@@ -77,10 +76,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
-import org.apache.ignite.ci.util.HttpUtil;
-import org.apache.ignite.ci.util.UrlUtil;
-import org.apache.ignite.ci.util.XmlUtil;
-import org.apache.ignite.ci.util.ZipUtil;
+import org.apache.ignite.ci.util.*;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -94,14 +90,15 @@ import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
 /**
  * Class for access to Teamcity REST API without any caching.
  *
- * See more info about API https://confluence.jetbrains.com/display/TCD10/REST+API https://developer.github.com/v3/
+ * See more info about API
+ * https://confluence.jetbrains.com/display/TCD10/REST+API
+ * https://developer.github.com/v3/
  */
-public class IgniteTeamcityHelper implements ITeamcity {
+public class IgniteTeamcityConnection implements ITeamcity {
     /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(IgniteTeamcityHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(IgniteTeamcityConnection.class);
 
     private Executor executor;
-
     private File logsDir;
     /** Normalized Host address, ends with '/'. */
     private String host;
@@ -109,10 +106,10 @@ public class IgniteTeamcityHelper implements ITeamcity {
     /** TeamCity authorization token. */
     private String basicAuthTok;
 
-    /** GitHub authorization token. */
+    /** GitHub authorization token.  */
     private String gitAuthTok;
 
-    /** JIRA authorization token. */
+    /**  JIRA authorization token. */
     private String jiraBasicAuthTok;
 
     private String configName; //main properties file name
@@ -120,12 +117,12 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
-    public IgniteTeamcityHelper(@Nullable String tcName) {
+    public IgniteTeamcityConnection(@Nullable String tcName) {
         init(tcName);
     }
 
     //for DI
-    public IgniteTeamcityHelper() {
+    public IgniteTeamcityConnection() {
     }
 
     public void init(@Nullable String tcName) {
@@ -140,10 +137,9 @@ public class IgniteTeamcityHelper implements ITeamcity {
         this.host = hostConf.trim() + (hostConf.endsWith("/") ? "" : "/");
         try {
             if (props.getProperty(HelperConfig.USERNAME) != null
-                && props.getProperty(HelperConfig.ENCODED_PASSWORD) != null)
+                    && props.getProperty(HelperConfig.ENCODED_PASSWORD) != null)
                 setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, configName));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -155,7 +151,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
 
         logsDir = ensureDirExist(logsDirFile);
 
-        this.executor = MoreExecutors.directExecutor();
+        this.executor =  MoreExecutors.directExecutor();
     }
 
     /** {@inheritDoc} */
@@ -199,7 +195,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             return true;
         }
         catch (IOException e) {
-            logger.error("Failed to notify JIRA [errMsg=" + e.getMessage() + ']');
+            logger.error("Failed to notify JIRA [errMsg="+e.getMessage()+']');
 
             return false;
         }
@@ -243,7 +239,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             return true;
         }
         catch (IOException e) {
-            logger.error("Failed to notify Git [errMsg=" + e.getMessage() + ']');
+            logger.error("Failed to notify Git [errMsg="+e.getMessage()+']');
 
             return false;
         }
@@ -353,7 +349,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
                 return XmlUtil.load(Build.class, reader);
             }
             catch (JAXBException e) {
-                throw Throwables.propagate(e);
+                throw ExceptionUtil.propagateException(e);
             }
         }
         catch (IOException e) {
@@ -462,7 +458,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             throw new UncheckedIOException(e);
         }
         catch (JAXBException e) {
-            throw Throwables.propagate(e);
+            throw ExceptionUtil.propagateException(e);
         }
     }
 
@@ -472,27 +468,29 @@ public class IgniteTeamcityHelper implements ITeamcity {
         return XmlUtil.load(rootElem, reader);
     }
 
-    private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
-        @Nullable String branchName,
-        boolean dfltFilter,
-        @Nullable String state) {
-
-        return getBuildHistory(buildTypeId, branchName, dfltFilter, state, null, null, null);
-    }
-
+    /**
+     * @param buildTypeId Build type id.
+     * @param branchName Branch name.
+     * @param dfltFilter Default filter.
+     * @param state State.
+     * @param sinceDate Since date.
+     * @param untilDate Until date.
+     * @param sinceBuildId Since build id. Value is ignored if dates filter is present.
+     */
     private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
         @Nullable String branchName,
         boolean dfltFilter,
         @Nullable String state,
         @Nullable Date sinceDate,
         @Nullable Date untilDate,
-        @Nullable Integer sinceBuildNumber) {
-        String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId + "";
+        @Nullable Integer sinceBuildId)  {
+        String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId;
         String stateFilter = isNullOrEmpty(state) ? "" : (",state:" + state);
-        String branchFilter = isNullOrEmpty(branchName) ? "" : ",branch:" + branchName;
+        String branchFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
         String sinceDateFilter = sinceDate == null ? "" : ",sinceDate:" + getDateYyyyMmDdTHhMmSsZ(sinceDate);
         String untilDateFilter = untilDate == null ? "" : ",untilDate:" + getDateYyyyMmDdTHhMmSsZ(untilDate);
-        String buildNoFilter = sinceBuildNumber == null ? "" : ",sinceBuild:(number:" + sinceBuildNumber + ")";
+        String buildNoFilter = sinceBuildId != null && sinceDateFilter.isEmpty() && untilDateFilter.isEmpty()
+            ? ",sinceBuild:(id:" + sinceBuildId + ")" : "";
 
         return sendGetXmlParseJaxb(host + "app/rest/latest/builds"
             + "?locator="
@@ -506,7 +504,7 @@ public class IgniteTeamcityHelper implements ITeamcity {
             + untilDateFilter, Builds.class).getBuildsNonNull();
     }
 
-    public String getDateYyyyMmDdTHhMmSsZ(Date date) {
+    public String getDateYyyyMmDdTHhMmSsZ(Date date){
         return new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")
             .format(date)
             .replace("+", "%2B");
@@ -538,15 +536,26 @@ public class IgniteTeamcityHelper implements ITeamcity {
             return new ProblemOccurrences();
     }
 
-    @Override
+    /** {@inheritDoc} */
     @AutoProfiling
-    public TestOccurrences getTests(String href, String normalizedBranch) {
+    @Override public TestOccurrences getTests(String href, String normalizedBranch) {
         return getJaxbUsingHref(href, TestOccurrences.class);
     }
 
-    @Override
+    /** {@inheritDoc} */
     @AutoProfiling
-    public TestOccurrences getFailedUnmutedTests(String href, String normalizedBranch) {
+    @Override public Statistics getBuildStatistics(String href) {
+        return getJaxbUsingHref(href, Statistics.class);
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
+        return supplyAsync(() -> getJaxbUsingHref(href, TestOccurrenceFull.class), executor);
+    }
+
+    @AutoProfiling
+    @Override public TestOccurrences getFailedUnmutedTests(String href, String normalizedBranch) {
         return getTests(href + ",muted:false,status:FAILURE", normalizedBranch);
     }
 
@@ -557,47 +566,32 @@ public class IgniteTeamcityHelper implements ITeamcity {
             if (testOccurrence.href == null) {
                 return new TestRef();
             }
-
             return getJaxbUsingHref(testOccurrence.href, TestOccurrenceFull.class).test;
         }, executor);
     }
 
-    @Override
+    /** {@inheritDoc} */
     @AutoProfiling
-    public Statistics getBuildStatistics(String href) {
-        return getJaxbUsingHref(href, Statistics.class);
-    }
-
-    @Override
-    @AutoProfiling
-    public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
-        return supplyAsync(() -> getJaxbUsingHref(href, TestOccurrenceFull.class), executor);
-    }
-
-    @Override
-    @AutoProfiling
-    public Change getChange(String href) {
+    @Override public Change getChange(String href) {
         return getJaxbUsingHref(href, Change.class);
     }
 
-    @Override
+    /** {@inheritDoc} */
     @AutoProfiling
-    public ChangesList getChangesList(String href) {
+    @Override public ChangesList getChangesList(String href) {
         return getJaxbUsingHref(href, ChangesList.class);
     }
 
     /** {@inheritDoc} */
-    @Override
     @AutoProfiling
-    public IssuesUsagesList getIssuesUsagesList(String href) {
-        return getJaxbUsingHref(href, IssuesUsagesList.class);
-    }
+    @Override public IssuesUsagesList getIssuesUsagesList(String href) { return getJaxbUsingHref(href, IssuesUsagesList.class); }
 
+    /**
+     * @param href Href.
+     * @param elem Element class.
+     */
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {
         return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), elem);
-    }
-
-    @Override public void close() {
     }
 
     /** {@inheritDoc} */
@@ -609,35 +603,33 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override
     @AutoProfiling
-    public List<BuildRef> getFinishedBuilds(String projectId,
-        String branch,
-        Date sinceDate,
-        Date untilDate,
-        @Nullable Integer sinceBuildNumber) {
+    @Override public List<BuildRef> getFinishedBuilds(String projectId,
+                                            String branch,
+                                            Date sinceDate,
+                                            Date untilDate,
+                                            @Nullable Integer sinceBuildId) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             true,
             null,
             sinceDate,
             untilDate,
-            sinceBuildNumber);
+            sinceBuildId);
 
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
     }
 
     /** {@inheritDoc} */
-    @Override
-    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED);
+    @AutoProfiling
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null);
     }
 
     /** {@inheritDoc} */
-    @Override
-    @AutoProfiling public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch,
-        Integer sinceBuildNumber) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED);
+    @AutoProfiling
+    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId) {
+        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, sinceBuildId);
     }
 
     /** {@inheritDoc} */
@@ -653,14 +645,29 @@ public class IgniteTeamcityHelper implements ITeamcity {
     }
 
     private List<BuildRef> getBuildsInState(
-        @Nullable final String projectId,
-        @Nullable final String branch,
-        @Nonnull final String state) {
+            @Nullable final String projectId,
+            @Nullable final String branch,
+            @Nonnull final String state,
+            @Nullable final Integer sinceBuildId) {
         List<BuildRef> finished = getBuildHistory(projectId,
             UrlUtil.escape(branch),
             false,
-            state);
+            state,
+            null,
+            null,
+            sinceBuildId);
         return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
+    }
+
+
+    @SuppressWarnings("WeakerAccess")
+    @AutoProfiling
+    protected List<BuildRef> getBuildsInState(
+            @Nullable final String projectId,
+            @Nullable final String branch,
+            @Nonnull final String state) {
+
+        return getBuildsInState(projectId, branch, state, null);
     }
 
     @Override

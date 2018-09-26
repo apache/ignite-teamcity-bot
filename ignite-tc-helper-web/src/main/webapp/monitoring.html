@@ -33,6 +33,16 @@
         });
 
         $.ajax({
+            url: "rest/monitoring/tasks",
+            success: function(result) {
+                $("#loadStatus").html("");
+
+                showTasks(result);
+            },
+            error: showErrInLoadStatus
+        });
+
+        $.ajax({
             url: "rest/monitoring/profiling",
             success: function(result) {
                 $("#loadStatus").html("");
@@ -53,11 +63,53 @@
         });
     }
 
-    function showProfiling(result) {
-        var res = "" ;
+    /**
+     * @param result org.apache.ignite.ci.web.rest.monitoring.TaskResult
+     */
+    function showTasks(result) {
+        var res = "<table class='stat'>" ;
+        res += "<tr>";
+        res += "<th>Name</th>";
+        res += "<th>Start</th>";
+        res += "<th>Count</th>";
+        res += "<th>End</th>";
+        res += "<th>Result</th>";
+        res += "</tr>";
         for (var i = 0; i < result.length; i++) {
-            res += result[i] + "<br>";
+            var task = result[i];
+            res += "<tr>";
+            res += "<td>" + task.name + "</td>";
+            res += "<td>" + task.start + "</td>";
+            res += "<td>" + task.count + "</td>";
+            res += "<td>" + task.end + "</td>";
+            res += "<td>" + task.result + "</td>";
+            res += "</tr>";
         }
+        res += "</table>";
+        $("#tasks").html(res);
+    }
+
+    /**
+     * @param result org.apache.ignite.ci.web.rest.monitoring.HotSpot
+     */
+    function showProfiling(result) {
+        var res = "<table class='stat'>" ;
+        res += "<tr>";
+        res += "<th>Name</th>";
+        res += "<th>Duration</th>";
+        res += "<th>Count</th>";
+        res += "<th>Avg.Duration</th>";
+        res += "</tr>";
+        for (var i = 0; i < result.length; i++) {
+            var inv = result[i];
+            res += "<tr>";
+            res += "<td>" + inv.method + "</td>";
+            res += "<td>" + inv.duration + "</td>";
+            res += "<td>" + inv.count + "</td>";
+            res += "<td>" + inv.avgDuration + "</td>";
+            res += "</tr>";
+        }
+        res += "</table>";
         $("#profiling").html(res);
     }
 
@@ -71,10 +123,16 @@
 
 </script>
 
+Tasks Monitoring Data:
+<div id="tasks" style="font-family: monospace"></div>
+<br>
+
 Profiling Data:
 <div id="profiling" style="font-family: monospace"></div>
+<br>
 Caches Data:
 <div id="caches" style="font-family: monospace"></div>
+<br>
 <div id="loadStatus"></div>
 <div id="version"></div>
 

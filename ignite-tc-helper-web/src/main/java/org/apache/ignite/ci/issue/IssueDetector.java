@@ -18,6 +18,8 @@
 package org.apache.ignite.ci.issue;
 
 import com.google.common.base.Strings;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -26,17 +28,20 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.cache.Cache;
+import javax.inject.Inject;
+import javax.inject.Provider;
 
 import com.google.common.util.concurrent.MoreExecutors;
-import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteScheduler;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
@@ -68,110 +73,41 @@ public class IssueDetector {
 
     /**Slack prefix, using this for email address will switch notifier to slack (if configured). */
     private static final String SLACK = "slack:";
-    private final Ignite ignite;
-    private final IssuesStorage issuesStorage;
-    private UserAndSessionsStorage userStorage;
+
+    @Inject private IssuesStorage issuesStorage;
+    @Inject private UserAndSessionsStorage userStorage;
 
     private final AtomicBoolean init = new AtomicBoolean();
     private ICredentialsProv backgroundOpsCreds;
     private ITcHelper backgroundOpsTcHelper;
     private ScheduledExecutorService executorService;
 
-    public IssueDetector(Ignite ignite, IssuesStorage issuesStorage,
-        UserAndSessionsStorage userStorage) {
-        this.ignite = ignite;
-        this.issuesStorage = issuesStorage;
-        this.userStorage = userStorage;
+    @Inject private Provider<CheckQueueJob> checkQueueJobProv;
+
+    public IssueDetector() {
     }
 
-    public void registerIssuesLater(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
-        IgniteScheduler s = ignite.scheduler();
-
+    private void registerIssuesLater(TestFailuresSummary res, ITcServerProvider helper, ICredentialsProv creds) {
         if (!FullQueryParams.DEFAULT_BRANCH_NAME.equals(res.getTrackedBranch()))
             return;
 
         if (creds == null)
             return;
 
-        s.runLocal(
+        executorService.schedule(
                 () -> {
-                    boolean newIssFound = registerNewIssues(res, helper, creds);
+                    registerNewIssues(res, helper, creds);
 
-                    s.runLocal(this::sendNewNotifications, 10, TimeUnit.SECONDS);
+                    executorService.schedule(this::sendNewNotifications, 10, TimeUnit.SECONDS);
 
                 }, 10, TimeUnit.SECONDS
         );
     }
 
+
     private void sendNewNotifications() {
         try {
-            Collection<TcHelperUser> userForPossibleNotifications = new ArrayList<>();
-
-            for(Cache.Entry<String, TcHelperUser> entry : userStorage.users()) {
-                TcHelperUser tcHelperUser = entry.getValue();
-
-                if (Strings.isNullOrEmpty(tcHelperUser.email))
-                    continue;
-
-                if(tcHelperUser.hasSubscriptions())
-                    userForPossibleNotifications.add(tcHelperUser);
-            }
-
-            Map<String, Notification> toBeSent = new HashMap<>();
-
-            for (Issue issue : issuesStorage.all()) {
-                long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
-                long issueAgeMs = System.currentTimeMillis() - detected;
-                if (issueAgeMs > TimeUnit.HOURS.toMillis(2))
-                    continue;
-
-                String to2 = "slack:dpavlov"; //todo implement direct slask notification
-
-                List<String> addrs = new ArrayList<>();
-
-                String property = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
-                if (property != null)
-                    addrs.add(SLACK + "#" + property);
-
-                for (TcHelperUser next : userForPossibleNotifications) {
-                    if (next.getCredentials(issue.issueKey().server) != null) {
-                        if (next.isSubscribed(issue.trackedBranchName)) {
-                            System.err.println("User " + next + " is candidate for notification " + next.email
-                                + " for " + issue);
-
-                            addrs.add(next.email);
-                        }
-                    }
-                }
-                for (String nextAddr : addrs) {
-                    if (issuesStorage.needNotify(issue.issueKey, nextAddr)) {
-                        toBeSent.computeIfAbsent(nextAddr, addr -> {
-                            Notification notification = new Notification();
-                            notification.ts = System.currentTimeMillis();
-                            notification.addr = addr;
-                            return notification;
-                        }).addIssue(issue);
-                    }
-                }
-            }
-
-            Collection<Notification> values = toBeSent.values();
-            for (Notification next : values) {
-                if(next.addr.startsWith(SLACK)) {
-                    String substring = next.addr.substring(SLACK.length());
-
-                    List<String> messages = next.toSlackMarkup();
-                    for (String msg : messages) {
-                        if (!SlackSender.sendMessage(substring, msg))
-                            break;
-                    }
-                } else {
-                    String builds = next.buildIdToIssue.keySet().toString();
-                    String subj = "[MTCGA]: " + next.countIssues() + " new failures in builds " + builds + " needs to be handled";
-
-                    EmailSender.sendEmail(next.addr, subj, next.toHtml(), next.toPlainText());
-                }
-            }
+            sendNewNotificationsEx();
         } catch (Exception e) {
             System.err.println("Fail to sent notifications");
 
@@ -179,15 +115,106 @@ public class IssueDetector {
         }
     }
 
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    @AutoProfiling
+    @MonitoredTask(name = "Send Notifications")
+    protected String sendNewNotificationsEx() throws IOException {
+        Collection<TcHelperUser> userForPossibleNotifications = new ArrayList<>();
 
-    public boolean registerNewIssues(TestFailuresSummary res, ITcHelper helper, ICredentialsProv creds) {
+        for(Cache.Entry<String, TcHelperUser> entry : userStorage.users()) {
+            TcHelperUser tcHelperUser = entry.getValue();
+
+            if (Strings.isNullOrEmpty(tcHelperUser.email))
+                continue;
+
+            if(tcHelperUser.hasSubscriptions())
+                userForPossibleNotifications.add(tcHelperUser);
+        }
+
+        Map<String, Notification> toBeSent = new HashMap<>();
+
+        for (Issue issue : issuesStorage.all()) {
+            long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
+            long issueAgeMs = System.currentTimeMillis() - detected;
+            if (issueAgeMs > TimeUnit.HOURS.toMillis(2))
+                continue;
+
+            List<String> addrs = new ArrayList<>();
+
+            String property = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
+            if (property != null)
+                addrs.add(SLACK + "#" + property);
+
+            for (TcHelperUser next : userForPossibleNotifications) {
+                if (next.getCredentials(issue.issueKey().server) != null) {
+                    if (next.isSubscribed(issue.trackedBranchName)) {
+                        logger.info("User " + next + " is candidate for notification " + next.email
+                            + " for " + issue);
+
+                        addrs.add(next.email);
+                    }
+                }
+            }
+
+            for (String nextAddr : addrs) {
+                if (issuesStorage.needNotify(issue.issueKey, nextAddr)) {
+                    toBeSent.computeIfAbsent(nextAddr, addr -> {
+                        Notification notification = new Notification();
+                        notification.ts = System.currentTimeMillis();
+                        notification.addr = addr;
+                        return notification;
+                    }).addIssue(issue);
+                }
+            }
+        }
+
+        if(toBeSent.isEmpty())
+            return "Noting to notify";
+
+        StringBuilder res = new StringBuilder();
+        Collection<Notification> values = toBeSent.values();
+        for (Notification next : values) {
+            if(next.addr.startsWith(SLACK)) {
+                String slackUser = next.addr.substring(SLACK.length());
+
+                List<String> messages = next.toSlackMarkup();
+
+                for (String msg : messages) {
+                    final boolean send = SlackSender.sendMessage(slackUser, msg);
+
+                    res.append("Send ").append(slackUser).append(": ").append(send);
+                    if (!send)
+                        break;
+                }
+            } else {
+                String builds = next.buildIdToIssue.keySet().toString();
+                String subj = "[MTCGA]: " + next.countIssues() + " new failures in builds " + builds + " needs to be handled";
+
+                EmailSender.sendEmail(next.addr, subj, next.toHtml(), next.toPlainText());
+                res.append("Send ").append(next.addr).append(" subject: ").append(subj);
+            }
+        }
+
+        return res.toString();
+    }
+
+    /**
+     * @param res summary of failures in test
+     * @param srvProvider Server provider.
+     * @param creds
+     * @return
+     */
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    @AutoProfiling
+    @MonitoredTask(name = "Register new issues")
+    protected String registerNewIssues(TestFailuresSummary res, ITcServerProvider srvProvider, ICredentialsProv creds) {
         int newIssues = 0;
 
         for (ChainAtServerCurrentStatus next : res.servers) {
             if(!creds.hasAccess(next.serverId))
                 continue;
 
-            IAnalyticsEnabledTeamcity teamcity = helper.server(next.serverId, creds);
+            IAnalyticsEnabledTeamcity teamcity = srvProvider.server(next.serverId, creds);
 
             for (SuiteCurrentStatus suiteCurrentStatus : next.suites) {
 
@@ -205,7 +232,7 @@ public class IssueDetector {
             }
         }
 
-        return (newIssues>0);
+        return "New issues found " + newIssues;
     }
 
     private boolean registerSuiteFailIssues(IAnalyticsEnabledTeamcity teamcity,
@@ -285,29 +312,29 @@ public class IssueDetector {
         if (runStat == null)
             return false;
 
-        RunStat.TestId firstFailedTestId  = null;
+        RunStat.TestId firstFailedTestId;
         String displayType = null;
 
-        if (firstFailedTestId == null) {
-            firstFailedTestId = runStat.detectTemplate(EventTemplates.newContributedTestFailure);
+        firstFailedTestId = runStat.detectTemplate(EventTemplates.newContributedTestFailure);
+
+        if (firstFailedTestId != null)
             displayType = "Recently contributed test failed";
-        }
 
         if (firstFailedTestId == null) {
             firstFailedTestId = runStat.detectTemplate(EventTemplates.newFailure);
-            displayType = "New test failure";
 
             if (firstFailedTestId != null) {
+                displayType = "New test failure";
                 final String flakyComments = runStat.getFlakyComments();
 
                 if (!Strings.isNullOrEmpty(flakyComments)) {
                     if (runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) == null) {
                         logger.info("Skipping registering new issue for test fail:" +
-                            " Test seems to be flaky " + name + ": " + flakyComments);
+                                " Test seems to be flaky " + name + ": " + flakyComments);
 
                         firstFailedTestId = null;
                     } else
-                        displayType = "New stable failure of flaky test";
+                        displayType = "New stable failure of a flaky test";
                 }
             }
         }
@@ -316,6 +343,7 @@ public class IssueDetector {
             return false;
 
         int buildId = firstFailedTestId.getBuildId();
+
         IssueKey issueKey = new IssueKey(srvId, buildId, name);
 
         if (issuesStorage.cache().containsKey(issueKey))
@@ -336,6 +364,9 @@ public class IssueDetector {
         return true;
     }
 
+    /**
+     *
+     */
     public boolean isAuthorized() {
         return backgroundOpsCreds != null && backgroundOpsTcHelper != null;
     }
@@ -350,11 +381,14 @@ public class IssueDetector {
 
                 executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
 
-                if (Boolean.valueOf(System.getProperty(CheckQueueJob.AUTO_TRIGGERING_BUILD_DISABLED)))
-                    logger.info("Automatic build triggering was disabled.");
-                else
+
+                    final CheckQueueJob checkQueueJob = checkQueueJobProv.get();
+
+                    checkQueueJob.init(backgroundOpsTcHelper, backgroundOpsCreds);
+
                     executorService.scheduleAtFixedRate(
-                        new CheckQueueJob(backgroundOpsTcHelper, backgroundOpsCreds), 0, 10, TimeUnit.MINUTES);
+                            checkQueueJob, 0, 10, TimeUnit.MINUTES);
+
             }
         }
         catch (Exception e) {
@@ -383,7 +417,10 @@ public class IssueDetector {
     /**
      *
      */
-    private void checkFailuresEx() {
+    @AutoProfiling
+    @MonitoredTask(name = "Detect Issues in tracked branch")
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    protected String checkFailuresEx() {
         int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
 
         ExecutorService executor = MoreExecutors.newDirectExecutorService();
@@ -400,6 +437,8 @@ public class IssueDetector {
                 executor);
 
         registerIssuesLater(failures, backgroundOpsTcHelper, backgroundOpsCreds);
+
+        return "Tests " + failures.failedTests + " Suites " + failures.failedToFinish + " were checked";
     }
 
     public void stop() {

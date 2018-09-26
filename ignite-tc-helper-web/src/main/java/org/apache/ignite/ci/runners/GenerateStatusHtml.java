@@ -34,7 +34,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -308,37 +308,38 @@ public class GenerateStatusHtml {
         final List<Branch> branchesPriv) throws Exception {
 
         ProjectStatus projStatus = new ProjectStatus();
-        try (IgniteTeamcityHelper teamcityHelper = new IgniteTeamcityHelper(tcId)) {
-            List<BuildType> suites = teamcityHelper.getProjectSuites(projectId).get();
+        IgniteTeamcityConnection teamcityHelper = new IgniteTeamcityConnection(tcId);
 
-            for (BuildType buildType : suites) {
-                if (!"-> Run All".equals(buildType.getName())
-                    && buildType.getName().startsWith("->"))
-                    continue;
+        List<BuildType> suites = teamcityHelper.getProjectSuites(projectId).get();
 
-                for (Branch branch : branchesPriv) {
-                    String branchIdRest = escapeOrB64(branch.idForRest);
-                    String branchIdUrl = escape(branch.idForUrl);
-                    String imgSrc = teamcityHelper.host() +
-                        "app/rest/builds/" +
-                        "buildType:(id:" +
-                        buildType.getId() +
-                        ")" +
-                        (isNullOrEmpty(branchIdRest) ? "" :
-                            (",branch:(name:" + branchIdRest + ")")) +
-                        "/statusIcon.svg";
+        for (BuildType buildType : suites) {
+            if (!"-> Run All".equals(buildType.getName())
+                && buildType.getName().startsWith("->"))
+                continue;
 
-                    SuiteStatus statusInBranches = projStatus.suite(buildType.getId(), buildType.getName());
-                    final String href = teamcityHelper.host() +
-                        "viewType.html" +
-                        "?buildTypeId=" + buildType.getId() +
-                        (isNullOrEmpty(branchIdUrl) ? "" : "&branch=" + branchIdUrl) +
-                        "&tab=buildTypeStatusDiv";
-                    statusInBranches.branchIdToStatusUrl.computeIfAbsent(branch.idForRest, k ->
-                        new BuildStatusHref(imgSrc, href));
-                }
+            for (Branch branch : branchesPriv) {
+                String branchIdRest = escapeOrB64(branch.idForRest);
+                String branchIdUrl = escape(branch.idForUrl);
+                String imgSrc = teamcityHelper.host() +
+                    "app/rest/builds/" +
+                    "buildType:(id:" +
+                    buildType.getId() +
+                    ")" +
+                    (isNullOrEmpty(branchIdRest) ? "" :
+                        (",branch:(name:" + branchIdRest + ")")) +
+                    "/statusIcon.svg";
+
+                SuiteStatus statusInBranches = projStatus.suite(buildType.getId(), buildType.getName());
+                final String href = teamcityHelper.host() +
+                    "viewType.html" +
+                    "?buildTypeId=" + buildType.getId() +
+                    (isNullOrEmpty(branchIdUrl) ? "" : "&branch=" + branchIdUrl) +
+                    "&tab=buildTypeStatusDiv";
+                statusInBranches.branchIdToStatusUrl.computeIfAbsent(branch.idForRest, k ->
+                    new BuildStatusHref(imgSrc, href));
             }
         }
+
         return projStatus;
     }
 

@@ -17,20 +17,14 @@
 
 package org.apache.ignite.ci;
 
-import com.google.common.base.Strings;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.inject.Injector;
-import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.conf.BranchesTracked;
-import org.apache.ignite.ci.di.IServerProv;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
-import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
@@ -42,11 +36,9 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.ignite.ci.analysis.RunStat.MAX_LATEST_RUNS;
@@ -55,40 +47,24 @@ import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
 /**
  * TC Bot implementation
  */
-public class TcHelper implements ITcHelper {
+public class TcHelper implements ITcHelper, IJiraIntegration {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TcHelper.class);
 
     /** Stop guard. */
     private AtomicBoolean stop = new AtomicBoolean();
 
-    private final Cache<String, IAnalyticsEnabledTeamcity> srvs
-        = CacheBuilder.<String, String>newBuilder()
-        .maximumSize(100)
-        .expireAfterAccess(16, TimeUnit.MINUTES)
-        .softValues()
-        .build();
+    @Inject private TcUpdatePool tcUpdatePool;
 
-    private Ignite ignite;
-    private TcUpdatePool tcUpdatePool = new TcUpdatePool();
-    private IssuesStorage issuesStorage;
-    private IssueDetector detector;
-    private Injector injector;
+    @Inject private IssuesStorage issuesStorage;
 
-    /** Build observer. */
-    private BuildObserver buildObserver;
+    @Inject private ITcServerProvider serverProvider;
 
-    private UserAndSessionsStorage userAndSessionsStorage;
+    @Inject private IssueDetector detector;
 
-    public TcHelper(Ignite ignite, Injector injector) {
-        this.ignite = ignite;
+    @Inject private UserAndSessionsStorage userAndSessionsStorage;
 
-        issuesStorage = new IssuesStorage(ignite);
-        userAndSessionsStorage = new UserAndSessionsStorage(ignite);
-
-        detector = new IssueDetector(ignite, issuesStorage, userAndSessionsStorage);
-        this.injector = injector;
-        buildObserver = new BuildObserver(this);
+    public TcHelper() {
     }
 
     /** {@inheritDoc} */
@@ -102,40 +78,11 @@ public class TcHelper implements ITcHelper {
     }
 
     /** {@inheritDoc} */
-    @Override public BuildObserver buildObserver() {
-        return buildObserver;
-    }
-
-    /** {@inheritDoc} */
     @Override public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov) {
         if (stop.get())
             throw new IllegalStateException("Shutdown");
 
-        Callable<IAnalyticsEnabledTeamcity> call = () -> {
-            IAnalyticsEnabledTeamcity teamcity = injector.getInstance(IServerProv.class)
-                    .createServer(srvId);
-
-            teamcity.setExecutor(getService());
-
-            if (prov != null) {
-                final String user = prov.getUser(srvId);
-                final String password = prov.getPassword(srvId);
-                teamcity.setAuthData(user, password);
-            }
-
-            return teamcity;
-        };
-        String fullKey = Strings.nullToEmpty(prov == null ? null : prov.getUser(srvId)) + ":" + Strings.nullToEmpty(srvId);
-
-        IAnalyticsEnabledTeamcity teamcity;
-        try {
-            teamcity = srvs.get(fullKey, call);
-        }
-        catch (ExecutionException e) {
-            throw ExceptionUtil.propagateException(e);
-        }
-
-        return teamcity;
+        return serverProvider.server(srvId, prov);
     }
 
     /** {@inheritDoc} */
@@ -173,31 +120,28 @@ public class TcHelper implements ITcHelper {
         String branchForTc,
         String ticket
     ) {
-        try (IAnalyticsEnabledTeamcity teamcity = server(srvId, prov)) {
-            List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchForTc);
+        IAnalyticsEnabledTeamcity teamcity = server(srvId, prov);
 
-            if (builds.isEmpty())
-                return false;
+        List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchForTc);
 
-            BuildRef build = builds.get(builds.size() - 1);
-            String comment;
+        if (builds.isEmpty())
+            return false;
 
-            try {
-                comment = generateJiraComment(buildTypeId, build.branchName, srvId, prov, build.webUrl,
-                        getService());
-            }
-            catch (RuntimeException e) {
-                logger.error("Exception happened during generating comment for JIRA " +
-                    "[build=" + build.getId() + ", errMsg=" + e.getMessage() + ']');
+        BuildRef build = builds.get(builds.size() - 1);
+        String comment;
 
-                return false;
-            }
-
-            if ("finished".equals(build.state))
-                return teamcity.sendJiraComment(ticket, comment);
+        try {
+            comment = generateJiraComment(buildTypeId, build.branchName, srvId, prov, build.webUrl,
+                getService());
+        }
+        catch (RuntimeException e) {
+            logger.error("Exception happened during generating comment for JIRA " +
+                "[build=" + build.getId() + ", errMsg=" + e.getMessage() + ']');
 
             return false;
         }
+
+        return teamcity.sendJiraComment(ticket, comment);
     }
 
     /**
@@ -206,7 +150,7 @@ public class TcHelper implements ITcHelper {
      * @param srvId Server id.
      * @param prov Credentials.
      * @param webUrl Build URL.
-     * @param executorService Executor service to process TC communication requests there.
+     * @param executorSvc Executor service to process TC communication requests there.
      * @return Comment, which should be sent to the JIRA ticket.
      */
     private String generateJiraComment(
@@ -215,12 +159,12 @@ public class TcHelper implements ITcHelper {
             String srvId,
             ICredentialsProv prov,
             String webUrl,
-            @Nullable ExecutorService executorService
+            @Nullable ExecutorService executorSvc
     ) {
         StringBuilder res = new StringBuilder();
         TestFailuresSummary summary = GetPrTestFailures.getTestFailuresSummary(
             this, prov, srvId, buildTypeId, branchForTc,
-            "Latest", null, null, executorService);
+            "Latest", null, null, executorSvc);
 
         if (summary != null) {
             for (ChainAtServerCurrentStatus server : summary.servers) {
@@ -333,20 +277,10 @@ public class TcHelper implements ITcHelper {
 
     public void close() {
         if (stop.compareAndSet(false, true)) {
-            srvs.asMap().values().forEach(v -> {
-                try {
-                    v.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+            tcUpdatePool.stop();
+
+            detector.stop();
         }
-
-        tcUpdatePool.stop();
-
-        detector.stop();
-
-        buildObserver.stop();
     }
 
     public ExecutorService getService() {

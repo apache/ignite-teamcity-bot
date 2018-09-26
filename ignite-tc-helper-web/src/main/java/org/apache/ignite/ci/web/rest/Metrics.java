@@ -29,7 +29,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
-import org.apache.ignite.Ignite;
+
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -40,7 +40,7 @@ import org.apache.ignite.ci.runners.CheckBuildChainResults;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.login.ServiceUnauthorizedException;
+import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.model.chart.ChartData;
 import org.apache.ignite.ci.web.model.chart.TestsMetrics;
 import org.jetbrains.annotations.NotNull;
@@ -61,9 +61,9 @@ public class Metrics {
 
     @GET
     @Path("failuresNoCache")
-    public TestsMetrics getFailuresNoCache(){
+    public TestsMetrics getFailuresNoCache() {
         CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
-        final String branch = "master" ;
+        final String branch = "master";
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
         List<ChainAtServerTracked> chains = tracked.chains;
 
@@ -71,13 +71,13 @@ public class Metrics {
         final String serverId = "public";
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        if(!prov.hasAccess(serverId)) {
+        if (!prov.hasAccess(serverId))
             throw ServiceUnauthorizedException.noCreds(serverId);
-        }
 
-        try (ITeamcity teamcity = CtxListener.getTcHelper(context).server(serverId, prov)) {
-            collectHistory(history, teamcity, "IgniteTests24Java8_RunAll", "refs/heads/master");
-        }
+        ITeamcity teamcity = CtxListener.server(serverId, context, req);
+
+        collectHistory(history, teamcity, "IgniteTests24Java8_RunAll", "refs/heads/master");
+
         return convertToChart(history);
     }
 
@@ -100,33 +100,29 @@ public class Metrics {
     @GET
     @Path("failuresPrivateNoCache")
     @NotNull public TestsMetrics getFailuresPrivateNoCache() {
-        Ignite ignite = (Ignite)context.getAttribute(CtxListener.IGNITE);
-
         //todo take from branches.json
-        CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
-        final String serverId = "private";
+        CheckBuildChainResults.BuildMetricsHistory hist = new CheckBuildChainResults.BuildMetricsHistory();
+        final String srvId = "private";
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        if (!prov.hasAccess(serverId)) {
-            throw ServiceUnauthorizedException.noCreds(serverId);
-        }
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
 
-        try (ITeamcity teamcity = CtxListener.getTcHelper(context).server(serverId, prov)) {
-            teamcity.setExecutor(CtxListener.getPool(context));
+        ITeamcity teamcity = CtxListener.server(srvId, context, req);
 
-            collectHistory(history, teamcity, "id8xIgniteGridGainTestsJava8_RunAll", "refs/heads/master");
-        }
-        return convertToChart(history);
+        collectHistory(hist, teamcity, "id8xIgniteGridGainTestsJava8_RunAll", "refs/heads/master");
+
+        return convertToChart(hist);
     }
 
     @NotNull
-    private TestsMetrics convertToChart(CheckBuildChainResults.BuildMetricsHistory history) {
+    private TestsMetrics convertToChart(CheckBuildChainResults.BuildMetricsHistory hist) {
         TestsMetrics testsMetrics = new TestsMetrics();
-        Set<SuiteInBranch> builds = history.builds();
+        Set<SuiteInBranch> builds = hist.builds();
         testsMetrics.initBuilds(builds);//to initialize internal mapping build->idx
 
-        for (String date : history.dates()) {
+        for (String date : hist.dates()) {
             Date mddd;
             try {
                 mddd = new SimpleDateFormat("yyyyMMdd").parse(date);
@@ -136,8 +132,8 @@ public class Metrics {
             }
             String dispDate = new SimpleDateFormat("dd.MM").format(mddd);
             int axisXIdx = testsMetrics.addAxisXLabel(dispDate);
-            for (SuiteInBranch next : history.builds()) {
-                FullChainRunCtx suiteCtx = history.build(next, date);
+            for (SuiteInBranch next : hist.builds()) {
+                FullChainRunCtx suiteCtx = hist.build(next, date);
                 if (suiteCtx != null) {
                     testsMetrics.failed.addMeasurement(next, axisXIdx, (double)suiteCtx.failedTests());
                     testsMetrics.muted.addMeasurement(next, axisXIdx, (double)suiteCtx.mutedTests());

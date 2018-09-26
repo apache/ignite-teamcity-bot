@@ -39,7 +39,7 @@ import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.model.hist.TestHistory;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.ignite.ci.util.TimeUtil.getDurationPrintable;
+import static org.apache.ignite.ci.util.TimeUtil.millisToDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchForLink;
 
@@ -109,7 +109,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         name = failure.getName();
         investigated = failure.isInvestigated();
         curFailures = failure.failuresCount();
-        durationPrintable = getDurationPrintable(failure.getAvgDurationMs());
+        durationPrintable = millisToDurationPrintable(failure.getAvgDurationMs());
 
         String[] split = Strings.nullToEmpty(name).split("\\:");
         if (split.length >= 2) {

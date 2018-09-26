@@ -17,7 +17,10 @@
 
 package org.apache.ignite.ci.util;
 
+import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.util.Date;
+
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -28,7 +31,7 @@ public class TimeUtil {
      * @param ms millis passed.
      * @return string representation of time duration
      */
-    public static String getDurationPrintable(@Nullable Long ms) {
+    public static String millisToDurationPrintable(@Nullable Long ms) {
         if (ms == null)
             return "";
 
@@ -50,12 +53,20 @@ public class TimeUtil {
             .toLowerCase();
     }
 
-    public static String getDurationPrintableNanos(long ns) {
+    public static String nanosToDurationPrintable(long ns) {
         String durationStr = Duration.ofNanos(ns).toString();
 
         if (durationStr.length() > 2)
             return humanReadableFormat(durationStr);
 
         return durationStr;
+    }
+
+    public static String timestampToDateTimePrintable(long l) {
+        if (l == 0) return "-";
+
+        final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm:ss dd-MM-yyyy");
+
+        return simpleDateFormat.format(new Date(l));
     }
 }

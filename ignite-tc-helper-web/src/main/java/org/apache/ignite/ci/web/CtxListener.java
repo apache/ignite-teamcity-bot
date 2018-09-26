@@ -21,21 +21,28 @@ import java.util.concurrent.ExecutorService;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.QueryParam;
 
+import com.google.common.base.Preconditions;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.IgniteTcBotModule;
+import org.apache.ignite.ci.observer.BuildObserver;
+import org.apache.ignite.ci.user.ICredentialsProv;
+import org.jetbrains.annotations.Nullable;
 
 /**
  */
 public class CtxListener implements ServletContextListener {
     private static final String TC_HELPER = "tcHelper";
 
-    public static final String IGNITE = "ignite";
 
     public static final String UPDATER = "updater";
 
@@ -44,7 +51,7 @@ public class CtxListener implements ServletContextListener {
     private static final String POOL = "pool";
 
     public static Ignite getIgnite(ServletContext ctx) {
-        return (Ignite)ctx.getAttribute(IGNITE);
+        return getInjector(ctx).getInstance(Ignite.class);
     }
 
     public static ITcHelper getTcHelper(ServletContext ctx) {
@@ -59,20 +66,28 @@ public class CtxListener implements ServletContextListener {
         return (BackgroundUpdater)ctx.getAttribute(UPDATER);
     }
 
+    public static IAnalyticsEnabledTeamcity server(@QueryParam("serverId") @Nullable String srvId,
+                                                   ServletContext ctx,
+                                                   HttpServletRequest req) {
+        ITcHelper tcHelper = getTcHelper(ctx);
+        final ICredentialsProv creds = ICredentialsProv.get(req);
+        return tcHelper.server(srvId, creds);
+    }
+
     @Override public void contextInitialized(ServletContextEvent sctxEvt) {
-
         IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
-        final ServletContext ctx = sctxEvt.getServletContext();
+        Injector injectorPreCreated = Guice.createInjector(igniteTcBotModule);
 
-        Injector injector = Guice.createInjector(igniteTcBotModule);
+        Injector injector = igniteTcBotModule.startIgniteInit(injectorPreCreated);
+
+        ITcServerProvider instance = injector.getInstance(ITcServerProvider.class);
+        Preconditions.checkState(instance == injector.getInstance(ITcServerProvider.class));
+
+        final ServletContext ctx = sctxEvt.getServletContext();
 
         ctx.setAttribute(INJECTOR, injector);
 
-        final Ignite ignite = TcHelperDb.start();
-        ctx.setAttribute(IGNITE, ignite);
-        igniteTcBotModule.setIgnite(ignite);
-
-        TcHelper tcHelper = new TcHelper(ignite, injector);
+        final TcHelper tcHelper = injector.getInstance(TcHelper.class);
 
         BackgroundUpdater backgroundUpdater = new BackgroundUpdater(tcHelper);
 
@@ -89,12 +104,25 @@ public class CtxListener implements ServletContextListener {
     @Override public void contextDestroyed(ServletContextEvent sctxEvt) {
         final ServletContext ctx = sctxEvt.getServletContext();
 
-        TcHelperDb.stop(getIgnite(ctx));
+        Injector injector = getInjector(ctx);
+
+        try {
+            TcHelperDb.stop(injector.getInstance(Ignite.class));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         getBackgroundUpdater(ctx).stop();
 
         TcHelper helper = (TcHelper)getTcHelper(ctx);
         helper.close();
+
+        try {
+            injector.getInstance(BuildObserver.class).stop();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
 

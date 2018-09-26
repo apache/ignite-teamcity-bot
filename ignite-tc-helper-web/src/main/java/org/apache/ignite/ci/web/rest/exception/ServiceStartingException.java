@@ -14,10 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.di;
 
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+package org.apache.ignite.ci.web.rest.exception;
 
-public interface IServerProv {
-    IAnalyticsEnabledTeamcity createServer(String serverId);
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
+
+@Provider
+public class ServiceStartingException extends RuntimeException
+        implements ExceptionMapper<ServiceStartingException> {
+    public ServiceStartingException(Exception e) {
+        super(e);
+    }
+
+    @SuppressWarnings("unused")
+    public ServiceStartingException() {
+    }
+
+    @Override
+    public Response toResponse(ServiceStartingException exception) {
+        return Response.status(418).entity(exception.getMessage())
+                .type("text/plain").build();
+    }
 }

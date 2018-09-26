@@ -20,7 +20,7 @@ package org.apache.ignite.ci.web.rest.login;
 import com.google.common.base.Preconditions;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.IgniteTeamcityHelper;
+import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -30,6 +30,7 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.user.LoginResponse;
 import org.apache.ignite.ci.user.UserSession;
 import org.apache.ignite.ci.web.model.ServerDataResponse;
+import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
@@ -38,7 +39,6 @@ import javax.ws.rs.core.Context;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 
 @Path("login")
 @Produces("application/json")
@@ -162,10 +162,11 @@ public class Login {
 
     public static User checkServiceUserAndPassword(String serverId, String username, String password) {
         try {
-            try(IgniteTeamcityHelper igniteTeamcityHelper = new IgniteTeamcityHelper(serverId)) {
-                igniteTeamcityHelper.setAuthData(username, password);
+            IgniteTeamcityConnection tcConn = new IgniteTeamcityConnection(serverId);
 
-                final User tcUser = igniteTeamcityHelper.getUserByUsername(username);
+            tcConn.setAuthData(username, password);
+
+            final User tcUser = tcConn.getUserByUsername(username);
 
                 /*
                 final List<UserRef> usersRefs = users.getUsersRefs();
@@ -176,11 +177,10 @@ public class Login {
                     }
                 }*/
 
-                if (tcUser != null)
-                    System.err.println(tcUser);
+            if (tcUser != null)
+                System.err.println(tcUser);
 
-                return tcUser;
-            }
+            return tcUser;
         } catch (ServiceUnauthorizedException e) {
             System.err.println("Service " + serverId + " rejected credentials from " + username);
             return null;

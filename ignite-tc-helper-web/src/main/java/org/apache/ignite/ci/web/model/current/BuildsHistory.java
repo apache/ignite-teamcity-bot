@@ -48,16 +48,13 @@ public class BuildsHistory {
     public void initialize(ICredentialsProv prov, ServletContext context) {
         ITcHelper tcHelper = CtxListener.getTcHelper(context);
 
-        try (IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov)) {
+        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
             int[] finishedBuildsIds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName,
                 sinceDateFilter, untilDateFilter);
 
             initBuildsStatistics(teamcity, prov, context, finishedBuildsIds);
 
             initBuildsMergedFailedTests(teamcity, finishedBuildsIds);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private void initBuildsStatistics(IAnalyticsEnabledTeamcity teamcity, ICredentialsProv prov, ServletContext context, int[] buildIds) {

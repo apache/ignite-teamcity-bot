@@ -164,7 +164,7 @@
     }
 
     function parseMedian(string) {
-        return parseInt(string.substring(string.indexOf("-") + 2, string.lastIndexOf("-") - 1));
+        return parseFloat(string.substring(string.indexOf("-") + 2, string.lastIndexOf("-") - 1));
     }
 
     function printStatistics(num, map) {

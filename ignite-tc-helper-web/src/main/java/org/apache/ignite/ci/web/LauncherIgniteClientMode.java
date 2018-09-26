@@ -17,11 +17,11 @@
 
 package org.apache.ignite.ci.web;
 
-import org.apache.ignite.Ignition;
+import org.apache.ignite.ci.db.Ignite1Init;
 
 public class LauncherIgniteClientMode {
     public static void main(String[] args) throws Exception {
-        Ignition.setClientMode(true);
+        Ignite1Init.setClientMode(true);
 
         Launcher.runServer(true);
     }

@@ -18,12 +18,14 @@ package org.apache.ignite.ci.web.rest.monitoring;
 
 import org.apache.ignite.ci.util.TimeUtil;
 
+@SuppressWarnings("WeakerAccess")
 public class HotSpot {
     public String method;
     public String duration;
+    public int count;
+    public String avgDuration;
 
-    private long ns;
-    private int count;
+    private transient long ns;
 
     public long getNanos() {
         return ns;
@@ -34,15 +36,15 @@ public class HotSpot {
         return "HotSpot{" +
                 "method='" + method + '\'' +
                 ", count='" + count + "'" +
-                ", duration='" + TimeUtil.getDurationPrintableNanos(ns) + "'" +
+                ", duration='" + duration + "'" +
+                ", avg='" + avgDuration + "'" +
                 '}';
     }
 
-    public void setNanos(long l) {
-        ns = l;
-    }
-
-    public void setCount(int count) {
+    public void setTiming(long nanos, int count) {
+        this.ns = nanos;
         this.count = count;
+        duration = TimeUtil.nanosToDurationPrintable(ns);
+        avgDuration = TimeUtil.nanosToDurationPrintable(ns / count);
     }
 }

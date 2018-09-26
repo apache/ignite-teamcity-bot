@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -31,8 +32,8 @@ import javax.ws.rs.core.Context;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.ignite.ci.BuildChainProcessor;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
@@ -55,49 +56,50 @@ public class GetChainResultsAsHtml {
 
     @Context
     private ServletContext context;
+
+    @Context
+    private HttpServletRequest request;
     
     //test here http://localhost:8080/rest/chainResults/html?serverId=public&buildId=1086222
-    public void showChainOnServersResults(StringBuilder res, Integer buildId, String serverId) {
-
+    public void showChainOnServersResults(StringBuilder res, Integer buildId, String srvId) {
         //todo solve report auth problem
-        try (IgnitePersistentTeamcity teamcity = new IgnitePersistentTeamcity(CtxListener.getIgnite(context), serverId)) {
-            teamcity.setExecutor(CtxListener.getPool(context));
 
-            //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
-            String hrefById = teamcity.getBuildHrefById(buildId);
-            BuildRef build = new BuildRef();
-            build.setId(buildId);
-            build.href = hrefById;
-            String failRateBranch = ITeamcity.DEFAULT;
+        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, context, request);
 
-            Optional<FullChainRunCtx> ctxOptional =
-                BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,
-                    Collections.singletonList(build),
-                    ProcessLogsMode.SUITE_NOT_COMPLETE,
-                    false, false, teamcity, failRateBranch, MoreExecutors.newDirectExecutorService());
+        //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
+        String hrefById = teamcity.getBuildHrefById(buildId);
+        BuildRef build = new BuildRef();
+        build.setId(buildId);
+        build.href = hrefById;
+        String failRateBranch = ITeamcity.DEFAULT;
 
-            ctxOptional.ifPresent(ctx -> {
-                ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
+        Optional<FullChainRunCtx> ctxOptional =
+            BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,
+                Collections.singletonList(build),
+                ProcessLogsMode.SUITE_NOT_COMPLETE,
+                false, false, teamcity, failRateBranch, MoreExecutors.newDirectExecutorService());
 
-                ctx.getRunningUpdates().forEach(future -> {
-                    try {
-                        future.get();
-                    }
-                    catch (InterruptedException ignored) {
-                        Thread.currentThread().interrupt();
-                    }
-                    catch (ExecutionException e) {
-                        e.printStackTrace();
-                    }
-                });
+        ctxOptional.ifPresent(ctx -> {
+            ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
 
-                status.chainName = ctx.suiteName();
-
-                status.initFromContext(teamcity, ctx, teamcity, failRateBranch);
-
-                res.append(showChainAtServerData(status));
+            ctx.getRunningUpdates().forEach(future -> {
+                try {
+                    future.get();
+                }
+                catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+                catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
             });
-        }
+
+            status.chainName = ctx.suiteName();
+
+            status.initFromContext(teamcity, ctx, teamcity, failRateBranch);
+
+            res.append(showChainAtServerData(status));
+        });
     }
 
     @GET

@@ -35,6 +35,10 @@ class Settings {
     isGithubAvailable() {
         return this.javaFlags & 2
     };
+
+    isJiraAvailable() {
+        return this.javaFlags & 4
+    };
 }
 
 //@param results - TestFailuresSummary
@@ -159,13 +163,22 @@ function showChainCurrentStatusData(server, settings) {
     }
 
     res += "</td><td>";
-    if (settings.isGithubAvailable()) {
-        g_srv_to_notify_git = server;
-        res += "<button onclick='notifyGit()'>Update PR status</button>";
+
+    // if (settings.isGithubAvailable()) {
+    //     g_srv_to_notify_git = server;
+    //     res += "<button onclick='notifyGit()'>Update PR status</button>";
+    // }
+
+    if (settings.isJiraAvailable()) {
+        res += "<button onclick='commentJira(\"" + server.serverId + "\", \"IgniteTests24Java8_RunAll\", \""
+            + server.branchName + "\")'>Comment JIRA</button>";
     }
 
     if (isDefinedAndFilled(server.baseBranchForTc)) {
-        if (settings.isGithubAvailable())
+        // if (settings.isGithubAvailable())
+        //     res+="<br>";
+
+        if (settings.isJiraAvailable())
             res+="<br>";
 
         res += "Base branch";
@@ -409,19 +422,43 @@ function commentJira(serverId, suiteId, branchName, ticketId) {
             "branchName": branchName,
             "ticketId": ticketId
         },
-        success: function(result) {$("#notifyJira").html("");
-            var dialog = $("#triggerDialog");
+        success: function(result) {
+            $("#notifyJira").html("");
 
-            dialog.html("Trigger builds at server: " + serverId + "<br>" +
-                " Suite: " + suiteId + "<br>Branch:" + branchName + "<br>Top: " +
-                "<br><br> Result: " + result.result);
-            dialog.dialog({
-                modal: true,
-                buttons: {
-                    "Ok": function() {
+            var needTicketId = result.result.lastIndexOf("enter ticket id") !== -1;
+
+            if (needTicketId) {
+                var buttons = {
+                    "Retry": function () {
+                        $(this).dialog("close");
+
+                        ticketId = $("#enterTicketId").val();
+
+                        commentJira(serverId, suiteId, branchName, ticketId)
+                    },
+                    "Cancel": function () {
                         $(this).dialog("close");
                     }
                 }
+            }
+            else {
+                buttons = {
+                    "Ok": function () {
+                        $(this).dialog("close");
+                    }
+                }
+            }
+
+            var dialog = $("#triggerDialog");
+
+            dialog.html("Trigger builds at server: " + serverId + "<br>" +
+                " Suite: " + suiteId + "<br>Branch:" + branchName +
+                "<br><br> Result: " + result.result +
+                (needTicketId ? ("<br><br>Enter JIRA ticket number: <input type='text' id='enterTicketId'>") : ""));
+
+            dialog.dialog({
+                modal: true,
+                buttons: buttons
             });
 
             loadData(); // should be defined by page

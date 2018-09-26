@@ -209,7 +209,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         if (stat != null) {
             final Long durationMs = stat.getBuildDuration();
             if (durationMs != null)
-                builder.append(" ").append(TimeUtil.getDurationPrintable(durationMs));
+                builder.append(" ").append(TimeUtil.millisToDurationPrintable(durationMs));
         }
 
         if (contactPerson != null)

@@ -84,19 +84,19 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
     public void initialize(@Nonnull final ITeamcity teamcity) {
         Build build = teamcity.getBuild(buildId);
 
-        DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy'T'HH:mm:ss");
-        dateFormat.format(build.getFinishDate());
-        startDate = dateFormat.format(build.getStartDate());
-
         isFakeStub = build.isFakeStub();
 
         if (isFakeStub)
             return;
 
+        DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy'T'HH:mm:ss");
+        dateFormat.format(build.getFinishDate());
+        startDate = dateFormat.format(build.getStartDate());
+
         testOccurrences = build.testOccurrences;
 
         durationPrintable = TimeUtil
-            .getDurationPrintable(build.getFinishDate().getTime() - build.getStartDate().getTime());
+            .millisToDurationPrintable(build.getFinishDate().getTime() - build.getStartDate().getTime());
 
         List<BuildRef> snapshotDependencies = getSnapshotDependencies(teamcity, build);
 

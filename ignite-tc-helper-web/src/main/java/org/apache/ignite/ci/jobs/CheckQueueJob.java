@@ -17,17 +17,22 @@
 
 package org.apache.ignite.ci.jobs;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
+import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -52,10 +57,10 @@ public class CheckQueueJob implements Runnable {
         Integer.getInteger("CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT", 50);
 
     /** */
-    private final ICredentialsProv creds;
+    private ICredentialsProv creds;
 
     /** */
-    private final ITcHelper tcHelper;
+    private ITcServerProvider tcHelper;
 
     /** */
     private final Map<ChainAtServerTracked, Long> startTimes = new HashMap<>();
@@ -63,7 +68,7 @@ public class CheckQueueJob implements Runnable {
     /**
      * @param creds Background credentials provider.
      */
-    public CheckQueueJob(ITcHelper tcHelper, ICredentialsProv creds) {
+    public void init(ITcServerProvider tcHelper, ICredentialsProv creds) {
         this.creds = creds;
         this.tcHelper = tcHelper;
     }
@@ -81,45 +86,70 @@ public class CheckQueueJob implements Runnable {
     }
 
     /**   */
-    public void runEx() {
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    @AutoProfiling
+    @MonitoredTask(name = "Check Queue")
+    protected String runEx() {
+        if (Boolean.valueOf(System.getProperty(CheckQueueJob.AUTO_TRIGGERING_BUILD_DISABLED))) {
+            final String msg = "Automatic build triggering was disabled.";
+            logger.info(msg);
+            return msg;
+        }
+
         String branch = FullQueryParams.DEFAULT_BRANCH_NAME;
 
+        //todo support several branches
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
 
         if (tracked == null || tracked.getChains() == null || tracked.getChains().isEmpty()) {
-            logger.info("Background check queue skipped - no config specified for \"{}\".", branch);
+            final String msg = "Background check queue skipped - no config specified for ";
+            logger.info(msg + "\"{}\".", branch);
 
-            return;
+            return msg + branch;
         }
+
+        int srvsChecked = 0, chainsChecked = 0;
 
         Map<String, List<ChainAtServerTracked>> chainsBySrv = mapChainsByServer(tracked.getChains());
 
         for (Map.Entry<String, List<ChainAtServerTracked>> entry : chainsBySrv.entrySet()) {
-            String srv = entry.getKey();
+            String srvId = entry.getKey();
 
             List<ChainAtServerTracked> chains = entry.getValue();
 
-            ITeamcity teamcity = tcHelper.server(srv, creds);
+            srvsChecked++;
+            chainsChecked += chains.stream().filter(c -> Objects.equals(c.serverId, srvId)).count();
 
             try {
-                checkQueue(teamcity, chains);
+                checkQueue(srvId, chains);
             }
             catch (RuntimeException | ExecutionException e) {
                 logger.error("Unable to check queue: " + e.getMessage(), e);
+
+                throw Throwables.propagate(e);
             }
             catch (InterruptedException e) {
                 logger.error("Unable to check queue: " + e.getMessage(), e);
 
                 Thread.currentThread().interrupt();
+                throw Throwables.propagate(e);
             }
         }
 
+        return "Checked: " + srvsChecked + "servers, " + chainsChecked + " chains, "
+            + ": Trigger'able branches " + chainsBySrv.size();
     }
 
     /**
-     * Trigger build if half od agents is available and there is no self-triggered builds in build queue.
+     * Trigger build if half of agents is available and there is no self-triggered builds in build queue.
      */
-    private void checkQueue(ITeamcity teamcity, List<ChainAtServerTracked> chains) throws ExecutionException, InterruptedException {
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    @AutoProfiling
+    @MonitoredTask(name = "Check Server Queue", nameExtArgIndex = 0)
+    protected String checkQueue(String srvId,
+        List<ChainAtServerTracked> chains) throws ExecutionException, InterruptedException {
+        ITeamcity teamcity = tcHelper.server(srvId, creds);
+
         List<Agent> agents = teamcity.agents(true, true);
 
         int total = agents.size();
@@ -132,67 +162,78 @@ public class CheckQueueJob implements Runnable {
 
         int free = (total - running) * 100 / total;
 
-        logger.info("{}% of agents are free ({} total, {} running builds).", free, total, running);
+        final String agentStatus = MessageFormat.format("{0}% of agents are free ({1} total, {2} running builds).", free, total, running);
 
-        if (free >= CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT) {
-            logger.debug("There are more than half free agents (total={}, free={}).", total, total - running);
+        logger.info(agentStatus);
 
-            List<BuildRef> builds = teamcity.getQueuedBuilds(null).get();
+        if (free < CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT)
+            return"Min agent percent of free agents not met:" + agentStatus;
 
-            String selfLogin = creds.getUser(teamcity.serverId());
+        logger.info("There are more than half free agents (total={}, free={}).", total, total - running);
 
-            boolean triggerBuild = true;
+        List<BuildRef> builds = teamcity.getQueuedBuilds(null).get();
 
-            for (BuildRef ref : builds) {
-                Build build = teamcity.getBuild(ref.href);
+        String selfLogin = creds.getUser(teamcity.serverId());
 
-                User user = build.getTriggered().getUser();
+        for (BuildRef ref : builds) {
+            Build build = teamcity.getBuild(ref.href);
 
-                if (user == null) {
-                    logger.info("Unable to get username for queued build {} (type={}).", ref.getId(), ref.buildTypeId);
+            User user = build.getTriggered().getUser();
+
+            if (user == null) {
+                logger.info("Unable to get username for queued build {} (type={}).", ref.getId(), ref.buildTypeId);
+
+                continue;
+            }
+
+            String login = user.username;
+
+            if (selfLogin.equalsIgnoreCase(login)) {
+                final String msg = MessageFormat.format("Queued build {0} was early triggered by me (user {1}). Will not startIgnite build.", ref.getId(), login);
+
+                logger.info(msg);
+
+                return msg;
+            }
+        }
+
+        StringBuilder res = new StringBuilder();
+
+        for (ChainAtServerTracked chain : chains) {
+            if(!Objects.equals(chain.serverId, teamcity.serverId()))
+                continue;
+
+            long curr = System.currentTimeMillis();
+            long delay = chain.getTriggerBuildQuietPeriod();
+
+            if (delay > 0) {
+                Long lastStart = startTimes.get(chain);
+
+                long minsPassed;
+
+                if (lastStart != null &&
+                    (minsPassed = TimeUnit.MILLISECONDS.toMinutes(curr - lastStart)) < delay) {
+
+                    final String msg = MessageFormat.format("Skip triggering build, timeout has not expired " +
+                                    "(server={0}, suite={1}, branch={2}, delay={3} mins, passed={4} mins)",
+                            chain.getServerId(), chain.getSuiteIdMandatory(), chain.getBranchForRestMandatory(),
+                            chain.getTriggerBuildQuietPeriod(), minsPassed);
+                    logger.info(msg);
+
+                    res.append(msg).append("; ");
 
                     continue;
                 }
-
-                String login = user.username;
-
-                if (selfLogin.equalsIgnoreCase(login)) {
-                    logger.info("Queued build {} triggered by me (user {}). Will not start build.", ref.getId(), login);
-
-                    triggerBuild = false;
-
-                    break;
-                }
             }
 
-            if (triggerBuild) {
-                for (ChainAtServerTracked chain : chains) {
-                    long curr = System.currentTimeMillis();
-                    long delay = chain.getTriggerBuildQuietPeriod();
+            startTimes.put(chain, curr);
 
-                    if (delay > 0) {
-                        Long lastStart = startTimes.get(chain);
+            teamcity.triggerBuild(chain.suiteId, chain.branchForRest, true, false);
 
-                        long minsPassed;
-
-                        if (lastStart != null &&
-                            (minsPassed = TimeUnit.MILLISECONDS.toMinutes(curr - lastStart)) < delay) {
-
-                            logger.info("Skip triggering build, timeout has not expired " +
-                                    "(server={}, suite={}, branch={}, delay={} mins, passed={} mins)",
-                                chain.getServerId(), chain.getSuiteIdMandatory(), chain.getBranchForRestMandatory(),
-                                chain.getTriggerBuildQuietPeriod(), minsPassed);
-
-                            continue;
-                        }
-                    }
-
-                    startTimes.put(chain, curr);
-
-                    teamcity.triggerBuild(chain.suiteId, chain.branchForRest, true, false);
-                }
-            }
+            res.append(chain.branchForRest).append(" ").append(chain.suiteId).append(" triggered; ");
         }
+
+        return res.toString();
     }
 
     /**

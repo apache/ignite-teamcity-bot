@@ -40,6 +40,7 @@ import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
+import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -114,53 +115,18 @@ public class CheckBuildChainResults {
     }
 
     public static void main(String[] args) throws Exception {
-
-        Ignite ignite = TcHelperDb.start();
+        Ignite ignite = new Ignite1Init().startIgnite();
         BuildMetricsHistory history;
         try {
             history = new BuildMetricsHistory();
 
 
-            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
-                collectHistory(history, teamcity, "Ignite20Tests_RunAll", "pull/2296/head");
-            }
+            ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "apache");
+            collectHistory(history, teamcity, "Ignite20Tests_RunAll", "pull/2296/head");
 
-            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
-                collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "ignite-2.1.3");
-            }
+            collectHistory(history, teamcity, "Ignite20Tests_RunAll", "ignite-2.2");
 
-            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
-                collectHistory(history, teamcity, "Ignite20Tests_RunAll", "refs/heads/master");
-            }
-            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
-                collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "refs/heads/master");
-            }
-
-            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
-                collectHistory(history, teamcity, "Ignite20Tests_RunAll", "pull/2400/head");
-            }
-
-            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
-                collectHistory(history, teamcity, "Ignite20Tests_RunAll", "ignite-2.2");
-            }
-
-            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
-                collectHistory(history, teamcity, "Ignite20Tests_RunAll", "pull/2380/head");
-            }
-
-            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
-                collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "ignite-2.1.4");
-            }
-
-            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "public")) {
-                collectHistory(history, teamcity, "Ignite20Tests_RunAll", "pull/2508/head");
-            }
-
-            try (ITeamcity teamcity = new IgnitePersistentTeamcity(ignite, "private")) {
-                collectHistory(history, teamcity, "id8xIgniteGridGainTests_RunAll", "ignite-2.1.5");
-            }
-        }
-        finally {
+        } finally {
             TcHelperDb.stop(ignite);
         }
 
