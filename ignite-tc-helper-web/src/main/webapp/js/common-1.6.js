@@ -58,24 +58,32 @@ function showErrInLoadStatus(jqXHR, exception) {
 
 //requires element on page: <div id="version"></div>
 function showVersionInfo(result) {
-    var res = "";
-    res += "Ignite TC helper, V" + result.version + ", ";
+    var res = "<hr>";
+    res += "<small><a href='https://cwiki.apache.org/confluence/display/IGNITE/Apache+Ignite+Teamcity+Bot'>Apache Ignite Teamcity Bot</a>, V" + result.version + ", ";
 
     if (isDefinedAndFilled(result.srcWebUrl)) {
-        res += "<a href='" + result.srcWebUrl + "'>source code (GitHub)</a> ";
+        res += "<a href='" + result.srcWebUrl + "'>source code (GitHub)</a>";
     }
 
     if (isDefinedAndFilled(result.apacheGitUrl)) {
-        res += ", <a href='" + result.apacheGitUrl + "'>Apache Git</a>. ";
+        res += ", <a href='" + result.apacheGitUrl + "'>Apache Git</a>.";
     }
 
-    res += "Powered by <a href='https://ignite.apache.org/'>";
-    res += "<img width='16px' height='16px' src='https://pbs.twimg.com/profile_images/568493154500747264/xTBxO73F.png'>"
-    res += "Apache Ignite</a> ";
+    res += "<br>Powered by <a href='https://ignite.apache.org/'>";
+    res += "<img width='16px' height='16px' src='https://pbs.twimg.com/profile_images/568493154500747264/xTBxO73F.png'>";
+    res += "Apache Ignite</a>";
 
     if (isDefinedAndFilled(result.ignVer)) {
-        res += "V" + result.ignVer;
+        res += " V" + result.ignVer;
     }
+
+    res += "<br>";
+    res += "Managed by the <a href='https://ignite.apache.org/community/resources.html#people'>Apache Ignite Development Project.</a>";
+
+    res += "<br>";
+
+    res += "Copyright &#9400;, the Apache Software Foundation." +
+        " Licensed under the <a href='http://www.apache.org/licenses/LICENSE-2.0'>Apache License, Version 2.0</a></small>";
 
     $("#version").html(res);
 }
@@ -121,6 +129,7 @@ function showMenu(menuData) {
         res += "<a href=\"/\">Home</a>";
         res += "<a href=\"/compare.html\">Compare builds</a>";
         res += "<a href=\"/services.html\">PR/Branch check</a>";
+        res += "<a href=\"/comparison.html\">Master Trends</a>";
 
 
         res += "<div class='topnav-right'>";
