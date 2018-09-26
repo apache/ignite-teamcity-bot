@@ -17,7 +17,6 @@
 
 package org.apache.ignite.ci.jobs;
 
-import com.google.common.base.Strings;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -109,18 +108,20 @@ public class CheckQueueJob implements Runnable {
             return msg + branch;
         }
 
+        int srvsChecked = 0, chainsChecked = 0;
+
         Map<String, List<ChainAtServerTracked>> chainsBySrv = mapChainsByServer(tracked.getChains());
 
-        StringBuilder res = new StringBuilder();
         for (Map.Entry<String, List<ChainAtServerTracked>> entry : chainsBySrv.entrySet()) {
-            String srv = entry.getKey();
+            String srvId = entry.getKey();
 
             List<ChainAtServerTracked> chains = entry.getValue();
 
-            ITeamcity teamcity = tcHelper.server(srv, creds);
+            srvsChecked++;
+            chainsChecked += chains.stream().filter(c -> Objects.equals(c.serverId, srvId)).count();
 
             try {
-                res.append(srv).append(":").append(checkQueue(teamcity, chains)).append(";");
+                checkQueue(srvId, chains);
             }
             catch (RuntimeException | ExecutionException e) {
                 logger.error("Unable to check queue: " + e.getMessage(), e);
@@ -135,16 +136,20 @@ public class CheckQueueJob implements Runnable {
             }
         }
 
-        if(Strings.isNullOrEmpty(res.toString()))
-            return "No TC queue check results: Trigger able branches " + chainsBySrv.size();
-
-        return res.toString();
+        return "Checked: " + srvsChecked + "servers, " + chainsChecked + " chains, "
+            + ": Trigger'able branches " + chainsBySrv.size();
     }
 
     /**
-     * Trigger build if half od agents is available and there is no self-triggered builds in build queue.
+     * Trigger build if half of agents is available and there is no self-triggered builds in build queue.
      */
-    private String checkQueue(ITeamcity teamcity, List<ChainAtServerTracked> chains) throws ExecutionException, InterruptedException {
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    @AutoProfiling
+    @MonitoredTask(name = "Check Server Queue", nameExtArgIndex = 0)
+    protected String checkQueue(String srvId,
+        List<ChainAtServerTracked> chains) throws ExecutionException, InterruptedException {
+        ITeamcity teamcity = tcHelper.server(srvId, creds);
+
         List<Agent> agents = teamcity.agents(true, true);
 
         int total = agents.size();
@@ -161,9 +166,8 @@ public class CheckQueueJob implements Runnable {
 
         logger.info(agentStatus);
 
-        if (free < CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT) {
+        if (free < CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT)
             return"Min agent percent of free agents not met:" + agentStatus;
-        }
 
         logger.info("There are more than half free agents (total={}, free={}).", total, total - running);
 
