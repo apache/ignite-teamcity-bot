@@ -52,11 +52,6 @@ public class BuildChainProcessor {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
 
-    @Nullable private static Properties getContactPersonProperties(ITeamcity teamcity) {
-        return HelperConfig.loadContactPersons(teamcity.serverId());
-    }
-
-
     /**
      * @param teamcity Teamcity.
      * @param entryPoints Builds.

@@ -21,10 +21,12 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
@@ -40,13 +42,14 @@ import org.jetbrains.annotations.Nullable;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 public class TrackedBranchChainsProcessor {
+    @Inject private ITcServerProvider srvProv;
+
     //todo make it part of context, non static
     @NotNull
-    public static TestFailuresSummary getTrackedBranchTestFailures(
+    public TestFailuresSummary getTrackedBranchTestFailures(
             @Nullable @QueryParam("branch") String branch,
             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
             int buildResMergeCnt,
-            ITcHelper helper,
             ICredentialsProv creds,
             @Nullable ExecutorService pool) {
         final TestFailuresSummary res = new TestFailuresSummary();
@@ -70,7 +73,7 @@ public class TrackedBranchChainsProcessor {
 
                 chainStatus.baseBranchForTc = baseBranchTc;
 
-                IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds);
+                IAnalyticsEnabledTeamcity teamcity = srvProv.server(srvId, creds);
 
                 final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
                     chainTracked.getSuiteIdMandatory(),

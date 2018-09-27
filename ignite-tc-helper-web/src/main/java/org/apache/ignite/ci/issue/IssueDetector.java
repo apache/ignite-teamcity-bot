@@ -84,6 +84,8 @@ public class IssueDetector {
 
     @Inject private Provider<CheckQueueJob> checkQueueJobProv;
 
+    @Inject private TrackedBranchChainsProcessor tbProc;
+
     public IssueDetector() {
     }
 
@@ -425,15 +427,14 @@ public class IssueDetector {
 
         ExecutorService executor = MoreExecutors.newDirectExecutorService();
 
-        TrackedBranchChainsProcessor.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
-            false, buildsToQry, backgroundOpsTcHelper, backgroundOpsCreds, executor);
+        tbProc.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
+            false, buildsToQry, backgroundOpsCreds, executor);
 
         TestFailuresSummary failures =
-            TrackedBranchChainsProcessor.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
+                tbProc.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
                 false,
                 1,
-                backgroundOpsTcHelper,
-                backgroundOpsCreds,
+                        backgroundOpsCreds,
                 executor);
 
         registerIssuesLater(failures, backgroundOpsTcHelper, backgroundOpsCreds);

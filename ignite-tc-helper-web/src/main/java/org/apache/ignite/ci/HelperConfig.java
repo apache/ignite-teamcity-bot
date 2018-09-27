@@ -41,7 +41,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  */
 public class HelperConfig {
     public static final String CONFIG_FILE_NAME = "auth.properties";
-    public static final String RESP_FILE_NAME = "resp.properties";
     public static final String MAIL_PROPS = "mail.auth.properties";
     public static final String HOST = "host";
     public static final String USERNAME = "username";
@@ -204,23 +203,6 @@ public class HelperConfig {
             return new Gson().fromJson(json, BranchesTracked.class);
         } catch (IOException e) {
             throw ExceptionUtil.propagateException(e);
-        }
-    }
-
-    @Nullable public static Properties loadContactPersons(String tcName) {
-        try {
-            String respConf = prefixedWithServerName(tcName, RESP_FILE_NAME);
-            final File workDir = resolveWorkDir();
-            final File file = new File(workDir, respConf);
-
-            if(!file.exists())
-                return null;
-
-            return loadProps(file);
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            return new Properties();
         }
     }
 

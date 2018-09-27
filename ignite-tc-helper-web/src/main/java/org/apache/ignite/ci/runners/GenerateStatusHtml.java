@@ -97,9 +97,8 @@ public class GenerateStatusHtml {
     }
 
     public static void generate(Writer writer) throws Exception {
-        boolean groupByResponsible = true;
-        boolean includeTabAll = groupByResponsible && true;
-        final String verComments = "Version 10. Responsibilities loaded from config";
+        boolean groupByResponsible = false;
+        final String verComments = "Version 11. Responsibilities removed";
         final List<Branch> branchesPriv = Lists.newArrayList(
             new Branch("", "<default>", "master"),
             //new Branch("ignite-2.1.4", "ignite-2.1.4", "ignite-2.1.4"),
@@ -122,23 +121,6 @@ public class GenerateStatusHtml {
         final String projectId = "Ignite20Tests";
         ProjectStatus pubStatus = getBuildStatuses(pubTcId, projectId, branchesPub);
 
-        TreeSet<String> respPersons;
-        Properties privResp;
-        Properties pubResp;
-        if (groupByResponsible) {
-            privResp = HelperConfig.loadContactPersons(tcPrivId);
-            pubResp = HelperConfig.loadContactPersons(pubTcId);
-
-            respPersons = allRespPersons(privResp, pubResp);
-            System.err.println(respPersons);
-        }
-        else {
-            respPersons = Sets.newTreeSet();
-            respPersons.add("all");
-            pubResp = null;
-            privResp = null;
-        }
-
         line(writer, "<html>");
         header(writer, groupByResponsible);
         line(writer, "<body>");
@@ -146,7 +128,7 @@ public class GenerateStatusHtml {
         HtmlBuilder builder = new HtmlBuilder(writer);
 
         String tabAllId = "all";
-        Iterable<String> tabs = includeTabAll ? Iterables.concat(Lists.newArrayList(tabAllId), respPersons) : respPersons;
+        Iterable<String> tabs =   Lists.newArrayList(tabAllId) ;
         if (groupByResponsible) {
             builder.line("<div id=\"tabs\">");
 
@@ -163,13 +145,13 @@ public class GenerateStatusHtml {
             builder.line("<div id='" + getDivId(curResponsiblePerson) + "'>");
 
             builder.line("Private TC status");
-            boolean includeAll = !groupByResponsible || (isFirst & includeTabAll);
+
             writeBuildsTable(branchesPriv, privStatuses, builder,
-                buildId -> includeAll || isPropertyValueEquals(privResp, buildId, curResponsiblePerson));
+                    buildId -> true);
 
             builder.line("<br><br>Public TC status");
             writeBuildsTable(branchesPub, pubStatus, builder,
-                buildId -> includeAll || isPropertyValueEquals(pubResp, buildId, curResponsiblePerson));
+                    buildId -> true);
 
             builder.line("</div>");
 

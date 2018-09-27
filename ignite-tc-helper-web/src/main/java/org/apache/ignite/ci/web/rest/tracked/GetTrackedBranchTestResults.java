@@ -89,10 +89,11 @@ public class GetTrackedBranchTestResults {
             @Nullable @QueryParam("branch") String branch,
             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
-        final ITcHelper helper = CtxListener.getTcHelper(ctx);
         final ICredentialsProv creds = ICredentialsProv.get(request);
 
-        return TrackedBranchChainsProcessor.getTrackedBranchTestFailures(branch, checkAllLogs, 1, helper, creds,
+        final TrackedBranchChainsProcessor tbProc = CtxListener.getInjector(ctx).getInstance(TrackedBranchChainsProcessor.class);
+
+        return tbProc.getTrackedBranchTestFailures(branch, checkAllLogs, 1, creds,
                 CtxListener.getPool(ctx));
     }
 
@@ -132,10 +133,10 @@ public class GetTrackedBranchTestResults {
     public TestFailuresSummary getAllTestFailsNoCache(@Nullable @QueryParam("branch") String branchOpt,
                                                       @QueryParam("count") Integer cnt,
                                                       @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        final ITcHelper helper = CtxListener.getTcHelper(ctx);
         final ICredentialsProv creds = ICredentialsProv.get(request);
         int cntLimit = cnt == null ? FullQueryParams.DEFAULT_COUNT : cnt;
+        final TrackedBranchChainsProcessor tbProc = CtxListener.getInjector(ctx).getInstance(TrackedBranchChainsProcessor.class);
 
-        return TrackedBranchChainsProcessor.getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, helper, creds, CtxListener.getPool(ctx));
+        return tbProc.getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, CtxListener.getPool(ctx));
     }
 }
