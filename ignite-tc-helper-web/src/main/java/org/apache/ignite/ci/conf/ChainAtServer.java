@@ -32,6 +32,12 @@ public class ChainAtServer {
     /** Suite identifier by teamcity identification for root chain. */
     @Nonnull public String suiteId;
 
+    /** URL for git integration. */
+    @Nullable public String gitApiUrl;
+
+    /** URL for JIRA integration. */
+    @Nullable public String jiraApiUrl;
+
     public ChainAtServer() {
 
     }
@@ -39,6 +45,8 @@ public class ChainAtServer {
     public ChainAtServer(ChainAtServer o) {
         this.serverId = o.serverId;
         this.suiteId = o.suiteId;
+        this.gitApiUrl = o.gitApiUrl;
+        this.jiraApiUrl = o.jiraApiUrl;
     }
 
     /** {@inheritDoc} */
@@ -52,12 +60,14 @@ public class ChainAtServer {
         ChainAtServer srv = (ChainAtServer)o;
 
         return Objects.equals(serverId, srv.serverId) &&
-            Objects.equals(suiteId, srv.suiteId);
+            Objects.equals(suiteId, srv.suiteId)&&
+            Objects.equals(gitApiUrl, srv.gitApiUrl)&&
+            Objects.equals(jiraApiUrl, srv.jiraApiUrl);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(serverId, suiteId);
+        return Objects.hash(serverId, suiteId, gitApiUrl, jiraApiUrl);
     }
 
     /**
