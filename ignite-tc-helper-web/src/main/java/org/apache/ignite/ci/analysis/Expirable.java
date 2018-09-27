@@ -23,7 +23,6 @@ import org.apache.ignite.ci.db.Persisted;
 /**
  * Wrapper for timestamped entry to be reloaded later.
  */
-@Persisted
 public class Expirable<D> {
     private final long ts;
     private final D data;

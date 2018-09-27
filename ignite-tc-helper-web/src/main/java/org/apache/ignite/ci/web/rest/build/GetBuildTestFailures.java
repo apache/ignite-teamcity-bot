@@ -159,13 +159,13 @@ public class GetBuildTestFailures {
     @GET
     @Path("history")
     public List<BuildStatisticsSummary> getBuildsHistory(
-        @Nullable @QueryParam("server") String server,
+        @Nullable @QueryParam("server") String srv,
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("sinceDate") String sinceDate,
         @Nullable @QueryParam("untilDate") String untilDate)
         throws ServiceUnauthorizedException {
-        String srvId = isNullOrEmpty(server) ? "apache" : server;
+        String srvId = isNullOrEmpty(srv) ? "apache" : srv;
         String buildTypeId = isNullOrEmpty(buildType) ? "IgniteTests24Java8_RunAll" : buildType;
         String branchName = isNullOrEmpty(branch) ? "refs/heads/master" : branch;
         Date sinceDateFilter = isNullOrEmpty(sinceDate) ? null : dateParse(sinceDate);
