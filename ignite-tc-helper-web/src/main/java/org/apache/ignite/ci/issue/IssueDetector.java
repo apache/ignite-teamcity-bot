@@ -40,6 +40,7 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
@@ -57,12 +58,11 @@ import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
-import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
+import static org.apache.ignite.ci.chain.BuildChainProcessor.normalizeBranch;
 
 /**
  *
@@ -425,11 +425,11 @@ public class IssueDetector {
 
         ExecutorService executor = MoreExecutors.newDirectExecutorService();
 
-        GetTrackedBranchTestResults.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
+        TrackedBranchChainsProcessor.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
             false, buildsToQry, backgroundOpsTcHelper, backgroundOpsCreds, executor);
 
         TestFailuresSummary failures =
-            GetTrackedBranchTestResults.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
+            TrackedBranchChainsProcessor.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
                 false,
                 1,
                 backgroundOpsTcHelper,

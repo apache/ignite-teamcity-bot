@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci;
+package org.apache.ignite.ci.chain;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,6 +30,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.ITcAnalytics;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
@@ -53,6 +56,7 @@ public class BuildChainProcessor {
         return HelperConfig.loadContactPersons(teamcity.serverId());
     }
 
+
     /**
      * @param teamcity Teamcity.
      * @param entryPoints Builds.
@@ -60,6 +64,7 @@ public class BuildChainProcessor {
      * @param procLog Process logs mode.
      * @param tcAnalytics Tc analytics.
      */
+    //todo make it part of context, non static
     public static FullChainRunCtx loadFullChainContext(
         ITeamcity teamcity,
         Collection<BuildRef> entryPoints,
@@ -222,7 +227,7 @@ public class BuildChainProcessor {
         }
     }
 
-    @NotNull protected static String normalizeBranch(@NotNull final BuildRef build) {
+    @NotNull public static String normalizeBranch(@NotNull final BuildRef build) {
         return normalizeBranch(build.branchName);
     }
 

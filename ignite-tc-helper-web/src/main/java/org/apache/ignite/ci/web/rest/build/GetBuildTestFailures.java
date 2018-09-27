@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
-import org.apache.ignite.ci.BuildChainProcessor;
+import org.apache.ignite.ci.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;

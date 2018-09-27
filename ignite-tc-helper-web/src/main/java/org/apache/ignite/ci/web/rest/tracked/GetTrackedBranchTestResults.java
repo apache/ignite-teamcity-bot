@@ -17,19 +17,11 @@
 
 package org.apache.ignite.ci.web.rest.tracked;
 
-import org.apache.ignite.ci.BuildChainProcessor;
-import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
-import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.ci.conf.BranchTracked;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
@@ -44,13 +36,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
-import static com.google.common.base.Strings.isNullOrEmpty;
 
 @Path(GetTrackedBranchTestResults.TRACKED)
 @Produces(MediaType.APPLICATION_JSON)
@@ -107,7 +92,7 @@ public class GetTrackedBranchTestResults {
         final ITcHelper helper = CtxListener.getTcHelper(ctx);
         final ICredentialsProv creds = ICredentialsProv.get(request);
 
-        return getTrackedBranchTestFailures(branch, checkAllLogs, 1, helper, creds,
+        return TrackedBranchChainsProcessor.getTrackedBranchTestFailures(branch, checkAllLogs, 1, helper, creds,
                 CtxListener.getPool(ctx));
     }
 
@@ -141,80 +126,6 @@ public class GetTrackedBranchTestResults {
                 false);
     }
 
-    @NotNull
-    public static TestFailuresSummary getTrackedBranchTestFailures(
-            @Nullable @QueryParam("branch") String branch,
-            @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
-            int buildResMergeCnt,
-            ITcHelper helper,
-            ICredentialsProv creds,
-            @Nullable ExecutorService pool) {
-        final TestFailuresSummary res = new TestFailuresSummary();
-        final AtomicInteger runningUpdates = new AtomicInteger();
-
-        final String branchNn = isNullOrEmpty(branch) ? FullQueryParams.DEFAULT_BRANCH_NAME : branch;
-        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branchNn);
-        res.setTrackedBranch(branchNn);
-
-        tracked.chains.stream().parallel()
-            .filter(chainTracked -> creds.hasAccess(chainTracked.serverId))
-            .map(chainTracked -> {
-                final String srvId = chainTracked.serverId;
-
-                final String branchForTc = chainTracked.getBranchForRestMandatory();
-
-                //branch is tracked, so fail rate should be taken from this branch data (otherwise it is specified).
-                final String baseBranchTc = chainTracked.getBaseBranchForTc().orElse(branchForTc);
-
-                final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
-
-                chainStatus.baseBranchForTc = baseBranchTc;
-
-                IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds);
-
-                final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
-                    chainTracked.getSuiteIdMandatory(),
-                    branchForTc);
-
-                List<BuildRef> chains = builds.stream()
-                    .filter(ref -> !ref.isFakeStub())
-                    .sorted(Comparator.comparing(BuildRef::getId).reversed())
-                    .limit(buildResMergeCnt)
-                    .filter(b -> b.getId() != null).collect(Collectors.toList());
-
-                ProcessLogsMode logs;
-                if (buildResMergeCnt > 1)
-                    logs = checkAllLogs != null && checkAllLogs ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED;
-                else
-                    logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
-
-                LatestRebuildMode rebuild = buildResMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
-
-                boolean includeScheduled = buildResMergeCnt == 1;
-
-                final FullChainRunCtx ctx = BuildChainProcessor.loadFullChainContext(teamcity, chains,
-                    rebuild,
-                    logs, includeScheduled, teamcity,
-                    baseBranchTc, pool);
-
-                int cnt = (int)ctx.getRunningUpdates().count();
-                if (cnt > 0)
-                    runningUpdates.addAndGet(cnt);
-
-                chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranchTc);
-
-                return chainStatus;
-            })
-            .forEach(res::addChainOnServer);
-
-        res.servers.sort(Comparator.comparing(ChainAtServerCurrentStatus::serverName));
-
-        res.postProcess(runningUpdates.get());
-
-        return res;
-    }
-
-
     @GET
     @Path("mergedResultsNoCache")
     @NotNull
@@ -225,6 +136,6 @@ public class GetTrackedBranchTestResults {
         final ICredentialsProv creds = ICredentialsProv.get(request);
         int cntLimit = cnt == null ? FullQueryParams.DEFAULT_COUNT : cnt;
 
-        return getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, helper, creds, CtxListener.getPool(ctx));
+        return TrackedBranchChainsProcessor.getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, helper, creds, CtxListener.getPool(ctx));
     }
 }

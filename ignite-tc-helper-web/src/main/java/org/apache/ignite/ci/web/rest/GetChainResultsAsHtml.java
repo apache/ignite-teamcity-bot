@@ -31,7 +31,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
 import com.google.common.util.concurrent.MoreExecutors;
-import org.apache.ignite.ci.BuildChainProcessor;
+import org.apache.ignite.ci.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -55,16 +55,16 @@ import static org.apache.ignite.internal.util.lang.GridFunc.isEmpty;
 public class GetChainResultsAsHtml {
 
     @Context
-    private ServletContext context;
+    private ServletContext ctx;
 
     @Context
-    private HttpServletRequest request;
+    private HttpServletRequest req;
     
     //test here http://localhost:8080/rest/chainResults/html?serverId=public&buildId=1086222
     public void showChainOnServersResults(StringBuilder res, Integer buildId, String srvId) {
         //todo solve report auth problem
 
-        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, context, request);
+        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, ctx, req);
 
         //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
         String hrefById = teamcity.getBuildHrefById(buildId);
@@ -219,9 +219,8 @@ public class GetChainResultsAsHtml {
 
         List<TestFailure> failures = suite.testFailures;
         StringBuilder resBuilder = new StringBuilder(res);
-        for (TestFailure next : failures) {
+        for (TestFailure next : failures)
             resBuilder.append(showTestFailData(next));
-        }
         res = resBuilder.toString();
         
         if(isDefinedAndFilled(suite.webUrlThreadDump)) {

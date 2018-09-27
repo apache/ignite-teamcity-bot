@@ -80,7 +80,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXParseException;
 
-import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
+import static org.apache.ignite.ci.chain.BuildChainProcessor.normalizeBranch;
 
 /**
  * Apache Ignite based cache over teamcity responses

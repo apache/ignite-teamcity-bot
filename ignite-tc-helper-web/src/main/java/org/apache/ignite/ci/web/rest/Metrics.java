@@ -17,11 +17,14 @@
 
 package org.apache.ignite.ci.web.rest;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -30,13 +33,20 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.ignite.ci.chain.BuildChainProcessor;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
+import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
-import org.apache.ignite.ci.runners.CheckBuildChainResults;
+import org.apache.ignite.ci.runners.BuildHistory;
+import org.apache.ignite.ci.runners.BuildMetricsHistory;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
@@ -46,7 +56,7 @@ import org.apache.ignite.ci.web.model.chart.TestsMetrics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.ignite.ci.runners.CheckBuildChainResults.collectHistory;
+import static java.util.Collections.singletonList;
 
 @Path("metrics")
 @Produces("application/json")
@@ -59,10 +69,45 @@ public class Metrics {
     @Context
     private HttpServletRequest req;
 
+    public void collectHistory(BuildMetricsHistory history,
+        ITeamcity teamcity, String id, String branch)  {
+
+        BuildChainProcessor bcp = CtxListener.getInjector(context).getInstance(BuildChainProcessor.class);
+
+        final SuiteInBranch branchId = new SuiteInBranch(id, branch);
+        final BuildHistory suiteHist = history.history(branchId);
+        final List<BuildRef> all = teamcity.getFinishedBuildsIncludeSnDepFailed(id, branch);
+        final List<Build> fullBuildInfoList = all.stream()
+            .map(b -> teamcity.getBuild(b.href))
+            .filter(Objects::nonNull)
+            .filter(b -> b.getId() != null)
+            .collect(Collectors.toList());
+
+        for (Build next : fullBuildInfoList) {
+            Date parse = next.getFinishDate();
+            String dateForMap = new SimpleDateFormat("yyyyMMdd").format(parse);
+            suiteHist.map.computeIfAbsent(dateForMap, k -> {
+                FullChainRunCtx ctx = bcp.loadFullChainContext(teamcity,
+                    singletonList(next),
+                    LatestRebuildMode.NONE,
+                    ProcessLogsMode.DISABLED, false, null,
+                        ITeamcity.DEFAULT, MoreExecutors.newDirectExecutorService());
+                if (ctx == null)
+                    return null;
+
+                for (MultBuildRunCtx suite : ctx.suites()) {
+                    boolean suiteOk = suite.failedTests() == 0 && !suite.hasNontestBuildProblem();
+                    history.addSuiteResult(teamcity.serverId() + "\t" + suite.suiteName(), suiteOk);
+                }
+                return ctx;
+            });
+        }
+    }
+
     @GET
     @Path("failuresNoCache")
     public TestsMetrics getFailuresNoCache() {
-        CheckBuildChainResults.BuildMetricsHistory history = new CheckBuildChainResults.BuildMetricsHistory();
+        BuildMetricsHistory history = new BuildMetricsHistory();
         final String branch = "master";
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
         List<ChainAtServerTracked> chains = tracked.chains;
@@ -101,7 +146,7 @@ public class Metrics {
     @Path("failuresPrivateNoCache")
     @NotNull public TestsMetrics getFailuresPrivateNoCache() {
         //todo take from branches.json
-        CheckBuildChainResults.BuildMetricsHistory hist = new CheckBuildChainResults.BuildMetricsHistory();
+        BuildMetricsHistory hist = new BuildMetricsHistory();
         final String srvId = "private";
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
@@ -117,7 +162,7 @@ public class Metrics {
     }
 
     @NotNull
-    private TestsMetrics convertToChart(CheckBuildChainResults.BuildMetricsHistory hist) {
+    private TestsMetrics convertToChart(BuildMetricsHistory hist) {
         TestsMetrics testsMetrics = new TestsMetrics();
         Set<SuiteInBranch> builds = hist.builds();
         testsMetrics.initBuilds(builds);//to initialize internal mapping build->idx
