@@ -42,6 +42,7 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.util.Base64Util;
 import org.jetbrains.annotations.NotNull;
 
@@ -152,6 +153,8 @@ public interface ITeamcity {
 
     TestOccurrences getTests(String href, String normalizedBranch);
 
+    TestOccurrences getFailedUnmutedTests(String href, String normalizedBranch);
+
     Statistics getBuildStatistics(String href);
 
     CompletableFuture<TestOccurrenceFull> getTestFull(String href);
@@ -159,6 +162,8 @@ public interface ITeamcity {
     Change getChange(String href);
 
     ChangesList getChangesList(String href);
+
+    CompletableFuture<TestRef> getTestRef(TestOccurrence occurrence);
 
     /**
      * List of build's related issues.
