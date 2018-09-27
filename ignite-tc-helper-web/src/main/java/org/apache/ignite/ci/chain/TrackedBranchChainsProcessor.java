@@ -44,6 +44,8 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 public class TrackedBranchChainsProcessor {
     @Inject private ITcServerProvider srvProv;
 
+    @Inject private BuildChainProcessor chainProc;
+
     //todo make it part of context, non static
     @NotNull
     public TestFailuresSummary getTrackedBranchTestFailures(
@@ -95,7 +97,7 @@ public class TrackedBranchChainsProcessor {
 
                 boolean includeScheduled = buildResMergeCnt == 1;
 
-                final FullChainRunCtx ctx = BuildChainProcessor.loadFullChainContext(teamcity, chains,
+                final FullChainRunCtx ctx = chainProc.loadFullChainContext(teamcity, chains,
                     rebuild,
                     logs, includeScheduled, teamcity,
                     baseBranchTc, pool);

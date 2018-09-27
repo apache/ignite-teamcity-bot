@@ -59,8 +59,7 @@ public class BuildChainProcessor {
      * @param procLog Process logs mode.
      * @param tcAnalytics Tc analytics.
      */
-    //todo make it part of context, non static
-    public static FullChainRunCtx loadFullChainContext(
+    public FullChainRunCtx loadFullChainContext(
         ITeamcity teamcity,
         Collection<BuildRef> entryPoints,
         LatestRebuildMode includeLatestRebuild,

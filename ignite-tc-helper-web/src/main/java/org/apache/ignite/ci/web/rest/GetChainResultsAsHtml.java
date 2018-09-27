@@ -31,6 +31,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.inject.Injector;
+import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
@@ -38,6 +40,7 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
@@ -63,45 +66,32 @@ public class GetChainResultsAsHtml {
     //test here http://localhost:8080/rest/chainResults/html?serverId=public&buildId=1086222
     public void showChainOnServersResults(StringBuilder res, Integer buildId, String srvId) {
         //todo solve report auth problem
+        final Injector injector = CtxListener.getInjector(ctx);
+        final BuildChainProcessor buildChainProcessor = injector.getInstance(BuildChainProcessor.class);
 
-        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, ctx, req);
-
-        //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
-        String hrefById = teamcity.getBuildHrefById(buildId);
+        String hrefById = ITeamcity.buildHref(buildId);
         BuildRef build = new BuildRef();
         build.setId(buildId);
         build.href = hrefById;
         String failRateBranch = ITeamcity.DEFAULT;
 
-        final FullChainRunCtx val = BuildChainProcessor.loadFullChainContext(teamcity, Collections.singletonList(build),
-            LatestRebuildMode.NONE,
-            ProcessLogsMode.SUITE_NOT_COMPLETE, false, teamcity,
-            failRateBranch, MoreExecutors.newDirectExecutorService());
+        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, ctx, req);
 
-        Optional<FullChainRunCtx> ctxOptional =
-            Optional.of(val);
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, Collections.singletonList(build),
+                LatestRebuildMode.NONE,
+                ProcessLogsMode.SUITE_NOT_COMPLETE, false, teamcity,
+                failRateBranch, MoreExecutors.newDirectExecutorService());
 
-        ctxOptional.ifPresent(ctx -> {
-            ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
+        ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
 
-            ctx.getRunningUpdates().forEach(future -> {
-                try {
-                    future.get();
-                }
-                catch (InterruptedException ignored) {
-                    Thread.currentThread().interrupt();
-                }
-                catch (ExecutionException e) {
-                    e.printStackTrace();
-                }
-            });
+        ctx.getRunningUpdates().forEach(FutureUtil::getResultSilent);
 
-            status.chainName = ctx.suiteName();
+        status.chainName = ctx.suiteName();
 
-            status.initFromContext(teamcity, ctx, teamcity, failRateBranch);
+        status.initFromContext(teamcity, ctx, teamcity, failRateBranch);
 
-            res.append(showChainAtServerData(status));
-        });
+        res.append(showChainAtServerData(status));
+
     }
 
     @GET

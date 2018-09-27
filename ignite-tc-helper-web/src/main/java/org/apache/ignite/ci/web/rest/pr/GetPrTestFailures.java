@@ -17,21 +17,16 @@
 
 package org.apache.ignite.ci.web.rest.pr;
 
-import com.google.common.base.Strings;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.POST;
 
+import com.google.inject.Injector;
 import org.apache.ignite.ci.*;
-import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
-import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.ci.chain.BuildChainProcessor;
+import org.apache.ignite.ci.chain.PrChainsProcessor;
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
@@ -47,12 +42,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 @Path(GetPrTestFailures.PR)
 @Produces(MediaType.APPLICATION_JSON)
@@ -118,106 +107,12 @@ public class GetPrTestFailures {
         @Nullable @QueryParam("count") Integer cnt,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc) {
 
-        final ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
         final ICredentialsProv creds = ICredentialsProv.get(req);
+        final Injector injector = CtxListener.getInjector(ctx);
+        final PrChainsProcessor prChainsProcessor = injector.getInstance(PrChainsProcessor.class);
 
-        return getTestFailuresSummary(tcHelper, creds, srvId, suiteId, branchForTc, act, cnt, baseBranchForTc,
+        return prChainsProcessor.getTestFailuresSummary(creds, srvId, suiteId, branchForTc, act, cnt, baseBranchForTc,
                 CtxListener.getPool(ctx));
-    }
-
-    /**
-     * @param helper Helper.
-     * @param creds Credentials.
-     * @param srvId Server id.
-     * @param suiteId Suite id.
-     * @param branchForTc Branch name in TC identification.
-     * @param act Action.
-     * @param cnt Count.
-     * @param baseBranchForTc Base branch name in TC identification.
-     * @param executorSvc Executor service to process TC communication requests there.
-     * @return Test failures summary.
-     */
-    public static TestFailuresSummary getTestFailuresSummary(
-            ITcHelper helper,
-            ICredentialsProv creds,
-            String srvId,
-            String suiteId,
-            String branchForTc,
-            String act,
-            Integer cnt,
-            @Nullable String baseBranchForTc,
-            @Nullable ExecutorService executorSvc) {
-        final TestFailuresSummary res = new TestFailuresSummary();
-        final AtomicInteger runningUpdates = new AtomicInteger();
-
-        //using here non persistent TC allows to skip update statistic
-        IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, creds);
-
-        res.setJavaFlags(teamcity);
-
-        LatestRebuildMode rebuild;
-        if (FullQueryParams.HISTORY.equals(act))
-            rebuild = LatestRebuildMode.ALL;
-        else if (FullQueryParams.LATEST.equals(act))
-            rebuild = LatestRebuildMode.LATEST;
-        else if (FullQueryParams.CHAIN.equals(act))
-            rebuild = LatestRebuildMode.NONE;
-        else
-            rebuild = LatestRebuildMode.LATEST;
-
-        List<BuildRef> finishedBuilds = teamcity.getFinishedBuildsIncludeSnDepFailed(
-            suiteId,
-            branchForTc);
-
-        long limit;
-        if (rebuild == LatestRebuildMode.ALL)
-            limit = cnt == null ? 10 : cnt;
-        else
-            limit = 1;
-
-        final List<BuildRef> chains = finishedBuilds.stream()
-            .filter(ref -> !ref.isFakeStub())
-            .sorted(Comparator.comparing(BuildRef::getId).reversed())
-            .limit(limit)
-            .filter(b -> b.getId() != null).collect(Collectors.toList());
-
-        boolean singleBuild = rebuild != LatestRebuildMode.ALL;
-        ProcessLogsMode logs = singleBuild
-            ? ProcessLogsMode.SUITE_NOT_COMPLETE
-            : ProcessLogsMode.DISABLED;
-
-        String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
-
-        final FullChainRunCtx val = BuildChainProcessor.loadFullChainContext(teamcity, chains,
-            rebuild,
-            logs, singleBuild, teamcity,
-            baseBranch, executorSvc);
-
-        Optional<FullChainRunCtx> pubCtx = Optional.of(val);
-
-        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverId(), branchForTc);
-
-        chainStatus.baseBranchForTc = baseBranch;
-
-        pubCtx.ifPresent(ctx -> {
-            if (ctx.isFakeStub())
-                chainStatus.setBuildNotFound(true);
-            else {
-                int cnt0 = (int)ctx.getRunningUpdates().count();
-
-                if (cnt0 > 0)
-                    runningUpdates.addAndGet(cnt0);
-
-                //fail rate reference is always default (master)
-                chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranch);
-            }
-        });
-
-        res.addChainOnServer(chainStatus);
-
-        res.postProcess(runningUpdates.get());
-
-        return res;
     }
 
     @POST

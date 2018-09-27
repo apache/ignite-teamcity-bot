@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
+import com.google.inject.Injector;
 import org.apache.ignite.ci.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -48,7 +49,6 @@ import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.text.DateFormat;
@@ -64,7 +64,7 @@ public class GetBuildTestFailures {
     public static final String TEST_FAILURES_SUMMARY_CACHE_NAME = BUILD + "TestFailuresSummary";
     public static final String BUILDS_STATISTICS_SUMMARY_CACHE_NAME = BUILD + "sStatisticsSummary";
     @Context
-    private ServletContext context;
+    private ServletContext ctx;
 
     @Context
     private HttpServletRequest req;
@@ -96,7 +96,7 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs)
         throws ServiceUnauthorizedException {
 
-        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
+        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(ctx);
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
@@ -114,8 +114,10 @@ public class GetBuildTestFailures {
         @QueryParam("serverId") String serverId,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        final ITcHelper helper = CtxListener.getTcHelper(context);
+        final ITcHelper helper = CtxListener.getTcHelper(ctx);
         final ICredentialsProv prov = ICredentialsProv.get(req);
+        final Injector injector = CtxListener.getInjector(ctx);
+        final BuildChainProcessor buildChainProcessor = injector.getInstance(BuildChainProcessor.class);
 
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
@@ -125,34 +127,30 @@ public class GetBuildTestFailures {
 
         IAnalyticsEnabledTeamcity teamcity = helper.server(serverId, prov);
 
-            //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
-            String hrefById = teamcity.getBuildHrefById(buildId);
-            BuildRef build = new BuildRef();
-            build.setId(buildId);
-            build.href = hrefById;
-            String failRateBranch = ITeamcity.DEFAULT;
+        //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
+        String hrefById = teamcity.getBuildHrefById(buildId);
+        BuildRef build = new BuildRef();
+        build.setId(buildId);
+        build.href = hrefById;
+        String failRateBranch = ITeamcity.DEFAULT;
 
         ProcessLogsMode procLogs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
-        final FullChainRunCtx val = BuildChainProcessor.loadFullChainContext(teamcity, Collections.singletonList(build),
-            LatestRebuildMode.NONE,
-            procLogs, false, teamcity,
-            failRateBranch, CtxListener.getPool(context));
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, Collections.singletonList(build),
+                LatestRebuildMode.NONE,
+                procLogs, false, teamcity,
+                failRateBranch, CtxListener.getPool(this.ctx));
 
-        Optional<FullChainRunCtx> pubCtx =
-            Optional.of(val);
 
-            pubCtx.ifPresent(ctx -> {
-                final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(serverId, ctx.branchName());
+        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(serverId, ctx.branchName());
 
-                int cnt = (int)ctx.getRunningUpdates().count();
-                if (cnt > 0)
-                    runningUpdates.addAndGet(cnt);
+        int cnt = (int) ctx.getRunningUpdates().count();
+        if (cnt > 0)
+            runningUpdates.addAndGet(cnt);
 
-                chainStatus.initFromContext(teamcity, ctx, teamcity, failRateBranch);
+        chainStatus.initFromContext(teamcity, ctx, teamcity, failRateBranch);
 
-                res.addChainOnServer(chainStatus);
-            });
+        res.addChainOnServer(chainStatus);
 
 
         res.postProcess(runningUpdates.get());
@@ -175,9 +173,9 @@ public class GetBuildTestFailures {
         Date sinceDateFilter = isNullOrEmpty(sinceDate) ? null : dateParse(sinceDate);
         Date untilDateFilter = isNullOrEmpty(untilDate) ? null : dateParse(untilDate);
 
-        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(context);
+        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(ctx);
 
-        final ITcHelper tcHelper = CtxListener.getTcHelper(context);
+        final ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
@@ -220,7 +218,7 @@ public class GetBuildTestFailures {
     private BuildStatisticsSummary getBuildStatisticsSummaryNoCache(String server, int buildId) {
         String srvId = isNullOrEmpty(server) ? "apache" : server;
 
-        final ITcHelper tcHelper = CtxListener.getTcHelper(context);
+        final ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
 
         final ICredentialsProv creds = ICredentialsProv.get(req);
 

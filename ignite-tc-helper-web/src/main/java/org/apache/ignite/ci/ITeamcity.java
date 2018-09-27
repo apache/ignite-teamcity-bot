@@ -137,6 +137,10 @@ public interface ITeamcity {
     }
 
     @NotNull default String getBuildHrefById(int id) {
+        return buildHref(id);
+    }
+
+    @NotNull  static String buildHref(int id) {
         return "app/rest/latest/builds/id:" + Integer.toString(id);
     }
 

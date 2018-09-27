@@ -17,11 +17,11 @@
 
 package org.apache.ignite.ci;
 
+import org.apache.ignite.ci.chain.PrChainsProcessor;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -31,7 +31,6 @@ import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
-import org.apache.ignite.ci.web.rest.pr.GetPrTestFailures;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +62,8 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     @Inject private IssueDetector detector;
 
     @Inject private UserAndSessionsStorage userAndSessionsStorage;
+
+    @Inject private PrChainsProcessor prChainsProcessor;
 
     public TcHelper() {
     }
@@ -162,8 +163,8 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
             @Nullable ExecutorService executorSvc
     ) {
         StringBuilder res = new StringBuilder();
-        TestFailuresSummary summary = GetPrTestFailures.getTestFailuresSummary(
-            this, prov, srvId, buildTypeId, branchForTc,
+        TestFailuresSummary summary = prChainsProcessor.getTestFailuresSummary(
+                prov, srvId, buildTypeId, branchForTc,
             "Latest", null, null, executorSvc);
 
         if (summary != null) {
