@@ -175,20 +175,4 @@ public class GetBuildTestFailures {
 
         return buildsHistory;
     }
-
-    private BuildStatisticsSummary getBuildStatisticsSummaryNoCache(String server, int buildId) {
-        String srvId = isNullOrEmpty(server) ? "apache" : server;
-
-        final ITcHelper tcHelper = CtxListener.getTcHelper(context);
-
-        final ICredentialsProv creds = ICredentialsProv.get(req);
-
-        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds);
-
-        BuildStatisticsSummary stat = new BuildStatisticsSummary(buildId);
-
-        stat.initialize(teamcity);
-
-        return stat;
-    }
 }

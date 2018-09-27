@@ -15,15 +15,12 @@ import javax.servlet.ServletContext;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 
@@ -96,7 +93,7 @@ public class BuildsHistory {
                 try {
                     tests.add(v.get(1, TimeUnit.MINUTES));
                 } catch (TimeoutException e){
-                    e.printStackTrace();
+
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
