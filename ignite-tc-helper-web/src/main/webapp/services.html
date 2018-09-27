@@ -38,6 +38,7 @@ function loadData() {
             $("#loadStatus").html("");
             showSuitesForTeamCityRunData(result);
             showCommentJiraForm(result);
+            setAutocompleteList(result);
         },
         error: showErrInLoadStatus
     });
@@ -55,7 +56,8 @@ function showSuitesForTeamCityRunData(result) {
 
         res += "Server: <input type='text' name='serverId' value='" + chainAtServer.serverId + "' readonly>";
         res += "Chain: <input type='text' name='suiteId' value='" + chainAtServer.suiteId + "' readonly>";
-        res += "Branch: <input type='text' name='branchForTc' required> ";
+        res += "Branch: <input type='text' name='branchForTc' class='branchForTc" + chainAtServer.serverId +
+            "' required> ";
         res += "Ticket: <input type='text' name='ticketId'>";
         res += "<button name='jira' type='button' onclick='trigBuild(\"tests\")'>Start tests</button>";
         res += "<button name='jira' onclick='trigBuild(\"tests+jira\")'>Start tests and comment JIRA ticket on ready</button>";
@@ -85,13 +87,29 @@ function showCommentJiraForm(result) {
 
         res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId +" readonly>" ;
         res += "Chain: <input type='text' name='suiteId' value='" + chainAtServer.suiteId + "' readonly>";
-        res += "Branch: <input type='text' name='branchForTc' required> ";
+        res += "Branch: <input type='text' name='branchForTc' class='branchForTc" + chainAtServer.serverId +
+            "' required> ";
         res += "Ticket: <input type='text' name='ticketId'> ";
         res += "<button name='action' onclick='notifyJira()'>Notify</button>";
     }
 
     //todo enabled this once feature is ready
     $("#notifyJira").html(res);
+}
+
+/**
+ * Fill git URLs and send requests to them.
+ *
+ * @param result - Set of ChainAtServer objects.
+ */
+function setAutocompleteList(result) {
+    for (var i = 0; i < result.length; i++) {
+        var chainAtServer = result[i];
+
+        gitUrls.set(chainAtServer.serverId, chainAtServer.gitApiUrl);
+    }
+
+    sendRequestsToFillAutocompleteLists();
 }
 
 /**

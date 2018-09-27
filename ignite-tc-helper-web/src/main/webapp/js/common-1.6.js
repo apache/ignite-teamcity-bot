@@ -202,3 +202,95 @@ function tcHelperLogout() {
     } catch (e) {
     }
 }
+
+/**
+ * Change autocomplete filter to show results only when they starts from written text.
+ */
+$.ui.autocomplete.filter = function (array, term) {
+    var matcher = new RegExp("^" + $.ui.autocomplete.escapeRegex(term), "i");
+
+    return $.grep(array, function (value) {
+        return matcher.test(value.label || value.value || value);
+    });
+};
+
+var callbackRegistry = {};
+
+/**
+ * Send request to another site.
+ *
+ * @param url URL.
+ * @param onSuccess Function for success response.
+ * @param onError Function for fail response.
+ */
+function scriptRequest(url, onSuccess, onError) {
+    var scriptOk = false;
+
+    var callbackName = 'cb' + String(Math.random()).slice(-6);
+
+    url += ~url.indexOf('?') ? '&' : '?';
+    url += 'callback=callbackRegistry.' + callbackName;
+
+    callbackRegistry[callbackName] = function(data) {
+        scriptOk = true;
+
+        delete callbackRegistry[callbackName];
+
+        onSuccess(data);
+    };
+
+    function checkCallback() {
+        if (scriptOk)
+            return;
+
+        delete callbackRegistry[callbackName];
+
+        onError(url);
+    }
+
+    var script = document.createElement('script');
+
+    script.onload = script.onerror = checkCallback;
+    script.src = url;
+
+    document.body.appendChild(script);
+}
+
+/**
+ * Key - server id.
+ * Value - url to git api.
+ *
+ * @type {Map<String, String>}
+ */
+var gitUrls = new Map();
+
+/**
+ * Send requests to the git to get pull requests for the branch autocomplete lists.
+ */
+function sendRequestsToFillAutocompleteLists() {
+    for (var entry of gitUrls.entries())
+        scriptRequest(entry[1] + "pulls?sort=updated&direction=desc", fillBranchAutocompleteList);
+}
+
+/**
+ * Takes all "branchForTc<server>" and add autocomplete list to them.
+ *
+ * @param result Response from git.
+ */
+function fillBranchAutocompleteList(result) {
+    if (!result.data || !result.data[0])
+        return;
+
+    for (var entry of gitUrls.entries()) {
+        if (result.data[0].url.startsWith(entry[1])) {
+            var branches = [{label:"master", value:"refs/heads/master"}];
+
+            for (let pr of result.data)
+                branches.push({label: pr.number, value: "pull/" + pr.number + "/head"});
+
+            $(".branchForTc" + entry[0]).autocomplete({source: branches});
+
+            break;
+        }
+    }
+}
