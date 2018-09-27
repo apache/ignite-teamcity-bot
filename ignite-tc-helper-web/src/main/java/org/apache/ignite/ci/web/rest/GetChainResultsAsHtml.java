@@ -73,11 +73,13 @@ public class GetChainResultsAsHtml {
         build.href = hrefById;
         String failRateBranch = ITeamcity.DEFAULT;
 
+        final FullChainRunCtx val = BuildChainProcessor.loadFullChainContext(teamcity, Collections.singletonList(build),
+            LatestRebuildMode.NONE,
+            ProcessLogsMode.SUITE_NOT_COMPLETE, false, teamcity,
+            failRateBranch, MoreExecutors.newDirectExecutorService());
+
         Optional<FullChainRunCtx> ctxOptional =
-            BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,
-                Collections.singletonList(build),
-                ProcessLogsMode.SUITE_NOT_COMPLETE,
-                false, false, teamcity, failRateBranch, MoreExecutors.newDirectExecutorService());
+            Optional.of(val);
 
         ctxOptional.ifPresent(ctx -> {
             ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
@@ -195,9 +197,6 @@ public class GetChainResultsAsHtml {
 
         res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
             "[ " + "<a href='" + suite.webToBuild + "' title='" + altTxt + "'> " + "tests " + suite.failedTests + " " + suite.result + "</a> ]";
-
-        if (isDefinedAndFilled(suite.contactPerson))
-            res += " " + suite.contactPerson + "";
 
         if(isDefinedAndFilled(suite.runningBuildCount) && suite.runningBuildCount!=0) {
             res+=" <img src='https://image.flaticon.com/icons/png/128/2/2745.png' width=12px height=12px> ";

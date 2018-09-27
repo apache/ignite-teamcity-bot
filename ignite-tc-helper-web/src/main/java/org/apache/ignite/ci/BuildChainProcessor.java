@@ -23,7 +23,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.*;
 import java.util.function.Function;
@@ -50,52 +49,26 @@ public class BuildChainProcessor {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
 
-    /**
-     * @param teamcity Teamcity.
-     * @param includeLatestRebuild Include latest rebuild.
-     * @param builds Builds.
-     * @param procLogs Process logs.
-     * @param includeScheduled Include scheduled.
-     * @param showContacts Show contacts.
-     * @param tcAnalytics Tc analytics.
-     * @param baseBranch Base branch, stable branch to take fail rates from.
-     * @param executor Executor service to process TC requests in it.
-     */
-    public static Optional<FullChainRunCtx> processBuildChains(
-            ITeamcity teamcity,
-            LatestRebuildMode includeLatestRebuild,
-            Collection<BuildRef> builds,
-            ProcessLogsMode procLogs,
-            boolean includeScheduled,
-            boolean showContacts,
-            @Nullable ITcAnalytics tcAnalytics,
-            @Nullable String baseBranch,
-            @Nullable ExecutorService executor) {
-
-        final Properties responsible = showContacts ? getContactPersonProperties(teamcity) : null;
-
-        final FullChainRunCtx val = loadChainsContext(teamcity, builds,
-            includeLatestRebuild,
-            procLogs, responsible, includeScheduled, tcAnalytics,
-            baseBranch, executor);
-
-        return Optional.of(val);
-    }
-
     @Nullable private static Properties getContactPersonProperties(ITeamcity teamcity) {
         return HelperConfig.loadContactPersons(teamcity.serverId());
     }
 
-    public static <R> FullChainRunCtx loadChainsContext(
-            ITeamcity teamcity,
-            Collection<BuildRef> entryPoints,
-            LatestRebuildMode includeLatestRebuild,
-            ProcessLogsMode procLog,
-            @Nullable Properties contactPersonProps,
-            boolean includeScheduledInfo,
-            @Nullable ITcAnalytics tcAnalytics,
-            @Nullable String failRateBranch,
-            @Nullable ExecutorService executor1) {
+    /**
+     * @param teamcity Teamcity.
+     * @param entryPoints Builds.
+     * @param includeLatestRebuild Include latest rebuild.
+     * @param procLog Process logs mode.
+     * @param tcAnalytics Tc analytics.
+     */
+    public static FullChainRunCtx loadFullChainContext(
+        ITeamcity teamcity,
+        Collection<BuildRef> entryPoints,
+        LatestRebuildMode includeLatestRebuild,
+        ProcessLogsMode procLog,
+        boolean includeScheduledInfo,
+        @Nullable ITcAnalytics tcAnalytics,
+        @Nullable String failRateBranch,
+        @Nullable ExecutorService executor1) {
 
         ExecutorService executor = executor1 == null ? MoreExecutors.newDirectExecutorService() : executor1;
 
@@ -136,9 +109,6 @@ public class BuildChainProcessor {
             analyzeTests(multiCtx, teamcity, procLog, tcAnalytics);
 
             fillBuildCounts(multiCtx, teamcity, includeScheduledInfo);
-
-            if (contactPersonProps != null && multiCtx.getContactPerson() == null)
-                multiCtx.setContactPerson(contactPersonProps.getProperty(multiCtx.suiteId()));
         });
 
         if (tcAnalytics != null) {
@@ -156,8 +126,6 @@ public class BuildChainProcessor {
 
             contexts.sort(Comparator.comparing(function).reversed());
         }
-        else if (contactPersonProps != null)
-            contexts.sort(Comparator.comparing(MultBuildRunCtx::getContactPersonOrEmpty));
         else
             contexts.sort(Comparator.comparing(MultBuildRunCtx::suiteName));
 

@@ -182,10 +182,10 @@ public class CheckBuildChainResults {
             Date parse = next.getFinishDate();
             String dateForMap = new SimpleDateFormat("yyyyMMdd").format(parse);
             suiteHist.map.computeIfAbsent(dateForMap, k -> {
-                FullChainRunCtx ctx = BuildChainProcessor.loadChainsContext(teamcity,
+                FullChainRunCtx ctx = BuildChainProcessor.loadFullChainContext(teamcity,
                     singletonList(next),
                     LatestRebuildMode.NONE,
-                    ProcessLogsMode.DISABLED, null, false, null,
+                    ProcessLogsMode.DISABLED, false, null,
                         ITeamcity.DEFAULT, MoreExecutors.newDirectExecutorService());
                 if (ctx == null)
                     return null;

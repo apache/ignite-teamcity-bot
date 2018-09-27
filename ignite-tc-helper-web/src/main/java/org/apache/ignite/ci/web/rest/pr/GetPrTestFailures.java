@@ -187,10 +187,12 @@ public class GetPrTestFailures {
 
         String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
 
-        Optional<FullChainRunCtx> pubCtx = BuildChainProcessor.processBuildChains(teamcity, rebuild, chains,
-            logs,
-            singleBuild,
-            true, teamcity, baseBranch, executorSvc);
+        final FullChainRunCtx val = BuildChainProcessor.loadFullChainContext(teamcity, chains,
+            rebuild,
+            logs, singleBuild, teamcity,
+            baseBranch, executorSvc);
+
+        Optional<FullChainRunCtx> pubCtx = Optional.of(val);
 
         final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverId(), branchForTc);
 

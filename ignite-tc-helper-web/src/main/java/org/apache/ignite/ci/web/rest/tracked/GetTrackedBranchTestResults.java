@@ -46,7 +46,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -115,21 +114,21 @@ public class GetTrackedBranchTestResults {
     @GET
     @Path("mergedUpdates")
     public UpdateInfo getAllTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull,
-                                             @Nullable @QueryParam("count") Integer count,
+                                             @Nullable @QueryParam("count") Integer cnt,
                                              @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
-        return new UpdateInfo().copyFrom(getAllTestFails(branchOrNull, count, checkAllLogs));
+        return new UpdateInfo().copyFrom(getAllTestFails(branchOrNull, cnt, checkAllLogs));
     }
 
     @GET
     @Path("mergedResults")
     public TestFailuresSummary getAllTestFails(@Nullable @QueryParam("branch") String branchOrNull,
-                                               @Nullable @QueryParam("count") Integer count,
+                                               @Nullable @QueryParam("count") Integer cnt,
                                                @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(ctx);
         FullQueryParams fullKey = new FullQueryParams();
         fullKey.setBranch(branchOrNull);
-        fullKey.setCount(count == null ? FullQueryParams.DEFAULT_COUNT : count);
+        fullKey.setCount(cnt == null ? FullQueryParams.DEFAULT_COUNT : cnt);
         fullKey.setCheckAllLogs(checkAllLogs != null && checkAllLogs);
 
         final ICredentialsProv creds = ICredentialsProv.get(request);
@@ -146,7 +145,7 @@ public class GetTrackedBranchTestResults {
     public static TestFailuresSummary getTrackedBranchTestFailures(
             @Nullable @QueryParam("branch") String branch,
             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
-            int buildResultMergeCnt,
+            int buildResMergeCnt,
             ITcHelper helper,
             ICredentialsProv creds,
             @Nullable ExecutorService pool) {
@@ -180,32 +179,29 @@ public class GetTrackedBranchTestResults {
                 List<BuildRef> chains = builds.stream()
                     .filter(ref -> !ref.isFakeStub())
                     .sorted(Comparator.comparing(BuildRef::getId).reversed())
-                    .limit(buildResultMergeCnt)
+                    .limit(buildResMergeCnt)
                     .filter(b -> b.getId() != null).collect(Collectors.toList());
 
                 ProcessLogsMode logs;
-                if (buildResultMergeCnt > 1)
+                if (buildResMergeCnt > 1)
                     logs = checkAllLogs != null && checkAllLogs ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED;
                 else
                     logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
-                LatestRebuildMode rebuild = buildResultMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
+                LatestRebuildMode rebuild = buildResMergeCnt > 1 ? LatestRebuildMode.ALL : LatestRebuildMode.LATEST;
 
-                boolean includeScheduled = buildResultMergeCnt == 1;
+                boolean includeScheduled = buildResMergeCnt == 1;
 
-                Optional<FullChainRunCtx> chainCtxOpt
-                    = BuildChainProcessor.processBuildChains(teamcity,
-                    rebuild, chains, logs,
-                    includeScheduled, true, teamcity, baseBranchTc,
-                    pool);
+                final FullChainRunCtx ctx = BuildChainProcessor.loadFullChainContext(teamcity, chains,
+                    rebuild,
+                    logs, includeScheduled, teamcity,
+                    baseBranchTc, pool);
 
-                chainCtxOpt.ifPresent(ctx -> {
-                    int cnt = (int)ctx.getRunningUpdates().count();
-                    if (cnt > 0)
-                        runningUpdates.addAndGet(cnt);
+                int cnt = (int)ctx.getRunningUpdates().count();
+                if (cnt > 0)
+                    runningUpdates.addAndGet(cnt);
 
-                    chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranchTc);
-                });
+                chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranchTc);
 
                 return chainStatus;
             })

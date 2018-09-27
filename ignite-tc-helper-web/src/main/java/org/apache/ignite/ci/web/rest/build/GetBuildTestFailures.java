@@ -132,11 +132,15 @@ public class GetBuildTestFailures {
             build.href = hrefById;
             String failRateBranch = ITeamcity.DEFAULT;
 
-            Optional<FullChainRunCtx> pubCtx =
-                BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,
-                    Collections.singletonList(build),
-                    (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE,
-                    false, false, teamcity, failRateBranch, CtxListener.getPool(context));
+        ProcessLogsMode procLogs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
+
+        final FullChainRunCtx val = BuildChainProcessor.loadFullChainContext(teamcity, Collections.singletonList(build),
+            LatestRebuildMode.NONE,
+            procLogs, false, teamcity,
+            failRateBranch, CtxListener.getPool(context));
+
+        Optional<FullChainRunCtx> pubCtx =
+            Optional.of(val);
 
             pubCtx.ifPresent(ctx -> {
                 final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(serverId, ctx.branchName());

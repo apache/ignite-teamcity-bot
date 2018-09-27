@@ -106,14 +106,14 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         //Get encoded username and encodedPassword
-        String authString = authorization.get(0);
-        if(!authString.startsWith(TOKEN_SCHEME)) {
+        String authStr = authorization.get(0);
+        if(!authStr.startsWith(TOKEN_SCHEME)) {
             reqCtx.abortWith(rspForbidden());
 
             return;
         }
 
-        String tokenFull = authString.substring(TOKEN_SCHEME.length()).trim();
+        String tokFull = authStr.substring(TOKEN_SCHEME.length()).trim();
 
         final UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
 
@@ -125,7 +125,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             reqCtx.abortWith(rspUnathorized());
         }
 
-        if (!authenticate(reqCtx, tokenFull, users)) {
+        if (!authenticate(reqCtx, tokFull, users)) {
             reqCtx.abortWith(rspUnathorized());
 
             return;
@@ -145,38 +145,36 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
     }
 
-    public boolean authenticate(ContainerRequestContext requestContext,
-                                String tokenFull,
+    public boolean authenticate(ContainerRequestContext reqCtx,
+                                String tokFull,
                                 UserAndSessionsStorage users) {
 
-        final StringTokenizer tokenizer = new StringTokenizer(tokenFull, ":");
+        final StringTokenizer tokenizer = new StringTokenizer(tokFull, ":");
 
         final String sessId = tokenizer.nextToken();
-        final String token = tokenizer.nextToken();
+        final String tok = tokenizer.nextToken();
 
-        UserSession session = users.getSession(sessId);
+        UserSession ses = users.getSession(sessId);
 
-        if (session == null) {
+        if (ses == null) {
             logger.warn("Users session not found " + sessId + " enforcing login");
 
             return false;
         }
 
-        if(requestContext.getUriInfo()!=null)
-            logger.info("[[" + session.username + "]] "+ requestContext.getUriInfo().getPath() +" Session:" + sessId + "");
+        if(reqCtx.getUriInfo()!=null)
+            logger.info("[[" + ses.username + "]] "+ reqCtx.getUriInfo().getPath() +" Session:" + sessId + "");
 
-        TcHelperUser user = users.getUser(session.username);
+        TcHelperUser user = users.getUser(ses.username);
         if (user == null) {
-            logger.error("No such user " + session.username + " for " + sessId + " enforcing login");
+            logger.error("No such user " + ses.username + " for " + sessId + " enforcing login");
 
-            requestContext.abortWith(rspUnathorized());
+            reqCtx.abortWith(rspUnathorized());
             return false;
         }
 
-         //System.out.println(user);
-
         if (user.userKeyKcv == null) {
-            System.out.println("User not initialised " + session.username + ",failed at " + sessId + " enforcing login");
+            logger.error("User not initialised " + ses.username + ",failed at " + sessId + " enforcing login");
 
             return false;
         }
@@ -184,11 +182,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         byte[] userKey;
         try {
-            userKey = CryptUtil.aesDecrypt(Base64Util.decodeString(token), session.userKeyUnderToken);
+            userKey = CryptUtil.aesDecrypt(Base64Util.decodeString(tok), ses.userKeyUnderToken);
             byte[] userKeyKcv = CryptUtil.aesKcv(userKey);
 
             if(!Arrays.equals(userKeyKcv, user.userKeyKcv)) {
-                System.out.println("User provided " + session.username + " invalid token ,failed at " + sessId + " enforcing login");
+                logger.error("User provided " + ses.username + " invalid token ,failed at " + sessId + " enforcing login");
 
                 return false;
             }
@@ -199,11 +197,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return false;
         }
 
-        session.lastActiveTs = System.currentTimeMillis();
+        ses.lastActiveTs = System.currentTimeMillis();
 
-        users.putSession(sessId, session);
+        users.putSession(sessId, ses);
 
-        requestContext.setProperty(ICredentialsProv._KEY, createCredsProv(user, userKey));
+        reqCtx.setProperty(ICredentialsProv._KEY, createCredsProv(user, userKey));
 
         return true;
     }

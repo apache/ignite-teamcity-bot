@@ -527,10 +527,6 @@ function showSuiteData(suite, settings) {
 
     res += "</a> ]";
 
-    if (isDefinedAndFilled(suite.contactPerson)) {
-        res += " " + suite.contactPerson + "";
-    }
-
     if (isDefinedAndFilled(suite.runningBuildCount) && suite.runningBuildCount !== 0) {
         res += " <img src='https://image.flaticon.com/icons/png/128/2/2745.png' width=12px height=12px> ";
         res += " " + suite.runningBuildCount + " running";
