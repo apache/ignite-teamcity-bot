@@ -170,11 +170,6 @@ public interface ITeamcity {
      *
      * @param href IssuesUsagesList href.
      */
-    /**
-     * List of build's related issues.
-     *
-     * @param href IssuesUsagesList href.
-     */
     IssuesUsagesList getIssuesUsagesList(String href);
 
     /**

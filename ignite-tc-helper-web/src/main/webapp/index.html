@@ -61,16 +61,16 @@ function showCurrentBranchesData(result) {
     var res = "";
     for (var i = 0; i < result.length; i++) {
         var id = result[i];
-        res+="<a href='current.html?branch="+id+"'>Latest ("+id+")</a>";
-        res+=" &nbsp;&nbsp;  <a href='current.html?branch="+id+"&checkAllLogs=true' title='With logs processing'>("+id+" + logs)</a>";
-        res+="<br>";
+        res += "<a href='current.html?branch=" + id + "'>Latest (" + id + ")</a>";
+        res += " &nbsp;&nbsp;  <a href='current.html?branch=" + id + "&checkAllLogs=true' title='With logs processing'>(" + id + " + logs)</a>";
+        res += "<br>";
     }
 
-    res+="<br>";
-    for (var i = 0; i < result.length; i++) {
-        var id = result[i];
-        res+=" <a href='all.html?branch="+id+"'>History ("+id+")</a>";
-        res+="<br>";
+    res += "<br>";
+    for (var j = 0; j < result.length; j++) {
+        var id2 = result[j];
+        res += " <a href='all.html?branch=" + id2 + "'>History (" + id2 + ")</a>";
+        res += "<br>";
     }
 
     $("#branchesStatus").html(res);

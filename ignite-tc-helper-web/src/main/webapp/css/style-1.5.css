@@ -6,7 +6,7 @@ body {
  	font-weight: 500;
 }
 
-input {
+input, div {
 	font-family: Arial;
 	font-size: 14px;
 	font-style: normal;
@@ -15,7 +15,7 @@ input {
 }
 
 table, tr, td {
- 	font-family: Arial;
+	font-family: Arial;
  	font-size: 14px;
  	font-style: normal;
  	font-variant: normal;
@@ -24,7 +24,7 @@ table, tr, td {
  	border-spacing: 0px;
 }
 
-table.stat td, th {
+table.stat td, table.stat th {
 
 	padding: 10px 5px 10px 5px;
 }
@@ -137,32 +137,35 @@ form li:after
 	display:block;
 	margin-top:10px;
 }
-.stat{
+
+.compare{
 	width: 80%;
 	border-collapse: collapse;
 }
-.stat td, .stat th {
+.compare td, .compare th {
 	padding: 10px 5px 10px 5px;
 }
+
 .data1, .data2{
 	text-align: center;
 	vertical-align: middle;
 }
+
 .section{
 	font-weight: bold;
 }
 
-.stat .field{
+.compare .field{
 	padding-left: 15px;
 }
 
-.stat th {
+.compare th {
 	text-align: left;
 	padding: 5px;
 	background-color: #f5f5ff;
 	color: #000000;
 }
 
-.stat tr:nth-child(4n - 1) {
+.compare tr:nth-child(4n-1) {
 	background-color: #fafaff;
 }

@@ -35,7 +35,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -77,7 +76,6 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.util.CacheUpdateUtil;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
-import org.eclipse.jetty.util.AtomicBiInteger;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,7 +127,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private ConcurrentMap<String, CompletableFuture<TestOccurrenceFull>> testOccFullFutures = new ConcurrentHashMap<>();
 
     /**
-     * cached loads of full test occurrence.
+     * cached loads of test refs.
      */
     private ConcurrentMap<String, CompletableFuture<TestRef>> testRefsFutures = new ConcurrentHashMap<>();
 
@@ -159,7 +157,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     //for DI
-    public IgnitePersistentTeamcity() { }
+    public IgnitePersistentTeamcity() {}
 
     @Deprecated
     private IgnitePersistentTeamcity(Ignite ignite, IgniteTeamcityConnection teamcity) {
@@ -227,7 +225,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /**
-     * @return {@link TestOccurrenceFull} instances cache, 32 parts.
+     * @return {@link TestRef} instances cache, 32 parts.
      */
     private IgniteCache<String, TestRef> testRefsCache() {
         return getOrCreateCacheV2(ignCacheNme(TEST_REFS));
@@ -423,14 +421,18 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
         List<BuildRef> buildRefs = loadBuildHistory(buildHistCache(), 90, suiteInBranch,
             (key, sinceBuildId) -> {
-            buildsFromRest.addAll(teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate, sinceBuildId));
+            List<BuildRef> reverseList = teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate, sinceBuildId);
+
+            Collections.reverse(reverseList);
+
+            buildsFromRest.addAll(reverseList);
 
             return buildsFromRest;
         });
 
         if (sinceDate != null || untilDate != null) {
             if (!buildsFromRest.isEmpty() && sinceDate != null){
-                int firstBuildId = buildRefs.indexOf(buildsFromRest.get(buildsFromRest.size() - 1));
+                int firstBuildId = buildRefs.indexOf(buildsFromRest.get(0));
 
                 if (firstBuildId == 0)
                     return buildsFromRest;
@@ -472,7 +474,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                         if (build == null || build.isFakeStub())
                             return false;
 
-                        Date date = build.getFinishDate();
+                        Date date = build.getStartDate();
 
                         if (sinceDate != null && untilDate != null)
                             if ((date.after(sinceDate) || date.equals(sinceDate)) &&
