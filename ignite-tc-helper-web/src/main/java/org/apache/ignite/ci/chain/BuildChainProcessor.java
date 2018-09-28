@@ -23,12 +23,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.google.common.util.concurrent.MoreExecutors;
+import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -42,15 +43,21 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.util.FutureUtil;
+import org.apache.ignite.ci.web.TcUpdatePool;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Process whole Build Chain, E.g. runAll at particular server, including all builds involved
+ */
 public class BuildChainProcessor {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(BuildChainProcessor.class);
 
+    /** TC REST updates pool. */
+    @Inject private TcUpdatePool tcUpdatePool;
 
     /**
      * @param teamcity Teamcity.
@@ -59,7 +66,6 @@ public class BuildChainProcessor {
      * @param procLog Process logger.
      * @param includeScheduledInfo Include scheduled info.
      * @param failRateBranch Fail rate branch.
-     * @param executor Executor .
      */
     @AutoProfiling
     public FullChainRunCtx loadFullChainContext(
@@ -68,10 +74,7 @@ public class BuildChainProcessor {
         LatestRebuildMode includeLatestRebuild,
         ProcessLogsMode procLog,
         boolean includeScheduledInfo,
-        @Nullable String failRateBranch,
-        @Nullable ExecutorService executor) {
-
-        ExecutorService executorToUse = executor == null ? MoreExecutors.newDirectExecutorService() : executor;
+        @Nullable String failRateBranch) {
 
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
@@ -91,14 +94,16 @@ public class BuildChainProcessor {
                 .filter(ref -> ensureUnique(unique, ref))
                 ;
 
+        final ExecutorService svc = tcUpdatePool.getService();
+
         final List<Future<Stream<BuildRef>>> phase1Submitted = uniqueBuldsInvolved
-                .map((buildRef) -> executorToUse.submit(
+                .map((buildRef) -> svc.submit(
                         () -> replaceWithRecent(teamcity, includeLatestRebuild, unique, buildRef, entryPoints.size())))
                 .collect(Collectors.toList());
 
         final List<Future<? extends Stream<? extends BuildRef>>> phase2Submitted = phase1Submitted.stream()
                 .map(FutureUtil::getResult)
-                .map((s) -> executorToUse.submit(
+                .map((s) -> svc.submit(
                         () -> processBuildList(teamcity, buildsCtxMap, s)))
                 .collect(Collectors.toList());
 

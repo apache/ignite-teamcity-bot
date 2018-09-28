@@ -139,7 +139,7 @@ public class GetBuildTestFailures {
         final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, Collections.singletonList(build),
                 LatestRebuildMode.NONE,
                 procLogs, false,
-            failRateBranch, CtxListener.getPool(this.ctx));
+            failRateBranch);
 
 
         final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(serverId, ctx.branchName());

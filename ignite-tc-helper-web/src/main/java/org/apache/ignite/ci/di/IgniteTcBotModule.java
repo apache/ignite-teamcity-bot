@@ -25,6 +25,7 @@ import com.google.inject.matcher.Matchers;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.*;
 import org.apache.ignite.ci.db.Ignite1Init;
+import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
@@ -67,7 +68,7 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(ITcServerFactory.class).to(InitializingServerFactory.class).in(new SingletonScope());
         bind(ITcServerProvider.class).to(TcServerCachingProvider.class).in(new SingletonScope());
         bind(TcUpdatePool.class).in(new SingletonScope());
-       //todo bind(IssueDetector.clas)
+        bind(IssueDetector.class).in(new SingletonScope());
         bind(ObserverTask.class).in(new SingletonScope());
         bind(BuildObserver.class).in(new SingletonScope());
         bind(ITcHelper.class).to(TcHelper.class).in(new SingletonScope());

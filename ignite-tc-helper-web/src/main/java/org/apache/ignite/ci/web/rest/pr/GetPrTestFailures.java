@@ -111,8 +111,8 @@ public class GetPrTestFailures {
         final Injector injector = CtxListener.getInjector(ctx);
         final PrChainsProcessor prChainsProcessor = injector.getInstance(PrChainsProcessor.class);
 
-        return prChainsProcessor.getTestFailuresSummary(creds, srvId, suiteId, branchForTc, act, cnt, baseBranchForTc,
-                CtxListener.getPool(ctx));
+        return prChainsProcessor.getTestFailuresSummary(creds, srvId, suiteId, branchForTc, act, cnt, baseBranchForTc
+        );
     }
 
     @POST

@@ -54,20 +54,20 @@ public class UserService {
     public static final String USER = "user";
 
     @Context
-    private ServletContext context;
+    private ServletContext ctx;
 
     @Context
-    private HttpServletRequest request;
+    private HttpServletRequest req;
 
     @GET
     @Path("currentUserName")
     public SimpleResult currentUserName() {
-        final ICredentialsProv prov = ICredentialsProv.get(request);
+        final ICredentialsProv prov = ICredentialsProv.get(req);
         if (prov == null)
             return new SimpleResult("");
 
 
-        final ITcHelper helper = CtxListener.getTcHelper(context);
+        final ITcHelper helper = CtxListener.getTcHelper(ctx);
 
         return userMenu(prov, helper);
     }
@@ -86,9 +86,9 @@ public class UserService {
     @POST
     @Path("authorize")
     public SimpleResult setAuthorizedState() {
-        final ICredentialsProv prov = ICredentialsProv.get(request);
+        final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        final ITcHelper helper = CtxListener.getTcHelper(context);
+        final ITcHelper helper = CtxListener.getTcHelper(ctx);
 
         IssueDetector detector = helper.issueDetector();
 
@@ -100,9 +100,9 @@ public class UserService {
     @GET
     @Path("get")
     public TcHelperUserUi getUserData(@Nullable @QueryParam("login") final String loginParm) {
-        final String currUserLogin = ICredentialsProv.get(request).getPrincipalId();
+        final String currUserLogin = ICredentialsProv.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
-        ITcHelper helper = CtxListener.getTcHelper(context);
+        ITcHelper helper = CtxListener.getTcHelper(ctx);
         final TcHelperUser user = helper.users().getUser(login);
 
         final TcHelperUserUi tcHelperUserUi = new TcHelperUserUi(user, helper.getTrackedBranchesIds());
@@ -128,11 +128,11 @@ public class UserService {
     @POST
     @Path("resetCredentials")
     public SimpleResult resetCredentials(@Nullable @FormParam("login") final String loginParm) {
-        final String currUserLogin = ICredentialsProv.get(request).getPrincipalId();
+        final String currUserLogin = ICredentialsProv.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
         //todo check admin
 
-        final UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
+        final UserAndSessionsStorage users = CtxListener.getTcHelper(ctx).users();
         final TcHelperUser user = users.getUser(login);
 
         user.resetCredentials();
@@ -151,9 +151,9 @@ public class UserService {
         Preconditions.checkState(!Strings.isNullOrEmpty(serviceLogin));
         Preconditions.checkState(!Strings.isNullOrEmpty(servicePassword));
 
-        final ICredentialsProv prov = ICredentialsProv.get(request);
+        final ICredentialsProv prov = ICredentialsProv.get(req);
         final String currentUserLogin = prov.getPrincipalId();
-        final UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
+        final UserAndSessionsStorage users = CtxListener.getTcHelper(ctx).users();
         final TcHelperUser user = users.getUser(currentUserLogin);
 
         //todo check service credentials first
@@ -184,10 +184,10 @@ public class UserService {
         @Nullable @FormParam("fullName") final String fullName,
         Form form) {
 
-        final String currUserLogin = ICredentialsProv.get(request).getPrincipalId();
+        final String currUserLogin = ICredentialsProv.get(req).getPrincipalId();
         final String login = currUserLogin; //todo check admin Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
 
-        final UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
+        final UserAndSessionsStorage users = CtxListener.getTcHelper(ctx).users();
         final TcHelperUser user = users.getUser(login);
 
         user.resetNotifications();

@@ -17,7 +17,6 @@
 
 package org.apache.ignite.ci.web.rest;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -92,7 +91,8 @@ public class Metrics {
                     singletonList(next),
                     LatestRebuildMode.NONE,
                     ProcessLogsMode.DISABLED, false,
-                    ITeamcity.DEFAULT, MoreExecutors.newDirectExecutorService());
+                    ITeamcity.DEFAULT);
+
                 if (ctx == null)
                     return null;
 

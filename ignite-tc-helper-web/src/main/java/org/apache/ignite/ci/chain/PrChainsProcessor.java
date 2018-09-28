@@ -35,10 +35,12 @@ import javax.inject.Inject;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+/**
+ * Process pull request/untracked branch chain at particular server.
+ */
 public class PrChainsProcessor {
     /** Build chain processor. */
     @Inject BuildChainProcessor buildChainProcessor;
@@ -54,19 +56,17 @@ public class PrChainsProcessor {
      * @param act Action.
      * @param cnt Count.
      * @param baseBranchForTc Base branch name in TC identification.
-     * @param executorSvc Executor service to process TC communication requests there.
      * @return Test failures summary.
      */
     @AutoProfiling
     public TestFailuresSummary getTestFailuresSummary(
-            ICredentialsProv creds,
-            String srvId,
-            String suiteId,
-            String branchForTc,
-            String act,
-            Integer cnt,
-            @Nullable String baseBranchForTc,
-            @Nullable ExecutorService executorSvc) {
+        ICredentialsProv creds,
+        String srvId,
+        String suiteId,
+        String branchForTc,
+        String act,
+        Integer cnt,
+        @Nullable String baseBranchForTc) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -111,7 +111,7 @@ public class PrChainsProcessor {
         final FullChainRunCtx val = buildChainProcessor.loadFullChainContext(teamcity, chains,
             rebuild,
             logs, singleBuild,
-            baseBranch, executorSvc);
+            baseBranch);
 
         Optional<FullChainRunCtx> pubCtx = Optional.of(val);
 

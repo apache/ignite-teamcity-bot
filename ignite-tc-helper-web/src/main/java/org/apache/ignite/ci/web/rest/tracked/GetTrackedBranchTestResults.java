@@ -17,7 +17,6 @@
 
 package org.apache.ignite.ci.web.rest.tracked;
 
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
@@ -93,8 +92,8 @@ public class GetTrackedBranchTestResults {
 
         final TrackedBranchChainsProcessor tbProc = CtxListener.getInjector(ctx).getInstance(TrackedBranchChainsProcessor.class);
 
-        return tbProc.getTrackedBranchTestFailures(branch, checkAllLogs, 1, creds,
-                CtxListener.getPool(ctx));
+        return tbProc.getTrackedBranchTestFailures(branch, checkAllLogs, 1, creds
+        );
     }
 
     @GET
@@ -137,6 +136,6 @@ public class GetTrackedBranchTestResults {
         int cntLimit = cnt == null ? FullQueryParams.DEFAULT_COUNT : cnt;
         final TrackedBranchChainsProcessor tbProc = CtxListener.getInjector(ctx).getInstance(TrackedBranchChainsProcessor.class);
 
-        return tbProc.getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, CtxListener.getPool(ctx));
+        return tbProc.getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds);
     }
 }

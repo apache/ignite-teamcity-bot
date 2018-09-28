@@ -32,7 +32,6 @@ import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -384,7 +383,7 @@ public class IssueDetector {
                 this.backgroundOpsCreds = prov;
                 this.backgroundOpsTcHelper = helper;
 
-                executorService = Executors.newScheduledThreadPool(1);
+                executorService = Executors.newScheduledThreadPool(3);
 
                 executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
 
@@ -392,8 +391,7 @@ public class IssueDetector {
 
                 checkQueueJob.init(backgroundOpsTcHelper, backgroundOpsCreds);
 
-                executorService.scheduleAtFixedRate(
-                    checkQueueJob, 0, 10, TimeUnit.MINUTES);
+                executorService.scheduleAtFixedRate(checkQueueJob, 0, 10, TimeUnit.MINUTES);
 
             }
         }
@@ -437,17 +435,15 @@ public class IssueDetector {
     protected String checkFailuresEx(String brachName) {
         int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
 
-        ExecutorService executor = MoreExecutors.newDirectExecutorService();
-
         tbProc.getTrackedBranchTestFailures(brachName,
-            false, buildsToQry, backgroundOpsCreds, executor);
+            false, buildsToQry, backgroundOpsCreds);
 
         TestFailuresSummary failures =
                 tbProc.getTrackedBranchTestFailures(brachName,
                 false,
                 1,
-                        backgroundOpsCreds,
-                executor);
+                        backgroundOpsCreds
+                );
 
         registerIssuesAndNotifyLater(failures, backgroundOpsTcHelper, backgroundOpsCreds);
 

@@ -18,7 +18,6 @@ package org.apache.ignite.ci.chain;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -33,6 +32,7 @@ import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
@@ -46,14 +46,15 @@ public class TrackedBranchChainsProcessor {
 
     @Inject private BuildChainProcessor chainProc;
 
+    @Inject private TcUpdatePool tcUpdatePool;
+
     @AutoProfiling
     @NotNull
     public TestFailuresSummary getTrackedBranchTestFailures(
-            @Nullable @QueryParam("branch") String branch,
-            @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
-            int buildResMergeCnt,
-            ICredentialsProv creds,
-            @Nullable ExecutorService pool) {
+        @Nullable @QueryParam("branch") String branch,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
+        int buildResMergeCnt,
+        ICredentialsProv creds) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -97,10 +98,13 @@ public class TrackedBranchChainsProcessor {
 
                 boolean includeScheduled = buildResMergeCnt == 1;
 
-                final FullChainRunCtx ctx = chainProc.loadFullChainContext(teamcity, chains,
+                final FullChainRunCtx ctx = chainProc.loadFullChainContext(teamcity,
+                    chains,
                     rebuild,
-                    logs, includeScheduled,
-                    baseBranchTc, pool);
+                    logs,
+                    includeScheduled,
+                    baseBranchTc
+                );
 
                 int cnt = (int)ctx.getRunningUpdates().count();
                 if (cnt > 0)

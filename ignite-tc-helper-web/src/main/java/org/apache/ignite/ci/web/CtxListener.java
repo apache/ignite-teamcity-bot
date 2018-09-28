@@ -48,8 +48,6 @@ public class CtxListener implements ServletContextListener {
 
     public static final String INJECTOR = "injector";
 
-    private static final String POOL = "pool";
-
     public static Ignite getIgnite(ServletContext ctx) {
         return getInjector(ctx).getInstance(Ignite.class);
     }
@@ -87,18 +85,13 @@ public class CtxListener implements ServletContextListener {
 
         ctx.setAttribute(INJECTOR, injector);
 
-        final TcHelper tcHelper = injector.getInstance(TcHelper.class);
+        final ITcHelper tcHelper = injector.getInstance(TcHelper.class);
 
         BackgroundUpdater backgroundUpdater = new BackgroundUpdater(tcHelper);
 
         ctx.setAttribute(UPDATER, backgroundUpdater);
 
         ctx.setAttribute(TC_HELPER, tcHelper);
-        ctx.setAttribute(POOL, tcHelper.getService());
-    }
-
-    public static ExecutorService getPool(ServletContext context) {
-        return (ExecutorService)context.getAttribute(POOL);
     }
 
     @Override public void contextDestroyed(ServletContextEvent sctxEvt) {
@@ -118,6 +111,7 @@ public class CtxListener implements ServletContextListener {
         helper.close();
 
         try {
+            injector.getInstance(TcUpdatePool.class).stop();
             injector.getInstance(BuildObserver.class).stop();
         }
         catch (Exception e) {

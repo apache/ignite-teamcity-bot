@@ -53,8 +53,6 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     /** Stop guard. */
     private AtomicBoolean stop = new AtomicBoolean();
 
-    @Inject private TcUpdatePool tcUpdatePool;
-
     @Inject private IssuesStorage issuesStorage;
 
     @Inject private ITcServerProvider serverProvider;
@@ -132,8 +130,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         String comment;
 
         try {
-            comment = generateJiraComment(buildTypeId, build.branchName, srvId, prov, build.webUrl,
-                getService());
+            comment = generateJiraComment(buildTypeId, build.branchName, srvId, prov, build.webUrl);
         }
         catch (RuntimeException e) {
             logger.error("Exception happened during generating comment for JIRA " +
@@ -151,21 +148,19 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
      * @param srvId Server id.
      * @param prov Credentials.
      * @param webUrl Build URL.
-     * @param executorSvc Executor service to process TC communication requests there.
      * @return Comment, which should be sent to the JIRA ticket.
      */
     private String generateJiraComment(
-            String buildTypeId,
-            String branchForTc,
-            String srvId,
-            ICredentialsProv prov,
-            String webUrl,
-            @Nullable ExecutorService executorSvc
+        String buildTypeId,
+        String branchForTc,
+        String srvId,
+        ICredentialsProv prov,
+        String webUrl
     ) {
         StringBuilder res = new StringBuilder();
         TestFailuresSummary summary = prChainsProcessor.getTestFailuresSummary(
                 prov, srvId, buildTypeId, branchForTc,
-            "Latest", null, null, executorSvc);
+            "Latest", null, null);
 
         if (summary != null) {
             for (ChainAtServerCurrentStatus server : summary.servers) {
@@ -277,14 +272,8 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     }
 
     public void close() {
-        if (stop.compareAndSet(false, true)) {
-            tcUpdatePool.stop();
-
+        if (stop.compareAndSet(false, true))
             detector.stop();
-        }
     }
 
-    public ExecutorService getService() {
-        return tcUpdatePool.getService();
-    }
 }
