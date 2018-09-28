@@ -21,7 +21,7 @@ package org.apache.ignite.ci.web.model;
     /** Default contact. */
     public static final String DEFAULT_CONTACT = "dev@ignite.apache.org";
     public static final String GITHUB_REF = "https://github.com/apache/ignite-teamcity-bot";
-    public static final String VERSION = "20180927";
+    public static final String VERSION = "20180928";
 
     /** TC Helper Version. */
     public String version = VERSION;

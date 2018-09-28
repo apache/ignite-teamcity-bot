@@ -57,7 +57,7 @@ public class TrackedBranchChainsProcessor {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
-        final String branchNn = isNullOrEmpty(branch) ? FullQueryParams.DEFAULT_BRANCH_NAME : branch;
+        final String branchNn = isNullOrEmpty(branch) ? FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME : branch;
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branchNn);
         res.setTrackedBranch(branchNn);
 

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -86,24 +87,23 @@ public class IssueDetector {
 
     @Inject private TrackedBranchChainsProcessor tbProc;
 
-    public IssueDetector() {
-    }
+    /** Tc helper. */
+    @Inject private ITcHelper tcHelper;
 
-    private void registerIssuesLater(TestFailuresSummary res, ITcServerProvider helper, ICredentialsProv creds) {
-        if (!FullQueryParams.DEFAULT_BRANCH_NAME.equals(res.getTrackedBranch()))
-            return;
+    /** Send notification guard. */
+    private final AtomicBoolean sndNotificationGuard = new AtomicBoolean();
+
+
+    private void registerIssuesAndNotifyLater(TestFailuresSummary res, ITcServerProvider helper,
+        ICredentialsProv creds) {
 
         if (creds == null)
             return;
 
-        executorService.schedule(
-                () -> {
-                    registerNewIssues(res, helper, creds);
+        registerNewIssues(res, helper, creds);
 
-                    executorService.schedule(this::sendNewNotifications, 10, TimeUnit.SECONDS);
-
-                }, 10, TimeUnit.SECONDS
-        );
+        if (sndNotificationGuard.compareAndSet(false, true))
+            executorService.schedule(this::sendNewNotifications, 90, TimeUnit.SECONDS);
     }
 
 
@@ -112,8 +112,11 @@ public class IssueDetector {
             sendNewNotificationsEx();
         } catch (Exception e) {
             System.err.println("Fail to sent notifications");
-
             e.printStackTrace();
+
+            logger.error("Failed to send notification", e.getMessage());
+        } finally {
+            sndNotificationGuard.set(false);
         }
     }
 
@@ -133,9 +136,12 @@ public class IssueDetector {
                 userForPossibleNotifications.add(tcHelperUser);
         }
 
+        String slackCh = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
         Map<String, Notification> toBeSent = new HashMap<>();
 
+        int issuesChecked = 0;
         for (Issue issue : issuesStorage.all()) {
+            issuesChecked++;
             long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
             long issueAgeMs = System.currentTimeMillis() - detected;
             if (issueAgeMs > TimeUnit.HOURS.toMillis(2))
@@ -143,9 +149,8 @@ public class IssueDetector {
 
             List<String> addrs = new ArrayList<>();
 
-            String property = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
-            if (property != null)
-                addrs.add(SLACK + "#" + property);
+            if (slackCh != null && issue.trackedBranchName.equals(FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME))
+                addrs.add(SLACK + "#" + slackCh);
 
             for (TcHelperUser next : userForPossibleNotifications) {
                 if (next.getCredentials(issue.issueKey().server) != null) {
@@ -171,7 +176,7 @@ public class IssueDetector {
         }
 
         if(toBeSent.isEmpty())
-            return "Noting to notify";
+            return "Noting to notify, " + issuesChecked + " issues checked";
 
         StringBuilder res = new StringBuilder();
         Collection<Notification> values = toBeSent.values();
@@ -182,10 +187,10 @@ public class IssueDetector {
                 List<String> messages = next.toSlackMarkup();
 
                 for (String msg : messages) {
-                    final boolean send = SlackSender.sendMessage(slackUser, msg);
+                    final boolean snd = SlackSender.sendMessage(slackUser, msg);
 
-                    res.append("Send ").append(slackUser).append(": ").append(send);
-                    if (!send)
+                    res.append("Send ").append(slackUser).append(": ").append(snd);
+                    if (!snd)
                         break;
                 }
             } else {
@@ -197,14 +202,14 @@ public class IssueDetector {
             }
         }
 
-        return res.toString();
+        return res + ", " + issuesChecked + "issues checked";
     }
 
     /**
      * @param res summary of failures in test
      * @param srvProvider Server provider.
-     * @param creds
-     * @return
+     * @param creds Credentials provider.
+     * @return Displayable string with operation status.
      */
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @AutoProfiling
@@ -383,13 +388,12 @@ public class IssueDetector {
 
                 executorService.scheduleAtFixedRate(this::checkFailures, 0, 15, TimeUnit.MINUTES);
 
+                final CheckQueueJob checkQueueJob = checkQueueJobProv.get();
 
-                    final CheckQueueJob checkQueueJob = checkQueueJobProv.get();
+                checkQueueJob.init(backgroundOpsTcHelper, backgroundOpsCreds);
 
-                    checkQueueJob.init(backgroundOpsTcHelper, backgroundOpsCreds);
-
-                    executorService.scheduleAtFixedRate(
-                            checkQueueJob, 0, 10, TimeUnit.MINUTES);
+                executorService.scheduleAtFixedRate(
+                    checkQueueJob, 0, 10, TimeUnit.MINUTES);
 
             }
         }
@@ -406,38 +410,46 @@ public class IssueDetector {
      *
      */
     private void checkFailures() {
-        try {
-            checkFailuresEx();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
+        List<String> ids = tcHelper.getTrackedBranchesIds();
 
-            logger.error("Failure periodic check failed: " + e.getMessage(), e);
+        for (Iterator<String> iter = ids.iterator(); iter.hasNext(); ) {
+            String tbranchName = iter.next();
+
+            try {
+                checkFailuresEx(tbranchName);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+
+                logger.error("Failure periodic check failed: " + e.getMessage(), e);
+            }
         }
+
     }
 
     /**
      *
+     * @param brachName
      */
     @AutoProfiling
-    @MonitoredTask(name = "Detect Issues in tracked branch")
+    @MonitoredTask(name = "Detect Issues in tracked branch", nameExtArgIndex = 0)
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
-    protected String checkFailuresEx() {
+    protected String checkFailuresEx(String brachName) {
         int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
 
         ExecutorService executor = MoreExecutors.newDirectExecutorService();
 
-        tbProc.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
+        tbProc.getTrackedBranchTestFailures(brachName,
             false, buildsToQry, backgroundOpsCreds, executor);
 
         TestFailuresSummary failures =
-                tbProc.getTrackedBranchTestFailures(FullQueryParams.DEFAULT_BRANCH_NAME,
+                tbProc.getTrackedBranchTestFailures(brachName,
                 false,
                 1,
                         backgroundOpsCreds,
                 executor);
 
-        registerIssuesLater(failures, backgroundOpsTcHelper, backgroundOpsCreds);
+        registerIssuesAndNotifyLater(failures, backgroundOpsTcHelper, backgroundOpsCreds);
 
         return "Tests " + failures.failedTests + " Suites " + failures.failedToFinish + " were checked";
     }

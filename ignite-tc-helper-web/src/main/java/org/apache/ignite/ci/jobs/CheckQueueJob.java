@@ -96,7 +96,7 @@ public class CheckQueueJob implements Runnable {
             return msg;
         }
 
-        String branch = FullQueryParams.DEFAULT_BRANCH_NAME;
+        String branch = FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME;
 
         //todo support several branches
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
