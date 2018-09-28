@@ -25,12 +25,12 @@ import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.conf.BranchTracked;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
@@ -46,7 +46,7 @@ public class TrackedBranchChainsProcessor {
 
     @Inject private BuildChainProcessor chainProc;
 
-    //todo make it part of context, non static
+    @AutoProfiling
     @NotNull
     public TestFailuresSummary getTrackedBranchTestFailures(
             @Nullable @QueryParam("branch") String branch,
@@ -99,7 +99,7 @@ public class TrackedBranchChainsProcessor {
 
                 final FullChainRunCtx ctx = chainProc.loadFullChainContext(teamcity, chains,
                     rebuild,
-                    logs, includeScheduled, teamcity,
+                    logs, includeScheduled,
                     baseBranchTc, pool);
 
                 int cnt = (int)ctx.getRunningUpdates().count();

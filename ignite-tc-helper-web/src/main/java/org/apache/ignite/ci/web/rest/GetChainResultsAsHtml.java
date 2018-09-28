@@ -20,8 +20,6 @@ package org.apache.ignite.ci.web.rest;
 import com.google.common.base.Strings;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -32,7 +30,6 @@ import javax.ws.rs.core.Context;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.inject.Injector;
-import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
@@ -79,8 +76,8 @@ public class GetChainResultsAsHtml {
 
         final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, Collections.singletonList(build),
                 LatestRebuildMode.NONE,
-                ProcessLogsMode.SUITE_NOT_COMPLETE, false, teamcity,
-                failRateBranch, MoreExecutors.newDirectExecutorService());
+                ProcessLogsMode.SUITE_NOT_COMPLETE, false,
+            failRateBranch, MoreExecutors.newDirectExecutorService());
 
         ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
 

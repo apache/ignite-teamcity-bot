@@ -33,6 +33,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.chain.BuildChainProcessor;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITeamcity;
@@ -70,7 +71,7 @@ public class Metrics {
     private HttpServletRequest req;
 
     public void collectHistory(BuildMetricsHistory history,
-        ITeamcity teamcity, String id, String branch)  {
+        IAnalyticsEnabledTeamcity teamcity, String id, String branch)  {
 
         BuildChainProcessor bcp = CtxListener.getInjector(context).getInstance(BuildChainProcessor.class);
 
@@ -90,8 +91,8 @@ public class Metrics {
                 FullChainRunCtx ctx = bcp.loadFullChainContext(teamcity,
                     singletonList(next),
                     LatestRebuildMode.NONE,
-                    ProcessLogsMode.DISABLED, false, null,
-                        ITeamcity.DEFAULT, MoreExecutors.newDirectExecutorService());
+                    ProcessLogsMode.DISABLED, false,
+                    ITeamcity.DEFAULT, MoreExecutors.newDirectExecutorService());
                 if (ctx == null)
                     return null;
 
@@ -119,7 +120,7 @@ public class Metrics {
         if (!prov.hasAccess(serverId))
             throw ServiceUnauthorizedException.noCreds(serverId);
 
-        ITeamcity teamcity = CtxListener.server(serverId, context, req);
+        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(serverId, context, req);
 
         collectHistory(history, teamcity, "IgniteTests24Java8_RunAll", "refs/heads/master");
 
@@ -154,7 +155,7 @@ public class Metrics {
         if (!prov.hasAccess(srvId))
             throw ServiceUnauthorizedException.noCreds(srvId);
 
-        ITeamcity teamcity = CtxListener.server(srvId, context, req);
+        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, context, req);
 
         collectHistory(hist, teamcity, "id8xIgniteGridGainTestsJava8_RunAll", "refs/heads/master");
 

@@ -23,6 +23,7 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
@@ -39,9 +40,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class PrChainsProcessor {
+    /** Build chain processor. */
     @Inject BuildChainProcessor buildChainProcessor;
 
-    @Inject ITcServerProvider tcServerProvider;
+    /** Tc server provider. */
+    @Inject ITcServerProvider tcSrvProvider;
 
     /**
      * @param creds Credentials.
@@ -54,6 +57,7 @@ public class PrChainsProcessor {
      * @param executorSvc Executor service to process TC communication requests there.
      * @return Test failures summary.
      */
+    @AutoProfiling
     public TestFailuresSummary getTestFailuresSummary(
             ICredentialsProv creds,
             String srvId,
@@ -67,7 +71,7 @@ public class PrChainsProcessor {
         final AtomicInteger runningUpdates = new AtomicInteger();
 
         //using here non persistent TC allows to skip update statistic
-        IAnalyticsEnabledTeamcity teamcity = tcServerProvider.server(srvId, creds);
+        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, creds);
 
         res.setJavaFlags(teamcity);
 
@@ -106,7 +110,7 @@ public class PrChainsProcessor {
 
         final FullChainRunCtx val = buildChainProcessor.loadFullChainContext(teamcity, chains,
             rebuild,
-            logs, singleBuild, teamcity,
+            logs, singleBuild,
             baseBranch, executorSvc);
 
         Optional<FullChainRunCtx> pubCtx = Optional.of(val);
