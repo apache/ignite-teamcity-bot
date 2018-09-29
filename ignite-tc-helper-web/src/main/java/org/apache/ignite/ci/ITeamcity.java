@@ -43,6 +43,7 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.util.Base64Util;
 import org.jetbrains.annotations.NotNull;
 
@@ -334,4 +335,6 @@ public interface ITeamcity {
     List<Agent> agents(boolean connected, boolean authorized);
 
     void init(String serverId);
+
+    User getUserByUsername(String username);
 }

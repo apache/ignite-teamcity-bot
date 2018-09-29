@@ -18,24 +18,14 @@
 package org.apache.ignite.ci.runners;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.io.Writer;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.function.Predicate;
-import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.teamcity.TcConnectionStaticLinker;
+
+import java.io.*;
+import java.util.*;
+import java.util.function.Predicate;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
@@ -290,7 +280,7 @@ public class GenerateStatusHtml {
         final List<Branch> branchesPriv) throws Exception {
 
         ProjectStatus projStatus = new ProjectStatus();
-        IgniteTeamcityConnection teamcityHelper = new IgniteTeamcityConnection(tcId);
+        final IgniteTeamcityConnection teamcityHelper = TcConnectionStaticLinker.create(tcId);
 
         List<BuildType> suites = teamcityHelper.getProjectSuites(projectId).get();
 

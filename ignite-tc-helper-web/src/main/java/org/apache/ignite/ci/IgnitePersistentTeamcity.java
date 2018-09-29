@@ -72,6 +72,7 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.util.CacheUpdateUtil;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
@@ -144,19 +145,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     private static final boolean noLocks = true;
 
-    @Deprecated
-    public IgnitePersistentTeamcity(Ignite ignite, @Nullable String srvId) {
-        this(ignite, new IgniteTeamcityConnection(srvId));
-    }
-
-    //for DI
-    public IgnitePersistentTeamcity() {}
-
-    @Deprecated
-    private IgnitePersistentTeamcity(Ignite ignite, IgniteTeamcityConnection teamcity) {
-        init(teamcity);
-        this.ignite = ignite;
-    }
 
     @Override public void init(ITeamcity conn) {
         this.teamcity = conn;
@@ -180,6 +168,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     public void init(String serverId) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public User getUserByUsername(String username) {
+        return teamcity.getUserByUsername(username);
+    }
+
     /**
      * Creates atomic cache with 32 parts.
      * @param name Cache name.

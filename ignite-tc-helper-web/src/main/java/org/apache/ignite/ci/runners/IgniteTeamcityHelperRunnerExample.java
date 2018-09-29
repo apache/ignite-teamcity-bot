@@ -44,7 +44,7 @@ public class IgniteTeamcityHelperRunnerExample {
     public static void main(String[] args) throws Exception {
         String serverIdPriv = "private";
         String serverIdPub = "apache";
-        final IgniteTeamcityConnection helper = new IgniteTeamcityConnection(serverIdPub); //public_auth_properties
+        final IgniteTeamcityConnection helper = new IgniteTeamcityConnection(); //public_auth_properties
 
         int k = 0;
         if (k > 0) {

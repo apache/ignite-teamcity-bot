@@ -19,39 +19,10 @@ package org.apache.ignite.ci;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Strings;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.gson.Gson;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.io.UncheckedIOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.xml.bind.JAXBException;
-import org.apache.ignite.ci.analysis.ISuiteResults;
-import org.apache.ignite.ci.analysis.LogCheckResult;
-import org.apache.ignite.ci.analysis.LogCheckTask;
-import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.analysis.*;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.logs.BuildLogStreamChecker;
@@ -81,6 +52,23 @@ import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.xml.bind.JAXBException;
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
@@ -121,14 +109,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
-    public IgniteTeamcityConnection(@Nullable String tcName) {
-        init(tcName);
-    }
-
-    //for DI
-    public IgniteTeamcityConnection() {
-    }
-
     public void init(@Nullable String tcName) {
         this.tcName = tcName;
         final File workDir = HelperConfig.resolveWorkDir();
@@ -141,7 +121,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
         this.host = hostConf.trim() + (hostConf.endsWith("/") ? "" : "/");
 
         try {
-            if (props.getProperty(HelperConfig.USERNAME) != null
+            if (!Strings.isNullOrEmpty(props.getProperty(HelperConfig.USERNAME))
                     && props.getProperty(HelperConfig.ENCODED_PASSWORD) != null)
                 setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, configName));
         } catch (Exception e) {
@@ -720,4 +700,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getJaxbUsingHref("app/rest/latest/users/username:" + username, User.class);
     }
 
+    public void setHttpConn(ITeamcityHttpConnection teamcityRecordingConnection) {
+        this.teamcityHttpConnection = teamcityRecordingConnection;
+    }
 }
