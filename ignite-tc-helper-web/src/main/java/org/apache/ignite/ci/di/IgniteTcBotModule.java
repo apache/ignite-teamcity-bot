@@ -29,6 +29,8 @@ import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
+import org.apache.ignite.ci.teamcity.ITeamcityHttpConnection;
+import org.apache.ignite.ci.teamcity.TeamcityRecordingConnection;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
@@ -74,6 +76,7 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(ITcHelper.class).to(TcHelper.class).in(new SingletonScope());
 
         bind(IJiraIntegration.class).to(Jira.class).in(new SingletonScope());
+        bind(ITeamcityHttpConnection.class).to(TeamcityRecordingConnection.class).in(new SingletonScope());
     }
 
     //todo fallback to TC big class

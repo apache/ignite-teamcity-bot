@@ -22,6 +22,8 @@ import org.apache.ignite.cache.CacheMetrics;
 import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.ci.di.AutoProfilingInterceptor;
 import org.apache.ignite.ci.di.MonitoredTaskInterceptor;
+import org.apache.ignite.ci.teamcity.ITeamcityHttpConnection;
+import org.apache.ignite.ci.teamcity.TeamcityRecordingConnection;
 import org.apache.ignite.ci.web.CtxListener;
 
 import javax.annotation.security.PermitAll;
@@ -115,5 +117,29 @@ public class MonitoringService {
             res.add(next + ": " + size + " parts " + affinity.partitions());
         }
         return res;
+    }
+
+
+    @GET
+    @PermitAll
+    @Path("urls")
+    public List<UrlUsed> getUrlsUsed() {
+        final ITeamcityHttpConnection tcConn = CtxListener.getInjector(ctx).getInstance(ITeamcityHttpConnection.class);
+
+        if (!(tcConn instanceof TeamcityRecordingConnection)) {
+            return Collections.emptyList();
+        }
+
+        final TeamcityRecordingConnection tcConn1 = (TeamcityRecordingConnection) tcConn;
+
+        final List<String> urls = tcConn1.getUrls();
+
+        return urls.stream().map(s -> {
+            final UrlUsed urlRequested = new UrlUsed();
+            urlRequested.url = s;
+            return urlRequested;
+        }).collect(Collectors.toList());
+
+
     }
 }

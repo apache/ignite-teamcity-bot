@@ -45,6 +45,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.analysis.ISuiteResults;
 import org.apache.ignite.ci.analysis.LogCheckResult;
@@ -74,6 +75,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
+import org.apache.ignite.ci.teamcity.ITeamcityHttpConnection;
 import org.apache.ignite.ci.util.*;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
@@ -104,6 +106,10 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** TeamCity authorization token. */
     private String basicAuthTok;
 
+    @Inject
+    private ITeamcityHttpConnection teamcityHttpConnection;
+
+
     /** GitHub authorization token.  */
     private String gitAuthTok;
 
@@ -133,12 +139,14 @@ public class IgniteTeamcityConnection implements ITeamcity {
         final String hostConf = props.getProperty(HelperConfig.HOST, "https://ci.ignite.apache.org/");
 
         this.host = hostConf.trim() + (hostConf.endsWith("/") ? "" : "/");
+
         try {
             if (props.getProperty(HelperConfig.USERNAME) != null
                     && props.getProperty(HelperConfig.ENCODED_PASSWORD) != null)
                 setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, configName));
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Failed to set credentials", e);
         }
 
         setGitToken(HelperConfig.prepareGithubHttpAuthToken(props));
@@ -446,7 +454,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     private <T> T sendGetXmlParseJaxb(String url, Class<T> rootElem) {
         try {
-            try (InputStream inputStream = HttpUtil.sendGetWithBasicAuth(basicAuthTok, url)) {
+            try (InputStream inputStream = teamcityHttpConnection.sendGet(basicAuthTok, url)) {
                 final InputStreamReader reader = new InputStreamReader(inputStream);
 
                 return loadXml(rootElem, reader);
@@ -459,6 +467,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
             throw ExceptionUtil.propagateException(e);
         }
     }
+
+
 
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
@@ -578,8 +588,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuilds(String projectId,
-        String branch) {
+    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch) {
 
         return getFinishedBuilds(projectId, branch, null, null, null);
     }
@@ -664,7 +673,9 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return zipFut.thenApplyAsync(zipFile -> runCheckForZippedLog(dumpLastTest, zipFile), executor);
     }
 
-    @NotNull private LogCheckTask runCheckForZippedLog(boolean dumpLastTest, File zipFile) {
+    @SuppressWarnings("WeakerAccess")
+    @AutoProfiling
+    @NotNull protected LogCheckTask runCheckForZippedLog(boolean dumpLastTest, File zipFile) {
         LogCheckTask task = new LogCheckTask(zipFile);
 
         try {
