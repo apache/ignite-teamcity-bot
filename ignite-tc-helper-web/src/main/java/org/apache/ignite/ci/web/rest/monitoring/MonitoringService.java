@@ -88,15 +88,16 @@ public class MonitoringService {
 
     @GET
     @PermitAll
-    @Path("caches")
-    public List<String> getCacheStat() {
+    @Path("cacheMetrics")
+    public List<CacheMetricsUi> getCacheStat() {
         Ignite ignite = CtxListener.getInjector(ctx).getInstance(Ignite.class);
 
-        List<String> res = new ArrayList<>();
         final Collection<String> strings = ignite.cacheNames();
 
         final ArrayList<String> cacheNames = new ArrayList<>(strings);
         cacheNames.sort(String::compareTo);
+
+        final List<CacheMetricsUi> res = new ArrayList<>();
 
         for (String next : cacheNames) {
             IgniteCache<?, ?> cache = ignite.cache(next);
@@ -105,16 +106,16 @@ public class MonitoringService {
                 continue;
             CacheMetrics metrics = cache.metrics();
 
+
             int size = cache.size();
-            //float averageGetTime = metrics.getAverageGetTime();
-            // float averagePutTime = metrics.getAveragePutTime();
+             float averageGetTime = metrics.getAverageGetTime();
+             float averagePutTime = metrics.getAveragePutTime();
 
-            // res.add(next + ": " + size + " get " + averageGetTime + " put " + averagePutTime);
-
+            //System.out.println(next + ": " + size + " get " + averageGetTime + " put " + averagePutTime);
 
             Affinity<Object> affinity = ignite.affinity(next);
 
-            res.add(next + ": " + size + " parts " + affinity.partitions());
+            res.add(new CacheMetricsUi(next, size, affinity.partitions()));
         }
         return res;
     }
@@ -122,7 +123,7 @@ public class MonitoringService {
 
     @GET
     @PermitAll
-    @Path("urls")
+    @Path("urlsUsed")
     public List<UrlUsed> getUrlsUsed() {
         final ITeamcityHttpConnection tcConn = CtxListener.getInjector(ctx).getInstance(ITeamcityHttpConnection.class);
 

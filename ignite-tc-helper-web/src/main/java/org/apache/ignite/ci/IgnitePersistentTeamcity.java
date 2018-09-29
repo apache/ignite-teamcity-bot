@@ -185,7 +185,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      * @param name Cache name.
      */
     private <K, V> IgniteCache<K, V> getOrCreateCacheV2(String name) {
-        return ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(name));
+        final IgniteCache<K, V> cache = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(name));
+
+        cache.enableStatistics(true);
+
+        return cache;
     }
 
     /**
@@ -193,7 +197,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      * @param name Cache name.
      */
     private <K, V> IgniteCache<K, V> getOrCreateCacheV2Tx(String name) {
-        return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(name));
+        final IgniteCache<K, V> cache = ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(name));
+
+        cache.enableStatistics(true);
+
+        return cache;
     }
 
     /**

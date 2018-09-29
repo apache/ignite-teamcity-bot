@@ -53,17 +53,17 @@
         });
 
         $.ajax({
-            url: "rest/monitoring/caches",
+            url: "rest/monitoring/cacheMetrics",
             success: function(result) {
                 $("#loadStatus").html("");
 
-                showCaches(result);
+                showCacheMetrics(result);
             },
             error: showErrInLoadStatus
         });
 
         $.ajax({
-            url: "rest/monitoring/urls",
+            url: "rest/monitoring/urlsUsed",
             success: function(result) {
                 $("#loadStatus").html("");
 
@@ -123,16 +123,26 @@
         $("#profiling").html(res);
     }
 
-    function showCaches(result) {
-        var res = "" ;
+    function showCacheMetrics(result) {
+        var res = "<table class='stat'>" ;
+        res += "<tr>";
+        res += "<th>Name</th>";
+        res += "<th>Size</th>";
+        res += "<th>Parts</th>";
+        res += "</tr>";
         for (var i = 0; i < result.length; i++) {
-            res += result[i] + "<br>";
+            var inv = result[i];
+            res += "<tr>";
+            res += "<td>" + inv.name + "</td>";
+            res += "<td>" + inv.size + "</td>";
+            res += "<td>" + inv.parts + "</td>";
+            res += "</tr>";
         }
         $("#caches").html(res);
     }
 
     /**
-     * @param result org.apache.ignite.ci.web.rest.monitoring.HotSpot
+     * @param result org.apache.ignite.ci.web.rest.monitoring.UrlUsed
      */
     function showUrlsUsed(result) {
         var res = "<table class='stat'>" ;
