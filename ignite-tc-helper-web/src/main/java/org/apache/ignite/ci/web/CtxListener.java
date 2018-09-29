@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.web;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
@@ -35,6 +36,7 @@ import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.IgniteTcBotModule;
 import org.apache.ignite.ci.observer.BuildObserver;
+import org.apache.ignite.ci.teamcity.TeamcityRecorder;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.jetbrains.annotations.Nullable;
 
@@ -115,6 +117,12 @@ public class CtxListener implements ServletContextListener {
             injector.getInstance(BuildObserver.class).stop();
         }
         catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        try {
+            injector.getInstance(TeamcityRecorder.class).stop();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

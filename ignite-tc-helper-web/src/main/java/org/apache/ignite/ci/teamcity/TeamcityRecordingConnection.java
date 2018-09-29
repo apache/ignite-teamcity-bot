@@ -18,26 +18,15 @@ package org.apache.ignite.ci.teamcity;
 
 import org.apache.ignite.ci.util.HttpUtil;
 
+import javax.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class TeamcityRecordingConnection implements ITeamcityHttpConnection {
-    private ConcurrentLinkedQueue<String> urls = new ConcurrentLinkedQueue<>();
+    @Inject
+    private TeamcityRecorder recorder;
 
     public InputStream sendGet(String basicAuthTok, String url) throws IOException {
-        urls.add(url);
-        if(urls.size()>100)
-            urls.remove();
-
-        return HttpUtil.sendGetWithBasicAuth(basicAuthTok, url);
-    }
-
-    public List<String> getUrls() {
-        final ArrayList<String> list = new ArrayList<>(urls);
-
-        return list;
+        return recorder.onGet(HttpUtil.sendGetWithBasicAuth(basicAuthTok, url), url);
     }
 }

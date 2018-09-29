@@ -62,7 +62,7 @@ public class TrackedBranchChainsProcessor {
         final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branchNn);
         res.setTrackedBranch(branchNn);
 
-        tracked.chains.stream().parallel()
+        tracked.chains.stream()
             .filter(chainTracked -> creds.hasAccess(chainTracked.serverId))
             .map(chainTracked -> {
                 final String srvId = chainTracked.serverId;
