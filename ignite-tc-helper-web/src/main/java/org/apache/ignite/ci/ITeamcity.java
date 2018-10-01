@@ -319,6 +319,25 @@ public interface ITeamcity {
      */
     boolean sendJiraComment(String ticket, String comment);
 
+    /**
+     * @param url URL for git integration.
+     */
+    void setGitApiUrl(String url);
+
+    /**
+     * @return URL for git integration.
+     */
+    String getGitApiUrl();
+
+    /**
+     * @param url URL for JIRA integration.
+     */
+    void setJiraApiUrl(String url);
+
+    /**
+     * @return URL for JIRA integration.
+     */
+    String getJiraApiUrl();
 
     default void setAuthData(String user, String password) {
         setAuthToken(

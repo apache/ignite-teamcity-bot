@@ -1169,6 +1169,26 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
+    @Override public void setGitApiUrl(String url) {
+        teamcity.setGitApiUrl(url);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String getGitApiUrl() {
+        return teamcity.getGitApiUrl();
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setJiraApiUrl(String url) {
+        teamcity.setJiraApiUrl(url);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String getJiraApiUrl() {
+        return teamcity.getJiraApiUrl();
+    }
+
+    /** {@inheritDoc} */
     @Override public PullRequest getPullRequest(String branchForTc) {
         return teamcity.getPullRequest(branchForTc);
     }

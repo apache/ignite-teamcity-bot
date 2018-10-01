@@ -20,6 +20,9 @@ package org.apache.ignite.ci.web.rest;
 import com.google.common.base.Strings;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -30,6 +33,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.conf.ServerIntegrationLinks;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -222,4 +226,20 @@ public class TriggerBuild {
         return new SimpleResult("OK");
     }
 
+    @GET
+    @Path("integrationUrls")
+    public Set<ServerIntegrationLinks> getIntegrationUrls(@NotNull @QueryParam("serverIds") String srvIds) {
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        String[] srvIds0 = srvIds.split(",");
+
+        return Arrays.stream(srvIds0).map(srvId -> {
+            if (!prov.hasAccess(srvId))
+                return null;
+
+            ITeamcity teamcity = CtxListener.server(srvId, context, req);
+
+            return new ServerIntegrationLinks(srvId, teamcity.getGitApiUrl(), teamcity.getGitApiUrl());
+        }).filter(Objects::nonNull).collect(Collectors.toSet());
+    }
 }
