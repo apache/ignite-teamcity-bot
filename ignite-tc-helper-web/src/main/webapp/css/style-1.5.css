@@ -166,6 +166,12 @@ form li:after
 	color: #000000;
 }
 
+.compare .title1, .compare .title2  {
+	text-align: center;
+	font-size: 10px;
+	color: gray;
+}
+
 .compare tr:nth-child(4n-1) {
 	background-color: #fafaff;
 }
