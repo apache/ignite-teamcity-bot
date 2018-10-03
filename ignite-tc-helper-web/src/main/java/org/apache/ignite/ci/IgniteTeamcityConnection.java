@@ -104,6 +104,12 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /**  JIRA authorization token. */
     private String jiraBasicAuthTok;
 
+    /** URL for git integration. */
+    private String gitApiUrl;
+
+    /** URL for JIRA integration. */
+    private String jiraApiUrl;
+
     private String configName; //main properties file name
     private String tcName;
 
@@ -130,8 +136,10 @@ public class IgniteTeamcityConnection implements ITeamcity {
         }
 
         setGitToken(HelperConfig.prepareGithubHttpAuthToken(props));
+        setGitApiUrl(props.getProperty(HelperConfig.GIT_API_URL));
 
         setJiraToken(HelperConfig.prepareJiraHttpAuthToken(props));
+        setJiraApiUrl(props.getProperty(HelperConfig.JIRA_API_URL));
 
         final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
 
@@ -173,8 +181,14 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public boolean sendJiraComment(String ticket, String comment) {
+        if (isNullOrEmpty(jiraApiUrl)) {
+            logger.error("Failed to notify JIRA [errMsg=JIRA API URL is not configured for this server.]");
+
+            return false;
+        }
+
         try {
-            String url = "https://issues.apache.org/jira/rest/api/2/issue/" + ticket + "/comment";
+            String url = jiraApiUrl + "issue/" + ticket + "/comment";
 
             HttpUtil.sendPostAsStringToJira(jiraBasicAuthTok, url, "{\"body\": \"" + comment + "\"}");
 
@@ -188,8 +202,31 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
+    @Override public void setGitApiUrl(String url) {
+        gitApiUrl = url;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String getGitApiUrl() {
+        return gitApiUrl;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setJiraApiUrl(String url) {
+        jiraApiUrl = url;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String getJiraApiUrl() {
+        return jiraApiUrl;
+    }
+
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override public PullRequest getPullRequest(String branchForTc) {
+        if (!isNullOrEmpty(gitApiUrl))
+            throw new IllegalStateException("Git API URL is not configured for this server.");
+
         String id = null;
 
         // Get PR id from string "pull/XXXX/head"
@@ -203,8 +240,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
             }
         }
 
-        //todo github address can be probably associated with server
-        String pr = "https://api.github.com/repos/apache/ignite/pulls/" + id;
+        String pr = gitApiUrl + "pulls/" + id;
 
         try (InputStream is = HttpUtil.sendGetToGit(gitAuthTok, pr)) {
             InputStreamReader reader = new InputStreamReader(is);
