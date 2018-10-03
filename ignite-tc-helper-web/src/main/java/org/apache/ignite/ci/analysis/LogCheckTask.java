@@ -22,6 +22,8 @@ import org.apache.ignite.ci.logs.BuildLogStreamChecker;
 import org.apache.ignite.ci.logs.handlers.TestLogHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpInMemoryHandler;
 
+import static org.apache.ignite.ci.logs.LogMsgToWarn.JAVA_LEVEL_DEADLOCK;
+
 /**
  *
  */
@@ -30,14 +32,11 @@ public class LogCheckTask {
     private File zipFile;
     final ThreadDumpInMemoryHandler threadDumpCp = new ThreadDumpInMemoryHandler();
 
+    /** Test logger handler. */
     final TestLogHandler testLogHandler = new TestLogHandler();
 
     public LogCheckTask(File zipFile) {
         this.zipFile = zipFile;
-    }
-
-    public void setResult(LogCheckResult result) {
-        this.result = result;
     }
 
     public LogCheckResult getResult() {
@@ -49,14 +48,13 @@ public class LogCheckTask {
     }
 
     public void finalize(boolean isIncompleteSuite) {
-        LogCheckResult logCheckResult = new LogCheckResult();
-        if (isIncompleteSuite) {
-            logCheckResult.setLastStartedTest(testLogHandler.getLastTestName());
-            logCheckResult.setLastThreadDump(threadDumpCp.getLastThreadDump());
-        }
+        LogCheckResult logCheckRes = testLogHandler.getResult(isIncompleteSuite);
 
-        logCheckResult.setTests(testLogHandler.getTests());
+        if (isIncompleteSuite)
+            logCheckRes.setLastThreadDump(threadDumpCp.getLastThreadDump());
+        else if(logCheckRes.hasProblem(JAVA_LEVEL_DEADLOCK))
+            logCheckRes.setLastThreadDump(threadDumpCp.getLastThreadDump());
 
-        setResult(logCheckResult);
+        this.result = logCheckRes;
     }
 }

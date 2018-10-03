@@ -198,8 +198,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         suite.getBuildsWithThreadDump().forEach(buildId -> {
             webUrlThreadDump = "/rest/" + GetBuildLog.GET_BUILD_LOG + "/" + GetBuildLog.THREAD_DUMP
                 + "?" + GetBuildLog.SERVER_ID + "=" + teamcity.serverId()
-                + "&" + GetBuildLog.BUILD_NO + "=" + Integer.toString(buildId)
-                + "&" + GetBuildLog.FILE_IDX + "=" + Integer.toString(-1);
+                + "&" + GetBuildLog.BUILD_NO + "=" + buildId
+                + "&" + GetBuildLog.FILE_IDX + "=" + -1;
         });
 
         runningBuildCount = suite.runningBuildCount();

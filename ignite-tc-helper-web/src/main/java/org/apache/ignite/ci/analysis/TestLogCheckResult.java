@@ -27,9 +27,14 @@ import org.apache.ignite.ci.db.Persisted;
 
 @Persisted
 public class TestLogCheckResult {
+    /** Warnings found. */
     @Nullable List<String> warns;
 
+    /** Count of lines. */
     int cntLines = 0;
+
+    /** Count of bytes. */
+
     int cntBytes = 0;
 
     public void addWarning(String line) {

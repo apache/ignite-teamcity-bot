@@ -22,13 +22,37 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.gson.Gson;
-import org.apache.ignite.ci.analysis.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.io.UncheckedIOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.xml.bind.JAXBException;
+import org.apache.ignite.ci.analysis.ISuiteResults;
+import org.apache.ignite.ci.analysis.LogCheckResult;
+import org.apache.ignite.ci.analysis.LogCheckTask;
+import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.logs.BuildLogStreamChecker;
-import org.apache.ignite.ci.logs.LogsAnalyzer;
-import org.apache.ignite.ci.logs.handlers.TestLogHandler;
-import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.agent.AgentsRef;
 import org.apache.ignite.ci.tcmodel.changes.Change;
@@ -47,28 +71,14 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
 import org.apache.ignite.ci.teamcity.ITeamcityHttpConnection;
-import org.apache.ignite.ci.util.*;
-import org.apache.ignite.internal.util.typedef.T2;
+import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.ci.util.HttpUtil;
+import org.apache.ignite.ci.util.UrlUtil;
+import org.apache.ignite.ci.util.XmlUtil;
+import org.apache.ignite.ci.util.ZipUtil;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.xml.bind.JAXBException;
-import java.io.*;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.*;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
@@ -387,51 +397,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return zipFileFut.thenApplyAsync(ZipUtil::unZipToSameFolder, executor);
     }
 
-    @Deprecated
-    public List<CompletableFuture<File>> standardProcessLogs(int... buildIds) {
-        List<CompletableFuture<File>> futures = new ArrayList<>();
-
-        for (int buildId : buildIds)
-            futures.add(standardProcessOfBuildLog(buildId));
-
-        return futures;
-    }
-
-    @Deprecated
-    private CompletableFuture<File> standardProcessOfBuildLog(int buildId) {
-        final Build results = getBuild(buildId);
-        final MultBuildRunCtx ctx = loadTestsAndProblems(results);
-
-        if (ctx.hasTimeoutProblem())
-            System.err.println(ctx.suiteName() + " failed with timeout " + buildId);
-
-        final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
-        boolean dumpLastTest = ctx.hasSuiteIncompleteFailure();
-
-        final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
-
-        final ThreadDumpCopyHandler threadDumpCp = new ThreadDumpCopyHandler();
-        final TestLogHandler lastTestCp = new TestLogHandler();
-        lastTestCp.setSaveLastTestToFile(dumpLastTest);
-
-        final Function<File, File> analyzer = new LogsAnalyzer(threadDumpCp, lastTestCp);
-
-        final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
-
-        return fut2.thenApplyAsync(file -> {
-            LogCheckResult logCheckRes = new LogCheckResult();
-
-            if (dumpLastTest)
-                logCheckRes.setLastStartedTest(lastTestCp.getLastTestName());
-
-            logCheckRes.setTests(lastTestCp.getTests());
-
-            System.err.println(logCheckRes);
-
-            return new T2<>(file, logCheckRes);
-        }).thenApply(T2::get1);
-    }
-
     @AutoProfiling
     public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
         final CompletableFuture<List<File>> clearFileF = unzip(fut);
@@ -439,13 +404,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
             Preconditions.checkState(!files.isEmpty(), "ZIP file can't be empty");
             return files.get(0);
         }, executor);
-    }
-
-    @Deprecated
-    public List<CompletableFuture<File>> standardProcessAllBuildHistory(String buildTypeId, String branch) {
-        List<BuildRef> allBuilds = getFinishedBuildsIncludeSnDepFailed(buildTypeId, branch);
-
-        return standardProcessLogs(allBuilds.stream().mapToInt(BuildRef::getId).toArray());
     }
 
     /**
@@ -681,8 +639,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getBuildsInState(projectId, branch, state, null);
     }
 
-    @Override
-    public String serverId() {
+    /** {@inheritDoc} */
+    @Override public String serverId() {
         return tcName;
     }
 

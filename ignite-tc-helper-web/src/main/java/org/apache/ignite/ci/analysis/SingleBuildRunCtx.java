@@ -105,6 +105,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
     @Nullable
     public Map<String, TestLogCheckResult> getTestLogCheckResult() {
         LogCheckResult logCheckRes = getLogCheckIfFinished();
+
         if (logCheckRes == null)
             return null;
 
@@ -113,26 +114,27 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     @Nullable
     public Integer getBuildIdIfHasThreadDump() {
-        LogCheckResult logCheckResult = getLogCheckIfFinished();
-        if (logCheckResult == null)
+        LogCheckResult logCheckRes = getLogCheckIfFinished();
+
+        if (logCheckRes == null)
             return null;
 
-        return !Strings.isNullOrEmpty(logCheckResult.getLastThreadDump()) ? buildId() : null;
+        return !Strings.isNullOrEmpty(logCheckRes.getLastThreadDump()) ? buildId() : null;
     }
 
     @Nullable public LogCheckResult getLogCheckIfFinished() {
         if (logCheckResultsFut == null)
             return null;
 
-        if (!logCheckResultsFut.isDone() || logCheckResultsFut.isCancelled()) {
+        if (!logCheckResultsFut.isDone() || logCheckResultsFut.isCancelled())
             return null;
-        }
 
-        LogCheckResult logCheckResult = FutureUtil.getResultSilent(logCheckResultsFut);
+        LogCheckResult logCheckRes = FutureUtil.getResultSilent(logCheckResultsFut);
 
-        if (logCheckResult == null)
+        if (logCheckRes == null)
             return null;
-        return logCheckResult;
+
+        return logCheckRes;
     }
 
     public void setProblems(@Nullable List<ProblemOccurrence> problems) {

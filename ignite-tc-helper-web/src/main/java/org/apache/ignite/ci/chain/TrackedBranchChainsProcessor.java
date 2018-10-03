@@ -44,15 +44,14 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 public class TrackedBranchChainsProcessor {
     @Inject private ITcServerProvider srvProv;
 
+    /** Chains processor. */
     @Inject private BuildChainProcessor chainProc;
-
-    @Inject private TcUpdatePool tcUpdatePool;
 
     @AutoProfiling
     @NotNull
     public TestFailuresSummary getTrackedBranchTestFailures(
-        @Nullable @QueryParam("branch") String branch,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
+        @Nullable String branch,
+        @Nullable Boolean checkAllLogs,
         int buildResMergeCnt,
         ICredentialsProv creds) {
         final TestFailuresSummary res = new TestFailuresSummary();

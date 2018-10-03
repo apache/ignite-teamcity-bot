@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.logs;
 
+import javax.annotation.Nullable;
+
 /**
  *
  */
@@ -24,8 +26,21 @@ package org.apache.ignite.ci.logs;
     //todo include test name
     //todo add NPE
 public class LogMsgToWarn {
+
+    private static final String JAVA_LEVEL_DEADLOCK_TXT = " Java-level deadlock:";
+    public static final String JAVA_LEVEL_DEADLOCK = "JAVA_LEVEL_DEADLOCK";
+
     public static boolean needWarn(String line) {
         return line.contains("java.lang.AssertionError:")
+            || line.contains(JAVA_LEVEL_DEADLOCK_TXT)
             || line.contains("Critical failure. Will be handled accordingly to configured handler");
+    }
+
+    @Nullable
+    public static String getProblemCode(String line) {
+        if(line.contains(JAVA_LEVEL_DEADLOCK_TXT))
+            return JAVA_LEVEL_DEADLOCK;
+
+        return null;
     }
 }
