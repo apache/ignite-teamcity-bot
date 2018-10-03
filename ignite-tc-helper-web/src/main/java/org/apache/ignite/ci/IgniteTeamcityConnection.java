@@ -77,6 +77,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
 import org.apache.ignite.ci.util.*;
+import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -555,18 +556,15 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     @AutoProfiling
-    @Override public TestOccurrences getFailedUnmutedTests(String href, String normalizedBranch) {
-        return getTests(href + ",muted:false,status:FAILURE", normalizedBranch);
+    @Override public TestOccurrences getFailedUnmutedTests(String href, int count, String normalizedBranch) {
+        return getTests(href + ",muted:false,status:FAILURE,count:" + count, normalizedBranch);
     }
 
     @Override
     @AutoProfiling
-    public CompletableFuture<TestRef> getTestRef(TestOccurrence testOccurrence) {
+    public CompletableFuture<TestRef> getTestRef(FullQueryParams key) {
         return supplyAsync(() -> {
-            if (testOccurrence.href == null) {
-                return new TestRef();
-            }
-            return getJaxbUsingHref(testOccurrence.href, TestOccurrenceFull.class).test;
+            return getJaxbUsingHref("/app/rest/latest/tests/name:" + key.getTestName(), TestRef.class);
         }, executor);
     }
 

@@ -18,6 +18,8 @@
 package org.apache.ignite.ci.web.rest.build;
 
 import java.text.ParseException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -26,12 +28,11 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
-import org.apache.ignite.ci.web.model.current.BuildsHistory;
+import org.apache.ignite.ci.web.model.hist.BuildsHistory;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
@@ -48,13 +49,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static com.google.common.base.Strings.isNullOrEmpty;
 
 @Path(GetBuildTestFailures.BUILD)
 @Produces(MediaType.APPLICATION_JSON)
@@ -156,6 +153,40 @@ public class GetBuildTestFailures {
     }
 
     @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("testRef")
+    public String getTestRef(
+        @NotNull @QueryParam("testName") String name,
+        @Nullable @QueryParam("server") String server,
+        @Nullable @QueryParam("projectId") String projectId)
+        throws InterruptedException, ExecutionException {
+        final ITcHelper helper = CtxListener.getTcHelper(context);
+
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        String project = projectId == null ? "IgniteTests24Java8" : projectId;
+
+        String serverId = server == null ? "apache" : server;
+
+        IAnalyticsEnabledTeamcity teamcity = helper.server(serverId, prov);
+
+        FullQueryParams key = new FullQueryParams();
+
+        key.setTestName(name);
+
+        key.setProjectId(project);
+
+        key.setServerId(serverId);
+
+        CompletableFuture<TestRef> ref = teamcity.getTestRef(key);
+
+        return ref.isDone() ? teamcity.host() + "project.html?"
+            + "projectId=" + project
+            + "&testNameId=" + ref.get().id
+            + "&tab=testDetails" : null;
+    }
+
+    @GET
     @Path("history")
     public BuildsHistory getBuildsHistory(
         @Nullable @QueryParam("server") String server,
@@ -170,6 +201,8 @@ public class GetBuildTestFailures {
             .sinceDate(sinceDate)
             .untilDate(untilDate)
             .build();
+
+        System.out.println("History request handled");
 
         buildsHistory.initialize(ICredentialsProv.get(req), context);
 

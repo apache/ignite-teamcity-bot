@@ -76,6 +76,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.util.CacheUpdateUtil;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
+import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -181,6 +182,19 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 buildStatisticsCache(),
                 buildHistCache(),
                 buildHistIncFailedCache());
+    }
+
+    public void clear() {
+       /* testOccurrencesCache().clear();
+        buildsCache().clear();
+        buildsFailureRunStatCache().clear();
+        testRunStatCache().clear();
+        testFullCache().clear();
+        buildProblemsCache().clear();
+        buildStatisticsCache().clear();
+        buildHistCache().clear();
+        buildHistIncFailedCache().clear();
+        testRefsCache().clear();*/
     }
 
     @Override
@@ -838,8 +852,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     @AutoProfiling
-    @Override public TestOccurrences getFailedUnmutedTests(String href, String normalizedBranch) {
-        return getTests(href + ",muted:false,status:FAILURE", normalizedBranch);
+    @Override public TestOccurrences getFailedUnmutedTests(String href, int count, String normalizedBranch) {
+        return getTests(href + ",muted:false,status:FAILURE,count:" + count, normalizedBranch);
     }
 
     private void addTestOccurrencesToStat(TestOccurrences val) {
@@ -889,21 +903,13 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             });
     }
 
-    @Override
     @AutoProfiling
-    public CompletableFuture<TestRef> getTestRef(TestOccurrence testOccurrence) {
+    @Override public CompletableFuture<TestRef> getTestRef(FullQueryParams key) {
         return CacheUpdateUtil.loadAsyncIfAbsent(
             testRefsCache(),
-            testOccurrence.name,
+            key.toString(),
             testRefsFutures,
-            name -> {
-                try {
-                    return teamcity.getTestRef(testOccurrence);
-                }
-                catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            });
+            k -> teamcity.getTestRef(key));
     }
 
     /** {@inheritDoc} */
