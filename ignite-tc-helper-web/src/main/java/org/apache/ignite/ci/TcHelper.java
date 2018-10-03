@@ -23,21 +23,21 @@ import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
-import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
+import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.ignite.ci.analysis.RunStat.MAX_LATEST_RUNS;
@@ -159,8 +159,8 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     ) {
         StringBuilder res = new StringBuilder();
         TestFailuresSummary summary = prChainsProcessor.getTestFailuresSummary(
-                prov, srvId, buildTypeId, branchForTc,
-            "Latest", null, null);
+            prov, srvId, buildTypeId, branchForTc,
+            FullQueryParams.LATEST, null, null, false);
 
         if (summary != null) {
             for (ChainAtServerCurrentStatus server : summary.servers) {
@@ -231,11 +231,6 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     private Map<String, List<SuiteCurrentStatus>> findFailures(ChainAtServerCurrentStatus srv) {
         Map<String, List<SuiteCurrentStatus>> fails = new LinkedHashMap<>();
 
-        fails.put("compilation", new ArrayList<>());
-        fails.put("timeout", new ArrayList<>());
-        fails.put("exit code", new ArrayList<>());
-        fails.put("failed tests", new ArrayList<>());
-
         for (SuiteCurrentStatus suite : srv.suites) {
             String suiteRes = suite.result.toLowerCase();
             String failType = null;
@@ -248,6 +243,9 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
             if (suiteRes.contains("exit code"))
                 failType = "exit code";
+
+            if(suiteRes.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK.toLowerCase()))
+                failType = "java level deadlock";
 
             if (failType == null) {
                 List<TestFailure> failures = new ArrayList<>();
@@ -265,7 +263,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
             }
 
             if (failType != null)
-                fails.get(failType).add(suite);
+                fails.computeIfAbsent(failType, k->new ArrayList<>()).add(suite);
         }
 
         return fails;

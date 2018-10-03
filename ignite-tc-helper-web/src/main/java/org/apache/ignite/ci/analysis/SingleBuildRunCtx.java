@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
+import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
@@ -37,7 +38,9 @@ import org.jetbrains.annotations.Nullable;
  */
 public class SingleBuildRunCtx implements ISuiteResults {
     private Build build;
-    private CompletableFuture<LogCheckResult> logCheckResultsFut;
+
+    /** Logger check result future. */
+    private CompletableFuture<LogCheckResult> logCheckResultFut;
 
     /** Build problems occurred during single build run. */
     @Nullable private List<ProblemOccurrence> problems;
@@ -66,7 +69,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return getProblemsStream().filter(ProblemOccurrence::isExecutionTimeout).count();
     }
 
-    private Stream<ProblemOccurrence> getProblemsStream() {
+    Stream<ProblemOccurrence> getProblemsStream() {
         if (problems == null)
             return Stream.empty();
 
@@ -89,12 +92,11 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return build.suiteId();
     }
 
-    public void setLogCheckResultsFut(CompletableFuture<LogCheckResult> logCheckResultsFut) {
-        this.logCheckResultsFut = logCheckResultsFut;
+    public void setLogCheckResultFut(CompletableFuture<LogCheckResult> logCheckResultFut) {
+        this.logCheckResultFut = logCheckResultFut;
     }
 
-    @Nullable
-    public String getCriticalFailLastStartedTest() {
+    @Nullable public String getCriticalFailLastStartedTest() {
         LogCheckResult logCheckResult = getLogCheckIfFinished();
         if (logCheckResult == null)
             return null;
@@ -102,8 +104,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return logCheckResult.getLastStartedTest();
     }
 
-    @Nullable
-    public Map<String, TestLogCheckResult> getTestLogCheckResult() {
+    @Nullable public Map<String, TestLogCheckResult> getTestLogCheckResult() {
         LogCheckResult logCheckRes = getLogCheckIfFinished();
 
         if (logCheckRes == null)
@@ -112,8 +113,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return logCheckRes.getTestLogCheckResult();
     }
 
-    @Nullable
-    public Integer getBuildIdIfHasThreadDump() {
+    @Nullable public Integer getBuildIdIfHasThreadDump() {
         LogCheckResult logCheckRes = getLogCheckIfFinished();
 
         if (logCheckRes == null)
@@ -123,13 +123,13 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     @Nullable public LogCheckResult getLogCheckIfFinished() {
-        if (logCheckResultsFut == null)
+        if (logCheckResultFut == null)
             return null;
 
-        if (!logCheckResultsFut.isDone() || logCheckResultsFut.isCancelled())
+        if (!logCheckResultFut.isDone() || logCheckResultFut.isCancelled())
             return null;
 
-        LogCheckResult logCheckRes = FutureUtil.getResultSilent(logCheckResultsFut);
+        LogCheckResult logCheckRes = FutureUtil.getResultSilent(logCheckResultFut);
 
         if (logCheckRes == null)
             return null;
@@ -160,11 +160,8 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return tests;
     }
 
-    Stream<? extends Future<?>> getFutures() {
-        if (logCheckResultsFut == null)
-            return Stream.empty();
-        else
-            return Stream.of((Future<?>)logCheckResultsFut);
+    @Nonnull Stream<? extends Future<?>> getFutures() {
+        return logCheckResultFut == null ? Stream.empty() : Stream.of((Future<?>)logCheckResultFut);
     }
 
     public boolean isComposite() {

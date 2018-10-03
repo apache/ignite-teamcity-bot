@@ -63,9 +63,10 @@ public class GetPrTestFailures {
         @Nonnull @QueryParam("branchForTc") String branchForTc,
         @Nonnull @QueryParam("action") String act,
         @Nullable @QueryParam("count") Integer cnt,
-        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc) {
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
-        return new UpdateInfo().copyFrom(getPrFailures(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc));
+        return new UpdateInfo().copyFrom(getPrFailures(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc, checkAllLogs));
     }
 
     @GET
@@ -76,16 +77,17 @@ public class GetPrTestFailures {
         @Nonnull @QueryParam("branchForTc") String branchForTc,
         @Nonnull @QueryParam("action") String act,
         @Nullable @QueryParam("count") Integer cnt,
-        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc) {
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
         final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(ctx);
 
         final FullQueryParams key = new FullQueryParams(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc);
-
+        key.setCheckAllLogs(checkAllLogs);
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
         return updater.get(CURRENT_PR_FAILURES, prov, key,
-                (k) -> getPrFailuresNoCache(k.getServerId(), k.getSuiteId(), k.getBranchForTc(), k.getAction(), k.getCount(), baseBranchForTc),
+                (k) -> getPrFailuresNoCache(k.getServerId(), k.getSuiteId(), k.getBranchForTc(), k.getAction(), k.getCount(), baseBranchForTc, k.getCheckAllLogs()),
                 true);
     }
 
@@ -105,14 +107,15 @@ public class GetPrTestFailures {
         @Nonnull @QueryParam("branchForTc") String branchForTc,
         @Nonnull @QueryParam("action") String act,
         @Nullable @QueryParam("count") Integer cnt,
-        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc) {
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
         final ICredentialsProv creds = ICredentialsProv.get(req);
         final Injector injector = CtxListener.getInjector(ctx);
         final PrChainsProcessor prChainsProcessor = injector.getInstance(PrChainsProcessor.class);
 
-        return prChainsProcessor.getTestFailuresSummary(creds, srvId, suiteId, branchForTc, act, cnt, baseBranchForTc
-        );
+        return prChainsProcessor.getTestFailuresSummary(creds, srvId, suiteId, branchForTc, act, cnt, baseBranchForTc,
+            checkAllLogs);
     }
 
     @POST

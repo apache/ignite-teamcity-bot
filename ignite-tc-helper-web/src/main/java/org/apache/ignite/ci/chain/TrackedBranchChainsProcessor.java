@@ -89,7 +89,7 @@ public class TrackedBranchChainsProcessor {
 
                 ProcessLogsMode logs;
                 if (buildResMergeCnt > 1)
-                    logs = checkAllLogs != null && checkAllLogs ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED;
+                    logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED;
                 else
                     logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 

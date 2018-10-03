@@ -181,18 +181,16 @@ public interface ITeamcity {
      */
     @Nonnull default MultBuildRunCtx loadTestsAndProblems(@Nonnull Build build) {
         MultBuildRunCtx ctx = new MultBuildRunCtx(build);
+
         loadTestsAndProblems(build, ctx);
+
         return ctx;
     }
 
     default SingleBuildRunCtx loadTestsAndProblems(@Nonnull Build build, @Deprecated MultBuildRunCtx mCtx) {
         SingleBuildRunCtx ctx = new SingleBuildRunCtx(build);
-        if (build.problemOccurrences != null) {
-            List<ProblemOccurrence> problems = getProblems(build).getProblemsNonNull();
-
-            mCtx.addProblems(problems);
-            ctx.setProblems(problems);
-        }
+        if (build.problemOccurrences != null)
+            ctx.setProblems(getProblems(build).getProblemsNonNull());
 
         if (build.lastChanges != null) {
             for (ChangeRef next : build.lastChanges.changes) {

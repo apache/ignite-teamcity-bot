@@ -1065,18 +1065,17 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
 
     @AutoProfiling
-    @Override
-    public String getThreadDumpCached(Integer buildId) {
+    @Override public String getThreadDumpCached(Integer buildId) {
         IgniteCache<Integer, LogCheckResult> entries = logCheckResultCache();
 
-        LogCheckResult logCheckResult = entries.get(buildId);
+        LogCheckResult logCheckRes = entries.get(buildId);
 
-        if (logCheckResult == null)
+        if (logCheckRes == null)
             return null;
 
-        int fields = ObjectInterner.internFields(logCheckResult);
+        int fields = ObjectInterner.internFields(logCheckRes);
 
-        return logCheckResult.getLastThreadDump();
+        return logCheckRes.getLastThreadDump();
     }
 
     /** {@inheritDoc} */
@@ -1084,9 +1083,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         if (calculatedStatistic().containsKey(ctx.buildId()))
             return;
 
-        for (TestOccurrence testOccurrence : ctx.getTests()) {
+        for (TestOccurrence testOccurrence : ctx.getTests())
             addTestOccurrenceToStat(testOccurrence, normalizeBranch(ctx.getBuild()), !ctx.getChanges().isEmpty());
-        }
 
         calculatedStatistic().put(ctx.buildId(), true);
     }
@@ -1102,12 +1100,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     public <K, V extends IVersionedEntity> CompletableFuture<V> loadFutureIfAbsentVers(IgniteCache<K, V> cache,
         K key,
         Function<K, CompletableFuture<V>> submitFunction) {
-        @Nullable final V persistedValue = cache.get(key);
+        @Nullable final V persistedVal = cache.get(key);
 
-        if (persistedValue != null && !persistedValue.isOutdatedEntityVersion()) {
-            int fields = ObjectInterner.internFields(persistedValue);
+        if (persistedVal != null && !persistedVal.isOutdatedEntityVersion()) {
+            int fields = ObjectInterner.internFields(persistedVal);
 
-            return CompletableFuture.completedFuture(persistedValue);
+            return CompletableFuture.completedFuture(persistedVal);
         }
 
         CompletableFuture<V> apply = submitFunction.apply(key);
@@ -1121,7 +1119,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    public void setExecutor(ExecutorService executor) {
+    @Override public void setExecutor(ExecutorService executor) {
         this.teamcity.setExecutor(executor);
     }
 

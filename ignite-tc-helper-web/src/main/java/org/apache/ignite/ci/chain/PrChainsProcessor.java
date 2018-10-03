@@ -56,6 +56,7 @@ public class PrChainsProcessor {
      * @param act Action.
      * @param cnt Count.
      * @param baseBranchForTc Base branch name in TC identification.
+     * @param checkAllLogs Check all logs
      * @return Test failures summary.
      */
     @AutoProfiling
@@ -66,7 +67,8 @@ public class PrChainsProcessor {
         String branchForTc,
         String act,
         Integer cnt,
-        @Nullable String baseBranchForTc) {
+        @Nullable String baseBranchForTc,
+        @Nullable Boolean checkAllLogs) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -89,28 +91,30 @@ public class PrChainsProcessor {
             suiteId,
             branchForTc);
 
-        long limit;
+        long buildResMergeCnt;
         if (rebuild == LatestRebuildMode.ALL)
-            limit = cnt == null ? 10 : cnt;
+            buildResMergeCnt = cnt == null ? 10 : cnt;
         else
-            limit = 1;
+            buildResMergeCnt = 1;
+
+        ProcessLogsMode logs;
+        if (buildResMergeCnt > 1)
+            logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED;
+        else
+            logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
         final List<BuildRef> chains = finishedBuilds.stream()
             .filter(ref -> !ref.isFakeStub())
             .sorted(Comparator.comparing(BuildRef::getId).reversed())
-            .limit(limit)
-            .filter(b -> b.getId() != null).collect(Collectors.toList());
-
-        boolean singleBuild = rebuild != LatestRebuildMode.ALL;
-        ProcessLogsMode logs = singleBuild
-            ? ProcessLogsMode.SUITE_NOT_COMPLETE
-            : ProcessLogsMode.DISABLED;
+            .filter(b -> b.getId() != null)
+            .limit(buildResMergeCnt)
+            .collect(Collectors.toList());
 
         String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
 
         final FullChainRunCtx val = buildChainProcessor.loadFullChainContext(teamcity, chains,
             rebuild,
-            logs, singleBuild,
+            logs, buildResMergeCnt == 1,
             baseBranch);
 
         Optional<FullChainRunCtx> pubCtx = Optional.of(val);

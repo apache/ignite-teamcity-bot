@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.logs;
 
 import javax.annotation.Nullable;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 
 /**
  *
@@ -28,7 +29,6 @@ import javax.annotation.Nullable;
 public class LogMsgToWarn {
 
     private static final String JAVA_LEVEL_DEADLOCK_TXT = " Java-level deadlock:";
-    public static final String JAVA_LEVEL_DEADLOCK = "JAVA_LEVEL_DEADLOCK";
 
     public static boolean needWarn(String line) {
         return line.contains("java.lang.AssertionError:")
@@ -39,7 +39,7 @@ public class LogMsgToWarn {
     @Nullable
     public static String getProblemCode(String line) {
         if(line.contains(JAVA_LEVEL_DEADLOCK_TXT))
-            return JAVA_LEVEL_DEADLOCK;
+            return ProblemOccurrence.JAVA_LEVEL_DEADLOCK;
 
         return null;
     }

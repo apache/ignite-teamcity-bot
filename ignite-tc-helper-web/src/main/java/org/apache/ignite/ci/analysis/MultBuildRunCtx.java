@@ -17,7 +17,6 @@
 
 package org.apache.ignite.ci.analysis;
 
-import com.google.common.base.Strings;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +28,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -41,6 +41,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.util.TimeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static java.util.stream.Stream.concat;
@@ -52,10 +53,8 @@ import static java.util.stream.Stream.concat;
 public class MultBuildRunCtx implements ISuiteResults {
     @Nonnull private final Build firstBuildInfo;
 
+    /** Builds: Single execution. */
     private List<SingleBuildRunCtx> builds = new CopyOnWriteArrayList<>();
-
-    @Deprecated
-    private List<ProblemOccurrence> problems = new CopyOnWriteArrayList<>();
 
     /** Tests: Map from full test name to multiple test occurrence. */
     private final Map<String, MultTestFailureOccurrences> tests = new ConcurrentSkipListMap<>();
@@ -102,11 +101,6 @@ public class MultBuildRunCtx implements ISuiteResults {
         return builds.stream().map(SingleBuildRunCtx::getTestLogCheckResult).filter(Objects::nonNull);
     }
 
-    @Deprecated
-    public void addProblems(List<ProblemOccurrence> problems) {
-        this.problems.addAll(problems);
-    }
-
     public String suiteId() {
         return firstBuildInfo.suiteId();
     }
@@ -119,8 +113,9 @@ public class MultBuildRunCtx implements ISuiteResults {
         return firstBuildInfo.buildTypeId;
     }
 
+    //currently used only in metrics
     public boolean hasNontestBuildProblem() {
-        return problems != null && problems.stream().anyMatch(problem ->
+        return allProblemsInAllBuilds().anyMatch(problem ->
             !problem.isFailedTests()
                 && !problem.isSnapshotDepProblem()
                 && !ProblemOccurrence.BUILD_FAILURE_ON_MESSAGE.equals(problem.type));
@@ -128,11 +123,12 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public boolean hasAnyBuildProblemExceptTestOrSnapshot() {
-        return getBuildProblemExceptTestOrSnapshot().isPresent();
+        return allProblemsInAllBuilds()
+            .anyMatch(p -> !p.isFailedTests() && !p.isSnapshotDepProblem());
     }
 
-    private Optional<ProblemOccurrence> getBuildProblemExceptTestOrSnapshot() {
-        return problems.stream().filter(p -> !p.isFailedTests() && !p.isSnapshotDepProblem()).findAny();
+    @NotNull public Stream<ProblemOccurrence> allProblemsInAllBuilds() {
+        return builds.stream().flatMap(SingleBuildRunCtx::getProblemsStream);
     }
 
     public List<SingleBuildRunCtx> getBuilds() {
@@ -236,12 +232,13 @@ public class MultBuildRunCtx implements ISuiteResults {
 
         {
             Stream<ProblemOccurrence> stream =
-                problems.stream().filter(p ->
+                allProblemsInAllBuilds().filter(p ->
                     !p.isFailedTests()
                         && !p.isSnapshotDepProblem()
                         && !p.isExecutionTimeout()
                         && !p.isJvmCrash()
                         && !p.isExitCode()
+                        && !p.isJavaLevelDeadlock()
                         && !p.isOome());
             Optional<ProblemOccurrence> bpOpt = stream.findAny();
             if (bpOpt.isPresent()) {
@@ -251,6 +248,15 @@ public class MultBuildRunCtx implements ISuiteResults {
                 res.append(bpOpt.get().type).append(" ");
             }
         }
+
+        List<LogCheckResult> collect = getLogChecksIfFinished().collect(Collectors.toList());
+
+        long javaDeadlocks = collect.stream().map(LogCheckResult::getCustomProblems)
+            .filter(set -> set.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK))
+            .count();
+
+        addKnownProblemCnt(res, ProblemOccurrence.JAVA_LEVEL_DEADLOCK, javaDeadlocks);
+
         return res.toString();
     }
 
@@ -439,5 +445,9 @@ public class MultBuildRunCtx implements ISuiteResults {
      */
     public Set<String> tests() {
         return tests.keySet();
+    }
+
+    public Stream<LogCheckResult> getLogChecksIfFinished() {
+        return builds.stream().map(SingleBuildRunCtx::getLogCheckIfFinished).filter(Objects::nonNull);
     }
 }

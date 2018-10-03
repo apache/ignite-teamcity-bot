@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import javax.annotation.Nonnull;
 import org.apache.ignite.ci.db.Persisted;
 import org.jetbrains.annotations.Nullable;
 
@@ -122,6 +123,13 @@ public class LogCheckResult implements IVersionedEntity {
     }
 
     public boolean hasProblem(String deadlock) {
-        return buildCustomProblems!=null && buildCustomProblems.contains(deadlock);
+        return buildCustomProblems != null && buildCustomProblems.contains(deadlock);
+    }
+
+    /**
+     *
+     */
+    @Nonnull public Set<String> getCustomProblems() {
+        return buildCustomProblems == null ? Collections.emptySet() : Collections.unmodifiableSet(buildCustomProblems);
     }
 }

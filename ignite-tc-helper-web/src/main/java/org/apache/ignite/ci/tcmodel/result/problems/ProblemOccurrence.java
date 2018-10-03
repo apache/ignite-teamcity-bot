@@ -23,6 +23,8 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * One build problem. Contains its type.
+ *
+ * http://javadoc.jetbrains.net/teamcity/openapi/8.0/constant-values.html
  */
 public class ProblemOccurrence {
     public static final String BUILD_FAILURE_ON_MESSAGE = "BuildFailureOnMessage";
@@ -32,7 +34,11 @@ public class ProblemOccurrence {
     public static final String TC_FAILED_TESTS = "TC_FAILED_TESTS";
     public static final String TC_JVM_CRASH = "TC_JVM_CRASH";
     public static final String OTHER = "OTHER";
-    public static final String SNAPSHOT_DEPENDENCY_ERROR = "SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE";
+    public static final String SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE = "SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE";
+    public static final String SNAPSHOT_DEPENDENCY_ERROR = "SNAPSHOT_DEPENDENCY_ERROR";
+
+    /** Java level deadlock: Detected by log processing, not by teamcity */
+    public static final String JAVA_LEVEL_DEADLOCK = "JAVA_LEVEL_DEADLOCK";
 
     @XmlAttribute public String id;
     @XmlAttribute public String identity;
@@ -53,7 +59,7 @@ public class ProblemOccurrence {
     }
 
     public boolean isSnapshotDepProblem() {
-        return SNAPSHOT_DEPENDENCY_ERROR.equals(type);
+        return SNAPSHOT_DEPENDENCY_ERROR.equals(type) || SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE.equals(type);
     }
 
     public boolean isJvmCrash() {
@@ -68,12 +74,7 @@ public class ProblemOccurrence {
         return TC_EXIT_CODE.equals(type);
     }
 
-    public boolean isOther(){
-        return !isFailedTests()
-            && !isSnapshotDepProblem()
-            && !isExecutionTimeout()
-            && !isJvmCrash()
-            && !isExitCode()
-            && !isOome();
+    public boolean isJavaLevelDeadlock() {
+        return JAVA_LEVEL_DEADLOCK.equals(type);
     }
 }

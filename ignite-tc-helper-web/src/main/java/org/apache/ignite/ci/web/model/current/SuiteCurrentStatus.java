@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
+import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
