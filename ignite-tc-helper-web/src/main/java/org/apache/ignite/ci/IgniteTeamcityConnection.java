@@ -86,17 +86,20 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(IgniteTeamcityConnection.class);
 
+    /** Executor. */
     private Executor executor;
+
+    /** Logs directory. */
     private File logsDir;
+
     /** Normalized Host address, ends with '/'. */
     private String host;
 
     /** TeamCity authorization token. */
     private String basicAuthTok;
 
-    @Inject
-    private ITeamcityHttpConnection teamcityHttpConnection;
-
+    /** Teamcity http connection. */
+    @Inject private ITeamcityHttpConnection teamcityHttpConn;
 
     /** GitHub authorization token.  */
     private String gitAuthTok;
@@ -113,6 +116,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     private String configName; //main properties file name
     private String tcName;
 
+    /** Build logger processing running. */
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
     public void init(@Nullable String tcName) {
@@ -285,8 +289,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
         boolean archive = true;
         Supplier<File> supplier = () -> {
             String buildIdStr = Integer.toString(buildId);
-            final File buildDirectory = ensureDirExist(new File(logsDir, "buildId" + buildIdStr));
-            final File file = new File(buildDirectory,
+            final File buildDir = ensureDirExist(new File(logsDir, "buildId" + buildIdStr));
+            final File file = new File(buildDir,
                 "build.log" + (archive ? ".zip" : ""));
             if (file.exists() && file.canRead() && file.length() > 0) {
                 logger.info("Nothing to do, file is cached locally: [" + file + "]");
@@ -311,13 +315,13 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @Override public CompletableFuture<LogCheckResult> analyzeBuildLog(Integer buildId, SingleBuildRunCtx ctx) {
         final Stopwatch started = Stopwatch.createStarted();
 
-        CompletableFuture<LogCheckTask> future = buildLogProcessingRunning.computeIfAbsent(buildId,
+        CompletableFuture<LogCheckTask> fut = buildLogProcessingRunning.computeIfAbsent(buildId,
             k -> checkBuildLogNoCache(k, ctx)
         );
 
-        return future
+        return fut
             .thenApply(task -> {
-                buildLogProcessingRunning.remove(buildId, future);
+                buildLogProcessingRunning.remove(buildId, fut);
 
                 return task;
             })
@@ -470,7 +474,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     private <T> T sendGetXmlParseJaxb(String url, Class<T> rootElem) {
         try {
-            try (InputStream inputStream = teamcityHttpConnection.sendGet(basicAuthTok, url)) {
+            try (InputStream inputStream = teamcityHttpConn.sendGet(basicAuthTok, url)) {
                 final InputStreamReader reader = new InputStreamReader(inputStream);
 
                 return loadXml(rootElem, reader);
@@ -721,8 +725,9 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return task;
     }
 
-    @Override
-    public void setExecutor(ExecutorService executor) {
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public void setExecutor(ExecutorService executor) {
         this.executor = executor;
     }
 
@@ -731,12 +736,13 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getJaxbUsingHref("app/rest/latest/users", Users.class);
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
-    public User getUserByUsername(String username) {
+    @Override public User getUserByUsername(String username) {
         return getJaxbUsingHref("app/rest/latest/users/username:" + username, User.class);
     }
 
-    public void setHttpConn(ITeamcityHttpConnection teamcityRecordingConnection) {
-        this.teamcityHttpConnection = teamcityRecordingConnection;
+    public void setHttpConn(ITeamcityHttpConnection teamcityHttpConn) {
+        this.teamcityHttpConn = teamcityHttpConn;
     }
 }

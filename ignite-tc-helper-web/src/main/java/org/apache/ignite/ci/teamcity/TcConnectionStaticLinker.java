@@ -18,11 +18,19 @@ package org.apache.ignite.ci.teamcity;
 
 import org.apache.ignite.ci.IgniteTeamcityConnection;
 
+/**
+ * Factory for non-guice creation of TC Connection instance.
+ */
 public class TcConnectionStaticLinker {
+    /**
+     * @param srv Server ID.
+     */
     public static IgniteTeamcityConnection create(String srv) {
-        final IgniteTeamcityConnection connection = new IgniteTeamcityConnection();
-        connection.setHttpConn(new TeamcityRecordingConnection());
-        connection.init(srv);
-        return connection;
+        final IgniteTeamcityConnection conn = new IgniteTeamcityConnection();
+
+        conn.setHttpConn(new TeamcityRecordingConnection());
+        conn.init(srv);
+
+        return conn;
     }
 }

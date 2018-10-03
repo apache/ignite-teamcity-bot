@@ -23,10 +23,10 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class TeamcityRecordingConnection implements ITeamcityHttpConnection {
-    @Inject
-    private TeamcityRecorder recorder;
+    @Inject private TeamcityRecorder recorder;
 
-    public InputStream sendGet(String basicAuthTok, String url) throws IOException {
+    /** {@inheritDoc} */
+    @Override public InputStream sendGet(String basicAuthTok, String url) throws IOException {
         return recorder.onGet(HttpUtil.sendGetWithBasicAuth(basicAuthTok, url), url);
     }
 }
