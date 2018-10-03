@@ -73,6 +73,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
+import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.util.CacheUpdateUtil;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
@@ -82,7 +83,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXParseException;
 
-import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
+import static org.apache.ignite.ci.chain.BuildChainProcessor.normalizeBranch;
 
 /**
  * Apache Ignite based cache over teamcity responses
@@ -152,19 +153,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     private static final boolean noLocks = true;
 
-    @Deprecated
-    public IgnitePersistentTeamcity(Ignite ignite, @Nullable String srvId) {
-        this(ignite, new IgniteTeamcityConnection(srvId));
-    }
-
-    //for DI
-    public IgnitePersistentTeamcity() {}
-
-    @Deprecated
-    private IgnitePersistentTeamcity(Ignite ignite, IgniteTeamcityConnection teamcity) {
-        init(teamcity);
-        this.ignite = ignite;
-    }
 
     @Override public void init(ITeamcity conn) {
         this.teamcity = conn;
@@ -184,29 +172,26 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 buildHistIncFailedCache());
     }
 
-    public void clear() {
-       /* testOccurrencesCache().clear();
-        buildsCache().clear();
-        buildsFailureRunStatCache().clear();
-        testRunStatCache().clear();
-        testFullCache().clear();
-        buildProblemsCache().clear();
-        buildStatisticsCache().clear();
-        buildHistCache().clear();
-        buildHistIncFailedCache().clear();
-        testRefsCache().clear();*/
-    }
-
     @Override
     public void init(String serverId) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public User getUserByUsername(String username) {
+        return teamcity.getUserByUsername(username);
+    }
+
     /**
      * Creates atomic cache with 32 parts.
      * @param name Cache name.
      */
     private <K, V> IgniteCache<K, V> getOrCreateCacheV2(String name) {
-        return ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(name));
+        final IgniteCache<K, V> cache = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(name));
+
+        cache.enableStatistics(true);
+
+        return cache;
     }
 
     /**
@@ -214,7 +199,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      * @param name Cache name.
      */
     private <K, V> IgniteCache<K, V> getOrCreateCacheV2Tx(String name) {
-        return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(name));
+        final IgniteCache<K, V> cache = ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(name));
+
+        cache.enableStatistics(true);
+
+        return cache;
     }
 
     /**
@@ -258,6 +247,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private IgniteCache<String, Statistics> buildStatisticsCache() {
         return getOrCreateCacheV2(ignCacheNme(BUILD_STATISTICS));
     }
+
 
     /**
      * @return Build history: {@link BuildRef} lists cache, 32 parts, transactional.
@@ -955,10 +945,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         });
     }
 
-    /** {@inheritDoc} */
     @AutoProfiling
     @Override public IssuesUsagesList getIssuesUsagesList(String href) {
-        IssuesUsagesList issuesUsages = loadIfAbsentV2(ISSUES_USAGES_LIST, href, href1 -> {
+        IssuesUsagesList issuesUsages =  loadIfAbsentV2(ISSUES_USAGES_LIST, href, href1 -> {
             try {
                 return teamcity.getIssuesUsagesList(href1);
             }
@@ -1102,6 +1091,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loadFutureIfAbsentVers(logCheckResultCache(), buildId,
             k -> teamcity.analyzeBuildLog(buildId, ctx));
     }
+
 
     @AutoProfiling
     @Override

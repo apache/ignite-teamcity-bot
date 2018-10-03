@@ -429,7 +429,9 @@ public class DbMigrations {
         IgniteCache<K, V> tests = ignite.cache(cacheNme);
 
         if (tests == null) {
-            System.err.println("Cache not found");
+            System.err.println("Cache not found: " + cacheNme);
+
+            return;
         }
 
         int size = tests.size();

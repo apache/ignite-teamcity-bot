@@ -18,11 +18,11 @@
 package org.apache.ignite.ci.user;
 
 import org.apache.ignite.ci.tcmodel.user.User;
+import org.apache.ignite.ci.teamcity.ITcLogin;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.web.auth.AuthenticationFilter;
 import org.apache.ignite.ci.web.rest.login.Login;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -39,13 +39,16 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 public class LoginAuthTest {
+    private ITcLogin tcLogin = (serverId, username, password) -> new User();
+
     @Test
     public void testNewUserLogin() {
         UserAndSessionsStorage storage = mockOneSessionStor();
 
         Login login = createLogin();
 
-        LoginResponse login1 = login.doLogin("user", "password", storage, "public", Collections.emptySet());
+        LoginResponse login1
+                = login.doLogin("user", "password", storage, "public", Collections.emptySet(), tcLogin);
         assertNotNull(login1.fullToken);
 
         AuthenticationFilter authenticationFilter = new AuthenticationFilter();
@@ -54,9 +57,9 @@ public class LoginAuthTest {
 
         assertTrue(authenticationFilter.authenticate(re, login1.fullToken, storage));
 
-        assertNotNull(login.doLogin("user", "password", storage, "public", Collections.emptySet()).fullToken);
+        assertNotNull(login.doLogin("user", "password", storage, "public", Collections.emptySet(), tcLogin).fullToken);
 
-        assertNull(login.doLogin("user", "assword", storage, "public", Collections.emptySet()).fullToken);
+        assertNull(login.doLogin("user", "assword", storage, "public", Collections.emptySet(), tcLogin).fullToken);
 
         System.out.println(storage.getUser("user"));
     }
@@ -111,7 +114,7 @@ public class LoginAuthTest {
         String srvId = "public";
         String user = "user";
         String password = "password";
-        LoginResponse loginResponse = login.doLogin(user, password, storage, srvId, Collections.emptySet());
+        LoginResponse loginResponse = login.doLogin(user, password, storage, srvId, Collections.emptySet(), tcLogin);
         assertNotNull(loginResponse.fullToken);
 
         AuthenticationFilter authenticationFilter = new AuthenticationFilter();
@@ -138,7 +141,7 @@ public class LoginAuthTest {
 
         Login login = createLogin();
 
-        String fullToken = login.doLogin("user", "password", storage, "public", Collections.emptySet()).fullToken;
+        String fullToken = login.doLogin("user", "password", storage, "public", Collections.emptySet(), tcLogin).fullToken;
 
         int sepIdx = fullToken.indexOf(':');
         String brokenToken = fullToken.substring(0, sepIdx + 1) +
@@ -154,10 +157,6 @@ public class LoginAuthTest {
     }
 
     @NotNull public Login createLogin() {
-        return new Login() {
-                @Override protected User checkService(String username, String pwd, String primarySrvId) {
-                    return new User();
-                }
-            };
+        return new Login();
     }
 }

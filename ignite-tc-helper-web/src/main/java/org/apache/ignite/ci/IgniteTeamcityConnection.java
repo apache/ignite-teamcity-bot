@@ -19,38 +19,10 @@ package org.apache.ignite.ci;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Strings;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.gson.Gson;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.io.UncheckedIOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.xml.bind.JAXBException;
-import org.apache.ignite.ci.analysis.ISuiteResults;
-import org.apache.ignite.ci.analysis.LogCheckResult;
-import org.apache.ignite.ci.analysis.LogCheckTask;
-import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.analysis.*;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.logs.BuildLogStreamChecker;
@@ -76,12 +48,30 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
+import org.apache.ignite.ci.teamcity.ITeamcityHttpConnection;
 import org.apache.ignite.ci.util.*;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.xml.bind.JAXBException;
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
@@ -107,6 +97,10 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** TeamCity authorization token. */
     private String basicAuthTok;
 
+    @Inject
+    private ITeamcityHttpConnection teamcityHttpConnection;
+
+
     /** GitHub authorization token.  */
     private String gitAuthTok;
 
@@ -118,14 +112,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
-    public IgniteTeamcityConnection(@Nullable String tcName) {
-        init(tcName);
-    }
-
-    //for DI
-    public IgniteTeamcityConnection() {
-    }
-
     public void init(@Nullable String tcName) {
         this.tcName = tcName;
         final File workDir = HelperConfig.resolveWorkDir();
@@ -136,12 +122,14 @@ public class IgniteTeamcityConnection implements ITeamcity {
         final String hostConf = props.getProperty(HelperConfig.HOST, "https://ci.ignite.apache.org/");
 
         this.host = hostConf.trim() + (hostConf.endsWith("/") ? "" : "/");
+
         try {
-            if (props.getProperty(HelperConfig.USERNAME) != null
+            if (!Strings.isNullOrEmpty(props.getProperty(HelperConfig.USERNAME))
                     && props.getProperty(HelperConfig.ENCODED_PASSWORD) != null)
                 setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, configName));
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Failed to set credentials", e);
         }
 
         setGitToken(HelperConfig.prepareGithubHttpAuthToken(props));
@@ -449,7 +437,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     private <T> T sendGetXmlParseJaxb(String url, Class<T> rootElem) {
         try {
-            try (InputStream inputStream = HttpUtil.sendGetWithBasicAuth(basicAuthTok, url)) {
+            try (InputStream inputStream = teamcityHttpConnection.sendGet(basicAuthTok, url)) {
                 final InputStreamReader reader = new InputStreamReader(inputStream);
 
                 return loadXml(rootElem, reader);
@@ -462,6 +450,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
             throw ExceptionUtil.propagateException(e);
         }
     }
+
+
 
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
@@ -594,8 +584,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuilds(String projectId,
-        String branch) {
+    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch) {
 
         return getFinishedBuilds(projectId, branch, null, null, null);
     }
@@ -680,7 +669,9 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return zipFut.thenApplyAsync(zipFile -> runCheckForZippedLog(dumpLastTest, zipFile), executor);
     }
 
-    @NotNull private LogCheckTask runCheckForZippedLog(boolean dumpLastTest, File zipFile) {
+    @SuppressWarnings("WeakerAccess")
+    @AutoProfiling
+    @NotNull protected LogCheckTask runCheckForZippedLog(boolean dumpLastTest, File zipFile) {
         LogCheckTask task = new LogCheckTask(zipFile);
 
         try {
@@ -725,4 +716,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getJaxbUsingHref("app/rest/latest/users/username:" + username, User.class);
     }
 
+    public void setHttpConn(ITeamcityHttpConnection teamcityRecordingConnection) {
+        this.teamcityHttpConnection = teamcityRecordingConnection;
+    }
 }

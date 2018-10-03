@@ -53,11 +53,21 @@
         });
 
         $.ajax({
-            url: "rest/monitoring/caches",
+            url: "rest/monitoring/cacheMetrics",
             success: function(result) {
                 $("#loadStatus").html("");
 
-                showCaches(result);
+                showCacheMetrics(result);
+            },
+            error: showErrInLoadStatus
+        });
+
+        $.ajax({
+            url: "rest/monitoring/urlsUsed",
+            success: function(result) {
+                $("#loadStatus").html("");
+
+                showUrlsUsed(result);
             },
             error: showErrInLoadStatus
         });
@@ -113,12 +123,40 @@
         $("#profiling").html(res);
     }
 
-    function showCaches(result) {
-        var res = "" ;
+    function showCacheMetrics(result) {
+        var res = "<table class='stat'>" ;
+        res += "<tr>";
+        res += "<th>Name</th>";
+        res += "<th>Size</th>";
+        res += "<th>Parts</th>";
+        res += "</tr>";
         for (var i = 0; i < result.length; i++) {
-            res += result[i] + "<br>";
+            var inv = result[i];
+            res += "<tr>";
+            res += "<td>" + inv.name + "</td>";
+            res += "<td>" + inv.size + "</td>";
+            res += "<td>" + inv.parts + "</td>";
+            res += "</tr>";
         }
         $("#caches").html(res);
+    }
+
+    /**
+     * @param result org.apache.ignite.ci.web.rest.monitoring.UrlUsed
+     */
+    function showUrlsUsed(result) {
+        var res = "<table class='stat'>" ;
+        res += "<tr>";
+        res += "<th>URL</th>";
+        res += "</tr>";
+        for (var i = 0; i < result.length; i++) {
+            var inv = result[i];
+            res += "<tr>";
+            res += "<td>" + inv.url + "</td>";
+            res += "</tr>";
+        }
+        res += "</table>";
+        $("#urlUsed").html(res);
     }
 
 </script>
@@ -127,11 +165,18 @@ Tasks Monitoring Data:
 <div id="tasks" style="font-family: monospace"></div>
 <br>
 
-Profiling Data:
+<hr>
+<b>Method Profiling Data:</b>
 <div id="profiling" style="font-family: monospace"></div>
 <br>
-Caches Data:
+
+<hr>
+<b>Ignite Caches Data:</b>
 <div id="caches" style="font-family: monospace"></div>
+
+<hr>
+<b>Services URLs used:</b>
+<div id="urlUsed"></div>
 <br>
 <div id="loadStatus"></div>
 <div id="version"></div>

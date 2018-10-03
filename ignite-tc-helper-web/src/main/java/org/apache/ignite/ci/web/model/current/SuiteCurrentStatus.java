@@ -44,7 +44,7 @@ import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.ignite.ci.BuildChainProcessor.normalizeBranch;
+import static org.apache.ignite.ci.chain.BuildChainProcessor.normalizeBranch;
 import static org.apache.ignite.ci.util.TimeUtil.millisToDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 
@@ -69,9 +69,6 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     /** Web Href. to suite particular run */
     public String webToBuild = "";
-
-    /** Contact person. */
-    public String contactPerson;
 
     public List<TestFailure> testFailures = new ArrayList<>();
     public List<TestFailure> topLongRunning = new ArrayList<>();
@@ -137,7 +134,6 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         hasCriticalProblem = suite.hasCriticalProblem();
         failedTests = suite.failedTests();
         durationPrintable = millisToDurationPrintable(suite.getBuildDuration());
-        contactPerson = suite.getContactPerson();
         webToHist = buildWebLink(teamcity, suite);
         webToHistBaseBranch = buildWebLink(teamcity, suite, baseBranch);
         webToBuild = buildWebLinkToBuild(teamcity, suite);
@@ -339,7 +335,6 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             Objects.equal(webToHist, status.webToHist) &&
             Objects.equal(webToHistBaseBranch, status.webToHistBaseBranch) &&
             Objects.equal(webToBuild, status.webToBuild) &&
-            Objects.equal(contactPerson, status.contactPerson) &&
             Objects.equal(testFailures, status.testFailures) &&
             Objects.equal(topLongRunning, status.topLongRunning) &&
             Objects.equal(webUrlThreadDump, status.webUrlThreadDump) &&
@@ -361,8 +356,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(name, result, hasCriticalProblem, webToHist, webToHistBaseBranch, webToBuild,
-            contactPerson, testFailures,
+        return Objects.hashCode(name, result, hasCriticalProblem, webToHist, webToHistBaseBranch, webToBuild, testFailures,
             topLongRunning, webUrlThreadDump, runningBuildCount, queuedBuildCount, serverId,
             suiteId, branchName, failures, runs, failureRate,
             failsAllHist, criticalFails, userCommits, failedTests, durationPrintable,

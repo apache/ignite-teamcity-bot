@@ -67,9 +67,6 @@ public class MultBuildRunCtx implements ISuiteResults {
      */
     private Map<String, CompletableFuture<TestOccurrenceFull>> testFullMap = new HashMap<>();
 
-    /** Used for associating build info with contact person */
-    @Nullable private String contactPerson;
-
     /**
      * Statistics for last build.
      */
@@ -212,9 +209,6 @@ public class MultBuildRunCtx implements ISuiteResults {
                 builder.append(" ").append(TimeUtil.millisToDurationPrintable(durationMs));
         }
 
-        if (contactPerson != null)
-            builder.append("\t").append(contactPerson);
-
         builder.append("\n");
         getCriticalFailLastStartedTest().forEach(lastStartedTest ->
             builder.append("\t").append(lastStartedTest).append(" (Last started) \n"));
@@ -317,24 +311,12 @@ public class MultBuildRunCtx implements ISuiteResults {
         return firstBuildInfo.getId();
     }
 
-    public void setContactPerson(@Nullable String contactPerson) {
-        this.contactPerson = contactPerson;
-    }
-
     boolean isFailed() {
         return failedTests() != 0 || hasAnyBuildProblemExceptTestOrSnapshot();
     }
 
     public String branchName() {
         return firstBuildInfo.branchName;
-    }
-
-    @Nullable public String getContactPerson() {
-        return contactPerson;
-    }
-
-    public String getContactPersonOrEmpty() {
-        return Strings.nullToEmpty(contactPerson);
     }
 
     public void setStat(@Nullable Statistics stat) {

@@ -15,40 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.analysis;
+package org.apache.ignite.ci.runners;
 
-import java.util.concurrent.TimeUnit;
-import org.apache.ignite.ci.db.Persisted;
+class FailuresHistory {
+    int success = 0;
+    int totalRun = 0;
 
-/**
- * Wrapper for timestamped entry to be reloaded later.
- */
-public class Expirable<D> {
-    private final long ts;
-    private final D data;
-
-    public Expirable(D data) {
-        this(System.currentTimeMillis(), data);
+    public void addRun(boolean ok) {
+        totalRun++;
+        if (ok)
+            success++;
     }
 
-    public Expirable(long ts, D data) {
-        this.ts = ts;
-        this.data = data;
+    public String passRateStr() {
+        return String.format("%.2f", passRate());
     }
 
-    public long getTs() {
-        return ts;
-    }
-
-    public D getData() {
-        return data;
-    }
-
-    public long getAgeMs() {
-        return System.currentTimeMillis() - ts;
-    }
-
-    public boolean isAgeLessThanSecs(int seconds) {
-        return getAgeMs() < TimeUnit.SECONDS.toMillis(seconds);
+    public double passRate() {
+        return (double)(success) / totalRun;
     }
 }

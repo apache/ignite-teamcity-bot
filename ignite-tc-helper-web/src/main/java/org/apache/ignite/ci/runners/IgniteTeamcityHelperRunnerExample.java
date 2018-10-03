@@ -34,6 +34,7 @@ import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
+import org.apache.ignite.ci.teamcity.TcConnectionStaticLinker;
 
 /**
  * Local class for running specific checks
@@ -44,7 +45,8 @@ public class IgniteTeamcityHelperRunnerExample {
     public static void main(String[] args) throws Exception {
         String serverIdPriv = "private";
         String serverIdPub = "apache";
-        final IgniteTeamcityConnection helper = new IgniteTeamcityConnection(serverIdPub); //public_auth_properties
+
+        final IgniteTeamcityConnection helper = TcConnectionStaticLinker.create(serverIdPub);
 
         int k = 0;
         if (k > 0) {

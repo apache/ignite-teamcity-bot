@@ -20,8 +20,6 @@ package org.apache.ignite.ci.web.rest;
 import com.google.common.base.Strings;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -30,14 +28,15 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
-import com.google.common.util.concurrent.MoreExecutors;
-import org.apache.ignite.ci.BuildChainProcessor;
+import com.google.inject.Injector;
+import org.apache.ignite.ci.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
@@ -55,51 +54,40 @@ import static org.apache.ignite.internal.util.lang.GridFunc.isEmpty;
 public class GetChainResultsAsHtml {
 
     @Context
-    private ServletContext context;
+    private ServletContext ctx;
 
     @Context
-    private HttpServletRequest request;
+    private HttpServletRequest req;
     
     //test here http://localhost:8080/rest/chainResults/html?serverId=public&buildId=1086222
     public void showChainOnServersResults(StringBuilder res, Integer buildId, String srvId) {
         //todo solve report auth problem
+        final Injector injector = CtxListener.getInjector(ctx);
+        final BuildChainProcessor buildChainProcessor = injector.getInstance(BuildChainProcessor.class);
 
-        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, context, request);
-
-        //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
-        String hrefById = teamcity.getBuildHrefById(buildId);
+        String hrefById = ITeamcity.buildHref(buildId);
         BuildRef build = new BuildRef();
         build.setId(buildId);
         build.href = hrefById;
         String failRateBranch = ITeamcity.DEFAULT;
 
-        Optional<FullChainRunCtx> ctxOptional =
-            BuildChainProcessor.processBuildChains(teamcity, LatestRebuildMode.NONE,
-                Collections.singletonList(build),
-                ProcessLogsMode.SUITE_NOT_COMPLETE,
-                false, false, teamcity, failRateBranch, MoreExecutors.newDirectExecutorService());
+        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, ctx, req);
 
-        ctxOptional.ifPresent(ctx -> {
-            ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, Collections.singletonList(build),
+            LatestRebuildMode.NONE,
+            ProcessLogsMode.SUITE_NOT_COMPLETE, false,
+            failRateBranch);
 
-            ctx.getRunningUpdates().forEach(future -> {
-                try {
-                    future.get();
-                }
-                catch (InterruptedException ignored) {
-                    Thread.currentThread().interrupt();
-                }
-                catch (ExecutionException e) {
-                    e.printStackTrace();
-                }
-            });
+        ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
 
-            status.chainName = ctx.suiteName();
+        ctx.getRunningUpdates().forEach(FutureUtil::getResultSilent);
 
-            status.initFromContext(teamcity, ctx, teamcity, failRateBranch);
+        status.chainName = ctx.suiteName();
 
-            res.append(showChainAtServerData(status));
-        });
+        status.initFromContext(teamcity, ctx, teamcity, failRateBranch);
+
+        res.append(showChainAtServerData(status));
+
     }
 
     @GET
@@ -196,9 +184,6 @@ public class GetChainResultsAsHtml {
         res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
             "[ " + "<a href='" + suite.webToBuild + "' title='" + altTxt + "'> " + "tests " + suite.failedTests + " " + suite.result + "</a> ]";
 
-        if (isDefinedAndFilled(suite.contactPerson))
-            res += " " + suite.contactPerson + "";
-
         if(isDefinedAndFilled(suite.runningBuildCount) && suite.runningBuildCount!=0) {
             res+=" <img src='https://image.flaticon.com/icons/png/128/2/2745.png' width=12px height=12px> ";
             res+=" " + suite.runningBuildCount + " running";
@@ -220,9 +205,8 @@ public class GetChainResultsAsHtml {
 
         List<TestFailure> failures = suite.testFailures;
         StringBuilder resBuilder = new StringBuilder(res);
-        for (TestFailure next : failures) {
+        for (TestFailure next : failures)
             resBuilder.append(showTestFailData(next));
-        }
         res = resBuilder.toString();
         
         if(isDefinedAndFilled(suite.webUrlThreadDump)) {

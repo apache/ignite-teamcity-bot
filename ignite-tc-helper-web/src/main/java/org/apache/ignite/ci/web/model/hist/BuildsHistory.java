@@ -13,10 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.servlet.ServletContext;
-import org.apache.ignite.ci.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
+import org.apache.ignite.ci.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
@@ -97,7 +97,6 @@ public class BuildsHistory {
 
             TestOccurrences testOccurrences = teamcity.getFailedUnmutedTests(build.testOccurrences.href,
                 build.testOccurrences.failed, BuildChainProcessor.normalizeBranch(build.branchName));
-
 
             for (TestOccurrence testOccurrence : testOccurrences.getTests()) {
                 String testName = testOccurrence.getName();

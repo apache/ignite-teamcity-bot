@@ -17,11 +17,11 @@
 
 package org.apache.ignite.ci;
 
+import org.apache.ignite.ci.chain.PrChainsProcessor;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -31,7 +31,6 @@ import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
-import org.apache.ignite.ci.web.rest.pr.GetPrTestFailures;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,8 +53,6 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     /** Stop guard. */
     private AtomicBoolean stop = new AtomicBoolean();
 
-    @Inject private TcUpdatePool tcUpdatePool;
-
     @Inject private IssuesStorage issuesStorage;
 
     @Inject private ITcServerProvider serverProvider;
@@ -63,6 +60,8 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     @Inject private IssueDetector detector;
 
     @Inject private UserAndSessionsStorage userAndSessionsStorage;
+
+    @Inject private PrChainsProcessor prChainsProcessor;
 
     public TcHelper() {
     }
@@ -131,8 +130,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         String comment;
 
         try {
-            comment = generateJiraComment(buildTypeId, build.branchName, srvId, prov, build.webUrl,
-                getService());
+            comment = generateJiraComment(buildTypeId, build.branchName, srvId, prov, build.webUrl);
         }
         catch (RuntimeException e) {
             logger.error("Exception happened during generating comment for JIRA " +
@@ -150,21 +148,19 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
      * @param srvId Server id.
      * @param prov Credentials.
      * @param webUrl Build URL.
-     * @param executorSvc Executor service to process TC communication requests there.
      * @return Comment, which should be sent to the JIRA ticket.
      */
     private String generateJiraComment(
-            String buildTypeId,
-            String branchForTc,
-            String srvId,
-            ICredentialsProv prov,
-            String webUrl,
-            @Nullable ExecutorService executorSvc
+        String buildTypeId,
+        String branchForTc,
+        String srvId,
+        ICredentialsProv prov,
+        String webUrl
     ) {
         StringBuilder res = new StringBuilder();
-        TestFailuresSummary summary = GetPrTestFailures.getTestFailuresSummary(
-            this, prov, srvId, buildTypeId, branchForTc,
-            "Latest", null, null, executorSvc);
+        TestFailuresSummary summary = prChainsProcessor.getTestFailuresSummary(
+                prov, srvId, buildTypeId, branchForTc,
+            "Latest", null, null);
 
         if (summary != null) {
             for (ChainAtServerCurrentStatus server : summary.servers) {
@@ -276,14 +272,8 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     }
 
     public void close() {
-        if (stop.compareAndSet(false, true)) {
-            tcUpdatePool.stop();
-
+        if (stop.compareAndSet(false, true))
             detector.stop();
-        }
     }
 
-    public ExecutorService getService() {
-        return tcUpdatePool.getService();
-    }
 }

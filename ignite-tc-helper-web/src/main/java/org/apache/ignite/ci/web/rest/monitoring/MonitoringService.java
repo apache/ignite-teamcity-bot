@@ -22,6 +22,9 @@ import org.apache.ignite.cache.CacheMetrics;
 import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.ci.di.AutoProfilingInterceptor;
 import org.apache.ignite.ci.di.MonitoredTaskInterceptor;
+import org.apache.ignite.ci.teamcity.ITeamcityHttpConnection;
+import org.apache.ignite.ci.teamcity.TeamcityRecorder;
+import org.apache.ignite.ci.teamcity.TeamcityRecordingConnection;
 import org.apache.ignite.ci.web.CtxListener;
 
 import javax.annotation.security.PermitAll;
@@ -86,15 +89,16 @@ public class MonitoringService {
 
     @GET
     @PermitAll
-    @Path("caches")
-    public List<String> getCacheStat() {
+    @Path("cacheMetrics")
+    public List<CacheMetricsUi> getCacheStat() {
         Ignite ignite = CtxListener.getInjector(ctx).getInstance(Ignite.class);
 
-        List<String> res = new ArrayList<>();
         final Collection<String> strings = ignite.cacheNames();
 
         final ArrayList<String> cacheNames = new ArrayList<>(strings);
         cacheNames.sort(String::compareTo);
+
+        final List<CacheMetricsUi> res = new ArrayList<>();
 
         for (String next : cacheNames) {
             IgniteCache<?, ?> cache = ignite.cache(next);
@@ -103,17 +107,33 @@ public class MonitoringService {
                 continue;
             CacheMetrics metrics = cache.metrics();
 
+
             int size = cache.size();
-            //float averageGetTime = metrics.getAverageGetTime();
-            // float averagePutTime = metrics.getAveragePutTime();
+             float averageGetTime = metrics.getAverageGetTime();
+             float averagePutTime = metrics.getAveragePutTime();
 
-            // res.add(next + ": " + size + " get " + averageGetTime + " put " + averagePutTime);
-
+            //System.out.println(next + ": " + size + " get " + averageGetTime + " put " + averagePutTime);
 
             Affinity<Object> affinity = ignite.affinity(next);
 
-            res.add(next + ": " + size + " parts " + affinity.partitions());
+            res.add(new CacheMetricsUi(next, size, affinity.partitions()));
         }
         return res;
+    }
+
+
+    @GET
+    @PermitAll
+    @Path("urlsUsed")
+    public List<UrlUsed> getUrlsUsed() {
+        final TeamcityRecorder recorder = CtxListener.getInjector(ctx).getInstance(TeamcityRecorder.class);
+
+        final List<String> urls = recorder.getUrls();
+
+        return urls.stream().map(s -> {
+            final UrlUsed urlRequested = new UrlUsed();
+            urlRequested.url = s;
+            return urlRequested;
+        }).collect(Collectors.toList());
     }
 }

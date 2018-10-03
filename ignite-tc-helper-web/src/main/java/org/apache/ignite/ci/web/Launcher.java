@@ -18,7 +18,6 @@
 package org.apache.ignite.ci.web;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
@@ -36,12 +35,12 @@ public class Launcher {
     }
 
     public static void runServer(boolean dev) throws Exception {
-        Server server = new Server();
+        Server srv = new Server();
 
-        ServerConnector connector = new ServerConnector(server);
+        ServerConnector connector = new ServerConnector(srv);
         int port = 8080;
         connector.setPort(port);
-        server.addConnector(connector);
+        srv.addConnector(connector);
 
         //working directory is expected to be module dir
 
@@ -64,32 +63,34 @@ public class Launcher {
             Preconditions.checkState(file.exists(), "War file can not be found [" + file.getCanonicalPath() + "]");
             ctx.setWar(war);
         }
-        server.setHandler(ctx);
+        srv.setHandler(ctx);
 
         System.out.println("Starting server at [" + port + "]");
 
         Runnable r = () -> {
             boolean stop = waitStopSignal();
 
-            if (stop) {
-                stopSilent(server);
-            }
+            if (stop)
+                stopSilent(srv);
 
         };
 
-        /*
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            stopSilent(server);
+            stopSilent(srv);
         }));
-        */
+
 
         new Thread(r).start();
-        server.start();
+        srv.start();
     }
 
-    public static void stopSilent(Server server) {
+    /**
+     * Stops server, ignores exceptions
+     * @param srv Server.
+     */
+    public static void stopSilent(Server srv) {
         try {
-            server.stop();
+            srv.stop();
         }
         catch (Exception e) {
             e.printStackTrace();

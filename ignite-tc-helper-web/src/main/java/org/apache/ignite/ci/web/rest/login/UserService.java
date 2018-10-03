@@ -31,9 +31,12 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Form;
 import javax.ws.rs.core.MediaType;
+
+import com.google.inject.Injector;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.tcmodel.user.User;
+import org.apache.ignite.ci.teamcity.ITcLogin;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -45,8 +48,6 @@ import org.apache.ignite.ci.web.model.UserMenuResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.ignite.ci.web.rest.login.Login.checkServiceUserAndPassword;
-
 
 @Path(UserService.USER)
 @Produces(MediaType.APPLICATION_JSON)
@@ -54,20 +55,20 @@ public class UserService {
     public static final String USER = "user";
 
     @Context
-    private ServletContext context;
+    private ServletContext ctx;
 
     @Context
-    private HttpServletRequest request;
+    private HttpServletRequest req;
 
     @GET
     @Path("currentUserName")
     public SimpleResult currentUserName() {
-        final ICredentialsProv prov = ICredentialsProv.get(request);
+        final ICredentialsProv prov = ICredentialsProv.get(req);
         if (prov == null)
             return new SimpleResult("");
 
 
-        final ITcHelper helper = CtxListener.getTcHelper(context);
+        final ITcHelper helper = CtxListener.getTcHelper(ctx);
 
         return userMenu(prov, helper);
     }
@@ -86,9 +87,9 @@ public class UserService {
     @POST
     @Path("authorize")
     public SimpleResult setAuthorizedState() {
-        final ICredentialsProv prov = ICredentialsProv.get(request);
+        final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        final ITcHelper helper = CtxListener.getTcHelper(context);
+        final ITcHelper helper = CtxListener.getTcHelper(ctx);
 
         IssueDetector detector = helper.issueDetector();
 
@@ -100,9 +101,9 @@ public class UserService {
     @GET
     @Path("get")
     public TcHelperUserUi getUserData(@Nullable @QueryParam("login") final String loginParm) {
-        final String currUserLogin = ICredentialsProv.get(request).getPrincipalId();
+        final String currUserLogin = ICredentialsProv.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
-        ITcHelper helper = CtxListener.getTcHelper(context);
+        ITcHelper helper = CtxListener.getTcHelper(ctx);
         final TcHelperUser user = helper.users().getUser(login);
 
         final TcHelperUserUi tcHelperUserUi = new TcHelperUserUi(user, helper.getTrackedBranchesIds());
@@ -128,11 +129,11 @@ public class UserService {
     @POST
     @Path("resetCredentials")
     public SimpleResult resetCredentials(@Nullable @FormParam("login") final String loginParm) {
-        final String currUserLogin = ICredentialsProv.get(request).getPrincipalId();
+        final String currUserLogin = ICredentialsProv.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
         //todo check admin
 
-        final UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
+        final UserAndSessionsStorage users = CtxListener.getTcHelper(ctx).users();
         final TcHelperUser user = users.getUser(login);
 
         user.resetCredentials();
@@ -151,20 +152,21 @@ public class UserService {
         Preconditions.checkState(!Strings.isNullOrEmpty(serviceLogin));
         Preconditions.checkState(!Strings.isNullOrEmpty(servicePassword));
 
-        final ICredentialsProv prov = ICredentialsProv.get(request);
+        final ICredentialsProv prov = ICredentialsProv.get(req);
         final String currentUserLogin = prov.getPrincipalId();
-        final UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
+        final Injector injector = CtxListener.getInjector(ctx);
+        final ITcLogin tcLogin = injector.getInstance(ITcLogin.class);
+
+        final UserAndSessionsStorage users = CtxListener.getTcHelper(ctx).users();
         final TcHelperUser user = users.getUser(currentUserLogin);
 
         //todo check service credentials first
-
-        final User tcAddUser = checkServiceUserAndPassword(serviceId, serviceLogin, servicePassword);
+        final User tcAddUser = tcLogin.checkServiceUserAndPassword(serviceId, serviceLogin, servicePassword);
 
         if (tcAddUser == null)
             return new SimpleResult("Service rejected credentials/user not found");
 
-        final TcHelperUser.Credentials credentials = new TcHelperUser.Credentials( serviceId, serviceLogin
-        );
+        final TcHelperUser.Credentials credentials = new TcHelperUser.Credentials(serviceId, serviceLogin);
 
         credentials.setPassword(servicePassword, prov.getUserKey());
 
@@ -184,10 +186,10 @@ public class UserService {
         @Nullable @FormParam("fullName") final String fullName,
         Form form) {
 
-        final String currUserLogin = ICredentialsProv.get(request).getPrincipalId();
+        final String currUserLogin = ICredentialsProv.get(req).getPrincipalId();
         final String login = currUserLogin; //todo check admin Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
 
-        final UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
+        final UserAndSessionsStorage users = CtxListener.getTcHelper(ctx).users();
         final TcHelperUser user = users.getUser(login);
 
         user.resetNotifications();

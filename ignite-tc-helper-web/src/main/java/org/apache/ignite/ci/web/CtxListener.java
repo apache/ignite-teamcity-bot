@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.web;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
@@ -35,6 +36,7 @@ import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.IgniteTcBotModule;
 import org.apache.ignite.ci.observer.BuildObserver;
+import org.apache.ignite.ci.teamcity.TeamcityRecorder;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.jetbrains.annotations.Nullable;
 
@@ -47,8 +49,6 @@ public class CtxListener implements ServletContextListener {
     public static final String UPDATER = "updater";
 
     public static final String INJECTOR = "injector";
-
-    private static final String POOL = "pool";
 
     public static Ignite getIgnite(ServletContext ctx) {
         return getInjector(ctx).getInstance(Ignite.class);
@@ -87,18 +87,13 @@ public class CtxListener implements ServletContextListener {
 
         ctx.setAttribute(INJECTOR, injector);
 
-        final TcHelper tcHelper = injector.getInstance(TcHelper.class);
+        final ITcHelper tcHelper = injector.getInstance(TcHelper.class);
 
         BackgroundUpdater backgroundUpdater = new BackgroundUpdater(tcHelper);
 
         ctx.setAttribute(UPDATER, backgroundUpdater);
 
         ctx.setAttribute(TC_HELPER, tcHelper);
-        ctx.setAttribute(POOL, tcHelper.getService());
-    }
-
-    public static ExecutorService getPool(ServletContext context) {
-        return (ExecutorService)context.getAttribute(POOL);
     }
 
     @Override public void contextDestroyed(ServletContextEvent sctxEvt) {
@@ -118,9 +113,16 @@ public class CtxListener implements ServletContextListener {
         helper.close();
 
         try {
+            injector.getInstance(TcUpdatePool.class).stop();
             injector.getInstance(BuildObserver.class).stop();
         }
         catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        try {
+            injector.getInstance(TeamcityRecorder.class).stop();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

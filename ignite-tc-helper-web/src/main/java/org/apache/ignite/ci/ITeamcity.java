@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.chain.BuildChainProcessor;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
@@ -43,6 +44,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
+import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
@@ -138,6 +140,10 @@ public interface ITeamcity {
     }
 
     @NotNull default String getBuildHrefById(int id) {
+        return buildHref(id);
+    }
+
+    @NotNull  static String buildHref(int id) {
         return "app/rest/latest/builds/id:" + Integer.toString(id);
     }
 
@@ -335,4 +341,6 @@ public interface ITeamcity {
     List<Agent> agents(boolean connected, boolean authorized);
 
     void init(String serverId);
+
+    User getUserByUsername(String username);
 }

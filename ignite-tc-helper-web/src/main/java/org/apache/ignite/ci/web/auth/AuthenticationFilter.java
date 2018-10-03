@@ -27,7 +27,6 @@ import org.apache.ignite.ci.util.CryptUtil;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
-import org.glassfish.jersey.internal.util.Base64;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,47 +74,46 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                 .entity("Access blocked for this resource").build();
     }
 
-    @Override
-    public void filter(ContainerRequestContext requestContext) {
-        Method method = resourceInfo.getResourceMethod();
+    @Override public void filter(ContainerRequestContext reqCtx) {
+        Method mtd = resourceInfo.getResourceMethod();
 
         //todo uncomment for development
         //if(method!=null)
         //    return;
 
         //Access allowed for all
-        if (method.isAnnotationPresent(PermitAll.class))
+        if (mtd.isAnnotationPresent(PermitAll.class))
             return;
 
         //Access denied for all
-        if (method.isAnnotationPresent(DenyAll.class)) {
-            requestContext.abortWith(rspForbidden());
+        if (mtd.isAnnotationPresent(DenyAll.class)) {
+            reqCtx.abortWith(rspForbidden());
 
             return;
         }
 
         //Get request headers
-        final MultivaluedMap<String, String> headers = requestContext.getHeaders();
+        final MultivaluedMap<String, String> headers = reqCtx.getHeaders();
 
         //Fetch authorization header
         final List<String> authorization = headers.get(AUTHORIZATION_PROPERTY);
 
         //If no authorization information present; block access
         if (authorization == null || authorization.isEmpty()) {
-            requestContext.abortWith(rspUnathorized());
+            reqCtx.abortWith(rspUnathorized());
 
             return;
         }
 
         //Get encoded username and encodedPassword
-        String authString = authorization.get(0);
-        if(!authString.startsWith(TOKEN_SCHEME)) {
-            requestContext.abortWith(rspForbidden());
+        String authStr = authorization.get(0);
+        if(!authStr.startsWith(TOKEN_SCHEME)) {
+            reqCtx.abortWith(rspForbidden());
 
             return;
         }
 
-        String tokenFull = authString.substring(TOKEN_SCHEME.length()).trim();
+        String tokFull = authStr.substring(TOKEN_SCHEME.length()).trim();
 
         final UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
 
@@ -124,61 +122,59 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         } catch (Exception e) {
             ExceptionUtil.throwIfRest(e);
 
-            requestContext.abortWith(rspUnathorized());
+            reqCtx.abortWith(rspUnathorized());
         }
 
-        if (!authenticate(requestContext, tokenFull, users)) {
-            requestContext.abortWith(rspUnathorized());
+        if (!authenticate(reqCtx, tokFull, users)) {
+            reqCtx.abortWith(rspUnathorized());
 
             return;
         }
 
         //Verify user access
-        if (method.isAnnotationPresent(RolesAllowed.class)) {
-            RolesAllowed rolesAnnotation = method.getAnnotation(RolesAllowed.class);
+        if (mtd.isAnnotationPresent(RolesAllowed.class)) {
+            RolesAllowed rolesAnnotation = mtd.getAnnotation(RolesAllowed.class);
             Set<String> rolesSet = new HashSet<String>(Arrays.asList(rolesAnnotation.value()));
 
             //Is user valid?
             if (!isUserAllowed("", "", rolesSet)) {
-                requestContext.abortWith(rspForbidden());
+                reqCtx.abortWith(rspForbidden());
 
                 return;
             }
         }
     }
 
-    public boolean authenticate(ContainerRequestContext requestContext,
-                                String tokenFull,
+    public boolean authenticate(ContainerRequestContext reqCtx,
+                                String tokFull,
                                 UserAndSessionsStorage users) {
 
-        final StringTokenizer tokenizer = new StringTokenizer(tokenFull, ":");
+        final StringTokenizer tokenizer = new StringTokenizer(tokFull, ":");
 
         final String sessId = tokenizer.nextToken();
-        final String token = tokenizer.nextToken();
+        final String tok = tokenizer.nextToken();
 
-        UserSession session = users.getSession(sessId);
+        UserSession ses = users.getSession(sessId);
 
-        if (session == null) {
+        if (ses == null) {
             logger.warn("Users session not found " + sessId + " enforcing login");
 
             return false;
         }
 
-        if(requestContext.getUriInfo()!=null)
-            logger.info("[[" + session.username + "]] "+ requestContext.getUriInfo().getPath() +" Session:" + sessId + "");
+        if(reqCtx.getUriInfo()!=null)
+            logger.info("[[" + ses.username + "]] "+ reqCtx.getUriInfo().getPath() +" Session:" + sessId + "");
 
-        TcHelperUser user = users.getUser(session.username);
+        TcHelperUser user = users.getUser(ses.username);
         if (user == null) {
-            logger.error("No such user " + session.username + " for " + sessId + " enforcing login");
+            logger.error("No such user " + ses.username + " for " + sessId + " enforcing login");
 
-            requestContext.abortWith(rspUnathorized());
+            reqCtx.abortWith(rspUnathorized());
             return false;
         }
 
-         //System.out.println(user);
-
         if (user.userKeyKcv == null) {
-            System.out.println("User not initialised " + session.username + ",failed at " + sessId + " enforcing login");
+            logger.error("User not initialised " + ses.username + ",failed at " + sessId + " enforcing login");
 
             return false;
         }
@@ -186,11 +182,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         byte[] userKey;
         try {
-            userKey = CryptUtil.aesDecrypt(Base64Util.decodeString(token), session.userKeyUnderToken);
+            userKey = CryptUtil.aesDecrypt(Base64Util.decodeString(tok), ses.userKeyUnderToken);
             byte[] userKeyKcv = CryptUtil.aesKcv(userKey);
 
             if(!Arrays.equals(userKeyKcv, user.userKeyKcv)) {
-                System.out.println("User provided " + session.username + " invalid token ,failed at " + sessId + " enforcing login");
+                logger.error("User provided " + ses.username + " invalid token ,failed at " + sessId + " enforcing login");
 
                 return false;
             }
@@ -201,11 +197,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return false;
         }
 
-        session.lastActiveTs = System.currentTimeMillis();
+        ses.lastActiveTs = System.currentTimeMillis();
 
-        users.putSession(sessId, session);
+        users.putSession(sessId, ses);
 
-        requestContext.setProperty(ICredentialsProv._KEY, createCredsProv(user, userKey));
+        reqCtx.setProperty(ICredentialsProv._KEY, createCredsProv(user, userKey));
 
         return true;
     }
@@ -213,22 +209,20 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     @NotNull
     private ICredentialsProv createCredsProv(TcHelperUser user, byte[] userKey) {
         return new ICredentialsProv() {
-            @Override
-            public String getUser(String server) {
-                TcHelperUser.Credentials credentials = user.getCredentials(server);
-                if (credentials == null)
+            @Override public String getUser(String srv) {
+                TcHelperUser.Credentials creds = user.getCredentials(srv);
+                if (creds == null)
                     return null;
 
-                return credentials.getUsername();
+                return creds.getUsername();
             }
 
-            @Override
-            public String getPassword(String server) {
-                TcHelperUser.Credentials credentials = user.getCredentials(server);
-                if (credentials == null)
+            @Override public String getPassword(String srv) {
+                TcHelperUser.Credentials creds = user.getCredentials(srv);
+                if (creds == null)
                     return null;
 
-                byte[] encPass = credentials.getPasswordUnderUserKey();
+                byte[] encPass = creds.getPasswordUnderUserKey();
                 if (encPass == null)
                     return null;
 
@@ -241,15 +235,14 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
                     if (Throwables.getCausalChain(e).stream().anyMatch(t -> t instanceof BadPaddingException)) {
                         throw new ServiceUnauthorizedException("Invalid credentials stored for " +
-                                credentials.getUsername() + " for service [" + server + "]");
+                                creds.getUsername() + " for service [" + srv + "]");
                     }
 
                     return null;
                 }
             }
 
-            @Override
-            public String getPrincipalId() {
+            @Override public String getPrincipalId() {
                 return user.username;
             }
 
@@ -259,25 +252,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         };
     }
 
-    private String basicAuth(String authString) {
-        final String encodedUserPassword = authString.replaceFirst(AUTHENTICATION_SCHEME + " ", "");
-
-        //Decode username and encodedPassword
-        String usernameAndPassword = new String(Base64.decode(encodedUserPassword.getBytes()));
-
-        //Split username and encodedPassword tokens
-        final StringTokenizer tokenizer = new StringTokenizer(usernameAndPassword, ":");
-
-        final String username = tokenizer.nextToken();
-        final String password = tokenizer.nextToken();
-
-        //Verifying Username and encodedPassword
-        System.out.println(username);
-        System.out.println(password);
-        return password;
-    }
-
-    private boolean isUserAllowed(final String username, final String password, final Set<String> rolesSet) {
+    private boolean isUserAllowed(final String username, final String pwd, final Set<String> rolesSet) {
         boolean isAllowed = false;
 
         //Step 1. Fetch encodedPassword from database and match with encodedPassword in argument
@@ -285,13 +260,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         //Access the database and do this part yourself
         //String userRole = userMgr.getUserRole(username);
 
-        if (username.equals("howtodoinjava") && password.equals("encodedPassword")) {
+        if (username.equals("howtodoinjava") && pwd.equals("encodedPassword")) {
             String userRole = "ADMIN";
 
             //Step 2. Verify user role
-            if (rolesSet.contains(userRole)) {
+            if (rolesSet.contains(userRole))
                 isAllowed = true;
-            }
         }
         return isAllowed;
     }

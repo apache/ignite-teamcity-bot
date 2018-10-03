@@ -173,13 +173,21 @@ function setupTokenManual(result) {
             try {
                 var fullTok = window.sessionStorage.getItem("token");
 
-                if (isDefinedAndFilled(fullTok))
-                    xhr.setRequestHeader("Authorization", "Token " + fullTok);
-                else {
+                if (!isDefinedAndFilled(fullTok))  {
                     fullTok = window.localStorage.getItem("token");
 
-                    if (isDefinedAndFilled(fullTok))
-                        xhr.setRequestHeader("Authorization", "Token " + fullTok);
+                    if (!isDefinedAndFilled(fullTok))  {
+                        fullTok = findGetParameter("auth_token");
+
+                        if (isDefinedAndFilled(fullTok)) {
+                            //don't persist provided token
+                            window.sessionStorage.setItem("token", fullTok);
+                        }
+                    }
+                }
+
+                if (isDefinedAndFilled(fullTok)) {
+                    xhr.setRequestHeader("Authorization", "Token " + fullTok);
                 }
             } catch (e) {
             }

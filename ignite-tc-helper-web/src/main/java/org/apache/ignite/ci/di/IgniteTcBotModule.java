@@ -25,9 +25,11 @@ import com.google.inject.matcher.Matchers;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.*;
 import org.apache.ignite.ci.db.Ignite1Init;
+import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
+import org.apache.ignite.ci.teamcity.TcRealConnectionModule;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
@@ -35,7 +37,9 @@ import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
-import java.util.concurrent.*;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class IgniteTcBotModule extends AbstractModule {
     /** Ignite future. */
@@ -67,12 +71,14 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(ITcServerFactory.class).to(InitializingServerFactory.class).in(new SingletonScope());
         bind(ITcServerProvider.class).to(TcServerCachingProvider.class).in(new SingletonScope());
         bind(TcUpdatePool.class).in(new SingletonScope());
-       //todo bind(IssueDetector.clas)
+        bind(IssueDetector.class).in(new SingletonScope());
         bind(ObserverTask.class).in(new SingletonScope());
         bind(BuildObserver.class).in(new SingletonScope());
         bind(ITcHelper.class).to(TcHelper.class).in(new SingletonScope());
 
         bind(IJiraIntegration.class).to(Jira.class).in(new SingletonScope());
+
+        install(new TcRealConnectionModule());
     }
 
     //todo fallback to TC big class

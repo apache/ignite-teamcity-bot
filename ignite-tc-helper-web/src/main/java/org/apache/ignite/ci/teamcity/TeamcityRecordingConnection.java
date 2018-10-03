@@ -14,41 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.teamcity;
 
-package org.apache.ignite.ci.analysis;
+import org.apache.ignite.ci.util.HttpUtil;
 
-import java.util.concurrent.TimeUnit;
-import org.apache.ignite.ci.db.Persisted;
+import javax.inject.Inject;
+import java.io.IOException;
+import java.io.InputStream;
 
-/**
- * Wrapper for timestamped entry to be reloaded later.
- */
-public class Expirable<D> {
-    private final long ts;
-    private final D data;
+public class TeamcityRecordingConnection implements ITeamcityHttpConnection {
+    @Inject
+    private TeamcityRecorder recorder;
 
-    public Expirable(D data) {
-        this(System.currentTimeMillis(), data);
-    }
-
-    public Expirable(long ts, D data) {
-        this.ts = ts;
-        this.data = data;
-    }
-
-    public long getTs() {
-        return ts;
-    }
-
-    public D getData() {
-        return data;
-    }
-
-    public long getAgeMs() {
-        return System.currentTimeMillis() - ts;
-    }
-
-    public boolean isAgeLessThanSecs(int seconds) {
-        return getAgeMs() < TimeUnit.SECONDS.toMillis(seconds);
+    public InputStream sendGet(String basicAuthTok, String url) throws IOException {
+        return recorder.onGet(HttpUtil.sendGetWithBasicAuth(basicAuthTok, url), url);
     }
 }

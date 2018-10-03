@@ -46,6 +46,9 @@ public class HttpUtil {
     private static final Logger logger = LoggerFactory.getLogger(HttpUtil.class);
 
     private static String readIsToString(InputStream inputStream) throws IOException {
+        if (inputStream == null)
+            return "<null>";
+
         BufferedReader in = new BufferedReader(
             new InputStreamReader(inputStream));
         String inputLine;

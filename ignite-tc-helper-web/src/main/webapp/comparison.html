@@ -178,27 +178,27 @@
         return parseFloat(string.substring(string.indexOf("-") + 2, string.lastIndexOf("-") - 1));
     }
 
-    var ch_disp = function( id )
-    {
-        var el = document.getElementById( id );
-        el.style.display = ( el.style.display == 'block' )? 'none' : 'block';
+    var ch_disp = function(id) {
+        let el = document.getElementById(id);
+
+        el.style.display = el.style.display == 'block' ? 'none' : 'block';
     }
 
     function printTests(num, result) {
-        var obj = {};
+        let obj = {};
 
         try {
             obj = JSON.parse(result);
         } catch (e) {
-            console.error(e);
+            showErrInLoadStatus
 
-            return
+            return;
         }
 
         if (obj == null)
             return;
 
-        var tests = getTests(obj, num);
+        let tests = getTests(obj, num);
 
         window.sessionStorage.setItem('tests' + num, tests);
 
@@ -211,28 +211,26 @@
         var needTestsUpdate = window.sessionStorage.needTestsUpdate;
 
         if (needTestsUpdate == 'true') {
-            var result1 = window.sessionStorage.result1;
+            let result1 = window.sessionStorage.result1;
 
-            var result2 = window.sessionStorage.result2;
+            let result2 = window.sessionStorage.result2;
 
             if (result1 == null || result2 == null) {
-                alert("Two columns should be loaded for comparison!");
+                alert("Two columns should be loaded for compareMode!");
 
                 return;
             }
 
-            var obj1 = {};
+            let obj1 = {};
 
-            var obj2 = {};
+            let obj2 = {};
 
             try {
                 obj1 = JSON.parse(result1);
 
                 obj2 = JSON.parse(result2);
             } catch (e) {
-                console.error(e);
-
-                return;
+                showErrInLoadStatus
             }
 
             window.sessionStorage.uniqTests1 = getUniqueTests(obj1, obj2, 1);
@@ -243,7 +241,6 @@
         }
 
         if (compareMode == 'true') {
-
             $('#btt').html("CompareMode");
 
             $('#MT1').html(window.sessionStorage.tests1);
@@ -264,11 +261,11 @@
     }
 
     function getUniqueTests(obj1, obj2, num) {
-        var uniqObj = {};
+        let uniqObj = {};
 
-        var suites = Object.keys(obj1);
+        let suites = Object.keys(obj1);
 
-        for (var suite of suites) {
+        for (let suite of suites) {
             if (!obj2.hasOwnProperty(suite)) {
                 uniqObj[suite] = obj1[suite];
 
@@ -279,7 +276,7 @@
 
             let uniqTests = [];
 
-            for (var v of obj1[suite])
+            for (let v of obj1[suite])
                 if (!tests.includes(v, 0))
                     uniqTests.push(v);
 
@@ -293,17 +290,17 @@
     function getTests(obj, num) {
         let res = '<body>';
 
-        var suites = Object.keys(obj).sort();
+        let suites = Object.keys(obj).sort();
 
         for (let suite of suites) {
-            var suiteName = suite.split('_').filter((value, index) => index != 0).join('_');
+            let suiteName = suite.split('_').filter((value, index) => index != 0).join('_');
 
             res += '<div align="left" style="cursor: pointer" class="suite" onclick="ch_disp(\'' + suite + num + '\')"' +
                 '<p><b>' + suiteName + '</b>' + ' (' + obj[suite].length + ')</p>' +
                 '</div>\n' +
                 '<div  id="' + suite + num + '"style="cursor: default; margin-left: 10px; display:none">';
 
-            for (var v of obj[suite].sort()) {
+            for (let v of obj[suite].sort()) {
                 let list = v.toString().split(".");
 
                 if (list.length < 2)
@@ -329,7 +326,7 @@
     }
 
     function getTestRef(testName) {
-        var res = '';
+        let res = '';
 
         $.ajax(
             {
@@ -487,18 +484,18 @@
 
         window.sessionStorage.compareMode = 'false';
 
+        $('#MT1').html(window.sessionStorage.tests1);
+
+        $('#MT2').html(window.sessionStorage.tests2);
+
+        $('#btt').html("CompareMode");
+
         $.ajax(
             {
                 url: 'rest/build/history?sinceDate=' + sinceDate.format("DDMMYYYY") +
                 '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959',
                 success: function (result) {
                     window.sessionStorage.setItem('result' + num, result.mergedTestsResult);
-
-                    $('#MT1').html(window.sessionStorage.tests1);
-
-                    $('#MT2').html(window.sessionStorage.tests2);
-
-                    $('#btt').html("CompareMode");
 
                     printStatistics(num, result.buildsStatistics, sinceDate, untilDate);
 

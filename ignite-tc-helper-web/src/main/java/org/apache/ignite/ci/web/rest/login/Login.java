@@ -18,10 +18,11 @@
 package org.apache.ignite.ci.web.rest.login;
 
 import com.google.common.base.Preconditions;
+import com.google.inject.Injector;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.user.User;
+import org.apache.ignite.ci.teamcity.ITcLogin;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.util.Base64Util;
@@ -30,7 +31,6 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.user.LoginResponse;
 import org.apache.ignite.ci.user.UserSession;
 import org.apache.ignite.ci.web.model.ServerDataResponse;
-import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
@@ -69,14 +69,15 @@ public class Login {
         Preconditions.checkNotNull(password);
 
         ITcHelper tcHelper = CtxListener.getTcHelper(context);
-
+        final Injector injector = CtxListener.getInjector(context);
+        final ITcLogin tcLogin = injector.getInstance(ITcLogin.class);
         UserAndSessionsStorage users = tcHelper.users();
 
         String primaryServerId = tcHelper.primaryServerId();
 
         try {
             return doLogin(username, password, users, primaryServerId,
-                    tcHelper.getServerIds());
+                    tcHelper.getServerIds(), tcLogin);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -87,7 +88,8 @@ public class Login {
                                  @FormParam("psw") String password,
                                  UserAndSessionsStorage users,
                                  String primaryServerId,
-                                 Collection<String> serverIds) {
+                                 Collection<String> serverIds,
+                                 ITcLogin tcLogin) {
         SecureRandom random = new SecureRandom();
         byte[] tokenBytes = random.generateSeed(TOKEN_LEN);
         String token = Base64Util.encodeBytesToString(tokenBytes);
@@ -109,7 +111,8 @@ public class Login {
         byte[] userKeyCandidate = CryptUtil.hmacSha256(user.salt, (username + ":" + password));
         byte[] userKeyCandidateKcv = CryptUtil.aesKcv(userKeyCandidate);
 
-        final User tcUser = checkService(username, password, primaryServerId);
+
+        final User tcUser = tcLogin.checkServiceUserAndPassword(primaryServerId, username, password);
 
         if (user.userKeyKcv == null) {
             if (tcUser == null) {
@@ -129,7 +132,7 @@ public class Login {
 
             for (String addSrvId : serverIds) {
                 if (!addSrvId.equals(primaryServerId)) {
-                    final User tcAddUser = checkService(username, password, addSrvId);
+                    final User tcAddUser = tcLogin.checkServiceUserAndPassword(addSrvId, username, password);
 
                     if (tcAddUser != null) {
                         user.getOrCreateCreds(addSrvId).setLogin(username).setPassword(password, userKeyCandidate);
@@ -155,40 +158,6 @@ public class Login {
         return loginResponse;
     }
 
-    protected User checkService(   String username, @FormParam("psw") String password,
-        String primaryServerId) {
-        return checkServiceUserAndPassword(primaryServerId, username, password);
-    }
-
-    public static User checkServiceUserAndPassword(String serverId, String username, String password) {
-        try {
-            IgniteTeamcityConnection tcConn = new IgniteTeamcityConnection(serverId);
-
-            tcConn.setAuthData(username, password);
-
-            final User tcUser = tcConn.getUserByUsername(username);
-
-                /*
-                final List<UserRef> usersRefs = users.getUsersRefs();
-
-                for (UserRef next : usersRefs) {
-                    if (next.username.equals(username)) {
-                        System.err.println("Found ");
-                    }
-                }*/
-
-            if (tcUser != null)
-                System.err.println(tcUser);
-
-            return tcUser;
-        } catch (ServiceUnauthorizedException e) {
-            System.err.println("Service " + serverId + " rejected credentials from " + username);
-            return null;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
 
     private TcHelperUser getOrCreateUser(@FormParam("uname") String username,
                                          UserAndSessionsStorage users,

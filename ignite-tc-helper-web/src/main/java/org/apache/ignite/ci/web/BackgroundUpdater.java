@@ -166,9 +166,7 @@ public class BackgroundUpdater {
                 return computationKey;
             };
 
-            Callable<Future<?>> startingFunction = () -> {
-                return getService().submit(loadModified);
-            };
+            Callable<Future<?>> startingFunction = () -> service.submit(loadModified);
 
             try {
                 scheduledUpdates.get(computationKey, startingFunction);
@@ -184,10 +182,6 @@ public class BackgroundUpdater {
         final V data = expirable.getData();
         data.setUpdateRequired(isRefreshRequired(expirable, triggerSensitive)); //considered actual
         return data;
-    }
-
-    public ExecutorService getService() {
-        return service;
     }
 
     private <V extends IBackgroundUpdatable> boolean isRefreshRequired(Expirable<V> expirable, boolean triggerSensitive) {

@@ -37,6 +37,9 @@ public class TcUpdatePool {
     });
 
 
+    /**
+     * @return Executor service to process TC communication requests there.
+     */
     public ExecutorService getService() {
         return service;
     }
