@@ -65,7 +65,6 @@ function showChainResultsWithSettings(result, settings) {
         res += showChainCurrentStatusData(server, settings);
     }
 
-
     setTimeout(initMoreInfo, 100);
 
     return res;
@@ -125,11 +124,11 @@ function showChainCurrentStatusData(server, settings) {
     if (suitesFailedList.length !== 0 && isDefinedAndFilled(server.serverId) && isDefinedAndFilled(server.branchName)) {
         mInfo += "Trigger failed " + cntFailed + " builds";
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + server.branchName + "\", false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + server.branchName + "\", false, false)' ";
         mInfo += " title='trigger builds'>in queue</a> ";
 
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + server.branchName + "\", true)' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + server.branchName + "\", true, false)' ";
         mInfo += " title='trigger builds'>on top</a><br>";
     }
 
@@ -171,8 +170,28 @@ function showChainCurrentStatusData(server, settings) {
 
     if (settings.isJiraAvailable()) {
         res += "<button onclick='commentJira(\"" + server.serverId + "\", \"IgniteTests24Java8_RunAll\", \""
-            + server.branchName + "\")'>Comment JIRA</button>";
+            + server.branchName + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
     }
+
+    var blockersList = "";
+
+    for (var i = 0; i < server.suites.length; i++) {
+        var suite = server.suites[i];
+
+        suite = suiteWithCriticalFailuresOnly(suite);
+
+        if (suite != null) {
+            if (blockersList.length !== 0)
+                blockersList += ",";
+
+            blockersList += suite.suiteId;
+        }
+    }
+
+    res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" + server.branchName + "\", false, false)'> Re-run possible blockers</button>&nbsp;&nbsp;";
+
+    res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" + server.branchName + "\", false, true)'> Re-run possible blockers & Comment JIRA</button>";
+
 
     if (isDefinedAndFilled(server.baseBranchForTc)) {
         // if (settings.isGithubAvailable())
@@ -214,14 +233,21 @@ function addBlockersData(server, settings) {
         return "";
 
     var blockers = "";
+    var blockersList = "";
 
     for (var i = 0; i < server.suites.length; i++) {
         var suite = server.suites[i];
 
         suite = suiteWithCriticalFailuresOnly(suite);
 
-        if (suite != null)
+        if (suite != null) {
+            if (blockersList.length !== 0)
+                blockersList += ",";
+
+            blockersList += suite.suiteId;
+
             blockers += showSuiteData(suite, settings);
+        }
     }
 
     if (blockers === "") {
@@ -355,7 +381,7 @@ function triggerBuild(serverId, suiteId, branchName, top, observe, ticketId) {
     });
 }
 
-function triggerBuilds(serverId, suiteIdList, branchName, top) {
+function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId) {
     var res = "Trigger builds at server: " + serverId + "<br>" +
         "Branch:" + branchName + "<br>Top: " + top + "<br>";
 
@@ -375,20 +401,23 @@ function triggerBuilds(serverId, suiteIdList, branchName, top) {
             "Run": function() {
                 $(this).dialog("close");
 
-                var queueAtTop = isDefinedAndFilled(top) && top
+                var queueAtTop = isDefinedAndFilled(top) && top;
+                var observeJira = isDefinedAndFilled(observe) && observe;
                 $.ajax({
                     url: 'rest/build/triggerBuilds',
                     data: {
                         "serverId": serverId,
                         "suiteIdList": suiteIdList,
                         "branchName": branchName,
-                        "top": queueAtTop
+                        "top": queueAtTop,
+                        "observe" : observeJira,
+                        "ticketId" : ticketId
                     },
                     success: function(result) {
                         var dialog = $("#triggerDialog");
 
-                        dialog.html("Trigger builds at server: " + serverId + "<br>" +
-                            " Suites " + suiteIdList + "<br>Branch:" + branchName + "<br>Top: " + top +
+                        dialog.html("<b>Trigger builds at server: </b>" + serverId + "<br>" +
+                            "<b>Suites: </b>" + suiteIdList + "<br>Branch:" + branchName + "<br>Top: " + top +
                             "<br><br> Result: " + result.result);
                         dialog.dialog({
                             modal: true,

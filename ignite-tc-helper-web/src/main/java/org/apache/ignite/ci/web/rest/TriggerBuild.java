@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.web.rest;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import javax.servlet.ServletContext;
@@ -73,7 +74,7 @@ public class TriggerBuild {
         Build build = teamcity.triggerBuild(suiteId, branchForTc, false, top != null && top);
 
         if (observe != null && observe)
-            jiraRes = observeJira(srvId, branchForTc, ticketId, helper, teamcity, build, prov);
+            jiraRes = observeJira(srvId, branchForTc, ticketId, helper, teamcity, prov, build);
 
         return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
@@ -138,7 +139,7 @@ public class TriggerBuild {
      * @param ticketId JIRA ticket number.
      * @param helper Helper.
      * @param teamcity TeamCity.
-     * @param build Build.
+     * @param builds Builds.
      * @param prov Credentials.
      * @return Message with result.
      */
@@ -148,9 +149,8 @@ public class TriggerBuild {
         @Nullable String ticketId,
         ITcHelper helper,
         ITeamcity teamcity,
-        Build build,
-        ICredentialsProv prov
-    ) {
+        ICredentialsProv prov,
+        Build... builds) {
         if (F.isEmpty(ticketId)) {
             PullRequest pr = teamcity.getPullRequest(branchForTc);
 
@@ -167,7 +167,8 @@ public class TriggerBuild {
 
         BuildObserver observer = CtxListener.getInjector(context).getInstance(BuildObserver.class);
 
-        observer.observe(build, srvId, prov, "ignite-" + ticketId);
+        for (Build build : builds)
+            observer.observe(build, srvId, prov, "ignite-" + ticketId);
 
         return "JIRA ticket IGNITE-" + ticketId + " will be notified after the tests are completed.";
     }
@@ -195,31 +196,42 @@ public class TriggerBuild {
     @GET
     @Path("triggerBuilds")
     public SimpleResult triggerBuilds(
-        @Nullable @QueryParam("serverId") String serverId,
+        @Nullable @QueryParam("serverId") String srvId,
         @Nullable @QueryParam("branchName") String branchName,
         @NotNull @QueryParam("suiteIdList") String suiteIdList,
-        @Nullable @QueryParam("top") Boolean top) {
+        @Nullable @QueryParam("top") Boolean top,
+        @Nullable @QueryParam("observe") Boolean observe,
+        @Nullable @QueryParam("ticketId") String ticketId) {
+
+        String jiraRes = "";
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        if (!prov.hasAccess(serverId))
-            throw ServiceUnauthorizedException.noCreds(serverId);
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
 
         List<String> strings = Arrays.asList(suiteIdList.split(","));
         if (strings.isEmpty())
             return new SimpleResult("Error: nothing to run");
 
-        final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId, prov);
+        ITcHelper helper = CtxListener.getTcHelper(context);
+
+        final ITeamcity teamcity = helper.server(srvId, prov);
 
         boolean queueToTop = top != null && top;
+
+        List<Build> buildList = new ArrayList<>();
 
         for (String suiteId : strings) {
             System.out.println("Triggering [ " + suiteId + "," + branchName + "," + "top=" + queueToTop + "]");
 
-            helper.triggerBuild(suiteId, branchName, false, queueToTop);
+            buildList.add(teamcity.triggerBuild(suiteId, branchName, false, queueToTop));
         }
 
-        return new SimpleResult("OK");
+        if (observe != null && observe)
+            jiraRes = observeJira(srvId, branchName, ticketId, helper, teamcity, prov, buildList.toArray(new Build[0]));
+
+        return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
 
 }
