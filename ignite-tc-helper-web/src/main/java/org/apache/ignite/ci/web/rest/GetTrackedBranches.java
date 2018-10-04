@@ -41,9 +41,11 @@ import org.apache.ignite.lang.IgniteProductVersion;
 @Path("branches")
 @Produces(MediaType.APPLICATION_JSON)
 public class GetTrackedBranches {
+    /** Servlet Context. */
     @Context
     private ServletContext ctx;
 
+    /** Current Request. */
     @Context
     private HttpServletRequest req;
 

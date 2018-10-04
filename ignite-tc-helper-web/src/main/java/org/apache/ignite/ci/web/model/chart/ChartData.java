@@ -26,8 +26,9 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * Created by Дмитрий on 09.08.2017
+ *
  */
+@Deprecated
 public class ChartData<K> {
     /** Captions for measurements at axis X */
     public List<String> axisX;

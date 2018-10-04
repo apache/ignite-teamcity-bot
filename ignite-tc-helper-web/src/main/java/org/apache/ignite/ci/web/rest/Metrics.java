@@ -60,6 +60,7 @@ import static java.util.Collections.singletonList;
 
 @Path("metrics")
 @Produces("application/json")
+@Deprecated
 public class Metrics {
     public static final String FAILURES_PUBLIC = "failures.public";
     public static final String FAILURES_PRIVATE = "failures.private";
@@ -97,7 +98,7 @@ public class Metrics {
                     return null;
 
                 for (MultBuildRunCtx suite : ctx.suites()) {
-                    boolean suiteOk = suite.failedTests() == 0 && !suite.hasNontestBuildProblem();
+                    boolean suiteOk = suite.failedTests() == 0 && !suite.hasCriticalProblem();
                     history.addSuiteResult(teamcity.serverId() + "\t" + suite.suiteName(), suiteOk);
                 }
                 return ctx;

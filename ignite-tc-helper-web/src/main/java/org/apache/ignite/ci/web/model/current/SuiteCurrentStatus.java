@@ -56,7 +56,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Suite Name */
     public String name;
 
-    /** Suite Run Result (filled if failed) */
+    /** Suite Run Result (filled if failed): Summary of build problems, count of tests, etc. */
     public String result;
 
     /** Has critical problem: Timeout or JMV Crash */
@@ -112,6 +112,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
      */
     @Nullable public ProblemRef problemRef;
 
+    /** Possible blocker: filled for PR and builds checks, mean there was stable execution in master, but */
+    public Boolean possibleBlocker;
 
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final MultBuildRunCtx suite,
@@ -208,6 +210,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         serverId = teamcity.serverId();
         this.suiteId = suite.suiteId();
         branchName = branchForLink(suite.branchName());
+        // todo implement this logic in suite possibleBlocker = suite.hasPossibleBlocker();
     }
 
     private void initStat(@Nullable ITcAnalytics tcAnalytics, String failRateNormalizedBranch, String curBranchNormalized, String suiteId) {

@@ -49,9 +49,11 @@ public class GetPrTestFailures {
     public static final String PR = "pr";
     public static final String CURRENT_PR_FAILURES = "currentPrFailures";
 
+    /** Servlet Context. */
     @Context
     private ServletContext ctx;
 
+    /** Current Request. */
     @Context
     private HttpServletRequest req;
 

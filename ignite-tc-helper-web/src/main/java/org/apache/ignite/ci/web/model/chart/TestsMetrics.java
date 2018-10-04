@@ -23,8 +23,9 @@ import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.web.IBackgroundUpdatable;
 
 /**
- * Created by Дмитрий on 09.08.2017
+ * 
  */
+@Deprecated
 public class TestsMetrics implements IBackgroundUpdatable {
     public ChartData<SuiteInBranch> failed = new ChartData<>();
     public ChartData<SuiteInBranch> notrun = new ChartData<>();

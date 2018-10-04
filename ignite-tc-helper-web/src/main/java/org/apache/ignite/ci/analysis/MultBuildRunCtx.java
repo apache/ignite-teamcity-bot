@@ -113,7 +113,9 @@ public class MultBuildRunCtx implements ISuiteResults {
         return firstBuildInfo.buildTypeId;
     }
 
-    //currently used only in metrics
+
+    @Deprecated
+    //currently used only in old metrics
     public boolean hasNontestBuildProblem() {
         return allProblemsInAllBuilds().anyMatch(problem ->
             !problem.isFailedTests()

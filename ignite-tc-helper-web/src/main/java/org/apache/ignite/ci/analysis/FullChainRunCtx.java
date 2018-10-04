@@ -40,6 +40,7 @@ public class FullChainRunCtx {
         fakeStub = chainResults.isFakeStub();
     }
 
+    @Deprecated
     public int buildProblems() {
         return (int)buildCfgsResults.stream().filter(MultBuildRunCtx::hasNontestBuildProblem).count();
     }
