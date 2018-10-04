@@ -15,6 +15,9 @@
     <script src="js/common-1.6.js"></script>
     <script src="js/testfails-2.1.js"></script>
 
+    <style>
+
+    </style>
     <script>
 $(document).ready(function() {
     $.getScript("js/common-1.6.js", function(data, textStatus, jqxhr){ });
@@ -167,7 +170,7 @@ function showFormAndSuitesForPrCheck(result) {
         res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId + " readonly>";
         res += "Chain: <input type='text' name='suiteId' value=" + chainAtServer.suiteId + ">";
         res += "Base branch: <input class='branchForTc" + chainAtServer.serverId +
-            "' type='text' name='baseBranchForTc'  title='Etalon branch, e.g refs/heads/master'> ";
+            "' type='text' name='baseBranchForTc'  title='Etalon branch to take base data from, e.g refs/heads/master'> ";
         res += "<b>Branch:</b> <input class='branchForTc" + chainAtServer.serverId +
             "' type='text' name='branchForTc' title='Tested branch, e.g. pull/4790/head or ignite-9349' required> ";
         res += "<input type='submit' name='action' value='Latest' title='Show latest runs'>";
@@ -183,15 +186,21 @@ function showFormAndSuitesForPrCheck(result) {
 <body>
 <div id="loadStatus"></div>
 
-Trigger new TeamCity Run All for a PR/Branch:  <br>
-<div id="suitesForRunAll"></div>
-<br><br>
+<div class="formgroup">
+    Trigger new TeamCity Run All for a PR/Branch: <br>
+    <div id="suitesForRunAll"></div>
+</div>
+<br>
 
-Notify JIRA (save TC Bot visa to a ticket comment):  <br>
-<div id="notifyJira"></div><br>
+<div class="formgroup">
+    Notify JIRA (save TC Bot visa to a ticket comment): <br>
+    <div id="notifyJira"></div>
+</div>
+<br>
 
-See results of branch/PR TeamCity Run All:  <br>
+<br>Check results of branch/PR TeamCity Run All:
 <div id="suitesForPrCheck"></div>
+
 
 <!--Notify GitHub:   <br>
 <div id="notifyGitHub">

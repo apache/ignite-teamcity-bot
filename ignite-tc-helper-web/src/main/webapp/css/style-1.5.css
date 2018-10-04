@@ -1,5 +1,5 @@
 body {
- 	font-family: Arial;
+    font-family: Arial, sans-serif;
  	font-size: 14px;
  	font-style: normal;
  	font-variant: normal;
@@ -7,15 +7,17 @@ body {
 }
 
 input, div {
-	font-family: Arial;
+    font-family: Arial, sans-serif;
 	font-size: 14px;
 	font-style: normal;
 	font-variant: normal;
 	font-weight: 500;
+    margin-left: 3px;
+    margin-right: 3px;
 }
 
 table, tr, td {
-	font-family: Arial;
+    font-family: Arial, sans-serif;
  	font-size: 14px;
  	font-style: normal;
  	font-variant: normal;
@@ -93,6 +95,37 @@ table.stat tr:nth-child(odd) { background-color: #fafaff; }
 /* Right-aligned section inside the top navigation */
 .topnav-right {
     float: right;
+}
+
+input[type=button], input[type=submit], button {
+	background: #12AD5E;
+	border: none;
+	height: 24px;
+	color: #FFF;
+	font-weight: bold;
+	font-family: sans-serif;
+	margin: 5px;
+	border-radius: 3px;
+	box-shadow: 3px 2px 6px -2px rgba(0,0,0,0.64);
+    cursor:pointer;
+}
+
+form, .formgroup {
+    // width: 720px;
+	margin: 0px auto;
+	padding: 5px;
+	background: #FFF;
+	margin-top: 20px;
+	border-radius: 3px;
+	box-shadow: 3px 2px 6px -2px rgba(0,0,0,0.64);
+}
+
+html {
+    min-height: 100%;
+    //background: radial-gradient(ellipse at center, #FFFFFF 0%, #f2fff0 100%);
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: #000;
 }
 
 form ul

@@ -63,17 +63,17 @@ function showCurrentBranchesData(result) {
     var res = "";
     for (var i = 0; i < result.length; i++) {
         var id = result[i];
-        res += "<a href='current.html?branch=" + id + "'>Latest (" + id + ")</a>";
-        res += " &nbsp;&nbsp;  <a href='current.html?branch=" + id + "&checkAllLogs=true' title='With logs processing'>(" + id + " + logs)</a>";
+       //  res += "<div class='formgroup'>";
+        res += id + ":";
+        res += "<a href='current.html?branch=" + id + "'><button>Latest (" + id + ")</button></a>";
+        res += " &nbsp;&nbsp;<a href='current.html?branch=" + id + "&checkAllLogs=true' title='With logs processing'><button>Latest (" + id + " + logs)</button></a>";
+        res += " &nbsp;&nbsp;<a href='all.html?branch=" + id + "'><button title='Failures from last 10 runs merged'>History (" + id + ")</button></a>";
+        //  res += "</div>";
         res += "<br>";
     }
 
-    res += "<br>";
-    for (var j = 0; j < result.length; j++) {
-        var id2 = result[j];
-        res += " <a href='all.html?branch=" + id2 + "'>History (" + id2 + ")</a>";
-        res += "<br>";
-    }
+    res += "</table>";
+
 
     $("#branchesStatus").html(res);
 }
@@ -118,11 +118,25 @@ function showBuildsOnServers(result) {
 </script>
 </head>
 <body>
-Current Failed Tests:   <br>
-<div id="branchesStatus"></div>
+<div class="formgroup">
+    Monitoring. Current Failed Tests: <br>
+    <div id="branchesStatus"></div>
+</div>
 <br>
 
-Statistics:   <br>
+<div class="formgroup">
+    Contribution. Check branch/PR:
+    <div id="suitesForPrCheck"></div>
+</div>
+<br>
+
+<div class="formgroup">
+    Check build: <br>
+    <div id="buildsCheck"></div>
+</div>
+<br>
+
+Statistics: <br>
 <!--<a href="chart.html">Build metrics daily history</a><br>
 <a href="restpretty.html?url=top/failing">Top failing tests</a> (JSON) <br>
 <a href="restpretty.html?url=top/longRunning">Top long running tests</a> (JSON) <br>
@@ -130,15 +144,8 @@ Statistics:   <br>
 <a href="./status">Current Build Status (obsolete)</a><br>
 <br>-->
 <a href="comparison.html">Comparison master's branch in the date interval</a><br>
-<br>
-Check branch/PR:   <br>
-<div id="suitesForPrCheck"></div>
-<br>
 
-Check build:   <br>
-<div id="buildsCheck"></div>
-<br>
-
+Other: <br>
 <a href="ignval.html">Ignite Log Values pretty-print</a> &nbsp;
 <a href="monitoring.html">Bot moniroting page</a> <br>
 <div id="loadStatus"></div>
