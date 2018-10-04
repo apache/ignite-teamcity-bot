@@ -134,7 +134,15 @@ public class GetPrTestFailures {
 
         IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, ctx, req);
 
-        PullRequest pr = teamcity.getPullRequest(branchForTc);
+        PullRequest pr;
+
+        try {
+            pr = teamcity.getPullRequest(branchForTc);
+        }
+        catch (RuntimeException e) {
+            return "Exception happened - " + e.getMessage();
+        }
+
         String statusesUrl = pr.getStatusesUrl();
 
         teamcity.notifyGit(statusesUrl, msg);

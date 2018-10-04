@@ -21,6 +21,7 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -1162,7 +1163,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public boolean sendJiraComment(String ticket, String comment) {
+    @Override public String sendJiraComment(String ticket, String comment) throws IOException {
         return teamcity.sendJiraComment(ticket, comment);
     }
 

@@ -112,7 +112,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @Override public boolean notifyJira(
+    @Override public String notifyJira(
         String srvId,
         ICredentialsProv prov,
         String buildTypeId,
@@ -124,22 +124,26 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchForTc);
 
         if (builds.isEmpty())
-            return false;
+            return "JIRA wasn't commented - no finished builds to analyze.";
 
         BuildRef build = builds.get(builds.size() - 1);
         String comment;
 
         try {
             comment = generateJiraComment(buildTypeId, build.branchName, srvId, prov, build.webUrl);
-        }
-        catch (RuntimeException e) {
-            logger.error("Exception happened during generating comment for JIRA " +
-                "[build=" + build.getId() + ", errMsg=" + e.getMessage() + ']');
 
-            return false;
+            teamcity.sendJiraComment(ticket, comment);
+        }
+        catch (Exception e) {
+            String errMsg = "Exception happened during commenting JIRA ticket " +
+                "[build=" + build.getId() + ", errMsg=" + e.getMessage() + ']';
+
+            logger.error(errMsg);
+
+            return "JIRA wasn't commented - " + errMsg;
         }
 
-        return teamcity.sendJiraComment(ticket, comment);
+        return JIRA_COMMENTED;
     }
 
     /**

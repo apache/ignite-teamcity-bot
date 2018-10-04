@@ -194,25 +194,13 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public boolean sendJiraComment(String ticket, String comment) {
-        if (isNullOrEmpty(jiraApiUrl)) {
-            logger.error("Failed to notify JIRA [errMsg=JIRA API URL is not configured for this server.]");
+    @Override public String sendJiraComment(String ticket, String comment) throws IOException {
+        if (isNullOrEmpty(jiraApiUrl))
+            throw new IllegalStateException("JIRA API URL is not configured for this server.");
 
-            return false;
-        }
+        String url = jiraApiUrl + "issue/" + ticket + "/comment";
 
-        try {
-            String url = jiraApiUrl + "issue/" + ticket + "/comment";
-
-            HttpUtil.sendPostAsStringToJira(jiraBasicAuthTok, url, "{\"body\": \"" + comment + "\"}");
-
-            return true;
-        }
-        catch (IOException e) {
-            logger.error("Failed to notify JIRA [errMsg="+e.getMessage()+']');
-
-            return false;
-        }
+        return HttpUtil.sendPostAsStringToJira(jiraBasicAuthTok, url, "{\"body\": \"" + comment + "\"}");
     }
 
     /** {@inheritDoc} */
@@ -238,7 +226,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public PullRequest getPullRequest(String branchForTc) {
-        if (!isNullOrEmpty(gitApiUrl))
+        if (isNullOrEmpty(gitApiUrl))
             throw new IllegalStateException("Git API URL is not configured for this server.");
 
         String id = null;
