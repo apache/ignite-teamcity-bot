@@ -77,7 +77,7 @@ public class TriggerBuild {
         Build build = teamcity.triggerBuild(suiteId, branchForTc, false, top != null && top);
 
         if (observe != null && observe)
-            jiraRes = observeJira(srvId, branchForTc, ticketId, helper, teamcity, build, prov);
+            jiraRes = observeJira(srvId, branchForTc, ticketId, teamcity, build, prov);
 
         return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
@@ -102,7 +102,12 @@ public class TriggerBuild {
     }
 
     @NotNull
-    public SimpleResult commentJiraEx(@QueryParam("serverId") @Nullable String srvId, @QueryParam("branchName") @Nullable String branchForTc, @QueryParam("suiteId") @Nullable String suiteId, @QueryParam("ticketId") @Nullable String ticketId) {
+    public SimpleResult commentJiraEx(
+        @QueryParam("serverId") @Nullable String srvId,
+        @QueryParam("branchName") @Nullable String branchForTc,
+        @QueryParam("suiteId") @Nullable String suiteId,
+        @QueryParam("ticketId") @Nullable String ticketId
+    ) {
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
         if (!prov.hasAccess(srvId))
@@ -114,25 +119,31 @@ public class TriggerBuild {
         final ITeamcity teamcity = helper.server(srvId, prov);
 
         if (Strings.isNullOrEmpty(ticketId)) {
-            PullRequest pr = teamcity.getPullRequest(branchForTc);
+            try {
+                PullRequest pr = teamcity.getPullRequest(branchForTc);
 
-            ticketId = getTicketId(pr);
+                ticketId = getTicketId(pr);
 
-            if (ticketId.isEmpty()) {
-                jiraRes = "JIRA ticket can't be commented - " +
-                    "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
-                    " Please, rename PR according to the" +
-                    " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
-                    "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>" +
-                    " or enter ticket id in the form.";
+                if (ticketId.isEmpty()) {
+                    jiraRes = "JIRA ticket can't be commented - " +
+                        "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
+                        " Please, rename PR according to the" +
+                        " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
+                        "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>" +
+                        " or enter ticket id in the form.";
+                }
             }
-
+            catch (RuntimeException e) {
+                jiraRes = "Exception happened when server tried to get ticket ID from Pull Request - " + e.getMessage();
+            }
         }
 
-        if (helper.notifyJira(srvId, prov, suiteId, branchForTc, "ignite-" + ticketId))
-            return new SimpleResult("JIRA commented." + (!jiraRes.isEmpty() ? jiraRes : ""));
+        if (!Strings.isNullOrEmpty(ticketId)) {
+            jiraRes = helper.notifyJira(srvId, prov, suiteId, branchForTc, "ignite-" + ticketId);
+
+            return new SimpleResult(jiraRes);
+        }
         else
-            // TODO Write catched exceptions to the response.
             return new SimpleResult("JIRA wasn't commented." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
 
@@ -140,7 +151,6 @@ public class TriggerBuild {
      * @param srvId Server id.
      * @param branchForTc Branch for TeamCity.
      * @param ticketId JIRA ticket number.
-     * @param helper Helper.
      * @param teamcity TeamCity.
      * @param build Build.
      * @param prov Credentials.
@@ -150,22 +160,28 @@ public class TriggerBuild {
         String srvId,
         String branchForTc,
         @Nullable String ticketId,
-        ITcHelper helper,
         ITeamcity teamcity,
         Build build,
         ICredentialsProv prov
     ) {
         if (F.isEmpty(ticketId)) {
-            PullRequest pr = teamcity.getPullRequest(branchForTc);
+            try {
+                PullRequest pr = teamcity.getPullRequest(branchForTc);
 
-            ticketId = getTicketId(pr);
+                ticketId = getTicketId(pr);
 
-            if (ticketId.isEmpty()) {
+                if (ticketId.isEmpty()) {
+                    return "JIRA ticket will not be notified after the tests are completed - " +
+                        "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
+                        " Please, rename PR according to the" +
+                        " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
+                        "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>.";
+                }
+            }
+            catch (Exception e) {
                 return "JIRA ticket will not be notified after the tests are completed - " +
-                    "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
-                    " Please, rename PR according to the" +
-                    " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
-                    "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>.";
+                    "exception happened when server tried to get ticket ID from Pull Request [errMsg=" +
+                    e.getMessage() + ']';
             }
         }
 

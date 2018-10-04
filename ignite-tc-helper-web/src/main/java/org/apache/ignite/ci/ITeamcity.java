@@ -18,6 +18,7 @@
 package org.apache.ignite.ci;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -37,7 +38,6 @@ import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
@@ -314,8 +314,11 @@ public interface ITeamcity {
      * @param ticket JIRA ticket full name.
      * @param comment Comment to be placed in the ticket conversation.
      * @return {@code True} if ticket was succesfully commented. Otherwise - {@code false}.
+     *
+     * @throws IOException If failed to comment JIRA ticket.
+     * @throws IllegalStateException If can't find URL to the JIRA.
      */
-    boolean sendJiraComment(String ticket, String comment);
+    String sendJiraComment(String ticket, String comment) throws IOException;
 
     /**
      * @param url URL for git integration.
