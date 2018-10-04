@@ -130,17 +130,30 @@
         <td style="text-align: center;"><svg id="graphEC1" width="500" height="200"></svg></td>
         <td style="text-align: center;"><svg id="graphEC2" width="500" height="200"></svg></td>
     </tr>
-    <tr><td class="field"><p>MERGED FAILED TESTS</p><br><button id="bt" onclick="compareHandler()" style="width: 70%; display: block; margin: auto; word-wrap: break-word"><p id="btt">CompareMode</p></button></br></td>
-        <td></td>
-        <td style="padding:5%; word-wrap:break-word; vertical-align: top;" class="data1" id="MT1" ></td>
-        <td style="padding:5%; word-wrap:break-word; vertical-align: top;" class="data2" id="MT2"></td>
-    </tr>
 </table><br>
+<table style="table-layout: fixed; width: 100%" id="mainTable">
+    <tbody>
+    <tr>
+        <th class="section" width="15%" style="text-align: left">FAILED TESTS</th>
+        <th width="5%" style="word-break: break-word">
+            <button onclick="compareHandler()" style="width: 100%"><p id="btt"></p></button>
+        </th>
+        <th style="text-align: center;" width="40%"></th>
+        <th style="text-align: center;" width="40%"></th>
+    </tr>
+    </tbody>
+</table>
+
 <div id="version"></div>
 <script>
     let oneWeekAgo = new Date();
     let twoWeekAgo = new Date();
     let g_updTimer = null;
+    let fullTestsResults = {1 : {}, 2 : {} };
+    let compareModeTableHtml = null;
+    let fullModeTableHtml = null;
+    let compareMode = false;
+    let needTestsToUpdate = true;
 
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     twoWeekAgo.setDate(twoWeekAgo.getDate() - 14);
@@ -184,144 +197,139 @@
         el.style.display = el.style.display == 'block' ? 'none' : 'block';
     }
 
-    function printTests(num, result) {
-        let obj = {};
+    function printTests(results) {
+        console.info(results);
+        let mergedSuites = new Set();
 
-        try {
-            obj = JSON.parse(result);
-        } catch (e) {
-            showErrInLoadStatus
-
-            return;
+        for (key of Object.keys(results)) {
+            for (let suite of Object.keys(results[key]))
+                mergedSuites.add(suite);
         }
 
-        if (obj == null)
-            return;
+        let table = document.getElementById("mainTable");
 
-        let tests = getTests(obj, num);
 
-        window.sessionStorage.setItem('tests' + num, tests);
+        for(let i = table.rows.length - 1; i > 0; i--) {
+            table.deleteRow(i);
+        }
 
-        $('#MT' + num).html(tests);
+        let markedRow = true;
+
+        for (let s of Array.from(mergedSuites).sort()) {
+            let suiteName = s.split('_').filter((value, index) => index != 0).join('_');
+
+            let row = table.insertRow();
+
+            if (markedRow)
+                row.setAttribute("style", "background-color: #fafaff");
+
+            let suite = row.insertCell();
+
+            suite.setAttribute("style", "padding: 15px; word-wrap:break-word; vertical-align: top; padding-left:15px");
+
+            suite.innerHTML = suiteName;
+
+            let ctx = row.insertCell();
+
+            for (let key of Object.keys(results)) {
+                let result = row.insertCell();
+
+                result.setAttribute("style", "padding: 5px; word-wrap:break-word; vertical-align: top; padding-left:15px");
+
+                result.innerHTML = getSuite(results, s, key);
+            }
+
+            markedRow = !markedRow;
+        }
     }
 
     function compareHandler() {
-        var compareMode = window.sessionStorage.compareMode;
+        compareMode = !compareMode;
 
-        var needTestsUpdate = window.sessionStorage.needTestsUpdate;
+        if (!compareMode) {
+            compareModeTableHtml = $('#mainTable').prop('innerHTML');
 
-        if (needTestsUpdate == 'true') {
-            let result1 = window.sessionStorage.result1;
+            $('#mainTable').html(fullModeTableHtml);
 
-            let result2 = window.sessionStorage.result2;
+            $('#btt').html("Unique");
 
-            if (result1 == null || result2 == null) {
-                alert("Two columns should be loaded for compareMode!");
-
-                return;
-            }
-
-            let obj1 = {};
-
-            let obj2 = {};
-
-            try {
-                obj1 = JSON.parse(result1);
-
-                obj2 = JSON.parse(result2);
-            } catch (e) {
-                showErrInLoadStatus
-            }
-
-            window.sessionStorage.uniqTests1 = getUniqueTests(obj1, obj2, 1);
-
-            window.sessionStorage.uniqTests2 = getUniqueTests(obj2, obj1, 2);
-
-            window.sessionStorage.needTestsUpdate = 'false';
+            return
         }
 
-        if (compareMode == 'true') {
-            $('#btt').html("CompareMode");
+        fullModeTableHtml = $('#mainTable').prop('innerHTML');
 
-            $('#MT1').html(window.sessionStorage.tests1);
+        if (needTestsToUpdate) {
+            printTests(generateCompareTestsResult(fullTestsResults));
 
-            $('#MT2').html(window.sessionStorage.tests2);
+            needTestsToUpdate = false;
+        } else
+            $('#mainTable').html(compareModeTableHtml);
 
-            window.sessionStorage.compareMode = 'false';
-        } else {
-            $('#btt').html("FullMode");
-
-            $('#MT1').html(window.sessionStorage.uniqTests1);
-
-            $('#MT2').html(window.sessionStorage.uniqTests2);
-
-            window.sessionStorage.compareMode = 'true';
-        }
+        $('#btt').html("Full");
 
     }
 
-    function getUniqueTests(obj1, obj2, num) {
-        let uniqObj = {};
+    function generateCompareTestsResult(results) {
+        let compareTestsResult = {};
 
-        let suites = Object.keys(obj1);
+        for (let key of  Object.keys(results)) {
+            let uniqueObj = {};
 
-        for (let suite of suites) {
-            if (!obj2.hasOwnProperty(suite)) {
-                uniqObj[suite] = obj1[suite];
+            for (let suite of  Object.keys(results[key])) {
+                let allSuites = [];
 
-                continue;
+                for (let key2 of Object.keys(results)) {
+                    if (key == key2)
+                        continue;
+
+                    allSuites = allSuites.concat(results[key2][suite]);
+                }
+
+                let uniqTests = results[key][suite].filter(function (obj) {
+                    return allSuites.indexOf(obj) == -1;
+                });
+
+                uniqueObj[suite] = uniqTests;
             }
 
-            let tests = obj2[suite];
-
-            let uniqTests = [];
-
-            for (let v of obj1[suite])
-                if (!tests.includes(v, 0))
-                    uniqTests.push(v);
-
-            if (uniqTests.length != 0)
-                uniqObj[suite] = uniqTests;
+            compareTestsResult[key] = uniqueObj;
         }
 
-        return getTests(uniqObj, num);
+        return compareTestsResult;
     }
 
-    function getTests(obj, num) {
+    function getSuite(results, suite, key) {
         let res = '<body>';
 
-        let suites = Object.keys(obj).sort();
-
-        for (let suite of suites) {
-            let suiteName = suite.split('_').filter((value, index) => index != 0).join('_');
-
-            res += '<div align="left" style="cursor: pointer" class="suite" onclick="ch_disp(\'' + suite + num + '\')"' +
-                '<p><b>' + suiteName + '</b>' + ' (' + obj[suite].length + ')</p>' +
-                '</div>\n' +
-                '<div  id="' + suite + num + '"style="cursor: default; margin-left: 10px; display:none">';
-
-            for (let v of obj[suite].sort()) {
-                let list = v.toString().split(".");
-
-                if (list.length < 2)
-                    list = v.toString().split(":");
-
-                let testName = list.pop();
-
-                let testClass = list.pop();
-
-                res += '<p align="left" title="' + v + '">'
-                    + testClass + '.' + testName + ' ' +
-                    '<a href="#" onclick="getTestRef(\'' + v + '\')">' +
-                    '&gt&gt</a>' +
-                    '</p>'
-            }
-
-            res += '</div>';
+        if (!results[key].hasOwnProperty(suite) || results[key][suite].length == 0) {
+            return '';
         }
 
-        res += '</body>';
+        res += '<div align="center" style="cursor: pointer" class="suite" onclick="ch_disp(\'' + suite + key + '\')"' +
+            '<p><b> (' + results[key][suite].length + ')</p>' +
+            '</div>\n' +
+            '<div  id="' + suite + key + '"style="cursor: default; margin-left: 10px; display:none">';
 
+
+        for (let v of results[key][suite].sort()) {
+            let list = v.toString().split(".");
+
+            if (list.length < 2)
+                list = v.toString().split(":");
+
+            let testName = list.pop();
+
+            let testClass = list.pop();
+
+            res += '<p align="left" title="' + v + '">'
+                + testClass + '.' + testName + ' ' +
+                '<a href="#" onclick="getTestRef(\'' + v + '\')">' +
+                '&gt&gt</a>' +
+                '</p>'
+        }
+
+        res += '</div></body>';
+        
         return res;
     }
 
@@ -421,6 +429,10 @@
     }
 
     $(document).ready(function() {
+        $('#btt').html("Unique");
+
+        compareModeTableHtml =  $('#mainTable').prop('innerHTML');
+
         loadData(1, moment(oneWeekAgo), moment());
 
         loadData(2, moment(twoWeekAgo), moment(oneWeekAgo));
@@ -476,30 +488,25 @@
     function loadData(num, sinceDate, untilDate) {
         loadGif(num);
 
-        window.sessionStorage.removeItem("result" + num);
+        $('#btt').html("Unique");
 
-        window.sessionStorage.removeItem("tests" + num);
+        compareMode = false;
 
-        window.sessionStorage.needTestsUpdate = 'true';
+        needTestsToUpdate = true;
 
-        window.sessionStorage.compareMode = 'false';
-
-        $('#MT1').html(window.sessionStorage.tests1);
-
-        $('#MT2').html(window.sessionStorage.tests2);
-
-        $('#btt').html("CompareMode");
-
-        $.ajax(
-            {
+        $.ajax({
                 url: 'rest/build/history?sinceDate=' + sinceDate.format("DDMMYYYY") +
-                '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959',
+                    '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959',
                 success: function (result) {
-                    window.sessionStorage.setItem('result' + num, result.mergedTestsResult);
-
                     printStatistics(num, result.buildsStatistics, sinceDate, untilDate);
 
-                    printTests(num, result.mergedTestsResult);
+                    try {
+                        fullTestsResults[num] = JSON.parse(result.mergedTestsResult);
+                    } catch (e) {
+
+                    }
+
+                    printTests(fullTestsResults);
                 },
                 error: showErrInLoadStatus
             }
