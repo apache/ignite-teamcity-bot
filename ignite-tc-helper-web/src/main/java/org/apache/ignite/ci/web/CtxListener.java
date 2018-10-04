@@ -18,7 +18,6 @@
 package org.apache.ignite.ci.web;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -45,14 +44,10 @@ import org.jetbrains.annotations.Nullable;
 public class CtxListener implements ServletContextListener {
     private static final String TC_HELPER = "tcHelper";
 
-
     public static final String UPDATER = "updater";
 
+    /** Javax.Injector property code for servlet context. */
     public static final String INJECTOR = "injector";
-
-    public static Ignite getIgnite(ServletContext ctx) {
-        return getInjector(ctx).getInstance(Ignite.class);
-    }
 
     public static ITcHelper getTcHelper(ServletContext ctx) {
         return (ITcHelper)ctx.getAttribute(TC_HELPER);
@@ -74,7 +69,9 @@ public class CtxListener implements ServletContextListener {
         return tcHelper.server(srvId, creds);
     }
 
+    /** {@inheritDoc} */
     @Override public void contextInitialized(ServletContextEvent sctxEvt) {
+        initLoggerBridge();
         IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
         Injector injectorPreCreated = Guice.createInjector(igniteTcBotModule);
 
@@ -96,6 +93,20 @@ public class CtxListener implements ServletContextListener {
         ctx.setAttribute(TC_HELPER, tcHelper);
     }
 
+    /**
+     * initializes logger bridgle for jul->Slf4j redirection for Jersey.
+     */
+    private void initLoggerBridge() {
+        java.util.logging.Logger rootLog = java.util.logging.LogManager.getLogManager().getLogger("");
+        java.util.logging.Handler[] handlers = rootLog.getHandlers();
+
+        for (int i = 0; i < handlers.length; i++)
+            rootLog.removeHandler(handlers[i]);
+
+        org.slf4j.bridge.SLF4JBridgeHandler.install();
+    }
+
+    /** {@inheritDoc} */
     @Override public void contextDestroyed(ServletContextEvent sctxEvt) {
         final ServletContext ctx = sctxEvt.getServletContext();
 
