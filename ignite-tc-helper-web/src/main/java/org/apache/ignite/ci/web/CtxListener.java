@@ -42,15 +42,11 @@ import org.jetbrains.annotations.Nullable;
 /**
  */
 public class CtxListener implements ServletContextListener {
-    private static final String TC_HELPER = "tcHelper";
-
-    public static final String UPDATER = "updater";
-
     /** Javax.Injector property code for servlet context. */
     public static final String INJECTOR = "injector";
 
     public static ITcHelper getTcHelper(ServletContext ctx) {
-        return (ITcHelper)ctx.getAttribute(TC_HELPER);
+        return getInjector(ctx).getInstance(ITcHelper.class);
     }
 
     public static Injector getInjector(ServletContext ctx) {
@@ -58,7 +54,7 @@ public class CtxListener implements ServletContextListener {
     }
 
     public static BackgroundUpdater getBackgroundUpdater(ServletContext ctx) {
-        return (BackgroundUpdater)ctx.getAttribute(UPDATER);
+        return getInjector(ctx).getInstance(BackgroundUpdater.class);
     }
 
     public static IAnalyticsEnabledTeamcity server(@QueryParam("serverId") @Nullable String srvId,
@@ -83,14 +79,6 @@ public class CtxListener implements ServletContextListener {
         final ServletContext ctx = sctxEvt.getServletContext();
 
         ctx.setAttribute(INJECTOR, injector);
-
-        final ITcHelper tcHelper = injector.getInstance(TcHelper.class);
-
-        BackgroundUpdater backgroundUpdater = new BackgroundUpdater(tcHelper);
-
-        ctx.setAttribute(UPDATER, backgroundUpdater);
-
-        ctx.setAttribute(TC_HELPER, tcHelper);
     }
 
     /**
