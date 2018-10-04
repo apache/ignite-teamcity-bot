@@ -326,8 +326,10 @@ function _fillGitUrls(result) {
  * @private
  */
 function _sendRequestsToFillAutocompleteLists() {
-    for (var entry of gitUrls.entries())
-        scriptRequest(entry[1] + "pulls?sort=updated&direction=desc", _fillBranchAutocompleteList);
+    for (var entry of gitUrls.entries()) {
+        if (entry[1])
+            scriptRequest(entry[1] + "pulls?sort=updated&direction=desc", _fillBranchAutocompleteList);
+    }
 }
 
 /**
