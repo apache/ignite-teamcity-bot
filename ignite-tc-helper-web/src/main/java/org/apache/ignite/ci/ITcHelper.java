@@ -18,13 +18,11 @@
 package org.apache.ignite.ci;
 
 import java.util.List;
-import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 
 /**
@@ -42,7 +40,6 @@ public interface ITcHelper extends ITcServerProvider {
     IssuesStorage issues();
 
     IssueDetector issueDetector();
-
 
     ITcAnalytics tcAnalytics(String serverId);
 
@@ -62,5 +59,5 @@ public interface ITcHelper extends ITcServerProvider {
      * @param ticket JIRA ticket full name.
      * @return {@code True} if JIRA was notified.
      */
-    boolean notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc, String ticket);
+    String notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc, String ticket);
 }
