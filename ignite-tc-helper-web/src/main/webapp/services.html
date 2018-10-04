@@ -37,6 +37,7 @@ function loadData() {
         success: function(result) {
             $("#loadStatus").html("");
             showSuitesForTeamCityRunData(result);
+            showFormAndSuitesForPrCheck(result);
             tryToFillAutocompleteLists();
             showCommentJiraForm(result);
         },
@@ -155,17 +156,42 @@ function jiraTicketNumber(ticket) {
 
     return regExpr.exec(ticket)[2];
 }
+
+function showFormAndSuitesForPrCheck(result) {
+    var res = "";
+
+    for (var i = 0; i < result.length; i++) {
+        var chainAtServer = result[i];
+
+        res += "<form action='pr.html'>";
+        res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId + " readonly>";
+        res += "Chain: <input type='text' name='suiteId' value=" + chainAtServer.suiteId + ">";
+        res += "Base branch: <input class='branchForTc" + chainAtServer.serverId +
+            "' type='text' name='baseBranchForTc'  title='Etalon branch, e.g refs/heads/master'> ";
+        res += "<b>Branch:</b> <input class='branchForTc" + chainAtServer.serverId +
+            "' type='text' name='branchForTc' title='Tested branch, e.g. pull/4790/head or ignite-9349' required> ";
+        res += "<input type='submit' name='action' value='Latest' title='Show latest runs'>";
+        // res+="<input type='submit' name='action' value='Chain'>";
+        res += "<input type='submit' name='action' value='History' title='Show last 10 runs merged'>";
+        res += "</form>";
+    }
+
+    $("#suitesForPrCheck").html(res);
+}
     </script>
 </head>
 <body>
 <div id="loadStatus"></div>
 
-Trigger TeamCity Run All:   <br>
+Trigger new TeamCity Run All for a PR/Branch:  <br>
 <div id="suitesForRunAll"></div>
-<br>
+<br><br>
 
-Notify JIRA:   <br>
-<div id="notifyJira"></div>
+Notify JIRA (save TC Bot visa to a ticket comment):  <br>
+<div id="notifyJira"></div><br>
+
+See results of branch/PR TeamCity Run All:  <br>
+<div id="suitesForPrCheck"></div>
 
 <!--Notify GitHub:   <br>
 <div id="notifyGitHub">

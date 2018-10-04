@@ -42,7 +42,7 @@ function loadData() {
         url: "rest/branches/suites",
         success: function(result) {
             $("#loadStatus").html("");
-            showSuitesForPrCheckData(result);
+            showFormAndSuitesForPrCheck(result);
             tryToFillAutocompleteLists();
         },
         error: showErrInLoadStatus
@@ -78,7 +78,7 @@ function showCurrentBranchesData(result) {
     $("#branchesStatus").html(res);
 }
 
-function showSuitesForPrCheckData(result) {
+function showFormAndSuitesForPrCheck(result) {
     var res = "";
 
     for (var i = 0; i < result.length; i++) {
