@@ -186,6 +186,7 @@ public class TcBotTriggerAndSignOffService {
             ContributionToCheck check = new ContributionToCheck();
             check.prNumber = pr.getNumber();
             check.prTitle = pr.getTitle();
+            check.prHtmlUrl = pr.htmlUrl();
 
             GitHubUser user = pr.gitHubUser();
             if (user != null)

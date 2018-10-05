@@ -33,6 +33,8 @@ public class PullRequest {
     /** Pull Request title. */
     private String title;
 
+    @SerializedName("html_url") private String htmlUrl;
+
     /** Pull Request statuses URL. */
     @SerializedName("statuses_url") private String statusesUrl;
 
@@ -72,6 +74,13 @@ public class PullRequest {
      */
     public GitHubUser gitHubUser() {
         return gitHubUser;
+    }
+
+    /**
+     * @return Html url.
+     */
+    public String htmlUrl() {
+        return htmlUrl;
     }
 
     @Override public String toString() {

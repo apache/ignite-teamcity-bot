@@ -97,8 +97,15 @@
                 //"dom": '<"wrapper"flipt>',
                 columns: [
                     {
-                        "data": "prNumber",
-                        title: "PR Number"
+                        "data": "prHtmlUrl",
+                        title: "PR Number",
+                        "render": function(data, type, row, meta){
+                            if(type === 'display'){
+                                data = "<a href='"+data+"'>"+row.prNumber+"</a>";
+                            }
+
+                            return data;
+                        }
                     }
                     , {
                         "data": "prTitle",

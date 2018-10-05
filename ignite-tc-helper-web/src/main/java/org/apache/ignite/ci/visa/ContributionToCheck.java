@@ -23,4 +23,5 @@ public class ContributionToCheck {
     public Integer prNumber;
     public String prTitle;
     public String prAuthor;
+    public String prHtmlUrl;
 }
