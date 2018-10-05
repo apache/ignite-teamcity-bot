@@ -16,36 +16,27 @@
  */
 package org.apache.ignite.ci.github;
 
+import com.google.common.base.Preconditions;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
+import org.junit.Test;
 
-public interface IGitHubConnection {
+public class PrsParseTest {
 
-    void init(String srvId);
+    @Test
+    public void parse() {
+        InputStream stream = this.getClass().getResourceAsStream("/prsList.json");
+        Preconditions.checkNotNull(stream, "Can't find resource");
+        Type listType = new TypeToken<ArrayList<PullRequest>>(){}.getType();
+        List<PullRequest> list = new Gson().fromJson(new InputStreamReader(stream), listType);
 
-    /**
-     * @param branch TeamCity's branch name. Looks like "pull/123/head".
-     * @return Pull Request.
-     */
-    PullRequest getPullRequest(String branch);
-
-    /**
-     * Send POST request with given body.
-     *
-     * @param url Url.
-     * @param body Request body.
-     * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
-     */
-    boolean notifyGit(String url, String body);
-
-    /**
-     * @return {@code True} if GitHub authorization token is available.
-     */
-    boolean isGitTokenAvailable();
-
-    /**
-     * @return URL for git integration.
-     */
-    String gitApiUrl();
-
-    List<PullRequest> getPullRequests();
+        System.out.println(list.size());
+        System.out.println(list);
+    }
 }

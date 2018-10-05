@@ -87,19 +87,19 @@
                 data: result,
                 bSort: false,
                 order: [[0, 'asc']],
-                columns: [{
-                    "data": "prNumber",
-                    title: "PR Number"
-                }
-                //,
-                   /* {
-                        "data": "serviceLogin",
-                        title: "login"
+                columns: [
+                    {
+                        "data": "prNumber",
+                        title: "PR Number"
+                    }
+                    , {
+                        "data": "prTitle",
+                        title: "prTitle"
                     },
                     {
-                        "data": "servicePassword",
-                        title: "Password"
-                    }*/
+                        "data": "prAuthor",
+                        title: "prAuthor"
+                    }
                 ]
             });
         }
@@ -244,7 +244,9 @@
         <table id="serverContributions-apache" class="ui-widget ui-widget-content">
             <thead>
             <tr class="ui-widget-header ">
-                <th>PR number</th>
+                <th>PR Number</th>
+                <th>PR Title</th>
+                <th>PR Author</th>
                 <!--
                 <th>Login</th>
                 <th>Password</th>-->

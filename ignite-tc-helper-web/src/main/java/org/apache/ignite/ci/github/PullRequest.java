@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.github;
 
+import com.google.common.base.MoreObjects;
 import com.google.gson.annotations.SerializedName;
 
 /**
@@ -34,6 +35,9 @@ public class PullRequest {
 
     /** Pull Request statuses URL. */
     @SerializedName("statuses_url") private String statusesUrl;
+
+    @SerializedName("user")
+    private GitHubUser gitHubUser;
 
     /**
      * @return Pull Request number.
@@ -61,5 +65,21 @@ public class PullRequest {
      */
     public String getStatusesUrl() {
         return statusesUrl;
+    }
+
+    /**
+     * @return Git hub user.
+     */
+    public GitHubUser gitHubUser() {
+        return gitHubUser;
+    }
+
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("num", num)
+            .add("state", state)
+            .add("title", title)
+            .add("statusesUrl", statusesUrl)
+            .toString();
     }
 }

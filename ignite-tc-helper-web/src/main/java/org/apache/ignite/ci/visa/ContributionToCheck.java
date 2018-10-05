@@ -20,5 +20,7 @@ package org.apache.ignite.ci.visa;
  *
  */
 public class ContributionToCheck {
-    public String prNumber;
+    public Integer prNumber;
+    public String prTitle;
+    public String prAuthor;
 }

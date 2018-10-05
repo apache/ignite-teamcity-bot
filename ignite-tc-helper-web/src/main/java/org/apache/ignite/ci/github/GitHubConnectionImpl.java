@@ -18,13 +18,15 @@ package org.apache.ignite.ci.github;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -106,26 +108,26 @@ class GitHubConnectionImpl implements IGitHubConnection {
         return gitAuthTok != null;
     }
 
-    /**
-     * @return URL for git integration.
-     */
-    public String gitApiUrl() {
+    /** {@inheritDoc} */
+    @Override public String gitApiUrl() {
         return gitApiUrl;
     }
 
-    @Override public void getPullRequests() {
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public List<PullRequest> getPullRequests() {
         Preconditions.checkState( !isNullOrEmpty(gitApiUrl) , "Git API URL is not configured for this server.");
 
         String s = gitApiUrl + "pulls?sort=updated&direction=desc";
 
-        if(s!=null)
-        return;
-        try( InputStream stream = HttpUtil.sendGetToGit(gitAuthTok, s )){
-           ;
-            InputStreamReader reader = new InputStreamReader(stream);
-            HashMap<String, Object> map = new Gson().fromJson(reader, HashMap .class);
 
-            System.out.println(map);
+        try (InputStream stream = HttpUtil.sendGetToGit(gitAuthTok, s)) {
+            InputStreamReader reader = new InputStreamReader(stream);
+            Type listType = new TypeToken<ArrayList<PullRequest>>() {
+            }.getType();
+            List<PullRequest> list = new Gson().fromJson(reader, listType);
+
+            return list;
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);

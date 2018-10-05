@@ -21,10 +21,12 @@ import com.google.common.base.Strings;
 import com.google.inject.Provider;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.IGitHubConnection;
 import org.apache.ignite.ci.github.IGitHubConnectionProvider;
 import org.apache.ignite.ci.github.PullRequest;
@@ -176,8 +178,20 @@ public class TcBotTriggerAndSignOffService {
 
     public List<ContributionToCheck> getContributionsToCheck(String srvId) {
         IGitHubConnection gitHubConn = gitHubConnectionProvider.server(srvId, null);
-        gitHubConn.getPullRequests();
+        List<PullRequest> requests = gitHubConn.getPullRequests();
+        if (requests == null)
+            return null;
 
-        return Collections.singletonList(new ContributionToCheck());
+        return requests.stream().map(pr -> {
+            ContributionToCheck check = new ContributionToCheck();
+            check.prNumber = pr.getNumber();
+            check.prTitle = pr.getTitle();
+
+            GitHubUser user = pr.gitHubUser();
+            if (user != null)
+                check.prAuthor = user.login;
+
+            return check;
+        }).collect(Collectors.toList());
     }
 }
