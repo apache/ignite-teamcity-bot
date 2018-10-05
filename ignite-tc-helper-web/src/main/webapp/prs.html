@@ -29,6 +29,11 @@
             $( "#accordion" ).accordion({
                 heightStyle: "fill"
             });
+            $(window).resize(function(){
+                // update accordion height
+                $( ".accordion" ).accordion( "resize" )
+            });
+
             loadData();
         });
 
@@ -69,24 +74,27 @@
             if (srvId != "apache")
                 return;
 
-            let tableForSrv = $('#serverContributions-' + srvId);
+
             $.ajax({
                 url: "rest/visa/contributions?serverId="+srvId,
                 success:
                     function (result) {
-                        showTable(tableForSrv, result)
+                        showTable(result, srvId)
                     }
             });
         }
 
-        function showTable(tableForSrv, result) {
+        function showTable(  result, srvId) {
 
-                tableForSrv.dataTable().fnDestroy();
+            let tableForSrv = $('#serverContributions-' + srvId);
+
+            tableForSrv.dataTable().fnDestroy();
 
             tableForSrv.DataTable({
                 data: result,
-                bSort: false,
-                order: [[0, 'asc']],
+                //"iDisplayLength": 100,
+                //"dom": '<lf<t>ip>',
+                //"dom": '<"wrapper"flipt>',
                 columns: [
                     {
                         "data": "prNumber",
@@ -94,11 +102,26 @@
                     }
                     , {
                         "data": "prTitle",
-                        title: "prTitle"
+                        title: "Title"
                     },
                     {
                         "data": "prAuthor",
-                        title: "prAuthor"
+                        title: "Author"
+                    },
+                    {
+                        "data": "prNumber",
+                        title: "Existing RunAll",
+                        "render": function(data, type, row, meta){
+                            if(type === 'display'){
+                                data = '<a href="/pr.html?serverId='+srvId+'&' +
+                                     //todo customizable suite
+                                    'suiteId=IgniteTests24Java8_RunAll' +
+                                     //'&baseBranchForTc=' +
+                                    '&branchForTc=pull%2F' +data+ '%2Fhead&action=Latest"><button>Check build for pull/' + data + '/head</button></a>';
+                            }
+
+                            return data;
+                        }
                     }
                 ]
             });
@@ -244,9 +267,10 @@
         <table id="serverContributions-apache" class="ui-widget ui-widget-content">
             <thead>
             <tr class="ui-widget-header ">
-                <th>PR Number</th>
-                <th>PR Title</th>
-                <th>PR Author</th>
+                <th>...</th>
+                <th>Loading</th>
+                <th>...</th>
+                <th>.</th>
                 <!--
                 <th>Login</th>
                 <th>Password</th>-->
