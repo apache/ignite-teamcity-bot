@@ -124,11 +124,13 @@ function showChainCurrentStatusData(server, settings) {
     if (suitesFailedList.length !== 0 && isDefinedAndFilled(server.serverId) && isDefinedAndFilled(server.branchName)) {
         mInfo += "Trigger failed " + cntFailed + " builds";
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + server.branchName + "\", false, false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" +
+            server.branchName + "\", false, false)' ";
         mInfo += " title='trigger builds'>in queue</a> ";
 
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + server.branchName + "\", true, false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" +
+            server.branchName + "\", true, false)' ";
         mInfo += " title='trigger builds'>on top</a><br>";
     }
 
@@ -188,10 +190,13 @@ function showChainCurrentStatusData(server, settings) {
         }
     }
 
-    res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" + server.branchName + "\", false, false)'> Re-run possible blockers</button>&nbsp;&nbsp;";
+        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" +
+            server.branchName + "\", false, false)'> Re-run possible blockers</button><br>";
 
-    res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" + server.branchName + "\", false, true)'> Re-run possible blockers & Comment JIRA</button>";
-
+    if (settings.isJiraAvailable()) {
+        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" +
+            server.branchName + "\", false, true)'> Re-run possible blockers & Comment JIRA</button><br>";
+    }
 
     if (isDefinedAndFilled(server.baseBranchForTc)) {
         // if (settings.isGithubAvailable())

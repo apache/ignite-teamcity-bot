@@ -78,7 +78,7 @@ public class TriggerBuild {
         Build build = teamcity.triggerBuild(suiteId, branchForTc, false, top != null && top);
 
         if (observe != null && observe)
-            jiraRes = observeJira(srvId, branchForTc, ticketId,  helper, teamcity, build, prov);
+            jiraRes = observeJira(srvId, branchForTc, ticketId,  teamcity, prov, build);
 
         return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
@@ -248,7 +248,7 @@ public class TriggerBuild {
         }
 
         if (observe != null && observe)
-            jiraRes = observeJira(srvId, branchName, ticketId, helper, teamcity, prov, buildList.toArray(new Build[0]));
+            jiraRes = observeJira(srvId, branchName, ticketId, teamcity, prov, buildList.toArray(new Build[0]));
 
         return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
