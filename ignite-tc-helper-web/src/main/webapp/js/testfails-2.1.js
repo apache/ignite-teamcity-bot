@@ -173,27 +173,25 @@ function showChainCurrentStatusData(server, settings) {
     if (settings.isJiraAvailable()) {
         res += "<button onclick='commentJira(\"" + server.serverId + "\", \"IgniteTests24Java8_RunAll\", \""
             + server.branchName + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
-    }
 
-    var blockersList = "";
+        var blockersList = "";
 
-    for (var i = 0; i < server.suites.length; i++) {
-        var suite = server.suites[i];
+        for (var i = 0; i < server.suites.length; i++) {
+            var suite = server.suites[i];
 
-        suite = suiteWithCriticalFailuresOnly(suite);
+            suite = suiteWithCriticalFailuresOnly(suite);
 
-        if (suite != null) {
-            if (blockersList.length !== 0)
-                blockersList += ",";
+            if (suite != null) {
+                if (blockersList.length !== 0)
+                    blockersList += ",";
 
-            blockersList += suite.suiteId;
+                blockersList += suite.suiteId;
+            }
         }
-    }
 
         res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" +
             server.branchName + "\", false, false)'> Re-run possible blockers</button><br>";
 
-    if (settings.isJiraAvailable()) {
         res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" +
             server.branchName + "\", false, true)'> Re-run possible blockers & Comment JIRA</button><br>";
     }

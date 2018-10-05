@@ -59,9 +59,6 @@ public class BuildObserver {
      * @param ticket JIRA ticket name.
      */
     public void observe(String srvId, ICredentialsProv prov, String ticket, Build... builds) {
-        if (builds.length == 1)
-            observerTask.builds.add(new BuildInfo(srvId, prov, ticket, builds[0]));
-        else
-            observerTask.builds.add(new BuildsInfo(srvId, prov, ticket, builds));
+        observerTask.builds.add(new BuildsInfo(srvId, prov, ticket, builds));
     }
 }

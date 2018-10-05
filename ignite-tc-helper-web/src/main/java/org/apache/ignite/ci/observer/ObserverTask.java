@@ -47,7 +47,7 @@ public class ObserverTask extends TimerTask {
     @Inject private IJiraIntegration jiraIntegration;
 
     /** Builds. */
-    final Queue<Info> builds;
+    final Queue<BuildsInfo> builds;
 
     /**
      */
@@ -75,7 +75,7 @@ public class ObserverTask extends TimerTask {
         int notFinishedBuilds = 0;
         Set<String> ticketsNotified = new HashSet<>();
 
-        for (Info info : builds) {
+        for (BuildsInfo info : builds) {
             checkedBuilds++;
             IAnalyticsEnabledTeamcity teamcity = srvProvider.server(info.srvId, info.prov);
 
