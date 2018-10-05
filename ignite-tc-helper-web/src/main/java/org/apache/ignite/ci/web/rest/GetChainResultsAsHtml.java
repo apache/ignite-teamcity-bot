@@ -48,14 +48,15 @@ import static javax.ws.rs.core.MediaType.TEXT_HTML;
 import static org.apache.ignite.internal.util.lang.GridFunc.isEmpty;
 
 /**
- * Created by Дмитрий on 10.02.2018.
+ *
  */
 @Path("chainResults")
 public class GetChainResultsAsHtml {
-
+    /** Servlet Context. */
     @Context
     private ServletContext ctx;
 
+    /** Current Request. */
     @Context
     private HttpServletRequest req;
     

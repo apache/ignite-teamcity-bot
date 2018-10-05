@@ -14,23 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity;
+package org.apache.ignite.ci.web.rest.exception;
 
-import org.apache.ignite.ci.IgniteTeamcityConnection;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Factory for non-guice creation of TC Connection instance.
+ * Logs exception stacktraces.
  */
-public class TcConnectionStaticLinker {
-    /**
-     * @param srv Server ID.
-     */
-    public static IgniteTeamcityConnection create(String srv) {
-        final IgniteTeamcityConnection conn = new IgniteTeamcityConnection();
+@Provider
+public class ExeptionsTraceLogger implements ExceptionMapper<Throwable> {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(ExeptionsTraceLogger.class);
 
-        conn.setHttpConn(new TeamcityRecordingConnection());
-        conn.init(srv);
-
-        return conn;
+    /** {@inheritDoc} */
+    @Override public javax.ws.rs.core.Response toResponse(Throwable t) {
+        logger.error("Error during processing request (Internal Server Error [500]). Caused by: ", t);
+        return javax.ws.rs.core.Response.serverError()
+            .entity(t.getMessage())
+            .build();
     }
 }

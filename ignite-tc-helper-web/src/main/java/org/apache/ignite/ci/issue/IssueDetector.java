@@ -435,7 +435,7 @@ public class IssueDetector {
     protected String checkFailuresEx(String brachName) {
         int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
 
-        tbProc.getTrackedBranchTestFailures(brachName,
+        TestFailuresSummary allHist = tbProc.getTrackedBranchTestFailures(brachName,
             false, buildsToQry, backgroundOpsCreds);
 
         TestFailuresSummary failures =

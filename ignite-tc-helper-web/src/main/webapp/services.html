@@ -15,6 +15,9 @@
     <script src="js/common-1.6.js"></script>
     <script src="js/testfails-2.1.js"></script>
 
+    <style>
+
+    </style>
     <script>
 $(document).ready(function() {
     $.getScript("js/common-1.6.js", function(data, textStatus, jqxhr){ });
@@ -37,9 +40,16 @@ function loadData() {
         success: function(result) {
             $("#loadStatus").html("");
             showSuitesForTeamCityRunData(result);
+            showFormAndSuitesForPrCheck(result);
+            tryToFillAutocompleteLists();
             showCommentJiraForm(result);
         },
         error: showErrInLoadStatus
+    });
+
+    $.ajax({
+        url: "rest/branches/getServerIds",
+        success: setupAutocompleteList
     });
 }
 
@@ -55,7 +65,8 @@ function showSuitesForTeamCityRunData(result) {
 
         res += "Server: <input type='text' name='serverId' value='" + chainAtServer.serverId + "' readonly>";
         res += "Chain: <input type='text' name='suiteId' value='" + chainAtServer.suiteId + "' readonly>";
-        res += "Branch: <input type='text' name='branchForTc' required> ";
+        res += "Branch: <input type='text' name='branchForTc' class='branchForTc" + chainAtServer.serverId +
+            "' required> ";
         res += "Ticket: <input type='text' name='ticketId'>";
         res += "<button name='jira' type='button' onclick='trigBuild(\"tests\")'>Start tests</button>";
         res += "<button name='jira' onclick='trigBuild(\"tests+jira\")'>Start tests and comment JIRA ticket on ready</button>";
@@ -85,12 +96,12 @@ function showCommentJiraForm(result) {
 
         res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId +" readonly>" ;
         res += "Chain: <input type='text' name='suiteId' value='" + chainAtServer.suiteId + "' readonly>";
-        res += "Branch: <input type='text' name='branchForTc' required> ";
+        res += "Branch: <input type='text' name='branchForTc' class='branchForTc" + chainAtServer.serverId +
+            "' required> ";
         res += "Ticket: <input type='text' name='ticketId'> ";
         res += "<button name='action' onclick='notifyJira()'>Notify</button>";
     }
 
-    //todo enabled this once feature is ready
     $("#notifyJira").html(res);
 }
 
@@ -148,17 +159,48 @@ function jiraTicketNumber(ticket) {
 
     return regExpr.exec(ticket)[2];
 }
+
+function showFormAndSuitesForPrCheck(result) {
+    var res = "";
+
+    for (var i = 0; i < result.length; i++) {
+        var chainAtServer = result[i];
+
+        res += "<form action='pr.html'>";
+        res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId + " readonly>";
+        res += "Chain: <input type='text' name='suiteId' value=" + chainAtServer.suiteId + ">";
+        res += "Base branch: <input class='branchForTc" + chainAtServer.serverId +
+            "' type='text' name='baseBranchForTc'  title='Etalon branch to take base data from, e.g refs/heads/master'> ";
+        res += "<b>Branch:</b> <input class='branchForTc" + chainAtServer.serverId +
+            "' type='text' name='branchForTc' title='Tested branch, e.g. pull/4790/head or ignite-9349' required> ";
+        res += "<input type='submit' name='action' value='Latest' title='Show latest runs'>";
+        // res+="<input type='submit' name='action' value='Chain'>";
+        res += "<input type='submit' name='action' value='History' title='Show last 10 runs merged'>";
+        res += "</form>";
+    }
+
+    $("#suitesForPrCheck").html(res);
+}
     </script>
 </head>
 <body>
 <div id="loadStatus"></div>
 
-Trigger TeamCity Run All:   <br>
-<div id="suitesForRunAll"></div>
+<div class="formgroup">
+    Trigger new TeamCity Run All for a PR/Branch: <br>
+    <div id="suitesForRunAll"></div>
+</div>
 <br>
 
-Notify JIRA:   <br>
-<div id="notifyJira"></div>
+<div class="formgroup">
+    Notify JIRA (save TC Bot visa to a ticket comment): <br>
+    <div id="notifyJira"></div>
+</div>
+<br>
+
+<br>Check results of branch/PR TeamCity Run All:
+<div id="suitesForPrCheck"></div>
+
 
 <!--Notify GitHub:   <br>
 <div id="notifyGitHub">

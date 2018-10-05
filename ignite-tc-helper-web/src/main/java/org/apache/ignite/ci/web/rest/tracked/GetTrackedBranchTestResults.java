@@ -43,11 +43,13 @@ public class GetTrackedBranchTestResults {
     public static final String TEST_FAILURES_SUMMARY_CACHE_NAME = "currentTestFailuresSummary";
     public static final String ALL_TEST_FAILURES_SUMMARY = "AllTestFailuresSummary";
 
+    /** Servlet Context. */
     @Context
     private ServletContext ctx;
 
+    /** Current Request. */
     @Context
-    private HttpServletRequest request;
+    private HttpServletRequest req;
 
     @GET
     @Path("updates")
@@ -76,7 +78,7 @@ public class GetTrackedBranchTestResults {
         param.setBranch(branchOrNull);
         param.setCheckAllLogs(checkAllLogs);
 
-        return updater.get(TEST_FAILURES_SUMMARY_CACHE_NAME, ICredentialsProv.get(request), param,
+        return updater.get(TEST_FAILURES_SUMMARY_CACHE_NAME, ICredentialsProv.get(req), param,
                 (k) -> getTestFailsNoCache(k.getBranch(), k.getCheckAllLogs()), true
         );
     }
@@ -88,7 +90,7 @@ public class GetTrackedBranchTestResults {
             @Nullable @QueryParam("branch") String branch,
             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
-        final ICredentialsProv creds = ICredentialsProv.get(request);
+        final ICredentialsProv creds = ICredentialsProv.get(req);
 
         final TrackedBranchChainsProcessor tbProc = CtxListener.getInjector(ctx).getInstance(TrackedBranchChainsProcessor.class);
 
@@ -116,7 +118,7 @@ public class GetTrackedBranchTestResults {
         fullKey.setCount(cnt == null ? FullQueryParams.DEFAULT_COUNT : cnt);
         fullKey.setCheckAllLogs(checkAllLogs != null && checkAllLogs);
 
-        final ICredentialsProv creds = ICredentialsProv.get(request);
+        final ICredentialsProv creds = ICredentialsProv.get(req);
         return updater.get(ALL_TEST_FAILURES_SUMMARY, creds,
                 fullKey,
                 k -> getAllTestFailsNoCache(
@@ -132,7 +134,7 @@ public class GetTrackedBranchTestResults {
     public TestFailuresSummary getAllTestFailsNoCache(@Nullable @QueryParam("branch") String branchOpt,
                                                       @QueryParam("count") Integer cnt,
                                                       @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        final ICredentialsProv creds = ICredentialsProv.get(request);
+        final ICredentialsProv creds = ICredentialsProv.get(req);
         int cntLimit = cnt == null ? FullQueryParams.DEFAULT_COUNT : cnt;
         final TrackedBranchChainsProcessor tbProc = CtxListener.getInjector(ctx).getInstance(TrackedBranchChainsProcessor.class);
 

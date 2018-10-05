@@ -17,7 +17,6 @@
 package org.apache.ignite.ci.teamcity;
 
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.slf4j.Logger;
@@ -26,19 +25,23 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
+/**
+ * Real implementation of login based on getting current user preferences from the server.
+ */
 public class TcLoginImpl implements ITcLogin {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TcLoginImpl.class);
 
-    @Inject
-    private Provider<ITeamcity> tcFactory;
+    /** Teamcity connection non-caching factory. */
+    @Inject private Provider<ITeamcity> tcFactory;
 
-    public  User checkServiceUserAndPassword(String serverId, String username, String password) {
+    /** {@inheritDoc} */
+    @Override public User checkServiceUserAndPassword(String srvId, String username, String pwd) {
         try {
             ITeamcity tcConn = tcFactory.get();
-            tcConn.init(serverId);
+            tcConn.init(srvId);
 
-            tcConn.setAuthData(username, password);
+            tcConn.setAuthData(username, pwd);
 
             final User tcUser = tcConn.getUserByUsername(username);
 
@@ -55,13 +58,15 @@ public class TcLoginImpl implements ITcLogin {
                 logger.info("TC user returned: " + tcUser);
 
             return tcUser;
-        } catch (ServiceUnauthorizedException e) {
-            final String msg = "Service " + serverId + " rejected credentials from " + username;
+        }
+        catch (ServiceUnauthorizedException e) {
+            final String msg = "Service " + srvId + " rejected credentials from " + username;
             System.err.println(msg);
 
             logger.warn(msg, e);
             return null;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             logger.error("Unexpected login exception", e);
 

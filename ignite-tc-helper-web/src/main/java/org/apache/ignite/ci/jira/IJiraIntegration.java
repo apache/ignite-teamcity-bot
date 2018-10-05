@@ -23,6 +23,9 @@ import org.apache.ignite.ci.user.ICredentialsProv;
  *
  */
 public interface IJiraIntegration {
+    /** Message to show user when JIRA ticket was successfully commented by the Bot. */
+    public static String JIRA_COMMENTED = "JIRA commented.";
+
     /**
      * @param srvId TC Server ID to take information about token from.
      * @param prov Credentials.
@@ -31,6 +34,6 @@ public interface IJiraIntegration {
      * @param ticket JIRA ticket full name.
      * @return {@code True} if JIRA was notified.
      */
-    public boolean notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
+    public String notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
         String ticket);
 }

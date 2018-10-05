@@ -52,7 +52,8 @@ public class ThreadDumpInMemoryHandler implements ILineHandler {
         }
     }
 
-    @Override public void close() throws Exception {
+    /** {@inheritDoc} */
+    @Override public void close() {
         closeCurrentIfNeed();
     }
 

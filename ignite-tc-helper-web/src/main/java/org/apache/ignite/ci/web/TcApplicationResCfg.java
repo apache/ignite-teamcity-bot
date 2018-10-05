@@ -18,20 +18,28 @@
 package org.apache.ignite.ci.web;
 
 import org.apache.ignite.ci.web.auth.AuthenticationFilter;
+import org.apache.ignite.ci.web.rest.exception.ExeptionsTraceLogger;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
+import org.glassfish.jersey.filter.LoggingFilter;
 import org.glassfish.jersey.logging.LoggingFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 
+/**
+ * Resource config for Jersey Application
+ */
 public class TcApplicationResCfg extends ResourceConfig {
-
+    /**
+     * Default constructor.
+     */
     public TcApplicationResCfg() {
         //Register Auth Filter here
         register(AuthenticationFilter.class);
 
-        register(LoggingFeature.class);
-
         register(ServiceUnauthorizedException.class);
         register(ServiceStartingException.class);
+
+        register(LoggingFeature.class);
+        register(ExeptionsTraceLogger.class);
     }
 }

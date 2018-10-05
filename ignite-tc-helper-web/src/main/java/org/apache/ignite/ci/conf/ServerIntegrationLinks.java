@@ -14,23 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity;
 
-import org.apache.ignite.ci.IgniteTeamcityConnection;
+package org.apache.ignite.ci.conf;
 
 /**
- * Factory for non-guice creation of TC Connection instance.
+ *
  */
-public class TcConnectionStaticLinker {
+public class ServerIntegrationLinks {
+    /** Server ID. */
+    public final String srvId;
+
+    /** URL for git integration. */
+    public final String gitApiUrl;
+
+    /** URL for JIRA integration. */
+    public final String jiraApiUrl;
+
     /**
-     * @param srv Server ID.
+     * @param srvId Server ID.
+     * @param gitApiUrl URL for git integration.
+     * @param jiraApiUrl URL for JIRA integration.
      */
-    public static IgniteTeamcityConnection create(String srv) {
-        final IgniteTeamcityConnection conn = new IgniteTeamcityConnection();
-
-        conn.setHttpConn(new TeamcityRecordingConnection());
-        conn.init(srv);
-
-        return conn;
+    public ServerIntegrationLinks(String srvId, String gitApiUrl, String jiraApiUrl) {
+        this.srvId = srvId;
+        this.gitApiUrl = gitApiUrl;
+        this.jiraApiUrl = jiraApiUrl;
     }
 }

@@ -210,3 +210,161 @@ function tcHelperLogout() {
     } catch (e) {
     }
 }
+
+/**
+ * Change autocomplete filter to show results only when they starts from written text.
+ */
+$.ui.autocomplete.filter = function (array, term) {
+    var matcher = new RegExp("^" + $.ui.autocomplete.escapeRegex(term), "i");
+
+    return $.grep(array, function (value) {
+        return matcher.test(value.label || value.value || value);
+    });
+};
+
+var callbackRegistry = {};
+
+/**
+ * Send request to another site.
+ *
+ * @param url URL.
+ * @param onSuccess Function for success response.
+ * @param onError Function for fail response.
+ */
+function scriptRequest(url, onSuccess, onError) {
+    var scriptOk = false;
+    var callbackName = 'cb' + String(Math.random()).slice(-6);
+
+    url += ~url.indexOf('?') ? '&' : '?';
+    url += 'callback=callbackRegistry.' + callbackName;
+
+    callbackRegistry[callbackName] = function(data) {
+        scriptOk = true;
+
+        delete callbackRegistry[callbackName];
+
+        onSuccess(data);
+    };
+
+    function checkCallback() {
+        if (scriptOk)
+            return;
+
+        delete callbackRegistry[callbackName];
+
+        console.error("Request to \"" + url + "\" was failed.")
+    }
+
+    var script = document.createElement('script');
+
+    script.onload = script.onerror = checkCallback;
+    script.src = url;
+
+    document.body.appendChild(script);
+}
+
+/** Key-value map. Key - server id. Value - url to git api. */
+var gitUrls = new Map();
+
+/** Branches for TeamCity. */
+var branchesForTc = {};
+
+/**
+ * Fill git URLs and send requests to them.
+ *
+ * @param srvIds - Set of server IDs.
+ */
+function setupAutocompleteList(srvIds) {
+    for (let srvId of srvIds)
+        gitUrls.set(srvId, "");
+
+    startFillAutocompleteListsProcess();
+}
+
+/**
+ * Retrieves recent PR numbers and fills autocomplete lists for the fields branchForTc.
+ */
+function startFillAutocompleteListsProcess() {
+    _receiveIntegrationUrls();
+}
+
+/**
+ * Receive api links for the servers.
+ *
+ * @private
+ */
+function _receiveIntegrationUrls() {
+    var url = "rest/build/integrationUrls?serverIds=";
+
+    for (let key of gitUrls.keys())
+        url += key + ",";
+
+    $.ajax({
+        url: url,
+        success: function (result) {
+            _fillGitUrls(result);
+            _sendRequestsToFillAutocompleteLists();
+        }
+    });
+}
+
+/**
+ * Fill git api URLs.
+ *
+ * @param result Array of ServerIntegrationLinks.
+ *
+ * @private
+ */
+function _fillGitUrls(result) {
+    for (let links of result)
+        gitUrls.set(links.srvId, links.gitApiUrl);
+}
+
+/**
+ * Send requests to the git to get pull requests for the branch autocomplete lists.
+ *
+ * @private
+ */
+function _sendRequestsToFillAutocompleteLists() {
+    for (var entry of gitUrls.entries()) {
+        if (entry[1])
+            scriptRequest(entry[1] + "pulls?sort=updated&direction=desc", _fillBranchAutocompleteList);
+    }
+}
+
+/**
+ * Takes all "branchForTc<server>" and add autocomplete list to them.
+ *
+ * @param result Response from git.
+ */
+function _fillBranchAutocompleteList(result) {
+    if (!result.data || !result.data[0])
+        return;
+
+    for (var entry of gitUrls.entries()) {
+        if (!result.data[0].url.startsWith(entry[1]))
+            continue;
+
+        branchesForTc[entry[0]] = [{label:"master", value:"refs/heads/master"}];
+
+        for (let pr of result.data)
+            branchesForTc[entry[0]].push({label: pr.number, value: "pull/" + pr.number + "/head"});
+
+        $(".branchForTc" + entry[0]).autocomplete({source: branchesForTc[entry[0]]});
+    }
+}
+
+/**
+ * Fills autocomplete lists for the branchForTc fields, if lists are available.
+ */
+function tryToFillAutocompleteLists() {
+    for (var entry of gitUrls.entries()) {
+        var fields = $(".branchForTc" + entry[0]);
+
+        for (let field of fields) {
+            if (branchesForTc[entry[0]] && branchesForTc[entry[0]].length > 1 &&
+                field.autocomplete("option", "source").length < 2)
+                field.autocomplete({source: branchesForTc[entry[0]]});
+        }
+    }
+}

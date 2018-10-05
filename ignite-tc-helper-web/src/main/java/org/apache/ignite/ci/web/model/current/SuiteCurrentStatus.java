@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
+import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
@@ -55,7 +56,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Suite Name */
     public String name;
 
-    /** Suite Run Result (filled if failed) */
+    /** Suite Run Result (filled if failed): Summary of build problems, count of tests, etc. */
     public String result;
 
     /** Has critical problem: Timeout or JMV Crash */
@@ -111,6 +112,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
      */
     @Nullable public ProblemRef problemRef;
 
+    /** Possible blocker: filled for PR and builds checks, mean there was stable execution in master, but */
+    public Boolean possibleBlocker;
 
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final MultBuildRunCtx suite,
@@ -198,8 +201,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         suite.getBuildsWithThreadDump().forEach(buildId -> {
             webUrlThreadDump = "/rest/" + GetBuildLog.GET_BUILD_LOG + "/" + GetBuildLog.THREAD_DUMP
                 + "?" + GetBuildLog.SERVER_ID + "=" + teamcity.serverId()
-                + "&" + GetBuildLog.BUILD_NO + "=" + Integer.toString(buildId)
-                + "&" + GetBuildLog.FILE_IDX + "=" + Integer.toString(-1);
+                + "&" + GetBuildLog.BUILD_NO + "=" + buildId
+                + "&" + GetBuildLog.FILE_IDX + "=" + -1;
         });
 
         runningBuildCount = suite.runningBuildCount();
@@ -207,6 +210,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         serverId = teamcity.serverId();
         this.suiteId = suite.suiteId();
         branchName = branchForLink(suite.branchName());
+        // todo implement this logic in suite possibleBlocker = suite.hasPossibleBlocker();
     }
 
     private void initStat(@Nullable ITcAnalytics tcAnalytics, String failRateNormalizedBranch, String curBranchNormalized, String suiteId) {

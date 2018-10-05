@@ -224,7 +224,7 @@ public class BuildChainProcessor {
 
             if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
                 || procLog == ProcessLogsMode.ALL)
-                ctx.setLogCheckResultsFut(teamcity.analyzeBuildLog(ctx.buildId(), ctx));
+                ctx.setLogCheckResultFut(teamcity.analyzeBuildLog(ctx.buildId(), ctx));
         }
     }
 

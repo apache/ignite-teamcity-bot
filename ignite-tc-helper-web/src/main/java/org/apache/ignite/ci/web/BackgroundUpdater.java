@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import javax.inject.Inject;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.Expirable;
@@ -49,8 +50,10 @@ public class BackgroundUpdater {
     /** Expire milliseconds, provide cached result with flag to update */
     private static final long EXPIRE_MS = TimeUnit.MINUTES.toMillis(1);
 
+    /** Thread factory. */
     private ThreadFactory threadFactory = Executors.defaultThreadFactory();
 
+    /** Scheduled updates. */
     private final Cache<T2<String, ?>, Future<?>> scheduledUpdates
         = CacheBuilder.<T2<String, ?>, Future<?>>newBuilder()
         .maximumSize(100)
@@ -58,6 +61,7 @@ public class BackgroundUpdater {
         .softValues()
         .build();
 
+    /** Data loaded. */
     private final Cache<T2<String, ?>, Expirable<?>> dataLoaded
         = CacheBuilder.<T2<String, ?>, Expirable<?>>newBuilder()
         .maximumSize(100)
@@ -65,7 +69,8 @@ public class BackgroundUpdater {
         .softValues()
         .build();
 
-    private ExecutorService service = Executors.newFixedThreadPool(5, r -> {
+    /** Service. */
+    private ExecutorService svc = Executors.newFixedThreadPool(5, r -> {
         Thread thread = threadFactory.newThread(r);
 
         thread.setName("bgupd-" + thread.getName());
@@ -73,17 +78,13 @@ public class BackgroundUpdater {
         return thread;
     });
 
-    private ITcHelper tcHelper;
-
-    public BackgroundUpdater(ITcHelper tcHelper) {
-        this.tcHelper = tcHelper;
-    }
-
-    public <K, V extends IBackgroundUpdatable> V get(String cacheName, K key, IgniteClosure<K, V> load) {
-        return get(cacheName, key, load, false);
-    }
+    /** Tc helper. */
+    @Inject private ITcHelper tcHelper;
 
 
+    /**
+     * @param prov Credentials Provoder.
+     */
     @NotNull private String availServers(ICredentialsProv prov) {
         StringBuffer sb = new StringBuffer();
         sb.append("[");
@@ -166,7 +167,7 @@ public class BackgroundUpdater {
                 return computationKey;
             };
 
-            Callable<Future<?>> startingFunction = () -> service.submit(loadModified);
+            Callable<Future<?>> startingFunction = () -> svc.submit(loadModified);
 
             try {
                 scheduledUpdates.get(computationKey, startingFunction);
@@ -199,10 +200,10 @@ public class BackgroundUpdater {
 
         dataLoaded.cleanUp();
 
-        service.shutdown();
+        svc.shutdown();
 
         try {
-            service.awaitTermination(10, TimeUnit.SECONDS);
+            svc.awaitTermination(10, TimeUnit.SECONDS);
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();

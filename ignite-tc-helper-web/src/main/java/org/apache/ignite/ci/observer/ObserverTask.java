@@ -28,9 +28,10 @@ import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.tcmodel.result.Build;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.ignite.ci.jira.IJiraIntegration.JIRA_COMMENTED;
 
 /**
  * Checks observed builds for finished status and comments JIRA ticket.
@@ -84,7 +85,10 @@ public class ObserverTask extends TimerTask {
                 continue;
             }
 
-            if (jiraIntegration.notifyJira(info.srvId, info.prov, info.buildTypeId, info.branchName, info.ticket)) {
+            String jiraRes = jiraIntegration.notifyJira(info.srvId, info.prov, info.buildTypeId,
+                info.branchName, info.ticket);
+
+            if (JIRA_COMMENTED.equals(jiraRes)) {
                 ticketsNotified.add(info.ticket);
 
                 builds.remove(info);

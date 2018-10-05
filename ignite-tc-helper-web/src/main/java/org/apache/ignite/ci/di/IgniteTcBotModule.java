@@ -32,6 +32,7 @@ import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.teamcity.TcRealConnectionModule;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 
@@ -78,6 +79,7 @@ public class IgniteTcBotModule extends AbstractModule {
 
         bind(IJiraIntegration.class).to(Jira.class).in(new SingletonScope());
 
+        bind(BackgroundUpdater.class).in(new SingletonScope());
         install(new TcRealConnectionModule());
     }
 
@@ -85,7 +87,7 @@ public class IgniteTcBotModule extends AbstractModule {
     private static class Jira implements IJiraIntegration {
         @Inject ITcHelper helper;
 
-        @Override public boolean notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
+        @Override public String notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
             String ticket) {
             return helper.notifyJira(srvId, prov, buildTypeId, branchForTc, ticket);
         }

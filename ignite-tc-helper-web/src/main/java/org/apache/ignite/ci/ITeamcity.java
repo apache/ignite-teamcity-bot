@@ -18,6 +18,7 @@
 package org.apache.ignite.ci;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -37,7 +38,6 @@ import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
@@ -181,18 +181,16 @@ public interface ITeamcity {
      */
     @Nonnull default MultBuildRunCtx loadTestsAndProblems(@Nonnull Build build) {
         MultBuildRunCtx ctx = new MultBuildRunCtx(build);
+
         loadTestsAndProblems(build, ctx);
+
         return ctx;
     }
 
     default SingleBuildRunCtx loadTestsAndProblems(@Nonnull Build build, @Deprecated MultBuildRunCtx mCtx) {
         SingleBuildRunCtx ctx = new SingleBuildRunCtx(build);
-        if (build.problemOccurrences != null) {
-            List<ProblemOccurrence> problems = getProblems(build).getProblemsNonNull();
-
-            mCtx.addProblems(problems);
-            ctx.setProblems(problems);
-        }
+        if (build.problemOccurrences != null)
+            ctx.setProblems(getProblems(build).getProblemsNonNull());
 
         if (build.lastChanges != null) {
             for (ChangeRef next : build.lastChanges.changes) {
@@ -316,9 +314,31 @@ public interface ITeamcity {
      * @param ticket JIRA ticket full name.
      * @param comment Comment to be placed in the ticket conversation.
      * @return {@code True} if ticket was succesfully commented. Otherwise - {@code false}.
+     *
+     * @throws IOException If failed to comment JIRA ticket.
+     * @throws IllegalStateException If can't find URL to the JIRA.
      */
-    boolean sendJiraComment(String ticket, String comment);
+    String sendJiraComment(String ticket, String comment) throws IOException;
 
+    /**
+     * @param url URL for git integration.
+     */
+    void setGitApiUrl(String url);
+
+    /**
+     * @return URL for git integration.
+     */
+    String getGitApiUrl();
+
+    /**
+     * @param url URL for JIRA integration.
+     */
+    void setJiraApiUrl(String url);
+
+    /**
+     * @return URL for JIRA integration.
+     */
+    String getJiraApiUrl();
 
     default void setAuthData(String user, String password) {
         setAuthToken(

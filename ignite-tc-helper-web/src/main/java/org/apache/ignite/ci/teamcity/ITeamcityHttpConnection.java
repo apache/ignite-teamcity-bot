@@ -21,5 +21,9 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public interface ITeamcityHttpConnection {
-    InputStream sendGet(String basicAuthTok, String url) throws IOException;
+    /**
+     * @param basicAuthTok Basic auth token.
+     * @param url Url.
+     */
+    public InputStream sendGet(String basicAuthTok, String url) throws IOException;
 }

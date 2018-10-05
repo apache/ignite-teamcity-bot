@@ -19,9 +19,12 @@ package org.apache.ignite.ci.teamcity;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 
+/**
+ * Guice module to setup real connected server and all related implementations.
+ */
 public class TcRealConnectionModule extends AbstractModule {
-    @Override
-    protected void configure() {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
         bind(ITeamcityHttpConnection.class).to(TeamcityRecordingConnection.class);
         bind(TeamcityRecorder.class).in(new SingletonScope());
         bind(ITcLogin.class).to(TcLoginImpl.class).in(new SingletonScope());

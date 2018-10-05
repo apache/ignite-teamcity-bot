@@ -34,8 +34,9 @@ dependencies {
     compile group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
     compile group: 'org.apache.ignite', name: 'ignite-direct-io', version: ignVer
 
-    // MIT/X11 license, category A;
-    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+    compile group: 'org.slf4j', name: 'slf4j-api', version: slf4jVer
+    compile group: 'org.slf4j', name: 'jul-to-slf4j', version: slf4jVer
+
 
     compile group: 'ch.qos.logback', name: 'logback-core', version: logbackVer
     compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVer

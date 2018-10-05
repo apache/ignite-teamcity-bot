@@ -60,11 +60,12 @@ import static java.util.Collections.singletonList;
 
 @Path("metrics")
 @Produces("application/json")
+@Deprecated
 public class Metrics {
     public static final String FAILURES_PUBLIC = "failures.public";
     public static final String FAILURES_PRIVATE = "failures.private";
     @Context
-    private ServletContext context;
+    private ServletContext ctx;
 
     @Context
     private HttpServletRequest req;
@@ -72,7 +73,7 @@ public class Metrics {
     public void collectHistory(BuildMetricsHistory history,
         IAnalyticsEnabledTeamcity teamcity, String id, String branch)  {
 
-        BuildChainProcessor bcp = CtxListener.getInjector(context).getInstance(BuildChainProcessor.class);
+        BuildChainProcessor bcp = CtxListener.getInjector(ctx).getInstance(BuildChainProcessor.class);
 
         final SuiteInBranch branchId = new SuiteInBranch(id, branch);
         final BuildHistory suiteHist = history.history(branchId);
@@ -97,7 +98,7 @@ public class Metrics {
                     return null;
 
                 for (MultBuildRunCtx suite : ctx.suites()) {
-                    boolean suiteOk = suite.failedTests() == 0 && !suite.hasNontestBuildProblem();
+                    boolean suiteOk = suite.failedTests() == 0 && !suite.hasCriticalProblem();
                     history.addSuiteResult(teamcity.serverId() + "\t" + suite.suiteName(), suiteOk);
                 }
                 return ctx;
@@ -120,7 +121,7 @@ public class Metrics {
         if (!prov.hasAccess(serverId))
             throw ServiceUnauthorizedException.noCreds(serverId);
 
-        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(serverId, context, req);
+        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(serverId, ctx, req);
 
         collectHistory(history, teamcity, "IgniteTests24Java8_RunAll", "refs/heads/master");
 
@@ -130,16 +131,16 @@ public class Metrics {
     @GET
     @Path("failures")
     public TestsMetrics getFailures() {
-        final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
-        return updater.get(FAILURES_PUBLIC, "", k -> getFailuresNoCache());
+        final BackgroundUpdater updater = CtxListener.getInjector(ctx).getInstance(BackgroundUpdater.class);
+        return updater.get(FAILURES_PUBLIC, null, "", k -> getFailuresNoCache(), false);
 
     }
 
     @GET
     @Path("failuresPrivate")
-    public TestsMetrics getFailuresPrivate(@Nullable @QueryParam("param") String msg)  {
-        final BackgroundUpdater updater = (BackgroundUpdater)context.getAttribute(CtxListener.UPDATER);
-        return updater.get(FAILURES_PRIVATE, "", k -> getFailuresPrivateNoCache());
+    public TestsMetrics getFailuresPrivate(@Nullable @QueryParam("param") String msg) {
+        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(ctx);
+        return updater.get(FAILURES_PRIVATE, null, "", k -> getFailuresPrivateNoCache(), false);
     }
 
 
@@ -155,7 +156,7 @@ public class Metrics {
         if (!prov.hasAccess(srvId))
             throw ServiceUnauthorizedException.noCreds(srvId);
 
-        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, context, req);
+        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, ctx, req);
 
         collectHistory(hist, teamcity, "id8xIgniteGridGainTestsJava8_RunAll", "refs/heads/master");
 

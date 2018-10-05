@@ -18,6 +18,16 @@ package org.apache.ignite.ci.teamcity;
 
 import org.apache.ignite.ci.tcmodel.user.User;
 
+/**
+ * Teamcity Login implementation.
+ */
 public interface ITcLogin {
-    User checkServiceUserAndPassword(String serverId, String username, String password);
+    /**
+     * Check if user has correct credentials to particular server.
+     * @param srvId Server id.
+     * @param username Username.
+     * @param pwd Password.
+     * @return user settings on this teamcity
+     */
+    public User checkServiceUserAndPassword(String srvId, String username, String pwd);
 }

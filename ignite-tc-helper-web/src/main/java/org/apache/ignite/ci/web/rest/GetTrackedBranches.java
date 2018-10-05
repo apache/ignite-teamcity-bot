@@ -28,6 +28,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.ChainAtServer;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -41,9 +42,11 @@ import org.apache.ignite.lang.IgniteProductVersion;
 @Path("branches")
 @Produces(MediaType.APPLICATION_JSON)
 public class GetTrackedBranches {
+    /** Servlet Context. */
     @Context
     private ServletContext ctx;
 
+    /** Current Request. */
     @Context
     private HttpServletRequest req;
 
@@ -53,7 +56,7 @@ public class GetTrackedBranches {
     public Version version() {
         Version ver = new Version();
 
-        IgniteProductVersion ignProdVer = CtxListener.getIgnite(ctx).version();
+        IgniteProductVersion ignProdVer = CtxListener.getInjector(ctx).getInstance(Ignite.class).version();
 
         ver.ignVer = ignProdVer.major() + "." + ignProdVer.minor() + "." + ignProdVer.maintenance();
 
