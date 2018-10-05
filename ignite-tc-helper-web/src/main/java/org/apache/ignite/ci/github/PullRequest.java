@@ -35,6 +35,8 @@ public class PullRequest {
 
     @SerializedName("html_url") private String htmlUrl;
 
+    @SerializedName("updated_at") private String updatedAt;
+
     /** Pull Request statuses URL. */
     @SerializedName("statuses_url") private String statusesUrl;
 

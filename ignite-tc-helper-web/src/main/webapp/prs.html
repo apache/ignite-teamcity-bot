@@ -22,16 +22,26 @@
 
     </style>
     <script>
+        function updateAccordionSize() {
+            let height = $(window).height();
+            let number = (height - 120);
+            if (number > 100)
+                $("#mainaccordion").css('height', number + 'px');
+            // update accordion height
+            //$("#mainaccordion").accordion("resize");
+        }
+
         $(document).ready(function() {
             $.getScript("js/common-1.6.js", function(data, textStatus, jqxhr){ });
 
             $( document ).tooltip();
-            $( "#accordion" ).accordion({
-                heightStyle: "fill"
+            updateAccordionSize();
+            $( "#mainaccordion" ).accordion({
+                heightStyle: "fill",
+                //heightStyle: "content"
             });
-            $(window).resize(function(){
-                // update accordion height
-                $( ".accordion" ).accordion( "resize" )
+            $(window).resize(function () {
+                updateAccordionSize();
             });
 
             loadData();
@@ -92,7 +102,7 @@
 
             tableForSrv.DataTable({
                 data: result,
-                //"iDisplayLength": 100,
+                "iDisplayLength": 100, //rows to be shown by default
                 //"dom": '<lf<t>ip>',
                 //"dom": '<"wrapper"flipt>',
                 columns: [
@@ -268,7 +278,7 @@
 <div id="loadStatus"></div>
 
 
-<div id="accordion" style="height: 500px">
+<div id="mainaccordion" style="height: 500px">
     <h3>Select PR</h3>
     <div id="contributionsToCheck">
         <table id="serverContributions-apache" class="ui-widget ui-widget-content">
@@ -278,16 +288,13 @@
                 <th>Loading</th>
                 <th>...</th>
                 <th>.</th>
-                <!--
-                <th>Login</th>
-                <th>Password</th>-->
             </tr>
             </thead>
         </table>
 
     </div>
 
-    <h3>I can enter branch data</h3>
+    <h3>I'll enter branch data</h3>
     <div>
         <div class="formgroup">
             Trigger new TeamCity Run All for a PR/Branch: <br>
