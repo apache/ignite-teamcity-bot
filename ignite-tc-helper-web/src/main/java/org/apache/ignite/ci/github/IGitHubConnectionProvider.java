@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci;
-
-import org.apache.ignite.ci.user.ICredentialsProv;
+package org.apache.ignite.ci.github;
 
 import javax.annotation.Nullable;
+import org.apache.ignite.ci.user.ICredentialsProv;
 
-/**
- * Provides instance to server with appropriate credentials, may cache instances to avoid odd server instances.
- */
-public interface ITcServerProvider {
-    public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov);
+public interface IGitHubConnectionProvider {
+    /**
+     * @param srvId Server id.
+     * @param prov Prov.
+     */
+    public IGitHubConnection server(String srvId, @Nullable ICredentialsProv prov);
 }

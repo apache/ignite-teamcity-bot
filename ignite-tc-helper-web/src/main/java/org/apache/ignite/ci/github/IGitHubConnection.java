@@ -14,15 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci;
+package org.apache.ignite.ci.github;
 
-import org.apache.ignite.ci.user.ICredentialsProv;
+public interface IGitHubConnection {
 
-import javax.annotation.Nullable;
+    void init(String srvId);
 
-/**
- * Provides instance to server with appropriate credentials, may cache instances to avoid odd server instances.
- */
-public interface ITcServerProvider {
-    public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov);
+    /**
+     * @param branch TeamCity's branch name. Looks like "pull/123/head".
+     * @return Pull Request.
+     */
+    PullRequest getPullRequest(String branch);
+
+    /**
+     * Send POST request with given body.
+     *
+     * @param url Url.
+     * @param body Request body.
+     * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
+     */
+    boolean notifyGit(String url, String body);
+
+    /**
+     * @return {@code True} if GitHub authorization token is available.
+     */
+    boolean isGitTokenAvailable();
+
+    /**
+     * @return URL for git integration.
+     */
+    String gitApiUrl();
 }

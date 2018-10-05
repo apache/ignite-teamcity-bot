@@ -24,6 +24,8 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.github.IGitHubConnection;
+import org.apache.ignite.ci.github.IGitHubConnectionProvider;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
@@ -47,6 +49,7 @@ public class PrChainsProcessor {
 
     /** Tc server provider. */
     @Inject ITcServerProvider tcSrvProvider;
+    @Inject IGitHubConnectionProvider gitHubConnectionProvider;
 
     /**
      * @param creds Credentials.
@@ -75,7 +78,9 @@ public class PrChainsProcessor {
         //using here non persistent TC allows to skip update statistic
         IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, creds);
 
-        res.setJavaFlags(teamcity);
+        IGitHubConnection gitHubConnection = gitHubConnectionProvider.server(srvId, creds);
+
+        res.setJavaFlags(teamcity, gitHubConnection);
 
         LatestRebuildMode rebuild;
         if (FullQueryParams.HISTORY.equals(act))

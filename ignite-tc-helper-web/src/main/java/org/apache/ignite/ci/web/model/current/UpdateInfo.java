@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.web.model.current;
 
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.github.IGitHubConnection;
 
 /**
  * Created by Дмитрий on 19.02.2018
@@ -55,12 +56,14 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 
     /**
      * @param teamcity TeamCity to get info about tokens.
+     * @param gitHubConnection
      */
-    public void setJavaFlags(IAnalyticsEnabledTeamcity teamcity) {
+    public void setJavaFlags(IAnalyticsEnabledTeamcity teamcity,
+        IGitHubConnection gitHubConnection) {
         if (teamcity.isTeamCityTokenAvailable())
             javaFlags |= TEAMCITY_FLAG;
 
-        if (teamcity.isGitTokenAvailable())
+        if (gitHubConnection.isGitTokenAvailable())
             javaFlags |= GITHUB_FLAG;
 
         if (teamcity.isJiraTokenAvailable())

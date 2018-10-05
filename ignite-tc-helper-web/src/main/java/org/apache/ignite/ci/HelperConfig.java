@@ -100,7 +100,7 @@ public class HelperConfig {
         return props;
     }
 
-    static String prepareConfigName(String tcName) {
+    public static String prepareConfigName(String tcName) {
         return prefixedWithServerName(tcName, CONFIG_FILE_NAME);
     }
 
@@ -136,7 +136,7 @@ public class HelperConfig {
      * @param props Properties, where token is placed.
      * @return Null or decoded auth token for Github.
      */
-    @Nullable static String prepareGithubHttpAuthToken(Properties props) {
+    @Nullable public static String prepareGithubHttpAuthToken(Properties props) {
         String tok = props.getProperty(GITHUB_AUTH_TOKEN);
 
         if (isNullOrEmpty(tok))

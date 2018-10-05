@@ -1143,16 +1143,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public void setGitToken(String tok) {
-        teamcity.setGitToken(tok);
-    }
-
-    /** {@inheritDoc} */
-    @Override public boolean isGitTokenAvailable() {
-        return teamcity.isGitTokenAvailable();
-    }
-
-    /** {@inheritDoc} */
     @Override public void setJiraToken(String tok) {
         teamcity.setJiraToken(tok);
     }
@@ -1167,15 +1157,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.sendJiraComment(ticket, comment);
     }
 
-    /** {@inheritDoc} */
-    @Override public void setGitApiUrl(String url) {
-        teamcity.setGitApiUrl(url);
-    }
-
-    /** {@inheritDoc} */
-    @Override public String getGitApiUrl() {
-        return teamcity.getGitApiUrl();
-    }
 
     /** {@inheritDoc} */
     @Override public void setJiraApiUrl(String url) {
@@ -1185,16 +1166,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public String getJiraApiUrl() {
         return teamcity.getJiraApiUrl();
-    }
-
-    /** {@inheritDoc} */
-    @Override public PullRequest getPullRequest(String branchForTc) {
-        return teamcity.getPullRequest(branchForTc);
-    }
-
-    /** {@inheritDoc} */
-    @Override public boolean notifyGit(String url, String body) {
-        return teamcity.notifyGit(url, body);
     }
 
     /** {@inheritDoc} */
