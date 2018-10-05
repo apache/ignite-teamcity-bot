@@ -47,9 +47,11 @@ import org.jetbrains.annotations.Nullable;
 @Path("build")
 @Produces(MediaType.APPLICATION_JSON)
 public class TriggerBuild {
+    /** Servlet Context. */
     @Context
-    private ServletContext context;
+    private ServletContext ctx;
 
+    /** Current Request. */
     @Context
     private HttpServletRequest req;
 
@@ -69,10 +71,9 @@ public class TriggerBuild {
         if (!prov.hasAccess(srvId))
             throw ServiceUnauthorizedException.noCreds(srvId);
 
-        Injector injector = CtxListener.getInjector(context);
-        TcBotTriggerAndSignOffService triggerAndSignOffSvc = injector.getInstance(TcBotTriggerAndSignOffService.class);
-
-        String jiraRes = triggerAndSignOffSvc. triggerBuildAndObserve(srvId, branchForTc, suiteId, top, observe, ticketId, prov, injector);
+        String jiraRes = CtxListener.getInjector(ctx)
+            .getInstance(TcBotTriggerAndSignOffService.class)
+            .triggerBuildAndObserve(srvId, branchForTc, suiteId, top, observe, ticketId, prov);
 
         return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
@@ -91,11 +92,9 @@ public class TriggerBuild {
         if (!prov.hasAccess(srvId))
             throw ServiceUnauthorizedException.noCreds(srvId);
 
-        Injector injector = CtxListener.getInjector(context);
-
-        TcBotTriggerAndSignOffService signOffSvc = injector.getInstance(TcBotTriggerAndSignOffService.class);
-
-        return signOffSvc.commentJiraEx(srvId, branchForTc, suiteId, ticketId, prov);
+        return CtxListener.getInjector(ctx)
+            .getInstance(TcBotTriggerAndSignOffService.class)
+            .commentJiraEx(srvId, branchForTc, suiteId, ticketId, prov);
     }
 
     @GET
@@ -115,7 +114,7 @@ public class TriggerBuild {
         if (strings.isEmpty())
             return new SimpleResult("Error: nothing to run");
 
-        final ITeamcity helper = CtxListener.getTcHelper(context).server(serverId, prov);
+        final ITeamcity helper = CtxListener.getTcHelper(ctx).server(serverId, prov);
 
         boolean queueToTop = top != null && top;
 
@@ -139,7 +138,7 @@ public class TriggerBuild {
             if (!prov.hasAccess(srvId))
                 return null;
 
-            Injector injector = CtxListener.getInjector(context);
+            Injector injector = CtxListener.getInjector(ctx);
 
             ITcHelper tcHelper = injector.getInstance(ITcHelper.class);
             final ICredentialsProv creds = ICredentialsProv.get(req);

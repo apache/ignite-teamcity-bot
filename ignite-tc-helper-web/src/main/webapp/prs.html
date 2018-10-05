@@ -55,7 +55,52 @@
 
             $.ajax({
                 url: "rest/branches/getServerIds",
-                success: setupAutocompleteList
+                success:
+                    function (result) {
+                        setupAutocompleteList(result);
+                        for (let srvId of result)
+                            requestTableForServer(srvId, "");
+                    }
+            });
+        }
+
+        function requestTableForServer(srvId) {
+            // TODO multiple servers
+            if (srvId != "apache")
+                return;
+
+            let tableForSrv = $('#serverContributions-' + srvId);
+            $.ajax({
+                url: "rest/visa/contributions?serverId="+srvId,
+                success:
+                    function (result) {
+                        showTable(tableForSrv, result)
+                    }
+            });
+        }
+
+        function showTable(tableForSrv, result) {
+
+                tableForSrv.dataTable().fnDestroy();
+
+            tableForSrv.DataTable({
+                data: result,
+                bSort: false,
+                order: [[0, 'asc']],
+                columns: [{
+                    "data": "prNumber",
+                    title: "PR Number"
+                }
+                //,
+                   /* {
+                        "data": "serviceLogin",
+                        title: "login"
+                    },
+                    {
+                        "data": "servicePassword",
+                        title: "Password"
+                    }*/
+                ]
             });
         }
 
@@ -195,8 +240,17 @@
 
 <div id="accordion" style="height: 500px">
     <h3>Select PR</h3>
-    <div>
-
+    <div id="contributionsToCheck">
+        <table id="serverContributions-apache" class="ui-widget ui-widget-content">
+            <thead>
+            <tr class="ui-widget-header ">
+                <th>PR number</th>
+                <!--
+                <th>Login</th>
+                <th>Password</th>-->
+            </tr>
+            </thead>
+        </table>
 
     </div>
 

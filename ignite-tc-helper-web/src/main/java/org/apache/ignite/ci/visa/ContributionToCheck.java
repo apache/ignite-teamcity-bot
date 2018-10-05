@@ -14,36 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github;
+package org.apache.ignite.ci.visa;
 
-public interface IGitHubConnection {
-
-    void init(String srvId);
-
-    /**
-     * @param branch TeamCity's branch name. Looks like "pull/123/head".
-     * @return Pull Request.
-     */
-    PullRequest getPullRequest(String branch);
-
-    /**
-     * Send POST request with given body.
-     *
-     * @param url Url.
-     * @param body Request body.
-     * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
-     */
-    boolean notifyGit(String url, String body);
-
-    /**
-     * @return {@code True} if GitHub authorization token is available.
-     */
-    boolean isGitTokenAvailable();
-
-    /**
-     * @return URL for git integration.
-     */
-    String gitApiUrl();
-
-    void getPullRequests();
+/**
+ *
+ */
+public class ContributionToCheck {
+    public String prNumber;
 }

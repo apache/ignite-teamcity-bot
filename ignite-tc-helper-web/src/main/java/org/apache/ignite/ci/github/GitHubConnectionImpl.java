@@ -16,12 +16,15 @@
  */
 package org.apache.ignite.ci.github;
 
+import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -56,8 +59,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public PullRequest getPullRequest(String branchForTc) {
-        if (isNullOrEmpty(gitApiUrl))
-            throw new IllegalStateException("Git API URL is not configured for this server.");
+        Preconditions.checkState( !isNullOrEmpty(gitApiUrl) , "Git API URL is not configured for this server.");
 
         String id = null;
 
@@ -109,5 +111,24 @@ class GitHubConnectionImpl implements IGitHubConnection {
      */
     public String gitApiUrl() {
         return gitApiUrl;
+    }
+
+    @Override public void getPullRequests() {
+        Preconditions.checkState( !isNullOrEmpty(gitApiUrl) , "Git API URL is not configured for this server.");
+
+        String s = gitApiUrl + "pulls?sort=updated&direction=desc";
+
+        if(s!=null)
+        return;
+        try( InputStream stream = HttpUtil.sendGetToGit(gitAuthTok, s )){
+           ;
+            InputStreamReader reader = new InputStreamReader(stream);
+            HashMap<String, Object> map = new Gson().fromJson(reader, HashMap .class);
+
+            System.out.println(map);
+        }
+        catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

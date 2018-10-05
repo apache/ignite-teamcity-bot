@@ -18,11 +18,11 @@
 package org.apache.ignite.ci.visa;
 
 import com.google.common.base.Strings;
-import com.google.inject.Injector;
 import com.google.inject.Provider;
+import java.util.Collections;
+import java.util.List;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.IGitHubConnection;
@@ -77,12 +77,10 @@ public class TcBotTriggerAndSignOffService {
         @Nullable Boolean top,
         @Nullable Boolean observe,
         @Nullable String ticketId,
-        ICredentialsProv prov,
-        Injector injector) {
+        ICredentialsProv prov) {
         String jiraRes = "";
-        ITcHelper helper = injector.getInstance(ITcHelper.class);
 
-        final ITeamcity teamcity = helper.server(srvId, prov);
+        final ITeamcity teamcity = tcServerProvider.server(srvId, prov);
 
         Build build = teamcity.triggerBuild(suiteId, branchForTc, false, top != null && top);
 
@@ -144,15 +142,12 @@ public class TcBotTriggerAndSignOffService {
         @QueryParam("suiteId") @Nullable String suiteId,
         @QueryParam("ticketId") @Nullable String ticketId,
         ICredentialsProv prov) {
-
-
         String jiraRes = "";
-        final ITeamcity teamcity =  tcServerProvider.server(srvId, prov);
 
         if (Strings.isNullOrEmpty(ticketId)) {
             try {
-                IGitHubConnection gitHubConnection = gitHubConnectionProvider.server(srvId, prov);
-                PullRequest pr = gitHubConnection.getPullRequest(branchForTc);
+                IGitHubConnection gitHubConn = gitHubConnectionProvider.server(srvId, prov);
+                PullRequest pr = gitHubConn.getPullRequest(branchForTc);
 
                 ticketId = TcBotTriggerAndSignOffService.getTicketId(pr);
 
@@ -179,5 +174,10 @@ public class TcBotTriggerAndSignOffService {
             return new SimpleResult("JIRA wasn't commented." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
 
+    public List<ContributionToCheck> getContributionsToCheck(String srvId) {
+        IGitHubConnection gitHubConn = gitHubConnectionProvider.server(srvId, null);
+        gitHubConn.getPullRequests();
 
+        return Collections.singletonList(new ContributionToCheck());
+    }
 }
