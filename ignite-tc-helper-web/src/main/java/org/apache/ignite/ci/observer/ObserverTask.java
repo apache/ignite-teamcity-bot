@@ -46,7 +46,7 @@ public class ObserverTask extends TimerTask {
     @Inject private IJiraIntegration jiraIntegration;
 
     /** Builds. */
-    final Queue<BuildInfo> builds;
+    final Queue<Info> builds;
 
     /**
      */
@@ -71,28 +71,26 @@ public class ObserverTask extends TimerTask {
     @MonitoredTask(name = "Build Observer")
     protected String runObserverTask() {
         int checkedBuilds = 0;
-        int notFinihedBuilds = 0;
+        int notFinishedBuilds = 0;
         Set<String> ticketsNotified = new HashSet<>();
 
-        for (BuildInfo info : builds) {
+        for (Info info : builds) {
             checkedBuilds++;
             IAnalyticsEnabledTeamcity teamcity = srvProvider.server(info.srvId, info.prov);
 
-            Build build = teamcity.getBuild(info.build.getId());
-
-            if (!"finished".equals(build.state)) {
-                notFinihedBuilds++;
+            if (!info.isFinished(teamcity)) {
+                notFinishedBuilds++;
 
                 continue;
             }
 
-            if (jiraIntegration.notifyJira(info.srvId, info.prov, info.build.buildTypeId, info.build.branchName, info.ticket)) {
+            if (jiraIntegration.notifyJira(info.srvId, info.prov, info.buildTypeId, info.branchName, info.ticket)) {
                 ticketsNotified.add(info.ticket);
 
                 builds.remove(info);
             }
         }
 
-        return "Checked " + checkedBuilds + " not finished " + notFinihedBuilds + " notified: " + ticketsNotified;
+        return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified;
     }
 }

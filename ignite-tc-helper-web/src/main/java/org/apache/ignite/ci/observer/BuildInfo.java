@@ -17,65 +17,53 @@
 
 package org.apache.ignite.ci.observer;
 
+import java.util.Objects;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 
 /**
  *
  */
-public class BuildInfo {
+public class BuildInfo extends Info {
     /** Build. */
-    public final Build build;
-
-    /** Server id. */
-    public final String srvId;
-
-    /** */
-    public final ICredentialsProv prov;
-
-    /** JIRA ticket full name. */
-    public final String ticket;
+    private final Build build;
 
     /**
-     * @param build Build.
      * @param srvId Server id.
-     * @param prov Credentials.
-     * @param ticket JIRA ticket name.
+     * @param prov Prov.
+     * @param ticket Ticket.
+     * @param build Build.
      */
-    BuildInfo(Build build, String srvId, ICredentialsProv prov, String ticket) {
+    public BuildInfo(String srvId, ICredentialsProv prov, String ticket, Build build) {
+        super(srvId, prov, ticket, build.buildTypeId, build.branchName);
         this.build = build;
-        this.srvId = srvId;
-        this.prov = prov;
-        this.ticket = ticket;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isFinished(IAnalyticsEnabledTeamcity teamcity) {
+        return teamcity.getBuild(build.getId()).state.equals(FINISHED);
     }
 
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
-        if (o == null || getClass() != o.getClass())
+
+        if (!(o instanceof BuildInfo))
+            return false;
+
+        if (!super.equals(o))
             return false;
 
         BuildInfo info = (BuildInfo)o;
 
-        if (!build.equals(info.build))
-            return false;
-        if (!srvId.equals(info.srvId))
-            return false;
-        if (!prov.equals(info.prov))
-            return false;
-
-        return ticket.equals(info.ticket);
+        return Objects.equals(build, info.build);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        int res = build.hashCode();
 
-        res = 31 * res + srvId.hashCode();
-        res = 31 * res + prov.hashCode();
-        res = 31 * res + ticket.hashCode();
-
-        return res;
+        return Objects.hash(super.hashCode(), build);
     }
 }

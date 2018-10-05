@@ -167,8 +167,7 @@ public class TriggerBuild {
 
         BuildObserver observer = CtxListener.getInjector(context).getInstance(BuildObserver.class);
 
-        for (Build build : builds)
-            observer.observe(build, srvId, prov, "ignite-" + ticketId);
+        observer.observe(srvId, prov, "ignite-" + ticketId, builds);
 
         return "JIRA ticket IGNITE-" + ticketId + " will be notified after the tests are completed.";
     }
