@@ -1,0 +1,75 @@
+<html>
+<head>
+    <title>Ignite Teamcity Helper - Tracked Branches status</title>
+    <link rel="icon" href="img/leaf-icon-png-7066.png">
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+    <link rel="stylesheet" href="css/style-1.5.css">
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <script src="js/common-1.6.js"></script>
+    <script>
+$(document).ready(function() {
+    $.getScript("js/common-1.6.js", function(data, textStatus, jqxhr){ });
+
+    $( document ).tooltip();
+    loadData();
+});
+
+function loadData() {
+    $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+
+    $.ajax({
+        url: "rest/branches/version",
+        success: showVersionInfo,
+        error: showErrInLoadStatus
+    });
+
+    $.ajax({
+        url: "rest/branches/getIds",
+        success: function(result) {
+            $("#loadStatus").html("");
+            showTrackedBranchesLinks(result);
+        },
+        error: showErrInLoadStatus
+    });
+
+
+}
+
+function showTrackedBranchesLinks(result) {
+    var res = "";
+    for (var i = 0; i < result.length; i++) {
+        var id = result[i];
+       //  res += "<div class='formgroup'>";
+        res += id + ":";
+        res += "<a href='current.html?branch=" + id + "'><button>Latest (" + id + ")</button></a>";
+        res += " &nbsp;&nbsp;<a href='current.html?branch=" + id + "&checkAllLogs=true' title='With logs processing'><button>Latest (" + id + " + logs)</button></a>";
+        res += " &nbsp;&nbsp;<a href='all.html?branch=" + id + "'><button title='Failures from last 10 runs merged'>History (" + id + ")</button></a>";
+        //  res += "</div>";
+        res += "<br>";
+    }
+
+    res += "</table>";
+
+
+    $("#branchesStatus").html(res);
+}
+
+</script>
+</head>
+<body>
+<div class="formgroup">
+    Monitoring. Current Failed Tests: <br>
+    <div id="branchesStatus"></div>
+</div>
+<br>
+
+<div id="loadStatus"></div>
+<div id="version"></div>
+
+</body>
+</html>
