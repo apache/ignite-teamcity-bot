@@ -22,171 +22,171 @@
 
     </style>
     <script>
-$(document).ready(function() {
-    $.getScript("js/common-1.6.js", function(data, textStatus, jqxhr){ });
+        $(document).ready(function() {
+            $.getScript("js/common-1.6.js", function(data, textStatus, jqxhr){ });
 
-    $( document ).tooltip();
-    $( "#accordion" ).accordion({
-        heightStyle: "fill"
-    });
-    loadData();
-});
+            $( document ).tooltip();
+            $( "#accordion" ).accordion({
+                heightStyle: "fill"
+            });
+            loadData();
+        });
 
-function loadData() {
-    $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+        function loadData() {
+            $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
 
-    $.ajax({
-        url: "rest/branches/version",
-        success: showVersionInfo,
-        error: showErrInLoadStatus
-    });
+            $.ajax({
+                url: "rest/branches/version",
+                success: showVersionInfo,
+                error: showErrInLoadStatus
+            });
 
-    $.ajax({
-        url: "rest/branches/suites",
-        success: function(result) {
-            $("#loadStatus").html("");
-            showSuitesForTeamCityRunData(result);
-            showFormAndSuitesForPrCheck(result);
-            tryToFillAutocompleteLists();
-            showCommentJiraForm(result);
-        },
-        error: showErrInLoadStatus
-    });
+            $.ajax({
+                url: "rest/branches/suites",
+                success: function(result) {
+                    $("#loadStatus").html("");
+                    showSuitesForTeamCityRunData(result);
+                    showFormAndSuitesForPrCheck(result);
+                    tryToFillAutocompleteLists();
+                    showCommentJiraForm(result);
+                },
+                error: showErrInLoadStatus
+            });
 
-    $.ajax({
-        url: "rest/branches/getServerIds",
-        success: setupAutocompleteList
-    });
-}
+            $.ajax({
+                url: "rest/branches/getServerIds",
+                success: setupAutocompleteList
+            });
+        }
 
-function showSuitesForTeamCityRunData(result) {
-    var res = "";
+        function showSuitesForTeamCityRunData(result) {
+            var res = "";
 
-    for (var i = 0; i < result.length; i++) {
-        var chainAtServer = result[i];
+            for (var i = 0; i < result.length; i++) {
+                var chainAtServer = result[i];
 
-        // TODO multiple servers
-        if (chainAtServer.serverId != "apache")
-            continue;
+                // TODO multiple servers
+                if (chainAtServer.serverId != "apache")
+                    continue;
 
-        res += "Server: <input type='text' name='serverId' value='" + chainAtServer.serverId + "' readonly>";
-        res += "Chain: <input type='text' name='suiteId' value='" + chainAtServer.suiteId + "' readonly>";
-        res += "Branch: <input type='text' name='branchForTc' class='branchForTc" + chainAtServer.serverId +
-            "' required> ";
-        res += "Ticket: <input type='text' name='ticketId'>";
-        res += "<button name='jira' type='button' onclick='trigBuild(\"tests\")'>Start tests</button>";
-        res += "<button name='jira' onclick='trigBuild(\"tests+jira\")'>Start tests and comment JIRA ticket on ready</button>";
-        //res += "<button name='git' onclick='trigBuild(\"tests+jira\")'>Start tests and comment GitHub PR on ready</button>";
-        /*
-        res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
-        res+="Pull Request #<input type='text' name='prId' onkeypress='return trigBuild(event)'> ";
-        res+="<button onclick='trigBuild()'>Run All</button><br>";
-        */
-    }
+                res += "Server: <input type='text' name='serverId' value='" + chainAtServer.serverId + "' readonly>";
+                res += "Chain: <input type='text' name='suiteId' value='" + chainAtServer.suiteId + "' readonly>";
+                res += "Branch: <input type='text' name='branchForTc' class='branchForTc" + chainAtServer.serverId +
+                    "' required> ";
+                res += "Ticket: <input type='text' name='ticketId'>";
+                res += "<button name='jira' type='button' onclick='trigBuild(\"tests\")'>Start tests</button>";
+                res += "<button name='jira' onclick='trigBuild(\"tests+jira\")'>Start tests and comment JIRA ticket on ready</button>";
+                //res += "<button name='git' onclick='trigBuild(\"tests+jira\")'>Start tests and comment GitHub PR on ready</button>";
+                /*
+                res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
+                res+="Pull Request #<input type='text' name='prId' onkeypress='return trigBuild(event)'> ";
+                res+="<button onclick='trigBuild()'>Run All</button><br>";
+                */
+            }
 
-    $("#suitesForRunAll").html(res);
-}
+            $("#suitesForRunAll").html(res);
+        }
 
-/**
- * This form allows user to startIgnite TeamCity Run All build.
- */
-function showCommentJiraForm(result) {
-    var res = "";
+        /**
+         * This form allows user to startIgnite TeamCity Run All build.
+         */
+        function showCommentJiraForm(result) {
+            var res = "";
 
-    for (var i = 0; i < result.length; i++) {
-        var chainAtServer = result[i];
+            for (var i = 0; i < result.length; i++) {
+                var chainAtServer = result[i];
 
-        // TODO multiple servers
-        if (chainAtServer.serverId != "apache")
-            continue;
+                // TODO multiple servers
+                if (chainAtServer.serverId != "apache")
+                    continue;
 
-        res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId +" readonly>" ;
-        res += "Chain: <input type='text' name='suiteId' value='" + chainAtServer.suiteId + "' readonly>";
-        res += "Branch: <input type='text' name='branchForTc' class='branchForTc" + chainAtServer.serverId +
-            "' required> ";
-        res += "Ticket: <input type='text' name='ticketId'> ";
-        res += "<button name='action' onclick='notifyJira()'>Notify</button>";
-    }
+                res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId +" readonly>" ;
+                res += "Chain: <input type='text' name='suiteId' value='" + chainAtServer.suiteId + "' readonly>";
+                res += "Branch: <input type='text' name='branchForTc' class='branchForTc" + chainAtServer.serverId +
+                    "' required> ";
+                res += "Ticket: <input type='text' name='ticketId'> ";
+                res += "<button name='action' onclick='notifyJira()'>Notify</button>";
+            }
 
-    $("#notifyJira").html(res);
-}
+            $("#notifyJira").html(res);
+        }
 
-/**
- * Start Run All build on TeamCity and comment in JIRA ticket when build will be finished.
- */
-function trigBuild(trigCase) {
-    var fields = document.getElementById("suitesForRunAll").children;
+        /**
+         * Start Run All build on TeamCity and comment in JIRA ticket when build will be finished.
+         */
+        function trigBuild(trigCase) {
+            var fields = document.getElementById("suitesForRunAll").children;
 
-    var srvId = fields.namedItem("serverId").value;
-    var suiteId = fields.namedItem("suiteId").value;
-    var branchName = branchForTc(fields.namedItem("branchForTc").value);
-    var ticketId = jiraTicketNumber(fields.namedItem("ticketId").value);
+            var srvId = fields.namedItem("serverId").value;
+            var suiteId = fields.namedItem("suiteId").value;
+            var branchName = branchForTc(fields.namedItem("branchForTc").value);
+            var ticketId = jiraTicketNumber(fields.namedItem("ticketId").value);
 
-    triggerBuild(srvId, suiteId, branchName, false, trigCase !== "tests", ticketId)
-}
+            triggerBuild(srvId, suiteId, branchName, false, trigCase !== "tests", ticketId)
+        }
 
-/**
- * Comment in JIRA ticket with results for the given PR.
- */
-function notifyJira() {
-    var fields = document.getElementById("notifyJira").children;
+        /**
+         * Comment in JIRA ticket with results for the given PR.
+         */
+        function notifyJira() {
+            var fields = document.getElementById("notifyJira").children;
 
-    var srvId = fields.namedItem("serverId").value;
-    var suiteId = fields.namedItem("suiteId").value;
-    var branchName = branchForTc(fields.namedItem("branchForTc").value);
-    var ticketId = jiraTicketNumber(fields.namedItem("ticketId").value);
+            var srvId = fields.namedItem("serverId").value;
+            var suiteId = fields.namedItem("suiteId").value;
+            var branchName = branchForTc(fields.namedItem("branchForTc").value);
+            var ticketId = jiraTicketNumber(fields.namedItem("ticketId").value);
 
-    commentJira(srvId, suiteId, branchName, ticketId)
-}
+            commentJira(srvId, suiteId, branchName, ticketId)
+        }
 
-/**
- * Converts PR number to branch for TeamCity.
- *
- * @param pr - Pull Request number.
- * @returns {String} Branch for TeamCity.
- */
-function branchForTc(pr) {
-    var regExpr = /(\d*)/i;
+        /**
+         * Converts PR number to branch for TeamCity.
+         *
+         * @param pr - Pull Request number.
+         * @returns {String} Branch for TeamCity.
+         */
+        function branchForTc(pr) {
+            var regExpr = /(\d*)/i;
 
-    if (regExpr.exec(pr)[0] === pr)
-        return "pull/" + regExpr.exec(pr)[0] + "/head";
+            if (regExpr.exec(pr)[0] === pr)
+                return "pull/" + regExpr.exec(pr)[0] + "/head";
 
-    return pr;
-}
+            return pr;
+        }
 
-/**
- * Converts JIRA ticket full name to the tickets number.
- *
- * @param ticket - JIRA ticket.
- * @returns {string} JIRA ticket number.
- */
-function jiraTicketNumber(ticket) {
-    var regExpr = /(ignite-)?(\d*)/i;
+        /**
+         * Converts JIRA ticket full name to the tickets number.
+         *
+         * @param ticket - JIRA ticket.
+         * @returns {string} JIRA ticket number.
+         */
+        function jiraTicketNumber(ticket) {
+            var regExpr = /(ignite-)?(\d*)/i;
 
-    return regExpr.exec(ticket)[2];
-}
+            return regExpr.exec(ticket)[2];
+        }
 
-function showFormAndSuitesForPrCheck(result) {
-    var res = "";
+        function showFormAndSuitesForPrCheck(result) {
+            var res = "";
 
-    for (var i = 0; i < result.length; i++) {
-        var chainAtServer = result[i];
+            for (var i = 0; i < result.length; i++) {
+                var chainAtServer = result[i];
 
-        res += "<form action='pr.html'>";
-        res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId + " readonly>";
-        res += "Chain: <input type='text' name='suiteId' value=" + chainAtServer.suiteId + ">";
-        res += "Base branch: <input class='branchForTc" + chainAtServer.serverId +
-            "' type='text' name='baseBranchForTc'  title='Etalon branch to take base data from, e.g refs/heads/master'> ";
-        res += "<b>Branch:</b> <input class='branchForTc" + chainAtServer.serverId +
-            "' type='text' name='branchForTc' title='Tested branch, e.g. pull/4790/head or ignite-9349' required> ";
-        res += "<input type='submit' name='action' value='Latest' title='Show latest runs'>";
-        // res+="<input type='submit' name='action' value='Chain'>";
-        res += "<input type='submit' name='action' value='History' title='Show last 10 runs merged'>";
-        res += "</form>";
-    }
+                res += "<form action='pr.html'>";
+                res += "Server: <input type='text' name='serverId' value=" + chainAtServer.serverId + " readonly>";
+                res += "Chain: <input type='text' name='suiteId' value=" + chainAtServer.suiteId + ">";
+                res += "Base branch: <input class='branchForTc" + chainAtServer.serverId +
+                    "' type='text' name='baseBranchForTc'  title='Etalon branch to take base data from, e.g refs/heads/master'> ";
+                res += "<b>Branch:</b> <input class='branchForTc" + chainAtServer.serverId +
+                    "' type='text' name='branchForTc' title='Tested branch, e.g. pull/4790/head or ignite-9349' required> ";
+                res += "<input type='submit' name='action' value='Latest' title='Show latest runs'>";
+                // res+="<input type='submit' name='action' value='Chain'>";
+                res += "<input type='submit' name='action' value='History' title='Show last 10 runs merged'>";
+                res += "</form>";
+            }
 
-    $("#suitesForPrCheck").html(res);
-}
+            $("#suitesForPrCheck").html(res);
+        }
     </script>
 </head>
 <body>
