@@ -105,8 +105,8 @@ public class BuildRef extends AbstractRef {
         return composite != null && composite;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         BuildRef buildRef = (BuildRef) o;
@@ -121,8 +121,8 @@ public class BuildRef extends AbstractRef {
                 Objects.equal(webUrl, buildRef.webUrl);
     }
 
-    @Override
-    public int hashCode() {
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
         return Objects.hashCode(id, buildTypeId, branchName, status, state, buildNumber, defaultBranch, composite, webUrl);
     }
 }

@@ -16,14 +16,11 @@
  */
 package org.apache.ignite.ci.github.ignited;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -41,33 +38,31 @@ import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
+    /** Cache name*/
     public static final String GIT_HUB_PR = "gitHubPr";
+
+    /** Server id. */
     private String srvId;
+
+    /** Pure HTTP Connection API. */
     private IGitHubConnection conn;
 
+    /** Ignite provider. */
     @Inject Provider<Ignite> igniteProvider;
+    /** Scheduler. */
     @Inject IScheduler scheduler;
-
-    @Deprecated
-    private final Cache<String, List<PullRequest>> prListCache
-        = CacheBuilder.newBuilder()
-        .maximumSize(100)
-        .expireAfterWrite(5, TimeUnit.MINUTES)
-        .softValues()
-        .build();
 
     /** Server ID mask for cache Entries. */
     private long srvIdMaskHigh;
 
+    /** PPs cache. */
     private IgniteCache<Long, PullRequest> prCache;
-
-    private volatile boolean firstRun = true;
 
     public void init(String srvId, IGitHubConnection conn) {
         this.srvId = srvId;
         this.conn = conn;
 
-        srvIdMaskHigh = srvId.hashCode();
+        srvIdMaskHigh = Math.abs(srvId.hashCode());
 
         prCache = igniteProvider.get().getOrCreateCache(getCache8PartsConfig(GIT_HUB_PR));
     }
@@ -92,23 +87,26 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
             .filter(entry -> PullRequest.OPEN.equals(entry.getValue().getState()))
             .map(javax.cache.Cache.Entry::getValue)
             .collect(Collectors.toList());
-
-        /* try {
-            return prListCache.get("", conn::getPullRequests);
-        }
-        catch (ExecutionException e) {
-            throw ExceptionUtil.propagateException(e);
-        }*/
     }
 
     private void actualizePrs() {
         runAtualizePrs(srvId, false);
 
         // schedule full resync later
+        scheduler.invokeLater(this::sheduleResync, 20, TimeUnit.SECONDS);
+    }
+
+    /**
+     *
+     */
+    private void sheduleResync() {
         scheduler.sheduleNamed(IGitHubConnIgnited.class.getSimpleName() + ".fullReindex",
             this::fullReindex, 60, TimeUnit.MINUTES);
     }
 
+    /**
+     *
+     */
     private void fullReindex() {
         runAtualizePrs(srvId, true);
     }
