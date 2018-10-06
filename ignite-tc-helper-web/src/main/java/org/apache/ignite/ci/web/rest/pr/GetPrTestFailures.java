@@ -21,7 +21,7 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.POST;
 
 import com.google.inject.Injector;
-import org.apache.ignite.ci.chain.PrChainsProcessor;
+import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.github.PullRequest;
@@ -135,7 +135,7 @@ public class GetPrTestFailures {
 
         final Injector injector = CtxListener.getInjector(ctx);
         final ICredentialsProv creds = ICredentialsProv.get(req);
-        final IGitHubConnection srv = injector.getInstance(IGitHubConnectionProvider.class).server(srvId, creds);
+        final IGitHubConnection srv = injector.getInstance(IGitHubConnectionProvider.class).server(srvId);
 
         PullRequest pr;
 

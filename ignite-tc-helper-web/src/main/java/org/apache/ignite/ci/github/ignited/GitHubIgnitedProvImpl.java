@@ -21,12 +21,10 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
-import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
 
 class GitHubIgnitedProvImpl implements IGitHubConnIgnitedProvider {
@@ -41,10 +39,10 @@ class GitHubIgnitedProvImpl implements IGitHubConnIgnitedProvider {
         .build();
 
     /** {@inheritDoc} */
-    @Override public IGitHubConnIgnited server(String srvId, @Nullable ICredentialsProv prov) {
+    @Override public IGitHubConnIgnited server(String srvId) {
         try {
             return srvs.get(Strings.nullToEmpty(srvId), () -> {
-                IGitHubConnection srv = pureConnProv.server(srvId, prov);
+                IGitHubConnection srv = pureConnProv.server(srvId);
                 GitHubConnIgnitedImpl ignited = ignitedProvider.get();
                 ignited.init(srvId, srv);
                 return ignited;

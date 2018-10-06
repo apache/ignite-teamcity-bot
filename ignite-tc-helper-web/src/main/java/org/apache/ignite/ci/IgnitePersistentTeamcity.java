@@ -60,7 +60,6 @@ import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -82,7 +81,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXParseException;
 
-import static org.apache.ignite.ci.chain.BuildChainProcessor.normalizeBranch;
+import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBranch;
 
 /**
  * Apache Ignite based cache over teamcity responses

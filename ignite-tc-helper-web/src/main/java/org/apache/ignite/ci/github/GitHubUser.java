@@ -1,5 +1,7 @@
 package org.apache.ignite.ci.github;
 
+import com.google.common.base.Objects;
+
 public class GitHubUser {
     public String login;
     public String avatar_url;
@@ -25,4 +27,20 @@ public class GitHubUser {
      *       "site_admin": false
      *     },
      */
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        GitHubUser user = (GitHubUser)o;
+        return Objects.equal(login, user.login) &&
+            Objects.equal(avatar_url, user.avatar_url);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hashCode(login, avatar_url);
+    }
 }

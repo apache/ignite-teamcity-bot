@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.github;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
 import com.google.gson.annotations.SerializedName;
 
 /**
@@ -85,6 +86,7 @@ public class PullRequest {
         return htmlUrl;
     }
 
+    /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("num", num)
@@ -92,5 +94,26 @@ public class PullRequest {
             .add("title", title)
             .add("statusesUrl", statusesUrl)
             .toString();
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        PullRequest req = (PullRequest)o;
+        return num == req.num &&
+            Objects.equal(state, req.state) &&
+            Objects.equal(title, req.title) &&
+            Objects.equal(htmlUrl, req.htmlUrl) &&
+            Objects.equal(updatedAt, req.updatedAt) &&
+            Objects.equal(statusesUrl, req.statusesUrl) &&
+            Objects.equal(gitHubUser, req.gitHubUser);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hashCode(num, state, title, htmlUrl, updatedAt, statusesUrl, gitHubUser);
     }
 }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.visa;
+package org.apache.ignite.ci.tcbot.visa;
 
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
@@ -113,7 +113,7 @@ public class TcBotTriggerAndSignOffService {
     ) {
         if (F.isEmpty(ticketId)) {
             try {
-                IGitHubConnection gitHubConnection = gitHubConnectionProvider.server(srvId, prov);
+                IGitHubConnection gitHubConnection = gitHubConnectionProvider.server(srvId);
 
                 PullRequest pr = gitHubConnection.getPullRequest(branchForTc);
 
@@ -150,7 +150,7 @@ public class TcBotTriggerAndSignOffService {
 
         if (Strings.isNullOrEmpty(ticketId)) {
             try {
-                IGitHubConnection gitHubConn = gitHubConnectionProvider.server(srvId, prov);
+                IGitHubConnection gitHubConn = gitHubConnectionProvider.server(srvId);
                 PullRequest pr = gitHubConn.getPullRequest(branchForTc);
 
                 ticketId = TcBotTriggerAndSignOffService.getTicketId(pr);
@@ -179,7 +179,7 @@ public class TcBotTriggerAndSignOffService {
     }
 
     public List<ContributionToCheck> getContributionsToCheck(String srvId) {
-        IGitHubConnIgnited gitHubConn = gitHubConnIgnitedProvider.server(srvId, null);
+        IGitHubConnIgnited gitHubConn = gitHubConnIgnitedProvider.server(srvId);
         List<PullRequest> requests = gitHubConn.getPullRequests();
         if (requests == null)
             return null;

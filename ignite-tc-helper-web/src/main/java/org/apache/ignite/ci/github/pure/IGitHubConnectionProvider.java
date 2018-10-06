@@ -16,13 +16,10 @@
  */
 package org.apache.ignite.ci.github.pure;
 
-import javax.annotation.Nullable;
-import org.apache.ignite.ci.user.ICredentialsProv;
-
 public interface IGitHubConnectionProvider {
     /**
      * @param srvId Server id.
-     * @param prov Prov.
+     *
      */
-    public IGitHubConnection server(String srvId, @Nullable ICredentialsProv prov);
+    public IGitHubConnection server(String srvId);
 }

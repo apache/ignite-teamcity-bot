@@ -19,13 +19,10 @@ package org.apache.ignite.ci.github.pure;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Provider;
-import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
 
 class GitHubCachingProvider implements IGitHubConnectionProvider {
@@ -38,7 +35,7 @@ class GitHubCachingProvider implements IGitHubConnectionProvider {
         .build();
 
     /** {@inheritDoc} */
-    @Override public IGitHubConnection server(String srvId, @Nullable ICredentialsProv prov) {
+    @Override public IGitHubConnection server(String srvId) {
         try {
             return srvs.get(Strings.nullToEmpty(srvId), () -> {
                 IGitHubConnection conn = factory.get();

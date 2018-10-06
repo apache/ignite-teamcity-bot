@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
@@ -33,6 +34,7 @@ import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
+    public static final String GIT_HUB_PR = "gitHubPr";
     private String id;
     private IGitHubConnection conn;
 
@@ -46,9 +48,18 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         .softValues()
         .build();
 
+    /** Server ID mask for cache Entries. */
+    private long serverIdMask;
+
+    private IgniteCache<Long, PullRequest> prCache;
+
     public void init(String srvId, IGitHubConnection conn) {
         id = srvId;
         this.conn = conn;
+
+        serverIdMask = ((long)srvId.hashCode()) << 32;
+
+        prCache = igniteProvider.get().getOrCreateCache(getCache8PartsConfig(GIT_HUB_PR));
     }
 
     @NotNull

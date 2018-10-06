@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.chain;
+package org.apache.ignite.ci.tcbot.chain;
 
 import java.util.ArrayList;
 import java.util.Collection;

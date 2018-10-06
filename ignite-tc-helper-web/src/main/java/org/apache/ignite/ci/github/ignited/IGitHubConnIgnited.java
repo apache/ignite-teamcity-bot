@@ -19,7 +19,12 @@ package org.apache.ignite.ci.github.ignited;
 import java.util.List;
 import org.apache.ignite.ci.github.PullRequest;
 
+/**
+ *
+ */
 public interface IGitHubConnIgnited {
-
-    List<PullRequest> getPullRequests();
+    /**
+     * @return list of open pull requests
+     */
+    public List<PullRequest> getPullRequests();
 }

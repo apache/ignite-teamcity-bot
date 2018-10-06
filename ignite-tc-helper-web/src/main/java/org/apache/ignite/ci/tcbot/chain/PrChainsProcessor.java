@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.chain;
+package org.apache.ignite.ci.tcbot.chain;
 
 import com.google.common.base.Strings;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
@@ -49,7 +49,7 @@ public class PrChainsProcessor {
 
     /** Tc server provider. */
     @Inject ITcServerProvider tcSrvProvider;
-    @Inject IGitHubConnectionProvider gitHubConnectionProvider;
+    @Inject IGitHubConnectionProvider gitHubConnProvider;
 
     /**
      * @param creds Credentials.
@@ -78,9 +78,9 @@ public class PrChainsProcessor {
         //using here non persistent TC allows to skip update statistic
         IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, creds);
 
-        IGitHubConnection gitHubConnection = gitHubConnectionProvider.server(srvId, creds);
+        IGitHubConnection gitHubConn = gitHubConnProvider.server(srvId);
 
-        res.setJavaFlags(teamcity, gitHubConnection);
+        res.setJavaFlags(teamcity, gitHubConn);
 
         LatestRebuildMode rebuild;
         if (FullQueryParams.HISTORY.equals(act))

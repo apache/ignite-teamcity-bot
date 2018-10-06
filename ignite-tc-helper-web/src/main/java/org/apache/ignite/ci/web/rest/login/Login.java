@@ -47,6 +47,7 @@ public class Login {
     public static final int SESS_ID_LEN = 8;
     public static final int SALT_LEN = 16;
 
+    /** Context. */
     @Context
     private ServletContext ctx;
 
