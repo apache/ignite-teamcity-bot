@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -60,6 +61,8 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
     private IgniteCache<Long, PullRequest> prCache;
 
+    private volatile boolean firstRun = true;
+
     public void init(String srvId, IGitHubConnection conn) {
         this.srvId = srvId;
         this.conn = conn;
@@ -82,7 +85,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     @AutoProfiling
     @Override public List<PullRequest> getPullRequests() {
         scheduler.sheduleNamed(IGitHubConnIgnited.class.getSimpleName() + ".actualizePrs",
-            this::actualizePrs, 4, TimeUnit.MINUTES);
+            this::actualizePrs, 2, TimeUnit.MINUTES);
 
         return StreamSupport.stream(prCache.spliterator(), false)
             .filter(entry -> entry.getKey() >> 32 == srvIdMaskHigh)
@@ -99,26 +102,40 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     }
 
     private void actualizePrs() {
-        runAtualizePrs(srvId);
+        runAtualizePrs(srvId, false);
+
+        // schedule full resync later
+        scheduler.sheduleNamed(IGitHubConnIgnited.class.getSimpleName() + ".fullReindex",
+            this::fullReindex, 60, TimeUnit.MINUTES);
+    }
+
+    private void fullReindex() {
+        runAtualizePrs(srvId, true);
     }
 
     /**
      * @param srvId Server id.
+     * @param fullReindex Reindex all open PRs
      */
     @MonitoredTask(name = "Actualize PRs", nameExtArgIndex = 0)
     @AutoProfiling
-    protected String runAtualizePrs(String srvId) {
+    protected String runAtualizePrs(String srvId, boolean fullReindex) {
         AtomicReference<String> outLinkNext = new AtomicReference<>();
+
         List<PullRequest> ghData = conn.getPullRequests(null, outLinkNext);
-        int size = saveChunk(ghData);
+        int cntSaved = saveChunk(ghData);
+        int totalChecked = ghData.size();
         while (outLinkNext.get() != null) {
             String nextPageUrl = outLinkNext.get();
             ghData = conn.getPullRequests(nextPageUrl, outLinkNext);
-            size += saveChunk(ghData);
+            cntSaved += saveChunk(ghData);
+            totalChecked += ghData.size();
+
+            if(!fullReindex)
+                break; // 2 pages
         }
 
-
-        return "Entries saved " + size;
+        return "Entries saved " + cntSaved + " PRs checked " + totalChecked;
     }
 
     private int saveChunk(List<PullRequest> ghData) {
