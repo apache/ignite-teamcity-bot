@@ -18,14 +18,12 @@
 package  org.apache.ignite.ci.runners;
 
 import com.google.common.base.Throwables;
-import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -34,7 +32,7 @@ import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
-import org.apache.ignite.ci.teamcity.TcConnectionStaticLinker;
+import org.apache.ignite.ci.teamcity.pure.TcConnectionStaticLinker;
 
 /**
  * Local class for running specific checks

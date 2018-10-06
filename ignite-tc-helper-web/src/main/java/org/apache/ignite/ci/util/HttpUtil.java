@@ -31,8 +31,10 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +47,9 @@ public class HttpUtil {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(HttpUtil.class);
 
+    /**
+     * @param inputStream Input stream.
+     */
     private static String readIsToString(InputStream inputStream) throws IOException {
         if (inputStream == null)
             return "<null>";
@@ -92,10 +97,11 @@ public class HttpUtil {
      *
      * @param githubAuthTok Authorization OAuth token.
      * @param url URL.
+     * @param rspHeaders [IN] - required codes name->null, [OUT] required codes: name->value.
      * @return Input stream from connection.
      * @throws IOException If failed.
      */
-    public static InputStream sendGetToGit(String githubAuthTok, String url) throws IOException {
+    public static InputStream sendGetToGit(String githubAuthTok, String url, @Nullable Map<String, String> rspHeaders) throws IOException {
         Stopwatch started = Stopwatch.createStarted();
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
@@ -107,8 +113,17 @@ public class HttpUtil {
         con.setRequestProperty("Connection", "Keep-Alive");
         con.setRequestProperty("Keep-Alive", "header");
 
+        int resCode = con.getResponseCode();
+
+        if(rspHeaders != null) {
+            rspHeaders.keySet().forEach((k) -> {
+                String link = con.getHeaderField(k);
+
+                rspHeaders.put(k, link);
+            });
+        }
         logger.info(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
-            + "ms : Sending 'GET' request to : " + url);
+            + "ms : Sending 'GET' request to : " + url + " Response: " + resCode);
 
         return getInputStream(con);
     }

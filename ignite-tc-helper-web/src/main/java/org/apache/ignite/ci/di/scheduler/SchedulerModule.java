@@ -15,15 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity;
+package org.apache.ignite.ci.di.scheduler;
 
-import java.io.IOException;
-import java.io.InputStream;
+import com.google.inject.AbstractModule;
+import com.google.inject.internal.SingletonScope;
 
-public interface ITeamcityHttpConnection {
-    /**
-     * @param basicAuthTok Basic auth token.
-     * @param url Url.
-     */
-    public InputStream sendGet(String basicAuthTok, String url) throws IOException;
+public class SchedulerModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        bind(IScheduler.class).to(TcBotScheduler.class).in(new SingletonScope());
+    }
 }

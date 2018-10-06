@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.user;
 
 import org.apache.ignite.ci.tcmodel.user.User;
-import org.apache.ignite.ci.teamcity.ITcLogin;
+import org.apache.ignite.ci.teamcity.pure.ITcLogin;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.web.auth.AuthenticationFilter;
 import org.apache.ignite.ci.web.rest.login.Login;

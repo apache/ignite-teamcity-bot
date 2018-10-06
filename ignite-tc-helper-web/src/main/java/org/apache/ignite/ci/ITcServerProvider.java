@@ -24,5 +24,5 @@ import javax.annotation.Nullable;
  * Provides instance to server with appropriate credentials, may cache instances to avoid odd server instances.
  */
 public interface ITcServerProvider {
-    IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov);
+    public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov);
 }

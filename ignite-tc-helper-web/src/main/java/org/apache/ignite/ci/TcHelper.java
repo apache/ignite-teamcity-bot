@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci;
 
-import org.apache.ignite.ci.chain.PrChainsProcessor;
+import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;

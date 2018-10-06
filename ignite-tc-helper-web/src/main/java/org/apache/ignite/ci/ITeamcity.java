@@ -28,8 +28,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
-import org.apache.ignite.ci.chain.BuildChainProcessor;
-import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
@@ -275,15 +274,6 @@ public interface ITeamcity {
      */
     boolean isTeamCityTokenAvailable();
 
-    /**
-     * @param token GitHub authorization token.
-     */
-    void setGitToken(String token);
-
-    /**
-     * @return {@code True} if GitHub authorization token is available.
-     */
-    boolean isGitTokenAvailable();
 
     /**
      * @param tok Jira authorization token.
@@ -296,21 +286,6 @@ public interface ITeamcity {
     boolean isJiraTokenAvailable();
 
     /**
-     * Send POST request with given body.
-     *
-     * @param url Url.
-     * @param body Request body.
-     * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
-     */
-    boolean notifyGit(String url, String body);
-
-    /**
-     * @param branch TeamCity's branch name. Looks like "pull/123/head".
-     * @return Pull Request.
-     */
-    PullRequest getPullRequest(String branch);
-
-    /**
      * @param ticket JIRA ticket full name.
      * @param comment Comment to be placed in the ticket conversation.
      * @return {@code True} if ticket was succesfully commented. Otherwise - {@code false}.
@@ -319,16 +294,6 @@ public interface ITeamcity {
      * @throws IllegalStateException If can't find URL to the JIRA.
      */
     String sendJiraComment(String ticket, String comment) throws IOException;
-
-    /**
-     * @param url URL for git integration.
-     */
-    void setGitApiUrl(String url);
-
-    /**
-     * @return URL for git integration.
-     */
-    String getGitApiUrl();
 
     /**
      * @param url URL for JIRA integration.
@@ -340,9 +305,9 @@ public interface ITeamcity {
      */
     String getJiraApiUrl();
 
-    default void setAuthData(String user, String password) {
+    default void setAuthData(String user, String pwd) {
         setAuthToken(
-                Base64Util.encodeUtf8String(user + ":" + password));
+                Base64Util.encodeUtf8String(user + ":" + pwd));
     }
 
     /**
@@ -357,4 +322,5 @@ public interface ITeamcity {
     void init(String serverId);
 
     User getUserByUsername(String username);
+
 }

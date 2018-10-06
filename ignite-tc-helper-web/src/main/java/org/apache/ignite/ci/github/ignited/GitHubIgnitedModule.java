@@ -14,23 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity;
+package org.apache.ignite.ci.github.ignited;
 
-import org.apache.ignite.ci.IgniteTeamcityConnection;
+import com.google.inject.AbstractModule;
+import com.google.inject.internal.SingletonScope;
+import org.apache.ignite.ci.github.pure.GitHubIntegrationModule;
 
 /**
- * Factory for non-guice creation of TC Connection instance.
+ * Requires {@link org.apache.ignite.ci.di.scheduler.SchedulerModule} to be installed
  */
-public class TcConnectionStaticLinker {
-    /**
-     * @param srv Server ID.
-     */
-    public static IgniteTeamcityConnection create(String srv) {
-        final IgniteTeamcityConnection conn = new IgniteTeamcityConnection();
+public class GitHubIgnitedModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        install(new GitHubIntegrationModule());
 
-        conn.setHttpConn(new TeamcityRecordingConnection());
-        conn.init(srv);
-
-        return conn;
+        bind(IGitHubConnIgnitedProvider.class).to(GitHubIgnitedProvImpl.class).in(new SingletonScope());
     }
 }

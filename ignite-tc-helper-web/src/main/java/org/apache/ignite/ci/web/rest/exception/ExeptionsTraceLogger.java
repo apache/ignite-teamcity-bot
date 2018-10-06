@@ -18,6 +18,8 @@ package org.apache.ignite.ci.web.rest.exception;
 
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
+import javax.ws.rs.core.Response;
+import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,10 +32,12 @@ public class ExeptionsTraceLogger implements ExceptionMapper<Throwable> {
     private static final Logger logger = LoggerFactory.getLogger(ExeptionsTraceLogger.class);
 
     /** {@inheritDoc} */
-    @Override public javax.ws.rs.core.Response toResponse(Throwable t) {
+    @Override public Response toResponse(Throwable t) {
         logger.error("Error during processing request (Internal Server Error [500]). Caused by: ", t);
-        return javax.ws.rs.core.Response.serverError()
-            .entity(t.getMessage())
-            .build();
+
+        if (Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)))
+            t.printStackTrace();
+
+        return Response.serverError().entity(t.getMessage()).build();
     }
 }

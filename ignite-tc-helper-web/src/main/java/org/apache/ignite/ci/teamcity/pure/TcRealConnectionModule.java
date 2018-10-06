@@ -14,20 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity;
+package org.apache.ignite.ci.teamcity.pure;
 
-import org.apache.ignite.ci.tcmodel.user.User;
+import com.google.inject.AbstractModule;
+import com.google.inject.internal.SingletonScope;
 
 /**
- * Teamcity Login implementation.
+ * Guice module to setup real connected server and all related implementations.
  */
-public interface ITcLogin {
-    /**
-     * Check if user has correct credentials to particular server.
-     * @param srvId Server id.
-     * @param username Username.
-     * @param pwd Password.
-     * @return user settings on this teamcity
-     */
-    public User checkServiceUserAndPassword(String srvId, String username, String pwd);
+public class TcRealConnectionModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        bind(ITeamcityHttpConnection.class).to(TeamcityRecordingConnection.class);
+        bind(TeamcityRecorder.class).in(new SingletonScope());
+        bind(ITcLogin.class).to(TcLoginImpl.class).in(new SingletonScope());
+    }
 }

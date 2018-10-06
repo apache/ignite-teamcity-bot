@@ -36,7 +36,7 @@ import com.google.inject.Injector;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.tcmodel.user.User;
-import org.apache.ignite.ci.teamcity.ITcLogin;
+import org.apache.ignite.ci.teamcity.pure.ITcLogin;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
