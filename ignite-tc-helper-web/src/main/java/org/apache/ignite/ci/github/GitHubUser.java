@@ -20,7 +20,7 @@ import com.google.common.base.Objects;
 import com.google.gson.annotations.SerializedName;
 
 public class GitHubUser {
-    private String login;
+    @SerializedName("login") private String login;
     @SerializedName("avatar_url") private String avatarUrl;
     /*See full example in prsList.json */
 

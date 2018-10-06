@@ -80,7 +80,8 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public List<PullRequest> getPullRequests() {
-        scheduler.invokeLater(this::actualizePrs, 10, TimeUnit.SECONDS);
+        scheduler.sheduleNamed(IGitHubConnIgnited.class.getSimpleName() + ".actualizePrs",
+            this::actualizePrs, 2, TimeUnit.MINUTES);
 
         return StreamSupport.stream(prCache.spliterator(), false)
             .filter(entry -> entry.getKey() >> 32 == srvIdMaskHigh)
@@ -108,6 +109,12 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     protected String runAtualizePrs(String srvId) {
         List<PullRequest> ghData = conn.getPullRequests();
 
+        int size = saveChunk(ghData);
+
+        return "Entries saved " + size;
+    }
+
+    private int saveChunk(List<PullRequest> ghData) {
         Set<Long> ids = ghData.stream().map(PullRequest::getNumber)
             .map(this::prNumberToCacheKey)
             .collect(Collectors.toSet());
@@ -123,9 +130,10 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
                 entriesToPut.put(cacheKey, next);
         }
 
-        prCache.putAll(entriesToPut);
-
-        return "Entries saved " + entriesToPut.size();
+        int size = entriesToPut.size();
+        if (size != 0)
+            prCache.putAll(entriesToPut);
+        return size;
     }
 
     private long prNumberToCacheKey(int prNumber) {

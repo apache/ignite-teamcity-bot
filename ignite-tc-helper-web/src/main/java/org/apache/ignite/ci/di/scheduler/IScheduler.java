@@ -34,5 +34,7 @@ public interface IScheduler {
      */
     public void invokeLater(Runnable cmd, long delay, TimeUnit unit);
 
+    public void sheduleNamed(String fullName, Runnable cmd, long queitPeriod, TimeUnit unit);
+
     public void stop();
 }

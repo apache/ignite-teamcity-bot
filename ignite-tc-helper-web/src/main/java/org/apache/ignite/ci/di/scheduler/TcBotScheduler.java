@@ -17,11 +17,14 @@
 package org.apache.ignite.ci.di.scheduler;
 
 import com.google.common.base.Preconditions;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.ignite.ci.di.MonitoredTask;
 
 class TcBotScheduler implements IScheduler {
     /** Initial guard. */
@@ -30,13 +33,41 @@ class TcBotScheduler implements IScheduler {
     /** Executor service. */
     private volatile ScheduledExecutorService executorSvc;
 
+    /** Submit named task checker guard. */
+    private AtomicBoolean tickGuard = new AtomicBoolean();
+
+    private final ConcurrentMap<String, NamedTask> namedTasks = new ConcurrentHashMap<>();
+
     @Override public void invokeLater(Runnable cmd, long delay, TimeUnit unit) {
         service().schedule(cmd, delay, unit);
     }
 
+    @Override public void sheduleNamed(String fullName, Runnable cmd, long queitPeriod, TimeUnit unit) {
+        NamedTask task = namedTasks.computeIfAbsent(fullName, NamedTask::new);
+
+        task.sheduleWithQuitePeriod(cmd, queitPeriod, unit);
+
+        if (tickGuard.compareAndSet(false, true))
+            service().scheduleAtFixedRate(this::checkNamedTasks, 0, 1, TimeUnit.SECONDS);
+    }
+
+    /**
+     *
+     */
+    @MonitoredTask(name = "Run Named Scheduled Tasks")
+    protected String checkNamedTasks() {
+        AtomicInteger started = new AtomicInteger();
+        namedTasks.forEach((s, task) -> {
+            Runnable runnable = task.needRun();
+            if (runnable != null)
+                started.incrementAndGet();
+        });
+        return "Started " + started.get();
+    }
+
     /** {@inheritDoc} */
     @Override public void stop() {
-        if(executorSvc!=null)
+        if (executorSvc != null)
             executorSvc.shutdown();
     }
 
