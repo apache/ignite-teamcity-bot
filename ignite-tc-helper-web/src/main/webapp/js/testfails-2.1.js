@@ -385,61 +385,81 @@ function triggerBuild(serverId, suiteId, branchName, top, observe, ticketId) {
 }
 
 function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId) {
-    var res = "Trigger builds at server: " + serverId + "<br>" +
-        "Branch:" + branchName + "<br>Top: " + top + "<br>";
+    var possibleBlockersNotFound = suiteIdList.length === 0;
+    var res = "";
 
-    var partsOfStr = suiteIdList.split(',');
-
-    for (var i = 0; i < partsOfStr.length; i++) {
-        var suite = partsOfStr[i];
-        res += "Suite ID: " + suite + "<br>";
+    if (possibleBlockersNotFound) {
+        res = "Possible Blockers not found!";
     }
+    else {
+        res = "Trigger builds at server: " + serverId + "<br>" +
+            "Branch:" + branchName + "<br>Top: " + top + "<br>";
+
+        var partsOfStr = suiteIdList.split(',');
+
+        for (var i = 0; i < partsOfStr.length; i++) {
+            var suite = partsOfStr[i];
+            res += "Suite ID: " + suite + "<br>";
+        }
+    }
+
     var triggerConfirm = $("#triggerConfirm");
 
     triggerConfirm.html(res);
 
-    triggerConfirm.dialog({
-        modal: true,
-        buttons: {
-            "Run": function() {
-                $(this).dialog("close");
-
-                var queueAtTop = isDefinedAndFilled(top) && top;
-                var observeJira = isDefinedAndFilled(observe) && observe;
-                $.ajax({
-                    url: 'rest/build/triggerBuilds',
-                    data: {
-                        "serverId": serverId,
-                        "suiteIdList": suiteIdList,
-                        "branchName": branchName,
-                        "top": queueAtTop,
-                        "observe" : observeJira,
-                        "ticketId" : ticketId
-                    },
-                    success: function(result) {
-                        var dialog = $("#triggerDialog");
-
-                        dialog.html("<b>Trigger builds at server: </b>" + serverId + "<br>" +
-                            "<b>Suites: </b>" + suiteIdList + "<br>Branch:" + branchName + "<br>Top: " + top +
-                            "<br><br> Result: " + result.result);
-                        dialog.dialog({
-                            modal: true,
-                            buttons: {
-                                "Ok": function() {
-                                    $(this).dialog("close");
-                                }
-                            }
-                        });
-                        loadData(); // should be defined by page
-                    },
-                    error: showErrInLoadStatus
-                });
-            },
-            Cancel: function() {
-                $(this).dialog("close");
+    if (possibleBlockersNotFound){
+        triggerConfirm.dialog({
+            modal: true,
+            buttons: {
+                Cancel: function () {
+                    $(this).dialog("close");
+                }
             }
-        }
-    });
+        });
+    } else {
+        triggerConfirm.dialog({
+            modal: true,
+            buttons: {
+                "Run": function () {
+                    $(this).dialog("close");
+
+                    var queueAtTop = isDefinedAndFilled(top) && top;
+                    var observeJira = isDefinedAndFilled(observe) && observe;
+                    $.ajax({
+                        url: 'rest/build/triggerBuilds',
+                        data: {
+                            "serverId": serverId,
+                            "suiteIdList": suiteIdList,
+                            "branchName": branchName,
+                            "top": queueAtTop,
+                            "observe": observeJira,
+                            "ticketId": ticketId
+                        },
+                        success: function (result) {
+                            var dialog = $("#triggerDialog");
+
+                            dialog.html("<b>Trigger builds at server: </b>" + serverId + "<br>" +
+                                "<b>Suites: </b>" + suiteIdList + "<br>Branch:" + branchName + "<br>Top: " + top +
+                                "<br><br> Result: " + result.result);
+                            dialog.dialog({
+                                modal: true,
+                                buttons: {
+                                    "Ok": function () {
+                                        $(this).dialog("close");
+                                    }
+                                }
+                            });
+                            loadData(); // should be defined by page
+                        },
+                        error: showErrInLoadStatus
+                    });
+                },
+                Cancel: function () {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    }
 }
 
 function commentJira(serverId, suiteId, branchName, ticketId) {
