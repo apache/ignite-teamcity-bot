@@ -14,41 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github;
+package org.apache.ignite.ci.github.pure;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.function.BiFunction;
-import javax.annotation.Nullable;
-import javax.ws.rs.BadRequestException;
-import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.analysis.Expirable;
-import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.util.HttpUtil;
-import org.apache.ignite.ci.util.ObjectInterner;
-import org.apache.ignite.internal.util.typedef.T2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,7 +121,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** {@inheritDoc} */
     @AutoProfiling
-     public List<PullRequest> getGithubPullRequests() {
+    @Override public List<PullRequest> getPullRequests() {
         Preconditions.checkState( !isNullOrEmpty(gitApiUrl) , "Git API URL is not configured for this server.");
 
         String s = gitApiUrl + "pulls?sort=updated&direction=desc";
@@ -149,25 +137,6 @@ class GitHubConnectionImpl implements IGitHubConnection {
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
-        }
-    }
-    /** Data loaded. */
-    private final Cache<String, List<PullRequest>> prListCache
-        = CacheBuilder.newBuilder()
-        .maximumSize(100)
-        .expireAfterWrite(5, TimeUnit.MINUTES)
-        .softValues()
-        .build();
-
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public List<PullRequest> getPullRequests() {
-        try {
-            return prListCache.get("", this::getGithubPullRequests);
-        }
-        catch (ExecutionException e) {
-           throw ExceptionUtil.propagateException(e);
         }
     }
 }

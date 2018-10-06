@@ -14,15 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github;
+package org.apache.ignite.ci.teamcity.pure;
 
-import javax.annotation.Nullable;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.tcmodel.user.User;
 
-public interface IGitHubConnectionProvider {
+/**
+ * Teamcity Login implementation.
+ */
+public interface ITcLogin {
     /**
+     * Check if user has correct credentials to particular server.
      * @param srvId Server id.
-     * @param prov Prov.
+     * @param username Username.
+     * @param pwd Password.
+     * @return user settings on this teamcity
      */
-    public IGitHubConnection server(String srvId, @Nullable ICredentialsProv prov);
+    public User checkServiceUserAndPassword(String srvId, String username, String pwd);
 }

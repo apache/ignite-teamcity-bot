@@ -22,8 +22,8 @@ import javax.ws.rs.POST;
 
 import com.google.inject.Injector;
 import org.apache.ignite.ci.chain.PrChainsProcessor;
-import org.apache.ignite.ci.github.IGitHubConnection;
-import org.apache.ignite.ci.github.IGitHubConnectionProvider;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;

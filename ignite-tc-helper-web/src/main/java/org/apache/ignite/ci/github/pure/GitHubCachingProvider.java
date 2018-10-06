@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github;
+package org.apache.ignite.ci.github.pure;
 
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
@@ -39,21 +39,16 @@ class GitHubCachingProvider implements IGitHubConnectionProvider {
 
     /** {@inheritDoc} */
     @Override public IGitHubConnection server(String srvId, @Nullable ICredentialsProv prov) {
-        Callable<IGitHubConnection> call = () -> {
-            IGitHubConnection conn = factory.get();
-            conn.init(srvId);
-            return conn;
-        };
-        String fullKey = Strings.nullToEmpty(srvId);
-
-        IGitHubConnection gitHubConn;
         try {
-            gitHubConn = srvs.get(fullKey, call);
+            return srvs.get(Strings.nullToEmpty(srvId), () -> {
+                IGitHubConnection conn = factory.get();
+                conn.init(srvId);
+                return conn;
+            });
         }
         catch (ExecutionException e) {
             throw ExceptionUtil.propagateException(e);
         }
-        return gitHubConn;
     }
 
 }

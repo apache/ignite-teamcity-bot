@@ -14,19 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity;
+package org.apache.ignite.ci.github.ignited;
 
-import org.apache.ignite.ci.util.HttpUtil;
+import javax.annotation.Nullable;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.user.ICredentialsProv;
 
-import javax.inject.Inject;
-import java.io.IOException;
-import java.io.InputStream;
-
-public class TeamcityRecordingConnection implements ITeamcityHttpConnection {
-    @Inject private TeamcityRecorder recorder;
-
-    /** {@inheritDoc} */
-    @Override public InputStream sendGet(String basicAuthTok, String url) throws IOException {
-        return recorder.onGet(HttpUtil.sendGetWithBasicAuth(basicAuthTok, url), url);
-    }
+public interface IGitHubConnIgnitedProvider {
+    /**
+     * @param srvId Server id.
+     * @param prov Prov.
+     */
+    public IGitHubConnIgnited server(String srvId, @Nullable ICredentialsProv prov);
 }

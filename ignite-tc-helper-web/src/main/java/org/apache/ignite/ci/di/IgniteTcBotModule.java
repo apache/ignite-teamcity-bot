@@ -25,12 +25,12 @@ import com.google.inject.matcher.Matchers;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.*;
 import org.apache.ignite.ci.db.Ignite1Init;
-import org.apache.ignite.ci.github.GitHubIntegrationModule;
+import org.apache.ignite.ci.github.ignited.GitHubIgnitedModule;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
-import org.apache.ignite.ci.teamcity.TcRealConnectionModule;
+import org.apache.ignite.ci.teamcity.pure.TcRealConnectionModule;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.BackgroundUpdater;
@@ -82,7 +82,7 @@ public class IgniteTcBotModule extends AbstractModule {
 
         bind(BackgroundUpdater.class).in(new SingletonScope());
         install(new TcRealConnectionModule());
-        install(new GitHubIntegrationModule());
+        install(new GitHubIgnitedModule());
     }
 
     //todo fallback to TC big class

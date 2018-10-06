@@ -19,7 +19,6 @@ package org.apache.ignite.ci.visa;
 
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -27,8 +26,10 @@ import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.GitHubUser;
-import org.apache.ignite.ci.github.IGitHubConnection;
-import org.apache.ignite.ci.github.IGitHubConnectionProvider;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
@@ -47,6 +48,7 @@ public class TcBotTriggerAndSignOffService {
     @Inject Provider<BuildObserver> buildObserverProvider;
 
     @Inject IGitHubConnectionProvider gitHubConnectionProvider;
+    @Inject IGitHubConnIgnitedProvider gitHubConnIgnitedProvider;
 
     @Inject ITcServerProvider tcServerProvider;
 
@@ -177,7 +179,7 @@ public class TcBotTriggerAndSignOffService {
     }
 
     public List<ContributionToCheck> getContributionsToCheck(String srvId) {
-        IGitHubConnection gitHubConn = gitHubConnectionProvider.server(srvId, null);
+        IGitHubConnIgnited gitHubConn = gitHubConnIgnitedProvider.server(srvId, null);
         List<PullRequest> requests = gitHubConn.getPullRequests();
         if (requests == null)
             return null;

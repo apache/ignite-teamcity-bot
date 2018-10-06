@@ -14,38 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github;
+package org.apache.ignite.ci.github.pure;
 
-import java.util.List;
+import com.google.inject.AbstractModule;
+import com.google.inject.internal.SingletonScope;
 
-public interface IGitHubConnection {
-
-    void init(String srvId);
-
-    /**
-     * @param branch TeamCity's branch name. Looks like "pull/123/head".
-     * @return Pull Request.
-     */
-    PullRequest getPullRequest(String branch);
-
-    /**
-     * Send POST request with given body.
-     *
-     * @param url Url.
-     * @param body Request body.
-     * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
-     */
-    boolean notifyGit(String url, String body);
-
-    /**
-     * @return {@code True} if GitHub authorization token is available.
-     */
-    boolean isGitTokenAvailable();
-
-    /**
-     * @return URL for git integration.
-     */
-    String gitApiUrl();
-
-    List<PullRequest> getPullRequests();
+public class GitHubIntegrationModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        bind(IGitHubConnection.class).to(GitHubConnectionImpl.class);
+        bind(IGitHubConnectionProvider.class).to(GitHubCachingProvider.class).in(new SingletonScope());
+    }
 }

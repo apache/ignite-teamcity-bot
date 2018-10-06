@@ -14,15 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github;
+package org.apache.ignite.ci.github.ignited;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
+import java.util.List;
+import org.apache.ignite.ci.github.PullRequest;
 
-public class GitHubIntegrationModule extends AbstractModule {
-    /** {@inheritDoc} */
-    @Override protected void configure() {
-        bind(IGitHubConnection.class).to(GitHubConnectionImpl.class);
-        bind(IGitHubConnectionProvider.class).to(GitHubCachingProvider.class).in(new SingletonScope());
-    }
+public interface IGitHubConnIgnited {
+
+    List<PullRequest> getPullRequests();
 }

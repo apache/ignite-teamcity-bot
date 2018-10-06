@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web.model.current;
 
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.github.IGitHubConnection;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
 
 /**
  * Created by Дмитрий on 19.02.2018

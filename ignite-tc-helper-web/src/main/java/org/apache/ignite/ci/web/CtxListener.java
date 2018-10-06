@@ -35,7 +35,7 @@ import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.IgniteTcBotModule;
 import org.apache.ignite.ci.observer.BuildObserver;
-import org.apache.ignite.ci.teamcity.TeamcityRecorder;
+import org.apache.ignite.ci.teamcity.pure.TeamcityRecorder;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.jetbrains.annotations.Nullable;
 

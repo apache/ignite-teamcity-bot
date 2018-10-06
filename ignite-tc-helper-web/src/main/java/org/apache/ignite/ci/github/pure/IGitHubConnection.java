@@ -14,16 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.github.pure;
 
-package org.apache.ignite.ci.teamcity;
+import java.util.List;
+import org.apache.ignite.ci.github.PullRequest;
 
-import java.io.IOException;
-import java.io.InputStream;
+public interface IGitHubConnection {
 
-public interface ITeamcityHttpConnection {
+    void init(String srvId);
+
     /**
-     * @param basicAuthTok Basic auth token.
-     * @param url Url.
+     * @param branch TeamCity's branch name. Looks like "pull/123/head".
+     * @return Pull Request.
      */
-    public InputStream sendGet(String basicAuthTok, String url) throws IOException;
+    PullRequest getPullRequest(String branch);
+
+    /**
+     * Send POST request with given body.
+     *
+     * @param url Url.
+     * @param body Request body.
+     * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
+     */
+    boolean notifyGit(String url, String body);
+
+    /**
+     * @return {@code True} if GitHub authorization token is available.
+     */
+    boolean isGitTokenAvailable();
+
+    /**
+     * @return URL for git integration.
+     */
+    String gitApiUrl();
+
+    List<PullRequest> getPullRequests();
 }

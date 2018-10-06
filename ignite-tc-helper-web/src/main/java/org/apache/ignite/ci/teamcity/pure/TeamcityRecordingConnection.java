@@ -14,20 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity;
+package org.apache.ignite.ci.teamcity.pure;
 
-import org.apache.ignite.ci.tcmodel.user.User;
+import org.apache.ignite.ci.util.HttpUtil;
 
-/**
- * Teamcity Login implementation.
- */
-public interface ITcLogin {
-    /**
-     * Check if user has correct credentials to particular server.
-     * @param srvId Server id.
-     * @param username Username.
-     * @param pwd Password.
-     * @return user settings on this teamcity
-     */
-    public User checkServiceUserAndPassword(String srvId, String username, String pwd);
+import javax.inject.Inject;
+import java.io.IOException;
+import java.io.InputStream;
+
+public class TeamcityRecordingConnection implements ITeamcityHttpConnection {
+    @Inject private TeamcityRecorder recorder;
+
+    /** {@inheritDoc} */
+    @Override public InputStream sendGet(String basicAuthTok, String url) throws IOException {
+        return recorder.onGet(HttpUtil.sendGetWithBasicAuth(basicAuthTok, url), url);
+    }
 }
