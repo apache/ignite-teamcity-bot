@@ -17,7 +17,9 @@
 package org.apache.ignite.ci.github.pure;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.ci.github.PullRequest;
+import org.jetbrains.annotations.Nullable;
 
 public interface IGitHubConnection {
 
@@ -48,5 +50,5 @@ public interface IGitHubConnection {
      */
     String gitApiUrl();
 
-    List<PullRequest> getPullRequests();
+    List<PullRequest> getPullRequests(@Nullable String fullUrl, @Nullable AtomicReference<String> outLinkNext);
 }

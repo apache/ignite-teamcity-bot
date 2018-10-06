@@ -153,7 +153,7 @@ public class TcBotTriggerAndSignOffService {
                 IGitHubConnection gitHubConn = gitHubConnectionProvider.server(srvId);
                 PullRequest pr = gitHubConn.getPullRequest(branchForTc);
 
-                ticketId = TcBotTriggerAndSignOffService.getTicketId(pr);
+                ticketId = getTicketId(pr);
 
                 if (ticketId.isEmpty()) {
                     jiraRes = "JIRA ticket can't be commented - " +

@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.github.pure;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.gson.Gson;
@@ -28,15 +29,19 @@ import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
+import java.util.StringTokenizer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.util.HttpUtil;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +56,35 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** GitHub authorization token. */
     private String gitAuthTok;
+
+    @Nullable public static String parseNextLinkFromLinkRspHeader(String s) {
+        String nextLink = null;
+        StringTokenizer tokenizer = new StringTokenizer(s, ",");
+        for (; tokenizer.hasMoreTokens(); ) {
+            String tok = tokenizer.nextToken();
+
+            List<String> linkAndRel = new ArrayList<>();
+            StringTokenizer tokenizerForLink = new StringTokenizer(tok, ";");
+            for (; tokenizerForLink.hasMoreTokens(); ) {
+                String nextTok = tokenizerForLink.nextToken();
+                linkAndRel.add(nextTok);
+            }
+
+            if (linkAndRel.size() >= 2) {
+                String linkType = linkAndRel.get(1);
+                if ("rel=\"next\"".equals(linkType.trim()))
+                    nextLink = linkAndRel.get(0).trim();
+            }
+        }
+
+        if (!isNullOrEmpty(nextLink)) {
+            if (nextLink.startsWith("<"))
+                nextLink = nextLink.substring(1);
+            if (nextLink.endsWith(">"))
+                nextLink = nextLink.substring(0, nextLink.length() - 1);
+        }
+        return nextLink;
+    }
 
     /** {@inheritDoc} */
     @Override public void init(String srvId) {
@@ -67,7 +101,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public PullRequest getPullRequest(String branchForTc) {
-        Preconditions.checkState( !isNullOrEmpty(gitApiUrl) , "Git API URL is not configured for this server.");
+        Preconditions.checkState(!isNullOrEmpty(gitApiUrl), "Git API URL is not configured for this server.");
 
         String id = null;
 
@@ -84,7 +118,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
         String pr = gitApiUrl + "pulls/" + id;
 
-        try (InputStream is = HttpUtil.sendGetToGit(gitAuthTok, pr)) {
+        try (InputStream is = HttpUtil.sendGetToGit(gitAuthTok, pr, null)) {
             InputStreamReader reader = new InputStreamReader(is);
 
             return new Gson().fromJson(reader, PullRequest.class);
@@ -103,7 +137,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
             return true;
         }
         catch (IOException e) {
-            logger.error("Failed to notify Git [errMsg="+e.getMessage()+']');
+            logger.error("Failed to notify Git [errMsg=" + e.getMessage() + ']');
 
             return false;
         }
@@ -121,18 +155,32 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<PullRequest> getPullRequests() {
-        Preconditions.checkState( !isNullOrEmpty(gitApiUrl) , "Git API URL is not configured for this server.");
+    @Override public List<PullRequest> getPullRequests(@Nullable String fullUrl,
+        @Nullable AtomicReference<String> outLinkNext) {
+        Preconditions.checkState(!isNullOrEmpty(gitApiUrl), "Git API URL is not configured for this server.");
 
-        String s = gitApiUrl + "pulls?sort=updated&direction=desc";
+        String url = fullUrl != null ? fullUrl : gitApiUrl + "pulls?sort=updated&direction=desc";
 
+        HashMap<String, String> rspHeaders = new HashMap<>();
+        if (outLinkNext != null) {
+            outLinkNext.set(null);
+            rspHeaders.put("Link", null); // requesting header
+        }
 
-        try (InputStream stream = HttpUtil.sendGetToGit(gitAuthTok, s)) {
+        try (InputStream stream = HttpUtil.sendGetToGit(gitAuthTok, url, rspHeaders)) {
             InputStreamReader reader = new InputStreamReader(stream);
             Type listType = new TypeToken<ArrayList<PullRequest>>() {
             }.getType();
-            List<PullRequest> list = new Gson().fromJson(reader, listType);
 
+            List<PullRequest> list = new Gson().fromJson(reader, listType);
+            String link = rspHeaders.get("Link");
+            if (link != null) {
+
+                String nextLink = parseNextLinkFromLinkRspHeader(link);
+                if (nextLink != null)
+                    outLinkNext.set(nextLink);
+            }
+            System.err.println(link);
             return list;
         }
         catch (IOException e) {

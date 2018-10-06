@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.inject.Inject;
@@ -81,7 +82,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     @AutoProfiling
     @Override public List<PullRequest> getPullRequests() {
         scheduler.sheduleNamed(IGitHubConnIgnited.class.getSimpleName() + ".actualizePrs",
-            this::actualizePrs, 2, TimeUnit.MINUTES);
+            this::actualizePrs, 4, TimeUnit.MINUTES);
 
         return StreamSupport.stream(prCache.spliterator(), false)
             .filter(entry -> entry.getKey() >> 32 == srvIdMaskHigh)
@@ -107,9 +108,15 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     @MonitoredTask(name = "Actualize PRs", nameExtArgIndex = 0)
     @AutoProfiling
     protected String runAtualizePrs(String srvId) {
-        List<PullRequest> ghData = conn.getPullRequests();
-
+        AtomicReference<String> outLinkNext = new AtomicReference<>();
+        List<PullRequest> ghData = conn.getPullRequests(null, outLinkNext);
         int size = saveChunk(ghData);
+        while (outLinkNext.get() != null) {
+            String nextPageUrl = outLinkNext.get();
+            ghData = conn.getPullRequests(nextPageUrl, outLinkNext);
+            size += saveChunk(ghData);
+        }
+
 
         return "Entries saved " + size;
     }

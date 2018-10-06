@@ -14,29 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github;
+package org.apache.ignite.ci.github.pure;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.github.pure.GitHubConnectionImpl;
 import org.junit.Test;
 
-public class PrsParseTest {
+import static junit.framework.TestCase.assertEquals;
+
+public class GitHubPrsParseTest {
 
     @Test
     public void parse() {
         InputStream stream = this.getClass().getResourceAsStream("/prsList.json");
         Preconditions.checkNotNull(stream, "Can't find resource");
-        Type listType = new TypeToken<ArrayList<PullRequest>>(){}.getType();
+        Type listType = new TypeToken<ArrayList<PullRequest>>() {
+        }.getType();
         List<PullRequest> list = new Gson().fromJson(new InputStreamReader(stream), listType);
 
         System.out.println(list.size());
         System.out.println(list);
     }
+
+    @Test
+    public void parseLinkRspHeader() {
+        String s = "<https://api.github.com/repositories/31006158/pulls?sort=updated&direction=desc&page=2>; rel=\"next\", <https://api.github.com/repositories/31006158/pulls?sort=updated&direction=desc&page=45>; rel=\"last\"\n";
+        String nextLink = GitHubConnectionImpl.parseNextLinkFromLinkRspHeader(s);
+
+        assertEquals("https://api.github.com/repositories/31006158/pulls?sort=updated&direction=desc&page=2", nextLink);
+    }
+
 }
