@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.web.rest.visa;
 
 import java.util.List;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -25,6 +26,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.tcbot.visa.ContributionToCheck;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
@@ -43,20 +45,32 @@ public class TcBotVisaService {
     @Context
     private HttpServletRequest req;
 
+    /**
+     * @param srvId Server id.
+     */
     @GET
     @Path("contributions")
-    public List<ContributionToCheck> contributions(
-        @Nullable @QueryParam("serverId") String srvId
-    ) {
+    public List<ContributionToCheck> contributions(@Nullable @QueryParam("serverId") String srvId) {
+        if (!ICredentialsProv.get(req).hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
 
-        final ICredentialsProv prov = ICredentialsProv.get(req);
+        return CtxListener.getInjector(ctx)
+            .getInstance(TcBotTriggerAndSignOffService.class).getContributionsToCheck(srvId);
+    }
 
+    @GET
+    @Path("buildsForContribution")
+    public List<BuildRef> buildsForContribution(@Nullable @QueryParam("serverId") String srvId,
+        @Nonnull @QueryParam("suiteId") String suiteId,
+        @QueryParam("prId") String prId) {
+        ICredentialsProv prov = ICredentialsProv.get(req);
         if (!prov.hasAccess(srvId))
             throw ServiceUnauthorizedException.noCreds(srvId);
+
 
         TcBotTriggerAndSignOffService instance = CtxListener.getInjector(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class);
 
-        return instance.getContributionsToCheck(srvId);
+        return instance.buildsForContribution(srvId, prov, suiteId, prId);
     }
 }

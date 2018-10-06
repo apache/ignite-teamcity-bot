@@ -14,60 +14,56 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.di;
+package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITcServerProvider;
-import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.util.ExceptionUtil;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
+import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.util.ExceptionUtil;
 
 /**
  *
  */
-public class TcServerCachingProvider implements ITcServerProvider {
+class TcIgnitedCachingProvider implements ITeamcityIgnitedProvider {
     /** Server factory. */
     @Inject
-    private ITcServerFactory srvFactory;
+    private ITcServerProvider srvFactory;
 
-    private final Cache<String, IAnalyticsEnabledTeamcity> srvs
-            = CacheBuilder.<String, String>newBuilder()
+    private final Cache<String, ITeamcityIgnited> srvs
+            = CacheBuilder.newBuilder()
             .maximumSize(100)
             .expireAfterAccess(16, TimeUnit.MINUTES)
             .softValues()
             .build();
 
     /** {@inheritDoc} */
-    @Override public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov) {
-        Callable<IAnalyticsEnabledTeamcity> call = () -> {
-            IAnalyticsEnabledTeamcity teamcity = srvFactory.createServer(srvId);
-
-
-            if (prov != null) {
-                final String user = prov.getUser(srvId);
-                final String pwd = prov.getPassword(srvId);
-                teamcity.setAuthData(user, pwd);
-            }
-
-            return teamcity;
-        };
+    @Override public ITeamcityIgnited server(String srvId, @Nullable ICredentialsProv prov) {
         String fullKey = Strings.nullToEmpty(prov == null ? null : prov.getUser(srvId)) + ":" + Strings.nullToEmpty(srvId);
 
-        IAnalyticsEnabledTeamcity teamcity;
         try {
-            teamcity = srvs.get(fullKey, call);
+            return srvs.get(fullKey, () -> {
+                ITeamcity teamcity1 = srvFactory.server(srvId, prov);
+
+                if (prov != null) {
+                    final String user = prov.getUser(srvId);
+                    final String pwd = prov.getPassword(srvId);
+                    teamcity1.setAuthData(user, pwd);
+                }
+
+                TeamcityIgnitedImpl impl = new TeamcityIgnitedImpl();
+
+                return impl;
+            });
         }
         catch (ExecutionException e) {
             throw ExceptionUtil.propagateException(e);
         }
-        return teamcity;
     }
 }

@@ -14,20 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity.pure;
+package org.apache.ignite.ci.teamcity.ignited;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
-/**
- * Guice module to setup real connected server and all related implementations.
- */
-public class TcRealConnectionModule extends AbstractModule {
-    /** {@inheritDoc} */
-    @Override protected void configure() {
-        bind(ITcServerProvider.class).to(TcServerCachingProvider.class).in(new SingletonScope());
-        bind(ITeamcityHttpConnection.class).to(TeamcityRecordingConnection.class);
-        bind(TeamcityRecorder.class).in(new SingletonScope());
-        bind(ITcLogin.class).to(TcLoginImpl.class).in(new SingletonScope());
+public class BuildRefCompacted {
+    int buildId = -1;
+
+    public BuildRefCompacted() {
+
+    }
+
+    public BuildRefCompacted(BuildRef ref) {
+        buildId = ref.getId() == null ? -1 : ref.getId();
+    }
+
+    public BuildRef toBuildRef() {
+        BuildRef ref = new BuildRef();
+        ref.setId(buildId < 0 ? null : buildId);
+        return ref;
     }
 }

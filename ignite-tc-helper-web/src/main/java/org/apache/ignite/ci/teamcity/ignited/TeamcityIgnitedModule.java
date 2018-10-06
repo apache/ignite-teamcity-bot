@@ -14,15 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci;
+package org.apache.ignite.ci.teamcity.ignited;
 
-import org.apache.ignite.ci.user.ICredentialsProv;
-
-import javax.annotation.Nullable;
+import com.google.inject.AbstractModule;
+import com.google.inject.internal.SingletonScope;
+import org.apache.ignite.ci.teamcity.pure.TcRealConnectionModule;
 
 /**
- * Provides instance to server with appropriate credentials, may cache instances to avoid odd server instances.
+ * Guice module to setup real connected server and all related implementations.
  */
-public interface ITcServerProvider {
-    public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov);
+public class TeamcityIgnitedModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        bind(ITeamcityIgnitedProvider.class).to(TcIgnitedCachingProvider.class).in(new SingletonScope());
+
+        install(new TcRealConnectionModule());
+    }
 }

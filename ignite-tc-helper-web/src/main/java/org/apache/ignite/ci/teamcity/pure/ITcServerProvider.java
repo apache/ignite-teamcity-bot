@@ -16,18 +16,14 @@
  */
 package org.apache.ignite.ci.teamcity.pure;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.user.ICredentialsProv;
+
+import javax.annotation.Nullable;
 
 /**
- * Guice module to setup real connected server and all related implementations.
+ * Provides instance to server with appropriate credentials, may cache instances to avoid odd server instances.
  */
-public class TcRealConnectionModule extends AbstractModule {
-    /** {@inheritDoc} */
-    @Override protected void configure() {
-        bind(ITcServerProvider.class).to(TcServerCachingProvider.class).in(new SingletonScope());
-        bind(ITeamcityHttpConnection.class).to(TeamcityRecordingConnection.class);
-        bind(TeamcityRecorder.class).in(new SingletonScope());
-        bind(ITcLogin.class).to(TcLoginImpl.class).in(new SingletonScope());
-    }
+public interface ITcServerProvider {
+    public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov);
 }

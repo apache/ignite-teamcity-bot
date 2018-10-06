@@ -23,7 +23,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
-import org.apache.ignite.ci.ITcServerProvider;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
@@ -53,6 +56,8 @@ public class TcBotTriggerAndSignOffService {
     @Inject ITcServerProvider tcServerProvider;
 
     @Inject IJiraIntegration jiraIntegration;
+
+    @Inject ITeamcityIgnitedProvider teamcityIgnitedProvider;
 
     /**
      * @param pr Pull Request.
@@ -198,5 +203,28 @@ public class TcBotTriggerAndSignOffService {
 
             return check;
         }).collect(Collectors.toList());
+    }
+
+    public List<BuildRef> buildsForContribution(String srvId, ICredentialsProv prov,
+        String suiteId, String prId) {
+
+        ITeamcityIgnited srv = teamcityIgnitedProvider.server(srvId, prov);
+
+        List<BuildRef> buildHist = srv.getBuildHistory(suiteId, branchForTcA(prId));
+
+        if (!buildHist.isEmpty())
+            return buildHist;
+
+        buildHist = srv.getBuildHistory(suiteId, branchForTcB(prId));
+
+        return buildHist;
+    }
+
+    String branchForTcA(String prId) {
+        return "pull/" + prId + "/head";
+    }
+
+    String branchForTcB(String prId) {
+        return "pull/" + prId + "/merge";
     }
 }

@@ -14,20 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity.pure;
+package org.apache.ignite.ci.teamcity.ignited;
 
-import org.apache.ignite.ci.util.HttpUtil;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
+import org.apache.ignite.configuration.CacheConfiguration;
+import org.jetbrains.annotations.NotNull;
 
-import javax.inject.Inject;
-import java.io.IOException;
-import java.io.InputStream;
+public class IgniteStringCompacter implements IStringCompacter {
+    AtomicBoolean initGuard=new AtomicBoolean();
 
-public class TeamcityRecordingConnection implements ITeamcityHttpConnection {
-    /** Recorder. */
-    @Inject private TeamcityRecorder recorder;
+    @Override public int getStringId(String value) {
+        return 0;
+    }
 
-    /** {@inheritDoc} */
-    @Override public InputStream sendGet(String basicAuthTok, String url) throws IOException {
-        return recorder.onGet(HttpUtil.sendGetWithBasicAuth(basicAuthTok, url), url);
+    @Override public String getStringFromId(int id) {
+        return null;
+    }
+
+
+
+    @NotNull
+    public static <K, V> CacheConfiguration<K, V> getCache8PartsConfig(String name) {
+        CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
+
+        ccfg.setAffinity(new RendezvousAffinityFunction(false, 8));
+
+        return ccfg;
     }
 }

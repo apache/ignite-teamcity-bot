@@ -31,6 +31,7 @@ import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
+import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedModule;
 import org.apache.ignite.ci.teamcity.pure.TcRealConnectionModule;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
@@ -75,7 +76,6 @@ public class IgniteTcBotModule extends AbstractModule {
         //With REST persistence
         bind(IAnalyticsEnabledTeamcity.class).to(IgnitePersistentTeamcity.class);
         bind(ITcServerFactory.class).to(InitializingServerFactory.class).in(new SingletonScope());
-        bind(ITcServerProvider.class).to(TcServerCachingProvider.class).in(new SingletonScope());
         bind(TcUpdatePool.class).in(new SingletonScope());
         bind(IssueDetector.class).in(new SingletonScope());
         bind(ObserverTask.class).in(new SingletonScope());
@@ -85,7 +85,8 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(IJiraIntegration.class).to(Jira.class).in(new SingletonScope());
 
         bind(BackgroundUpdater.class).in(new SingletonScope());
-        install(new TcRealConnectionModule());
+
+        install(new TeamcityIgnitedModule());
         install(new GitHubIgnitedModule());
         install(new SchedulerModule());
     }
