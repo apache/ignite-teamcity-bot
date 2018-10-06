@@ -25,6 +25,7 @@ import com.google.inject.matcher.Matchers;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.*;
 import org.apache.ignite.ci.db.Ignite1Init;
+import org.apache.ignite.ci.di.scheduler.SchedulerModule;
 import org.apache.ignite.ci.github.ignited.GitHubIgnitedModule;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.jira.IJiraIntegration;
@@ -43,6 +44,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+/**
+ *
+ */
 public class IgniteTcBotModule extends AbstractModule {
     /** Ignite future. */
     private Future<Ignite> igniteFut;
@@ -83,6 +87,7 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(BackgroundUpdater.class).in(new SingletonScope());
         install(new TcRealConnectionModule());
         install(new GitHubIgnitedModule());
+        install(new SchedulerModule());
     }
 
     //todo fallback to TC big class

@@ -14,20 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github.ignited;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
-import org.apache.ignite.ci.github.pure.GitHubIntegrationModule;
+package org.apache.ignite.ci.tcbot;
 
-/**
- * Requires {@link org.apache.ignite.ci.di.scheduler.SchedulerModule} to be installed
- */
-public class GitHubIgnitedModule extends AbstractModule {
-    /** {@inheritDoc} */
-    @Override protected void configure() {
-        install(new GitHubIntegrationModule());
-
-        bind(IGitHubConnIgnitedProvider.class).to(GitHubIgnitedProvImpl.class).in(new SingletonScope());
-    }
+public class TcBotSystemProperties {
+    public static final String DEV_MODE = "DEV_MODE";
 }

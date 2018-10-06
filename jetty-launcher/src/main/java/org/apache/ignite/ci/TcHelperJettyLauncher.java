@@ -23,6 +23,9 @@ import static org.apache.ignite.ci.web.Launcher.*;
  * Starts TC Helper REST server in production mode.
  */
 public class TcHelperJettyLauncher {
+    /**
+     * @param args Args.
+     */
     public static void main(String[] args) throws Exception {
         runServer(false);
     }

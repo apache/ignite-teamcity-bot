@@ -20,11 +20,21 @@ package org.apache.ignite.ci.github;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.gson.annotations.SerializedName;
+import org.apache.ignite.ci.analysis.IVersionedEntity;
+import org.apache.ignite.ci.db.Persisted;
 
 /**
  *
  */
-public class PullRequest {
+@Persisted
+public class PullRequest implements IVersionedEntity {
+    public static final String OPEN = "open";
+    /** Latest version. */
+    private static final int LATEST_VERSION = 6;
+
+    /** Entity version. */
+    @SuppressWarnings("FieldCanBeLocal") private Integer _ver = LATEST_VERSION;
+
     /** Pull Request number. You can see it at {@code apache/ignite/pull/"number"}. */
     @SerializedName("number") private int num;
 
@@ -104,6 +114,7 @@ public class PullRequest {
             return false;
         PullRequest req = (PullRequest)o;
         return num == req.num &&
+            Objects.equal(_ver, req._ver) &&
             Objects.equal(state, req.state) &&
             Objects.equal(title, req.title) &&
             Objects.equal(htmlUrl, req.htmlUrl) &&
@@ -114,6 +125,17 @@ public class PullRequest {
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(num, state, title, htmlUrl, updatedAt, statusesUrl, gitHubUser);
+        return Objects.hashCode(_ver, num, state, title, htmlUrl, updatedAt, statusesUrl, gitHubUser);
     }
+
+    /** {@inheritDoc} */
+    @Override public int version() {
+        return _ver == null ? -1 : _ver;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int latestVersion() {
+        return LATEST_VERSION;
+    }
+
 }

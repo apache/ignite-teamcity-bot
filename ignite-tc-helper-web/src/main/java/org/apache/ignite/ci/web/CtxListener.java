@@ -34,6 +34,7 @@ import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.IgniteTcBotModule;
+import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.teamcity.pure.TeamcityRecorder;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -114,6 +115,8 @@ public class CtxListener implements ServletContextListener {
         try {
             injector.getInstance(TcUpdatePool.class).stop();
             injector.getInstance(BuildObserver.class).stop();
+
+            injector.getInstance(IScheduler.class).stop();
         }
         catch (Exception e) {
             e.printStackTrace();

@@ -65,10 +65,12 @@ public class LogCheckResult implements IVersionedEntity {
         return lastStartedTest;
     }
 
+    /** {@inheritDoc} */
     @Override public int version() {
         return _version == null ? -1 : _version;
     }
 
+    /** {@inheritDoc} */
     @Override public int latestVersion() {
         return LATEST_VERSION;
     }

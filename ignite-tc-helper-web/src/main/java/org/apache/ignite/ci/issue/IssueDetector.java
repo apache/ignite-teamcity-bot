@@ -80,6 +80,7 @@ public class IssueDetector {
     private final AtomicBoolean init = new AtomicBoolean();
     private ICredentialsProv backgroundOpsCreds;
     private ITcHelper backgroundOpsTcHelper;
+    @Deprecated //todo use scheduler
     private ScheduledExecutorService executorService;
 
     @Inject private Provider<CheckQueueJob> checkQueueJobProv;

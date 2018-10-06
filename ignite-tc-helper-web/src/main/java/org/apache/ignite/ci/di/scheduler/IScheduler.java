@@ -14,20 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github.ignited;
+package org.apache.ignite.ci.di.scheduler;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
-import org.apache.ignite.ci.github.pure.GitHubIntegrationModule;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 
-/**
- * Requires {@link org.apache.ignite.ci.di.scheduler.SchedulerModule} to be installed
- */
-public class GitHubIgnitedModule extends AbstractModule {
-    /** {@inheritDoc} */
-    @Override protected void configure() {
-        install(new GitHubIntegrationModule());
+public interface IScheduler {
+    /**
+     * Creates and executes a one-shot action that becomes enabled
+     * after the given delay.
+     *
+     * @param cmd the task to execute.
+     * @param delay the time from now to delay execution.
+     * @param unit the time unit of the delay parameter.
+     *
+     * @throws RejectedExecutionException if the task cannot be
+     *         scheduled for execution
+     * @throws NullPointerException if command is null
+     */
+    public void invokeLater(Runnable cmd, long delay, TimeUnit unit);
 
-        bind(IGitHubConnIgnitedProvider.class).to(GitHubIgnitedProvImpl.class).in(new SingletonScope());
-    }
+    public void stop();
 }
