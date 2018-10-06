@@ -30,7 +30,7 @@ import org.apache.ignite.ci.db.Persisted;
 public class PullRequest implements IVersionedEntity {
     public static final String OPEN = "open";
     /** Latest version. */
-    private static final int LATEST_VERSION = 6;
+    private static final int LATEST_VERSION = 7;
 
     /** Entity version. */
     @SuppressWarnings("FieldCanBeLocal") private Integer _ver = LATEST_VERSION;
@@ -51,8 +51,12 @@ public class PullRequest implements IVersionedEntity {
     /** Pull Request statuses URL. */
     @SerializedName("statuses_url") private String statusesUrl;
 
-    @SerializedName("user")
-    private GitHubUser gitHubUser;
+    @SerializedName("user")  private GitHubUser gitHubUser;
+
+    @SerializedName("head") private GitHubBranch head;
+
+    @SerializedName("base") private GitHubBranch base;
+
 
     /**
      * @return Pull Request number.
@@ -96,6 +100,13 @@ public class PullRequest implements IVersionedEntity {
         return htmlUrl;
     }
 
+    /**
+     * @return Head.
+     */
+    public GitHubBranch head() {
+        return head;
+    }
+
     /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -120,12 +131,14 @@ public class PullRequest implements IVersionedEntity {
             Objects.equal(htmlUrl, req.htmlUrl) &&
             Objects.equal(updatedAt, req.updatedAt) &&
             Objects.equal(statusesUrl, req.statusesUrl) &&
-            Objects.equal(gitHubUser, req.gitHubUser);
+            Objects.equal(gitHubUser, req.gitHubUser) &&
+            Objects.equal(base, req.base) &&
+            Objects.equal(head, req.head);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(_ver, num, state, title, htmlUrl, updatedAt, statusesUrl, gitHubUser);
+        return Objects.hashCode(_ver, num, state, title, htmlUrl, updatedAt, statusesUrl, gitHubUser, base, head);
     }
 
     /** {@inheritDoc} */

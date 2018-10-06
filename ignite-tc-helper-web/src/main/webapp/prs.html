@@ -111,7 +111,7 @@
                         title: "PR Number",
                         "render": function(data, type, row, meta){
                             if(type === 'display'){
-                                data = "<a href='"+data+"'>"+row.prNumber+"</a>";
+                                data = "<a href='"+data+"'>#"+row.prNumber+"</a>";
                             }
 
                             return data;
@@ -123,7 +123,15 @@
                     },
                     {
                         "data": "prAuthor",
-                        title: "Author"
+                        title: "Author",
+                        "render": function(data, type, row, meta){
+                            if(type === 'display'){
+                                data = "<img src='"+row.prAuthorAvatarUrl+"' width='20px' height='20px'> "+data+"";
+                            }
+
+                            return data;
+                        }
+
                     },
                     {
                         "data": "prNumber",
@@ -134,7 +142,7 @@
                                      //todo customizable suite
                                     'suiteId=IgniteTests24Java8_RunAll' +
                                      //'&baseBranchForTc=' +
-                                    '&branchForTc=pull%2F' +data+ '%2Fhead&action=Latest"><button>Check build for pull/' + data + '/head</button></a>';
+                                    '&branchForTc=pull%2F' +data+ '%2Fhead&action=Latest"><button>Open /' + data + '/head</button></a>';
                             }
 
                             return data;

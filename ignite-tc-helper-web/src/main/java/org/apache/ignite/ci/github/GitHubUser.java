@@ -1,32 +1,42 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.ignite.ci.github;
 
 import com.google.common.base.Objects;
+import com.google.gson.annotations.SerializedName;
 
 public class GitHubUser {
-    public String login;
-    public String avatar_url;
-    /*
-     * "user": {
-     *       "login": "glukos",
-     *       "id": 2736390,
-     *       "node_id": "MDQ6VXNlcjI3MzYzOTA=",
-     *       "avatar_url": "https://avatars0.githubusercontent.com/u/2736390?v=4",
-     *       "gravatar_id": "",
-     *       "url": "https://api.github.com/users/glukos",
-     *       "html_url": "https://github.com/glukos",
-     *       "followers_url": "https://api.github.com/users/glukos/followers",
-     *       "following_url": "https://api.github.com/users/glukos/following{/other_user}",
-     *       "gists_url": "https://api.github.com/users/glukos/gists{/gist_id}",
-     *       "starred_url": "https://api.github.com/users/glukos/starred{/owner}{/repo}",
-     *       "subscriptions_url": "https://api.github.com/users/glukos/subscriptions",
-     *       "organizations_url": "https://api.github.com/users/glukos/orgs",
-     *       "repos_url": "https://api.github.com/users/glukos/repos",
-     *       "events_url": "https://api.github.com/users/glukos/events{/privacy}",
-     *       "received_events_url": "https://api.github.com/users/glukos/received_events",
-     *       "type": "User",
-     *       "site_admin": false
-     *     },
+    private String login;
+    @SerializedName("avatar_url") private String avatarUrl;
+    /*See full example in prsList.json */
+
+    /**
+     * @return Login.
      */
+    public String login() {
+        return login;
+    }
+
+    /**
+     * @return Avatar url.
+     */
+    public String avatarUrl() {
+        return avatarUrl;
+    }
 
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
@@ -36,11 +46,11 @@ public class GitHubUser {
             return false;
         GitHubUser user = (GitHubUser)o;
         return Objects.equal(login, user.login) &&
-            Objects.equal(avatar_url, user.avatar_url);
+            Objects.equal(avatarUrl, user.avatarUrl);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(login, avatar_url);
+        return Objects.hashCode(login, avatarUrl);
     }
 }

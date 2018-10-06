@@ -191,8 +191,10 @@ public class TcBotTriggerAndSignOffService {
             check.prHtmlUrl = pr.htmlUrl();
 
             GitHubUser user = pr.gitHubUser();
-            if (user != null)
-                check.prAuthor = user.login;
+            if (user != null) {
+                check.prAuthor = user.login();
+                check.prAuthorAvatarUrl = user.avatarUrl();
+            }
 
             return check;
         }).collect(Collectors.toList());
