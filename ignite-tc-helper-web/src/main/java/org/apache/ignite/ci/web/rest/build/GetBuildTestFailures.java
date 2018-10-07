@@ -51,7 +51,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Path(GetBuildTestFailures.BUILD)
@@ -160,18 +159,22 @@ public class GetBuildTestFailures {
     @Path("testRef")
     public String getTestRef(
         @NotNull @QueryParam("testName") String name,
-        @Nullable @QueryParam("server") String server,
+        @NotNull @QueryParam("suiteName") String suiteName,
+        @Nullable @QueryParam("server") String srv,
         @Nullable @QueryParam("projectId") String projectId)
-        throws InterruptedException, ExecutionException {
+        throws InterruptedException, ExecutionException, ServiceUnauthorizedException {
         final ITcHelper helper = CtxListener.getTcHelper(ctx);
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
         String project = projectId == null ? "IgniteTests24Java8" : projectId;
 
-        String serverId = server == null ? "apache" : server;
+        String srvId = srv == null ? "apache" : srv;
 
-        IAnalyticsEnabledTeamcity teamcity = helper.server(serverId, prov);
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
+
+        IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, prov);
 
         FullQueryParams key = new FullQueryParams();
 
@@ -179,11 +182,13 @@ public class GetBuildTestFailures {
 
         key.setProjectId(project);
 
-        key.setServerId(serverId);
+        key.setServerId(srvId);
+
+        key.setSuiteId(suiteName);
 
         CompletableFuture<TestRef> ref = teamcity.getTestRef(key);
 
-        return ref.isDone() ? teamcity.host() + "project.html?"
+        return ref.isDone() && !ref.isCompletedExceptionally() ? teamcity.host() + "project.html?"
             + "projectId=" + project
             + "&testNameId=" + ref.get().id
             + "&tab=testDetails" : null;
@@ -192,20 +197,18 @@ public class GetBuildTestFailures {
     @GET
     @Path("history")
     public BuildsHistory getBuildsHistory(
-        @Nullable @QueryParam("server") String server,
+        @Nullable @QueryParam("server") String srvId,
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("sinceDate") String sinceDate,
         @Nullable @QueryParam("untilDate") String untilDate)  throws ParseException {
         BuildsHistory buildsHistory = new BuildsHistory.Builder()
             .branch(branch)
-            .server(server)
+            .server(srvId)
             .buildType(buildType)
             .sinceDate(sinceDate)
             .untilDate(untilDate)
             .build();
-
-        System.out.println("History request handled");
 
         buildsHistory.initialize(ICredentialsProv.get(req), ctx);
 

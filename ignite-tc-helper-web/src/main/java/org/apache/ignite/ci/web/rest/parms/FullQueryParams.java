@@ -63,7 +63,7 @@ public class FullQueryParams {
     /** TC project identifier */
     @Nullable @QueryParam("projectId") String projectId;
 
-    /** Unique TC test name  */
+    /** TC test name  */
     @Nullable @QueryParam("testName") String testName;
 
     public FullQueryParams() {
@@ -165,6 +165,10 @@ public class FullQueryParams {
             .add("projectId", projectId)
             .add("testName", testName)
             .toString();
+    }
+
+    public void setSuiteId(@Nonnull String suiteId) {
+        this.suiteId = suiteId;
     }
 
     public void setCount(@Nullable int count) {

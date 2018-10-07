@@ -131,16 +131,14 @@
         <td style="text-align: center;"><svg id="graphEC2" width="500" height="200"></svg></td>
     </tr>
 </table><br>
-<table style="table-layout: fixed; width: 100%" id="mainTable">
+<table style="table-layout: fixed; width: 100%; text-align: left; padding: 5px" id="testsTable">
     <tbody>
     <tr>
-        <th class="section" width="15%" style="text-align: left">FAILED TESTS</th>
-        <th width="5%" style="word-break: break-word">
-            <button onclick="compareHandler()" style="width: 100%"><p id="btt"></p></button>
-        </th>
-        <th style="text-align: center;" width="40%"></th>
-        <th style="text-align: center;" width="40%"></th>
-    </tr>
+        <th class="section" width="15%">FAILED TESTS</th>
+        <th width="5%"></th>
+        <th width="40%"></th>
+        <th width="40%"></th>
+        </tr>
     </tbody>
 </table>
 
@@ -149,11 +147,7 @@
     let oneWeekAgo = new Date();
     let twoWeekAgo = new Date();
     let g_updTimer = null;
-    let fullTestsResults = {1 : {}, 2 : {} };
-    let compareModeTableHtml = null;
-    let fullModeTableHtml = null;
-    let compareMode = false;
-    let needTestsToUpdate = true;
+    let mergedTestsResults = {1 : {}, 2 : {} };
 
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     twoWeekAgo.setDate(twoWeekAgo.getDate() - 14);
@@ -191,125 +185,98 @@
         return parseFloat(string.substring(string.indexOf("-") + 2, string.lastIndexOf("-") - 1));
     }
 
-    var ch_disp = function(id) {
-        let el = document.getElementById(id);
-
-        el.style.display = el.style.display == 'block' ? 'none' : 'block';
+    var changeDisplay = function(id) {
+        $("#" + id).toggle();
     }
 
-    function printTests(results) {
-        console.info(results);
+    function mergeSuits(results) {
         let mergedSuites = new Set();
 
-        for (key of Object.keys(results)) {
+        for (let key of Object.keys(results)) {
             for (let suite of Object.keys(results[key]))
                 mergedSuites.add(suite);
         }
 
-        let table = document.getElementById("mainTable");
+        return Array.from(mergedSuites);
+    }
 
-
-        for(let i = table.rows.length - 1; i > 0; i--) {
-            table.deleteRow(i);
-        }
+    function printTests(results) {
+        $("#testsTable tr:not(:first-child)").remove();
 
         let markedRow = true;
 
-        for (let s of Array.from(mergedSuites).sort()) {
+        for (let s of mergeSuits(results).sort()) {
             let suiteName = s.split('_').filter((value, index) => index != 0).join('_');
 
-            let row = table.insertRow();
+            let backgroundColor = markedRow ? "background-color:#fafaff" : '';
 
-            if (markedRow)
-                row.setAttribute("style", "background-color: #fafaff");
+            let testsCntHtml = '';
 
-            let suite = row.insertCell();
-
-            suite.setAttribute("style", "padding: 15px; word-wrap:break-word; vertical-align: top; padding-left:15px");
-
-            suite.innerHTML = suiteName;
-
-            let ctx = row.insertCell();
+            let testsHtml = '';
 
             for (let key of Object.keys(results)) {
-                let result = row.insertCell();
+                let obj = results[key];
 
-                result.setAttribute("style", "padding: 5px; word-wrap:break-word; vertical-align: top; padding-left:15px");
+                let testLength = !obj.hasOwnProperty(s) || obj[s].length == 0 ?
+                    '' : obj[s].length;
 
-                result.innerHTML = getSuite(results, s, key);
+                testsCntHtml = testsCntHtml + '<td title="Click to hide or show tests"' +
+                    ' style="cursor: default; text-align: center; vertical-align: middle">' +
+                    testLength + '</td>';
+
+                testsHtml = testsHtml + '<td style="padding: 5px; word-wrap:break-word; vertical-align: top">'
+                    + getSuiteTestsHtml(results, s, key) + '</td>'
             }
+
+            $("#testsTable > tbody:last-child").append('<tr style="'+ backgroundColor +
+                '" onclick="changeDisplay(\'' + s + '\')">' +
+                '<td style="padding: 15px; word-wrap:break-word; vertical-align: top; padding-left:15px">' + suiteName +
+                '</td><td></td>' + testsCntHtml + '</tr>');
+
+            $("#testsTable tbody").append('<tr style="display: none" id="' + s + '">' +
+                '<td></td><td></td>' + testsHtml + '</tr>');
 
             markedRow = !markedRow;
         }
     }
 
-    function compareHandler() {
-        compareMode = !compareMode;
-
-        if (!compareMode) {
-            compareModeTableHtml = $('#mainTable').prop('innerHTML');
-
-            $('#mainTable').html(fullModeTableHtml);
-
-            $('#btt').html("Unique");
-
-            return
-        }
-
-        fullModeTableHtml = $('#mainTable').prop('innerHTML');
-
-        if (needTestsToUpdate) {
-            printTests(generateCompareTestsResult(fullTestsResults));
-
-            needTestsToUpdate = false;
-        } else
-            $('#mainTable').html(compareModeTableHtml);
-
-        $('#btt').html("Full");
-
-    }
-
-    function generateCompareTestsResult(results) {
-        let compareTestsResult = {};
+    function generateCompareTestsResults(results) {
+        let compareTestsResults = {};
 
         for (let key of  Object.keys(results)) {
             let uniqueObj = {};
 
             for (let suite of  Object.keys(results[key])) {
-                let allSuites = [];
+                let allTests = [];
 
                 for (let key2 of Object.keys(results)) {
                     if (key == key2)
                         continue;
 
-                    allSuites = allSuites.concat(results[key2][suite]);
+                    allTests = allTests.concat(results[key2][suite]);
                 }
 
                 let uniqTests = results[key][suite].filter(function (obj) {
-                    return allSuites.indexOf(obj) == -1;
+                    return allTests.indexOf(obj) == -1;
                 });
 
-                uniqueObj[suite] = uniqTests;
+                if (uniqTests.length != 0)
+                    uniqueObj[suite] = uniqTests;
             }
 
-            compareTestsResult[key] = uniqueObj;
+            compareTestsResults[key] = uniqueObj;
         }
 
-        return compareTestsResult;
+        return compareTestsResults;
     }
 
-    function getSuite(results, suite, key) {
+    function getSuiteTestsHtml(results, suite, key) {
         let res = '<body>';
 
-        if (!results[key].hasOwnProperty(suite) || results[key][suite].length == 0) {
+        if (!results[key].hasOwnProperty(suite) || results[key][suite].length == 0)
             return '';
-        }
 
-        res += '<div align="center" style="cursor: pointer" class="suite" onclick="ch_disp(\'' + suite + key + '\')"' +
-            '<p><b> (' + results[key][suite].length + ')</p>' +
-            '</div>\n' +
-            '<div  id="' + suite + key + '"style="cursor: default; margin-left: 10px; display:none">';
-
+        res += '<div  id="' + suite + key + 1 + '"style="cursor: default; margin-left: 10px;">';
 
         for (let v of results[key][suite].sort()) {
             let list = v.toString().split(".");
@@ -323,23 +290,21 @@
 
             res += '<p align="left" title="' + v + '">'
                 + testClass + '.' + testName + ' ' +
-                '<a href="#" onclick="getTestRef(\'' + v + '\')">' +
+                '<a href="#" onclick="getTestRef(\'' + v + '\'' + ',\'' + suite + '\'); return false;">' +
                 '&gt&gt</a>' +
                 '</p>'
         }
 
         res += '</div></body>';
-        
+
         return res;
     }
 
-    function getTestRef(testName) {
+    function getTestRef(testName, suite) {
         let res = '';
-
-        $.ajax(
-            {
+        $.ajax({
                 async: false,
-                url: 'rest/build/testRef?testName=' + testName,
+                url: 'rest/build/testRef?testName=' + testName + '&suiteName=' + suite,
                 success: function (result) {
                     res = result;
                 },
@@ -348,7 +313,7 @@
         );
 
         if (res == null) {
-            alert("No available data for that test name. Try later.");
+            alert("No available data for that test. Try later.");
 
             return;
         }
@@ -429,12 +394,7 @@
     }
 
     $(document).ready(function() {
-        $('#btt').html("Unique");
-
-        compareModeTableHtml =  $('#mainTable').prop('innerHTML');
-
         loadData(1, moment(oneWeekAgo), moment());
-
         loadData(2, moment(twoWeekAgo), moment(oneWeekAgo));
 
         $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
@@ -488,11 +448,7 @@
     function loadData(num, sinceDate, untilDate) {
         loadGif(num);
 
-        $('#btt').html("Unique");
-
-        compareMode = false;
-
-        needTestsToUpdate = true;
+        mergedTestsResults[num] = {};
 
         $.ajax({
                 url: 'rest/build/history?sinceDate=' + sinceDate.format("DDMMYYYY") +
@@ -501,12 +457,12 @@
                     printStatistics(num, result.buildsStatistics, sinceDate, untilDate);
 
                     try {
-                        fullTestsResults[num] = JSON.parse(result.mergedTestsResult);
+                        mergedTestsResults[num] = JSON.parse(result.mergedTestsJson);
                     } catch (e) {
-
+                        printImportantMessage(num, "#ff0000", "Invalid server response. Unable to parse JSON");
                     }
 
-                    printTests(fullTestsResults);
+                    printTests(generateCompareTestsResults(mergedTestsResults));
                 },
                 error: showErrInLoadStatus
             }

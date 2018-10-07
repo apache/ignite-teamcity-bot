@@ -128,9 +128,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      */
     private ConcurrentMap<String, CompletableFuture<TestOccurrenceFull>> testOccFullFutures = new ConcurrentHashMap<>();
 
-    /**
-     * cached loads of test refs.
-     */
+    /** Cached loads of test refs.*/
     private ConcurrentMap<String, CompletableFuture<TestRef>> testRefsFutures = new ConcurrentHashMap<>();
 
     /** cached running builds for branch. */
@@ -841,6 +839,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             hrefIgnored -> teamcity.getTests(href, normalizedBranch));
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override public TestOccurrences getFailedUnmutedTests(String href, int count, String normalizedBranch) {
         return getTests(href + ",muted:false,status:FAILURE,count:" + count, normalizedBranch);
@@ -893,6 +892,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             });
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override public CompletableFuture<TestRef> getTestRef(FullQueryParams key) {
         return CacheUpdateUtil.loadAsyncIfAbsent(

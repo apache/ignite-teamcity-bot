@@ -99,6 +99,9 @@ public class TestOccurrence {
         return this;
     }
 
+    /**
+     * @return BuildId which that test occurrence belongs to
+     */
     public Integer getBuildId() {
         if (id == null)
             return null;

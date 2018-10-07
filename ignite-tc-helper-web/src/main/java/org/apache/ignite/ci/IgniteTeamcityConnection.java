@@ -42,7 +42,6 @@ import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
@@ -545,16 +544,17 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return supplyAsync(() -> getJaxbUsingHref(href, TestOccurrenceFull.class), executor);
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override public TestOccurrences getFailedUnmutedTests(String href, int count, String normalizedBranch) {
         return getTests(href + ",muted:false,status:FAILURE,count:" + count, normalizedBranch);
     }
 
-    @Override
+    /** {@inheritDoc} */
     @AutoProfiling
-    public CompletableFuture<TestRef> getTestRef(FullQueryParams key) {
+    @Override public CompletableFuture<TestRef> getTestRef(FullQueryParams key) {
         return supplyAsync(() -> {
-            return getJaxbUsingHref("/app/rest/latest/tests/name:" + key.getTestName(), TestRef.class);
+            return getJaxbUsingHref("app/rest/latest/tests/name:" + key.getTestName(), TestRef.class);
         }, executor);
     }
 
