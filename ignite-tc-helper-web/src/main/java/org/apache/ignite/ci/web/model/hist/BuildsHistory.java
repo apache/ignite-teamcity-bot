@@ -32,7 +32,7 @@ import java.util.Set;
 import javax.servlet.ServletContext;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.chain.BuildChainProcessor;
+import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
@@ -69,9 +69,6 @@ public class BuildsHistory {
     private Date untilDateFilter;
 
     /** */
-    private ObjectMapper objectMapper = new ObjectMapper();
-
-    /** */
     private Map<String, Set<String>> mergedTestsBySuites = new HashMap<>();
 
     /** */
@@ -104,7 +101,9 @@ public class BuildsHistory {
             FullQueryParams buildParams = new FullQueryParams();
 
             buildParams.setBuildId(buildId);
+
             buildParams.setBranch(branchName);
+
             buildParams.setServerId(srvId);
 
             BuildStatisticsSummary buildsStatistic = CtxListener.getBackgroundUpdater(context).get(
@@ -155,10 +154,11 @@ public class BuildsHistory {
             }
         }
 
+        ObjectMapper objectMapper = new ObjectMapper();
+
         try {
             mergedTestsJson = objectMapper.writeValueAsString(mergedTestsBySuites);
-        }
-        catch (JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }

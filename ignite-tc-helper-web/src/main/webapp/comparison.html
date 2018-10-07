@@ -131,10 +131,10 @@
         <td style="text-align: center;"><svg id="graphEC2" width="500" height="200"></svg></td>
     </tr>
 </table><br>
-<table style="table-layout: fixed; width: 100%; text-align: left; padding: 5px" id="testsTable">
+<table style="table-layout: fixed; width: 100%" id="testsTable">
     <tbody>
     <tr>
-        <th class="section" width="15%">FAILED TESTS</th>
+        <th class="section" width="15%" style="vertical-align: middle; text-align: left; padding: 5px">FAILED TESTS</th>
         <th width="5%"></th>
         <th width="40%"></th>
         <th width="40%"></th>
@@ -210,9 +210,9 @@
 
             let backgroundColor = markedRow ? "background-color:#fafaff" : '';
 
-            let testsCntHtml = '';
+            let testsCntCells = '';
 
-            let testsHtml = '';
+            let testsCells = '';
 
             for (let key of Object.keys(results)) {
                 let obj = results[key];
@@ -220,21 +220,21 @@
                 let testLength = !obj.hasOwnProperty(s) || obj[s].length == 0 ?
                     '' : obj[s].length;
 
-                testsCntHtml = testsCntHtml + '<td title="Click to hide or show tests"' +
+                testsCntCells = testsCntCells + '<td title="Click to hide or show tests"' +
                     ' style="cursor: default; text-align: center; vertical-align: middle">' +
                     testLength + '</td>';
 
-                testsHtml = testsHtml + '<td style="padding: 5px; word-wrap:break-word; vertical-align: top">'
+                testsCells = testsCells + '<td style="padding: 5px; word-wrap:break-word; vertical-align: top">'
                     + getSuiteTestsHtml(results, s, key) + '</td>'
             }
 
             $("#testsTable > tbody:last-child").append('<tr style="'+ backgroundColor +
                 '" onclick="changeDisplay(\'' + s + '\')">' +
-                '<td style="padding: 15px; word-wrap:break-word; vertical-align: top; padding-left:15px">' + suiteName +
-                '</td><td></td>' + testsCntHtml + '</tr>');
+                '<td style="padding: 10px; word-wrap:break-word; vertical-align: top; padding-left:10px">' + suiteName +
+                '</td><td></td>' + testsCntCells + '</tr>');
 
             $("#testsTable tbody").append('<tr style="display: none" id="' + s + '">' +
-                '<td></td><td></td>' + testsHtml + '</tr>');
+                '<td></td><td></td>' + testsCells + '</tr>');
 
             markedRow = !markedRow;
         }
@@ -256,8 +256,8 @@
                     allTests = allTests.concat(results[key2][suite]);
                 }
 
-                let uniqTests = results[key][suite].filter(function (obj) {
-                    return allTests.indexOf(obj) == -1;
+                let uniqTests = results[key][suite].filter(function(test) {
+                    return allTests.indexOf(test) == -1;
                 });
 
                 if (uniqTests.length != 0)
@@ -271,12 +271,10 @@
     }
 
     function getSuiteTestsHtml(results, suite, key) {
-        let res = '<body>';
-
         if (!results[key].hasOwnProperty(suite) || results[key][suite].length == 0)
             return '';
 
-        res += '<div  id="' + suite + key + 1 + '"style="cursor: default; margin-left: 10px;">';
+        let res = '<body><div  id="' + suite + key + '"style="cursor: default; margin-left: 10px;">';
 
         for (let v of results[key][suite].sort()) {
             let list = v.toString().split(".");
@@ -288,11 +286,9 @@
 
             let testClass = list.pop();
 
-            res += '<p align="left" title="' + v + '">'
-                + testClass + '.' + testName + ' ' +
+            res += '<p align="left" title="' + v + '">' + testClass + '.' + testName +
                 '<a href="#" onclick="getTestRef(\'' + v + '\'' + ',\'' + suite + '\'); return false;">' +
-                '&gt&gt</a>' +
-                '</p>'
+                '&gt&gt</a>' + '</p>'
         }
 
         res += '</div></body>';
@@ -302,6 +298,7 @@
 
     function getTestRef(testName, suite) {
         let res = '';
+
         $.ajax({
                 async: false,
                 url: 'rest/build/testRef?testName=' + testName + '&suiteName=' + suite,
