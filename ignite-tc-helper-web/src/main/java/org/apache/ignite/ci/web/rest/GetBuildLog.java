@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -34,7 +35,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.web.CtxListener;
@@ -51,20 +51,25 @@ public class GetBuildLog {
     public static final String BUILD_NO = "buildNo";
     public static final String FILE_IDX = "fileIdx";
 
+    /** Servlet Context. */
     @Context
-    private ServletContext context;
+    private ServletContext ctx;
+
+    /** Current Request. */
+    @Context
+    private HttpServletRequest req;
 
     @GET
     @Path(THREAD_DUMP)
     @PermitAll
     public Response getThreadDump(
-        @QueryParam(SERVER_ID) String serverId,
+        @QueryParam(SERVER_ID) String srvId,
         @QueryParam(BUILD_NO) Integer buildNo,
         @Deprecated @QueryParam(FILE_IDX) Integer fileIdx) {
 
-        ITcHelper helper = CtxListener.getTcHelper(context);
-        ITcAnalytics server = helper.tcAnalytics(serverId);
-        String cached = server.getThreadDumpCached(buildNo);
+        ITcHelper helper = CtxListener.getTcHelper(ctx);
+        ITcAnalytics srv = helper.tcAnalytics(srvId);
+        String cached = srv.getThreadDumpCached(buildNo);
 
         return sendString(cached);
     }

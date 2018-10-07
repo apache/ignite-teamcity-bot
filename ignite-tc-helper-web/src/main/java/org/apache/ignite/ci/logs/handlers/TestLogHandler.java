@@ -23,8 +23,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.TestLogCheckResult;
 import org.apache.ignite.ci.logs.ILineHandler;
@@ -44,10 +42,7 @@ public class TestLogHandler implements ILineHandler {
     public static final TestLogCheckResult FAKE_RESULT = new TestLogCheckResult();
     private final List<String> curTestLog = new ArrayList<>();
 
-    /**
-     * Test name -> its log check results
-     */
-    private final Map<String, TestLogCheckResult> tests = new TreeMap<>();
+
 
     private String currentTestName = null;
     private File workFolder;
@@ -56,6 +51,9 @@ public class TestLogHandler implements ILineHandler {
     private boolean saveLastTestToFile;
 
     private static boolean SAVE_LOG_STAT = true;
+
+    /** Result. */
+    private LogCheckResult res = new LogCheckResult();
 
     @Override public void accept(String line, File fromLogFile) {
         if (workFolder == null)
@@ -85,6 +83,11 @@ public class TestLogHandler implements ILineHandler {
         if (LogMsgToWarn.needWarn(line))
             curTest().addWarning(line);
 
+        String problemCode = LogMsgToWarn.getProblemCode(line);
+
+        if (problemCode != null)
+            res.addProblem(problemCode);
+
         if (!saveLastTestToFile)
             return;
 
@@ -99,17 +102,14 @@ public class TestLogHandler implements ILineHandler {
         }
     }
 
-    public TestLogCheckResult curTest() {
+    private TestLogCheckResult curTest() {
         String curName = getLastTestName();
 
-        if (curName == null)
-            return FAKE_RESULT;
-
-        return tests.computeIfAbsent(curName, k -> new TestLogCheckResult());
+        return curName == null ? FAKE_RESULT : res.getOrCreateTestResult(curName);
     }
 
     /** {@inheritDoc} */
-    @Override public void close() throws Exception {
+    @Override public void close() {
         if (saveLastTestToFile && currentTestName != null && !curTestLog.isEmpty())
             dumpCurrentToFile("lastStartedTest_");
 
@@ -160,8 +160,10 @@ public class TestLogHandler implements ILineHandler {
         this.saveLastTestToFile = saveLastTestToFile;
     }
 
+    public LogCheckResult getResult(boolean isIncompleteSuite) {
+        if (isIncompleteSuite)
+            res.setLastStartedTest(getLastTestName());
 
-    public Map<String, TestLogCheckResult> getTests() {
-        return tests;
+        return res;
     }
 }

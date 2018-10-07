@@ -17,12 +17,24 @@
 
 package org.apache.ignite.ci.github;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
 import com.google.gson.annotations.SerializedName;
+import org.apache.ignite.ci.analysis.IVersionedEntity;
+import org.apache.ignite.ci.db.Persisted;
 
 /**
  *
  */
-public class PullRequest {
+@Persisted
+public class PullRequest implements IVersionedEntity {
+    public static final String OPEN = "open";
+    /** Latest version. */
+    private static final int LATEST_VERSION = 7;
+
+    /** Entity version. */
+    @SuppressWarnings("FieldCanBeLocal") private Integer _ver = LATEST_VERSION;
+
     /** Pull Request number. You can see it at {@code apache/ignite/pull/"number"}. */
     @SerializedName("number") private int num;
 
@@ -32,8 +44,19 @@ public class PullRequest {
     /** Pull Request title. */
     private String title;
 
+    @SerializedName("html_url") private String htmlUrl;
+
+    @SerializedName("updated_at") private String updatedAt;
+
     /** Pull Request statuses URL. */
     @SerializedName("statuses_url") private String statusesUrl;
+
+    @SerializedName("user")  private GitHubUser gitHubUser;
+
+    @SerializedName("head") private GitHubBranch head;
+
+    @SerializedName("base") private GitHubBranch base;
+
 
     /**
      * @return Pull Request number.
@@ -62,4 +85,70 @@ public class PullRequest {
     public String getStatusesUrl() {
         return statusesUrl;
     }
+
+    /**
+     * @return Git hub user.
+     */
+    public GitHubUser gitHubUser() {
+        return gitHubUser;
+    }
+
+    /**
+     * @return Html url.
+     */
+    public String htmlUrl() {
+        return htmlUrl;
+    }
+
+    /**
+     * @return Head.
+     */
+    public GitHubBranch head() {
+        return head;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("num", num)
+            .add("state", state)
+            .add("title", title)
+            .add("statusesUrl", statusesUrl)
+            .toString();
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        PullRequest req = (PullRequest)o;
+        return num == req.num &&
+            Objects.equal(_ver, req._ver) &&
+            Objects.equal(state, req.state) &&
+            Objects.equal(title, req.title) &&
+            Objects.equal(htmlUrl, req.htmlUrl) &&
+            Objects.equal(updatedAt, req.updatedAt) &&
+            Objects.equal(statusesUrl, req.statusesUrl) &&
+            Objects.equal(gitHubUser, req.gitHubUser) &&
+            Objects.equal(base, req.base) &&
+            Objects.equal(head, req.head);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hashCode(_ver, num, state, title, htmlUrl, updatedAt, statusesUrl, gitHubUser, base, head);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int version() {
+        return _ver == null ? -1 : _ver;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int latestVersion() {
+        return LATEST_VERSION;
+    }
+
 }

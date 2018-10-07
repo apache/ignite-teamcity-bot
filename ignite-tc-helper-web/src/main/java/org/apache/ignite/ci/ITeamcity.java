@@ -18,6 +18,7 @@
 package org.apache.ignite.ci;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -27,8 +28,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
-import org.apache.ignite.ci.chain.BuildChainProcessor;
-import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
@@ -37,7 +37,6 @@ import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
@@ -187,18 +186,16 @@ public interface ITeamcity {
      */
     @Nonnull default MultBuildRunCtx loadTestsAndProblems(@Nonnull Build build) {
         MultBuildRunCtx ctx = new MultBuildRunCtx(build);
+
         loadTestsAndProblems(build, ctx);
+
         return ctx;
     }
 
     default SingleBuildRunCtx loadTestsAndProblems(@Nonnull Build build, @Deprecated MultBuildRunCtx mCtx) {
         SingleBuildRunCtx ctx = new SingleBuildRunCtx(build);
-        if (build.problemOccurrences != null) {
-            List<ProblemOccurrence> problems = getProblems(build).getProblemsNonNull();
-
-            mCtx.addProblems(problems);
-            ctx.setProblems(problems);
-        }
+        if (build.problemOccurrences != null)
+            ctx.setProblems(getProblems(build).getProblemsNonNull());
 
         if (build.lastChanges != null) {
             for (ChangeRef next : build.lastChanges.changes) {
@@ -283,15 +280,6 @@ public interface ITeamcity {
      */
     boolean isTeamCityTokenAvailable();
 
-    /**
-     * @param token GitHub authorization token.
-     */
-    void setGitToken(String token);
-
-    /**
-     * @return {@code True} if GitHub authorization token is available.
-     */
-    boolean isGitTokenAvailable();
 
     /**
      * @param tok Jira authorization token.
@@ -304,31 +292,28 @@ public interface ITeamcity {
     boolean isJiraTokenAvailable();
 
     /**
-     * Send POST request with given body.
-     *
-     * @param url Url.
-     * @param body Request body.
-     * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
-     */
-    boolean notifyGit(String url, String body);
-
-    /**
-     * @param branch TeamCity's branch name. Looks like "pull/123/head".
-     * @return Pull Request.
-     */
-    PullRequest getPullRequest(String branch);
-
-    /**
      * @param ticket JIRA ticket full name.
      * @param comment Comment to be placed in the ticket conversation.
      * @return {@code True} if ticket was succesfully commented. Otherwise - {@code false}.
+     *
+     * @throws IOException If failed to comment JIRA ticket.
+     * @throws IllegalStateException If can't find URL to the JIRA.
      */
-    boolean sendJiraComment(String ticket, String comment);
+    String sendJiraComment(String ticket, String comment) throws IOException;
 
+    /**
+     * @param url URL for JIRA integration.
+     */
+    void setJiraApiUrl(String url);
 
-    default void setAuthData(String user, String password) {
+    /**
+     * @return URL for JIRA integration.
+     */
+    String getJiraApiUrl();
+
+    default void setAuthData(String user, String pwd) {
         setAuthToken(
-                Base64Util.encodeUtf8String(user + ":" + password));
+                Base64Util.encodeUtf8String(user + ":" + pwd));
     }
 
     /**
@@ -343,4 +328,5 @@ public interface ITeamcity {
     void init(String serverId);
 
     User getUserByUsername(String username);
+
 }

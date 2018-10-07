@@ -21,6 +21,7 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -59,7 +60,6 @@ import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -83,7 +83,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXParseException;
 
-import static org.apache.ignite.ci.chain.BuildChainProcessor.normalizeBranch;
+import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBranch;
 
 /**
  * Apache Ignite based cache over teamcity responses
@@ -1094,18 +1094,17 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
 
     @AutoProfiling
-    @Override
-    public String getThreadDumpCached(Integer buildId) {
+    @Override public String getThreadDumpCached(Integer buildId) {
         IgniteCache<Integer, LogCheckResult> entries = logCheckResultCache();
 
-        LogCheckResult logCheckResult = entries.get(buildId);
+        LogCheckResult logCheckRes = entries.get(buildId);
 
-        if (logCheckResult == null)
+        if (logCheckRes == null)
             return null;
 
-        int fields = ObjectInterner.internFields(logCheckResult);
+        int fields = ObjectInterner.internFields(logCheckRes);
 
-        return logCheckResult.getLastThreadDump();
+        return logCheckRes.getLastThreadDump();
     }
 
     /** {@inheritDoc} */
@@ -1113,9 +1112,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         if (calculatedStatistic().containsKey(ctx.buildId()))
             return;
 
-        for (TestOccurrence testOccurrence : ctx.getTests()) {
+        for (TestOccurrence testOccurrence : ctx.getTests())
             addTestOccurrenceToStat(testOccurrence, normalizeBranch(ctx.getBuild()), !ctx.getChanges().isEmpty());
-        }
 
         calculatedStatistic().put(ctx.buildId(), true);
     }
@@ -1131,12 +1129,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     public <K, V extends IVersionedEntity> CompletableFuture<V> loadFutureIfAbsentVers(IgniteCache<K, V> cache,
         K key,
         Function<K, CompletableFuture<V>> submitFunction) {
-        @Nullable final V persistedValue = cache.get(key);
+        @Nullable final V persistedVal = cache.get(key);
 
-        if (persistedValue != null && !persistedValue.isOutdatedEntityVersion()) {
-            int fields = ObjectInterner.internFields(persistedValue);
+        if (persistedVal != null && !persistedVal.isOutdatedEntityVersion()) {
+            int fields = ObjectInterner.internFields(persistedVal);
 
-            return CompletableFuture.completedFuture(persistedValue);
+            return CompletableFuture.completedFuture(persistedVal);
         }
 
         CompletableFuture<V> apply = submitFunction.apply(key);
@@ -1150,7 +1148,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    public void setExecutor(ExecutorService executor) {
+    @Override public void setExecutor(ExecutorService executor) {
         this.teamcity.setExecutor(executor);
     }
 
@@ -1173,16 +1171,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public void setGitToken(String tok) {
-        teamcity.setGitToken(tok);
-    }
-
-    /** {@inheritDoc} */
-    @Override public boolean isGitTokenAvailable() {
-        return teamcity.isGitTokenAvailable();
-    }
-
-    /** {@inheritDoc} */
     @Override public void setJiraToken(String tok) {
         teamcity.setJiraToken(tok);
     }
@@ -1193,18 +1181,19 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public boolean sendJiraComment(String ticket, String comment) {
+    @Override public String sendJiraComment(String ticket, String comment) throws IOException {
         return teamcity.sendJiraComment(ticket, comment);
     }
 
+
     /** {@inheritDoc} */
-    @Override public PullRequest getPullRequest(String branchForTc) {
-        return teamcity.getPullRequest(branchForTc);
+    @Override public void setJiraApiUrl(String url) {
+        teamcity.setJiraApiUrl(url);
     }
 
     /** {@inheritDoc} */
-    @Override public boolean notifyGit(String url, String body) {
-        return teamcity.notifyGit(url, body);
+    @Override public String getJiraApiUrl() {
+        return teamcity.getJiraApiUrl();
     }
 
     /** {@inheritDoc} */

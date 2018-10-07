@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity;
+package org.apache.ignite.ci.teamcity.pure;
 
 import com.google.common.base.Charsets;
 
@@ -25,40 +25,67 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ *
+ */
 public class TeamcityRecorder {
+    /** Urls. */
     private ConcurrentLinkedQueue<String> urls = new ConcurrentLinkedQueue<>();
+
+    /** Lock. */
     private ReentrantLock lock = new ReentrantLock();
 
+    /** File. */
     private OutputStream file;
 
+    /**
+     * @param inputStream Input stream.
+     * @param url Url.
+     */
     public InputStream onGet(InputStream inputStream, String url) throws IOException {
-        urls.add(url);
+        if (Boolean.valueOf(System.getProperty("teamcity.bot.recorder.urls"))) {
+            urls.add(url);
 
-        if (urls.size() > 100)
-            urls.remove();
+            if (urls.size() > 100)
+                urls.remove();
+        }
 
         if (Boolean.valueOf(System.getProperty("teamcity.bot.recorder"))) {
+            boolean success = false;
+
             lock.lock();
+            try {
+                if (file == null)
+                    file = new FileOutputStream("tcrecorder.txt");
 
-            if (file == null)
-                file = new FileOutputStream("tcrecorder.txt");
+                final String newUrlStartStr = "===HTTP=RECORDER=== GET " + url + "\n";
+                file.write(newUrlStartStr.getBytes(Charsets.UTF_8));
 
-            final String newUrlStartString =
-                    "===HTTP=RECORDER=== GET " + url + "\n";
-            file.write(newUrlStartString.getBytes(Charsets.UTF_8));
+                FileRecordingInputStream spyStream = new FileRecordingInputStream(inputStream, file, lock);
 
-            return new FileRecordingInputStream(inputStream, file, lock);
+                success = true;
+
+                return spyStream;
+            }
+            finally {
+                if(!success)
+                    lock.unlock();;
+            }
         }
 
         return inputStream;
     }
 
+    /**
+     *
+     */
     public List<String> getUrls() {
-        final ArrayList<String> list = new ArrayList<>(urls);
-
-        return list;
+        return new ArrayList<>(urls);
     }
 
+    /**
+     *
+     */
     public void stop() throws IOException {
         if (file != null)
             file.close();

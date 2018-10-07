@@ -18,14 +18,12 @@
 package  org.apache.ignite.ci.runners;
 
 import com.google.common.base.Throwables;
-import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -34,7 +32,7 @@ import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
-import org.apache.ignite.ci.teamcity.TcConnectionStaticLinker;
+import org.apache.ignite.ci.teamcity.pure.TcConnectionStaticLinker;
 
 /**
  * Local class for running specific checks
@@ -51,24 +49,8 @@ public class IgniteTeamcityHelperRunnerExample {
         int k = 0;
         if (k > 0) {
             //branch example: "pull/2335/head"
-            String branchNameForHist = "pull/2296/head";
             List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests").get();
-            for (BuildType bt : buildTypes) {
-                System.err.println(bt.getId());
 
-                if (bt.getName().toLowerCase().contains("pds")
-                    // || bt.getName().toLowerCase().contains("cache")
-                    ) {
-                    int[] ints = helper.getBuildNumbersFromHistory(bt.getName(), branchNameForHist);
-
-                    List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(ints);
-                    List<File> collect = getFuturesResults(fileFutList);
-                    for (File logfile : collect) {
-                        System.out.println("Cached locally: [" + logfile.getCanonicalPath()
-                            + "], " + logfile.toURI().toURL());
-                    }
-                }
-            }
         }
 
         int b = 0;
@@ -85,27 +67,6 @@ public class IgniteTeamcityHelperRunnerExample {
             //  buildTypeIdAll="IgniteTests24Java8_Queries1";
 
             helper.triggerBuild(buildTypeIdAll, branchName, true, false);
-        }
-
-        int j = 0;
-        if (j > 0) {
-            List<CompletableFuture<File>> fileFutList = helper.standardProcessLogs(1155133);
-            List<File> collect = getFuturesResults(fileFutList);
-            for (File next : collect)
-                System.out.println("Cached locally: [" + next.getCanonicalPath() + "], " + next.toURI().toURL());
-        }
-
-        int h = 0;
-        if (h > 0) {
-            String branchName1 = "<default>";
-            final String branchName = "pull/3475/head";
-            List<CompletableFuture<File>> futures = helper.standardProcessAllBuildHistory(
-                "IgniteTests24Java8_IgnitePds2DirectIo",
-                branchName);
-
-            List<File> collect = getFuturesResults(futures);
-            for (File next : collect)
-                System.out.println("Cached locally: [" + next.getCanonicalPath() + "], " + next.toURI().toURL());
         }
     }
 

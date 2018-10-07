@@ -1,5 +1,5 @@
 body {
- 	font-family: Arial;
+    font-family: Arial, sans-serif;
  	font-size: 14px;
  	font-style: normal;
  	font-variant: normal;
@@ -7,15 +7,17 @@ body {
 }
 
 input, div {
-	font-family: Arial;
+    font-family: Arial, sans-serif;
 	font-size: 14px;
 	font-style: normal;
 	font-variant: normal;
 	font-weight: 500;
+    margin-left: 3px;
+    margin-right: 3px;
 }
 
 table, tr, td {
-	font-family: Arial;
+    font-family: Arial, sans-serif;
  	font-size: 14px;
  	font-style: normal;
  	font-variant: normal;
@@ -25,7 +27,6 @@ table, tr, td {
 }
 
 table.stat td, table.stat th {
-
 	padding: 10px 5px 10px 5px;
 }
 
@@ -65,7 +66,6 @@ table.stat tr:nth-child(odd) { background-color: #fafaff; }
 .navbar {
      overflow: hidden;
     background-color: #f2f2f2;
-    //position: fixed; /* Set the navbar to fixed position */
     top: 0; /* Position the navbar at the top of the page */
     width: 100%; /* Full width */
 }
@@ -82,8 +82,9 @@ table.stat tr:nth-child(odd) { background-color: #fafaff; }
 
 /* Change background on mouse-over */
 .navbar a:hover {
-    background: #ddd;
-    color: black;
+    color: white;
+    background: #125CAA;
+    transition: ease-in 0.175s;
 }
 
 /* Main content */
@@ -94,6 +95,50 @@ table.stat tr:nth-child(odd) { background-color: #fafaff; }
 /* Right-aligned section inside the top navigation */
 .topnav-right {
     float: right;
+}
+
+input[type=button], input[type=submit], button {
+	background: #12AD5E;
+	height: 24px;
+	color: #FFF;
+	font-weight: bold;
+	font-family: sans-serif;
+	margin: 5px;
+	box-shadow: 3px 2px 6px -2px rgba(0,0,0,0.64);
+    border: 1px solid #FFF;
+    border-radius: 3px;
+    transition: ease-in 0.175s;
+    text-align: center;
+}
+
+input[type=button]:hover, input[type=submit]:hover, button:hover {
+    cursor: pointer;
+    background: #125CAA;
+    transition: ease-in 0.175s;
+}
+
+form, .formgroup {
+	margin: 0px auto;
+	padding: 5px;
+	background: #FFF;
+	margin-top: 20px;
+	border-radius: 4px;
+    border: 1px solid #cfcfcf;
+	box-shadow: 3px 2px 6px -2px rgba(0,0,0,0.64);
+}
+
+.idxpgbutton {
+    width: 100px;
+    min-height: 100px;
+    height: 100px;
+}
+
+html {
+    min-height: 100%;
+    //background: radial-gradient(ellipse at center, #FFFFFF 0%, #f2fff0 100%);
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: #000;
 }
 
 form ul
@@ -164,6 +209,12 @@ form li:after
 	padding: 5px;
 	background-color: #f5f5ff;
 	color: #000000;
+}
+
+.compare .title1, .compare .title2  {
+	text-align: center;
+	font-size: 10px;
+	color: gray;
 }
 
 .compare tr:nth-child(4n-1) {

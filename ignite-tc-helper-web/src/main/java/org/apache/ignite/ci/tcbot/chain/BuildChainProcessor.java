@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.chain;
+package org.apache.ignite.ci.tcbot.chain;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -224,7 +224,7 @@ public class BuildChainProcessor {
 
             if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
                 || procLog == ProcessLogsMode.ALL)
-                ctx.setLogCheckResultsFut(teamcity.analyzeBuildLog(ctx.buildId(), ctx));
+                ctx.setLogCheckResultFut(teamcity.analyzeBuildLog(ctx.buildId(), ctx));
         }
     }
 

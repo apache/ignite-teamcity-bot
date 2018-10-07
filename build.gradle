@@ -46,6 +46,9 @@ allprojects {
 
         //dual-licensed under the EPL v1.0 (Category B list.) and the LGPL 2.1 (category X).
         logbackVer = '1.2.3'
+
+        // MIT/X11 license, category A;
+        slf4jVer = '1.7.25'
     }
 
     repositories {

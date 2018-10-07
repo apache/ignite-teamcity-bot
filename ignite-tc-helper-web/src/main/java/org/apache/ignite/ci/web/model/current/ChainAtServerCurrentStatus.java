@@ -80,8 +80,8 @@ public class ChainAtServerCurrentStatus {
 
     @Nullable public String baseBranchForTc;
 
-    public ChainAtServerCurrentStatus(String serverId, String branchTc) {
-        this.serverId = serverId;
+    public ChainAtServerCurrentStatus(String srvId, String branchTc) {
+        this.serverId = srvId;
         this.branchName = branchTc;
     }
 

@@ -22,7 +22,7 @@ import com.google.inject.Injector;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.tcmodel.user.User;
-import org.apache.ignite.ci.teamcity.ITcLogin;
+import org.apache.ignite.ci.teamcity.pure.ITcLogin;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.util.Base64Util;
@@ -47,36 +47,37 @@ public class Login {
     public static final int SESS_ID_LEN = 8;
     public static final int SALT_LEN = 16;
 
+    /** Context. */
     @Context
-    private ServletContext context;
+    private ServletContext ctx;
 
     @GET
     @Path("primaryServerData")
     @PermitAll
     public ServerDataResponse primaryServerUrl() {
-        ITcHelper tcHelper = CtxListener.getTcHelper(context);
-        String serverId = tcHelper.primaryServerId();
-        IAnalyticsEnabledTeamcity server = tcHelper.server(serverId, null);
-        return new ServerDataResponse(server.host());
+        ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
+        String srvId = tcHelper.primaryServerId();
+        IAnalyticsEnabledTeamcity srv = tcHelper.server(srvId, null);
+        return new ServerDataResponse(srv.host());
     }
 
     @POST
     @Path("login")
     @PermitAll
     public LoginResponse login(@FormParam("uname") String username,
-                               @FormParam("psw") String password) {
+                               @FormParam("psw") String pwd) {
         Preconditions.checkNotNull(username);
-        Preconditions.checkNotNull(password);
+        Preconditions.checkNotNull(pwd);
 
-        ITcHelper tcHelper = CtxListener.getTcHelper(context);
-        final Injector injector = CtxListener.getInjector(context);
+        ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
+        final Injector injector = CtxListener.getInjector(ctx);
         final ITcLogin tcLogin = injector.getInstance(ITcLogin.class);
         UserAndSessionsStorage users = tcHelper.users();
 
-        String primaryServerId = tcHelper.primaryServerId();
+        String primarySrvId = tcHelper.primaryServerId();
 
         try {
-            return doLogin(username, password, users, primaryServerId,
+            return doLogin(username, pwd, users, primarySrvId,
                     tcHelper.getServerIds(), tcLogin);
         } catch (Exception e) {
             e.printStackTrace();
@@ -85,41 +86,41 @@ public class Login {
     }
 
     public LoginResponse doLogin(@FormParam("uname") String username,
-                                 @FormParam("psw") String password,
+                                 @FormParam("psw") String pwd,
                                  UserAndSessionsStorage users,
-                                 String primaryServerId,
-                                 Collection<String> serverIds,
+                                 String primarySrvId,
+                                 Collection<String> srvIds,
                                  ITcLogin tcLogin) {
         SecureRandom random = new SecureRandom();
-        byte[] tokenBytes = random.generateSeed(TOKEN_LEN);
-        String token = Base64Util.encodeBytesToString(tokenBytes);
+        byte[] tokBytes = random.generateSeed(TOKEN_LEN);
+        String tok = Base64Util.encodeBytesToString(tokBytes);
 
         String sessId = Base64Util.encodeBytesToString(random.generateSeed(SESS_ID_LEN));
 
-        UserSession userSession = new UserSession();
-        userSession.username = username;
-        userSession.sessId = sessId;
+        UserSession userSes = new UserSession();
+        userSes.username = username;
+        userSes.sessId = sessId;
 
-        userSession.loginTs = System.currentTimeMillis();
+        userSes.loginTs = System.currentTimeMillis();
 
-        LoginResponse loginResponse = new LoginResponse();
+        LoginResponse loginRes = new LoginResponse();
 
         System.out.println("Saved session id " + sessId);
 
         TcHelperUser user = getOrCreateUser(username, users, random);
 
-        byte[] userKeyCandidate = CryptUtil.hmacSha256(user.salt, (username + ":" + password));
+        byte[] userKeyCandidate = CryptUtil.hmacSha256(user.salt, (username + ":" + pwd));
         byte[] userKeyCandidateKcv = CryptUtil.aesKcv(userKeyCandidate);
 
 
-        final User tcUser = tcLogin.checkServiceUserAndPassword(primaryServerId, username, password);
+        final User tcUser = tcLogin.checkServiceUserAndPassword(primarySrvId, username, pwd);
 
         if (user.userKeyKcv == null) {
             if (tcUser == null) {
-                loginResponse.errorMessage =
-                        "Service " + primaryServerId + " rejected credentials/user not found";
+                loginRes.errorMessage =
+                        "Service " + primarySrvId + " rejected credentials/user not found";
 
-                return loginResponse;
+                return loginRes;
             }
 
             //todo new registration should be checked on server first
@@ -128,14 +129,14 @@ public class Login {
             user.email = tcUser.email;
             user.fullName = tcUser.name;
 
-            user.getOrCreateCreds(primaryServerId).setLogin(username).setPassword(password, userKeyCandidate);
+            user.getOrCreateCreds(primarySrvId).setLogin(username).setPassword(pwd, userKeyCandidate);
 
-            for (String addSrvId : serverIds) {
-                if (!addSrvId.equals(primaryServerId)) {
-                    final User tcAddUser = tcLogin.checkServiceUserAndPassword(addSrvId, username, password);
+            for (String addSrvId : srvIds) {
+                if (!addSrvId.equals(primarySrvId)) {
+                    final User tcAddUser = tcLogin.checkServiceUserAndPassword(addSrvId, username, pwd);
 
                     if (tcAddUser != null) {
-                        user.getOrCreateCreds(addSrvId).setLogin(username).setPassword(password, userKeyCandidate);
+                        user.getOrCreateCreds(addSrvId).setLogin(username).setPassword(pwd, userKeyCandidate);
 
                         user.enrichUserData(tcAddUser);
                     }
@@ -144,18 +145,17 @@ public class Login {
 
             users.putUser(username, user);
         } else {
-            if (!Arrays.equals(userKeyCandidateKcv, user.userKeyKcv)) {
-                return loginResponse; //password validation failed
-            }
+            if (!Arrays.equals(userKeyCandidateKcv, user.userKeyKcv))
+                return loginRes; //password validation failed
         }
 
-        userSession.userKeyUnderToken = CryptUtil.aesEncrypt(tokenBytes, userKeyCandidate);
+        userSes.userKeyUnderToken = CryptUtil.aesEncrypt(tokBytes, userKeyCandidate);
 
-        users.putSession(sessId, userSession);
+        users.putSession(sessId, userSes);
 
-        loginResponse.fullToken = sessId + ":" + token;
+        loginRes.fullToken = sessId + ":" + tok;
 
-        return loginResponse;
+        return loginRes;
     }
 
 
@@ -174,9 +174,8 @@ public class Login {
             }
         }
 
-        if (user.salt == null) {
+        if (user.salt == null)
             user.salt = random.generateSeed(SALT_LEN);
-        }
 
         return user;
     }

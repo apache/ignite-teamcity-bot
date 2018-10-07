@@ -25,13 +25,16 @@ import com.google.inject.matcher.Matchers;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.*;
 import org.apache.ignite.ci.db.Ignite1Init;
+import org.apache.ignite.ci.di.scheduler.SchedulerModule;
+import org.apache.ignite.ci.github.ignited.GitHubIgnitedModule;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
-import org.apache.ignite.ci.teamcity.TcRealConnectionModule;
+import org.apache.ignite.ci.teamcity.pure.TcRealConnectionModule;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 
@@ -41,6 +44,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+/**
+ *
+ */
 public class IgniteTcBotModule extends AbstractModule {
     /** Ignite future. */
     private Future<Ignite> igniteFut;
@@ -78,14 +84,17 @@ public class IgniteTcBotModule extends AbstractModule {
 
         bind(IJiraIntegration.class).to(Jira.class).in(new SingletonScope());
 
+        bind(BackgroundUpdater.class).in(new SingletonScope());
         install(new TcRealConnectionModule());
+        install(new GitHubIgnitedModule());
+        install(new SchedulerModule());
     }
 
     //todo fallback to TC big class
     private static class Jira implements IJiraIntegration {
         @Inject ITcHelper helper;
 
-        @Override public boolean notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
+        @Override public String notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
             String ticket) {
             return helper.notifyJira(srvId, prov, buildTypeId, branchForTc, ticket);
         }

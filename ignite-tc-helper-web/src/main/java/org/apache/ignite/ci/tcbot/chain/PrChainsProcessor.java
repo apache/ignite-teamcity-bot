@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.chain;
+package org.apache.ignite.ci.tcbot.chain;
 
 import com.google.common.base.Strings;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
@@ -24,6 +24,8 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
@@ -47,6 +49,7 @@ public class PrChainsProcessor {
 
     /** Tc server provider. */
     @Inject ITcServerProvider tcSrvProvider;
+    @Inject IGitHubConnectionProvider gitHubConnProvider;
 
     /**
      * @param creds Credentials.
@@ -56,6 +59,7 @@ public class PrChainsProcessor {
      * @param act Action.
      * @param cnt Count.
      * @param baseBranchForTc Base branch name in TC identification.
+     * @param checkAllLogs Check all logs
      * @return Test failures summary.
      */
     @AutoProfiling
@@ -66,14 +70,17 @@ public class PrChainsProcessor {
         String branchForTc,
         String act,
         Integer cnt,
-        @Nullable String baseBranchForTc) {
+        @Nullable String baseBranchForTc,
+        @Nullable Boolean checkAllLogs) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
         //using here non persistent TC allows to skip update statistic
         IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, creds);
 
-        res.setJavaFlags(teamcity);
+        IGitHubConnection gitHubConn = gitHubConnProvider.server(srvId);
+
+        res.setJavaFlags(teamcity, gitHubConn);
 
         LatestRebuildMode rebuild;
         if (FullQueryParams.HISTORY.equals(act))
@@ -89,28 +96,30 @@ public class PrChainsProcessor {
             suiteId,
             branchForTc);
 
-        long limit;
+        long buildResMergeCnt;
         if (rebuild == LatestRebuildMode.ALL)
-            limit = cnt == null ? 10 : cnt;
+            buildResMergeCnt = cnt == null ? 10 : cnt;
         else
-            limit = 1;
+            buildResMergeCnt = 1;
+
+        ProcessLogsMode logs;
+        if (buildResMergeCnt > 1)
+            logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED;
+        else
+            logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
         final List<BuildRef> chains = finishedBuilds.stream()
             .filter(ref -> !ref.isFakeStub())
             .sorted(Comparator.comparing(BuildRef::getId).reversed())
-            .limit(limit)
-            .filter(b -> b.getId() != null).collect(Collectors.toList());
-
-        boolean singleBuild = rebuild != LatestRebuildMode.ALL;
-        ProcessLogsMode logs = singleBuild
-            ? ProcessLogsMode.SUITE_NOT_COMPLETE
-            : ProcessLogsMode.DISABLED;
+            .filter(b -> b.getId() != null)
+            .limit(buildResMergeCnt)
+            .collect(Collectors.toList());
 
         String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
 
         final FullChainRunCtx val = buildChainProcessor.loadFullChainContext(teamcity, chains,
             rebuild,
-            logs, singleBuild,
+            logs, buildResMergeCnt == 1,
             baseBranch);
 
         Optional<FullChainRunCtx> pubCtx = Optional.of(val);

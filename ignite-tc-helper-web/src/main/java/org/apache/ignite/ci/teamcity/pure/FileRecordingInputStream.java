@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity;
+package org.apache.ignite.ci.teamcity.pure;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
@@ -28,12 +28,22 @@ import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Recording stream, which will copy all responses to a logging file.
+ */
 public class FileRecordingInputStream extends FilterInputStream {
-
+    /** File. */
     private final OutputStream file;
+    /** Lock to be held until stream is closed. */
     private final ReentrantLock lock;
+    /** Close guard. */
     private final AtomicBoolean closeGuard = new AtomicBoolean();
 
+    /**
+     * @param in In.
+     * @param file File.
+     * @param lock Lock.
+     */
     protected FileRecordingInputStream(InputStream in,
                                        OutputStream file,
                                        ReentrantLock lock) {
@@ -42,8 +52,8 @@ public class FileRecordingInputStream extends FilterInputStream {
         this.lock = lock;
     }
 
-    @Override
-    public int read() throws IOException {
+    /** {@inheritDoc} */
+    @Override public int read() throws IOException {
         Preconditions.checkState(!closeGuard.get());
 
         int readByte = super.read();
@@ -53,30 +63,38 @@ public class FileRecordingInputStream extends FilterInputStream {
         return readByte;
     }
 
-    @Override
-    public int read(@NotNull byte[] buffer, int offset, int count) throws IOException {
+    /** {@inheritDoc} */
+    @Override public int read(@NotNull byte[] buf, int off, int cnt) throws IOException {
         Preconditions.checkState(!closeGuard.get());
 
-        int readBytes = super.read(buffer, offset, count);
+        int readBytes = super.read(buf, off, cnt);
 
         if (readBytes < 0)
             return readBytes;
 
-        processBytes(buffer, offset, readBytes);
+        processBytes(buf, off, readBytes);
 
         return readBytes;
     }
 
-    private void processBytes(byte[] buffer, int offset, int readBytes) throws IOException {
-        file.write(buffer, offset, readBytes);
+    /**
+     * @param buf Buffer.
+     * @param off Offset.
+     * @param readBytes Read bytes.
+     */
+    private void processBytes(byte[] buf, int off, int readBytes) throws IOException {
+        file.write(buf, off, readBytes);
     }
 
+    /**
+     * @param readByte Read byte.
+     */
     private void processByte(int readByte) throws IOException {
         file.write(new byte[]{(byte) readByte});
     }
 
-    @Override
-    public void close() throws IOException {
+    /** {@inheritDoc} */
+    @Override public void close() throws IOException {
         super.close();
 
         if (closeGuard.compareAndSet(false, true)) {

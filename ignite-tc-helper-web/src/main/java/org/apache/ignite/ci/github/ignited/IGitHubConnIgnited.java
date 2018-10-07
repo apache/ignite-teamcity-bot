@@ -14,12 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.github.ignited;
 
-package org.apache.ignite.ci.teamcity;
+import java.util.List;
+import org.apache.ignite.ci.github.PullRequest;
 
-import java.io.IOException;
-import java.io.InputStream;
-
-public interface ITeamcityHttpConnection {
-    InputStream sendGet(String basicAuthTok, String url) throws IOException;
+/**
+ *
+ */
+public interface IGitHubConnIgnited {
+    /**
+     * @return list of open pull requests
+     */
+    public List<PullRequest> getPullRequests();
 }

@@ -22,8 +22,9 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Contains values for one line on chart
+ *
  */
+@Deprecated
 public class LineData {
     public List<Double> values;
 

@@ -14,19 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity;
+package org.apache.ignite.ci.github.ignited;
 
-import org.apache.ignite.ci.util.HttpUtil;
+import com.google.inject.AbstractModule;
+import com.google.inject.internal.SingletonScope;
+import org.apache.ignite.ci.github.pure.GitHubIntegrationModule;
 
-import javax.inject.Inject;
-import java.io.IOException;
-import java.io.InputStream;
+/**
+ * Requires {@link org.apache.ignite.ci.di.scheduler.SchedulerModule} to be installed
+ */
+public class GitHubIgnitedModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        install(new GitHubIntegrationModule());
 
-public class TeamcityRecordingConnection implements ITeamcityHttpConnection {
-    @Inject
-    private TeamcityRecorder recorder;
-
-    public InputStream sendGet(String basicAuthTok, String url) throws IOException {
-        return recorder.onGet(HttpUtil.sendGetWithBasicAuth(basicAuthTok, url), url);
+        bind(IGitHubConnIgnitedProvider.class).to(GitHubIgnitedProvImpl.class).in(new SingletonScope());
     }
 }

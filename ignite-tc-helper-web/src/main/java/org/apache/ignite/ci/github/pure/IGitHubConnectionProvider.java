@@ -14,15 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity;
+package org.apache.ignite.ci.github.pure;
 
-import org.apache.ignite.ci.IgniteTeamcityConnection;
-
-public class TcConnectionStaticLinker {
-    public static IgniteTeamcityConnection create(String srv) {
-        final IgniteTeamcityConnection connection = new IgniteTeamcityConnection();
-        connection.setHttpConn(new TeamcityRecordingConnection());
-        connection.init(srv);
-        return connection;
-    }
+public interface IGitHubConnectionProvider {
+    /**
+     * @param srvId Server id.
+     *
+     */
+    public IGitHubConnection server(String srvId);
 }

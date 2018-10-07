@@ -54,6 +54,12 @@ public class HelperConfig {
     /** JIRA authorization token property name. */
     public static final String JIRA_AUTH_TOKEN = "jira.auth_token";
 
+    /** JIRA authorization token property name. */
+    public static final String GIT_API_URL = "git.api_url";
+
+    /** JIRA authorization token property name. */
+    public static final String JIRA_API_URL = "jira.api_url";
+
     /** Slack authorization token property name. */
     public static final String SLACK_AUTH_TOKEN = "slack.auth_token";
     public static final String SLACK_CHANNEL = "slack.channel";
@@ -94,7 +100,7 @@ public class HelperConfig {
         return props;
     }
 
-    static String prepareConfigName(String tcName) {
+    public static String prepareConfigName(String tcName) {
         return prefixedWithServerName(tcName, CONFIG_FILE_NAME);
     }
 
@@ -130,7 +136,7 @@ public class HelperConfig {
      * @param props Properties, where token is placed.
      * @return Null or decoded auth token for Github.
      */
-    @Nullable static String prepareGithubHttpAuthToken(Properties props) {
+    @Nullable public static String prepareGithubHttpAuthToken(Properties props) {
         String tok = props.getProperty(GITHUB_AUTH_TOKEN);
 
         if (isNullOrEmpty(tok))

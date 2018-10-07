@@ -22,6 +22,7 @@ import java.io.Console;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
+import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -34,7 +35,13 @@ public class Launcher {
         runServer(true);
     }
 
+    /**
+     * @param dev Dev mode.
+     */
     public static void runServer(boolean dev) throws Exception {
+        if(dev)
+            System.setProperty(TcBotSystemProperties.DEV_MODE, "true");
+
         Server srv = new Server();
 
         ServerConnector connector = new ServerConnector(srv);

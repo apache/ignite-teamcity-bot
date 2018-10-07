@@ -14,16 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity;
+
+package org.apache.ignite.ci.di.scheduler;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 
-public class TcRealConnectionModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(ITeamcityHttpConnection.class).to(TeamcityRecordingConnection.class);
-        bind(TeamcityRecorder.class).in(new SingletonScope());
-        bind(ITcLogin.class).to(TcLoginImpl.class).in(new SingletonScope());
+public class SchedulerModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        bind(IScheduler.class).to(TcBotScheduler.class).in(new SingletonScope());
     }
 }

@@ -21,14 +21,36 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.gson.Gson;
-import org.apache.ignite.ci.analysis.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.io.UncheckedIOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.xml.bind.JAXBException;
+import org.apache.ignite.ci.analysis.ISuiteResults;
+import org.apache.ignite.ci.analysis.LogCheckResult;
+import org.apache.ignite.ci.analysis.LogCheckTask;
+import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.logs.BuildLogStreamChecker;
-import org.apache.ignite.ci.logs.LogsAnalyzer;
-import org.apache.ignite.ci.logs.handlers.TestLogHandler;
-import org.apache.ignite.ci.logs.handlers.ThreadDumpCopyHandler;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.agent.AgentsRef;
 import org.apache.ignite.ci.tcmodel.changes.Change;
@@ -47,30 +69,15 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
-import org.apache.ignite.ci.teamcity.ITeamcityHttpConnection;
-import org.apache.ignite.ci.util.*;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
-import org.apache.ignite.internal.util.typedef.T2;
+import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
+import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.ci.util.HttpUtil;
+import org.apache.ignite.ci.util.UrlUtil;
+import org.apache.ignite.ci.util.XmlUtil;
+import org.apache.ignite.ci.util.ZipUtil;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.xml.bind.JAXBException;
-import java.io.*;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.*;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
@@ -88,29 +95,34 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(IgniteTeamcityConnection.class);
 
+    /** Executor. */
     private Executor executor;
+
+    /** Logs directory. */
     private File logsDir;
+
     /** Normalized Host address, ends with '/'. */
     private String host;
 
     /** TeamCity authorization token. */
     private String basicAuthTok;
 
-    @Inject
-    private ITeamcityHttpConnection teamcityHttpConnection;
-
-
-    /** GitHub authorization token.  */
-    private String gitAuthTok;
+    /** Teamcity http connection. */
+    @Inject private ITeamcityHttpConnection teamcityHttpConn;
 
     /**  JIRA authorization token. */
     private String jiraBasicAuthTok;
 
+    /** URL for JIRA integration. */
+    private String jiraApiUrl;
+
     private String configName; //main properties file name
     private String tcName;
 
+    /** Build logger processing running. */
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
+    /** {@inheritDoc} */
     public void init(@Nullable String tcName) {
         this.tcName = tcName;
         final File workDir = HelperConfig.resolveWorkDir();
@@ -131,9 +143,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
             logger.error("Failed to set credentials", e);
         }
 
-        setGitToken(HelperConfig.prepareGithubHttpAuthToken(props));
-
         setJiraToken(HelperConfig.prepareJiraHttpAuthToken(props));
+        setJiraApiUrl(props.getProperty(HelperConfig.JIRA_API_URL));
 
         final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
 
@@ -153,16 +164,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override public void setGitToken(String tok) {
-        gitAuthTok = tok;
-    }
-
-    /** {@inheritDoc} */
-    @Override public boolean isGitTokenAvailable() {
-        return gitAuthTok != null;
-    }
-
-    /** {@inheritDoc} */
     @Override public void setJiraToken(String tok) {
         jiraBasicAuthTok = tok;
     }
@@ -174,64 +175,25 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public boolean sendJiraComment(String ticket, String comment) {
-        try {
-            String url = "https://issues.apache.org/jira/rest/api/2/issue/" + ticket + "/comment";
+    @Override public String sendJiraComment(String ticket, String comment) throws IOException {
+        if (isNullOrEmpty(jiraApiUrl))
+            throw new IllegalStateException("JIRA API URL is not configured for this server.");
 
-            HttpUtil.sendPostAsStringToJira(jiraBasicAuthTok, url, "{\"body\": \"" + comment + "\"}");
+        String url = jiraApiUrl + "issue/" + ticket + "/comment";
 
-            return true;
-        }
-        catch (IOException e) {
-            logger.error("Failed to notify JIRA [errMsg="+e.getMessage()+']');
-
-            return false;
-        }
+        return HttpUtil.sendPostAsStringToJira(jiraBasicAuthTok, url, "{\"body\": \"" + comment + "\"}");
     }
 
     /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public PullRequest getPullRequest(String branchForTc) {
-        String id = null;
-
-        // Get PR id from string "pull/XXXX/head"
-        for (int i = 5; i < branchForTc.length(); i++) {
-            char c = branchForTc.charAt(i);
-
-            if (!Character.isDigit(c)) {
-                id = branchForTc.substring(5, i);
-
-                break;
-            }
-        }
-
-        //todo github address can be probably associated with server
-        String pr = "https://api.github.com/repos/apache/ignite/pulls/" + id;
-
-        try (InputStream is = HttpUtil.sendGetToGit(gitAuthTok, pr)) {
-            InputStreamReader reader = new InputStreamReader(is);
-
-            return new Gson().fromJson(reader, PullRequest.class);
-        }
-        catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    @Override public void setJiraApiUrl(String url) {
+        jiraApiUrl = url;
     }
 
     /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public boolean notifyGit(String url, String body) {
-        try {
-            HttpUtil.sendPostAsStringToGit(gitAuthTok, url, body);
-
-            return true;
-        }
-        catch (IOException e) {
-            logger.error("Failed to notify Git [errMsg="+e.getMessage()+']');
-
-            return false;
-        }
+    @Override public String getJiraApiUrl() {
+        return jiraApiUrl;
     }
+
 
     /** {@inheritDoc} */
     @AutoProfiling
@@ -251,8 +213,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
         boolean archive = true;
         Supplier<File> supplier = () -> {
             String buildIdStr = Integer.toString(buildId);
-            final File buildDirectory = ensureDirExist(new File(logsDir, "buildId" + buildIdStr));
-            final File file = new File(buildDirectory,
+            final File buildDir = ensureDirExist(new File(logsDir, "buildId" + buildIdStr));
+            final File file = new File(buildDir,
                 "build.log" + (archive ? ".zip" : ""));
             if (file.exists() && file.canRead() && file.length() > 0) {
                 logger.info("Nothing to do, file is cached locally: [" + file + "]");
@@ -277,13 +239,13 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @Override public CompletableFuture<LogCheckResult> analyzeBuildLog(Integer buildId, SingleBuildRunCtx ctx) {
         final Stopwatch started = Stopwatch.createStarted();
 
-        CompletableFuture<LogCheckTask> future = buildLogProcessingRunning.computeIfAbsent(buildId,
+        CompletableFuture<LogCheckTask> fut = buildLogProcessingRunning.computeIfAbsent(buildId,
             k -> checkBuildLogNoCache(k, ctx)
         );
 
-        return future
+        return fut
             .thenApply(task -> {
-                buildLogProcessingRunning.remove(buildId, future);
+                buildLogProcessingRunning.remove(buildId, fut);
 
                 return task;
             })
@@ -349,51 +311,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return zipFileFut.thenApplyAsync(ZipUtil::unZipToSameFolder, executor);
     }
 
-    @Deprecated
-    public List<CompletableFuture<File>> standardProcessLogs(int... buildIds) {
-        List<CompletableFuture<File>> futures = new ArrayList<>();
-
-        for (int buildId : buildIds)
-            futures.add(standardProcessOfBuildLog(buildId));
-
-        return futures;
-    }
-
-    @Deprecated
-    private CompletableFuture<File> standardProcessOfBuildLog(int buildId) {
-        final Build results = getBuild(buildId);
-        final MultBuildRunCtx ctx = loadTestsAndProblems(results);
-
-        if (ctx.hasTimeoutProblem())
-            System.err.println(ctx.suiteName() + " failed with timeout " + buildId);
-
-        final CompletableFuture<File> zipFut = downloadBuildLogZip(buildId);
-        boolean dumpLastTest = ctx.hasSuiteIncompleteFailure();
-
-        final CompletableFuture<File> clearLogFut = unzipFirstFile(zipFut);
-
-        final ThreadDumpCopyHandler threadDumpCp = new ThreadDumpCopyHandler();
-        final TestLogHandler lastTestCp = new TestLogHandler();
-        lastTestCp.setSaveLastTestToFile(dumpLastTest);
-
-        final Function<File, File> analyzer = new LogsAnalyzer(threadDumpCp, lastTestCp);
-
-        final CompletableFuture<File> fut2 = clearLogFut.thenApplyAsync(analyzer);
-
-        return fut2.thenApplyAsync(file -> {
-            LogCheckResult logCheckRes = new LogCheckResult();
-
-            if (dumpLastTest)
-                logCheckRes.setLastStartedTest(lastTestCp.getLastTestName());
-
-            logCheckRes.setTests(lastTestCp.getTests());
-
-            System.err.println(logCheckRes);
-
-            return new T2<>(file, logCheckRes);
-        }).thenApply(T2::get1);
-    }
-
     @AutoProfiling
     public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
         final CompletableFuture<List<File>> clearFileF = unzip(fut);
@@ -401,13 +318,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
             Preconditions.checkState(!files.isEmpty(), "ZIP file can't be empty");
             return files.get(0);
         }, executor);
-    }
-
-    @Deprecated
-    public List<CompletableFuture<File>> standardProcessAllBuildHistory(String buildTypeId, String branch) {
-        List<BuildRef> allBuilds = getFinishedBuildsIncludeSnDepFailed(buildTypeId, branch);
-
-        return standardProcessLogs(allBuilds.stream().mapToInt(BuildRef::getId).toArray());
     }
 
     /**
@@ -436,7 +346,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     private <T> T sendGetXmlParseJaxb(String url, Class<T> rootElem) {
         try {
-            try (InputStream inputStream = teamcityHttpConnection.sendGet(basicAuthTok, url)) {
+            try (InputStream inputStream = teamcityHttpConn.sendGet(basicAuthTok, url)) {
                 final InputStreamReader reader = new InputStreamReader(inputStream);
 
                 return loadXml(rootElem, reader);
@@ -657,8 +567,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getBuildsInState(projectId, branch, state, null);
     }
 
-    @Override
-    public String serverId() {
+    /** {@inheritDoc} */
+    @Override public String serverId() {
         return tcName;
     }
 
@@ -701,8 +611,9 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return task;
     }
 
-    @Override
-    public void setExecutor(ExecutorService executor) {
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public void setExecutor(ExecutorService executor) {
         this.executor = executor;
     }
 
@@ -711,12 +622,13 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getJaxbUsingHref("app/rest/latest/users", Users.class);
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
-    public User getUserByUsername(String username) {
+    @Override public User getUserByUsername(String username) {
         return getJaxbUsingHref("app/rest/latest/users/username:" + username, User.class);
     }
 
-    public void setHttpConn(ITeamcityHttpConnection teamcityRecordingConnection) {
-        this.teamcityHttpConnection = teamcityRecordingConnection;
+    public void setHttpConn(ITeamcityHttpConnection teamcityHttpConn) {
+        this.teamcityHttpConn = teamcityHttpConn;
     }
 }

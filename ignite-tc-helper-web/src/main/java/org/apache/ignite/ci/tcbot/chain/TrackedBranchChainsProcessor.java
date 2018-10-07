@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.chain;
+package org.apache.ignite.ci.tcbot.chain;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcServerProvider;
@@ -32,7 +31,6 @@ import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
@@ -44,15 +42,14 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 public class TrackedBranchChainsProcessor {
     @Inject private ITcServerProvider srvProv;
 
+    /** Chains processor. */
     @Inject private BuildChainProcessor chainProc;
-
-    @Inject private TcUpdatePool tcUpdatePool;
 
     @AutoProfiling
     @NotNull
     public TestFailuresSummary getTrackedBranchTestFailures(
-        @Nullable @QueryParam("branch") String branch,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
+        @Nullable String branch,
+        @Nullable Boolean checkAllLogs,
         int buildResMergeCnt,
         ICredentialsProv creds) {
         final TestFailuresSummary res = new TestFailuresSummary();
@@ -90,7 +87,7 @@ public class TrackedBranchChainsProcessor {
 
                 ProcessLogsMode logs;
                 if (buildResMergeCnt > 1)
-                    logs = checkAllLogs != null && checkAllLogs ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED;
+                    logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.DISABLED;
                 else
                     logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
