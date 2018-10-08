@@ -357,7 +357,7 @@ function triggerBuild(serverId, suiteId, branchName, top, observe, ticketId) {
         url: 'rest/build/trigger',
         data: {
             "serverId": serverId,
-            "suiteId": suiteId,
+            "suiteIdList": suiteId,
             "branchName": branchName,
             "top": queueAtTop,
             "observe": observe,
@@ -426,11 +426,11 @@ function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId
                     var queueAtTop = isDefinedAndFilled(top) && top;
                     var observeJira = isDefinedAndFilled(observe) && observe;
                     $.ajax({
-                        url: 'rest/build/triggerBuilds',
+                        url: 'rest/build/trigger',
                         data: {
                             "serverId": serverId,
-                            "suiteIdList": suiteIdList,
                             "branchName": branchName,
+                            "suiteIdList": suiteIdList,
                             "top": queueAtTop,
                             "observe": observeJira,
                             "ticketId": ticketId

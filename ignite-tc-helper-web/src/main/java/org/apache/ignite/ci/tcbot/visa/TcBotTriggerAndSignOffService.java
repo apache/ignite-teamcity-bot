@@ -20,6 +20,7 @@ package org.apache.ignite.ci.tcbot.visa;
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
@@ -77,7 +78,7 @@ public class TcBotTriggerAndSignOffService {
     @NotNull public String triggerBuildAndObserve(
         @Nullable String srvId,
         @Nullable String branchForTc,
-        @Nullable String suiteId,
+        @Nullable String suiteIdList,
         @Nullable Boolean top,
         @Nullable Boolean observe,
         @Nullable String ticketId,
@@ -86,10 +87,15 @@ public class TcBotTriggerAndSignOffService {
 
         final ITeamcity teamcity = tcServerProvider.server(srvId, prov);
 
-        Build build = teamcity.triggerBuild(suiteId, branchForTc, false, top != null && top);
+        String[] suiteIds = Objects.requireNonNull(suiteIdList).split(",");
+
+        Build[] builds = new Build[suiteIds.length];
+
+        for (int i = 0; i < suiteIds.length; i++)
+            builds[i] = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top);
 
         if (observe != null && observe)
-            jiraRes = observeJira(srvId, branchForTc, ticketId, teamcity, build, prov);
+            jiraRes = observeJira(srvId, branchForTc, ticketId, teamcity, prov, builds);
 
         return jiraRes;
     }
@@ -99,8 +105,8 @@ public class TcBotTriggerAndSignOffService {
      * @param branchForTc Branch for TeamCity.
      * @param ticketId JIRA ticket number.
      * @param teamcity TeamCity.
-     * @param build Build.
      * @param prov Credentials.
+     * @param builds Builds.
      * @return Message with result.
      */
     private String observeJira(
@@ -108,8 +114,8 @@ public class TcBotTriggerAndSignOffService {
         String branchForTc,
         @Nullable String ticketId,
         ITeamcity teamcity,
-        Build build,
-        ICredentialsProv prov
+        ICredentialsProv prov,
+        Build... builds
     ) {
         if (F.isEmpty(ticketId)) {
             try {
@@ -134,7 +140,7 @@ public class TcBotTriggerAndSignOffService {
             }
         }
 
-        buildObserverProvider.get().observe(build, srvId, prov, "ignite-" + ticketId);
+        buildObserverProvider.get().observe(srvId, prov, "ignite-" + ticketId, builds);
 
         return "JIRA ticket IGNITE-" + ticketId + " will be notified after the tests are completed.";
     }

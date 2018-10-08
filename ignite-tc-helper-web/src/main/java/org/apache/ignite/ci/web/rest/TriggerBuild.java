@@ -18,10 +18,7 @@
 package org.apache.ignite.ci.web.rest;
 
 import com.google.inject.Injector;
-import com.google.common.base.Strings;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -46,6 +43,8 @@ import org.apache.ignite.ci.web.model.SimpleResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 @Path("build")
 @Produces(MediaType.APPLICATION_JSON)
 public class TriggerBuild {
@@ -62,7 +61,7 @@ public class TriggerBuild {
     public SimpleResult triggerBuild(
         @Nullable @QueryParam("serverId") String srvId,
         @Nullable @QueryParam("branchName") String branchForTc,
-        @Nullable @QueryParam("suiteId") String suiteId,
+        @Nullable @QueryParam("suiteIdList") String suiteIdList,
         @Nullable @QueryParam("top") Boolean top,
         @Nullable @QueryParam("observe") Boolean observe,
         @Nullable @QueryParam("ticketId") String ticketId
@@ -73,9 +72,12 @@ public class TriggerBuild {
         if (!prov.hasAccess(srvId))
             throw ServiceUnauthorizedException.noCreds(srvId);
 
+        if (isNullOrEmpty(suiteIdList))
+            return new SimpleResult("Error: nothing to run");
+
         String jiraRes = CtxListener.getInjector(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .triggerBuildAndObserve(srvId, branchForTc, suiteId, top, observe, ticketId, prov);
+            .triggerBuildAndObserve(srvId, branchForTc, suiteIdList, top, observe, ticketId, prov);
 
         return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
@@ -96,48 +98,6 @@ public class TriggerBuild {
         return CtxListener.getInjector(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class)
             .commentJiraEx(srvId, branchForTc, suiteId, ticketId, prov);
-    }
-
-    @GET
-    @Path("triggerBuilds")
-    public SimpleResult triggerBuilds(
-        @Nullable @QueryParam("serverId") String srvId,
-        @Nullable @QueryParam("branchName") String branchName,
-        @NotNull @QueryParam("suiteIdList") String suiteIdList,
-        @Nullable @QueryParam("top") Boolean top,
-        @Nullable @QueryParam("observe") Boolean observe,
-        @Nullable @QueryParam("ticketId") String ticketId) {
-
-        String jiraRes = "";
-
-        final ICredentialsProv prov = ICredentialsProv.get(req);
-
-        if (!prov.hasAccess(srvId))
-            throw ServiceUnauthorizedException.noCreds(srvId);
-
-        List<String> strings = Arrays.asList(suiteIdList.split(","));
-        if (strings.isEmpty())
-            return new SimpleResult("Error: nothing to run");
-
-        final ITeamcity helper = CtxListener.getTcHelper(ctx).server(serverId, prov);
-        ITcHelper helper = CtxListener.getTcHelper(context);
-
-        final ITeamcity teamcity = helper.server(srvId, prov);
-
-        boolean queueToTop = top != null && top;
-
-        List<Build> buildList = new ArrayList<>();
-
-        for (String suiteId : strings) {
-            System.out.println("Triggering [ " + suiteId + "," + branchName + "," + "top=" + queueToTop + "]");
-
-            buildList.add(teamcity.triggerBuild(suiteId, branchName, false, queueToTop));
-        }
-
-        if (observe != null && observe)
-            jiraRes = observeJira(srvId, branchName, ticketId, teamcity, prov, buildList.toArray(new Build[0]));
-
-        return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
 
     @GET
