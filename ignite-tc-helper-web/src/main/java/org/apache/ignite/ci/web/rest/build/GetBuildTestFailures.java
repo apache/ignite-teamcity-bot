@@ -179,11 +179,8 @@ public class GetBuildTestFailures {
         FullQueryParams key = new FullQueryParams();
 
         key.setTestName(name);
-
         key.setProjectId(project);
-
         key.setServerId(srvId);
-
         key.setSuiteId(suiteName);
 
         CompletableFuture<TestRef> ref = teamcity.getTestRef(key);

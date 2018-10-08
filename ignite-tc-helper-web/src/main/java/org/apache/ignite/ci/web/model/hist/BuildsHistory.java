@@ -48,7 +48,6 @@ import static org.apache.ignite.ci.web.rest.build.GetBuildTestFailures.BUILDS_ST
 /**
  * Builds History: includes statistic for every build and merged failed unmuted tests in specified time interval.
  */
-
 public class BuildsHistory {
     /** */
     private String srvId;
@@ -101,9 +100,7 @@ public class BuildsHistory {
             FullQueryParams buildParams = new FullQueryParams();
 
             buildParams.setBuildId(buildId);
-
             buildParams.setBranch(branchName);
-
             buildParams.setServerId(srvId);
 
             BuildStatisticsSummary buildsStatistic = CtxListener.getBackgroundUpdater(context).get(
@@ -143,11 +140,8 @@ public class BuildsHistory {
                 FullQueryParams key = new FullQueryParams();
 
                 key.setServerId(srvId);
-
                 key.setProjectId(projectId);
-
                 key.setTestName(testOccurrence.getName());
-
                 key.setSuiteId(build.buildTypeId);
 
                 teamcity.getTestRef(key);
@@ -166,15 +160,10 @@ public class BuildsHistory {
     /** */
     public BuildsHistory(Builder builder) {
         this.srvId = builder.srvId;
-
         this.buildTypeId = builder.buildTypeId;
-
         this.branchName = builder.branchName;
-
         this.sinceDateFilter = builder.sinceDate;
-
         this.untilDateFilter = builder.untilDate;
-
         this.projectId = builder.projectId;
     }
 

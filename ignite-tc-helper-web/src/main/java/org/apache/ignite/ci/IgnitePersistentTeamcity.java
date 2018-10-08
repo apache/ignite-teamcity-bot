@@ -167,7 +167,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 buildProblemsCache(),
                 buildStatisticsCache(),
                 buildHistCache(),
-                buildHistIncFailedCache());
+                buildHistIncFailedCache(),
+                testRefsCache());
     }
 
     @Override

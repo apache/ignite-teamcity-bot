@@ -144,10 +144,14 @@
 
 <div id="version"></div>
 <script>
+    const TESTS_TABLE = '#testsTable';
     let oneWeekAgo = new Date();
     let twoWeekAgo = new Date();
     let g_updTimer = null;
+
+    /** Structure for storing tests by suites parsed response for every date interval. */
     let mergedTestsResults = {1 : {}, 2 : {} };
+
 
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     twoWeekAgo.setDate(twoWeekAgo.getDate() - 14);
@@ -201,39 +205,35 @@
     }
 
     function printTests(results) {
-        $("#testsTable tr:not(:first-child)").remove();
+        $(TESTS_TABLE + " tr:not(:first-child)").remove();
 
         let markedRow = true;
 
-        for (let s of mergeSuits(results).sort()) {
-            let suiteName = s.split('_').filter((value, index) => index != 0).join('_');
-
+        for (let suite of mergeSuits(results).sort()) {
+            let suiteName = suite.split('_').filter((value, index) => index != 0).join('_');
             let backgroundColor = markedRow ? "background-color:#fafaff" : '';
-
             let testsCntCells = '';
-
             let testsCells = '';
 
             for (let key of Object.keys(results)) {
                 let obj = results[key];
+                let testLength = !obj.hasOwnProperty(suite) || obj[suite].length == 0 ?
+                    '' : obj[suite].length;
 
-                let testLength = !obj.hasOwnProperty(s) || obj[s].length == 0 ?
-                    '' : obj[s].length;
-
-                testsCntCells = testsCntCells + '<td title="Click to hide or show tests"' +
+                testsCntCells = testsCntCells + '<td class="data'+ key +'" title="Click to hide or show tests"' +
                     ' style="cursor: default; text-align: center; vertical-align: middle">' +
                     testLength + '</td>';
 
-                testsCells = testsCells + '<td style="padding: 5px; word-wrap:break-word; vertical-align: top">'
-                    + getSuiteTestsHtml(results, s, key) + '</td>'
+                testsCells = testsCells + '<td class="data\'+ key +\'" style="padding: 5px; word-wrap:break-word;' +
+                    ' vertical-align: top">' + getSuiteTestsHtml(results, suite, key) + '</td>'
             }
 
-            $("#testsTable > tbody:last-child").append('<tr style="'+ backgroundColor +
-                '" onclick="changeDisplay(\'' + s + '\')">' +
+            $(TESTS_TABLE + " > tbody:last-child").append('<tr style="'+ backgroundColor +
+                '" onclick="changeDisplay(\'' + suite + '\')">' +
                 '<td style="padding: 10px; word-wrap:break-word; vertical-align: top; padding-left:10px">' + suiteName +
                 '</td><td></td>' + testsCntCells + '</tr>');
 
-            $("#testsTable tbody").append('<tr style="display: none" id="' + s + '">' +
+            $(TESTS_TABLE + " tbody").append('<tr style="display: none" id="' + suite + '">' +
                 '<td></td><td></td>' + testsCells + '</tr>');
 
             markedRow = !markedRow;
@@ -283,7 +283,6 @@
                 list = v.toString().split(":");
 
             let testName = list.pop();
-
             let testClass = list.pop();
 
             res += '<p align="left" title="' + v + '">' + testClass + '.' + testName +
@@ -297,7 +296,7 @@
     }
 
     function getTestRef(testName, suite) {
-        let res = '';
+        let res = null;
 
         $.ajax({
                 async: false,
@@ -470,7 +469,8 @@
 
                     printTests(generateCompareTestsResults(mergedTestsResults));
                 },
-                error: showErrInLoadStatus
+                error: showErrInLoadStatus,
+                timeout: 1800000
             }
         );
     }
