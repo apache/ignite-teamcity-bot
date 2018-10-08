@@ -60,6 +60,20 @@ public class BuildsInfo{
         return !finishedBuilds.containsValue(false);
     }
 
+    /**
+     * Return builds count.
+     */
+    public int buildsCount(){
+        return finishedBuilds.size();
+    }
+
+    /**
+     * Return finished builds count.
+     */
+    public int finishedBuildsCount(){
+        return (int)finishedBuilds.values().stream().filter(v -> v).count();
+    }
+
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)

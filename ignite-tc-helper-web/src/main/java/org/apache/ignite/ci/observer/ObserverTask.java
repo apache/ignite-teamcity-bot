@@ -76,11 +76,12 @@ public class ObserverTask extends TimerTask {
         Set<String> ticketsNotified = new HashSet<>();
 
         for (BuildsInfo info : builds) {
-            checkedBuilds++;
+            checkedBuilds += info.buildsCount();
+
             IAnalyticsEnabledTeamcity teamcity = srvProvider.server(info.srvId, info.prov);
 
             if (!info.isFinished(teamcity)) {
-                notFinishedBuilds++;
+                notFinishedBuilds += info.buildsCount() - info.finishedBuildsCount();
 
                 continue;
             }
