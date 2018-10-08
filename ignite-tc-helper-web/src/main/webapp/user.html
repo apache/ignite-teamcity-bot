@@ -103,12 +103,14 @@ function addServiceCreds() {
         url: url,
         data: $("#addCred").serialize(),
         success: function(data) {
+            let addCredsStatus = $("#addCredsStatus");
+
             if(isDefinedAndFilled(data.result) && data.result.length>0) {
-                $("#addCredsStatus").html('Unable to add credentials [' + data.result + "]");
+                addCredsStatus.html('Unable to add credentials [' + data.result + "]");
 
                 return;
             }
-            $("#addCredsStatus").html("");
+            addCredsStatus.html("");
 
             dialog.dialog("close");
 

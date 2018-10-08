@@ -14,7 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.user;
+package org.apache.ignite.ci.github.ignited;
 
-public class TcBotUserLoginService {
+/**
+ *
+ */
+public interface IGitHubConnIgnitedProvider {
+    /**
+     * @param srvId Server id.
+     */
+    public IGitHubConnIgnited server(String srvId);
 }

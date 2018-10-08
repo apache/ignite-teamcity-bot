@@ -66,3 +66,14 @@ dependencies {
     compile group: 'javax.inject', name: 'javax.inject', version: '1'
     compile group: 'com.google.inject', name: 'guice', version: '4.2.0'
 }
+
+processResources {
+
+    // Minify json resources
+    from(sourceSets.test.resources.srcDirs) {
+        include "**/*.json"
+
+        // Minify every file here
+    }
+
+}

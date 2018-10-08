@@ -21,8 +21,9 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.POST;
 
 import com.google.inject.Injector;
-import org.apache.ignite.ci.*;
-import org.apache.ignite.ci.chain.PrChainsProcessor;
+import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
@@ -132,12 +133,14 @@ public class GetPrTestFailures {
         if (!branchForTc.startsWith("pull/"))
             return "Given branch is not a pull request. Notify works only for pull requests.";
 
-        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, ctx, req);
+        final Injector injector = CtxListener.getInjector(ctx);
+        final ICredentialsProv creds = ICredentialsProv.get(req);
+        final IGitHubConnection srv = injector.getInstance(IGitHubConnectionProvider.class).server(srvId);
 
         PullRequest pr;
 
         try {
-            pr = teamcity.getPullRequest(branchForTc);
+            pr = srv.getPullRequest(branchForTc);
         }
         catch (RuntimeException e) {
             return "Exception happened - " + e.getMessage();
@@ -145,7 +148,7 @@ public class GetPrTestFailures {
 
         String statusesUrl = pr.getStatusesUrl();
 
-        teamcity.notifyGit(statusesUrl, msg);
+        srv.notifyGit(statusesUrl, msg);
 
 
         return "Git was notified.";

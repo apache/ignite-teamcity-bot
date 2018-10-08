@@ -22,9 +22,7 @@ import org.apache.ignite.cache.CacheMetrics;
 import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.ci.di.AutoProfilingInterceptor;
 import org.apache.ignite.ci.di.MonitoredTaskInterceptor;
-import org.apache.ignite.ci.teamcity.ITeamcityHttpConnection;
-import org.apache.ignite.ci.teamcity.TeamcityRecorder;
-import org.apache.ignite.ci.teamcity.TeamcityRecordingConnection;
+import org.apache.ignite.ci.teamcity.pure.TeamcityRecorder;
 import org.apache.ignite.ci.web.CtxListener;
 
 import javax.annotation.security.PermitAll;

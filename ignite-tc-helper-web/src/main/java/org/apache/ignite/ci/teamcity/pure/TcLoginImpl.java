@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity;
+package org.apache.ignite.ci.teamcity.pure;
 
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.tcmodel.user.User;

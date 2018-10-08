@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity;
+package org.apache.ignite.ci.teamcity.pure;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;

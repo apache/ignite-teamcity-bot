@@ -21,7 +21,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
-import org.apache.ignite.ci.teamcity.TcConnectionStaticLinker;
+import org.apache.ignite.ci.teamcity.pure.TcConnectionStaticLinker;
 
 import java.io.*;
 import java.util.*;

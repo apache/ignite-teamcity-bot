@@ -22,7 +22,7 @@ import com.google.inject.Injector;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.tcmodel.user.User;
-import org.apache.ignite.ci.teamcity.ITcLogin;
+import org.apache.ignite.ci.teamcity.pure.ITcLogin;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.util.Base64Util;
@@ -47,6 +47,7 @@ public class Login {
     public static final int SESS_ID_LEN = 8;
     public static final int SALT_LEN = 16;
 
+    /** Context. */
     @Context
     private ServletContext ctx;
 

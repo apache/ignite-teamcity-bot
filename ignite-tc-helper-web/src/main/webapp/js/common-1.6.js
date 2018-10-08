@@ -128,7 +128,7 @@ function showMenu(menuData) {
         res += "<div class=\"navbar\">";
         res += "<a href=\"/\">Home</a>";
         res += "<a href=\"/compare.html\">Compare builds</a>";
-        res += "<a href=\"/services.html\">PR/Branch check</a>";
+        res += "<a href=\"/prs.html\">PR/Branch check</a>";
         res += "<a href=\"/comparison.html\">Master Trends</a>";
 
 

@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.gson.Gson;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -51,7 +50,6 @@ import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.LogCheckTask;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.logs.BuildLogStreamChecker;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.agent.AgentsRef;
@@ -70,7 +68,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
-import org.apache.ignite.ci.teamcity.ITeamcityHttpConnection;
+import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.UrlUtil;
@@ -111,14 +109,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** Teamcity http connection. */
     @Inject private ITeamcityHttpConnection teamcityHttpConn;
 
-    /** GitHub authorization token.  */
-    private String gitAuthTok;
-
     /**  JIRA authorization token. */
     private String jiraBasicAuthTok;
-
-    /** URL for git integration. */
-    private String gitApiUrl;
 
     /** URL for JIRA integration. */
     private String jiraApiUrl;
@@ -129,6 +121,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** Build logger processing running. */
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
+    /** {@inheritDoc} */
     public void init(@Nullable String tcName) {
         this.tcName = tcName;
         final File workDir = HelperConfig.resolveWorkDir();
@@ -149,9 +142,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
             logger.error("Failed to set credentials", e);
         }
 
-        setGitToken(HelperConfig.prepareGithubHttpAuthToken(props));
-        setGitApiUrl(props.getProperty(HelperConfig.GIT_API_URL));
-
         setJiraToken(HelperConfig.prepareJiraHttpAuthToken(props));
         setJiraApiUrl(props.getProperty(HelperConfig.JIRA_API_URL));
 
@@ -170,16 +160,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @Override public boolean isTeamCityTokenAvailable() {
         return basicAuthTok != null;
-    }
-
-    /** {@inheritDoc} */
-    @Override public void setGitToken(String tok) {
-        gitAuthTok = tok;
-    }
-
-    /** {@inheritDoc} */
-    @Override public boolean isGitTokenAvailable() {
-        return gitAuthTok != null;
     }
 
     /** {@inheritDoc} */
@@ -204,16 +184,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override public void setGitApiUrl(String url) {
-        gitApiUrl = url;
-    }
-
-    /** {@inheritDoc} */
-    @Override public String getGitApiUrl() {
-        return gitApiUrl;
-    }
-
-    /** {@inheritDoc} */
     @Override public void setJiraApiUrl(String url) {
         jiraApiUrl = url;
     }
@@ -223,51 +193,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return jiraApiUrl;
     }
 
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public PullRequest getPullRequest(String branchForTc) {
-        if (isNullOrEmpty(gitApiUrl))
-            throw new IllegalStateException("Git API URL is not configured for this server.");
-
-        String id = null;
-
-        // Get PR id from string "pull/XXXX/head"
-        for (int i = 5; i < branchForTc.length(); i++) {
-            char c = branchForTc.charAt(i);
-
-            if (!Character.isDigit(c)) {
-                id = branchForTc.substring(5, i);
-
-                break;
-            }
-        }
-
-        String pr = gitApiUrl + "pulls/" + id;
-
-        try (InputStream is = HttpUtil.sendGetToGit(gitAuthTok, pr)) {
-            InputStreamReader reader = new InputStreamReader(is);
-
-            return new Gson().fromJson(reader, PullRequest.class);
-        }
-        catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public boolean notifyGit(String url, String body) {
-        try {
-            HttpUtil.sendPostAsStringToGit(gitAuthTok, url, body);
-
-            return true;
-        }
-        catch (IOException e) {
-            logger.error("Failed to notify Git [errMsg="+e.getMessage()+']');
-
-            return false;
-        }
-    }
 
     /** {@inheritDoc} */
     @AutoProfiling

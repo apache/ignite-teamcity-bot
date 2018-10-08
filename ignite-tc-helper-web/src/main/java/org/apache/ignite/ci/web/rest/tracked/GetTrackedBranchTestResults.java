@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.tracked;
 
-import org.apache.ignite.ci.chain.TrackedBranchChainsProcessor;
+import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;

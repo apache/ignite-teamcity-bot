@@ -14,19 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity;
+package org.apache.ignite.ci.github.pure;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
-
-/**
- * Guice module to setup real connected server and all related implementations.
- */
-public class TcRealConnectionModule extends AbstractModule {
-    /** {@inheritDoc} */
-    @Override protected void configure() {
-        bind(ITeamcityHttpConnection.class).to(TeamcityRecordingConnection.class);
-        bind(TeamcityRecorder.class).in(new SingletonScope());
-        bind(ITcLogin.class).to(TcLoginImpl.class).in(new SingletonScope());
-    }
+public interface IGitHubConnectionProvider {
+    /**
+     * @param srvId Server id.
+     *
+     */
+    public IGitHubConnection server(String srvId);
 }
