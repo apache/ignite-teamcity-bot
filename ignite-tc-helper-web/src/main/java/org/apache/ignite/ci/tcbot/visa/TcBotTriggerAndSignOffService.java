@@ -75,7 +75,7 @@ public class TcBotTriggerAndSignOffService {
         return ticketId;
     }
 
-    @NotNull public String triggerBuildAndObserve(
+    @NotNull public String triggerBuildsAndObserve(
         @Nullable String srvId,
         @Nullable String branchForTc,
         @Nullable String suiteIdList,

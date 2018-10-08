@@ -47,7 +47,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 @Path("build")
 @Produces(MediaType.APPLICATION_JSON)
-public class TriggerBuild {
+public class TriggerBuilds {
     /** Servlet Context. */
     @Context
     private ServletContext ctx;
@@ -58,7 +58,7 @@ public class TriggerBuild {
 
     @GET
     @Path("trigger")
-    public SimpleResult triggerBuild(
+    public SimpleResult triggerBuilds(
         @Nullable @QueryParam("serverId") String srvId,
         @Nullable @QueryParam("branchName") String branchForTc,
         @Nullable @QueryParam("suiteIdList") String suiteIdList,
@@ -73,11 +73,11 @@ public class TriggerBuild {
             throw ServiceUnauthorizedException.noCreds(srvId);
 
         if (isNullOrEmpty(suiteIdList))
-            return new SimpleResult("Error: nothing to run");
+            return new SimpleResult("Error: nothing to run.");
 
         String jiraRes = CtxListener.getInjector(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .triggerBuildAndObserve(srvId, branchForTc, suiteIdList, top, observe, ticketId, prov);
+            .triggerBuildsAndObserve(srvId, branchForTc, suiteIdList, top, observe, ticketId, prov);
 
         return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }

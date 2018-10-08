@@ -215,7 +215,7 @@
             var branchName = branchForTc(fields.namedItem("branchForTc").value);
             var ticketId = jiraTicketNumber(fields.namedItem("ticketId").value);
 
-            triggerBuild(srvId, suiteId, branchName, false, trigCase !== "tests", ticketId)
+            triggerBuilds(srvId, suiteId, branchName, false, trigCase !== "tests", ticketId)
         }
 
         /**
