@@ -23,6 +23,7 @@ import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerFactory;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.junit.Test;
 

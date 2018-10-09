@@ -14,16 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.di;
+package org.apache.ignite.ci.teamcity.restcached;
 
+import com.google.common.base.Strings;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.web.TcUpdatePool;
 
-/**
- * Factory for creating new servers
- */
-public interface ITcServerFactory {
-    /**
-     * @param srvId Server id.
-     */
-    public IAnalyticsEnabledTeamcity createServer(String srvId);
+ class InitializingServerFactory implements ITcServerFactory {
+    @Inject
+    Provider<IAnalyticsEnabledTeamcity> tcPersistProv;
+
+    @Inject
+    Provider<ITeamcity> tcConnProv;
+
+    @Inject
+    private TcUpdatePool tcUpdatePool;
+
+    /** {@inheritDoc} */
+    @Override public IAnalyticsEnabledTeamcity createServer(String srvId) {
+        ITeamcity tcConn = tcConnProv.get();
+        tcConn.init(Strings.emptyToNull(srvId));
+
+        IAnalyticsEnabledTeamcity instance = tcPersistProv.get();
+        instance.init(tcConn);
+
+        instance.setExecutor(tcUpdatePool.getService());
+
+        return instance;
+    }
 }

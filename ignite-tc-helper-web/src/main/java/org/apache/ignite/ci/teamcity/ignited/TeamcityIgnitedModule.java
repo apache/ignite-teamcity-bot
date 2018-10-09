@@ -18,16 +18,28 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
-import org.apache.ignite.ci.teamcity.pure.TcRealConnectionModule;
+import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
+import org.apache.ignite.ci.teamcity.restcached.TcRestCachedModule;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Guice module to setup real connected server and all related implementations.
  */
 public class TeamcityIgnitedModule extends AbstractModule {
+    /** Connection. */
+    @Nullable private ITeamcityHttpConnection conn;
+
     /** {@inheritDoc} */
     @Override protected void configure() {
         bind(ITeamcityIgnitedProvider.class).to(TcIgnitedCachingProvider.class).in(new SingletonScope());
+        bind(BuildRefDao.class).in(new SingletonScope());
 
-        install(new TcRealConnectionModule());
+        TcRestCachedModule module = new TcRestCachedModule();
+        module.overrideHttp(conn);
+        install(module);
+    }
+
+    public void overrideHttp(ITeamcityHttpConnection conn) {
+        this.conn = conn;
     }
 }

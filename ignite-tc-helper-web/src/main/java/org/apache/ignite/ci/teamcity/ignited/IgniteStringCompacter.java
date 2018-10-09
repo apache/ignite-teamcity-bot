@@ -16,22 +16,64 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.inject.Inject;
+import javax.inject.Provider;
+import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteAtomicSequence;
+import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
+import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 public class IgniteStringCompacter implements IStringCompacter {
-    AtomicBoolean initGuard=new AtomicBoolean();
+    AtomicBoolean initGuard = new AtomicBoolean();
+    CountDownLatch initLatch = new CountDownLatch(1);
+
+    /** Cache name*/
+    public static final String STRINGS_CACHE = "stringsCache";
+
+    public static final String STRINGS_SEQ = "stringsSeq";
+
+    /** Ignite provider. */
+    @Inject private Provider<Ignite> igniteProvider;
+
+    /** Builds cache. */
+    private IgniteCache<String, Integer> stringsCache;
+    private IgniteAtomicSequence sequence;
+
+    private void initIfNeeded() {
+        if (initGuard.compareAndSet(false, true)) {
+            init();
+
+            initLatch.countDown();
+        } else {
+            try {
+                initLatch.await();
+            }
+            catch (InterruptedException e) {
+                throw ExceptionUtil.propagateException(e);
+            }
+        }
+    }
+
+    public void init () {
+        Ignite ignite = igniteProvider.get();
+        stringsCache = ignite.getOrCreateCache(getCache8PartsConfig(STRINGS_CACHE));
+        sequence = ignite.atomicSequence(STRINGS_SEQ, 0, true);
+    }
 
     @Override public int getStringId(String value) {
-        return 0;
+        initIfNeeded();
+        Integer integer = stringsCache.get(value);
+        return integer == null ? -1 : integer;
     }
 
     @Override public String getStringFromId(int id) {
         return null;
     }
-
 
 
     @NotNull

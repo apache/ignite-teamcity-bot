@@ -84,7 +84,7 @@ import org.xml.sax.SAXParseException;
 import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBranch;
 
 /**
- * Apache Ignite based cache over teamcity responses
+ * Apache Ignite based cache over teamcity responses (REST caches).
  */
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
     /** Logger. */

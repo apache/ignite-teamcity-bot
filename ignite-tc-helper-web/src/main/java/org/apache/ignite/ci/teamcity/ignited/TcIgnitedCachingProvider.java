@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -35,6 +36,8 @@ class TcIgnitedCachingProvider implements ITeamcityIgnitedProvider {
     /** Server factory. */
     @Inject
     private ITcServerProvider srvFactory;
+
+    @Inject private Provider<TeamcityIgnitedImpl> provider;
 
     private final Cache<String, ITeamcityIgnited> srvs
             = CacheBuilder.newBuilder()
@@ -49,15 +52,17 @@ class TcIgnitedCachingProvider implements ITeamcityIgnitedProvider {
 
         try {
             return srvs.get(fullKey, () -> {
-                ITeamcity teamcity1 = srvFactory.server(srvId, prov);
+                ITeamcity tcRealConnection = srvFactory.server(srvId, prov);
 
                 if (prov != null) {
                     final String user = prov.getUser(srvId);
                     final String pwd = prov.getPassword(srvId);
-                    teamcity1.setAuthData(user, pwd);
+                    tcRealConnection.setAuthData(user, pwd);
                 }
 
-                TeamcityIgnitedImpl impl = new TeamcityIgnitedImpl();
+                TeamcityIgnitedImpl impl = provider.get();
+
+                impl.init(srvId, tcRealConnection);
 
                 return impl;
             });

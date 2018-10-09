@@ -33,6 +33,8 @@ subprojects {
 
 
     license.header = file('header.txt')
+
+    license.exclude("*.xml");
 }
 
 allprojects {

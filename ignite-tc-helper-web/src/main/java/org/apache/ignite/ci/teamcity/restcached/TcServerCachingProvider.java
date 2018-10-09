@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity.pure;
+package org.apache.ignite.ci.teamcity.restcached;
 
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.di.ITcServerFactory;
+import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerFactory;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
