@@ -34,6 +34,10 @@ import java.util.concurrent.atomic.AtomicLong;
 public class AutoProfilingInterceptor implements MethodInterceptor {
     private final ConcurrentMap<String, Invocation> totalTime = new ConcurrentHashMap<>();
 
+    public void reset() {
+        totalTime.clear();
+    }
+
     public static class Invocation {
         private final AtomicLong timeNanos = new AtomicLong();
         private final AtomicInteger callsCnt = new AtomicInteger();

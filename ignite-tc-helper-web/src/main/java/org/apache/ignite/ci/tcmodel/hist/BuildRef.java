@@ -127,6 +127,7 @@ public class BuildRef extends AbstractRef {
         return Objects.hashCode(id, buildTypeId, branchName, status, state, buildNumber, defaultBranch, composite, webUrl);
     }
 
+    /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("id", id)
@@ -142,18 +143,30 @@ public class BuildRef extends AbstractRef {
             .toString();
     }
 
+    /**
+     *
+     */
     public String branchName() {
         return branchName;
     }
 
+    /**
+     *
+     */
     public String buildTypeId() {
         return buildTypeId;
     }
 
+    /**
+     *
+     */
     public String status() {
         return status;
     }
 
+    /**
+     *
+     */
     public String state() {
         return state;
     }
