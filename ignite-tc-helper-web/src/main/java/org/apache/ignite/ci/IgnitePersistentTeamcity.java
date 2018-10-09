@@ -1171,4 +1171,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override public List<Agent> agents(boolean connected, boolean authorized) {
         return teamcity.agents(connected, authorized);
     }
+
+    /** {@inheritDoc} */
+    @Override public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> nextPage) {
+        return teamcity.getBuildRefs(fullUrl, nextPage);
+    }
 }

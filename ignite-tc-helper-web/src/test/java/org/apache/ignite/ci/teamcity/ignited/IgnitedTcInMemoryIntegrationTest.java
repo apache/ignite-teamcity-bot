@@ -52,8 +52,11 @@ public class IgnitedTcInMemoryIntegrationTest {
             (invocationOnMock)->{
                 String url = invocationOnMock.getArgument(1);
 
-                if (url.contains("/app/rest/latest/builds?locator=defaultFilter:true,count:1000"))
-                    return this.getClass().getResourceAsStream("/buildHistoryMaster.xml");
+                if (url.contains("/app/rest/latest/builds?locator=defaultFilter:false,count:1000,start:1000"))
+                    return getClass().getResourceAsStream("/buildHistoryMasterPage2.xml");
+
+                if (url.contains("/app/rest/latest/builds?locator=defaultFilter:false"))
+                    return getClass().getResourceAsStream("/buildHistoryMaster.xml");
 
                 throw new FileNotFoundException(url);
             }
@@ -72,6 +75,9 @@ public class IgnitedTcInMemoryIntegrationTest {
             });
 
             ICredentialsProv mock = Mockito.mock(ICredentialsProv.class);
+            when(mock.hasAccess(anyString())).thenReturn(true);
+            when(mock.getUser(anyString())).thenReturn("mtcga");
+            when(mock.getPassword(anyString())).thenReturn("123");
             ITeamcityIgnited srv = injector.getInstance(ITeamcityIgnitedProvider.class).server(APACHE, mock);
 
             String buildTypeId = "IgniteTests24Java8_RunAll";

@@ -100,18 +100,21 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @AutoProfiling
     protected String runAtualizeBuilds(String srvId, boolean fullReindex) {
         AtomicReference<String> outLinkNext = new AtomicReference<>();
-
-        List<BuildRef> tcData = conn.getFinishedBuilds(null, null);//todo, outLinkNext);
+        int totalPages = 0;
+        List<BuildRef> tcData = conn.getBuildRefs(null, outLinkNext);
         int cntSaved = buildRefDao.saveChunk(srvIdMaskHigh, tcData);
         int totalChecked = tcData.size();
+        totalPages++;
         while (outLinkNext.get() != null) {
             String nextPageUrl = outLinkNext.get();
-            tcData = conn.getFinishedBuilds(null, null); //todo nextPageUrl, outLinkNext);
+            outLinkNext.set(null);
+            tcData = conn.getBuildRefs(nextPageUrl, outLinkNext);
             cntSaved += buildRefDao.saveChunk(srvIdMaskHigh, tcData);
             totalChecked += tcData.size();
+            totalPages++;
 
-            if (!fullReindex)
-                break; // 2 pages
+            if (!fullReindex && totalPages >= 3)
+                break; // 3 pages, 300 builds
         }
 
         return "Entries saved " + cntSaved + " Builds checked " + totalChecked;

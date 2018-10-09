@@ -15,31 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.hist;
+package org.apache.ignite.ci.teamcity.pure;
 
-import java.util.Collections;
 import java.util.List;
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import java.util.concurrent.atomic.AtomicReference;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
-/** List of builds from build history */
-@XmlRootElement(name = "builds")
-@XmlAccessorType(XmlAccessType.FIELD)
-public class Builds {
-    @XmlAttribute
-    private String nextHref;
-
-    @XmlElement(name = "build")
-    private List<BuildRef> builds;
-
-    public List<BuildRef> getBuildsNonNull() {
-        return builds == null ? Collections.emptyList() : builds;
-    }
-
-    public String nextHref() {
-        return nextHref;
-    }
+/**
+ * Pure Teamcity Connection
+ * API for calling methods from REST service:
+ * https://confluence.jetbrains.com/display/TCD10/REST+API
+ */
+public interface ITeamcityConn {
+    public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> nextPage);
 }
