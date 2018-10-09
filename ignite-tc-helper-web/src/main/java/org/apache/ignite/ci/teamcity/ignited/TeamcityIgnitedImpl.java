@@ -113,8 +113,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             totalChecked += tcData.size();
             totalPages++;
 
-            if (!fullReindex && totalPages >= 3)
-                break; // 3 pages, 300 builds
+            if (!fullReindex && totalPages >= 7)
+                break; // 7 pages, 700 builds
         }
 
         return "Entries saved " + cntSaved + " Builds checked " + totalChecked;

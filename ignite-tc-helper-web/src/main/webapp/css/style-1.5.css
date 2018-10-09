@@ -224,3 +224,15 @@ form li:after
 .compare tr:nth-child(4n-1) {
 	background-color: #fafaff;
 }
+
+
+td.details-control {
+	//background: url('../resources/details_open.png') no-repeat center center;
+	cursor: pointer;
+	//content: "+&#x2796";
+}
+tr.shown td.details-control {
+	//content: "&#x2796";
+
+	//url('../resources/details_close.png') no-repeat center center;
+}

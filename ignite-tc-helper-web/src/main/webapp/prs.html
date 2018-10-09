@@ -17,6 +17,7 @@
 
     <script src="js/common-1.6.js"></script>
     <script src="js/testfails-2.1.js"></script>
+    <script src="js/prs-1.0.js"></script>
 
     <style>
 
@@ -64,6 +65,9 @@
                     showFormAndSuitesForPrCheck(result);
                     tryToFillAutocompleteLists();
                     showCommentJiraForm(result);
+
+                    for (let chainAtServer of result)
+                        requestTableForServer(chainAtServer.serverId,  chainAtServer.suiteId, $("#contributionsToCheck"));
                 },
                 error: showErrInLoadStatus
             });
@@ -73,27 +77,11 @@
                 success:
                     function (result) {
                         setupAutocompleteList(result);
-                        for (let srvId of result)
-                            requestTableForServer(srvId, "");
                     }
             });
         }
 
-        function requestTableForServer(srvId) {
-            // TODO multiple servers
-            if (srvId != "apache")
-                return;
 
-            //todo customizable suite
-            var suiteId = "IgniteTests24Java8_RunAll";
-            $.ajax({
-                url: "rest/visa/contributions?serverId="+srvId,
-                success:
-                    function (result) {
-                        showTable(result, srvId, suiteId)
-                    }
-            });
-        }
 
         function prShowHref(srvId, suiteId, branchName) {
             return "/pr.html?serverId=" + srvId + "&" +
@@ -104,80 +92,7 @@
                 "&action=Latest";
         }
 
-        function showTable(result, srvId, suiteId) {
 
-            let tableForSrv = $('#serverContributions-' + srvId);
-
-            tableForSrv.dataTable().fnDestroy();
-
-            tableForSrv.DataTable({
-                data: result,
-                "iDisplayLength": 100, //rows to be shown by default
-                //"dom": '<lf<t>ip>',
-                //"dom": '<"wrapper"flipt>',
-                columns: [
-                    {
-                        "data": "prHtmlUrl",
-                        title: "PR Number",
-                        "render": function(data, type, row, meta){
-                            if(type === 'display'){
-                                data = "<a href='"+data+"'>#"+row.prNumber+"</a>";
-                            }
-
-                            return data;
-                        }
-                    }
-                    , {
-                        "data": "prTitle",
-                        title: "Title"
-                    },
-                    {
-                        "data": "prAuthor",
-                        title: "Author",
-                        "render": function(data, type, row, meta){
-                            if(type === 'display'){
-                                data = "<img src='"+row.prAuthorAvatarUrl+"' width='20px' height='20px'> "+data+"";
-                            }
-
-                            return data;
-                        }
-
-                    },
-                    {
-                        "data": "prNumber",
-                        title: "Existing RunAll",
-                        "render": function(data, type, row, meta){
-                            let prId = data;
-                            if(type === 'display') {
-                                data = "<a id='link_" + prId + "' href='" +
-                                    prShowHref(srvId, suiteId, "pull%2F" + prId + "%2Fhead") +
-                                    "'>" +
-                                    "<button id='show_" + prId + "'>Open /" + data + "/head</button></a>";
-
-                                $.ajax({
-                                    url: "rest/visa/findBranchForPr?serverId=" + srvId +
-                                        "&suiteId=" + suiteId +
-                                        "&prId=" + prId,
-                                    success:
-                                        function (result) {
-                                            console.log("Contribution " + prId + " bransh: " + result + " ");
-                                            if(isDefinedAndFilled(result.result)) {
-                                                $('#link_' + prId).attr('href', prShowHref(srvId, suiteId, result.result));
-
-                                            } else {
-                                                $('#show_' + prId).attr('class', 'disabledbtn');
-                                            }
-                                        }
-                                });
-
-                            }
-
-                            return data;
-                        }
-                    }
-                ]
-            });
-        }
 
         function showSuitesForTeamCityRunData(result) {
             var res = "";
@@ -316,16 +231,6 @@
 <div id="mainaccordion" style="height: 500px">
     <h3>Select PR</h3>
     <div id="contributionsToCheck">
-        <table id="serverContributions-apache" class="ui-widget ui-widget-content">
-            <thead>
-            <tr class="ui-widget-header ">
-                <th>...</th>
-                <th>Loading</th>
-                <th>...</th>
-                <th>.</th>
-            </tr>
-            </thead>
-        </table>
 
     </div>
 
