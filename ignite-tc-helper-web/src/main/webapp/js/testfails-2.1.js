@@ -349,7 +349,7 @@ function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId
     var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
-    ticketId = (isDefinedAndFilled(ticketId) && ticketId > 0) ? jiraTicketNumber(ticketId) : null;
+    ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? jiraTicketNumber(ticketId) : null;
 
     var triggerConfirm = $("#triggerConfirm");
 
@@ -456,6 +456,7 @@ function jiraTicketNumber(ticket) {
 function commentJira(serverId, suiteId, branchName, ticketId) {
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
+    ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? jiraTicketNumber(ticketId) : null;
 
     if (branchNotExists) {
         var triggerConfirm = $("#triggerConfirm");

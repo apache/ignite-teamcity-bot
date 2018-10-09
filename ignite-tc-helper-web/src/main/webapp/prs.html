@@ -227,7 +227,7 @@
             var srvId = fields.namedItem("serverId").value;
             var suiteId = fields.namedItem("suiteId").value;
             var branchName = fields.namedItem("branchForTc").value;
-            var ticketId = jiraTicketNumber(fields.namedItem("ticketId").value);
+            var ticketId = fields.namedItem("ticketId").value;
 
             commentJira(srvId, suiteId, branchName, ticketId)
         }
