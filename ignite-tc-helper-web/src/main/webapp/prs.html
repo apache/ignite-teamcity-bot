@@ -95,6 +95,15 @@
             });
         }
 
+        function prShowHref(srvId, suiteId, branchName) {
+            return "/pr.html?serverId=" + srvId + "&" +
+                "suiteId=" + suiteId +
+                //"&baseBranchForTc=" +
+                "&branchForTc=" +
+                branchName +
+                "&action=Latest";
+        }
+
         function showTable(result, srvId, suiteId) {
 
             let tableForSrv = $('#serverContributions-' + srvId);
@@ -139,20 +148,25 @@
                         title: "Existing RunAll",
                         "render": function(data, type, row, meta){
                             let prId = data;
-                            if(type === 'display'){
-                                data = "<a href='/pr.html?serverId="+srvId+"&" +
-
-                                    "suiteId=" + suiteId +
-                                     //"&baseBranchForTc=" +
-                                    "&branchForTc=pull%2F" + prId+ "%2Fhead&action=Latest'><button>Open /" + data + "/head</button></a>";
+                            if(type === 'display') {
+                                data = "<a id='link_" + prId + "' href='" +
+                                    prShowHref(srvId, suiteId, "pull%2F" + prId + "%2Fhead") +
+                                    "'>" +
+                                    "<button id='show_" + prId + "'>Open /" + data + "/head</button></a>";
 
                                 $.ajax({
-                                    url: "rest/visa/buildsForContribution?serverId=" + srvId +
+                                    url: "rest/visa/findBranchForPr?serverId=" + srvId +
                                         "&suiteId=" + suiteId +
                                         "&prId=" + prId,
                                     success:
                                         function (result) {
-                                            console.log("Contribution "+prId + "branshes: " + result + " ")
+                                            console.log("Contribution " + prId + " bransh: " + result + " ");
+                                            if(isDefinedAndFilled(result.result)) {
+                                                $('#link_' + prId).attr('href', prShowHref(srvId, suiteId, result.result));
+
+                                            } else {
+                                                $('#show_' + prId).attr('class', 'disabledbtn');
+                                            }
                                         }
                                 });
 

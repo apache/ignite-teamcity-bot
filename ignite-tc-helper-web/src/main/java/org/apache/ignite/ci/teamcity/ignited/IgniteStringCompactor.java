@@ -150,6 +150,22 @@ public class IgniteStringCompactor implements IStringCompactor {
         return next.getValue().val;
     }
 
+    /** {@inheritDoc} */
+    @Override public Integer getStringIdIfPresent(String val) {
+        if (val == null)
+            return -1;
+
+        initIfNeeded();
+
+        CompactorEntity entity = stringsCache.get(val);
+
+        if (entity != null)
+            return entity.id;
+
+        return null;
+
+    }
+
     @NotNull
     public static <K, V> CacheConfiguration<K, V> getCache8PartsConfig(String name) {
         CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);

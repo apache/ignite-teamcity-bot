@@ -21,8 +21,11 @@ public interface IStringCompactor {
      * @param val Value.
      */
     public int getStringId(String val);
+
     /**
      * @param id Id.
      */
     public String getStringFromId(int id);
+
+    public Integer getStringIdIfPresent(String id);
 }

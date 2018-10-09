@@ -26,11 +26,11 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.tcbot.visa.ContributionToCheck;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.jetbrains.annotations.Nullable;
 
@@ -59,8 +59,8 @@ public class TcBotVisaService {
     }
 
     @GET
-    @Path("buildsForContribution")
-    public List<BuildRef> buildsForContribution(@Nullable @QueryParam("serverId") String srvId,
+    @Path("findBranchForPr")
+    public SimpleResult findBranchForPr(@Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @QueryParam("prId") String prId) {
         ICredentialsProv prov = ICredentialsProv.get(req);
@@ -71,6 +71,6 @@ public class TcBotVisaService {
         TcBotTriggerAndSignOffService instance = CtxListener.getInjector(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class);
 
-        return instance.buildsForContribution(srvId, prov, suiteId, prId);
+        return new SimpleResult(instance.findBranchForPr(srvId, prov, suiteId, prId));
     }
 }

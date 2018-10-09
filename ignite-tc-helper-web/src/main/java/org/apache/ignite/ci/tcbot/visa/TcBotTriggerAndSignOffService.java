@@ -205,19 +205,21 @@ public class TcBotTriggerAndSignOffService {
         }).collect(Collectors.toList());
     }
 
-    public List<BuildRef> buildsForContribution(String srvId, ICredentialsProv prov,
-        String suiteId, String prId) {
-
+    @Nullable public String findBranchForPr(String srvId, ICredentialsProv prov, String suiteId, String prId) {
         ITeamcityIgnited srv = teamcityIgnitedProvider.server(srvId, prov);
 
-        List<BuildRef> buildHist = srv.getBuildHistory(suiteId, branchForTcA(prId));
+        String branchName = branchForTcA(prId);
+        List<BuildRef> buildHist = srv.getBuildHistory(suiteId, branchName);
 
         if (!buildHist.isEmpty())
-            return buildHist;
+            return buildHist.get(0).branchName();
 
         buildHist = srv.getBuildHistory(suiteId, branchForTcB(prId));
 
-        return buildHist;
+        if (!buildHist.isEmpty())
+            return buildHist.get(0).branchName();
+
+        return null;
     }
 
     String branchForTcA(String prId) {

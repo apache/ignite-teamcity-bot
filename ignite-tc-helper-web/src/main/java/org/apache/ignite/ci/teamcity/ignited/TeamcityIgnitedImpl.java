@@ -17,11 +17,8 @@
 package org.apache.ignite.ci.teamcity.ignited;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.apache.ignite.ci.ITeamcity;
@@ -29,7 +26,6 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.jetbrains.annotations.NotNull;
 
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Server id. */
@@ -71,14 +67,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         else
             bracnhNameQry = branchName;
 
-        return allBuildsEver()
-            .filter(e -> Objects.equals(e.buildTypeId, buildTypeId))
-            .filter(e -> Objects.equals(e.branchName, bracnhNameQry))
-            .collect(Collectors.toList());
-    }
-
-    @NotNull private Stream<BuildRef> allBuildsEver() {
-        return buildRefDao.getAllBuilds(srvIdMaskHigh);
+        return buildRefDao.findBuildsInHistory(srvIdMaskHigh, buildTypeId, bracnhNameQry);
     }
 
     private void actualizeRecentBuilds() {
