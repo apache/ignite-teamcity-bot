@@ -37,10 +37,12 @@ public class BuildRefDao {
     public static final String TEAMCITY_BUILD_CACHE_NAME = "teamcityBuild";
 
     /** Ignite provider. */
-    private @Inject Provider<Ignite> igniteProvider;
+    @Inject private Provider<Ignite> igniteProvider;
 
     /** Builds cache. */
     private IgniteCache<Long, BuildRefCompacted> buildsCache;
+
+    @Inject private IStringCompactor compacter;
 
     public void init () {
         Ignite ignite = igniteProvider.get();
@@ -51,7 +53,7 @@ public class BuildRefDao {
         return StreamSupport.stream(buildsCache.spliterator(), false)
             .filter(entry -> entry.getKey() >> 32 == srvIdMaskHigh)
             .map(javax.cache.Cache.Entry::getValue)
-            .map(BuildRefCompacted::toBuildRef);
+            .map(compacted -> compacted.toBuildRef(compacter));
     }
 
     public int saveChunk(long srvIdMaskHigh, List<BuildRef> ghData) {
@@ -63,11 +65,12 @@ public class BuildRefDao {
         Map<Long, BuildRefCompacted> existingEntries = buildsCache.getAll(ids);
         Map<Long, BuildRefCompacted> entriesToPut = new TreeMap<>();
 
-        List<BuildRefCompacted> collect = ghData.stream().map(BuildRefCompacted::new)
+        List<BuildRefCompacted> collect = ghData.stream()
+            .map(ref -> new BuildRefCompacted(compacter, ref))
             .collect(Collectors.toList());
 
         for (BuildRefCompacted next : collect) {
-            long cacheKey = buildIdToCacheKey(srvIdMaskHigh, next.buildId );
+            long cacheKey = buildIdToCacheKey(srvIdMaskHigh, next.id);
             BuildRefCompacted buildPersisted = existingEntries.get(cacheKey);
 
             if (buildPersisted == null || !buildPersisted.equals(next))

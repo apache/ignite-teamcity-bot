@@ -16,7 +16,13 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
-public interface IStringCompacter {
-    public int getStringId(String value);
+public interface IStringCompactor {
+    /**
+     * @param val Value.
+     */
+    public int getStringId(String val);
+    /**
+     * @param id Id.
+     */
     public String getStringFromId(int id);
 }

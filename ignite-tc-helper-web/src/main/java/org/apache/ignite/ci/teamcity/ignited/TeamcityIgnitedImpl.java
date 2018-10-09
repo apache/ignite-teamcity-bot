@@ -29,6 +29,7 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
@@ -73,9 +74,15 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         scheduler.sheduleNamed(ITeamcityIgnited.class.getSimpleName() + ".actualizeRecentBuilds",
             this::actualizeRecentBuilds, 2, TimeUnit.MINUTES);
 
+        String bracnhNameQry ;
+        if (ITeamcity.DEFAULT.equals(branchName))
+            bracnhNameQry = "refs/heads/master";
+        else
+            bracnhNameQry = branchName;
+
         return allBuildsEver()
             .filter(e -> Objects.equals(e.buildTypeId, buildTypeId))
-            .filter(e -> Objects.equals(e.branchName, branchName))
+            .filter(e -> Objects.equals(e.branchName, bracnhNameQry))
             .collect(Collectors.toList());
     }
 

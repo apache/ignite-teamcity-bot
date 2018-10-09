@@ -19,20 +19,22 @@ package org.apache.ignite.ci.teamcity.ignited;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.List;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitSheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 
+import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
+import static org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.STRINGS_CACHE;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -48,7 +50,12 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         when(http.sendGet(anyString(), anyString())).thenAnswer(
             (invocationOnMock)->{
-                return this.getClass().getResourceAsStream("/buildHistoryMaster.xml");
+                String url = invocationOnMock.getArgument(1);
+
+                if (url.contains("/app/rest/latest/builds?locator=defaultFilter:true,count:1000"))
+                    return this.getClass().getResourceAsStream("/buildHistoryMaster.xml");
+
+                throw new FileNotFoundException(url);
             }
         );
 
@@ -60,21 +67,32 @@ public class IgnitedTcInMemoryIntegrationTest {
             Injector injector = Guice.createInjector(module, new AbstractModule() {
                 @Override protected void configure() {
                     bind(Ignite.class).toInstance(ignite);
-                    bind(IScheduler.class).toInstance(Mockito.mock(IScheduler.class));
+                    bind(IScheduler.class).to(DirectExecNoWaitSheduler.class);
                 }
             });
 
             ICredentialsProv mock = Mockito.mock(ICredentialsProv.class);
             ITeamcityIgnited srv = injector.getInstance(ITeamcityIgnitedProvider.class).server(APACHE, mock);
 
-            assertTrue(srv.getBuildHistory("IgniteTests24Java8_RunAll", "<default>").isEmpty());
+            String buildTypeId = "IgniteTests24Java8_RunAll";
+            String branchName = "<default>";
+            List<BuildRef> hist = srv.getBuildHistory(buildTypeId, branchName);
 
-            TeamcityIgnitedImpl server1 = (TeamcityIgnitedImpl)srv;
-            server1.runAtualizeBuilds(APACHE, true);
+            assertTrue(!hist.isEmpty());
 
-            List<BuildRef> history = srv.getBuildHistory("IgniteTests24Java8_RunAll", "<default>");
+            for (BuildRef h : hist) {
+                System.out.println(h);
 
-            assertTrue(history.isEmpty());
+                assertEquals(buildTypeId, h.suiteId());
+
+                assertEquals("refs/heads/master", h.branchName());
+            }
+
+            ignite.cache(STRINGS_CACHE).forEach(
+                (e) -> {
+                    System.out.println(e.getValue());
+                }
+            );
         }
         finally {
             ignite.close();

@@ -19,19 +19,42 @@ package org.apache.ignite.ci.teamcity.ignited;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
 public class BuildRefCompacted {
-    int buildId = -1;
+    int id = -1;
+    int buildTypeId = -1;
+    int branchName = -1;
+    int status = -1;
+    int state = -1;
 
+    /**
+     * Default constructor.
+     */
     public BuildRefCompacted() {
-
     }
 
-    public BuildRefCompacted(BuildRef ref) {
-        buildId = ref.getId() == null ? -1 : ref.getId();
+    /**
+     * @param compacter Compacter.
+     * @param ref Reference.
+     */
+    public BuildRefCompacted(IStringCompactor compacter, BuildRef ref) {
+        id = ref.getId() == null ? -1 : ref.getId();
+        buildTypeId = compacter.getStringId(ref.buildTypeId());
+        branchName = compacter.getStringId(ref.branchName());
+        status = compacter.getStringId(ref.status());
+        state = compacter.getStringId(ref.state());
     }
 
-    public BuildRef toBuildRef() {
-        BuildRef ref = new BuildRef();
-        ref.setId(buildId < 0 ? null : buildId);
-        return ref;
+    /**
+     * @param compactor Compacter.
+     */
+    public BuildRef toBuildRef(IStringCompactor compactor) {
+        BuildRef res = new BuildRef();
+
+        res.setId(id < 0 ? null : id);
+        res.buildTypeId = compactor.getStringFromId(buildTypeId);
+        res.branchName = compactor.getStringFromId(branchName);
+        res.status = compactor.getStringFromId(status);
+        res.state = compactor.getStringFromId(state);
+
+        return res;
     }
 }

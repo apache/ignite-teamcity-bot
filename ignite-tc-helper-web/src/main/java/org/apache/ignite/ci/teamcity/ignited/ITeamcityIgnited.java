@@ -20,7 +20,15 @@ import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
+/**
+ *
+ */
 public interface ITeamcityIgnited {
+    /**
+     * @param buildTypeId
+     * @param branchName
+     * @return list of builds in history
+     */
     public List<BuildRef> getBuildHistory(
         @Nullable String buildTypeId,
         @Nullable String branchName);
