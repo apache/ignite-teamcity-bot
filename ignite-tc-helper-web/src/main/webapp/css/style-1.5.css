@@ -263,3 +263,7 @@ div.tooltip {
 	color: white;
 }
 
+.ui-dialog button{
+	height: auto;
+}
+

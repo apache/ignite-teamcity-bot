@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <title>Ignite Teamcity - comparison master's branch in the date interval</title>
     <link rel="icon" href="img/leaf-icon-png-7066.png">
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    <link rel="stylesheet" href="css/style-1.5.css">
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link rel="stylesheet" href="css/style-1.5.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <script src="js/common-1.6.js"></script>
     <script src="https://d3js.org/d3.v4.min.js"></script>
 </head>
@@ -182,6 +183,7 @@
 
         let statistics = {};
         let dates = [];
+        let buildIds = [];
 
         for (let i = 0; i < prOcc.length; i++) {
             statistics[prOcc[i]] = [];
@@ -190,6 +192,7 @@
 
         for (let j = 0; j < map.length; j++) {
             dates[j] = parseTime(map[j].startDate);
+            buildIds[j] = map[j].buildId;
 
             for (let i = 0; i < prOcc.length; i++) {
                 statistics[prOcc[i]][j] = map[j].totalProblems[prOcc[i]];
@@ -221,19 +224,19 @@
         $('.title' + num).html('min - median - max');
 
         for (let i = 0; i < prOcc.length; i++) {
-            fillCellWithStatistics(prOcc[i], num, statistics, dates);
-            fillCellWithStatistics(tOcc[i], num, statistics, dates);
+            fillCellWithStatistics(prOcc[i], num, statistics, dates, buildIds);
+            fillCellWithStatistics(tOcc[i], num, statistics, dates, buildIds);
         }
     }
 
-    function fillCellWithStatistics(prefix, num, statistics, dates) {
+    function fillCellWithStatistics(prefix, num, statistics, dates, buildIds) {
         let result = getMinMaxMedian(statistics[prefix]);
 
         $('#' + prefix + num).html(result.min + " - " + result.median +  " - " + result.max);
 
         compareAndHighlight(prefix, num, result.median);
 
-        drawGraph(prefix, num, dates, statistics[prefix], prefix);
+        drawGraph(prefix, num, dates, statistics[prefix], buildIds);
     }
 
     function compareAndHighlight(prefix, thisNum, thisMedian){
@@ -346,13 +349,14 @@
         });
     }
 
-    function drawGraph(prefix, num, dates, counts, text) {
+    function drawGraph(prefix, num, dates, counts, buildIds) {
         let data = [];
 
         for (let i = 0; i < dates.length; i++) {
             data[i] = {};
             data[i].date = dates[i];
             data[i].value = counts[i];
+            data[i].buildId = buildIds[i];
         }
 
         let svg = d3.select("#graph" + prefix + num).append("svg:svg");
@@ -409,13 +413,15 @@
             .enter()
             .append("circle")
             .attr("r", 3)
-            .attr("cx", function(d){return x(d.date)})
-            .attr("cy", function(d){return y(d.value);})
+            .attr("cx", function(d){return x(d.date); })
+            .attr("cy", function(d){return y(d.value); })
             .attr("class", "dot")
             .on("mouseover", function(d) {
                 d3.select(this).transition().duration(100)
                     .style("fill", "green")
-                    .attr("r", 5);
+                    .attr("r", 5)
+                    .attr("onclick", "checkAvailable(" + d.buildId + "," +  d.date.getTime() + ");" +
+                    "return false;");
                 div.transition()
                     .duration(200)
                     .style("opacity", .8);
@@ -425,7 +431,7 @@
 
                 div	.html(formatTime(d.date))
                     .style("left", graphTd.left + x(d.date) + (x(d.date) > (500 - 150) ? -150 : 0) + "px")
-                    .style("top", scrollTop + graphTd.top - 15 + "px" );
+                    .style("top", scrollTop + graphTd.top - 10 + "px" );
                 svg_aline.transition().duration(10)
                     .style("display", "block")
                     .attr("x1", x(d.date))
@@ -444,6 +450,40 @@
                 svg_aline.style("display","None")
             });
     }
+
+    function getBuildLink(buildId) { return "https://ci.ignite.apache.org/viewLog.html?buildId=" + buildId
+            + "&tab=buildResultsDiv&buildTypeId=IgniteTests24Java8_RunAll"; }
+    
+    function checkAvailable(buildId, date) {
+        let dateDiff = moment().diff(moment(date), 'days');
+
+        if (dateDiff <= 14) {
+            window.open(getBuildLink(buildId), '_blank');
+            return;
+        }
+
+        let message = "<p style='text-align:center;opacity: 0.7;'><img src='img/tc.svg' width='100' height='100'></p>" +
+            "<br>The results &laquo;Run All&raquo; for <b>build [" + buildId +  "]</b> is <b>not available</b> on " +
+            "the TeamCity server.<br><br><span style='color:grey;font-size:smaller'><hr>TeamCity server stores data " +
+            "for the last ~14 days. Since the launch of the build " + dateDiff + " days have passed</span>";
+
+        let modalDialog = $("#modalDialog");
+
+        modalDialog.html(message);
+        modalDialog.dialog({
+            modal: true,
+            buttons: {
+                "Go anyway": function () {
+                    $(this).dialog("close");
+                    window.open(getBuildLink(buildId), '_blank');
+                },
+                "Cancel": function () {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    }
 </script>
+<div style="visibility:hidden"><div id="modalDialog" title="Information"></div></div>
 </body>
 </html>
