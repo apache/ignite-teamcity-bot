@@ -38,9 +38,10 @@ function showContributionsTable(result, srvId, suiteId) {
 
     var table = tableForSrv.DataTable({
         data: result,
-        "iDisplayLength": 100, //rows to be shown by default
+        "iDisplayLength": 30, //rows to be shown by default
         //"dom": '<lf<t>ip>',
         //"dom": '<"wrapper"flipt>',
+        stateSave: true,
         columns: [
             {
                 "className": 'details-control',
@@ -143,6 +144,7 @@ function showButtonForPr(srvId, suiteId, prId, branchName) {
         "'>" +
         "<button id='show_" + prId + "'>Show " + branchName + " branch report</button></a>";
 
+    return showRunRes;
 }
 
 /* Formatting function for row details - modify as you need */
@@ -166,13 +168,13 @@ function formatContributionDetails(rowData, srvId, suiteId) {
             "&prId=" + prId,
         success:
             function (result) {
-                console.log("Contribution " + prId + " bransh: " + result + " ");
+                // console.log("Contribution " + prId + " bransh: " + result + " ");
                 let branchName = result.result;
                 let tdForPr = $('#branchFor_' + prId);
                 if (isDefinedAndFilled(branchName)) {
                     tdForPr.html(showButtonForPr(srvId, suiteId, prId, branchName));
                 } else {
-                    tdForPr.html("No builds");
+                    tdForPr.html("No builds, please trigger " + suiteId);
                 }
             }
     });
