@@ -84,17 +84,18 @@
             if (srvId != "apache")
                 return;
 
-
+            //todo customizable suite
+            var suiteId = "IgniteTests24Java8_RunAll";
             $.ajax({
                 url: "rest/visa/contributions?serverId="+srvId,
                 success:
                     function (result) {
-                        showTable(result, srvId)
+                        showTable(result, srvId, suiteId)
                     }
             });
         }
 
-        function showTable(  result, srvId) {
+        function showTable(result, srvId, suiteId) {
 
             let tableForSrv = $('#serverContributions-' + srvId);
 
@@ -137,12 +138,24 @@
                         "data": "prNumber",
                         title: "Existing RunAll",
                         "render": function(data, type, row, meta){
+                            let prId = data;
                             if(type === 'display'){
-                                data = '<a href="/pr.html?serverId='+srvId+'&' +
-                                     //todo customizable suite
-                                    'suiteId=IgniteTests24Java8_RunAll' +
-                                     //'&baseBranchForTc=' +
-                                    '&branchForTc=pull%2F' +data+ '%2Fhead&action=Latest"><button>Open /' + data + '/head</button></a>';
+                                data = "<a href='/pr.html?serverId="+srvId+"&" +
+
+                                    "suiteId=" + suiteId +
+                                     //"&baseBranchForTc=" +
+                                    "&branchForTc=pull%2F" + prId+ "%2Fhead&action=Latest'><button>Open /" + data + "/head</button></a>";
+
+                                $.ajax({
+                                    url: "rest/visa/buildsForContribution?serverId=" + srvId +
+                                        "&suiteId=" + suiteId +
+                                        "&prId=" + prId,
+                                    success:
+                                        function (result) {
+                                            console.log("Contribution "+prId + "branshes: " + result + " ")
+                                        }
+                                });
+
                             }
 
                             return data;

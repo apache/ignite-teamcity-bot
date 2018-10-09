@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+import com.google.common.base.Objects;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
 public class BuildRefCompacted {
@@ -56,5 +57,24 @@ public class BuildRefCompacted {
         res.state = compactor.getStringFromId(state);
 
         return res;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        BuildRefCompacted compacted = (BuildRefCompacted)o;
+        return id == compacted.id &&
+            buildTypeId == compacted.buildTypeId &&
+            branchName == compacted.branchName &&
+            status == compacted.status &&
+            state == compacted.state;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hashCode(id, buildTypeId, branchName, status, state);
     }
 }

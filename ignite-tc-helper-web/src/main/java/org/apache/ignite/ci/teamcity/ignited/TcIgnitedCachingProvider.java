@@ -52,17 +52,17 @@ class TcIgnitedCachingProvider implements ITeamcityIgnitedProvider {
 
         try {
             return srvs.get(fullKey, () -> {
-                ITeamcity tcRealConnection = srvFactory.server(srvId, prov);
+                ITeamcity tcRealConn = srvFactory.server(srvId, prov);
 
                 if (prov != null) {
                     final String user = prov.getUser(srvId);
                     final String pwd = prov.getPassword(srvId);
-                    tcRealConnection.setAuthData(user, pwd);
+                    tcRealConn.setAuthData(user, pwd);
                 }
 
                 TeamcityIgnitedImpl impl = provider.get();
 
-                impl.init(srvId, tcRealConnection);
+                impl.init(srvId, tcRealConn);
 
                 return impl;
             });

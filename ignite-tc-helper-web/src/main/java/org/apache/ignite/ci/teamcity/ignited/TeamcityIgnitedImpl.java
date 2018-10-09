@@ -24,23 +24,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
 
-//todo currently this implementation is shared between all users
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
-
-    //todo move to string compacter
-    /** Cache name */
-    public static final String STRING_CACHE_NAME = "strings";
-
     /** Server id. */
     private String srvId;
 

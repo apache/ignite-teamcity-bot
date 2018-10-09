@@ -18,7 +18,7 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.common.base.MoreObjects;
 import java.util.Collections;
-import java.util.List;
+import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.cache.Cache;
@@ -32,6 +32,7 @@ import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
@@ -105,11 +106,13 @@ public class IgniteStringCompactor implements IStringCompactor {
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public int getStringId(String val) {
         if (val == null)
             return -1;
 
         initIfNeeded();
+
         CompactorEntity entity = stringsCache.get(val);
         if (entity != null)
             return entity == null ? -1 : entity.id;
@@ -122,23 +125,29 @@ public class IgniteStringCompactor implements IStringCompactor {
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public String getStringFromId(int id) {
         if (id < 0)
             return null;
 
+        initIfNeeded();
+
         QueryCursor<Cache.Entry<String, CompactorEntity>> qryCursor
             = stringsCache.query(new SqlQuery<String, CompactorEntity>(CompactorEntity.class, "id = ?").setArgs(id));
 
-        List<Cache.Entry<String, CompactorEntity>> all = qryCursor.getAll();
+        Iterator<Cache.Entry<String, CompactorEntity>> iter = qryCursor.iterator();
 
-        qryCursor.close();
+        if (!iter.hasNext()) {
+            System.err.println("Not found string by id " + id);
 
-        if(all.isEmpty()) {
-            System.err.println("Not fond string by id " + id);
             return null;
         }
 
-        return all.get(0).getValue().val;
+        Cache.Entry<String, CompactorEntity> next = iter.next();
+
+        qryCursor.close();
+
+        return next.getValue().val;
     }
 
     @NotNull
