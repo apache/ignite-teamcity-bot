@@ -627,8 +627,12 @@ function isNewFailedTest(testFail) {
     if(!isDefinedAndFilled(testFail.histBaseBranch))
         return true;
 
+    if (testFail.webIssueUrl)
+        return false;
+
     var hist = testFail.histBaseBranch;
-    if(!isDefinedAndFilled(hist.recent))
+
+    if (!isDefinedAndFilled(hist.recent))
         return true;
 
     var flakyCommentsInBase =
