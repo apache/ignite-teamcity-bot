@@ -346,11 +346,16 @@ function notifyGit() {
 function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId) {
     var queueAtTop = isDefinedAndFilled(top) && top;
     var observeJira = isDefinedAndFilled(observe) && observe;
-    var suiteIdsNotFound = suiteIdList.length === 0;
+    var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
+    var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
+    branchName = branchNotExists ? null : branchForTc(branchName);
+    ticketId = (isDefinedAndFilled(ticketId) && ticketId > 0) ? jiraTicketNumber(ticketId) : null;
+
     var triggerConfirm = $("#triggerConfirm");
 
-    if (suiteIdsNotFound) {
-        triggerConfirm.html("No suites to run!");
+    if (suiteIdsNotExists || branchNotExists) {
+        triggerConfirm.html("No " + (suiteIdsNotExists ? "suites" +
+            (branchNotExists ? " and branch" : "") : "branch") + " to run!");
         triggerConfirm.dialog({
             modal: true,
             buttons: {
@@ -421,7 +426,53 @@ function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId
     }
 }
 
+/**
+ * Converts PR number to branch for TeamCity.
+ *
+ * @param pr - Pull Request number.
+ * @returns {String} Branch for TeamCity.
+ */
+function branchForTc(pr) {
+    var regExpr = /(\d*)/i;
+
+    if (regExpr.exec(pr)[0] === pr)
+        return "pull/" + regExpr.exec(pr)[0] + "/head";
+
+    return pr;
+}
+
+/**
+ * Converts JIRA ticket full name to the tickets number.
+ *
+ * @param ticket - JIRA ticket.
+ * @returns {string} JIRA ticket number.
+ */
+function jiraTicketNumber(ticket) {
+    var regExpr = /(ignite-)?(\d*)/i;
+
+    return regExpr.exec(ticket)[2];
+}
+
 function commentJira(serverId, suiteId, branchName, ticketId) {
+    var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
+    branchName = branchNotExists ? null : branchForTc(branchName);
+
+    if (branchNotExists) {
+        var triggerConfirm = $("#triggerConfirm");
+
+        triggerConfirm.html("No branch to run!");
+        triggerConfirm.dialog({
+            modal: true,
+            buttons: {
+                "Ok" : function () {
+                    $(this).dialog("close");
+                }
+            }
+        });
+
+        return;
+    }
+
     $("#notifyJira").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px>" +
         " Please wait. First action for PR run-all data may require significant time.");
 
