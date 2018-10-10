@@ -241,6 +241,9 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
     public boolean isNewFailedTest() {
         FailureSummary recent = histBaseBranch.recent;
 
+        if (!Strings.isNullOrEmpty(webIssueUrl))
+            return false;
+
         boolean lowFailureRate = recent != null && recent.failureRate != null &&
             Float.valueOf(recent.failureRate.replace(',', '.')) < 4.;
 
