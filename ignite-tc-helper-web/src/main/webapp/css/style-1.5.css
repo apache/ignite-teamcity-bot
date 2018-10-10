@@ -183,9 +183,11 @@ form li:after
 	margin-top:10px;
 }
 
-.compare{
-	width: 80%;
+.compare {
+	width: 96%;
 	border-collapse: collapse;
+	margin-left: 2%;
+	margin-right: 2%;
 }
 .compare td, .compare th {
 	padding: 10px 5px 10px 5px;
@@ -211,7 +213,7 @@ form li:after
 	color: #000000;
 }
 
-.compare .title1, .compare .title2  {
+.compare .title {
 	text-align: center;
 	font-size: 10px;
 	color: gray;

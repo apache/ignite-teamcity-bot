@@ -22,18 +22,27 @@
         <th width="5%"></th>
         <th style="text-align: center;" width="40%"><input type='text' name='daterange1'/></th>
         <th style="text-align: center;" width="40%"><input type='text' name='daterange2'/></th>
+    </tr><tr><td></td><td></td><td></td></tr>
+    <tr><td class="field">DURATION</td>
+        <td><img id="clickGraphDuration" src='/img/browser.png'></td>
+        <td class="mmm1 data1" id="Duration1" data-allow-highlight="true"></td>
+        <td class="mmm2 data2" id="Duration2" data-allow-highlight="true"></td>
     </tr>
-    <tr style="display: none;"></tr><tr style="display: none;"></tr><tr style="display: none;"></tr>
+    <tr id="showGraphDuration" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg id="graphDuration1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg id="graphDuration2" width="500" height="200"></svg></td>
+    </tr>
     <tr id="showInfo" style="display: none;">
         <td class="section">FEATURES</td><td></td>
         <td style="text-align: center;" id="info1"></td>
         <td style="text-align: center;" id="info2"></td>
     </tr>
-    <tr><td class="section">TESTS</td><td></td><td class="title1"></td><td class="title2"></td></tr>
+    <tr><td class="section">TESTS</td><td></td><td class="title mmm1"></td><td class="title mmm2"></td></tr>
     <tr><td class="field">COUNT</td>
         <td><img id="clickGraphCount" src='/img/browser.png'></td>
-        <td class="data1" id="Count1" title="min - median - max" data-allow-highlight="false"></td>
-        <td class="data2" id="Count2" title="min - median - max" data-allow-highlight="false"></td>
+        <td class="mmm1 data1" id="Count1" data-allow-highlight="false"></td>
+        <td class="mmm2 data2" id="Count2" data-allow-highlight="false"></td>
     </tr>
     <tr id="showGraphCount" style="display: none;"><td></td>
         <td></td>
@@ -42,8 +51,8 @@
     </tr>
     <tr><td class="field">PASSED</td>
         <td><img id="clickGraphPassed" src='/img/browser.png'></td>
-        <td class="data1" id="Passed1" title="min - median - max" data-allow-highlight="false"></td>
-        <td class="data2" id="Passed2" title="min - median - max" data-allow-highlight="false"></td>
+        <td class="mmm1 data1" id="Passed1" data-allow-highlight="false"></td>
+        <td class="mmm2 data2" id="Passed2" data-allow-highlight="false"></td>
     </tr>
     <tr id="showGraphPassed" style="display: none;"><td></td>
         <td></td>
@@ -52,8 +61,8 @@
     </tr>
     <tr><td class="field">FAILED</td>
         <td><img id="clickGraphFailed" src='/img/browser.png'></td>
-        <td class="data1" id="Failed1" title="min - median - max" data-allow-highlight="true"></td>
-        <td class="data2" id="Failed2" title="min - median - max" data-allow-highlight="true"></td>
+        <td class="mmm1 data1" id="Failed1" data-allow-highlight="true"></td>
+        <td class="mmm2 data2" id="Failed2" data-allow-highlight="true"></td>
     </tr>
     <tr id="showGraphFailed" style="display: none;"><td></td>
         <td></td>
@@ -62,8 +71,8 @@
     </tr>
     <tr><td class="field">IGNORED</td>
         <td><img id="clickGraphIgnored" src='/img/browser.png'></td>
-        <td class="data1" id="Ignored1" title="min - median - max" data-allow-highlight="false"></td>
-        <td class="data2" id="Ignored2" title="min - median - max" data-allow-highlight="false"></td>
+        <td class="mmm1 data1" id="Ignored1" data-allow-highlight="false"></td>
+        <td class="mmm2 data2" id="Ignored2" data-allow-highlight="false"></td>
     </tr>
     <tr id="showGraphIgnored" style="display: none;"><td></td>
         <td></td>
@@ -72,19 +81,19 @@
     </tr>
     <tr><td class="field">MUTED</td>
         <td><img id="clickGraphMuted" src='/img/browser.png'></td>
-        <td class="data1" id="Muted1" title="min - median - max" data-allow-highlight="false"></td>
-        <td class="data2" id="Muted2" title="min - median - max" data-allow-highlight="false"></td></tr>
+        <td class="mmm1 data1" id="Muted1" data-allow-highlight="false"></td>
+        <td class="mmm2 data2" id="Muted2" data-allow-highlight="false"></td></tr>
     <tr id="showGraphMuted" style="display: none;"><td></td>
         <td></td>
         <td style="text-align: center;"><svg id="graphMuted1" width="500" height="200"></svg></td>
         <td style="text-align: center;"><svg id="graphMuted2" width="500" height="200"></svg></td>
     </tr>
-    <tr><td class="section">PROBLEMS</td><td></td><td class="title1"></td><td class="title2"></td></tr>
+    <tr><td class="section">PROBLEMS</td><td></td><td class="title mmm1"></td><td class="title mmm2"></td></tr>
     <tr style="display: none;"><td></td><td></td><td></td></tr>
     <tr><td class="field">TOTAL</td>
         <td><img id="clickGraphTT" src='/img/browser.png'></td>
-        <td class="data1" id="TT1" title="min - median - max" data-allow-highlight="true"></td>
-        <td class="data2" id="TT2" title="min - median - max" data-allow-highlight="true"></td></tr>
+        <td class="mmm1 data1" id="TT1" data-allow-highlight="true"></td>
+        <td class="mmm2 data2" id="TT2" data-allow-highlight="true"></td></tr>
     <tr id="showGraphTT" style="display: none;"><td></td>
         <td></td>
         <td style="text-align: center;"><svg id="graphTT1" width="500" height="200"></svg></td>
@@ -92,8 +101,8 @@
     </tr>
     <tr><td class="field">EXECUTION TIMEOUT</td>
         <td><img id="clickGraphET" src='/img/browser.png'></td>
-        <td class="data1" id="ET1" title="min - median - max" data-allow-highlight="true"></td>
-        <td class="data2" id="ET2" title="min - median - max" data-allow-highlight="true"></td>
+        <td class="mmm1 data1" id="ET1" data-allow-highlight="true"></td>
+        <td class="mmm2 data2" id="ET2" data-allow-highlight="true"></td>
     </tr>
     <tr id="showGraphET" style="display: none;"><td></td>
         <td></td>
@@ -102,8 +111,8 @@
     </tr>
     <tr><td class="field">JVM CRASH</td>
         <td><img id="clickGraphJC" src='/img/browser.png'></td>
-        <td class="data1" id="JC1" title="min - median - max" data-allow-highlight="true"></td>
-        <td class="data2" id="JC2" title="min - median - max" data-allow-highlight="true"></td>
+        <td class="mmm1 data1" id="JC1" data-allow-highlight="true"></td>
+        <td class="mmm2 data2" id="JC2" data-allow-highlight="true"></td>
     </tr>
     <tr id="showGraphJC" style="display: none;"><td></td>
         <td></td>
@@ -112,8 +121,8 @@
     </tr>
     <tr><td class="field">OOME</td>
         <td><img id="clickGraphOO" src='/img/browser.png'></td>
-        <td class="data1" id="OO1" title="min - median - max" data-allow-highlight="true"></td>
-        <td class="data2" id="OO2" title="min - median - max" data-allow-highlight="true"></td>
+        <td class="mmm1 data1" id="OO1" data-allow-highlight="true"></td>
+        <td class="mmm2 data2" id="OO2" data-allow-highlight="true"></td>
     </tr>
     <tr id="showGraphOO" style="display: none;"><td></td>
         <td></td>
@@ -122,13 +131,20 @@
     </tr>
     <tr><td class="field">EXIT CODE</td>
         <td><img id="clickGraphEC" src='/img/browser.png'></td>
-        <td class="data1" id="EC1" title="min - median - max" data-allow-highlight="true"></td>
-        <td class="data2" id="EC2" title="min - median - max" data-allow-highlight="true"></td>
+        <td class="mmm1 data1" id="EC1" data-allow-highlight="true"></td>
+        <td class="mmm2 data2" id="EC2" data-allow-highlight="true"></td>
     </tr>
     <tr id="showGraphEC" style="display: none;"><td></td>
         <td></td>
         <td style="text-align: center;"><svg id="graphEC1" width="500" height="200"></svg></td>
         <td style="text-align: center;"><svg id="graphEC2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="section">OTHER METRICS</td><td></td><td class="title t1"></td><td class="title t2"></td></tr>
+    <tr style="display: none;"><td></td><td></td><td></td></tr>
+    <tr><td class="field">RUNS COUNT</td>
+        <td></td>
+        <td class="t1 data1" id="RunsCount1"></td>
+        <td class="t2 data2" id="RunsCount2"></td>
     </tr>
 </table><br>
 <div id="version"></div>
@@ -139,6 +155,11 @@
 
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     twoWeekAgo.setDate(twoWeekAgo.getDate() - 14);
+
+    const parseTime = d3.timeParse("%d-%m-%YT%H:%M:%S");
+    const parseDuration = d3.utcParse("%s");
+    const mmmTitle = "min - median - max";
+    const tTitle = "total";
 
     function dateRangePickerParam(data1, data2) {
         return {
@@ -170,7 +191,12 @@
     }
 
     function parseMedian(string) {
-        return parseFloat(string.substring(string.indexOf("-") + 2, string.lastIndexOf("-") - 1));
+        let stringMedian = string.substring(string.indexOf("-") + 2, string.lastIndexOf("-") - 1);
+
+        if (stringMedian.indexOf(":") !== -1)
+            return (parseInt(stringMedian.split(":")[0]) * 60 + parseInt(stringMedian.split(":")[1])) * 60;
+        else
+            return parseFloat(stringMedian);
     }
 
     function printStatistics(num, map, sinceDate, untilDate) {
@@ -178,10 +204,11 @@
         clearGraphs(num);
 
         const anotherNum = (num === 1) ? 2 : 1;
-        const parseTime = d3.timeParse("%d-%m-%YT%H:%M:%S");
 
         let statistics = {};
         let dates = [];
+
+        statistics['Duration'] = [];
 
         for (let i = 0; i < prOcc.length; i++) {
             statistics[prOcc[i]] = [];
@@ -190,6 +217,7 @@
 
         for (let j = 0; j < map.length; j++) {
             dates[j] = parseTime(map[j].startDate);
+            statistics['Duration'][j] = map[j].duration;
 
             for (let i = 0; i < prOcc.length; i++) {
                 statistics[prOcc[i]][j] = map[j].totalProblems[prOcc[i]];
@@ -218,22 +246,36 @@
             }
         }
 
-        $('.title' + num).html('min - median - max');
+        $('.title.mmm' + num).html(mmmTitle);
+        $('.mmm' + num).prop('title', mmmTitle);
+        $('.title.t' + num).html(tTitle);
+        $('.t' + num).prop('title', tTitle);
+
+        fillCellWithStatistics('Duration', num, statistics, dates);
 
         for (let i = 0; i < prOcc.length; i++) {
             fillCellWithStatistics(prOcc[i], num, statistics, dates);
             fillCellWithStatistics(tOcc[i], num, statistics, dates);
         }
+
+        $('#RunsCount' + num).html(map.length);
     }
 
     function fillCellWithStatistics(prefix, num, statistics, dates) {
         let result = getMinMaxMedian(statistics[prefix]);
 
-        $('#' + prefix + num).html(result.min + " - " + result.median +  " - " + result.max);
+        if (prefix === 'Duration')
+            $('#' + prefix + num).html(time(result.min) + " - " + time(result.median) + " - " + time(result.max));
+        else
+            $('#' + prefix + num).html(result.min + " - " + result.median +  " - " + result.max);
 
         compareAndHighlight(prefix, num, result.median);
 
         drawGraph(prefix, num, dates, statistics[prefix], prefix);
+
+        function time(ms){
+            return moment(ms * 1000).utcOffset(0).format("H:mm");
+        }
     }
 
     function compareAndHighlight(prefix, thisNum, thisMedian){
@@ -334,6 +376,8 @@
             });
     });
 
+    graphSpoiler('Duration');
+
     for (let i = 0; i < prOcc.length; i++) {
         graphSpoiler(prOcc[i]);
         graphSpoiler(tOcc[i]);
@@ -352,8 +396,9 @@
         for (let i = 0; i < dates.length; i++) {
             data[i] = {};
             data[i].date = dates[i];
-            data[i].count = counts[i];
+            data[i].count = (prefix === 'Duration' ? parseDuration(parseInt(counts[i])) : counts[i]);
         }
+
         svg = d3.select("#graph" + prefix + num).append("svg:svg");
         margin = {top: 20, right: 20, bottom: 30, left: 50};
         width = +500 - margin.left - margin.right;
@@ -361,7 +406,7 @@
         g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
         x = d3.scaleTime().range([0, width]);
-        y = d3.scaleLinear().range([height, 0]);
+        y = (prefix === 'Duration' ? d3.scaleTime().range([height, 0]) : d3.scaleLinear().range([height, 0]));
 
         line = d3.line()
             .curve(d3.curveBasis)
@@ -379,7 +424,7 @@
             .remove();
 
         g.append("svg:g")
-            .call(d3.axisLeft(y))
+            .call(prefix === 'Duration' ? d3.axisLeft(y).tickFormat(d3.utcFormat("%Hh %Mm")) : d3.axisLeft(y))
             .append("text")
             .attr("fill", "#000")
             .attr("transform", "rotate(-90)")
