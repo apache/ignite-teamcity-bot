@@ -14,27 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.visa;
+package org.apache.ignite.ci.di.scheduler;
+
+import java.util.concurrent.TimeUnit;
 
 /**
- *
+ * Sheduler which never waits
  */
-@SuppressWarnings("PublicField") public class ContributionToCheck {
-    /** Pr number. */
-    public Integer prNumber;
+public class DirectExecNoWaitSheduler implements IScheduler {
+    /** {@inheritDoc} */
+    @Override public void invokeLater(Runnable cmd, long delay, TimeUnit unit) {
+        cmd.run();
+    }
 
-    /** Pr title. */
-    public String prTitle;
+    /** {@inheritDoc} */
+    @Override public void sheduleNamed(String fullName, Runnable cmd, long queitPeriod, TimeUnit unit) {
+        cmd.run();
+    }
 
-    /** Pr author. */
-    public String prAuthor;
+    /** {@inheritDoc} */
+    @Override public void stop() {
 
-    /** Pr author avatar url. */
-    public String prAuthorAvatarUrl;
-
-    /** Pr html url. */
-    public String prHtmlUrl;
-
-    /** Branch Name for team city */
-    public String tcBranchName;
+    }
 }

@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <title>Ignite Teamcity - comparison master's branch in the date interval</title>
     <link rel="icon" href="img/leaf-icon-png-7066.png">
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    <link rel="stylesheet" href="css/style-1.5.css">
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link rel="stylesheet" href="css/style-1.5.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <script src="js/common-1.6.js"></script>
     <script src="https://d3js.org/d3.v4.min.js"></script>
 </head>
@@ -207,6 +208,7 @@
 
         let statistics = {};
         let dates = [];
+        let buildIds = [];
 
         statistics['Duration'] = [];
 
@@ -217,6 +219,7 @@
 
         for (let j = 0; j < map.length; j++) {
             dates[j] = parseTime(map[j].startDate);
+            buildIds[j] = map[j].buildId;
             statistics['Duration'][j] = map[j].duration;
 
             for (let i = 0; i < prOcc.length; i++) {
@@ -251,17 +254,17 @@
         $('.title.t' + num).html(tTitle);
         $('.t' + num).prop('title', tTitle);
 
-        fillCellWithStatistics('Duration', num, statistics, dates);
+        fillCellWithStatistics('Duration', num, statistics, dates, buildIds);
 
         for (let i = 0; i < prOcc.length; i++) {
-            fillCellWithStatistics(prOcc[i], num, statistics, dates);
-            fillCellWithStatistics(tOcc[i], num, statistics, dates);
+            fillCellWithStatistics(prOcc[i], num, statistics, dates, buildIds);
+            fillCellWithStatistics(tOcc[i], num, statistics, dates, buildIds);
         }
 
         $('#RunsCount' + num).html(map.length);
     }
 
-    function fillCellWithStatistics(prefix, num, statistics, dates) {
+    function fillCellWithStatistics(prefix, num, statistics, dates, buildIds) {
         let result = getMinMaxMedian(statistics[prefix]);
 
         if (prefix === 'Duration')
@@ -271,7 +274,7 @@
 
         compareAndHighlight(prefix, num, result.median);
 
-        drawGraph(prefix, num, dates, statistics[prefix], prefix);
+        drawGraph(prefix, num, dates, statistics[prefix], buildIds);
 
         function time(ms){
             return moment(ms * 1000).utcOffset(0).format("H:mm");
@@ -390,39 +393,45 @@
         });
     }
 
-    function drawGraph(prefix, num, dates, counts, text) {
+    function drawGraph(prefix, num, dates, counts, buildIds) {
         let data = [];
 
         for (let i = 0; i < dates.length; i++) {
             data[i] = {};
             data[i].date = dates[i];
-            data[i].count = (prefix === 'Duration' ? parseDuration(parseInt(counts[i])) : counts[i]);
+            data[i].value = (prefix === 'Duration' ? parseDuration(parseInt(counts[i])) : counts[i]);
+            data[i].buildId = buildIds[i];
         }
 
-        svg = d3.select("#graph" + prefix + num).append("svg:svg");
-        margin = {top: 20, right: 20, bottom: 30, left: 50};
-        width = +500 - margin.left - margin.right;
-        height = +200 - margin.top - margin.bottom;
-        g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        let svg = d3.select("#graph" + prefix + num).append("svg:svg");
+        let margin = {top: 20, right: 20, bottom: 30, left: 50};
+        let width = +500 - margin.left - margin.right;
+        let height = +200 - margin.top - margin.bottom;
+        let g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        x = d3.scaleTime().range([0, width]);
-        y = (prefix === 'Duration' ? d3.scaleTime().range([height, 0]) : d3.scaleLinear().range([height, 0]));
+        let div = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
 
-        line = d3.line()
-            .curve(d3.curveBasis)
-            .x(function(d) { return x(d.date); })
-            .y(function(d) { return y(d.count); });
+        let formatTime = d3.timeFormat("%d-%m-%Y %H:%M:%S");
+        let max = d3.max(data, function(d){return parseInt(d.value)});
+        let y = (prefix === 'Duration' ? d3.scaleTime().range([height, 0]) : d3.scaleLinear().range([height, 0]));
 
+        let x = d3.scaleTime()
+            .rangeRound([0, width]);
 
         x.domain(d3.extent(data, function(d) { return d.date; }));
-        y.domain(d3.extent(data, function(d) { return d.count; }));
 
-        g.append("svg:g")
-            .attr("transform", "translate(0," + height + ")")
-            .call(d3.axisBottom(x))
-            .select(".domain")
-            .remove();
+        let line = d3.line()
+            .x(function(d) { return x(d.date); })
+            .y(function(d) { return y(d.value); });
 
+        g.append("g")
+            .attr("transform", "translate(0," + (height) + ")")
+            .call(d3.axisBottom(x));
+
+        g.append("g")
+            .call(d3.axisLeft(y));
         g.append("svg:g")
             .call(prefix === 'Duration' ? d3.axisLeft(y).tickFormat(d3.utcFormat("%Hh %Mm")) : d3.axisLeft(y))
             .append("text")
@@ -433,7 +442,16 @@
             .attr("text-anchor", "end")
             .text(text);
 
-        g.append("svg:path")
+        let svg_aline = g.append("line")
+            .attr("class", "line")
+            .style("stroke-dasharray", ("3, 10"))
+            .attr("x1",100)
+            .attr("x2",400)
+            .attr("y1",200)
+            .attr("y2",200)
+            .style("display", "None");
+
+        g.append("path")
             .datum(data)
             .attr("fill", "none")
             .attr("stroke", "steelblue")
@@ -441,7 +459,82 @@
             .attr("stroke-linecap", "round")
             .attr("stroke-width", 1.5)
             .attr("d", line);
+
+        g.selectAll("dot").data(data)
+            .enter()
+            .append("circle")
+            .attr("r", 3)
+            .attr("cx", function(d){return x(d.date); })
+            .attr("cy", function(d){return y(d.value); })
+            .attr("class", "dot")
+            .on("mouseover", function(d) {
+                d3.select(this).transition().duration(100)
+                    .style("fill", "green")
+                    .attr("r", 5)
+                    .attr("onclick", "checkAvailable(" + d.buildId + "," +  d.date.getTime() + ");" +
+                    "return false;");
+                div.transition()
+                    .duration(200)
+                    .style("opacity", .8);
+
+                let graphTd = document.getElementById("graph" + prefix + num).getBoundingClientRect();
+                let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+                div	.html(formatTime(d.date))
+                    .style("left", graphTd.left + x(d.date) + (x(d.date) > (500 - 150) ? -150 : 0) + "px")
+                    .style("top", scrollTop + graphTd.top - 10 + "px" );
+                svg_aline.transition().duration(10)
+                    .style("display", "block")
+                    .attr("x1", x(d.date))
+                    .attr("y1", y(d.value))
+                    .attr("x2", x(d.date))
+                    .attr("y2", height)
+            })
+
+            .on("mouseout", function(d) {
+                d3.select(this).transition().duration(100)
+                    .style("fill", "grey")
+                    .attr("r", 3);
+                div.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+                svg_aline.style("display","None")
+            });
+    }
+
+    function getBuildLink(buildId) { return "https://ci.ignite.apache.org/viewLog.html?buildId=" + buildId
+            + "&tab=buildResultsDiv&buildTypeId=IgniteTests24Java8_RunAll"; }
+
+    function checkAvailable(buildId, date) {
+        let dateDiff = moment().diff(moment(date), 'days');
+
+        if (dateDiff <= 14) {
+            window.open(getBuildLink(buildId), '_blank');
+            return;
+        }
+
+        let message = "<p style='text-align:center;opacity: 0.7;'><img src='img/tc.svg' width='100' height='100'></p>" +
+            "<br>The results &laquo;Run All&raquo; for <b>build [" + buildId +  "]</b> is <b>not available</b> on " +
+            "the TeamCity server.<br><br><span style='color:grey;font-size:smaller'><hr>TeamCity server stores data " +
+            "for the last ~14 days. Since the launch of the build " + dateDiff + " days have passed</span>";
+
+        let modalDialog = $("#modalDialog");
+
+        modalDialog.html(message);
+        modalDialog.dialog({
+            modal: true,
+            buttons: {
+                "Go anyway": function () {
+                    $(this).dialog("close");
+                    window.open(getBuildLink(buildId), '_blank');
+                },
+                "Cancel": function () {
+                    $(this).dialog("close");
+                }
+            }
+        });
     }
 </script>
+<div style="visibility:hidden"><div id="modalDialog" title="Information"></div></div>
 </body>
 </html>

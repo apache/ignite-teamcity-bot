@@ -20,15 +20,14 @@ import com.google.common.base.Preconditions;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.ITcServerProvider;
-import org.apache.ignite.ci.TcHelper;
+import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerFactory;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.junit.Test;
 
 import java.util.Collection;
-import java.util.Iterator;
 
 import static org.junit.Assert.assertTrue;
 

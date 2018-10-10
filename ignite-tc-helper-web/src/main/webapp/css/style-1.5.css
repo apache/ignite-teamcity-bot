@@ -127,6 +127,10 @@ form, .formgroup {
 	box-shadow: 3px 2px 6px -2px rgba(0,0,0,0.64);
 }
 
+.disabledbtn {
+	background: #b4b4b4;
+}
+
 .idxpgbutton {
     width: 100px;
     min-height: 100px;
@@ -222,3 +226,61 @@ form li:after
 .compare tr:nth-child(4n-1) {
 	background-color: #fafaff;
 }
+
+
+td.details-control {
+	//background: url('../resources/details_open.png') no-repeat center center;
+	cursor: pointer;
+	//content: "+&#x2796";
+}
+tr.shown td.details-control {
+	//content: "&#x2796";
+
+	//url('../resources/details_close.png') no-repeat center center;
+}
+rect {
+	fill: red;
+	stroke: black;
+	stroke-width: 0;
+}
+
+.dot {
+	opacity: 0.5;
+	fill: grey;
+}
+
+line {
+	fill: none;
+	stroke: green;
+	stroke-width: 1;
+	shape-rendering: crispEdges;
+}
+
+.axis path,
+.axis line {
+	fill: none;
+	stroke: grey;
+	stroke-width: 1;
+	shape-rendering: crispEdges;
+}
+
+div.tooltip {
+	position: absolute;
+	text-align: center;
+	width: 150px;
+	height: 15px;
+	padding: 2px;
+	margin-left: 50px;
+	margin-top: 5px;
+	font: 14px sans-serif;
+	background: #12AD5E;
+	border: 1px;
+	border-radius: 8px;
+	pointer-events: none;
+	color: white;
+}
+
+.ui-dialog button{
+	height: auto;
+}
+

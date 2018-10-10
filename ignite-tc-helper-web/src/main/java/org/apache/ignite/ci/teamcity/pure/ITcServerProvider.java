@@ -14,27 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.visa;
+package org.apache.ignite.ci.teamcity.pure;
+
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.user.ICredentialsProv;
+
+import javax.annotation.Nullable;
 
 /**
- *
+ * Provides instance to server with appropriate credentials, may cache instances to avoid odd server instances.
  */
-@SuppressWarnings("PublicField") public class ContributionToCheck {
-    /** Pr number. */
-    public Integer prNumber;
-
-    /** Pr title. */
-    public String prTitle;
-
-    /** Pr author. */
-    public String prAuthor;
-
-    /** Pr author avatar url. */
-    public String prAuthorAvatarUrl;
-
-    /** Pr html url. */
-    public String prHtmlUrl;
-
-    /** Branch Name for team city */
-    public String tcBranchName;
+public interface ITcServerProvider {
+    public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov);
 }

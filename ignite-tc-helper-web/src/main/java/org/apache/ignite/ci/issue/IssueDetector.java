@@ -35,7 +35,7 @@ import javax.inject.Provider;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.ITcServerProvider;
+import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;

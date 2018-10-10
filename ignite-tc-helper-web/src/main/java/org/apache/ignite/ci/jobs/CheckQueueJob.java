@@ -27,7 +27,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.ITcServerProvider;
+import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;

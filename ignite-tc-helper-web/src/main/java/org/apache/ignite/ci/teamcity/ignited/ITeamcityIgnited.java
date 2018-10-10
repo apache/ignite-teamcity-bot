@@ -14,27 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.visa;
+package org.apache.ignite.ci.teamcity.ignited;
+
+import java.util.List;
+import javax.annotation.Nullable;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
 /**
  *
  */
-@SuppressWarnings("PublicField") public class ContributionToCheck {
-    /** Pr number. */
-    public Integer prNumber;
-
-    /** Pr title. */
-    public String prTitle;
-
-    /** Pr author. */
-    public String prAuthor;
-
-    /** Pr author avatar url. */
-    public String prAuthorAvatarUrl;
-
-    /** Pr html url. */
-    public String prHtmlUrl;
-
-    /** Branch Name for team city */
-    public String tcBranchName;
+public interface ITeamcityIgnited {
+    /**
+     * @param buildTypeId
+     * @param branchName
+     * @return list of builds in history
+     */
+    public List<BuildRef> getBuildHistory(
+        @Nullable String buildTypeId,
+        @Nullable String branchName);
 }

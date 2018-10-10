@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.web.rest.monitoring;
 
+import javax.ws.rs.POST;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheMetrics;
@@ -35,6 +36,7 @@ import javax.ws.rs.core.MediaType;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.ignite.ci.web.model.SimpleResult;
 
 @Path("monitoring")
 @Produces(MediaType.APPLICATION_JSON)
@@ -82,6 +84,16 @@ public class MonitoringService {
         return hotSpotStream.sorted(Comparator.comparing(HotSpot::getNanos).reversed())
                 .limit(100)
                 .collect(Collectors.toList());
+    }
+
+    @POST
+    @Path("resetProfiling")
+    public SimpleResult resetProfiling() {
+        AutoProfilingInterceptor instance = CtxListener.getInjector(ctx).getInstance(AutoProfilingInterceptor.class);
+
+        instance.reset();
+
+        return new SimpleResult("Ok");
     }
 
 

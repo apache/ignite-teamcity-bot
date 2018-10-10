@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class TeamcityRecordingConnection implements ITeamcityHttpConnection {
+    /** Recorder. */
     @Inject private TeamcityRecorder recorder;
 
     /** {@inheritDoc} */

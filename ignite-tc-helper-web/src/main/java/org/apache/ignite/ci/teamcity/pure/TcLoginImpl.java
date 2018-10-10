@@ -28,7 +28,7 @@ import javax.inject.Provider;
 /**
  * Real implementation of login based on getting current user preferences from the server.
  */
-public class TcLoginImpl implements ITcLogin {
+class TcLoginImpl implements ITcLogin {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TcLoginImpl.class);
 

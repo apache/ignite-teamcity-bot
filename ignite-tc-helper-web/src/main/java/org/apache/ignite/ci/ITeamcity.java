@@ -43,6 +43,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.user.User;
+import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.util.Base64Util;
 import org.jetbrains.annotations.NotNull;
 
@@ -53,10 +54,11 @@ import static org.apache.ignite.ci.db.DbMigrations.TESTS_COUNT_7700;
  * API for calling methods from REST service:
  * https://confluence.jetbrains.com/display/TCD10/REST+API
  */
-public interface ITeamcity {
+public interface ITeamcity extends ITeamcityConn {
 
     String DEFAULT = "<default>";
 
+    @Deprecated
     long DEFAULT_BUILDS_COUNT = 1000;
 
     CompletableFuture<List<BuildType>> getProjectSuites(String projectId);
