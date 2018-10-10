@@ -14,27 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.visa;
+
+package org.apache.ignite.ci.teamcity.pure;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
 /**
- *
+ * Pure Teamcity Connection
+ * API for calling methods from REST service:
+ * https://confluence.jetbrains.com/display/TCD10/REST+API
  */
-@SuppressWarnings("PublicField") public class ContributionToCheck {
-    /** Pr number. */
-    public Integer prNumber;
-
-    /** Pr title. */
-    public String prTitle;
-
-    /** Pr author. */
-    public String prAuthor;
-
-    /** Pr author avatar url. */
-    public String prAuthorAvatarUrl;
-
-    /** Pr html url. */
-    public String prHtmlUrl;
-
-    /** Branch Name for team city */
-    public String tcBranchName;
+public interface ITeamcityConn {
+    public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> nextPage);
 }

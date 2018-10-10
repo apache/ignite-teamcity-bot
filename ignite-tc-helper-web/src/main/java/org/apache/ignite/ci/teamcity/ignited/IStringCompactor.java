@@ -14,27 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.visa;
+package org.apache.ignite.ci.teamcity.ignited;
 
-/**
- *
- */
-@SuppressWarnings("PublicField") public class ContributionToCheck {
-    /** Pr number. */
-    public Integer prNumber;
+public interface IStringCompactor {
+    /**
+     * @param val Value.
+     */
+    public int getStringId(String val);
 
-    /** Pr title. */
-    public String prTitle;
+    /**
+     * @param id Id.
+     */
+    public String getStringFromId(int id);
 
-    /** Pr author. */
-    public String prAuthor;
-
-    /** Pr author avatar url. */
-    public String prAuthorAvatarUrl;
-
-    /** Pr html url. */
-    public String prHtmlUrl;
-
-    /** Branch Name for team city */
-    public String tcBranchName;
+    public Integer getStringIdIfPresent(String id);
 }

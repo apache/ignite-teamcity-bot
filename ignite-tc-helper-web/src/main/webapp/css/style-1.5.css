@@ -127,6 +127,10 @@ form, .formgroup {
 	box-shadow: 3px 2px 6px -2px rgba(0,0,0,0.64);
 }
 
+.disabledbtn {
+	background: #b4b4b4;
+}
+
 .idxpgbutton {
     width: 100px;
     min-height: 100px;
@@ -221,6 +225,17 @@ form li:after
 	background-color: #fafaff;
 }
 
+
+td.details-control {
+	//background: url('../resources/details_open.png') no-repeat center center;
+	cursor: pointer;
+	//content: "+&#x2796";
+}
+tr.shown td.details-control {
+	//content: "&#x2796";
+
+	//url('../resources/details_close.png') no-repeat center center;
+}
 rect {
 	fill: red;
 	stroke: black;

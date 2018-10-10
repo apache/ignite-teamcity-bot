@@ -14,27 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.visa;
+package org.apache.ignite.ci.teamcity.restcached;
+
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 
 /**
- *
+ * Factory for creating new servers
  */
-@SuppressWarnings("PublicField") public class ContributionToCheck {
-    /** Pr number. */
-    public Integer prNumber;
-
-    /** Pr title. */
-    public String prTitle;
-
-    /** Pr author. */
-    public String prAuthor;
-
-    /** Pr author avatar url. */
-    public String prAuthorAvatarUrl;
-
-    /** Pr html url. */
-    public String prHtmlUrl;
-
-    /** Branch Name for team city */
-    public String tcBranchName;
+public interface ITcServerFactory {
+    /**
+     * @param srvId Server id.
+     */
+    public IAnalyticsEnabledTeamcity createServer(String srvId);
 }

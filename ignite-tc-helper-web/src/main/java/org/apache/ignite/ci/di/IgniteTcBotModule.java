@@ -17,13 +17,18 @@
 package org.apache.ignite.ci.di;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
 import com.google.inject.matcher.Matchers;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.ci.*;
+import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.di.scheduler.SchedulerModule;
 import org.apache.ignite.ci.github.ignited.GitHubIgnitedModule;
@@ -31,18 +36,12 @@ import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
-import org.apache.ignite.ci.teamcity.pure.TcRealConnectionModule;
+import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedModule;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
-
-import javax.inject.Inject;
-import javax.inject.Provider;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  *
@@ -70,12 +69,6 @@ public class IgniteTcBotModule extends AbstractModule {
             }
         });
 
-        //Simple connection
-        bind(ITeamcity.class).to(IgniteTeamcityConnection.class);
-        //With REST persistence
-        bind(IAnalyticsEnabledTeamcity.class).to(IgnitePersistentTeamcity.class);
-        bind(ITcServerFactory.class).to(InitializingServerFactory.class).in(new SingletonScope());
-        bind(ITcServerProvider.class).to(TcServerCachingProvider.class).in(new SingletonScope());
         bind(TcUpdatePool.class).in(new SingletonScope());
         bind(IssueDetector.class).in(new SingletonScope());
         bind(ObserverTask.class).in(new SingletonScope());
@@ -85,7 +78,8 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(IJiraIntegration.class).to(Jira.class).in(new SingletonScope());
 
         bind(BackgroundUpdater.class).in(new SingletonScope());
-        install(new TcRealConnectionModule());
+
+        install(new TeamcityIgnitedModule());
         install(new GitHubIgnitedModule());
         install(new SchedulerModule());
     }
@@ -133,27 +127,4 @@ public class IgniteTcBotModule extends AbstractModule {
         return injector;
     }
 
-    private static class InitializingServerFactory implements ITcServerFactory {
-        @Inject
-        Provider<IAnalyticsEnabledTeamcity> tcPersistProv;
-
-        @Inject
-        Provider<ITeamcity> tcConnProv;
-
-        @Inject
-        private TcUpdatePool tcUpdatePool;
-
-        /** {@inheritDoc} */
-        @Override public IAnalyticsEnabledTeamcity createServer(String srvId) {
-            ITeamcity tcConn = tcConnProv.get();
-            tcConn.init(Strings.emptyToNull(srvId));
-
-            IAnalyticsEnabledTeamcity instance = tcPersistProv.get();
-            instance.init(tcConn);
-
-            instance.setExecutor(tcUpdatePool.getService());
-
-            return instance;
-        }
-    }
 }

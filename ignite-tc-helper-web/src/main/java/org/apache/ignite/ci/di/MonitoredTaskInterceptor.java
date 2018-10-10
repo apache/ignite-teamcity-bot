@@ -86,8 +86,7 @@ public class MonitoredTaskInterceptor implements MethodInterceptor {
         }
     }
 
-    @Override
-    public Object invoke(MethodInvocation invocation) throws Throwable {
+    @Override public Object invoke(MethodInvocation invocation) throws Throwable {
         final long startTs = System.currentTimeMillis();
 
         String fullKey = taskName(invocation);
@@ -121,21 +120,19 @@ public class MonitoredTaskInterceptor implements MethodInterceptor {
 
         final MonitoredTask annotation = method.getAnnotation(MonitoredTask.class);
         if (annotation != null) {
-            if (!Strings.isNullOrEmpty(annotation.name())) {
-                fullKey = annotation.name();
-            } else {
-                fullKey = cls + "." + mtd;
-            }
+            String activityName = annotation.name();
+
+            fullKey = !Strings.isNullOrEmpty(activityName) ? activityName : cls + "." + mtd;
 
             final Object[] arguments = invocation.getArguments();
 
             final int idx = annotation.nameExtArgIndex();
-            if(arguments!=null && idx >=0 && idx<arguments.length) {
+            if (arguments != null && idx >= 0 && idx < arguments.length)
                 fullKey += "." + Objects.toString(arguments[idx]);
-            }
-        } else {
-            fullKey = cls + "." + mtd;
         }
+        else
+            fullKey = cls + "." + mtd;
+
         return fullKey;
     }
 

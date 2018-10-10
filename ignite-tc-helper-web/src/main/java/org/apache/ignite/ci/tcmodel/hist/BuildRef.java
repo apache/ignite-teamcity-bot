@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.tcmodel.hist;
 
+import com.google.common.base.MoreObjects;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -124,5 +125,49 @@ public class BuildRef extends AbstractRef {
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(id, buildTypeId, branchName, status, state, buildNumber, defaultBranch, composite, webUrl);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("id", id)
+            .add("buildTypeId", buildTypeId)
+            .add("branchName", branchName)
+            .add("status", status)
+            .add("state", state)
+            .add("buildNumber", buildNumber)
+            .add("defaultBranch", defaultBranch)
+            .add("composite", composite)
+            .add("webUrl", webUrl)
+            .add("href", href)
+            .toString();
+    }
+
+    /**
+     *
+     */
+    public String branchName() {
+        return branchName;
+    }
+
+    /**
+     *
+     */
+    public String buildTypeId() {
+        return buildTypeId;
+    }
+
+    /**
+     *
+     */
+    public String status() {
+        return status;
+    }
+
+    /**
+     *
+     */
+    public String state() {
+        return state;
     }
 }
