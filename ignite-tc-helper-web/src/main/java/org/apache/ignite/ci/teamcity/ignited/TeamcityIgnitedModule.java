@@ -14,35 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity.pure;
+package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
-import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.IgniteTeamcityConnection;
+import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
+import org.apache.ignite.ci.teamcity.restcached.TcRestCachedModule;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Guice module to setup real connected server and all related implementations.
  */
-public class TcRealConnectionModule extends AbstractModule {
-    private ITeamcityHttpConnection conn;
+public class TeamcityIgnitedModule extends AbstractModule {
+    /** Connection. */
+    @Nullable private ITeamcityHttpConnection conn;
 
     /** {@inheritDoc} */
     @Override protected void configure() {
-        //Simple connection
-        bind(ITeamcity.class).to(IgniteTeamcityConnection.class);
+        bind(ITeamcityIgnitedProvider.class).to(TcIgnitedCachingProvider.class).in(new SingletonScope());
+        bind(BuildRefDao.class).in(new SingletonScope());
 
-        if (conn != null)
-            bind(ITeamcityHttpConnection.class).toInstance(conn);
-        else
-            bind(ITeamcityHttpConnection.class).to(TeamcityRecordingConnection.class);
+        bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
 
-        bind(TeamcityRecorder.class).in(new SingletonScope());
-        bind(ITcLogin.class).to(TcLoginImpl.class).in(new SingletonScope());
+        TcRestCachedModule module = new TcRestCachedModule();
+        module.overrideHttp(conn);
+        install(module);
     }
 
     public void overrideHttp(ITeamcityHttpConnection conn) {
-
         this.conn = conn;
     }
 }

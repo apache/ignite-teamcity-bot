@@ -14,32 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.teamcity.ignited;
 
-package org.apache.ignite.ci.tcmodel.hist;
+public interface IStringCompactor {
+    /**
+     * @param val Value.
+     */
+    public int getStringId(String val);
 
-import java.util.Collections;
-import java.util.List;
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+    /**
+     * @param id Id.
+     */
+    public String getStringFromId(int id);
 
-/** List of builds from build history */
-@XmlRootElement(name = "builds")
-@XmlAccessorType(XmlAccessType.FIELD)
-public class Builds {
-    @XmlAttribute
-    private String nextHref;
-
-    @XmlElement(name = "build")
-    private List<BuildRef> builds;
-
-    public List<BuildRef> getBuildsNonNull() {
-        return builds == null ? Collections.emptyList() : builds;
-    }
-
-    public String nextHref() {
-        return nextHref;
-    }
+    public Integer getStringIdIfPresent(String id);
 }

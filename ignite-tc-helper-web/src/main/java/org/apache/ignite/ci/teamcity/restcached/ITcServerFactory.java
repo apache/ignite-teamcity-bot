@@ -14,32 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.teamcity.restcached;
 
-package org.apache.ignite.ci.tcmodel.hist;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 
-import java.util.Collections;
-import java.util.List;
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-
-/** List of builds from build history */
-@XmlRootElement(name = "builds")
-@XmlAccessorType(XmlAccessType.FIELD)
-public class Builds {
-    @XmlAttribute
-    private String nextHref;
-
-    @XmlElement(name = "build")
-    private List<BuildRef> builds;
-
-    public List<BuildRef> getBuildsNonNull() {
-        return builds == null ? Collections.emptyList() : builds;
-    }
-
-    public String nextHref() {
-        return nextHref;
-    }
+/**
+ * Factory for creating new servers
+ */
+public interface ITcServerFactory {
+    /**
+     * @param srvId Server id.
+     */
+    public IAnalyticsEnabledTeamcity createServer(String srvId);
 }

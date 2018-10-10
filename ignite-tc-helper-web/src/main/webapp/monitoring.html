@@ -24,6 +24,18 @@
         loadData();
     });
 
+    function loadPofilingData() {
+        $.ajax({
+            url: "rest/monitoring/profiling",
+            success: function (result) {
+                $("#loadStatus").html("");
+
+                showProfiling(result);
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
     function loadData() {
         $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
         $.ajax({
@@ -42,15 +54,7 @@
             error: showErrInLoadStatus
         });
 
-        $.ajax({
-            url: "rest/monitoring/profiling",
-            success: function(result) {
-                $("#loadStatus").html("");
-
-                showProfiling(result);
-            },
-            error: showErrInLoadStatus
-        });
+        loadPofilingData();
 
         $.ajax({
             url: "rest/monitoring/cacheMetrics",
@@ -159,6 +163,17 @@
         $("#urlUsed").html(res);
     }
 
+    function resetProfiling() {
+        $.ajax({
+            url: "rest/monitoring/resetProfiling",
+            method: "post",
+            success: function(result) {
+                loadPofilingData();
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
 </script>
 
 Tasks Monitoring Data:
@@ -166,7 +181,7 @@ Tasks Monitoring Data:
 <br>
 
 <hr>
-<b>Method Profiling Data:</b>
+<b>Method Profiling Data:</b> <button onclick="resetProfiling()">Reset</button>
 <div id="profiling" style="font-family: monospace"></div>
 <br>
 
