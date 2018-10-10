@@ -212,10 +212,10 @@
 
             var srvId = fields.namedItem("serverId").value;
             var suiteId = fields.namedItem("suiteId").value;
-            var branchName = branchForTc(fields.namedItem("branchForTc").value);
-            var ticketId = jiraTicketNumber(fields.namedItem("ticketId").value);
+            var branchName = fields.namedItem("branchForTc").value;
+            var ticketId = fields.namedItem("ticketId").value;
 
-            triggerBuild(srvId, suiteId, branchName, false, trigCase !== "tests", ticketId)
+            triggerBuilds(srvId, suiteId, branchName, false, trigCase !== "tests", ticketId)
         }
 
         /**
@@ -226,37 +226,10 @@
 
             var srvId = fields.namedItem("serverId").value;
             var suiteId = fields.namedItem("suiteId").value;
-            var branchName = branchForTc(fields.namedItem("branchForTc").value);
-            var ticketId = jiraTicketNumber(fields.namedItem("ticketId").value);
+            var branchName = fields.namedItem("branchForTc").value;
+            var ticketId = fields.namedItem("ticketId").value;
 
             commentJira(srvId, suiteId, branchName, ticketId)
-        }
-
-        /**
-         * Converts PR number to branch for TeamCity.
-         *
-         * @param pr - Pull Request number.
-         * @returns {String} Branch for TeamCity.
-         */
-        function branchForTc(pr) {
-            var regExpr = /(\d*)/i;
-
-            if (regExpr.exec(pr)[0] === pr)
-                return "pull/" + regExpr.exec(pr)[0] + "/head";
-
-            return pr;
-        }
-
-        /**
-         * Converts JIRA ticket full name to the tickets number.
-         *
-         * @param ticket - JIRA ticket.
-         * @returns {string} JIRA ticket number.
-         */
-        function jiraTicketNumber(ticket) {
-            var regExpr = /(ignite-)?(\d*)/i;
-
-            return regExpr.exec(ticket)[2];
         }
 
         function showFormAndSuitesForPrCheck(result) {
