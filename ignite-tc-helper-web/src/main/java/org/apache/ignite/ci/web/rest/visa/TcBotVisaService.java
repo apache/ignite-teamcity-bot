@@ -26,6 +26,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import org.apache.ignite.ci.tcbot.visa.ContributionCheckStatus;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.tcbot.visa.ContributionToCheck;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
@@ -58,6 +59,22 @@ public class TcBotVisaService {
             .getInstance(TcBotTriggerAndSignOffService.class).getContributionsToCheck(srvId);
     }
 
+    @GET
+    @Path("contributionStatus")
+    public ContributionCheckStatus contributionStatus(@Nullable @QueryParam("serverId") String srvId,
+        @Nonnull @QueryParam("suiteId") String suiteId,
+        @QueryParam("prId") String prId) {
+        ICredentialsProv prov = ICredentialsProv.get(req);
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
+
+        TcBotTriggerAndSignOffService instance = CtxListener.getInjector(ctx)
+            .getInstance(TcBotTriggerAndSignOffService.class);
+
+        return instance.contributionStatus(srvId, prov, suiteId, prId);
+    }
+
+    @Deprecated
     @GET
     @Path("findBranchForPr")
     public SimpleResult findBranchForPr(@Nullable @QueryParam("serverId") String srvId,

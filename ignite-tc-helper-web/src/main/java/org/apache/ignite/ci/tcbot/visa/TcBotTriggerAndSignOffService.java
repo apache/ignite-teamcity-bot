@@ -207,6 +207,8 @@ public class TcBotTriggerAndSignOffService {
                 check.prAuthorAvatarUrl = user.avatarUrl();
             }
 
+            check.jiraIssueId = Strings.emptyToNull(getTicketId(pr));
+
             return check;
         }).collect(Collectors.toList());
     }
@@ -234,5 +236,19 @@ public class TcBotTriggerAndSignOffService {
 
     String branchForTcB(String prId) {
         return "pull/" + prId + "/merge";
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param prov Prov.
+     * @param suiteId Suite id.
+     * @param prId Pr id.
+     */
+    public ContributionCheckStatus contributionStatus(String srvId, ICredentialsProv prov, String suiteId, String prId) {
+        ContributionCheckStatus status = new ContributionCheckStatus();
+
+        status.finishedRunAllForBranch = findBranchForPr(srvId, prov, suiteId, prId);
+
+        return status;
     }
 }
