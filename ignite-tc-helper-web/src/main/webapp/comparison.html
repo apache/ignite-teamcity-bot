@@ -131,7 +131,7 @@
         <td style="text-align: center;"><svg id="graphEC2" width="500" height="200"></svg></td>
     </tr>
 </table><br>
-<table style="table-layout: fixed; width: 100%" id="testsTable">
+<table style="table-layout: fixed; width: 100%" id="testsTable" class="testsTable">
     <tbody>
     <tr>
         <th class="section" width="15%" style="vertical-align: middle; text-align: left; padding: 5px">FAILED TESTS</th>
@@ -190,7 +190,9 @@
     }
 
     var changeDisplay = function(id) {
-        $("#" + id).toggle();
+        $('*[id=' + id + ']').each(function() {
+            $(this).toggle();
+        });
     }
 
     function mergeSuits(results) {
@@ -211,7 +213,6 @@
 
         for (let suite of mergeSuits(results).sort()) {
             let suiteName = suite.split('_').filter((value, index) => index != 0).join('_');
-            let backgroundColor = markedRow ? "background-color:#fafaff" : '';
             let testsCntCells = '';
             let testsCells = '';
 
@@ -220,23 +221,18 @@
                 let testLength = !obj.hasOwnProperty(suite) || obj[suite].length == 0 ?
                     '' : obj[suite].length;
 
-                testsCntCells = testsCntCells + '<td class="data'+ key +'" title="Click to hide or show tests"' +
-                    ' style="cursor: default; text-align: center; vertical-align: middle">' +
-                    testLength + '</td>';
+                testsCntCells = testsCntCells + '<td class="testsCntCell"><p id="' + suite + '">' + testLength + '</p></td>';
 
-                testsCells = testsCells + '<td class="data\'+ key +\'" style="padding: 5px; word-wrap:break-word;' +
-                    ' vertical-align: top">' + getSuiteTestsHtml(results, suite, key) + '</td>'
+                testsCells = testsCells + '<td class="testsCell">' + getSuiteTestsHtml(results, suite, key) + '</td>'
             }
 
-            $(TESTS_TABLE + " > tbody:last-child").append('<tr style="'+ backgroundColor +
-                '" onclick="changeDisplay(\'' + suite + '\')">' +
-                '<td style="padding: 10px; word-wrap:break-word; vertical-align: top; padding-left:10px">' + suiteName +
-                '</td><td></td>' + testsCntCells + '</tr>');
+            $(TESTS_TABLE + " > tbody:last-child").append('<tr class="testsCntRow" onclick="changeDisplay(\'' + suite + '\')">' +
+                '<td class = "suiteCell">' + suiteName + '</td>' +
+                '<td></td>' + testsCntCells + '</tr>');
 
-            $(TESTS_TABLE + " tbody").append('<tr style="display: none" id="' + suite + '">' +
-                '<td></td><td></td>' + testsCells + '</tr>');
-
-            markedRow = !markedRow;
+            $(TESTS_TABLE + " > tbody:last-child").append('<tr class="testsRow" id="' + suite + '">' +
+                '<td class="testsSuiteCell" onclick="changeDisplay(\'' + suite + '\')"></td>' +
+                '<td></td>' + testsCells + '</tr>');
         }
     }
 
@@ -276,18 +272,18 @@
 
         let res = '<body><div  id="' + suite + key + '"style="cursor: default; margin-left: 10px;">';
 
-        for (let v of results[key][suite].sort()) {
-            let list = v.toString().split(".");
+        for (let test of results[key][suite].sort()) {
+            let list = test.toString().split(".");
 
             if (list.length < 2)
-                list = v.toString().split(":");
+                list = test.toString().split(":");
 
             let testName = list.pop();
             let testClass = list.pop();
 
-            res += '<p align="left" title="' + v + '">' + testClass + '.' + testName +
-                '<a href="#" onclick="getTestRef(\'' + v + '\'' + ',\'' + suite + '\'); return false;">' +
-                '&gt&gt</a>' + '</p>'
+            res += '<p align="left" title="' + test + '">' + testClass + '.' + testName +
+                '<a href="#" onclick="getTestRef(\'' + test + '\'' + ',\'' + suite + '\'); return false;">' +
+                ' &gt&gt</a>' + '</p>'
         }
 
         res += '</div></body>';
@@ -429,6 +425,7 @@
     
     function fillAllDataCells(num, message) {
         $('.data' + num).html(message);
+        $('.testsCntCell').html(message);
     }
 
     function clearGraphs(num) {

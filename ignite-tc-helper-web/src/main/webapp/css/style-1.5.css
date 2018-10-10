@@ -220,3 +220,41 @@ form li:after
 .compare tr:nth-child(4n-1) {
 	background-color: #fafaff;
 }
+
+.testsCntCell {
+	cursor: pointer;
+	text-align: center;
+	vertical-align: middle;
+}
+
+.testsCell {
+	cursor: default;
+	word-wrap: break-word;
+	vertical-align: top;
+}
+
+.testsRow {
+	display: none;
+}
+
+.suiteCell {
+	cursor: default;
+	word-wrap: break-word;
+	vertical-align: middle;
+	padding: 15px;
+}
+
+.testsSuiteCell {
+	cursor: pointer;
+}
+
+.testsCntRow {
+	padding: 10px
+}
+
+.testsTable tr:nth-child(4n + 2) {
+	background-color: #fafaff;
+}
+
+
+
