@@ -54,12 +54,11 @@ public class BuildObserver {
     }
 
     /**
-     * @param build Build id.
      * @param srvId Server id.
      * @param prov Credentials.
      * @param ticket JIRA ticket name.
      */
-    public void observe(Build build, String srvId, ICredentialsProv prov, String ticket) {
-        observerTask.builds.add(new BuildInfo(build, srvId, prov, ticket));
+    public void observe(String srvId, ICredentialsProv prov, String ticket, Build... builds) {
+        observerTask.builds.add(new BuildsInfo(srvId, prov, ticket, builds));
     }
 }

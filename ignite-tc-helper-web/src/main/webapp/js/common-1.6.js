@@ -214,13 +214,15 @@ function tcHelperLogout() {
 /**
  * Change autocomplete filter to show results only when they starts from written text.
  */
-$.ui.autocomplete.filter = function (array, term) {
-    var matcher = new RegExp("^" + $.ui.autocomplete.escapeRegex(term), "i");
+function setAutocompleteFilter() {
+    $.ui.autocomplete.filter = function (array, term) {
+        var matcher = new RegExp("^" + $.ui.autocomplete.escapeRegex(term), "i");
 
-    return $.grep(array, function (value) {
-        return matcher.test(value.label || value.value || value);
-    });
-};
+        return $.grep(array, function (value) {
+            return matcher.test(value.label || value.value || value);
+        });
+    };
+}
 
 var callbackRegistry = {};
 
@@ -277,6 +279,8 @@ var branchesForTc = {};
 function setupAutocompleteList(srvIds) {
     for (let srvId of srvIds)
         gitUrls.set(srvId, "");
+
+    setAutocompleteFilter();
 
     startFillAutocompleteListsProcess();
 }
@@ -347,8 +351,11 @@ function _fillBranchAutocompleteList(result) {
 
         branchesForTc[entry[0]] = [{label:"master", value:"refs/heads/master"}];
 
-        for (let pr of result.data)
-            branchesForTc[entry[0]].push({label: pr.number, value: "pull/" + pr.number + "/head"});
+        for (let pr of result.data) {
+            branchesForTc[entry[0]].push({label: pr.number + " " + pr.title, value: "pull/" + pr.number + "/head"});
+            branchesForTc[entry[0]].push({label: "pull/" + pr.number + "/head " + pr.title,
+                value: "pull/" + pr.number + "/head"});
+        }
 
         $(".branchForTc" + entry[0]).autocomplete({source: branchesForTc[entry[0]]});
     }
