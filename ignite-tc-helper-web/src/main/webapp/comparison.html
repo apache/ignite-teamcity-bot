@@ -164,6 +164,7 @@
 
     function dateRangePickerParam(data1, data2) {
         return {
+            "opens" : 'left',
             "maxSpan": { "days": 7 },
             "locale": {
                 "format": "DD/MM/YYYY", "separator": " - ", "applyLabel": "Apply", "cancelLabel": "Cancel",
@@ -333,6 +334,7 @@
     }
 
     function clearGraphs(num) {
+        $("graphDuration" + num).empty();
         for (let i = 0; i < prOcc.length; i++) {
             $("#graph" + prOcc[i] + num).empty();
             $("#graph" + tOcc[i] + num).empty();
@@ -395,11 +397,12 @@
 
     function drawGraph(prefix, num, dates, counts, buildIds) {
         let data = [];
+        let isDuration = prefix === 'Duration';
 
         for (let i = 0; i < dates.length; i++) {
             data[i] = {};
             data[i].date = dates[i];
-            data[i].value = (prefix === 'Duration' ? parseDuration(parseInt(counts[i])) : counts[i]);
+            data[i].value = (isDuration ? parseDuration(parseInt(counts[i])) : counts[i]);
             data[i].buildId = buildIds[i];
         }
 
@@ -414,33 +417,19 @@
             .style("opacity", 0);
 
         let formatTime = d3.timeFormat("%d-%m-%Y %H:%M:%S");
-        let max = d3.max(data, function(d){return parseInt(d.value)});
-        let y = (prefix === 'Duration' ? d3.scaleTime().range([height, 0]) : d3.scaleLinear().range([height, 0]));
-
-        let x = d3.scaleTime()
-            .rangeRound([0, width]);
-
-        x.domain(d3.extent(data, function(d) { return d.date; }));
+        let max = d3.max(data, function(d){ return parseInt(d.value); });
+        let y = (isDuration ? d3.scaleTime() : d3.scaleLinear()).range([height, 0]);
+        let x = d3.scaleTime().rangeRound([0, width]);
 
         let line = d3.line()
             .x(function(d) { return x(d.date); })
             .y(function(d) { return y(d.value); });
 
-        g.append("g")
-            .attr("transform", "translate(0," + (height) + ")")
-            .call(d3.axisBottom(x));
+        x.domain(d3.extent(data, function(d) { return d.date; }));
+        y.domain(d3.extent(data, function(d) { return d.value; }));
 
-        g.append("g")
-            .call(d3.axisLeft(y));
-        g.append("svg:g")
-            .call(prefix === 'Duration' ? d3.axisLeft(y).tickFormat(d3.utcFormat("%Hh %Mm")) : d3.axisLeft(y))
-            .append("text")
-            .attr("fill", "#000")
-            .attr("transform", "rotate(-90)")
-            .attr("y", 6)
-            .attr("dy", "0.71em")
-            .attr("text-anchor", "end")
-            .text(text);
+        g.append("svg:g").attr("transform", "translate(0," + (height) + ")").call(d3.axisBottom(x));
+        g.append("svg:g").call(isDuration ? d3.axisLeft(y).tickFormat(d3.utcFormat("%Hh %Mm")) : d3.axisLeft(y));
 
         let svg_aline = g.append("line")
             .attr("class", "line")
