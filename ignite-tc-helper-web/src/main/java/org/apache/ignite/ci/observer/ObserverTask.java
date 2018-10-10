@@ -28,7 +28,6 @@ import org.apache.ignite.ci.ITcServerProvider;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.tcmodel.result.Build;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +47,7 @@ public class ObserverTask extends TimerTask {
     @Inject private IJiraIntegration jiraIntegration;
 
     /** Builds. */
-    final Queue<BuildInfo> builds;
+    final Queue<BuildsInfo> builds;
 
     /**
      */
@@ -73,23 +72,22 @@ public class ObserverTask extends TimerTask {
     @MonitoredTask(name = "Build Observer")
     protected String runObserverTask() {
         int checkedBuilds = 0;
-        int notFinihedBuilds = 0;
+        int notFinishedBuilds = 0;
         Set<String> ticketsNotified = new HashSet<>();
 
-        for (BuildInfo info : builds) {
-            checkedBuilds++;
+        for (BuildsInfo info : builds) {
+            checkedBuilds += info.buildsCount();
+
             IAnalyticsEnabledTeamcity teamcity = srvProvider.server(info.srvId, info.prov);
 
-            Build build = teamcity.getBuild(info.build.getId());
-
-            if (!"finished".equals(build.state)) {
-                notFinihedBuilds++;
+            if (!info.isFinished(teamcity)) {
+                notFinishedBuilds += info.buildsCount() - info.finishedBuildsCount();
 
                 continue;
             }
 
-            String jiraRes = jiraIntegration.notifyJira(info.srvId, info.prov, info.build.buildTypeId,
-                info.build.branchName, info.ticket);
+            String jiraRes = jiraIntegration.notifyJira(info.srvId, info.prov, info.buildTypeId,
+                info.branchName, info.ticket);
 
             if (JIRA_COMMENTED.equals(jiraRes)) {
                 ticketsNotified.add(info.ticket);
@@ -98,6 +96,6 @@ public class ObserverTask extends TimerTask {
             }
         }
 
-        return "Checked " + checkedBuilds + " not finished " + notFinihedBuilds + " notified: " + ticketsNotified;
+        return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified;
     }
 }

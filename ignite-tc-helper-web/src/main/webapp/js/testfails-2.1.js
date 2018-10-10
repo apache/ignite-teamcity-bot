@@ -65,7 +65,6 @@ function showChainResultsWithSettings(result, settings) {
         res += showChainCurrentStatusData(server, settings);
     }
 
-
     setTimeout(initMoreInfo, 100);
 
     return res;
@@ -125,11 +124,13 @@ function showChainCurrentStatusData(server, settings) {
     if (suitesFailedList.length !== 0 && isDefinedAndFilled(server.serverId) && isDefinedAndFilled(server.branchName)) {
         mInfo += "Trigger failed " + cntFailed + " builds";
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + server.branchName + "\", false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" +
+            server.branchName + "\", false, false)' ";
         mInfo += " title='trigger builds'>in queue</a> ";
 
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" + server.branchName + "\", true)' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" +
+            server.branchName + "\", true, false)' ";
         mInfo += " title='trigger builds'>on top</a><br>";
     }
 
@@ -171,7 +172,28 @@ function showChainCurrentStatusData(server, settings) {
 
     if (settings.isJiraAvailable()) {
         res += "<button onclick='commentJira(\"" + server.serverId + "\", \"IgniteTests24Java8_RunAll\", \""
-            + server.branchName + "\")'>Comment JIRA</button>";
+            + server.branchName + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
+
+        var blockersList = "";
+
+        for (var i = 0; i < server.suites.length; i++) {
+            var suite = server.suites[i];
+
+            suite = suiteWithCriticalFailuresOnly(suite);
+
+            if (suite != null) {
+                if (blockersList.length !== 0)
+                    blockersList += ",";
+
+                blockersList += suite.suiteId;
+            }
+        }
+
+        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" +
+            server.branchName + "\", false, false)'> Re-run possible blockers</button><br>";
+
+        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" +
+            server.branchName + "\", false, true)'> Re-run possible blockers & Comment JIRA</button><br>";
     }
 
     if (isDefinedAndFilled(server.baseBranchForTc)) {
@@ -321,96 +343,137 @@ function notifyGit() {
     });
 }
 
-function triggerBuild(serverId, suiteId, branchName, top, observe, ticketId) {
+function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId) {
     var queueAtTop = isDefinedAndFilled(top) && top;
+    var observeJira = isDefinedAndFilled(observe) && observe;
+    var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
+    var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
+    branchName = branchNotExists ? null : branchForTc(branchName);
+    ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? jiraTicketNumber(ticketId) : null;
 
-    $.ajax({
-        url: 'rest/build/trigger',
-        data: {
-            "serverId": serverId,
-            "suiteId": suiteId,
-            "branchName": branchName,
-            "top": queueAtTop,
-            "observe": observe,
-            "ticketId": ticketId
-        },
-        success: function(result) {
-            var dialog = $("#triggerDialog");
-
-            dialog.html("Trigger builds at server: " + serverId + "<br>" +
-                " Suite: " + suiteId + "<br>Branch:" + branchName + "<br>Top: " + top +
-                "<br><br> Result: " + result.result);
-            dialog.dialog({
-                modal: true,
-                buttons: {
-                    "Ok": function() {
-                        $(this).dialog("close");
-                    }
-                }
-            });
-
-            loadData(); // should be defined by page
-        },
-        error: showErrInLoadStatus
-    });
-}
-
-function triggerBuilds(serverId, suiteIdList, branchName, top) {
-    var res = "Trigger builds at server: " + serverId + "<br>" +
-        "Branch:" + branchName + "<br>Top: " + top + "<br>";
-
-    var partsOfStr = suiteIdList.split(',');
-
-    for (var i = 0; i < partsOfStr.length; i++) {
-        var suite = partsOfStr[i];
-        res += "Suite ID: " + suite + "<br>";
-    }
     var triggerConfirm = $("#triggerConfirm");
 
-    triggerConfirm.html(res);
-
-    triggerConfirm.dialog({
-        modal: true,
-        buttons: {
-            "Run": function() {
-                $(this).dialog("close");
-
-                var queueAtTop = isDefinedAndFilled(top) && top
-                $.ajax({
-                    url: 'rest/build/triggerBuilds',
-                    data: {
-                        "serverId": serverId,
-                        "suiteIdList": suiteIdList,
-                        "branchName": branchName,
-                        "top": queueAtTop
-                    },
-                    success: function(result) {
-                        var dialog = $("#triggerDialog");
-
-                        dialog.html("Trigger builds at server: " + serverId + "<br>" +
-                            " Suites " + suiteIdList + "<br>Branch:" + branchName + "<br>Top: " + top +
-                            "<br><br> Result: " + result.result);
-                        dialog.dialog({
-                            modal: true,
-                            buttons: {
-                                "Ok": function() {
-                                    $(this).dialog("close");
-                                }
-                            }
-                        });
-                        loadData(); // should be defined by page
-                    },
-                    error: showErrInLoadStatus
-                });
-            },
-            Cancel: function() {
-                $(this).dialog("close");
+    if (suiteIdsNotExists || branchNotExists) {
+        triggerConfirm.html("No " + (suiteIdsNotExists ? "suites" +
+            (branchNotExists ? " and branch" : "") : "branch") + " to run!");
+        triggerConfirm.dialog({
+            modal: true,
+            buttons: {
+                "Ok" : closeDialog
             }
-        }
-    });
+        });
+
+        return;
+    }
+
+    var suites = suiteIdList.split(',');
+    var fewSuites = suites.length > 1;
+
+    var message = "Trigger build" + (fewSuites ? "s" : "") + " at <b>server:</b> " + serverId + "<br>" +
+    "<b>Branch:</b> " + branchName + "<br><b>Top:</b> " + top + "<br>" +
+    "<b>Suite ID" + (fewSuites ? "s" : "") + ":</b> ";
+
+    for (var i = 0; i < suites.length; i++)
+        message += suites[i] + "<br>";
+
+    if (fewSuites) {
+        triggerConfirm.html(message);
+        triggerConfirm.dialog({
+            modal: true,
+            buttons: {
+                "Run" : function () {
+                    $(this).dialog("close");
+                    sendGetRequest();
+                },
+                "Cancel": closeDialog
+            }
+        });
+    } else
+        sendGetRequest();
+
+    function sendGetRequest() {
+        $.ajax({
+            url: 'rest/build/trigger',
+            data: {
+                "serverId": serverId,
+                "suiteIdList": suiteIdList,
+                "branchName": branchName,
+                "top": queueAtTop,
+                "observe": observeJira,
+                "ticketId": ticketId
+            },
+            success: successDialog,
+            error: showErrInLoadStatus
+        });
+    }
+
+    function successDialog(result) {
+        var triggerDialog = $("#triggerDialog");
+
+        triggerDialog.html(message + "<br><b>Result:</b> " + result.result);
+        triggerDialog.dialog({
+            modal: true,
+            buttons: {
+                "Ok": closeDialog
+            }
+        });
+
+        loadData();
+    }
+
+    function closeDialog() {
+        $(this).dialog("close");
+    }
+}
+
+/**
+ * Converts PR number to branch for TeamCity.
+ *
+ * @param pr - Pull Request number.
+ * @returns {String} Branch for TeamCity.
+ */
+function branchForTc(pr) {
+    var regExpr = /(\d*)/i;
+
+    if (regExpr.exec(pr)[0] === pr)
+        return "pull/" + regExpr.exec(pr)[0] + "/head";
+
+    return pr;
+}
+
+/**
+ * Converts JIRA ticket full name to the tickets number.
+ *
+ * @param ticket - JIRA ticket.
+ * @returns {string} JIRA ticket number.
+ */
+function jiraTicketNumber(ticket) {
+    var regExpr = /(ignite-)?(\d*)/i;
+
+    return regExpr.exec(ticket)[2];
 }
 
 function commentJira(serverId, suiteId, branchName, ticketId) {
+    var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
+    branchName = branchNotExists ? null : branchForTc(branchName);
+    ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? jiraTicketNumber(ticketId) : null;
+
+    if (branchNotExists) {
+        var triggerConfirm = $("#triggerConfirm");
+
+        triggerConfirm.html("No branch to run!");
+        triggerConfirm.dialog({
+            modal: true,
+            buttons: {
+                "Ok" : function () {
+                    $(this).dialog("close");
+                }
+            }
+        });
+
+        return;
+    }
+
     $("#notifyJira").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px>" +
         " Please wait. First action for PR run-all data may require significant time.");
 
@@ -540,11 +603,13 @@ function showSuiteData(suite, settings) {
     if (isDefinedAndFilled(suite.serverId) && isDefinedAndFilled(suite.suiteId) && isDefinedAndFilled(suite.branchName)) {
         mInfo += " Trigger build: ";
         mInfo += "<a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuild(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName + "\", false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName
+            + "\", false, false)' ";
         mInfo += " title='trigger build' >queue</a> ";
 
         mInfo += "<a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuild(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName + "\", true)' ";
+        mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName
+            + "\", true, false)' ";
         mInfo += " title='trigger build at top of queue'>top</a><br>";
     }
 
