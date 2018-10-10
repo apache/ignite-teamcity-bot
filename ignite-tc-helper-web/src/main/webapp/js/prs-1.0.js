@@ -9,6 +9,7 @@ function drawTable(srvId, suiteId, element) {
         "                <th>Loading</th>\n" +
         "                <th>...</th>\n" +
         "                <th>.</th>\n" +
+        "                <th>.</th>\n" +
         "            </tr>\n" +
         "            </thead>\n" +
         "        </table>\n");
@@ -83,6 +84,10 @@ function showContributionsTable(result, srvId, suiteId) {
 
             },
             {
+                "data": "jiraIssueId",
+                title: "JIRA Issue"
+            },
+            {
                 "data": "tcBranchName",
                 title: "Resolved Branch Name",
                 "render": function (data, type, row, meta) {
@@ -118,46 +123,108 @@ function showContributionsTable(result, srvId, suiteId) {
     });
 }
 
-function showButtonForPr(srvId, suiteId, prId, branchName) {
-    var showRunRes = "<a id='link_" + prId + "' href='" +
-        prShowHref(srvId, suiteId, branchName) +
-        "'>" +
-        "<button id='show_" + prId + "'>Show " + branchName + " branch report</button></a>";
-
-    return showRunRes;
+function showStageResult(stageNum, prId, passed, failed) {
+    let stageOneStatus = $('#visaStage_' + stageNum + '_' + prId);
+    let html;
+    if (passed) {
+        html = "&#x2714;";
+        stageOneStatus.css('background', '#12AD5E');
+    } else {
+        html = "&#x274C;";
+        if(failed)
+        stageOneStatus.css('background', 'red');
+    }
+    stageOneStatus.html(html);
 }
 
 /* Formatting function for row details - modify as you need */
-function formatContributionDetails(rowData, srvId, suiteId) {
-    // `rowData` is the original data object for the row
+function formatContributionDetails(row, srvId, suiteId) {
+    //  row  is the original data object for the row
+    if(!isDefinedAndFilled(row))
+        return;
 
-    let prId = rowData.prNumber;
+    let prId = row.prNumber;
     var res = "";
-    res+="<div class='formgroup'>";
-    res+="<table cellpadding='5' cellspacing='0' border='0' style='padding-left:50px;'>\n" +
-        "        <tr>\n" +
-        "            <td>PR number:</td>\n" +
-        "            <td>" + rowData.prNumber + "</td>\n" +
+    res += "<div class='formgroup'>";
+    res += "<table cellpadding='5' cellspacing='0' border='0' style='padding-left:50px;'>\n";
+
+    //icon of stage
+    res += "<tr>\n" +
+        "                <th><span class='visaStage' id='visaStage_1_" + prId + "'></span></th>\n" +
+        "                <th><span class='visaStage' id='visaStage_2_" + prId + "'></span></th>\n" +
+        "                <th><span class='visaStage' id='visaStage_3_" + prId + "'></span></th>\n" +
+         "                <th><span class='visaStage' id='visaStage_4_" + prId + "'></span></th>\n" +
+        //todo validityCheck;"                <th><span class='visaStage' id='visaStage_5_" + prId + "'></span></th>\n" +
+        "            </tr>\n";
+
+    //caption of stage
+    res += "<tr>\n" +
+        "                <td>PR with issue name</td>\n" +
+        "                <td>Build is triggered</td>\n" +
+        "                <td>Results ready</td>\n" +
+        "                <td>JIRA comment</td>\n" +
+        //todo  "                <td>Validity check</td>\n" +
+        "            </tr>\n";
+
+    //action for stage
+    res += "        <tr>\n" +
+        "            <td>Edit PR: " + "<a href='" + row.prHtmlUrl + "'>#" + row.prNumber + "</a>" + "</td>\n" +
+        "               <td id='triggerBuildFor" + prId + "'>Loading builds...</td>\n" +
+        "               <td id='showResultFor" + prId + "'>Loading builds...</td>\n" +
+        "               <td id='commentJiraFor" + prId + "'></td>\n" +
         "        </tr>" +
-        "        <tr>\n" +
-        "            <td>Show Run All Results:</td>\n" +
-        "            <td id='branchFor_" + prId + "'>Loading builds...</td>\n" +
-        "        </tr>\n" +
         "    </table>";
-    res+="</div>";
+
+    res += "</div>";
+
+
     $.ajax({
-        url: "rest/visa/findBranchForPr?serverId=" + srvId +
+        url: "rest/visa/contributionStatus?serverId=" + srvId +
             "&suiteId=" + suiteId +
             "&prId=" + prId,
         success:
             function (result) {
-                // console.log("Contribution " + prId + " bransh: " + result + " ");
-                let branchName = result.result;
-                let tdForPr = $('#branchFor_' + prId);
-                if (isDefinedAndFilled(branchName)) {
-                    tdForPr.html(showButtonForPr(srvId, suiteId, prId, branchName));
+                let finishedBranch = result.branchWithFinishedRunAll;
+                let tdForPr = $('#showResultFor' + prId);
+                let buildIsCompleted = isDefinedAndFilled(finishedBranch);
+                let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
+                if (buildIsCompleted) {
+                    tdForPr.html("<a id='link_" + prId + "' href='" + prShowHref(srvId, suiteId, finishedBranch) +  "'>" +
+                        "<button id='show_" + prId + "'>Show " + finishedBranch + " report</button></a>");
+
+                    if (hasJiraIssue)
+                        {
+                            let jiraBtn;
+                            jiraBtn = "<button onclick='" +
+                                "commentJira(" +
+                                "\"" + srvId + "\", " +
+                                "\"" + suiteId + "\", " +
+                                "\"" + finishedBranch + "\", " +
+                                "\"" + row.jiraIssueId + "\"" +
+                                ")'>Comment JIRA</button>";
+                            $('#commentJiraFor' + prId).html(jiraBtn);
+                        }
                 } else {
                     tdForPr.html("No builds, please trigger " + suiteId);
+                }
+
+                let hasQueued = result.queuedBuilds > 0 || result.runningBuilds > 0;
+
+                showStageResult(1, prId, hasJiraIssue, !hasJiraIssue);
+                let noNeedToTrigger = hasQueued || buildIsCompleted;
+                showStageResult(2, prId, noNeedToTrigger, false);
+                showStageResult(3, prId, buildIsCompleted, false);
+
+                if(isDefinedAndFilled(result.resolvedBranch)) {
+                    var trig ="";
+                    trig+= "<button onClick='triggerBuilds(\"" + srvId + "\", \"" + suiteId + "\", \"" +
+                        result.resolvedBranch + "\", false, false)'" ;
+
+                    if(noNeedToTrigger) {
+                        trig+=" class='disabledbtn'";
+                    }
+                    trig+=">Trigger build</button>";
+                    $('#triggerBuildFor' + prId).html(trig);
                 }
             }
     });

@@ -14,22 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity.ignited;
-
-import java.util.List;
-import javax.annotation.Nullable;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+package org.apache.ignite.ci.tcbot.visa;
 
 /**
- *
+ * Status of contribution check details returned from server
  */
-public interface ITeamcityIgnited {
-    /**
-     * @param buildTypeId
-     * @param branchName
-     * @return list of builds in history, includes all statuses: queued, running, etc
-     */
-    public List<BuildRef> getBuildHistory(
-        @Nullable String buildTypeId,
-        @Nullable String branchName);
+@SuppressWarnings("PublicField") public class ContributionCheckStatus {
+    public int queuedBuilds;
+    public int runningBuilds;
+    /** Branch with finished run all results, null if run all is running or in case there was no run alls at all. */
+    public String branchWithFinishedRunAll;
+
+    /** Resolved run all branch: Some branch probably with finished or queued builds in in, or default pull/nnnn/head. */
+    public String resolvedBranch;
 }
