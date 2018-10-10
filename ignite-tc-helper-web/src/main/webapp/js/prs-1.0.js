@@ -152,7 +152,9 @@ function formatContributionDetails(rowData, srvId, suiteId) {
     // `rowData` is the original data object for the row
 
     let prId = rowData.prNumber;
-    let res = "<table cellpadding='5' cellspacing='0' border='0' style='padding-left:50px;'>\n" +
+    var res = "";
+    res+="<div class='formgroup'>";
+    res+="<table cellpadding='5' cellspacing='0' border='0' style='padding-left:50px;'>\n" +
         "        <tr>\n" +
         "            <td>PR number:</td>\n" +
         "            <td>" + rowData.prNumber + "</td>\n" +
@@ -162,6 +164,7 @@ function formatContributionDetails(rowData, srvId, suiteId) {
         "            <td id='branchFor_" + prId + "'>Loading builds...</td>\n" +
         "        </tr>\n" +
         "    </table>";
+    res+="</div>";
     $.ajax({
         url: "rest/visa/findBranchForPr?serverId=" + srvId +
             "&suiteId=" + suiteId +
