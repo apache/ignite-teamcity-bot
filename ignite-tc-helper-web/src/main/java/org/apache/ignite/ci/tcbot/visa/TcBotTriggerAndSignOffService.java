@@ -19,9 +19,11 @@ package org.apache.ignite.ci.tcbot.visa;
 
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
@@ -190,8 +192,7 @@ public class TcBotTriggerAndSignOffService {
     }
 
     public List<ContributionToCheck> getContributionsToCheck(String srvId) {
-        IGitHubConnIgnited gitHubConn = gitHubConnIgnitedProvider.server(srvId);
-        List<PullRequest> requests = gitHubConn.getPullRequests();
+        List<PullRequest> requests = gitHubConnIgnitedProvider.server(srvId).getPullRequests();
         if (requests == null)
             return null;
 
@@ -213,21 +214,23 @@ public class TcBotTriggerAndSignOffService {
         }).collect(Collectors.toList());
     }
 
-    @Nullable public String findBranchForPr(String srvId, ICredentialsProv prov, String suiteId, String prId) {
+    @Nonnull private List<BuildRef> findRunAllsForPr(String srvId, ICredentialsProv prov, String suiteId, String prId) {
         ITeamcityIgnited srv = teamcityIgnitedProvider.server(srvId, prov);
 
         String branchName = branchForTcA(prId);
         List<BuildRef> buildHist = srv.getBuildHistory(suiteId, branchName);
 
         if (!buildHist.isEmpty())
-            return buildHist.get(0).branchName();
+            return buildHist;
 
+
+        //todo multibranch requestst
         buildHist = srv.getBuildHistory(suiteId, branchForTcB(prId));
 
         if (!buildHist.isEmpty())
-            return buildHist.get(0).branchName();
+            return buildHist;
 
-        return null;
+        return Collections.emptyList();
     }
 
     String branchForTcA(String prId) {
@@ -244,10 +247,30 @@ public class TcBotTriggerAndSignOffService {
      * @param suiteId Suite id.
      * @param prId Pr id.
      */
-    public ContributionCheckStatus contributionStatus(String srvId, ICredentialsProv prov, String suiteId, String prId) {
+    public ContributionCheckStatus contributionStatus(String srvId, ICredentialsProv prov, String suiteId,
+        String prId) {
         ContributionCheckStatus status = new ContributionCheckStatus();
 
-        status.finishedRunAllForBranch = findBranchForPr(srvId, prov, suiteId, prId);
+        List<BuildRef> allRunAlls = findRunAllsForPr(srvId, prov, suiteId, prId);
+
+        boolean finishedRunAllPresent = allRunAlls.stream().anyMatch(BuildRef::isFinished);
+
+        status.branchWithFinishedRunAll = finishedRunAllPresent ? allRunAlls.get(0).branchName : null;
+
+        if (status.branchWithFinishedRunAll == null) {
+            if (!allRunAlls.isEmpty())
+                status.resolvedBranch = allRunAlls.get(0).branchName;
+            else
+                status.resolvedBranch = branchForTcA(prId);
+        }
+        else
+            //todo take into account running/queued
+            status.resolvedBranch = status.branchWithFinishedRunAll;
+
+
+        //todo take into accounts not only run alls:
+        status.queuedBuilds = (int)allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isQueued).count();
+        status.runningBuilds = (int)allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isRunning).count();
 
         return status;
     }

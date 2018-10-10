@@ -22,5 +22,9 @@ package org.apache.ignite.ci.tcbot.visa;
 @SuppressWarnings("PublicField") public class ContributionCheckStatus {
     public int queuedBuilds;
     public int runningBuilds;
-    public String finishedRunAllForBranch;
+    /** Branch with finished run all results, null if run all is running or in case there was no run alls at all. */
+    public String branchWithFinishedRunAll;
+
+    /** Resolved run all branch: Some branch probably with finished or queued builds in in, or default pull/nnnn/head. */
+    public String resolvedBranch;
 }

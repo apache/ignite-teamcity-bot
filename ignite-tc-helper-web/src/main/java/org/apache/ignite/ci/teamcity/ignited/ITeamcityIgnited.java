@@ -27,7 +27,7 @@ public interface ITeamcityIgnited {
     /**
      * @param buildTypeId
      * @param branchName
-     * @return list of builds in history
+     * @return list of builds in history, includes all statuses: queued, running, etc
      */
     public List<BuildRef> getBuildHistory(
         @Nullable String buildTypeId,

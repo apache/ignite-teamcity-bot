@@ -73,21 +73,4 @@ public class TcBotVisaService {
 
         return instance.contributionStatus(srvId, prov, suiteId, prId);
     }
-
-    @Deprecated
-    @GET
-    @Path("findBranchForPr")
-    public SimpleResult findBranchForPr(@Nullable @QueryParam("serverId") String srvId,
-        @Nonnull @QueryParam("suiteId") String suiteId,
-        @QueryParam("prId") String prId) {
-        ICredentialsProv prov = ICredentialsProv.get(req);
-        if (!prov.hasAccess(srvId))
-            throw ServiceUnauthorizedException.noCreds(srvId);
-
-
-        TcBotTriggerAndSignOffService instance = CtxListener.getInjector(ctx)
-            .getInstance(TcBotTriggerAndSignOffService.class);
-
-        return new SimpleResult(instance.findBranchForPr(srvId, prov, suiteId, prId));
-    }
 }
