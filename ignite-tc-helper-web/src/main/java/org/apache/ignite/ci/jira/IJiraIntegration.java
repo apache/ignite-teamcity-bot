@@ -31,7 +31,7 @@ public interface IJiraIntegration {
      * @param prov Credentials.
      * @param buildTypeId Suite name.
      * @param branchForTc Branch for TeamCity.
-     * @param ticket JIRA ticket full name.
+     * @param ticket JIRA ticket full name. E.g. IGNITE-5555
      * @return {@code True} if JIRA was notified.
      */
     public String notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,

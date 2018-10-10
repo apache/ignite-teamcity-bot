@@ -288,14 +288,14 @@ public interface ITeamcity extends ITeamcityConn {
     boolean isJiraTokenAvailable();
 
     /**
-     * @param ticket JIRA ticket full name.
+     * @param ticket JIRA ticket full name. E.g 'IGNITE-5555'.
      * @param comment Comment to be placed in the ticket conversation.
      * @return {@code True} if ticket was succesfully commented. Otherwise - {@code false}.
      *
      * @throws IOException If failed to comment JIRA ticket.
      * @throws IllegalStateException If can't find URL to the JIRA.
      */
-    String sendJiraComment(String ticket, String comment) throws IOException;
+    public String sendJiraComment(String ticket, String comment) throws IOException;
 
     /**
      * @param url URL for JIRA integration.

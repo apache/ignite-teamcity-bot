@@ -37,4 +37,7 @@ package org.apache.ignite.ci.tcbot.visa;
 
     /** Branch Name for team city */
     public String tcBranchName;
+
+    /** JIRA issue without server URL, but with project name */
+    public String jiraIssueId;
 }

@@ -82,6 +82,12 @@ public class TriggerBuilds {
         return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
 
+    /**
+     * @param srvId Server id.
+     * @param branchForTc Branch for tc.
+     * @param suiteId Suite id.
+     * @param ticketId Ticket full name with IGNITE- prefix.
+     */
     @GET
     @Path("commentJira")
     public SimpleResult commentJira(
