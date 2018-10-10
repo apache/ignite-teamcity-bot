@@ -83,35 +83,15 @@ function showContributionsTable(result, srvId, suiteId) {
 
             },
             {
-                "data": "prNumber",
-                title: "Existing RunAll",
+                "data": "tcBranchName",
+                title: "Resolved Branch Name",
                 "render": function (data, type, row, meta) {
                     let prId = data;
-                    if (type === 'display') {
+                    if (type === 'display' && isDefinedAndFilled(data)) {
                         data = "<a id='link_" + prId + "' href='" +
-                            prShowHref(srvId, suiteId, "pull%2F" + prId + "%2Fhead") +
+                            prShowHref(srvId, suiteId, data) +
                             "'>" +
-                            "<button id='show_" + prId + "'>Open /" + data + "/head</button></a>";
-
-                        // todo slow service
-                        /*
-                        $.ajax({
-                            url: "rest/visa/findBranchForPr?serverId=" + srvId +
-                                "&suiteId=" + suiteId +
-                                "&prId=" + prId,
-                            success:
-                                function (result) {
-                                    console.log("Contribution " + prId + " bransh: " + result + " ");
-                                    if(isDefinedAndFilled(result.result)) {
-                                        $('#link_' + prId).attr('href', prShowHref(srvId, suiteId, result.result));
-
-                                    } else {
-                                        $('#show_' + prId).attr('class', 'disabledbtn');
-                                    }
-                                }
-                        });
-                        */
-
+                            "<button id='show_" + prId + "'>Open " + data + "head</button></a>";
                     }
 
                     return data;

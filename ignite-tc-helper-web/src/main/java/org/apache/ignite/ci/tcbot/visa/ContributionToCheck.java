@@ -19,10 +19,22 @@ package org.apache.ignite.ci.tcbot.visa;
 /**
  *
  */
-public class ContributionToCheck {
+@SuppressWarnings("PublicField") public class ContributionToCheck {
+    /** Pr number. */
     public Integer prNumber;
+
+    /** Pr title. */
     public String prTitle;
+
+    /** Pr author. */
     public String prAuthor;
+
+    /** Pr author avatar url. */
     public String prAuthorAvatarUrl;
+
+    /** Pr html url. */
     public String prHtmlUrl;
+
+    /** Branch Name for team city */
+    public String tcBranchName;
 }
