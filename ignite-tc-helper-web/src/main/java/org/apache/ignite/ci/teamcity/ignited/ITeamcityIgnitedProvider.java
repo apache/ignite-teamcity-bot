@@ -14,15 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci;
+package org.apache.ignite.ci.teamcity.ignited;
 
 import org.apache.ignite.ci.user.ICredentialsProv;
 
-import javax.annotation.Nullable;
+public interface ITeamcityIgnitedProvider {
 
-/**
- * Provides instance to server with appropriate credentials, may cache instances to avoid odd server instances.
- */
-public interface ITcServerProvider {
-    public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov);
+    ITeamcityIgnited server(String srvId, ICredentialsProv prov);
 }

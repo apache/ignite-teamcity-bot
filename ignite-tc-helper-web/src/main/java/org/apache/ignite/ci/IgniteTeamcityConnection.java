@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -629,7 +630,22 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getJaxbUsingHref("app/rest/latest/users/username:" + username, User.class);
     }
 
+    /**
+     * @param teamcityHttpConn Teamcity http connection.
+     */
     public void setHttpConn(ITeamcityHttpConnection teamcityHttpConn) {
         this.teamcityHttpConn = teamcityHttpConn;
+    }
+
+    /** {@inheritDoc} */
+    @Override public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> outNextPage) {
+        String relPath = "app/rest/latest/builds?locator=defaultFilter:false";
+        String relPathSelected = Strings.isNullOrEmpty(fullUrl) ? relPath : fullUrl;
+        String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPath);
+        Builds builds = sendGetXmlParseJaxb(url, Builds.class);
+
+        outNextPage.set(Strings.emptyToNull(builds.nextHref()));
+
+        return builds.getBuildsNonNull();
     }
 }

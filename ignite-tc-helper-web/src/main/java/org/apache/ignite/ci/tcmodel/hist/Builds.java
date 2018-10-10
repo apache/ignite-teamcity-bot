@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -28,6 +29,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "builds")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Builds {
+    @XmlAttribute
+    private String nextHref;
+
     @XmlElement(name = "build")
     private List<BuildRef> builds;
 
@@ -35,4 +39,7 @@ public class Builds {
         return builds == null ? Collections.emptyList() : builds;
     }
 
+    public String nextHref() {
+        return nextHref;
+    }
 }

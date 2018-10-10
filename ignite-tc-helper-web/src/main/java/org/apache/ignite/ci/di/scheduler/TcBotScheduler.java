@@ -27,11 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.ignite.ci.di.MonitoredTask;
 
 class TcBotScheduler implements IScheduler {
-    /** Initial guard. */
-    private AtomicBoolean initGuard = new AtomicBoolean();
-
     /** Executor service. */
-    private volatile ScheduledExecutorService executorSvc;
+    private volatile ScheduledExecutorService executorSvc = Executors.newScheduledThreadPool(3);
 
     /** Submit named task checker guard. */
     private AtomicBoolean tickGuard = new AtomicBoolean();
@@ -71,12 +68,10 @@ class TcBotScheduler implements IScheduler {
             executorSvc.shutdown();
     }
 
+    /**
+     *
+     */
     private ScheduledExecutorService service() {
-        if (executorSvc == null && initGuard.compareAndSet(false, true))
-            executorSvc = Executors.newScheduledThreadPool(3);
-
-        Preconditions.checkNotNull(executorSvc, "Service should be created");
-
-        return executorSvc;
+        return Preconditions.checkNotNull(executorSvc, "Service should be created");
     }
 }

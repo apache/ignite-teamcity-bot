@@ -24,6 +24,7 @@ import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;

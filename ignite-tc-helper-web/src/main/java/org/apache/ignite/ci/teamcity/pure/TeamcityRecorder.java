@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
 
 /**
  *
@@ -43,14 +44,14 @@ public class TeamcityRecorder {
      * @param url Url.
      */
     public InputStream onGet(InputStream inputStream, String url) throws IOException {
-        if (Boolean.valueOf(System.getProperty("teamcity.bot.recorder.urls"))) {
+        if (Boolean.valueOf(System.getProperty(TcBotSystemProperties.TEAMCITY_BOT_RECORDER_URLS))) {
             urls.add(url);
 
             if (urls.size() > 100)
                 urls.remove();
         }
 
-        if (Boolean.valueOf(System.getProperty("teamcity.bot.recorder"))) {
+        if (Boolean.valueOf(System.getProperty(TcBotSystemProperties.TEAMCITY_BOT_RECORDER))) {
             boolean success = false;
 
             lock.lock();

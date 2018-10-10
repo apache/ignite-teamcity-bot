@@ -86,7 +86,7 @@ import org.xml.sax.SAXParseException;
 import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBranch;
 
 /**
- * Apache Ignite based cache over teamcity responses
+ * Apache Ignite based cache over teamcity responses (REST caches).
  */
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
     /** Logger. */
@@ -331,9 +331,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                     BuildRef buildRef = prevData.get(prevData.size() - MAX_BUILDS_IN_PAST_TO_RELOAD);
 
                     sinceBuildId = buildRef.getId();
-                } else {
+                } else
                     sinceBuildId = null;
-                }
             } else
                 sinceBuildId = null;
 
@@ -341,10 +340,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             try {
                 dataFromRest = realLoad.apply(key, sinceBuildId);
             } catch (Exception e) {
-                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                    System.err.println("Build history not found for build : " + key);
+                Throwable rootCause = Throwables.getRootCause(e);
+                if (rootCause instanceof FileNotFoundException) {
+                    System.err.println("Build history not found for build : " + key + ": " + rootCause.getMessage());
                     dataFromRest = Collections.emptyList();
-                } else if (Throwables.getRootCause(e) instanceof BadRequestException) {
+                } else if (rootCause instanceof BadRequestException) {
                     //probably referenced build not found
                     if (sinceBuildId != null)
                         dataFromRest = realLoad.apply(key, null);
@@ -1200,5 +1200,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public List<Agent> agents(boolean connected, boolean authorized) {
         return teamcity.agents(connected, authorized);
+    }
+
+    /** {@inheritDoc} */
+    @Override public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> nextPage) {
+        return teamcity.getBuildRefs(fullUrl, nextPage);
     }
 }
