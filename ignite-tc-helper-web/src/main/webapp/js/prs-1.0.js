@@ -139,7 +139,9 @@ function showStageResult(stageNum, prId, passed, failed) {
 
 /* Formatting function for row details - modify as you need */
 function formatContributionDetails(row, srvId, suiteId) {
-    // `rowData` is the original data object for the row
+    //  row  is the original data object for the row
+    if(!isDefinedAndFilled(row))
+        return;
 
     let prId = row.prNumber;
     var res = "";
@@ -151,7 +153,7 @@ function formatContributionDetails(row, srvId, suiteId) {
         "                <th><span class='visaStage' id='visaStage_1_" + prId + "'></span></th>\n" +
         "                <th><span class='visaStage' id='visaStage_2_" + prId + "'></span></th>\n" +
         "                <th><span class='visaStage' id='visaStage_3_" + prId + "'></span></th>\n" +
-        //  "                <th><span class='visaStage' id='visaStage_4_" + prId + "'></span></th>\n" +
+         "                <th><span class='visaStage' id='visaStage_4_" + prId + "'></span></th>\n" +
         //todo validityCheck;"                <th><span class='visaStage' id='visaStage_5_" + prId + "'></span></th>\n" +
         "            </tr>\n";
 
@@ -160,7 +162,7 @@ function formatContributionDetails(row, srvId, suiteId) {
         "                <td>PR with issue name</td>\n" +
         "                <td>Build is triggered</td>\n" +
         "                <td>Results ready</td>\n" +
-        // "                <td>JIRA comment</td>\n" +
+        "                <td>JIRA comment</td>\n" +
         //todo  "                <td>Validity check</td>\n" +
         "            </tr>\n";
 
@@ -169,6 +171,7 @@ function formatContributionDetails(row, srvId, suiteId) {
         "            <td>Edit PR: " + "<a href='" + row.prHtmlUrl + "'>#" + row.prNumber + "</a>" + "</td>\n" +
         "               <td id='triggerBuildFor" + prId + "'>Loading builds...</td>\n" +
         "               <td id='showResultFor" + prId + "'>Loading builds...</td>\n" +
+        "               <td id='commentJiraFor" + prId + "'></td>\n" +
         "        </tr>" +
         "    </table>";
 
@@ -184,17 +187,30 @@ function formatContributionDetails(row, srvId, suiteId) {
                 let finishedBranch = result.branchWithFinishedRunAll;
                 let tdForPr = $('#showResultFor' + prId);
                 let buildIsCompleted = isDefinedAndFilled(finishedBranch);
+                let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
                 if (buildIsCompleted) {
                     tdForPr.html("<a id='link_" + prId + "' href='" + prShowHref(srvId, suiteId, finishedBranch) +  "'>" +
                         "<button id='show_" + prId + "'>Show " + finishedBranch + " report</button></a>");
+
+                    if (hasJiraIssue)
+                        {
+                            let jiraBtn;
+                            jiraBtn = "<button onclick='" +
+                                "commentJira(" +
+                                "\"" + srvId + "\", " +
+                                "\"" + suiteId + "\", " +
+                                "\"" + finishedBranch + "\", " +
+                                "\"" + row.jiraIssueId + "\"" +
+                                ")'>Comment JIRA</button>";
+                            $('#commentJiraFor' + prId).html(jiraBtn);
+                        }
                 } else {
                     tdForPr.html("No builds, please trigger " + suiteId);
                 }
 
                 let hasQueued = result.queuedBuilds > 0 || result.runningBuilds > 0;
 
-                let jiraIssue = isDefinedAndFilled(row.jiraIssueId);
-                showStageResult(1, prId, jiraIssue, !jiraIssue);
+                showStageResult(1, prId, hasJiraIssue, !hasJiraIssue);
                 let noNeedToTrigger = hasQueued || buildIsCompleted;
                 showStageResult(2, prId, noNeedToTrigger, false);
                 showStageResult(3, prId, buildIsCompleted, false);

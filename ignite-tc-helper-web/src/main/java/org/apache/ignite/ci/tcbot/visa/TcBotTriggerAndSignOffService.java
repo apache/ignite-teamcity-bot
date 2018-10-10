@@ -32,7 +32,6 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.GitHubUser;
-import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
@@ -64,9 +63,9 @@ public class TcBotTriggerAndSignOffService {
 
     /**
      * @param pr Pull Request.
-     * @return JIRA ticket number.
+     * @return JIRA ticket full name or empty string.
      */
-    @NotNull public static String getTicketId(PullRequest pr) {
+    @NotNull public static String getTicketFullName(PullRequest pr) {
         String ticketId = "";
 
         if (pr.getTitle().startsWith("IGNITE-")) {
@@ -76,11 +75,12 @@ public class TcBotTriggerAndSignOffService {
             while (endIdx < pr.getTitle().length() && Character.isDigit(pr.getTitle().charAt(endIdx)))
                 endIdx++;
 
-            ticketId = pr.getTitle().substring(beginIdx, endIdx);
+            ticketId = "IGNITE-" + pr.getTitle().substring(beginIdx, endIdx);
         }
 
         return ticketId;
     }
+
 
     @NotNull public String triggerBuildsAndObserve(
         @Nullable String srvId,
@@ -102,7 +102,7 @@ public class TcBotTriggerAndSignOffService {
             builds[i] = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top);
 
         if (observe != null && observe)
-            jiraRes = observeJira(srvId, branchForTc, ticketId, teamcity, prov, builds);
+            jiraRes = observeJira(srvId, branchForTc, ticketId, prov, builds);
 
         return jiraRes;
     }
@@ -110,8 +110,7 @@ public class TcBotTriggerAndSignOffService {
     /**
      * @param srvId Server id.
      * @param branchForTc Branch for TeamCity.
-     * @param ticketId JIRA ticket number.
-     * @param teamcity TeamCity.
+     * @param ticketFullName JIRA ticket number.
      * @param prov Credentials.
      * @param builds Builds.
      * @return Message with result.
@@ -119,20 +118,19 @@ public class TcBotTriggerAndSignOffService {
     private String observeJira(
         String srvId,
         String branchForTc,
-        @Nullable String ticketId,
-        ITeamcity teamcity,
+        @Nullable String ticketFullName,
         ICredentialsProv prov,
         Build... builds
     ) {
-        if (F.isEmpty(ticketId)) {
+        if (F.isEmpty(ticketFullName)) {
             try {
                 IGitHubConnection gitHubConnection = gitHubConnectionProvider.server(srvId);
 
                 PullRequest pr = gitHubConnection.getPullRequest(branchForTc);
 
-                ticketId = getTicketId(pr);
+                ticketFullName = getTicketFullName(pr);
 
-                if (ticketId.isEmpty()) {
+                if (ticketFullName.isEmpty()) {
                     return "JIRA ticket will not be notified after the tests are completed - " +
                         "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
                         " Please, rename PR according to the" +
@@ -145,30 +143,40 @@ public class TcBotTriggerAndSignOffService {
                     "exception happened when server tried to get ticket ID from Pull Request [errMsg=" +
                     e.getMessage() + ']';
             }
+        } else {
+            //todo remove once every ticket is with IGnite prefix
+            ticketFullName = ticketFullName.toUpperCase().startsWith("IGNITE-") ? ticketFullName : "IGNITE-" + ticketFullName;
         }
 
-        buildObserverProvider.get().observe(srvId, prov, "ignite-" + ticketId, builds);
+        buildObserverProvider.get().observe(srvId, prov, "ignite-" + ticketFullName, builds);
 
-        return "JIRA ticket IGNITE-" + ticketId + " will be notified after the tests are completed.";
+        return "JIRA ticket IGNITE-" + ticketFullName + " will be notified after the tests are completed.";
     }
 
+    /**
+     * @param srvId Server id.
+     * @param branchForTc Branch for tc.
+     * @param suiteId Suite id.
+     * @param ticketFullName Ticket full name with IGNITE- prefix.
+     * @param prov Prov.
+     */
     @NotNull
     public SimpleResult commentJiraEx(
         @QueryParam("serverId") @Nullable String srvId,
         @QueryParam("branchName") @Nullable String branchForTc,
         @QueryParam("suiteId") @Nullable String suiteId,
-        @QueryParam("ticketId") @Nullable String ticketId,
+        @QueryParam("ticketId") @Nullable String ticketFullName,
         ICredentialsProv prov) {
         String jiraRes = "";
 
-        if (Strings.isNullOrEmpty(ticketId)) {
+        if (Strings.isNullOrEmpty(ticketFullName)) {
             try {
                 IGitHubConnection gitHubConn = gitHubConnectionProvider.server(srvId);
                 PullRequest pr = gitHubConn.getPullRequest(branchForTc);
 
-                ticketId = getTicketId(pr);
+                ticketFullName = getTicketFullName(pr);
 
-                if (ticketId.isEmpty()) {
+                if (ticketFullName.isEmpty()) {
                     jiraRes = "JIRA ticket can't be commented - " +
                         "PR title \"" + pr.getTitle() + "\" should starts with \"IGNITE-XXXX\"." +
                         " Please, rename PR according to the" +
@@ -180,10 +188,13 @@ public class TcBotTriggerAndSignOffService {
             catch (RuntimeException e) {
                 jiraRes = "Exception happened when server tried to get ticket ID from Pull Request - " + e.getMessage();
             }
+        } else {
+            //todo remove once every ticket is with IGnite prefix
+            ticketFullName = ticketFullName.toUpperCase().startsWith("IGNITE-") ? ticketFullName : "IGNITE-" + ticketFullName;
         }
 
-        if (!Strings.isNullOrEmpty(ticketId)) {
-            jiraRes = jiraIntegration.notifyJira(srvId, prov, suiteId, branchForTc, "ignite-" + ticketId);
+        if (!Strings.isNullOrEmpty(ticketFullName)) {
+            jiraRes = jiraIntegration.notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName);
 
             return new SimpleResult(jiraRes);
         }
@@ -208,7 +219,7 @@ public class TcBotTriggerAndSignOffService {
                 check.prAuthorAvatarUrl = user.avatarUrl();
             }
 
-            check.jiraIssueId = Strings.emptyToNull(getTicketId(pr));
+            check.jiraIssueId = Strings.emptyToNull(getTicketFullName(pr));
 
             return check;
         }).collect(Collectors.toList());
@@ -253,7 +264,7 @@ public class TcBotTriggerAndSignOffService {
 
         List<BuildRef> allRunAlls = findRunAllsForPr(srvId, prov, suiteId, prId);
 
-        boolean finishedRunAllPresent = allRunAlls.stream().anyMatch(BuildRef::isFinished);
+        boolean finishedRunAllPresent = allRunAlls.stream().filter(BuildRef::isNotCancelled).anyMatch(BuildRef::isFinished);
 
         status.branchWithFinishedRunAll = finishedRunAllPresent ? allRunAlls.get(0).branchName : null;
 
