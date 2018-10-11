@@ -27,13 +27,14 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Server id. */
     private String srvId;
 
     /** Pure HTTP Connection API. */
-    private ITeamcity conn;
+    private ITeamcityConn conn;
 
 
     /** Scheduler. */
@@ -45,7 +46,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     private long srvIdMaskHigh;
 
 
-    public void init(String srvId, ITeamcity conn) {
+    public void init(String srvId, ITeamcityConn conn) {
         this.srvId = srvId;
         this.conn = conn;
 
@@ -53,6 +54,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         buildRefDao.init(); //todo init somehow in auto
     }
 
+    /** {@inheritDoc} */
+    @Override public String host() {
+        return conn.host();
+    }
 
     /** {@inheritDoc} */
     @AutoProfiling

@@ -16,6 +16,9 @@
  */
 package org.apache.ignite.ci.tcbot.visa;
 
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  * Status of contribution check details returned from server
  */
@@ -30,4 +33,6 @@ package org.apache.ignite.ci.tcbot.visa;
 
     /** Observations status: Filled if build observer has something sheduled related to {@link #resolvedBranch} */
     public String observationsStatus;
+
+    public List<String> webLinksQueuedRunAlls = new LinkedList<>();
 }

@@ -26,6 +26,11 @@ import org.apache.ignite.ci.tcmodel.result.Build;
  */
 public interface ITeamcityIgnited {
     /**
+     * @return Normalized Host address, ends with '/'.
+     */
+    public String host();
+
+    /**
      * @param buildTypeId Build type identifier.
      * @param branchName Branch name.
      * @return list of builds in history, includes all statuses: queued, running, etc

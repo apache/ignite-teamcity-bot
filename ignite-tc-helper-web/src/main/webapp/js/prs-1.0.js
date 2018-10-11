@@ -93,7 +93,7 @@ function showContributionsTable(result, srvId, suiteId) {
                 "render": function (data, type, row, meta) {
                     let prId = data;
                     if (type === 'display' && isDefinedAndFilled(data)) {
-                        data = "<a id='link_" + prId + "' href='" +
+                        data = "<a id='showReportlink_" + prId + "' href='" +
                             prShowHref(srvId, suiteId, data) +
                             "'>" +
                             "<button id='show_" + prId + "'>Open " + data + "head</button></a>";
@@ -151,8 +151,6 @@ function formatContributionDetails(row, srvId, suiteId) {
     if(!isDefinedAndFilled(row))
         return;
 
-    console.log("format " + row + ": " + srvId);
-
     let prId = row.prNumber;
     var res = "";
     res += "<div class='formgroup'>";
@@ -178,10 +176,10 @@ function formatContributionDetails(row, srvId, suiteId) {
 
     //action for stage
     res += "        <tr>\n" +
-        "            <td>Edit PR: " + "<a href='" + row.prHtmlUrl + "'>#" + row.prNumber + "</a>" + "</td>\n" +
-        "               <td id='triggerBuildFor" + prId + "'>Loading builds...</td>\n" +
-        "               <td id='showResultFor" + prId + "'>Loading builds...</td>\n" +
-        "               <td id='commentJiraFor" + prId + "'></td>\n" +
+        "            <td></td>\n" +
+        "            <td id='triggerBuildFor" + prId + "'>Loading builds...</td>\n" +
+        "            <td id='showResultFor" + prId + "'>Loading builds...</td>\n" +
+        "            <td id='commentJiraFor" + prId + "'></td>\n" +
         "        </tr>";
 
     //action row 2
@@ -189,6 +187,14 @@ function formatContributionDetails(row, srvId, suiteId) {
         "            <td id='testDraw'></td>\n" +
         "            <td id='triggerAndObserveBuildFor" + prId + "' colspan='3' align='center'>d</td>\n" +
         "           </tr>";
+
+    //References
+    res += "        <tr>\n" +
+        "            <td>Edit PR: " + "<a href='" + row.prHtmlUrl + "'>#" + row.prNumber + "</a>" + "</td>\n" +
+        "            <td id='viewQueuedBuildsFor" + prId + "'></td>\n" +
+        "            <td></td>\n" +
+        "            <td></td>\n" +
+        "        </tr>";
 
     res += "    </table>";
 
@@ -248,8 +254,16 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
         "\"" + srvId + "\", " +
         "\"" + suiteId + "\", " +
         ");";
+
+    var linksToRunningBuilds = "";
+    for (let i = 0; i < status.webLinksQueuedRunAlls.length; i++) {
+        const l = status.webLinksQueuedRunAlls[i];
+        linksToRunningBuilds += "<a href=" + l + ">View queued at TC</a> "
+    }
+    $('#viewQueuedBuildsFor' + prId).html(linksToRunningBuilds);
+
     if (buildIsCompleted) {
-        tdForPr.html("<a id='link_" + prId + "' href='" + prShowHref(srvId, suiteId, finishedBranch) + "'>" +
+        tdForPr.html("<a id='showReportlink_" + prId + "' href='" + prShowHref(srvId, suiteId, finishedBranch) + "'>" +
             "<button id='show_" + prId + "'>Show " + finishedBranch + " report</button></a>");
 
         if (hasJiraIssue) {

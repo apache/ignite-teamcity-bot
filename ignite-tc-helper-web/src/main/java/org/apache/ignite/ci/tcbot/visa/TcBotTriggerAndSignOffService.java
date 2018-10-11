@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
@@ -231,18 +232,17 @@ public class TcBotTriggerAndSignOffService {
         }).collect(Collectors.toList());
     }
 
-    @Nonnull private List<BuildRef> findRunAllsForPr(String srvId, ICredentialsProv prov, String suiteId, String prId) {
-        ITeamcityIgnited srv = teamcityIgnitedProvider.server(srvId, prov);
+    @Nonnull private List<BuildRef> findRunAllsForPr(String suiteId, String prId, ITeamcityIgnited server) {
 
         String branchName = branchForTcA(prId);
-        List<BuildRef> buildHist = srv.getBuildHistory(suiteId, branchName);
+        List<BuildRef> buildHist = server.getBuildHistory(suiteId, branchName);
 
         if (!buildHist.isEmpty())
             return buildHist;
 
 
         //todo multibranch requestst
-        buildHist = srv.getBuildHistory(suiteId, branchForTcB(prId));
+        buildHist = server.getBuildHistory(suiteId, branchForTcB(prId));
 
         if (!buildHist.isEmpty())
             return buildHist;
@@ -268,7 +268,9 @@ public class TcBotTriggerAndSignOffService {
         String prId) {
         ContributionCheckStatus status = new ContributionCheckStatus();
 
-        List<BuildRef> allRunAlls = findRunAllsForPr(srvId, prov, suiteId, prId);
+        ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(srvId, prov);
+
+        List<BuildRef> allRunAlls = findRunAllsForPr(suiteId, prId, teamcity);
 
         boolean finishedRunAllPresent = allRunAlls.stream().filter(BuildRef::isNotCancelled).anyMatch(BuildRef::isFinished);
 
@@ -288,10 +290,23 @@ public class TcBotTriggerAndSignOffService {
 
         status.observationsStatus  = Strings.emptyToNull(observationsStatus);
 
-        //todo take into accounts not only run alls:
-        status.queuedBuilds = (int)allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isQueued).count();
-        status.runningBuilds = (int)allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isRunning).count();
+        List<BuildRef> queuedRunAlls = allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isQueued).collect(Collectors.toList());
+        List<BuildRef> runninRunAlls = allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isRunning).collect(Collectors.toList());
+        status.queuedBuilds = queuedRunAlls.size();//todo take into accounts not only run alls:
+        status.runningBuilds = runninRunAlls.size();
+
+        status.webLinksQueuedRunAlls = Stream.concat(queuedRunAlls.stream(), runninRunAlls.stream())
+            .map(ref -> getWebLinkToQueued(teamcity, ref)).collect(Collectors.toList());
 
         return status;
+    }
+
+    //later may move it to BuildRef webUrl
+    /**
+     * @param teamcity Teamcity.
+     * @param ref Reference.
+     */
+    @NotNull public String getWebLinkToQueued(ITeamcityIgnited teamcity, BuildRef ref) {
+        return teamcity.host() + "viewQueued.html?itemId=" + ref.getId();
     }
 }

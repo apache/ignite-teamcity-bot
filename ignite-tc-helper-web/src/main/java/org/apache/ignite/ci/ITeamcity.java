@@ -147,11 +147,6 @@ public interface ITeamcity extends ITeamcityConn {
     }
 
     /**
-     * @return Normalized Host address, ends with '/'.
-     */
-    public String host();
-
-    /**
      * @param build
      * @return
      */
