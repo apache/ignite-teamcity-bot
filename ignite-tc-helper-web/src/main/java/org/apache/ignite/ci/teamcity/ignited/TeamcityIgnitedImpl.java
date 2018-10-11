@@ -71,10 +71,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     private void actualizeRecentBuilds() {
-        runAtualizeBuilds(srvId, false);
+        runAсtualizeBuilds(srvId, false);
 
         // schedule full resync later
-        scheduler.invokeLater(this::sheduleResync, 20, TimeUnit.SECONDS);
+        scheduler.invokeLater(this::sheduleResync, 60, TimeUnit.SECONDS);
     }
 
     /**
@@ -82,14 +82,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     private void sheduleResync() {
         scheduler.sheduleNamed(ITeamcityIgnited.class.getSimpleName() + ".fullReindex",
-            this::fullReindex, 60, TimeUnit.MINUTES);
+            this::fullReindex, 120, TimeUnit.MINUTES);
     }
 
     /**
      *
      */
     private void fullReindex() {
-        runAtualizeBuilds(srvId, true);
+        runAсtualizeBuilds(srvId, true);
     }
 
     /**
@@ -98,23 +98,24 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     @MonitoredTask(name = "Actualize BuildRefs, full resync", nameExtArgIndex = 1)
     @AutoProfiling
-    protected String runAtualizeBuilds(String srvId, boolean fullReindex) {
+    protected String runAсtualizeBuilds(String srvId, boolean fullReindex) {
         AtomicReference<String> outLinkNext = new AtomicReference<>();
-        int totalPages = 0;
-        List<BuildRef> tcData = conn.getBuildRefs(null, outLinkNext);
-        int cntSaved = buildRefDao.saveChunk(srvIdMaskHigh, tcData);
-        int totalChecked = tcData.size();
-        totalPages++;
+        List<BuildRef> tcDataFirstPage = conn.getBuildRefs(null, outLinkNext);
+
+        int cntSaved = buildRefDao.saveChunk(srvIdMaskHigh, tcDataFirstPage);
+        int totalChecked = tcDataFirstPage.size();
+
         while (outLinkNext.get() != null) {
             String nextPageUrl = outLinkNext.get();
             outLinkNext.set(null);
-            tcData = conn.getBuildRefs(nextPageUrl, outLinkNext);
-            cntSaved += buildRefDao.saveChunk(srvIdMaskHigh, tcData);
-            totalChecked += tcData.size();
-            totalPages++;
+            List<BuildRef> tcDataNextPage = conn.getBuildRefs(nextPageUrl, outLinkNext);
+            int savedCurChunk = buildRefDao.saveChunk(srvIdMaskHigh, tcDataNextPage);
 
-            if (!fullReindex && totalPages >= 7)
-                break; // 7 pages, 700 builds
+            cntSaved += savedCurChunk;
+            totalChecked += tcDataNextPage.size();
+
+            if (!fullReindex && savedCurChunk == 0)
+                break; // There are no modification at current page, hopefully no modifications at all
         }
 
         return "Entries saved " + cntSaved + " Builds checked " + totalChecked;
