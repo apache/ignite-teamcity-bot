@@ -213,7 +213,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
     let buildIsCompleted = isDefinedAndFilled(finishedBranch);
     let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
-    let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " ";
+    let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
     if (buildIsCompleted) {
         tdForPr.html("<a id='link_" + prId + "' href='" + prShowHref(srvId, suiteId, finishedBranch) + "'>" +
             "<button id='show_" + prId + "'>Show " + finishedBranch + " report</button></a>");
@@ -228,7 +228,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
                 ")'";
 
             if (hasQueued) {
-                jiraBtn += " class='disabledbtn' title='Has queued builds'";
+                jiraBtn += " class='disabledbtn' title='" + queuedStatus + "'";
             }
             jiraBtn += ">Comment JIRA</button>";
 

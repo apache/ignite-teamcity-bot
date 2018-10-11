@@ -25,8 +25,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import javax.inject.Inject;
 import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.conf.BranchTracked;
@@ -61,6 +64,12 @@ public class CheckQueueJob implements Runnable {
 
     /** */
     private ITcServerProvider tcHelper;
+
+    /** */
+    @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
+
+    /** */
+    @Inject private ITcServerProvider tcPureProv;
 
     /** */
     private final Map<ChainAtServerTracked, Long> startTimes = new HashMap<>();
@@ -148,7 +157,7 @@ public class CheckQueueJob implements Runnable {
     @MonitoredTask(name = "Check Server Queue", nameExtArgIndex = 0)
     protected String checkQueue(String srvId,
         List<ChainAtServerTracked> chains) throws ExecutionException, InterruptedException {
-        ITeamcity teamcity = tcHelper.server(srvId, creds);
+        ITeamcity teamcity = tcPureProv.server(srvId, creds);
 
         List<Agent> agents = teamcity.agents(true, true);
 
@@ -228,7 +237,9 @@ public class CheckQueueJob implements Runnable {
 
             startTimes.put(chain, curr);
 
-            teamcity.triggerBuild(chain.suiteId, chain.branchForRest, true, false);
+            ITeamcityIgnited srv = tcIgnitedProv.server(srvId, creds);
+
+            srv.triggerBuild(chain.suiteId, chain.branchForRest, true, false);
 
             res.append(chain.branchForRest).append(" ").append(chain.suiteId).append(" triggered; ");
         }

@@ -37,6 +37,9 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ *
+ */
 class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     /** Cache name*/
     public static final String GIT_HUB_PR = "gitHubPr";
@@ -126,11 +129,12 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         while (outLinkNext.get() != null) {
             String nextPageUrl = outLinkNext.get();
             ghData = conn.getPullRequests(nextPageUrl, outLinkNext);
-            cntSaved += saveChunk(ghData);
+            int savedThisChunk = saveChunk(ghData);
+            cntSaved += savedThisChunk;
             totalChecked += ghData.size();
 
-            if(!fullReindex)
-                break; // 2 pages
+            if (!fullReindex && savedThisChunk == 0)
+                break;
         }
 
         return "Entries saved " + cntSaved + " PRs checked " + totalChecked;

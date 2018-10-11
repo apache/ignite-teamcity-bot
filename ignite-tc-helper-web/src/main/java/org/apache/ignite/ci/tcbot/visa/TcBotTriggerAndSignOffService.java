@@ -29,8 +29,6 @@ import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
@@ -52,10 +50,13 @@ public class TcBotTriggerAndSignOffService {
 
     @Inject Provider<BuildObserver> buildObserverProvider;
 
+    /** Git hub pure http connection provider. */
     @Inject IGitHubConnectionProvider gitHubConnectionProvider;
+
+    /** Git hub connection ignited provider. */
     @Inject IGitHubConnIgnitedProvider gitHubConnIgnitedProvider;
 
-    @Inject ITcServerProvider tcServerProvider;
+    @Inject ITeamcityIgnitedProvider tcIgnitedProv;
 
     @Inject IJiraIntegration jiraIntegration;
 
@@ -87,14 +88,14 @@ public class TcBotTriggerAndSignOffService {
     @NotNull public String triggerBuildsAndObserve(
         @Nullable String srvId,
         @Nullable String branchForTc,
-        @Nullable String suiteIdList,
+        @Nonnull String suiteIdList,
         @Nullable Boolean top,
         @Nullable Boolean observe,
         @Nullable String ticketId,
         ICredentialsProv prov) {
         String jiraRes = "";
 
-        final ITeamcity teamcity = tcServerProvider.server(srvId, prov);
+        final ITeamcityIgnited teamcity = tcIgnitedProv.server(srvId, prov);
 
         String[] suiteIds = Objects.requireNonNull(suiteIdList).split(",");
 
@@ -126,9 +127,9 @@ public class TcBotTriggerAndSignOffService {
     ) {
         if (F.isEmpty(ticketFullName)) {
             try {
-                IGitHubConnection gitHubConnection = gitHubConnectionProvider.server(srvId);
+                IGitHubConnection gitHubConn = gitHubConnectionProvider.server(srvId);
 
-                PullRequest pr = gitHubConnection.getPullRequest(branchForTc);
+                PullRequest pr = gitHubConn.getPullRequest(branchForTc);
 
                 ticketFullName = getTicketFullName(pr);
 
@@ -204,6 +205,9 @@ public class TcBotTriggerAndSignOffService {
             return new SimpleResult("JIRA wasn't commented." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
 
+    /**
+     * @param srvId Server id.
+     */
     public List<ContributionToCheck> getContributionsToCheck(String srvId) {
         List<PullRequest> requests = gitHubConnIgnitedProvider.server(srvId).getPullRequests();
         if (requests == null)
