@@ -160,7 +160,7 @@ public class BuildsHistory {
                 key.setServerId(srvId);
                 key.setProjectId(projectId);
                 key.setTestName(testOccurrence.getName());
-                key.setSuiteId(build.buildTypeId);
+                key.setSuiteId(configurationName);
 
                 teamcity.getTestRef(key);
             }

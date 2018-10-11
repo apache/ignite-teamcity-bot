@@ -813,7 +813,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override public ProblemOccurrences getProblems(BuildRef buildRef) {
         return loadIfAbsent(
             buildProblemsCache(),
-            "app/rest/latest/problemOccurrences?locator=build:(id:" + buildRef.getId() + ")",
+            "/app/rest/latest/problemOccurrences?locator=build:(id:" + buildRef.getId() + ")",
             k -> {
                 ProblemOccurrences problems = teamcity.getProblems(buildRef);
 
@@ -872,7 +872,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public TestOccurrences getFailedUnmutedTestsNames(String href, int count, String normalizedBranch) {
-        return getTests(href + ",muted:false,status:FAILURE,count:" + count + "&fields=testOccurrence(name)", normalizedBranch);
+        return getTests(href + ",muted:false,status:FAILURE,count:" + count + "&fields=testOccurrence(id,name)", normalizedBranch);
     }
 
     /** {@inheritDoc} */

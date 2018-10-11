@@ -17,7 +17,7 @@
 <body>
 <br>
 <br>
-<table style="table-layout: fixed; width: 100%" class="compare">
+<table style="table-layout: fixed" class="compare">
     <tr>
         <th class="section"  width="15%">DATE INTERVAL</th>
         <th width="5%"></th>
@@ -148,7 +148,7 @@
         <td class="t2 data2" id="RunsCount2"></td>
     </tr>
 </table><br>
-<table style="table-layout: fixed; width: 100%" id="testsTable" class="testsTable">
+<table style="table-layout: fixed" id="testsTable" class="testsTable">
     <tbody>
     <tr>
         <th class="failedTestsHeader" width="15%">FAILED TESTS</th>
@@ -163,6 +163,16 @@
         </tr>
     </tbody>
 </table>
+
+<div id="myModal" class="modal">
+
+    <!-- Modal content -->
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <p id="tooltipText"></p>
+    </div>
+
+</div>
 
 <div id="version"></div>
 <script>
@@ -182,6 +192,11 @@
 
     let dateIntervals = {1: {start: moment(oneWeekAgo), end: moment()},
         2: {start: moment(twoWeekAgo), end: moment(oneWeekAgo)}};
+
+    function showTooltip(message) {
+        $("#tooltipText").html(message);
+        modal.show();
+    }
 
     function toggleTests() {
         testsTrigger = !testsTrigger;
@@ -374,7 +389,7 @@
         );
 
         if (res == null) {
-            alert("No available data for that test. Try later.");
+            showTooltip('Link to TC test history is not ready yet. Try later.');
 
             return;
         }
@@ -728,6 +743,18 @@
             }
         });
     }
+
+    // Get the modal
+    var modal = $('#myModal');
+
+    // Get the <span> element that closes the modal
+    var span = $(".close");
+
+    // When the user clicks on <span> (x), close the modal
+    span.click(function() {
+        modal.hide();
+    })
+
 </script>
 <div style="visibility:hidden"><div id="modalDialog" title="Information"></div></div>
 </body>
