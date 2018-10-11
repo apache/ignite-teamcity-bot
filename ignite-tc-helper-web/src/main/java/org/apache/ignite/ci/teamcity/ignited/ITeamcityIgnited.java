@@ -19,17 +19,33 @@ package org.apache.ignite.ci.teamcity.ignited;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.Build;
 
 /**
  *
  */
 public interface ITeamcityIgnited {
     /**
-     * @param buildTypeId
-     * @param branchName
+     * @return Normalized Host address, ends with '/'.
+     */
+    public String host();
+
+    /**
+     * @param buildTypeId Build type identifier.
+     * @param branchName Branch name.
      * @return list of builds in history, includes all statuses: queued, running, etc
      */
     public List<BuildRef> getBuildHistory(
         @Nullable String buildTypeId,
         @Nullable String branchName);
+
+    /**
+     * Trigger build. Enforces TC Bot to load all buidls related to this triggered one.
+     *
+     * @param buildTypeId Build type identifier.
+     * @param branchName Branch name.
+     * @param cleanRebuild Rebuild all dependencies.
+     * @param queueAtTop Put at the top of the build queue.
+     */
+    public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop);
 }

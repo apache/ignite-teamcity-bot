@@ -26,13 +26,15 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Server id. */
     private String srvId;
 
     /** Pure HTTP Connection API. */
-    private ITeamcity conn;
+    private ITeamcityConn conn;
 
 
     /** Scheduler. */
@@ -44,7 +46,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     private long srvIdMaskHigh;
 
 
-    public void init(String srvId, ITeamcity conn) {
+    public void init(String srvId, ITeamcityConn conn) {
         this.srvId = srvId;
         this.conn = conn;
 
@@ -52,6 +54,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         buildRefDao.init(); //todo init somehow in auto
     }
 
+    /** {@inheritDoc} */
+    @Override public String host() {
+        return conn.host();
+    }
 
     /** {@inheritDoc} */
     @AutoProfiling
@@ -70,11 +76,24 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return buildRefDao.findBuildsInHistory(srvIdMaskHigh, buildTypeId, bracnhNameQry);
     }
 
+    /** {@inheritDoc} */
+    @Override public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
+        Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
+
+        //todo may add additional parameter: load builds into DB in sync/async fashion
+        runAсtualizeBuilds(srvId, false, build.getId());
+
+        return build;
+    }
+
+    /**
+     *
+     */
     private void actualizeRecentBuilds() {
-        runAtualizeBuilds(srvId, false);
+        runAсtualizeBuilds(srvId, false, null);
 
         // schedule full resync later
-        scheduler.invokeLater(this::sheduleResync, 20, TimeUnit.SECONDS);
+        scheduler.invokeLater(this::sheduleResync, 60, TimeUnit.SECONDS);
     }
 
     /**
@@ -82,39 +101,50 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     private void sheduleResync() {
         scheduler.sheduleNamed(ITeamcityIgnited.class.getSimpleName() + ".fullReindex",
-            this::fullReindex, 60, TimeUnit.MINUTES);
+            this::fullReindex, 120, TimeUnit.MINUTES);
     }
 
     /**
      *
      */
     private void fullReindex() {
-        runAtualizeBuilds(srvId, true);
+        runAсtualizeBuilds(srvId, true, null);
     }
 
     /**
      * @param srvId Server id.
-     * @param fullReindex Reindex all open PRs
+     * @param fullReindex Reindex all builds from TC history. Ignored if particular ID provided.
+     * @param buildIdCanFinish Build ID can be used as end of syncing.
      */
     @MonitoredTask(name = "Actualize BuildRefs, full resync", nameExtArgIndex = 1)
     @AutoProfiling
-    protected String runAtualizeBuilds(String srvId, boolean fullReindex) {
+    protected String runAсtualizeBuilds(String srvId, boolean fullReindex,
+        @Nullable Integer buildIdCanFinish) {
         AtomicReference<String> outLinkNext = new AtomicReference<>();
-        int totalPages = 0;
-        List<BuildRef> tcData = conn.getBuildRefs(null, outLinkNext);
-        int cntSaved = buildRefDao.saveChunk(srvIdMaskHigh, tcData);
-        int totalChecked = tcData.size();
-        totalPages++;
+        List<BuildRef> tcDataFirstPage = conn.getBuildRefs(null, outLinkNext);
+
+        int cntSaved = buildRefDao.saveChunk(srvIdMaskHigh, tcDataFirstPage);
+        int totalChecked = tcDataFirstPage.size();
+
+        boolean noRequiredBuild = buildIdCanFinish == null;
+        boolean requiredBuildFound = false;
+
         while (outLinkNext.get() != null) {
             String nextPageUrl = outLinkNext.get();
             outLinkNext.set(null);
-            tcData = conn.getBuildRefs(nextPageUrl, outLinkNext);
-            cntSaved += buildRefDao.saveChunk(srvIdMaskHigh, tcData);
-            totalChecked += tcData.size();
-            totalPages++;
+            List<BuildRef> tcDataNextPage = conn.getBuildRefs(nextPageUrl, outLinkNext);
+            int savedCurChunk = buildRefDao.saveChunk(srvIdMaskHigh, tcDataNextPage);
 
-            if (!fullReindex && totalPages >= 7)
-                break; // 7 pages, 700 builds
+            cntSaved += savedCurChunk;
+            totalChecked += tcDataNextPage.size();
+
+            if (buildIdCanFinish != null) {
+                if (tcDataNextPage.stream().map(BuildRef::getId).anyMatch(buildIdCanFinish::equals))
+                    requiredBuildFound = true; // Syncing till specific build ID.
+            }
+
+            if (savedCurChunk == 0 && ((requiredBuildFound) || (noRequiredBuild && !fullReindex)))
+                break; // There are no modification at current page, hopefully no modifications at all
         }
 
         return "Entries saved " + cntSaved + " Builds checked " + totalChecked;

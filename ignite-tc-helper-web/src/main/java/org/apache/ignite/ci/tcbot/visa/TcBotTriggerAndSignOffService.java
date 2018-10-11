@@ -23,14 +23,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
@@ -52,14 +51,19 @@ public class TcBotTriggerAndSignOffService {
 
     @Inject Provider<BuildObserver> buildObserverProvider;
 
+    /** Git hub pure http connection provider. */
     @Inject IGitHubConnectionProvider gitHubConnectionProvider;
+
+    /** Git hub connection ignited provider. */
     @Inject IGitHubConnIgnitedProvider gitHubConnIgnitedProvider;
 
-    @Inject ITcServerProvider tcServerProvider;
+    @Inject ITeamcityIgnitedProvider tcIgnitedProv;
 
     @Inject IJiraIntegration jiraIntegration;
 
     @Inject ITeamcityIgnitedProvider teamcityIgnitedProvider;
+
+    @Inject Provider<BuildObserver> observer;
 
     /**
      * @param pr Pull Request.
@@ -85,14 +89,14 @@ public class TcBotTriggerAndSignOffService {
     @NotNull public String triggerBuildsAndObserve(
         @Nullable String srvId,
         @Nullable String branchForTc,
-        @Nullable String suiteIdList,
+        @Nonnull String suiteIdList,
         @Nullable Boolean top,
         @Nullable Boolean observe,
         @Nullable String ticketId,
         ICredentialsProv prov) {
         String jiraRes = "";
 
-        final ITeamcity teamcity = tcServerProvider.server(srvId, prov);
+        final ITeamcityIgnited teamcity = tcIgnitedProv.server(srvId, prov);
 
         String[] suiteIds = Objects.requireNonNull(suiteIdList).split(",");
 
@@ -124,9 +128,9 @@ public class TcBotTriggerAndSignOffService {
     ) {
         if (F.isEmpty(ticketFullName)) {
             try {
-                IGitHubConnection gitHubConnection = gitHubConnectionProvider.server(srvId);
+                IGitHubConnection gitHubConn = gitHubConnectionProvider.server(srvId);
 
-                PullRequest pr = gitHubConnection.getPullRequest(branchForTc);
+                PullRequest pr = gitHubConn.getPullRequest(branchForTc);
 
                 ticketFullName = getTicketFullName(pr);
 
@@ -148,7 +152,7 @@ public class TcBotTriggerAndSignOffService {
             ticketFullName = ticketFullName.toUpperCase().startsWith("IGNITE-") ? ticketFullName : "IGNITE-" + ticketFullName;
         }
 
-        buildObserverProvider.get().observe(srvId, prov, "ignite-" + ticketFullName, builds);
+        buildObserverProvider.get().observe(srvId, prov, ticketFullName, builds);
 
         return "JIRA ticket IGNITE-" + ticketFullName + " will be notified after the tests are completed.";
     }
@@ -202,6 +206,9 @@ public class TcBotTriggerAndSignOffService {
             return new SimpleResult("JIRA wasn't commented." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
 
+    /**
+     * @param srvId Server id.
+     */
     public List<ContributionToCheck> getContributionsToCheck(String srvId) {
         List<PullRequest> requests = gitHubConnIgnitedProvider.server(srvId).getPullRequests();
         if (requests == null)
@@ -225,18 +232,17 @@ public class TcBotTriggerAndSignOffService {
         }).collect(Collectors.toList());
     }
 
-    @Nonnull private List<BuildRef> findRunAllsForPr(String srvId, ICredentialsProv prov, String suiteId, String prId) {
-        ITeamcityIgnited srv = teamcityIgnitedProvider.server(srvId, prov);
+    @Nonnull private List<BuildRef> findRunAllsForPr(String suiteId, String prId, ITeamcityIgnited server) {
 
         String branchName = branchForTcA(prId);
-        List<BuildRef> buildHist = srv.getBuildHistory(suiteId, branchName);
+        List<BuildRef> buildHist = server.getBuildHistory(suiteId, branchName);
 
         if (!buildHist.isEmpty())
             return buildHist;
 
 
         //todo multibranch requestst
-        buildHist = srv.getBuildHistory(suiteId, branchForTcB(prId));
+        buildHist = server.getBuildHistory(suiteId, branchForTcB(prId));
 
         if (!buildHist.isEmpty())
             return buildHist;
@@ -262,7 +268,9 @@ public class TcBotTriggerAndSignOffService {
         String prId) {
         ContributionCheckStatus status = new ContributionCheckStatus();
 
-        List<BuildRef> allRunAlls = findRunAllsForPr(srvId, prov, suiteId, prId);
+        ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(srvId, prov);
+
+        List<BuildRef> allRunAlls = findRunAllsForPr(suiteId, prId, teamcity);
 
         boolean finishedRunAllPresent = allRunAlls.stream().filter(BuildRef::isNotCancelled).anyMatch(BuildRef::isFinished);
 
@@ -278,11 +286,27 @@ public class TcBotTriggerAndSignOffService {
             //todo take into account running/queued
             status.resolvedBranch = status.branchWithFinishedRunAll;
 
+        String observationsStatus = observer.get().getObservationStatus(srvId, status.resolvedBranch);
 
-        //todo take into accounts not only run alls:
-        status.queuedBuilds = (int)allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isQueued).count();
-        status.runningBuilds = (int)allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isRunning).count();
+        status.observationsStatus  = Strings.emptyToNull(observationsStatus);
+
+        List<BuildRef> queuedRunAlls = allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isQueued).collect(Collectors.toList());
+        List<BuildRef> runninRunAlls = allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isRunning).collect(Collectors.toList());
+        status.queuedBuilds = queuedRunAlls.size();//todo take into accounts not only run alls:
+        status.runningBuilds = runninRunAlls.size();
+
+        status.webLinksQueuedRunAlls = Stream.concat(queuedRunAlls.stream(), runninRunAlls.stream())
+            .map(ref -> getWebLinkToQueued(teamcity, ref)).collect(Collectors.toList());
 
         return status;
+    }
+
+    //later may move it to BuildRef webUrl
+    /**
+     * @param teamcity Teamcity.
+     * @param ref Reference.
+     */
+    @NotNull public String getWebLinkToQueued(ITeamcityIgnited teamcity, BuildRef ref) {
+        return teamcity.host() + "viewQueued.html?itemId=" + ref.getId();
     }
 }

@@ -70,6 +70,8 @@ public class Metrics {
     @Context
     private HttpServletRequest req;
 
+
+    @Deprecated
     public void collectHistory(BuildMetricsHistory history,
         IAnalyticsEnabledTeamcity teamcity, String id, String branch)  {
 

@@ -23,6 +23,8 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 /**
  *
  */
+
+@Deprecated
 public class BuildHistory {
     public Map<String, FullChainRunCtx> map = new TreeMap<>();
 }

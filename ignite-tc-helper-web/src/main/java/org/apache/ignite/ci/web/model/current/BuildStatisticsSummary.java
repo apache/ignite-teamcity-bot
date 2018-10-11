@@ -64,8 +64,8 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
     /** List of problem occurrences. */
     private List<ProblemOccurrence> problemOccurrenceList;
 
-    /** Duration printable. */
-    public String durationPrintable;
+    /** Duration (seconds). */
+    public long duration;
 
     /** Short build run result (without snapshot-dependencies printable result). */
     public Map<String, Long> totalProblems;
@@ -95,8 +95,7 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
 
         testOccurrences = build.testOccurrences;
 
-        durationPrintable = TimeUtil
-            .millisToDurationPrintable(build.getFinishDate().getTime() - build.getStartDate().getTime());
+        duration = (build.getFinishDate().getTime() - build.getStartDate().getTime()) / 1000;
 
         List<BuildRef> snapshotDependencies = getSnapshotDependencies(teamcity, build);
 
@@ -228,13 +227,13 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
             Objects.equals(startDate, that.startDate) &&
             Objects.equals(testOccurrences, that.testOccurrences) &&
             Objects.equals(problemOccurrenceList, that.problemOccurrenceList) &&
-            Objects.equals(durationPrintable, that.durationPrintable) &&
+            Objects.equals(duration, that.duration) &&
             Objects.equals(totalProblems, that.totalProblems);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hash(buildId, startDate, testOccurrences, problemOccurrenceList,
-            durationPrintable, totalProblems, isFakeStub);
+            duration, totalProblems, isFakeStub);
     }
 }

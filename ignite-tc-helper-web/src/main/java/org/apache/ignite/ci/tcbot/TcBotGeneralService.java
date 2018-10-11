@@ -14,20 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity.pure;
+package org.apache.ignite.ci.tcbot;
 
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.user.ICredentialsProv;
-
-import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Provider;
+import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.web.model.Version;
+import org.apache.ignite.lang.IgniteProductVersion;
 
 /**
- * Provides instance to server with appropriate credentials, may cache instances to avoid odd server instances.
+ *
  */
-public interface ITcServerProvider {
+public class TcBotGeneralService {
+    @Inject Provider<Ignite> igniteProvider;
     /**
-     * @param srvId Server id.
-     * @param prov Prov.
+     *
      */
-    public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov);
+    public Version version() {
+        Version ver = new Version();
+
+        try {
+            IgniteProductVersion ignProdVer = igniteProvider.get().version();
+
+            ver.ignVer = ignProdVer.major() + "." + ignProdVer.minor() + "." + ignProdVer.maintenance();
+
+            ver.ignVerFull = ignProdVer.toString();
+        }
+        catch (Exception ignored) {
+            //probably service is starting
+            ver.ignVer = "?";
+        }
+
+        return ver;
+    }
 }

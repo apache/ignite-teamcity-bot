@@ -28,13 +28,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.ChainAtServer;
+import org.apache.ignite.ci.tcbot.TcBotGeneralService;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.Version;
-import org.apache.ignite.lang.IgniteProductVersion;
 
 /**
  * Service for returning tracked branches, servers, and the bot version.
@@ -54,15 +53,7 @@ public class GetTrackedBranches {
     @Path("version")
     @PermitAll
     public Version version() {
-        Version ver = new Version();
-
-        IgniteProductVersion ignProdVer = CtxListener.getInjector(ctx).getInstance(Ignite.class).version();
-
-        ver.ignVer = ignProdVer.major() + "." + ignProdVer.minor() + "." + ignProdVer.maintenance();
-
-        ver.ignVerFull = ignProdVer.toString();
-
-        return ver;
+        return CtxListener.getInjector(ctx).getInstance(TcBotGeneralService.class).version();
     }
 
     @GET
