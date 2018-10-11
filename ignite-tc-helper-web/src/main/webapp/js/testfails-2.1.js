@@ -418,7 +418,8 @@ function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId
             }
         });
 
-        loadData();
+        if (loadData && typeof(loadData) === "function")
+            loadData();
     }
 
     function closeDialog() {
