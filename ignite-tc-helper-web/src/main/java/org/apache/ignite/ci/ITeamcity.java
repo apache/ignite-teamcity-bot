@@ -150,11 +150,6 @@ public interface ITeamcity extends ITeamcityConn {
     }
 
     /**
-     * @return Normalized Host address, ends with '/'.
-     */
-    public String host();
-
-    /**
      * @param build
      * @return
      */
@@ -267,15 +262,6 @@ public interface ITeamcity extends ITeamcityConn {
 
     void setExecutor(ExecutorService pool);
 
-    /**
-     * Trigger build.
-     *
-     * @param id Build identifier.
-     * @param name Branch name.
-     * @param cleanRebuild Rebuild all dependencies.
-     * @param queueAtTop Put at the top of the build queue.
-     */
-    Build triggerBuild(String id, String name, boolean cleanRebuild, boolean queueAtTop);
 
     /**
      * @param tok TeamCity authorization token.
@@ -299,14 +285,14 @@ public interface ITeamcity extends ITeamcityConn {
     boolean isJiraTokenAvailable();
 
     /**
-     * @param ticket JIRA ticket full name.
+     * @param ticket JIRA ticket full name. E.g 'IGNITE-5555'.
      * @param comment Comment to be placed in the ticket conversation.
      * @return {@code True} if ticket was succesfully commented. Otherwise - {@code false}.
      *
      * @throws IOException If failed to comment JIRA ticket.
      * @throws IllegalStateException If can't find URL to the JIRA.
      */
-    String sendJiraComment(String ticket, String comment) throws IOException;
+    public String sendJiraComment(String ticket, String comment) throws IOException;
 
     /**
      * @param url URL for JIRA integration.

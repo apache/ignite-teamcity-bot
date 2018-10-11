@@ -149,6 +149,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private ConcurrentMap<SuiteInBranch, Long> lastQueuedHistory = new ConcurrentHashMap<>();
 
     //todo: not good code to keep it static
+    @Deprecated
     private static long lastTriggerMs = System.currentTimeMillis();
 
     private static final boolean noLocks = true;
@@ -1194,10 +1195,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public Build triggerBuild(String id, String name, boolean cleanRebuild, boolean queueAtTop) {
+    @Override public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
         lastTriggerMs = System.currentTimeMillis();
 
-        return teamcity.triggerBuild(id, name, cleanRebuild, queueAtTop);
+        return teamcity.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
     }
 
     /** {@inheritDoc} */

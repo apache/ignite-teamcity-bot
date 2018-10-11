@@ -29,7 +29,7 @@ repositories {
 mainClassName = 'org.apache.ignite.ci.TcHelperJettyLauncher'
 applicationDefaultJvmArgs = ["-Dteamcity.helper.home=../work",
                              "-Dteamcity.bot.regionsize=16", // 16g Durable Memory region
-                             "-Dhttp.maxConnections=70",
+                             "-Dhttp.maxConnections=30",
                              "-server",
                              "-Xmx16g",
                              "-XX:+AlwaysPreTouch",

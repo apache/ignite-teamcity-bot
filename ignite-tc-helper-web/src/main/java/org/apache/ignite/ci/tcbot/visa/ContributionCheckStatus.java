@@ -16,28 +16,23 @@
  */
 package org.apache.ignite.ci.tcbot.visa;
 
+import java.util.LinkedList;
+import java.util.List;
+
 /**
- *
+ * Status of contribution check details returned from server
  */
-@SuppressWarnings("PublicField") public class ContributionToCheck {
-    /** Pr number. */
-    public Integer prNumber;
+@SuppressWarnings("PublicField") public class ContributionCheckStatus {
+    public int queuedBuilds;
+    public int runningBuilds;
+    /** Branch with finished run all results, null if run all is running or in case there was no run alls at all. */
+    public String branchWithFinishedRunAll;
 
-    /** Pr title. */
-    public String prTitle;
+    /** Resolved run all branch: Some branch probably with finished or queued builds in in, or default pull/nnnn/head. */
+    public String resolvedBranch;
 
-    /** Pr author. */
-    public String prAuthor;
+    /** Observations status: Filled if build observer has something sheduled related to {@link #resolvedBranch} */
+    public String observationsStatus;
 
-    /** Pr author avatar url. */
-    public String prAuthorAvatarUrl;
-
-    /** Pr html url. */
-    public String prHtmlUrl;
-
-    /** Branch Name for team city */
-    public String tcBranchName;
-
-    /** JIRA issue without server URL, but with project name */
-    public String jiraIssueId;
+    public List<String> webLinksQueuedRunAlls = new LinkedList<>();
 }

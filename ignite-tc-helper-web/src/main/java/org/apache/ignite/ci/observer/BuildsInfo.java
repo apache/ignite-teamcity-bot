@@ -24,10 +24,10 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 
+/**
+ *
+ */
 public class BuildsInfo {
-    /** Finished. */
-    public static final String FINISHED = "finished";
-
     /** Server id. */
     public final String srvId;
 
@@ -70,7 +70,7 @@ public class BuildsInfo {
         for (Map.Entry<Build, Boolean> entry : finishedBuilds.entrySet()) {
             if (!entry.getValue()) {
                 Build build = teamcity.getBuild(entry.getKey().getId());
-                entry.setValue(build.state.equals(FINISHED));
+                entry.setValue(build.isFinished());
             }
         }
 

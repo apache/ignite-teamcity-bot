@@ -266,7 +266,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @AutoProfiling
     @Override public Build triggerBuild(
         String buildTypeId,
-        String branchName,
+        @Nonnull String branchName,
         boolean cleanRebuild,
         boolean queueAtTop
     ) {

@@ -180,7 +180,9 @@ class GitHubConnectionImpl implements IGitHubConnection {
                 if (nextLink != null)
                     outLinkNext.set(nextLink);
             }
-            System.err.println(link);
+
+            logger.info("Processing Github link: " + link);
+
             return list;
         }
         catch (IOException e) {

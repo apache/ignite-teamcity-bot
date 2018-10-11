@@ -170,4 +170,16 @@ public class BuildRef extends AbstractRef {
     public String state() {
         return state;
     }
+
+    public boolean isFinished() {
+        return STATE_FINISHED.equals(state());
+    }
+
+    public boolean isQueued() {
+        return STATE_QUEUED.equals(state());
+    }
+
+    public boolean isRunning() {
+        return STATE_RUNNING.equals(state());
+    }
 }

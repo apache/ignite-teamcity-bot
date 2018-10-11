@@ -19,13 +19,28 @@ package org.apache.ignite.ci.teamcity.pure;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.Build;
 
 /**
- * Pure Teamcity Connection
- * API for calling methods from REST service:
- * https://confluence.jetbrains.com/display/TCD10/REST+API
+ * Pure Teamcity Connection API for calling methods from REST service: https://confluence.jetbrains.com/display/TCD10/REST+API
  */
 public interface ITeamcityConn {
+    /**
+     * @return Normalized Host address, ends with '/'.
+     */
+    public String host();
+
     public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> nextPage);
+
+    /**
+     * Trigger build.
+     *
+     * @param buildTypeId Build identifier.
+     * @param branchName Branch name.
+     * @param cleanRebuild Rebuild all dependencies.
+     * @param queueAtTop Put at the top of the build queue.
+     */
+    public Build triggerBuild(String buildTypeId, @Nonnull String branchName, boolean cleanRebuild, boolean queueAtTop);
 }

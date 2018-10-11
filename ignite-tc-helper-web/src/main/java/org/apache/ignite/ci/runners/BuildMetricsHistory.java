@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 
+@Deprecated
 public class BuildMetricsHistory {
     private Map<SuiteInBranch, BuildHistory> map = new TreeMap<>();
     private LinkedHashSet<SuiteInBranch> keys = new LinkedHashSet<>();
