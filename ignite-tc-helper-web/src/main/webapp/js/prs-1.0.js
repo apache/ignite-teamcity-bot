@@ -106,7 +106,7 @@ function showContributionsTable(result, srvId, suiteId) {
     });
 
     // Add event listener for opening and closing details, enable to only btn   'td.details-control'
-    $('#' + tableId + ' tbody').on('click', 'td', function () {
+    $('#' + tableId + ' tbody').on('click', 'td.details-control', function () {
         var tr = $(this).closest('tr');
         var row = table.row(tr);
 
@@ -151,6 +151,8 @@ function formatContributionDetails(row, srvId, suiteId) {
     if(!isDefinedAndFilled(row))
         return;
 
+    console.log("format " + row + ": " + srvId);
+
     let prId = row.prNumber;
     var res = "";
     res += "<div class='formgroup'>";
@@ -184,7 +186,7 @@ function formatContributionDetails(row, srvId, suiteId) {
 
     //action row 2
     res += "        <tr>\n" +
-        "            <td></td>\n" +
+        "            <td id='testDraw'></td>\n" +
         "            <td id='triggerAndObserveBuildFor" + prId + "' colspan='3' align='center'>d</td>\n" +
         "           </tr>";
 
@@ -206,6 +208,26 @@ function formatContributionDetails(row, srvId, suiteId) {
     return res;
 }
 
+function repaint(srvId, suiteId) {
+    let tableId = 'serverContributions-' + srvId;
+    let datatable = $('#' + tableId).DataTable();
+
+    var filteredRows = datatable.rows({filter: 'applied'});
+    for (let i = 0; i < filteredRows.length; i++) {
+        const rowId = filteredRows[i];
+
+        let row = datatable.row(rowId);
+
+        if (isDefinedAndFilled(row.child)) {
+            if (row.child.isShown()) {
+                // Replaint this row
+                row.child(formatContributionDetails(row.data(), srvId, suiteId)).show();
+            }
+        }
+    }
+
+    datatable.draw();
+}
 
 function showContributionStatus(status, prId, row, srvId, suiteId) {
     let finishedBranch = status.branchWithFinishedRunAll;
@@ -214,6 +236,11 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
     let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
+
+    let replaintCall = "repaint(" +
+        "\"" + srvId + "\", " +
+        "\"" + suiteId + "\", " +
+        ");";
     if (buildIsCompleted) {
         tdForPr.html("<a id='link_" + prId + "' href='" + prShowHref(srvId, suiteId, finishedBranch) + "'>" +
             "<button id='show_" + prId + "'>Show " + finishedBranch + " report</button></a>");
@@ -225,7 +252,9 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
                 "\"" + suiteId + "\", " +
                 "\"" + finishedBranch + "\", " +
                 "\"" + row.jiraIssueId + "\"" +
-                ")'";
+                "); " +
+                replaintCall +
+                "'";
 
             if (hasQueued) {
                 jiraBtn += " class='disabledbtn' title='" + queuedStatus + "'";
@@ -266,14 +295,14 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
     if (isDefinedAndFilled(status.resolvedBranch)) {
         var jiraOptional = hasJiraIssue ? row.jiraIssueId : "";
         // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
-        var res = "<button onClick='" +
-            "triggerBuilds(" +
+        let triggerBuildsCall = "triggerBuilds(" +
             "\"" + srvId + "\", " +
             "\"" + suiteId + "\", " +
             "\"" + status.resolvedBranch + "\"," +
             " false," +
             " false," +
-            "\"" + jiraOptional + "\")'";
+            "\"" + jiraOptional + "\"); ";
+        var res = "<button onClick='" + triggerBuildsCall + replaintCall + "'";
         res += prepareStatusOfTrigger();
 
         res += ">Trigger build</button>";
@@ -282,14 +311,14 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
 
     if (hasJiraIssue && isDefinedAndFilled(status.resolvedBranch)) {
         // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
-        var trigAndObs = "<button onClick='" +
-            "triggerBuilds(" +
+        let trigObserveCall = "triggerBuilds(" +
             "\"" + srvId + "\", " +
             "\"" + suiteId + "\", " +
             "\"" + status.resolvedBranch + "\"," +
             " false," +
             " true," +
-            "\"" + jiraOptional + "\")'";
+            "\"" + jiraOptional + "\"); ";
+        var trigAndObs = "<button onClick='" + trigObserveCall + replaintCall + "'";
 
         trigAndObs += prepareStatusOfTrigger();
 
@@ -297,4 +326,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
 
         $('#triggerAndObserveBuildFor' + prId).html(trigAndObs);
     }
+
+
+    $('#testDraw').html(testDraw);
 }
