@@ -213,6 +213,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
     let buildIsCompleted = isDefinedAndFilled(finishedBranch);
     let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
+    let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " ";
     if (buildIsCompleted) {
         tdForPr.html("<a id='link_" + prId + "' href='" + prShowHref(srvId, suiteId, finishedBranch) + "'>" +
             "<button id='show_" + prId + "'>Show " + finishedBranch + " report</button></a>");
@@ -243,32 +244,40 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
     showStageResult(2, prId, noNeedToTrigger, false);
     showStageResult(3, prId, buildIsCompleted, false);
     if(hasQueued) {
-        showWaitingResults(3, prId, "Has queued builds: " + status.queuedBuilds  + " queued " + " ");
-
+        showWaitingResults(3, prId, queuedStatus);
     }
 
     if(isDefinedAndFilled(status.observationsStatus)) {
         showWaitingResults(4, prId, status.observationsStatus);
     }
 
+    function prepareStatusOfTrigger() {
+        var res  = "";
+        if (hasQueued || buildIsCompleted) {
+            res += " class='disabledbtn'";
+            if (hasQueued)
+                res += " title='" + queuedStatus + "'";
+            else
+                res += " title='Results are ready. It is still possible to trigger Build'";
+        }
+        return res;
+    }
+
     if (isDefinedAndFilled(status.resolvedBranch)) {
         var jiraOptional = hasJiraIssue ? row.jiraIssueId : "";
         // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
-        var trig = "<button onClick='" +
+        var res = "<button onClick='" +
             "triggerBuilds(" +
             "\"" + srvId + "\", " +
             "\"" + suiteId + "\", " +
             "\"" + status.resolvedBranch + "\"," +
             " false," +
-            " true," +
+            " false," +
             "\"" + jiraOptional + "\")'";
+        res += prepareStatusOfTrigger();
 
-        if (noNeedToTrigger) {
-            trig += " class='disabledbtn'";
-        }
-
-        trig += ">Trigger build</button>";
-        $("#triggerBuildFor" + prId).html(trig);
+        res += ">Trigger build</button>";
+        $("#triggerBuildFor" + prId).html(res);
     }
 
     if (hasJiraIssue && isDefinedAndFilled(status.resolvedBranch)) {
@@ -279,12 +288,10 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
             "\"" + suiteId + "\", " +
             "\"" + status.resolvedBranch + "\"," +
             " false," +
-            " false," +
+            " true," +
             "\"" + jiraOptional + "\")'";
 
-        if (noNeedToTrigger) {
-            trigAndObs += " class='disabledbtn'";
-        }
+        trigAndObs += prepareStatusOfTrigger();
 
         trigAndObs += ">Trigger build and comment JIRA after finish</button>";
 
