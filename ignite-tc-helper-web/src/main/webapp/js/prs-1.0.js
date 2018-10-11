@@ -137,6 +137,7 @@ function showStageResult(stageNum, prId, passed, failed) {
     stageOneStatus.html(html);
 }
 
+
 /* Formatting function for row details - modify as you need */
 function formatContributionDetails(row, srvId, suiteId) {
     //  row  is the original data object for the row
@@ -148,22 +149,22 @@ function formatContributionDetails(row, srvId, suiteId) {
     res += "<div class='formgroup'>";
     res += "<table cellpadding='5' cellspacing='0' border='0' style='padding-left:50px;'>\n";
 
-    //icon of stage
-    res += "<tr>\n" +
-        "                <th><span class='visaStage' id='visaStage_1_" + prId + "'></span></th>\n" +
-        "                <th><span class='visaStage' id='visaStage_2_" + prId + "'></span></th>\n" +
-        "                <th><span class='visaStage' id='visaStage_3_" + prId + "'></span></th>\n" +
-         "                <th><span class='visaStage' id='visaStage_4_" + prId + "'></span></th>\n" +
-        //todo validityCheck;"                <th><span class='visaStage' id='visaStage_5_" + prId + "'></span></th>\n" +
-        "            </tr>\n";
-
     //caption of stage
     res += "<tr>\n" +
-        "                <td>PR with issue name</td>\n" +
-        "                <td>Build is triggered</td>\n" +
+        "                <td>PR naming</td>\n" +
+        "                <td>Build Queued</td>\n" +
         "                <td>Results ready</td>\n" +
         "                <td>JIRA comment</td>\n" +
         //todo  "                <td>Validity check</td>\n" +
+        "            </tr>\n";
+
+    //icon of stage
+    res += "<tr>\n" +
+        "                <th title='PR should have valid naming starting with issue name'><span class='visaStage' id='visaStage_1_" + prId + "'></span></th>\n" +
+        "                <th title='Run All should be triggered'><span class='visaStage' id='visaStage_2_" + prId + "'></span></th>\n" +
+        "                <th><span class='visaStage' id='visaStage_3_" + prId + "'></span></th>\n" +
+         "               <th><span class='visaStage' id='visaStage_4_" + prId + "'></span></th>\n" +
+        //todo validityCheck;"                <th><span class='visaStage' id='visaStage_5_" + prId + "'></span></th>\n" +
         "            </tr>\n";
 
     //action for stage
@@ -172,61 +173,106 @@ function formatContributionDetails(row, srvId, suiteId) {
         "               <td id='triggerBuildFor" + prId + "'>Loading builds...</td>\n" +
         "               <td id='showResultFor" + prId + "'>Loading builds...</td>\n" +
         "               <td id='commentJiraFor" + prId + "'></td>\n" +
-        "        </tr>" +
-        "    </table>";
+        "        </tr>";
+
+    //action row 2
+    res += "        <tr>\n" +
+        "            <td></td>\n" +
+        "            <td id='triggerAndObserveBuildFor" + prId + "' colspan='3' align='center'>d</td>\n" +
+        "           </tr>";
+
+    res += "    </table>";
 
     res += "</div>";
 
 
     $.ajax({
-        url: "rest/visa/contributionStatus?serverId=" + srvId +
+        url: "rest/visa/contributionStatus" +
+            "?serverId=" + srvId +
             "&suiteId=" + suiteId +
             "&prId=" + prId,
         success:
             function (result) {
-                let finishedBranch = result.branchWithFinishedRunAll;
-                let tdForPr = $('#showResultFor' + prId);
-                let buildIsCompleted = isDefinedAndFilled(finishedBranch);
-                let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
-                if (buildIsCompleted) {
-                    tdForPr.html("<a id='link_" + prId + "' href='" + prShowHref(srvId, suiteId, finishedBranch) +  "'>" +
-                        "<button id='show_" + prId + "'>Show " + finishedBranch + " report</button></a>");
-
-                    if (hasJiraIssue)
-                        {
-                            let jiraBtn;
-                            jiraBtn = "<button onclick='" +
-                                "commentJira(" +
-                                "\"" + srvId + "\", " +
-                                "\"" + suiteId + "\", " +
-                                "\"" + finishedBranch + "\", " +
-                                "\"" + row.jiraIssueId + "\"" +
-                                ")'>Comment JIRA</button>";
-                            $('#commentJiraFor' + prId).html(jiraBtn);
-                        }
-                } else {
-                    tdForPr.html("No builds, please trigger " + suiteId);
-                }
-
-                let hasQueued = result.queuedBuilds > 0 || result.runningBuilds > 0;
-
-                showStageResult(1, prId, hasJiraIssue, !hasJiraIssue);
-                let noNeedToTrigger = hasQueued || buildIsCompleted;
-                showStageResult(2, prId, noNeedToTrigger, false);
-                showStageResult(3, prId, buildIsCompleted, false);
-
-                if(isDefinedAndFilled(result.resolvedBranch)) {
-                    var trig ="";
-                    trig+= "<button onClick='triggerBuilds(\"" + srvId + "\", \"" + suiteId + "\", \"" +
-                        result.resolvedBranch + "\", false, false)'" ;
-
-                    if(noNeedToTrigger) {
-                        trig+=" class='disabledbtn'";
-                    }
-                    trig+=">Trigger build</button>";
-                    $('#triggerBuildFor' + prId).html(trig);
-                }
+                showContributionStatus(result, prId, row, srvId, suiteId);
             }
     });
     return res;
+}
+
+
+function showContributionStatus(status, prId, row, srvId, suiteId) {
+    let finishedBranch = status.branchWithFinishedRunAll;
+    let tdForPr = $('#showResultFor' + prId);
+    let buildIsCompleted = isDefinedAndFilled(finishedBranch);
+    let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
+    let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
+    if (buildIsCompleted) {
+        tdForPr.html("<a id='link_" + prId + "' href='" + prShowHref(srvId, suiteId, finishedBranch) + "'>" +
+            "<button id='show_" + prId + "'>Show " + finishedBranch + " report</button></a>");
+
+        if (hasJiraIssue) {
+            let jiraBtn = "<button onclick='" +
+                "commentJira(" +
+                "\"" + srvId + "\", " +
+                "\"" + suiteId + "\", " +
+                "\"" + finishedBranch + "\", " +
+                "\"" + row.jiraIssueId + "\"" +
+                ")'";
+
+            if (hasQueued) {
+                jiraBtn += " class='disabledbtn' title='Has queued builds'";
+            }
+            jiraBtn += ">Comment JIRA</button>";
+
+            $('#commentJiraFor' + prId).html(jiraBtn);
+        }
+    } else {
+        tdForPr.html("No builds, please trigger " + suiteId);
+    }
+
+
+    showStageResult(1, prId, hasJiraIssue, !hasJiraIssue);
+    let noNeedToTrigger = hasQueued || buildIsCompleted;
+    showStageResult(2, prId, noNeedToTrigger, false);
+    showStageResult(3, prId, buildIsCompleted, false);
+
+    if (isDefinedAndFilled(status.resolvedBranch)) {
+        var jiraOptional = hasJiraIssue ? row.jiraIssueId : "";
+        // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
+        var trig = "<button onClick='" +
+            "triggerBuilds(" +
+            "\"" + srvId + "\", " +
+            "\"" + suiteId + "\", " +
+            "\"" + status.resolvedBranch + "\"," +
+            " false," +
+            " true," +
+            "\"" + jiraOptional + "\")'";
+
+        if (noNeedToTrigger) {
+            trig += " class='disabledbtn'";
+        }
+
+        trig += ">Trigger build</button>";
+        $("#triggerBuildFor" + prId).html(trig);
+    }
+
+    if (hasJiraIssue && isDefinedAndFilled(status.resolvedBranch)) {
+        // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
+        var trigAndObs = "<button onClick='" +
+            "triggerBuilds(" +
+            "\"" + srvId + "\", " +
+            "\"" + suiteId + "\", " +
+            "\"" + status.resolvedBranch + "\"," +
+            " false," +
+            " false," +
+            "\"" + jiraOptional + "\")'";
+
+        if (noNeedToTrigger) {
+            trigAndObs += " class='disabledbtn'";
+        }
+
+        trigAndObs += ">Trigger build and comment JIRA after finish</button>";
+
+        $('#triggerAndObserveBuildFor' + prId).html(trigAndObs);
+    }
 }
