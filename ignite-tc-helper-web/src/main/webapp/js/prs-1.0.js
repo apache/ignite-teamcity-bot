@@ -229,6 +229,13 @@ function repaint(srvId, suiteId) {
     datatable.draw();
 }
 
+
+function repaintLater(srvId, suiteId) {
+    setTimeout(function () {
+        repaint(srvId, suiteId)
+    }, 3000);
+}
+
 function showContributionStatus(status, prId, row, srvId, suiteId) {
     let finishedBranch = status.branchWithFinishedRunAll;
     let tdForPr = $('#showResultFor' + prId);
@@ -237,7 +244,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
 
-    let replaintCall = "repaint(" +
+    let replaintCall = "repaintLater(" +
         "\"" + srvId + "\", " +
         "\"" + suiteId + "\", " +
         ");";
