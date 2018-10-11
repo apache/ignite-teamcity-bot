@@ -83,7 +83,7 @@ public class Build extends BuildRef implements IVersionedEntity {
         return buildType == null ? null : buildType.getName();
     }
 
-    public String getFinishDateDdMmYyyy() throws ParseException {
+    public String getFinishDateDdMmYyyy() {
         Date parse = getFinishDate();
         return new SimpleDateFormat("dd.MM.yyyy").format(parse);
     }

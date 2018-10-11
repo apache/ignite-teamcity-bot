@@ -101,6 +101,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         String buildTypeId = "IgniteTests24Java8_RunAll";
         String branchName = "<default>";
         List<BuildRef> hist = srv.getBuildHistory(buildTypeId, branchName);
+        //todo mult branches including pull/4926/head
 
         assertTrue(!hist.isEmpty());
 

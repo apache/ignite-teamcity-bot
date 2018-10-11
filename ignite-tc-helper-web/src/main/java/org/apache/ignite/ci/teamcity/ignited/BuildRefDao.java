@@ -33,10 +33,11 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 public class BuildRefDao {
-    /** Cache name*/
+    /** Cache name */
     public static final String TEAMCITY_BUILD_CACHE_NAME = "teamcityBuild";
 
     /** Ignite provider. */
@@ -49,8 +50,8 @@ public class BuildRefDao {
     @Inject private IStringCompactor compactor;
 
     public void init () {
-        Ignite ignite = igniteProvider.get();
-        buildsCache = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(TEAMCITY_BUILD_CACHE_NAME));
+        CacheConfiguration<Long, BuildRefCompacted> cfg = TcHelperDb.getCacheV2Config(TEAMCITY_BUILD_CACHE_NAME);
+        buildsCache = igniteProvider.get().getOrCreateCache(cfg);
     }
 
     @NotNull protected Stream<BuildRefCompacted> compactedBuildsForServer(long srvIdMaskHigh) {
@@ -59,6 +60,10 @@ public class BuildRefDao {
             .map(javax.cache.Cache.Entry::getValue);
     }
 
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param ghData Gh data.
+     */
     public int saveChunk(long srvIdMaskHigh, List<BuildRef> ghData) {
         Set<Long> ids = ghData.stream().map(BuildRef::getId)
             .filter(Objects::nonNull)
@@ -73,7 +78,7 @@ public class BuildRefDao {
             .collect(Collectors.toList());
 
         for (BuildRefCompacted next : collect) {
-            long cacheKey = buildIdToCacheKey(srvIdMaskHigh, next.id);
+            long cacheKey = buildIdToCacheKey(srvIdMaskHigh, next.id());
             BuildRefCompacted buildPersisted = existingEntries.get(cacheKey);
 
             if (buildPersisted == null || !buildPersisted.equals(next))
@@ -112,8 +117,8 @@ public class BuildRefDao {
             return Collections.emptyList();
 
         return compactedBuildsForServer(srvIdMaskHigh)
-            .filter(e -> e.buildTypeId == (int)buildTypeIdId)
-            .filter(e -> e.branchName == (int)bracnhNameQryId)
+            .filter(e -> e.buildTypeId() == buildTypeIdId)
+            .filter(e -> e.branchName() == bracnhNameQryId)
             .map(compacted -> compacted.toBuildRef(compactor))
             .collect(Collectors.toList());
     }
