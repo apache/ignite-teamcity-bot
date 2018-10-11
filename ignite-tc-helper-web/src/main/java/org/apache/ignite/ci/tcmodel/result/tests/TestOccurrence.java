@@ -98,4 +98,18 @@ public class TestOccurrence {
 
         return this;
     }
+
+    /**
+     * @return BuildId which that test occurrence belongs to
+     */
+    public Integer getBuildId() {
+        if (id == null)
+            return null;
+
+        String[] list = id.split(":");
+
+        String str = list[list.length - 1];
+
+        return Integer.valueOf(str.substring(0, str.length() - 1));
+    }
 }

@@ -17,6 +17,9 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
+import java.text.ParseException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import com.google.inject.Injector;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
@@ -26,10 +29,11 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.hist.BuildsHistory;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
@@ -46,16 +50,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
-import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-
-import static com.google.common.base.Strings.isNullOrEmpty;
 
 @Path(GetBuildTestFailures.BUILD)
 @Produces(MediaType.APPLICATION_JSON)
@@ -159,75 +155,65 @@ public class GetBuildTestFailures {
     }
 
     @GET
-    @Path("history")
-    public List<BuildStatisticsSummary> getBuildsHistory(
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("testRef")
+    public String getTestRef(
+        @NotNull @QueryParam("testName") String name,
+        @NotNull @QueryParam("suiteName") String suiteName,
         @Nullable @QueryParam("server") String srv,
-        @Nullable @QueryParam("buildType") String buildType,
-        @Nullable @QueryParam("branch") String branch,
-        @Nullable @QueryParam("sinceDate") String sinceDate,
-        @Nullable @QueryParam("untilDate") String untilDate)
-        throws ServiceUnauthorizedException {
-        String srvId = isNullOrEmpty(srv) ? "apache" : srv;
-        String buildTypeId = isNullOrEmpty(buildType) ? "IgniteTests24Java8_RunAll" : buildType;
-        String branchName = isNullOrEmpty(branch) ? "refs/heads/master" : branch;
-        Date sinceDateFilter = isNullOrEmpty(sinceDate) ? null : dateParse(sinceDate);
-        Date untilDateFilter = isNullOrEmpty(untilDate) ? null : dateParse(untilDate);
-
-        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(ctx);
-
-        final ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
+        @Nullable @QueryParam("projectId") String projectId)
+        throws InterruptedException, ExecutionException, ServiceUnauthorizedException {
+        final ITcHelper helper = CtxListener.getTcHelper(ctx);
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
+        String project = projectId == null ? "IgniteTests24Java8" : projectId;
 
-        int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, sinceDateFilter, untilDateFilter);
+        String srvId = srv == null ? "apache" : srv;
 
-        List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
 
-        for (int i = 0; i < finishedBuilds.length; i++) {
-            int buildId = finishedBuilds[i];
+        IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, prov);
 
-            FullQueryParams param = new FullQueryParams();
-            param.setBuildId(buildId);
-            param.setBranch(branchName);
-            param.setServerId(srvId);
+        FullQueryParams key = new FullQueryParams();
 
-            BuildStatisticsSummary buildsStatistic = updater.get(
-                BUILDS_STATISTICS_SUMMARY_CACHE_NAME, prov, param,
-                (k) -> getBuildStatisticsSummaryNoCache(srvId, buildId), false);
+        key.setTestName(name);
+        key.setProjectId(project);
+        key.setServerId(srvId);
+        key.setSuiteId(suiteName);
 
-            if (!buildsStatistic.isFakeStub)
-                buildsStatistics.add(buildsStatistic);
-        }
+        CompletableFuture<TestRef> ref = teamcity.getTestRef(key);
 
-        return buildsStatistics;
+        return ref.isDone() && !ref.isCompletedExceptionally() ? teamcity.host() + "project.html?"
+            + "projectId=" + project
+            + "&testNameId=" + ref.get().id
+            + "&tab=testDetails" : null;
     }
 
-    private Date dateParse(String date){
-        DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
+    @GET
+    @Path("history")
+    public BuildsHistory getBuildsHistory(
+        @Nullable @QueryParam("server") String srvId,
+        @Nullable @QueryParam("buildType") String buildType,
+        @Nullable @QueryParam("branch") String branch,
+        @Nullable @QueryParam("sinceDate") String sinceDate,
+        @Nullable @QueryParam("untilDate") String untilDate,
+        @Nullable @QueryParam("skipTests") String skipTests)  throws ParseException {
+        BuildsHistory.Builder builder = new BuildsHistory.Builder()
+            .branch(branch)
+            .server(srvId)
+            .buildType(buildType)
+            .sinceDate(sinceDate)
+            .untilDate(untilDate);
 
-        try {
-            return dateFormat.parse(date);
-        }
-        catch (ParseException e) {
-            return null;
-        }
-    }
+        if (Boolean.valueOf(skipTests))
+            builder.skipTests();
 
-    private BuildStatisticsSummary getBuildStatisticsSummaryNoCache(String server, int buildId) {
-        String srvId = isNullOrEmpty(server) ? "apache" : server;
+        BuildsHistory buildsHistory = builder.build();
 
-        final ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
+        buildsHistory.initialize(ICredentialsProv.get(req), ctx);
 
-        final ICredentialsProv creds = ICredentialsProv.get(req);
-
-        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds);
-
-        BuildStatisticsSummary stat = new BuildStatisticsSummary(buildId);
-
-        stat.initialize(teamcity);
-
-        return stat;
+        return buildsHistory;
     }
 }

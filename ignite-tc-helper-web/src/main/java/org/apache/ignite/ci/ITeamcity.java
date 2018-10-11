@@ -36,15 +36,18 @@ import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.Configurations;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.util.Base64Util;
+import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -152,7 +155,11 @@ public interface ITeamcity extends ITeamcityConn {
      */
     ProblemOccurrences getProblems(Build build);
 
+    ProblemOccurrences getProblems(BuildRef buildId);
+
     TestOccurrences getTests(String href, String normalizedBranch);
+
+    TestOccurrences getFailedUnmutedTestsNames(String href, int count, String normalizedBranch);
 
     Statistics getBuildStatistics(String href);
 
@@ -161,6 +168,10 @@ public interface ITeamcity extends ITeamcityConn {
     Change getChange(String href);
 
     ChangesList getChangesList(String href);
+
+    CompletableFuture<TestRef> getTestRef(FullQueryParams key);
+
+    Configurations getConfigurations(FullQueryParams key);
 
     /**
      * List of build's related issues.
