@@ -2,5 +2,5 @@
 <testOccurrence id="id:3078,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridPartitionedCacheJtaFactorySelfTest.testAsyncOpAwait" status="SUCCESS" duration="102" href="/app/rest/latest/testOccurrences/id:3078,build:(id:2039380)">
     <details/>
     <test id="6611322481661461526" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridPartitionedCacheJtaFactorySelfTest.testAsyncOpAwait" href="/app/rest/latest/tests/id:6611322481661461526"/>
-    <build id="2039380" buildTypeId="IgniteTests24Java8_Jta" number="3617" status="SUCCESS" state="finished" branchName="refs/heads/master" defaultBranch="true" href="/app/rest/latest/builds/id:2039380" webUrl="http://ci.ignite.apache.org/viewLog.html?buildId=2039380&buildTypeId=IgniteTests24Java8_Jta"/>
+    <build id="2039380" buildTypeId="IgniteTests24Java8_Jta" number="3617" status="SUCCESS" state="finished" branchName="refs/heads/master" defaultBranch="true" href="/app/rest/latest/builds/id:2039380" webUrl="http://ci.ignite.apache.org/viewLog.html?buildId=2039380&amp;buildTypeId=IgniteTests24Java8_Jta"/>
 </testOccurrence>
