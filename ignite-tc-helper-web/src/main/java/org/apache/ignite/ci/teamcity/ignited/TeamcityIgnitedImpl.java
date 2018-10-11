@@ -36,10 +36,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Pure HTTP Connection API. */
     private ITeamcityConn conn;
 
-
     /** Scheduler. */
     @Inject private IScheduler scheduler;
 
+    /** Build reference DAO. */
     @Inject private BuildRefDao buildRefDao;
 
     /** Server ID mask for cache Entries. */
@@ -50,7 +50,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         this.srvId = srvId;
         this.conn = conn;
 
-        srvIdMaskHigh = Math.abs(srvId.hashCode());
+        srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
         buildRefDao.init(); //todo init somehow in auto
     }
 
@@ -81,7 +81,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
 
         //todo may add additional parameter: load builds into DB in sync/async fashion
-        runAсtualizeBuilds(srvId, false, build.getId());
+        runActializeBuildRefs(srvId, false, build.getId());
 
         return build;
     }
@@ -90,7 +90,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      *
      */
     private void actualizeRecentBuilds() {
-        runAсtualizeBuilds(srvId, false, null);
+        runActializeBuildRefs(srvId, false, null);
 
         // schedule full resync later
         scheduler.invokeLater(this::sheduleResync, 60, TimeUnit.SECONDS);
@@ -108,7 +108,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      *
      */
     private void fullReindex() {
-        runAсtualizeBuilds(srvId, true, null);
+        runActializeBuildRefs(srvId, true, null);
     }
 
     /**
@@ -118,7 +118,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     @MonitoredTask(name = "Actualize BuildRefs, full resync", nameExtArgIndex = 1)
     @AutoProfiling
-    protected String runAсtualizeBuilds(String srvId, boolean fullReindex,
+    protected String runActializeBuildRefs(String srvId, boolean fullReindex,
         @Nullable Integer buildIdCanFinish) {
         AtomicReference<String> outLinkNext = new AtomicReference<>();
         List<BuildRef> tcDataFirstPage = conn.getBuildRefs(null, outLinkNext);

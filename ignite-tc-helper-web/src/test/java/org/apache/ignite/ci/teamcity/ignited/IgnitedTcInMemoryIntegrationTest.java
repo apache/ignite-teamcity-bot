@@ -20,15 +20,24 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Collections;
 import java.util.List;
+import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitSheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.util.XmlUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -54,16 +63,15 @@ public class IgnitedTcInMemoryIntegrationTest {
      *
      */
     @BeforeClass
-    public static void startIgnite(){
+    public static void startIgnite() {
         ignite = Ignition.start();
     }
-
 
     /**
      *
      */
     @AfterClass
-    public static void stopIgnite(){
+    public static void stopIgnite() {
         ignite.close();
     }
 
@@ -72,7 +80,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         ITeamcityHttpConnection http = Mockito.mock(ITeamcityHttpConnection.class);
 
         when(http.sendGet(anyString(), anyString())).thenAnswer(
-            (invocationOnMock)->{
+            (invocationOnMock) -> {
                 String url = invocationOnMock.getArgument(1);
 
                 if (url.contains("/app/rest/latest/builds?locator=defaultFilter:false,count:1000,start:1000"))
@@ -131,5 +139,48 @@ public class IgnitedTcInMemoryIntegrationTest {
         when(mock.getPassword(anyString())).thenReturn("123");
 
         return mock;
+    }
+
+    @Test
+    public void testFatBuild() throws JAXBException, IOException {
+        InputStream stream = getClass().getResourceAsStream("/build.xml");
+        Build refBuild = XmlUtil.load(Build.class, new InputStreamReader(stream));
+        Injector injector = Guice.createInjector(new AbstractModule() {
+            @Override protected void configure() {
+                bind(Ignite.class).toInstance(ignite);
+                bind(IStringCompactor.class).to(IgniteStringCompactor.class);
+            }
+        });
+
+        FatBuildDao instance = injector.getInstance(FatBuildDao.class);
+        instance.init();
+
+        int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(APACHE);
+        int i = instance.saveChunk(srvIdMaskHigh, Collections.singletonList(refBuild));
+        assertEquals(1, i);
+
+        FatBuildCompacted fatBuild = instance.getFatBuild(srvIdMaskHigh, 2039380);
+
+        Build actBuild = fatBuild.toBuild(injector.getInstance(IStringCompactor.class));
+
+        String save = XmlUtil.save(actBuild);
+
+        System.out.println(save);
+
+        FileWriter writer = new FileWriter("src/test/resources/build2.xml");
+        writer.write(save);
+        writer.close();
+
+        assertEquals(refBuild.getId(), actBuild.getId());
+        assertEquals(refBuild.status(), actBuild.status());
+        assertEquals(refBuild.state(), actBuild.state());
+        assertEquals(refBuild.buildTypeId(), actBuild.buildTypeId());
+        assertEquals(refBuild.getStartDate(), actBuild.getStartDate());
+        assertEquals(refBuild.getFinishDate(), actBuild.getFinishDate());
+        BuildType refBt = refBuild.getBuildType();
+        BuildType actBt = actBuild.getBuildType();
+        assertEquals(refBt.getName(), actBt.getName());
+        assertEquals(refBt.getProjectId(), actBt.getProjectId());
+        assertEquals(refBt.getId(), actBt.getId());
     }
 }

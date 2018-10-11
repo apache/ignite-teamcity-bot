@@ -18,6 +18,9 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.Build;
 
 /**
  *
@@ -30,6 +33,15 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     /** Entity fields version. */
     private short _ver;
 
+    /** Start date. The number of milliseconds since January 1, 1970, 00:00:00 GMT */
+    private long startDate;
+
+    /** Finish date. The number of milliseconds since January 1, 1970, 00:00:00 GMT */
+    private long finishDate;
+
+    private int projectId = -1;
+    private int name = -1;
+
     /** {@inheritDoc} */
     @Override public int version() {
         return _ver;
@@ -39,4 +51,59 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     @Override public int latestVersion() {
         return LATEST_VERSION;
     }
+
+    /**
+     * Default constructor.
+     */
+    public FatBuildCompacted() {
+    }
+
+    /**
+     * @param compactor Compactor.
+     * @param ref Reference.
+     */
+    public FatBuildCompacted(IStringCompactor compactor, Build ref) {
+        super(compactor, ref);
+
+        startDate = ref.getStartDate() == null ? -1L : ref.getStartDate().getTime();
+        finishDate = ref.getFinishDate() == null ? -1L : ref.getFinishDate().getTime();
+
+        BuildType type = ref.getBuildType();
+        if (type != null) {
+            projectId = compactor.getStringId(type.getProjectId());
+            name = compactor.getStringId(type.getName());
+        }
+    }
+
+    /**
+     * @param compactor Compacter.
+     */
+    public Build toBuild(IStringCompactor compactor) {
+        Build res = new Build();
+
+        fillBuildRefFields(compactor, res);
+
+        fillBuildFields(compactor, res);
+
+        return res;
+    }
+
+    /**
+     * @param compactor Compactor.
+     * @param res Response.
+     */
+    private void fillBuildFields(IStringCompactor compactor, Build res) {
+        if (startDate > 0)
+            res.setStartDateTs(startDate);
+
+        if (finishDate > 0)
+            res.setFinishDateTs(finishDate);
+
+        BuildType type = new BuildType();
+        type.id(res.buildTypeId());
+        type.name(compactor.getStringFromId(name));
+        type.projectId(compactor.getStringFromId(projectId));
+        res.setBuildType(type);
+    }
+
 }

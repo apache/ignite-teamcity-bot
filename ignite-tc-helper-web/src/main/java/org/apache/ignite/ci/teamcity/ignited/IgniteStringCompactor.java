@@ -34,6 +34,7 @@ import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.ci.util.ObjectInterner;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
 
@@ -147,7 +148,7 @@ public class IgniteStringCompactor implements IStringCompactor {
 
         qryCursor.close();
 
-        return next.getValue().val;
+        return ObjectInterner.internString(next.getValue().val);
     }
 
     /** {@inheritDoc} */

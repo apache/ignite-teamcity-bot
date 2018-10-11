@@ -61,13 +61,17 @@ public class BuildRefCompacted {
     public BuildRef toBuildRef(IStringCompactor compactor) {
         BuildRef res = new BuildRef();
 
+        fillBuildRefFields(compactor, res);
+
+        return res;
+    }
+
+    protected void fillBuildRefFields(IStringCompactor compactor, BuildRef res) {
         res.setId(id < 0 ? null : id);
         res.buildTypeId = compactor.getStringFromId(buildTypeId);
         res.branchName = compactor.getStringFromId(branchName);
         res.status = compactor.getStringFromId(status);
         res.state = compactor.getStringFromId(state);
-
-        return res;
     }
 
     /** {@inheritDoc} */
