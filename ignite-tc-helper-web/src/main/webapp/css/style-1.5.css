@@ -267,7 +267,6 @@ form li:after
 
 .suiteCell {
 	cursor: default;
-	word-wrap: break-word;
 	vertical-align: middle;
 	padding: 15px;
 }
@@ -278,6 +277,13 @@ form li:after
 
 .testsCntRow {
 	padding: 10px
+}
+
+.testsTable {
+	width: 96%;
+	border-collapse: collapse;
+	margin-left: 2%;
+	margin-right: 2%;
 }
 
 .testsTable tr:nth-child(4n + 2) {
