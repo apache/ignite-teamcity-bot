@@ -185,7 +185,7 @@ function formatContributionDetails(row, srvId, suiteId) {
     //action row 2
     res += "        <tr>\n" +
         "            <td id='testDraw'></td>\n" +
-        "            <td id='triggerAndObserveBuildFor" + prId + "' colspan='3' align='center'>d</td>\n" +
+        "            <td id='triggerAndObserveBuildFor" + prId + "' colspan='3' align='center'></td>\n" +
         "           </tr>";
 
     //References
