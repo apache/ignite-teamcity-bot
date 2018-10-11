@@ -27,4 +27,7 @@ package org.apache.ignite.ci.tcbot.visa;
 
     /** Resolved run all branch: Some branch probably with finished or queued builds in in, or default pull/nnnn/head. */
     public String resolvedBranch;
+
+    /** Observations status: Filled if build observer has something sheduled related to {@link #resolvedBranch} */
+    public String observationsStatus;
 }

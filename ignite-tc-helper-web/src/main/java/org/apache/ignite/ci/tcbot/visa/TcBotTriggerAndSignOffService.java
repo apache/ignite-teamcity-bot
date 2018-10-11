@@ -61,6 +61,8 @@ public class TcBotTriggerAndSignOffService {
 
     @Inject ITeamcityIgnitedProvider teamcityIgnitedProvider;
 
+    @Inject Provider<BuildObserver> observer;
+
     /**
      * @param pr Pull Request.
      * @return JIRA ticket full name or empty string.
@@ -148,7 +150,7 @@ public class TcBotTriggerAndSignOffService {
             ticketFullName = ticketFullName.toUpperCase().startsWith("IGNITE-") ? ticketFullName : "IGNITE-" + ticketFullName;
         }
 
-        buildObserverProvider.get().observe(srvId, prov, "ignite-" + ticketFullName, builds);
+        buildObserverProvider.get().observe(srvId, prov, ticketFullName, builds);
 
         return "JIRA ticket IGNITE-" + ticketFullName + " will be notified after the tests are completed.";
     }
@@ -278,6 +280,9 @@ public class TcBotTriggerAndSignOffService {
             //todo take into account running/queued
             status.resolvedBranch = status.branchWithFinishedRunAll;
 
+        String observationsStatus = observer.get().getObservationStatus(srvId, status.resolvedBranch);
+
+        status.observationsStatus  = Strings.emptyToNull(observationsStatus);
 
         //todo take into accounts not only run alls:
         status.queuedBuilds = (int)allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isQueued).count();

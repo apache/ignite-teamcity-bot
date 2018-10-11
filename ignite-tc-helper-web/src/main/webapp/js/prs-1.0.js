@@ -123,6 +123,13 @@ function showContributionsTable(result, srvId, suiteId) {
     });
 }
 
+function showWaitingResults(stageNum, prId, text) {
+    let stageOneStatus = $('#visaStage_' + stageNum + '_' + prId);
+    stageOneStatus.css('background', 'darkorange');
+    stageOneStatus.attr("title", text);
+    stageOneStatus.html("&#9203;");
+}
+
 function showStageResult(stageNum, prId, passed, failed) {
     let stageOneStatus = $('#visaStage_' + stageNum + '_' + prId);
     let html;
@@ -235,6 +242,14 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
     let noNeedToTrigger = hasQueued || buildIsCompleted;
     showStageResult(2, prId, noNeedToTrigger, false);
     showStageResult(3, prId, buildIsCompleted, false);
+    if(hasQueued) {
+        showWaitingResults(3, prId, "Has queued builds: " + status.queuedBuilds  + " queued " + " ");
+
+    }
+
+    if(isDefinedAndFilled(status.observationsStatus)) {
+        showWaitingResults(4, prId, status.observationsStatus);
+    }
 
     if (isDefinedAndFilled(status.resolvedBranch)) {
         var jiraOptional = hasJiraIssue ? row.jiraIssueId : "";
