@@ -198,14 +198,19 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("sinceDate") String sinceDate,
-        @Nullable @QueryParam("untilDate") String untilDate)  throws ParseException {
-        BuildsHistory buildsHistory = new BuildsHistory.Builder()
+        @Nullable @QueryParam("untilDate") String untilDate,
+        @Nullable @QueryParam("skipTests") String skipTests)  throws ParseException {
+        BuildsHistory.Builder builder = new BuildsHistory.Builder()
             .branch(branch)
             .server(srvId)
             .buildType(buildType)
             .sinceDate(sinceDate)
-            .untilDate(untilDate)
-            .build();
+            .untilDate(untilDate);
+
+        if (Boolean.valueOf(skipTests))
+            builder.skipTests();
+
+        BuildsHistory buildsHistory = builder.build();
 
         buildsHistory.initialize(ICredentialsProv.get(req), ctx);
 

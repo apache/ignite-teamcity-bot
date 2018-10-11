@@ -66,6 +66,7 @@ import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.Configurations;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
@@ -107,6 +108,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
     public static final String TEST_REFS = "testRefs";
+    public static final String CONFIGURATIONS = "configurations";
 
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
     private static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
@@ -224,6 +226,13 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      */
     private IgniteCache<String, TestOccurrenceFull> testFullCache() {
         return getOrCreateCacheV2(ignCacheNme(TEST_FULL));
+    }
+
+    /**
+     * @return {@link Configurations} instances cache, 32 parts.
+     */
+    private IgniteCache<String, Configurations> configurationsCache() {
+        return getOrCreateCacheV2(ignCacheNme(CONFIGURATIONS));
     }
 
     /**
@@ -798,7 +807,26 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             return new ProblemOccurrences();
     }
 
-    private void registerCriticalBuildProblemInStat(Build build, ProblemOccurrences problems) {
+    /** {@inheritDoc}*/
+    @AutoProfiling
+    @Override public ProblemOccurrences getProblems(BuildRef buildRef) {
+        return loadIfAbsent(
+            buildProblemsCache(),
+            "app/rest/latest/problemOccurrences?locator=build:(id:" + buildRef.getId() + ")",
+            k -> {
+                ProblemOccurrences problems = teamcity.getProblems(buildRef);
+
+                registerCriticalBuildProblemInStat(buildRef, problems);
+
+                return problems;
+            });
+    }
+
+
+
+
+
+    private void registerCriticalBuildProblemInStat(BuildRef build, ProblemOccurrences problems) {
         boolean criticalFail = problems.getProblemsNonNull().stream().anyMatch(occurrence ->
             occurrence.isExecutionTimeout() || occurrence.isJvmCrash());
 
@@ -842,8 +870,19 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public TestOccurrences getFailedUnmutedTests(String href, int count, String normalizedBranch) {
-        return getTests(href + ",muted:false,status:FAILURE,count:" + count, normalizedBranch);
+    @Override public TestOccurrences getFailedUnmutedTestsNames(String href, int count, String normalizedBranch) {
+        return getTests(href + ",muted:false,status:FAILURE,count:" + count + "&fields=testOccurrence(name)", normalizedBranch);
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public Configurations getConfigurations(FullQueryParams key) {
+        return loadIfAbsent(configurationsCache(),
+            key.toString(),
+            k -> {
+                    return teamcity.getConfigurations(key);
+            });
+
     }
 
     private void addTestOccurrencesToStat(TestOccurrences val) {

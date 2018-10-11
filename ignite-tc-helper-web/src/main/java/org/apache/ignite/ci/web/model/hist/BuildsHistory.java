@@ -43,7 +43,6 @@ import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.apache.ignite.ci.web.rest.build.GetBuildTestFailures.BUILDS_STATISTICS_SUMMARY_CACHE_NAME;
 
 /**
  * Builds History: includes statistic for every build and merged failed unmuted tests in specified time interval.
@@ -71,6 +70,9 @@ public class BuildsHistory {
     private Map<String, Set<String>> mergedTestsBySuites = new HashMap<>();
 
     /** */
+    private boolean skipTests;
+
+    /** */
     public List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
 
     /** */
@@ -88,64 +90,10 @@ public class BuildsHistory {
         int[] finishedBuildsIds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName,
             sinceDateFilter, untilDateFilter);
 
-        initBuildsStatistics(teamcity, prov, context, finishedBuildsIds);
+        initBuildsStatistics(teamcity, finishedBuildsIds);
 
-        initBuildsMergedFailedTests(teamcity, finishedBuildsIds);
-    }
-
-    /** */
-    private void initBuildsStatistics(IAnalyticsEnabledTeamcity teamcity, ICredentialsProv prov,
-        ServletContext context, int[] buildIds) {
-        for (int buildId : buildIds) {
-            FullQueryParams buildParams = new FullQueryParams();
-
-            buildParams.setBuildId(buildId);
-            buildParams.setBranch(branchName);
-            buildParams.setServerId(srvId);
-
-            BuildStatisticsSummary buildsStatistic = CtxListener.getBackgroundUpdater(context).get(
-                BUILDS_STATISTICS_SUMMARY_CACHE_NAME, prov, buildParams,
-                (k) -> {
-                    BuildStatisticsSummary stat = new BuildStatisticsSummary(buildId);
-
-                    stat.initialize(teamcity);
-
-                    return stat;
-                }, false);
-
-            if (buildsStatistic != null && !buildsStatistic.isFakeStub)
-                buildsStatistics.add(buildsStatistic);
-        }
-    }
-
-    /** */
-    private void initBuildsMergedFailedTests(IAnalyticsEnabledTeamcity teamcity, int[] buildIds) {
-        for (int buildId : buildIds) {
-            Build build = teamcity.getBuild(teamcity.getBuildHrefById(buildId));
-
-            TestOccurrences testOccurrences = teamcity.getFailedUnmutedTests(build.testOccurrences.href,
-                build.testOccurrences.failed, BuildChainProcessor.normalizeBranch(build.branchName));
-
-            for (TestOccurrence testOccurrence : testOccurrences.getTests()) {
-                String testName = testOccurrence.getName();
-
-                build = teamcity.getBuild(teamcity.getBuildHrefById(testOccurrence.getBuildId()));
-
-                Set<String> tests = mergedTestsBySuites.computeIfAbsent(build.buildTypeId,
-                    k -> new HashSet<>());
-
-                if (!tests.add(testName))
-                    continue;
-
-                FullQueryParams key = new FullQueryParams();
-
-                key.setServerId(srvId);
-                key.setProjectId(projectId);
-                key.setTestName(testOccurrence.getName());
-                key.setSuiteId(build.buildTypeId);
-
-                teamcity.getTestRef(key);
-            }
+        if (!skipTests) {
+            initBuildsMergedFailedTests(teamcity, finishedBuildsIds);
         }
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -158,7 +106,70 @@ public class BuildsHistory {
     }
 
     /** */
+    private void initBuildsStatistics(IAnalyticsEnabledTeamcity teamcity, int[] buildIds) {
+        for (int buildId : buildIds) {
+            BuildStatisticsSummary buildsStatistic = new BuildStatisticsSummary(buildId);
+
+            buildsStatistic.initialize(teamcity);
+
+            if (buildsStatistic != null && !buildsStatistic.isFakeStub)
+                buildsStatistics.add(buildsStatistic);
+        }
+    }
+
+
+    /** */
+    private void initBuildsMergedFailedTests(IAnalyticsEnabledTeamcity teamcity, int[] buildIds) {
+        for (int buildId : buildIds) {
+            Map<Integer, String> configurations = new HashMap<>();
+
+            FullQueryParams key = new FullQueryParams();
+
+            key.setServerId(teamcity.serverId());
+            key.setBuildId(buildId);
+
+            teamcity.getConfigurations(key).getBuilds().forEach(buildRef -> {
+                Integer id = buildRef.getId();
+
+                String configurationName = buildRef.buildTypeId;
+
+                if (id != null && configurationName != null)
+                    configurations.put(id, configurationName);
+
+            });
+
+            Build build = teamcity.getBuild(teamcity.getBuildHrefById(buildId));
+
+            TestOccurrences testOccurrences = teamcity.getFailedUnmutedTestsNames(build.testOccurrences.href,
+                build.testOccurrences.failed, BuildChainProcessor.normalizeBranch(build.branchName));
+
+            for (TestOccurrence testOccurrence : testOccurrences.getTests()) {
+                String configurationName = configurations.get(testOccurrence.getBuildId());
+
+                if(configurationName == null)
+                    continue;
+
+                Set<String> tests = mergedTestsBySuites.computeIfAbsent(configurationName,
+                    k -> new HashSet<>());
+
+                if (!tests.add(testOccurrence.getName()))
+                    continue;
+
+                key = new FullQueryParams();
+
+                key.setServerId(srvId);
+                key.setProjectId(projectId);
+                key.setTestName(testOccurrence.getName());
+                key.setSuiteId(build.buildTypeId);
+
+                teamcity.getTestRef(key);
+            }
+        }
+    }
+
+    /** */
     public BuildsHistory(Builder builder) {
+        this.skipTests = builder.skipTests;
         this.srvId = builder.srvId;
         this.buildTypeId = builder.buildTypeId;
         this.branchName = builder.branchName;
@@ -169,6 +180,9 @@ public class BuildsHistory {
 
     /** */
     public static class Builder {
+        /** */
+        private boolean skipTests = false;
+
         /** */
         private String projectId = "IgniteTests24Java8";
 
@@ -237,6 +251,14 @@ public class BuildsHistory {
 
             return this;
         }
+
+        /** */
+        public Builder skipTests() {
+            this.skipTests = true;
+
+            return this;
+        }
+
 
         /** */
         public BuildsHistory build() {

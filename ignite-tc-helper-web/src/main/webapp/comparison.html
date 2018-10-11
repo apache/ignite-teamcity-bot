@@ -135,8 +135,13 @@
 <table style="table-layout: fixed; width: 100%" id="testsTable" class="testsTable">
     <tbody>
     <tr>
-        <th class="section" width="15%" style="vertical-align: middle; text-align: left; padding: 5px">FAILED TESTS</th>
-        <th width="5%"></th>
+        <th class="failedTestsHeader" width="15%">FAILED TESTS</th>
+        <th width="5%">
+            <label class="switch">
+                <input type="checkbox" onclick="toggleTests()">
+                <span class="slider"></span>
+            </label>
+        </th>
         <th width="40%"></th>
         <th width="40%"></th>
         </tr>
@@ -146,9 +151,11 @@
 <div id="version"></div>
 <script>
     const TESTS_TABLE = '#testsTable';
+    const SKIP_TESTS = 'skipTests=true';
     let oneWeekAgo = new Date();
     let twoWeekAgo = new Date();
     let g_updTimer = null;
+    let testsTrigger = false;
 
     /** Structure for storing tests by suites parsed response for every date interval. */
     let mergedTestsResults = {1 : {}, 2 : {} };
@@ -156,6 +163,17 @@
 
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     twoWeekAgo.setDate(twoWeekAgo.getDate() - 14);
+
+    let dateIntervals = {1: {start: moment(oneWeekAgo), end: moment()},
+        2: {start: moment(twoWeekAgo), end: moment(oneWeekAgo)}};
+
+    function toggleTests() {
+        testsTrigger = !testsTrigger;
+
+        loadData(1, dateIntervals[1].start, dateIntervals[1].end, testsTrigger);
+
+        loadData(2, dateIntervals[2].start, dateIntervals[2].end, testsTrigger);
+    }
 
     function dateRangePickerParam(data1, data2) {
         return {
@@ -400,8 +418,8 @@
     }
 
     $(document).ready(function() {
-        loadData(1, moment(oneWeekAgo), moment());
-        loadData(2, moment(twoWeekAgo), moment(oneWeekAgo));
+        loadData(1, moment(oneWeekAgo), moment(), testsTrigger);
+        loadData(2, moment(twoWeekAgo), moment(oneWeekAgo), testsTrigger);
 
         $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 
@@ -450,14 +468,19 @@
         $('#showInfo').css('display', '');
     }
 
-    function loadData(num, sinceDate, untilDate) {
+    function loadData(num, sinceDate, untilDate, testsTrigger) {
         loadGif(num);
 
         mergedTestsResults[num] = {};
 
+        let url = 'rest/build/history?sinceDate=' + sinceDate.format("DDMMYYYY") +
+            '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
+
+        if (!testsTrigger)
+            url = url + '&' + SKIP_TESTS;
+
         $.ajax({
-                url: 'rest/build/history?sinceDate=' + sinceDate.format("DDMMYYYY") +
-                    '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959',
+                url: url,
                 success: function (result) {
                     printStatistics(num, result.buildsStatistics, sinceDate, untilDate);
 
@@ -478,14 +501,22 @@
     $(function() {
         $('input[name="daterange1"]').daterangepicker(
             dateRangePickerParam(oneWeekAgo, new Date()), function (start, end, label) {
-                loadData(1, start, end);
+                dateIntervals[1].start = start;
+
+                dateIntervals[1].end = end;
+
+                loadData(1, start, end, testsTrigger);
             });
     });
 
     $(function() {
         $('input[name="daterange2"]').daterangepicker(
             dateRangePickerParam(twoWeekAgo, oneWeekAgo), function (start, end, label) {
-                loadData(2, start, end);
+                dateIntervals[2].start = start;
+
+                dateIntervals[2].end = end;
+
+                loadData(2, start, end, testsTrigger);
             });
     });
 

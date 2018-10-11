@@ -36,6 +36,7 @@ import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.Configurations;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
@@ -159,9 +160,11 @@ public interface ITeamcity extends ITeamcityConn {
      */
     ProblemOccurrences getProblems(Build build);
 
+    ProblemOccurrences getProblems(BuildRef buildId);
+
     TestOccurrences getTests(String href, String normalizedBranch);
 
-    TestOccurrences getFailedUnmutedTests(String href, int count, String normalizedBranch);
+    TestOccurrences getFailedUnmutedTestsNames(String href, int count, String normalizedBranch);
 
     Statistics getBuildStatistics(String href);
 
@@ -172,6 +175,8 @@ public interface ITeamcity extends ITeamcityConn {
     ChangesList getChangesList(String href);
 
     CompletableFuture<TestRef> getTestRef(FullQueryParams key);
+
+    Configurations getConfigurations(FullQueryParams key);
 
     /**
      * List of build's related issues.

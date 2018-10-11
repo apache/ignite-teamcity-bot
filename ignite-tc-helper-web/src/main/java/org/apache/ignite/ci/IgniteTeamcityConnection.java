@@ -62,6 +62,7 @@ import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.hist.Builds;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.Configurations;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
@@ -424,6 +425,15 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getJaxbUsingHref(href, Build.class);
     }
 
+    @AutoProfiling
+    @Override public ProblemOccurrences getProblems(BuildRef buildRef) {
+        ProblemOccurrences coll = getJaxbUsingHref("app/rest/latest/problemOccurrences?locator=build:(id:" + buildRef.getId() + ")", ProblemOccurrences.class);
+
+        coll.getProblemsNonNull().forEach(p -> p.buildRef = buildRef);
+
+        return coll;
+    }
+
     @Override
     @AutoProfiling
     public ProblemOccurrences getProblems(Build build) {
@@ -458,8 +468,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public TestOccurrences getFailedUnmutedTests(String href, int count, String normalizedBranch) {
-        return getTests(href + ",muted:false,status:FAILURE,count:" + count, normalizedBranch);
+    @Override public TestOccurrences getFailedUnmutedTestsNames(String href, int count, String normalizedBranch) {
+        return getTests(href + ",muted:false,status:FAILURE,count:" + count + "&fields=testOccurrence(name)", normalizedBranch);
     }
 
     /** {@inheritDoc} */
@@ -469,6 +479,16 @@ public class IgniteTeamcityConnection implements ITeamcity {
             return getJaxbUsingHref("app/rest/latest/tests/name:" + key.getTestName(), TestRef.class);
         }, executor);
     }
+
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public Configurations getConfigurations(FullQueryParams key) {
+        return getJaxbUsingHref("app/rest/latest/builds?locator=snapshotDependency:(to:(id:" + key.getBuildId()
+                + "),includeInitial:true),defaultFilter:false,count:500",
+            Configurations.class);
+    }
+
 
     /** {@inheritDoc} */
     @AutoProfiling
