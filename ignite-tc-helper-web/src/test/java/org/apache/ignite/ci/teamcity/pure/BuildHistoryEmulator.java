@@ -22,7 +22,9 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.util.XmlUtil;
 import org.jetbrains.annotations.Nullable;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -34,7 +36,7 @@ public class BuildHistoryEmulator {
         this.sharedState = sharedState;
     }
 
-    @Nullable public InputStream handleUrl(String url) {
+    @Nullable public InputStream handleUrl(String url) throws JAXBException {
         InputStream stream = null;
         if (!url.contains("/app/rest/latest/builds?locator=defaultFilter:false")) {
             return stream;
@@ -43,12 +45,24 @@ public class BuildHistoryEmulator {
         int cnt = getIntFromLocator(url, "count:", 100);
         int start = getIntFromLocator(url, "start:", 100);
 
-        int totalRemained = sharedState.size() - start;
+        int totalBuilds = sharedState.size();
+        int totalRemained = totalBuilds - start;
+        if (totalRemained < 0)
+            totalRemained = 0;
 
         StringBuffer buf = new StringBuffer();
 
-        buf.append("<builds count=\"1000\" href=\"/app/rest/latest/builds?locator=defaultFilter:false,count:1000,start:0\" nextHref=\"/app/rest/latest/builds?locator=defaultFilter:false,count:1000,start:1000\">\n" +
-            " ");
+        int returnNow = Math.min(totalRemained, cnt);
+
+        int nextStart = 0;
+        if (totalBuilds > start + returnNow)
+            nextStart = start + returnNow;
+
+        addXmlStart(cnt, buf, returnNow, nextStart);
+
+        for (int i = start; i < start + returnNow; i++) {
+            buf.append(XmlUtil.save(sharedState.get(i)));
+        }
 
         buf.append("</builds>");
 
@@ -56,6 +70,26 @@ public class BuildHistoryEmulator {
         return new ByteInputStream(bytes, bytes.length);
     }
 
+    public void addXmlStart(int cnt, StringBuffer buf, int returnNow, int nextStart) {
+        buf.append("<builds count=" + "\"");
+        buf.append(returnNow);
+        buf.append("\"");
+        if (nextStart > 0) {
+            buf.append(" nextHref=\"/app/rest/latest/builds?locator=defaultFilter:false,count:");
+            buf.append(cnt);
+            buf.append(",start:");
+            buf.append(nextStart);
+            buf.append("\"");
+        }
+        buf.append(">\n");
+        buf.append(" ");
+    }
+
+    /**
+     * @param url Url.
+     * @param prefix Prefix.
+     * @param def Def.
+     */
     public int getIntFromLocator(String url, String prefix, int def) {
         Pattern compile = Pattern.compile(prefix + "[0-9]*");
         Matcher m = compile.matcher(url);
@@ -64,7 +98,8 @@ public class BuildHistoryEmulator {
 
         String cntStr = m.group(0);
 
-        System.err.println(cntStr == null);
+        if(cntStr == null)
+            return def;
 
         return Integer.parseInt(cntStr.substring(prefix.length()));
 

@@ -123,18 +123,18 @@ public class IgnitedTcInMemoryIntegrationTest {
         );
     }
 
-
-
     @Test
-    public void actualizationOfBuildsContains() throws IOException {
+    public void incrementalActualizationOfBuildsContainsQueued() throws IOException {
         ITeamcityHttpConnection http = Mockito.mock(ITeamcityHttpConnection.class);
 
+        int queuedBuildIdx = 500;
         ArrayList<BuildRef> tcBuilds = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             BuildRef e = new BuildRef();
-            e.state = BuildRef.STATE_FINISHED;
+            e.state = i >= queuedBuildIdx ? BuildRef.STATE_QUEUED : BuildRef.STATE_FINISHED;
             e.status = BuildRef.STATUS_SUCCESS;
             e.buildTypeId = "IgniteTests24Java8_RunAll";
+            e.branchName = "refs/heads/master";
             e.setId(i + 50000);
             tcBuilds.add(e);
         }
@@ -168,6 +168,10 @@ public class IgnitedTcInMemoryIntegrationTest {
         ITeamcityIgnited srv = injector.getInstance(ITeamcityIgnitedProvider.class).server(APACHE, creds());
 
         TeamcityIgnitedImpl teamcityIgnited = (TeamcityIgnitedImpl)srv;
+        teamcityIgnited.runActualizeBuilds(APACHE, true, null);
+
+        for (int i = queuedBuildIdx; i < tcBuilds.size(); i++)
+            tcBuilds.get(i).state = BuildRef.STATE_FINISHED;
 
         teamcityIgnited.runActualizeBuilds(APACHE, false, null);
 
@@ -184,13 +188,9 @@ public class IgnitedTcInMemoryIntegrationTest {
             assertEquals(buildTypeId, h.suiteId());
 
             assertEquals("refs/heads/master", h.branchName());
-        }
 
-        ignite.cache(STRINGS_CACHE).forEach(
-            (e) -> {
-                System.out.println(e.getValue());
-            }
-        );
+            assertTrue("Build " + h + " is expected to be finished" , h.isFinished());
+        }
     }
 
     /**
