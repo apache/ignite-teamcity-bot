@@ -77,4 +77,11 @@ public class BuildRefCompacted {
     @Override public int hashCode() {
         return Objects.hashCode(id, buildTypeId, branchName, status, state);
     }
+
+    /**
+     *
+     */
+    public int id() {
+        return id;
+    }
 }

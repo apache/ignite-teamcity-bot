@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 
 import com.google.common.base.Objects;
+import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.ignite.ci.tcmodel.result.AbstractRef;
 
 /**
@@ -30,6 +31,7 @@ import org.apache.ignite.ci.tcmodel.result.AbstractRef;
  * short version involved in snapshot dependencies and into build history list
  */
 @XmlAccessorType(XmlAccessType.FIELD)
+@XmlRootElement(name = "build")
 public class BuildRef extends AbstractRef {
     public static final String STATUS_UNKNOWN = "UNKNOWN";
     public static final String STATUS_SUCCESS = "SUCCESS";

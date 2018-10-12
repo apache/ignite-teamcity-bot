@@ -33,6 +33,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.internal.util.GridIntList;
 import org.jetbrains.annotations.NotNull;
 
 public class BuildRefDao {
@@ -53,16 +54,16 @@ public class BuildRefDao {
         buildsCache = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(TEAMCITY_BUILD_CACHE_NAME));
     }
 
-    @NotNull protected Stream<BuildRefCompacted> compactedBuildsForServer(long srvIdMaskHigh) {
+    @NotNull protected Stream<BuildRefCompacted> compactedBuildsForServer(long srvId) {
         return StreamSupport.stream(buildsCache.spliterator(), false)
-            .filter(entry -> entry.getKey() >> 32 == srvIdMaskHigh)
+            .filter(entry -> entry.getKey() >> 32 == srvId)
             .map(javax.cache.Cache.Entry::getValue);
     }
 
-    public int saveChunk(long srvIdMaskHigh, List<BuildRef> ghData) {
+    public int saveChunk(long srvId, List<BuildRef> ghData) {
         Set<Long> ids = ghData.stream().map(BuildRef::getId)
             .filter(Objects::nonNull)
-            .map(buildId -> buildIdToCacheKey(srvIdMaskHigh, buildId))
+            .map(buildId -> buildIdToCacheKey(srvId, buildId))
             .collect(Collectors.toSet());
 
         Map<Long, BuildRefCompacted> existingEntries = buildsCache.getAll(ids);
@@ -73,7 +74,7 @@ public class BuildRefDao {
             .collect(Collectors.toList());
 
         for (BuildRefCompacted next : collect) {
-            long cacheKey = buildIdToCacheKey(srvIdMaskHigh, next.id);
+            long cacheKey = buildIdToCacheKey(srvId, next.id);
             BuildRefCompacted buildPersisted = existingEntries.get(cacheKey);
 
             if (buildPersisted == null || !buildPersisted.equals(next))
@@ -87,19 +88,19 @@ public class BuildRefDao {
     }
 
     /**
-     * @param srvIdMaskHigh Server id mask high.
+     * @param srvId Server id mask high.
      * @param buildId Build id.
      */
-    private long buildIdToCacheKey(long srvIdMaskHigh, int buildId) {
-        return (long)buildId | srvIdMaskHigh << 32;
+    private long buildIdToCacheKey(long srvId, int buildId) {
+        return (long)buildId | srvId << 32;
     }
 
     /**
-     * @param srvIdMaskHigh Server id mask high.
+     * @param srvId Server id mask high.
      * @param buildTypeId Build type id.
      * @param bracnhNameQry Bracnh name query.
      */
-    @NotNull public List<BuildRef> findBuildsInHistory(long srvIdMaskHigh,
+    @NotNull public List<BuildRef> findBuildsInHistory(long srvId,
         @Nullable String buildTypeId,
         String bracnhNameQry) {
 
@@ -111,10 +112,29 @@ public class BuildRefDao {
         if (bracnhNameQryId == null)
             return Collections.emptyList();
 
-        return compactedBuildsForServer(srvIdMaskHigh)
+        return compactedBuildsForServer(srvId)
             .filter(e -> e.buildTypeId == (int)buildTypeIdId)
             .filter(e -> e.branchName == (int)bracnhNameQryId)
             .map(compacted -> compacted.toBuildRef(compactor))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * @param srvId Server id.
+     */
+    public List<BuildRefCompacted> getQueuedAndRunning(long srvId) {
+        GridIntList list = new GridIntList(2);
+        Integer stateQueuedId = compactor.getStringIdIfPresent(BuildRef.STATE_QUEUED);
+        if (stateQueuedId != null)
+            list.add(stateQueuedId);
+
+        Integer stateRunningId = compactor.getStringIdIfPresent(BuildRef.STATE_RUNNING);
+        if (stateRunningId != null)
+            list.add(stateRunningId);
+
+
+        return compactedBuildsForServer(srvId)
+            .filter(e ->  list.contains(e.state) )
             .collect(Collectors.toList());
     }
 }
