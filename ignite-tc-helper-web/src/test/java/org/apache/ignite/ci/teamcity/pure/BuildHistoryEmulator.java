@@ -16,9 +16,8 @@
  */
 package org.apache.ignite.ci.teamcity.pure;
 
-import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,11 +35,12 @@ public class BuildHistoryEmulator {
         this.sharedState = sharedState;
     }
 
+    /**
+     * @param url Url.
+     */
     @Nullable public InputStream handleUrl(String url) throws JAXBException {
-        InputStream stream = null;
-        if (!url.contains("/app/rest/latest/builds?locator=defaultFilter:false")) {
-            return stream;
-        }
+        if (!url.contains("/app/rest/latest/builds?locator=defaultFilter:false"))
+            return null;
 
         int cnt = getIntFromLocator(url, "count:", 100);
         int start = getIntFromLocator(url, "start:", 100);
@@ -60,14 +60,14 @@ public class BuildHistoryEmulator {
 
         addXmlStart(cnt, buf, returnNow, nextStart);
 
-        for (int i = start; i < start + returnNow; i++) {
+        for (int i = start; i < start + returnNow; i++)
             buf.append(XmlUtil.save(sharedState.get(i)));
-        }
 
         buf.append("</builds>");
 
         byte[] bytes = buf.toString().getBytes(UTF_8);
-        return new ByteInputStream(bytes, bytes.length);
+
+        return new ByteArrayInputStream(bytes);
     }
 
     public void addXmlStart(int cnt, StringBuffer buf, int returnNow, int nextStart) {

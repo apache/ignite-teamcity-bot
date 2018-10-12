@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitSheduler;
@@ -131,7 +132,9 @@ public class IgnitedTcInMemoryIntegrationTest {
         ArrayList<BuildRef> tcBuilds = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             BuildRef e = new BuildRef();
-            e.state = i >= queuedBuildIdx ? BuildRef.STATE_QUEUED : BuildRef.STATE_FINISHED;
+            e.state = i >= queuedBuildIdx ?
+                (Math.random() * 2 > 1 ? BuildRef.STATE_QUEUED : BuildRef.STATE_RUNNING)
+                : BuildRef.STATE_FINISHED;
             e.status = BuildRef.STATUS_SUCCESS;
             e.buildTypeId = "IgniteTests24Java8_RunAll";
             e.branchName = "refs/heads/master";
@@ -169,28 +172,32 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         TeamcityIgnitedImpl teamcityIgnited = (TeamcityIgnitedImpl)srv;
         teamcityIgnited.fullReindex();
+        String buildTypeId = "IgniteTests24Java8_RunAll";
+        String branchName = "<default>";
+        List<String> statues = srv.getBuildHistory(buildTypeId, branchName).stream().map(BuildRef::state).distinct().collect(Collectors.toList());
+        System.out.println("Before " + statues);
 
         for (int i = queuedBuildIdx; i < tcBuilds.size(); i++)
             tcBuilds.get(i).state = BuildRef.STATE_FINISHED;
 
         teamcityIgnited.actualizeRecentBuilds();
 
-        String buildTypeId = "IgniteTests24Java8_RunAll";
-        String branchName = "<default>";
+
         List<BuildRef> hist = srv.getBuildHistory(buildTypeId, branchName);
-        //todo mult branches including pull/4926/head
 
         assertTrue(!hist.isEmpty());
 
         for (BuildRef h : hist) {
-            System.out.println(h);
-
             assertEquals(buildTypeId, h.suiteId());
 
             assertEquals("refs/heads/master", h.branchName());
 
             assertTrue("Build " + h + " is expected to be finished" , h.isFinished());
         }
+
+        statues = hist.stream().map(BuildRef::state).distinct().collect(Collectors.toList());
+
+        System.out.println("After " + statues);
     }
 
     /**
