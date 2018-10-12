@@ -1,0 +1,9 @@
+<!--https://ci.ignite.apache.org/app/rest/latest/changes?locator=build:(id:2063765)-->
+<changes count="6" href="/app/rest/latest/changes?locator=build:(id:2063765)">
+    <change id="834843" version="5925444df9170652d4436288f470bf6d031c104e" username="jokserfn" date="20181011T190027+0300" href="/app/rest/latest/changes/id:834843" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=834843&amp;personal=false"/>
+    <change id="834837" version="584652293c8646d8a893eed1a2b2ae1a179a5d20" username="aplatonovv" date="20181011T184228+0300" href="/app/rest/latest/changes/id:834837" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=834837&amp;personal=false"/>
+    <change id="834798" version="88df5ee607b23a30e051e9724dcd97b7e43aa6d6" username="kondakov87" date="20181011T161152+0300" href="/app/rest/latest/changes/id:834798" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=834798&amp;personal=false"/>
+    <change id="834773" version="f57b807bb84606dceba26ec1e34e694712579524" username="mr.weider" date="20181011T150104+0300" href="/app/rest/latest/changes/id:834773" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=834773&amp;personal=false"/>
+    <change id="834768" version="f97ebff9a59514a681258b46ae1b74c1ce4e0a3b" username="tledkov" date="20181011T143420+0300" href="/app/rest/latest/changes/id:834768" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=834768&amp;personal=false"/>
+    <change id="834760" version="a3c2ea3bf5601fa600c92d2f1701372546bc2a7d" username="isapego" date="20181011T132601+0300" href="/app/rest/latest/changes/id:834760" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=834760&amp;personal=false"/>
+</changes>
