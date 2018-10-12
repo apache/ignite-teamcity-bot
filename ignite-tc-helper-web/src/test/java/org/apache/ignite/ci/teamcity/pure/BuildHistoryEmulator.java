@@ -19,10 +19,12 @@ package org.apache.ignite.ci.teamcity.pure;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.hist.Builds;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,39 +52,38 @@ public class BuildHistoryEmulator {
         if (totalRemained < 0)
             totalRemained = 0;
 
-        StringBuffer buf = new StringBuffer();
-
         int returnNow = Math.min(totalRemained, cnt);
 
         int nextStart = 0;
         if (totalBuilds > start + returnNow)
             nextStart = start + returnNow;
 
-        addXmlStart(cnt, buf, returnNow, nextStart);
+        Builds builds = createBuilds(cnt, returnNow, nextStart);
+        List<BuildRef> buildsList  = new ArrayList<>();
 
         for (int i = start; i < start + returnNow; i++)
-            buf.append(XmlUtil.save(sharedState.get(i)));
+            buildsList.add(sharedState.get(i));
 
-        buf.append("</builds>");
+        builds.builds(buildsList);
 
-        byte[] bytes = buf.toString().getBytes(UTF_8);
-
-        return new ByteArrayInputStream(bytes);
+        return new ByteArrayInputStream(XmlUtil.save(builds).getBytes(UTF_8));
     }
 
-    public void addXmlStart(int cnt, StringBuffer buf, int returnNow, int nextStart) {
-        buf.append("<builds count=" + "\"");
-        buf.append(returnNow);
-        buf.append("\"");
+    public Builds createBuilds(int cnt, int returnNow, int nextStart) {
+        Builds builds = new Builds();
+        builds.count(returnNow);
         if (nextStart > 0) {
-            buf.append(" nextHref=\"/app/rest/latest/builds?locator=defaultFilter:false,count:");
+            StringBuffer buf = new StringBuffer();
+            buf.append("/app/rest/latest/builds?locator=defaultFilter:false,count:");
             buf.append(cnt);
             buf.append(",start:");
             buf.append(nextStart);
-            buf.append("\"");
+
+            builds.nextHref(buf.toString());
         }
-        buf.append(">\n");
-        buf.append(" ");
+
+        return builds;
+
     }
 
     /**
