@@ -122,7 +122,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /**
-     * @param srvId Server id.
+     * @param srvId Server id. todo to be added as composite name extend
      * @param fullReindex Reindex all builds from TC history.
      * @param mandatoryToReload Build ID can be used as end of syncing.  Ignored if fullReindex mode.
      */
