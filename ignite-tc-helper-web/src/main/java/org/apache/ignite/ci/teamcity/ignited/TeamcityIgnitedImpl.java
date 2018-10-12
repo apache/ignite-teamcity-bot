@@ -16,11 +16,16 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import com.google.common.collect.Sets;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
@@ -81,7 +86,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
 
         //todo may add additional parameter: load builds into DB in sync/async fashion
-        runActializeBuildRefs(srvId, false, build.getId());
+        runActualizeBuilds(srvId, false, Sets.newHashSet(build.getId()));
 
         return build;
     }
@@ -89,8 +94,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /**
      *
      */
-    private void actualizeRecentBuilds() {
-        runActializeBuildRefs(srvId, false, null);
+    void actualizeRecentBuilds() {
+        List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdMaskHigh);
+
+        Set<Integer> collect = running.stream().map(BuildRefCompacted::id).collect(Collectors.toSet());
+
+        runActualizeBuilds(srvId, false, collect);
 
         // schedule full resync later
         scheduler.invokeLater(this::sheduleResync, 60, TimeUnit.SECONDS);
@@ -107,27 +116,27 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /**
      *
      */
-    private void fullReindex() {
-        runActializeBuildRefs(srvId, true, null);
+    void fullReindex() {
+        runActualizeBuilds(srvId, true, null);
     }
 
     /**
-     * @param srvId Server id.
-     * @param fullReindex Reindex all builds from TC history. Ignored if particular ID provided.
-     * @param buildIdCanFinish Build ID can be used as end of syncing.
+     * @param srvId Server id. todo to be added as composite name extend
+     * @param fullReindex Reindex all builds from TC history.
+     * @param mandatoryToReload Build ID can be used as end of syncing. Ignored if fullReindex mode.
      */
     @MonitoredTask(name = "Actualize BuildRefs, full resync", nameExtArgIndex = 1)
     @AutoProfiling
-    protected String runActializeBuildRefs(String srvId, boolean fullReindex,
-        @Nullable Integer buildIdCanFinish) {
+    protected String runActualizeBuilds(String srvId, boolean fullReindex,
+        @Nullable Set<Integer> mandatoryToReload) {
         AtomicReference<String> outLinkNext = new AtomicReference<>();
         List<BuildRef> tcDataFirstPage = conn.getBuildRefs(null, outLinkNext);
 
         int cntSaved = buildRefDao.saveChunk(srvIdMaskHigh, tcDataFirstPage);
         int totalChecked = tcDataFirstPage.size();
 
-        boolean noRequiredBuild = buildIdCanFinish == null;
-        boolean requiredBuildFound = false;
+        final Set<Integer> stillNeedToFind =
+            mandatoryToReload == null ? Collections.emptySet() : Sets.newHashSet(mandatoryToReload);
 
         while (outLinkNext.get() != null) {
             String nextPageUrl = outLinkNext.get();
@@ -138,13 +147,13 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             cntSaved += savedCurChunk;
             totalChecked += tcDataNextPage.size();
 
-            if (buildIdCanFinish != null) {
-                if (tcDataNextPage.stream().map(BuildRef::getId).anyMatch(buildIdCanFinish::equals))
-                    requiredBuildFound = true; // Syncing till specific build ID.
-            }
+            if (!fullReindex) {
+                if (!stillNeedToFind.isEmpty())
+                    tcDataNextPage.stream().map(BuildRef::getId).forEach(stillNeedToFind::remove);
 
-            if (savedCurChunk == 0 && ((requiredBuildFound) || (noRequiredBuild && !fullReindex)))
-                break; // There are no modification at current page, hopefully no modifications at all
+                if (savedCurChunk == 0 && stillNeedToFind.isEmpty())
+                    break; // There are no modification at current page, hopefully no modifications at all
+            }
         }
 
         return "Entries saved " + cntSaved + " Builds checked " + totalChecked;

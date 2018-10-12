@@ -44,6 +44,7 @@ public class XmlUtil {
     public static String save(Object obj) throws JAXBException {
         Marshaller marshaller = getContext(obj.getClass()).createMarshaller();
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+        marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
         StringWriter writer = new StringWriter();
         marshaller.marshal(obj, writer);
 
@@ -52,13 +53,13 @@ public class XmlUtil {
 
     private static <T> JAXBContext getContext(Class<T> tCls) {
         return cachedCtx.computeIfAbsent(tCls, c -> {
-                try {
-                    return JAXBContext.newInstance(tCls);
-                }
-                catch (JAXBException e) {
-                    throw new RuntimeException(e);
-                }
-            });
+            try {
+                return JAXBContext.newInstance(tCls);
+            }
+            catch (JAXBException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     /**

@@ -32,6 +32,9 @@ public class Builds {
     @XmlAttribute
     private String nextHref;
 
+    @XmlAttribute
+    private Integer count;
+
     @XmlElement(name = "build")
     private List<BuildRef> builds;
 
@@ -41,5 +44,17 @@ public class Builds {
 
     public String nextHref() {
         return nextHref;
+    }
+
+    public void count(int count) {
+        this.count = count;
+    }
+
+    public void nextHref(String nextHref) {
+        this.nextHref = nextHref;
+    }
+
+    public void builds(List<BuildRef> list) {
+        this.builds = list;
     }
 }

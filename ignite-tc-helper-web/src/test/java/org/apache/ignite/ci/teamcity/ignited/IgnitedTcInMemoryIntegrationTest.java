@@ -15,29 +15,24 @@
  * limitations under the License.
  */
 package org.apache.ignite.ci.teamcity.ignited;
-
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
-import javax.xml.bind.JAXBException;
+import java.util.stream.Collectors;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitSheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.di.scheduler.NoOpSheduler;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.util.XmlUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -128,6 +123,33 @@ public class IgnitedTcInMemoryIntegrationTest {
         );
     }
 
+    @Test
+    public void incrementalActualizationOfBuildsContainsQueued() throws IOException {
+        ITeamcityHttpConnection http = Mockito.mock(ITeamcityHttpConnection.class);
+
+        int queuedBuildIdx = 500;
+        ArrayList<BuildRef> tcBuilds = new ArrayList<>();
+        for (int i = 0; i < 1000; i++) {
+            BuildRef e = new BuildRef();
+            e.state = i >= queuedBuildIdx ?
+                (Math.random() * 2 > 1 ? BuildRef.STATE_QUEUED : BuildRef.STATE_RUNNING)
+                : BuildRef.STATE_FINISHED;
+            e.status = BuildRef.STATUS_SUCCESS;
+            e.buildTypeId = "IgniteTests24Java8_RunAll";
+            e.branchName = "refs/heads/master";
+            e.setId(i + 50000);
+            tcBuilds.add(e);
+        }
+        finally {
+            ignite.close();
+        }
+
+        statues = hist.stream().map(BuildRef::state).distinct().collect(Collectors.toList());
+
+        System.out.println("After " + statues);
+    }
+
+
     /**
      *
      */
@@ -185,4 +207,5 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertEquals(refBt.getProjectId(), actBt.getProjectId());
         assertEquals(refBt.getId(), actBt.getId());
     }
+
 }
