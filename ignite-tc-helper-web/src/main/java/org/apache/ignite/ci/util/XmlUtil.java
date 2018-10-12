@@ -18,9 +18,11 @@
 package org.apache.ignite.ci.util;
 
 import java.io.Reader;
+import java.io.StringWriter;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 
 /**
@@ -31,7 +33,26 @@ public class XmlUtil {
     private static ConcurrentHashMap<Class, JAXBContext> cachedCtx = new ConcurrentHashMap<>();
 
     public static <T> T load(Class<T> tCls, Reader reader) throws JAXBException {
-        final JAXBContext ctx = cachedCtx.computeIfAbsent(tCls, c -> {
+        Unmarshaller unmarshaller = getContext(tCls).createUnmarshaller();
+        T unmarshal = (T)unmarshaller.unmarshal(reader);
+
+        ObjectInterner.internFields(unmarshal);
+
+        return unmarshal;
+    }
+
+    public static String save(Object obj) throws JAXBException {
+        Marshaller marshaller = getContext(obj.getClass()).createMarshaller();
+        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+        marshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);
+        StringWriter writer = new StringWriter();
+        marshaller.marshal(obj, writer);
+
+        return writer.toString();
+    }
+
+    private static <T> JAXBContext getContext(Class<T> tCls) {
+        return cachedCtx.computeIfAbsent(tCls, c -> {
             try {
                 return JAXBContext.newInstance(tCls);
             }
@@ -39,14 +60,6 @@ public class XmlUtil {
                 throw new RuntimeException(e);
             }
         });
-        Unmarshaller unmarshaller = ctx.createUnmarshaller();
-        T unmarshal = (T)unmarshaller.unmarshal(reader);
-
-        int interned = ObjectInterner.internFields(unmarshal);
-       // if (interned > 0)
-       //     System.out.println("Strings saved: " + interned);
-
-        return unmarshal;
     }
 
     /**
