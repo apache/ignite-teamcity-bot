@@ -33,6 +33,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.internal.util.GridIntList;
 import org.jetbrains.annotations.NotNull;
 
 public class BuildRefDao {
@@ -115,6 +116,25 @@ public class BuildRefDao {
             .filter(e -> e.buildTypeId == (int)buildTypeIdId)
             .filter(e -> e.branchName == (int)bracnhNameQryId)
             .map(compacted -> compacted.toBuildRef(compactor))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * @param srvId Server id.
+     */
+    public List<BuildRefCompacted> getQueuedAndRunning(long srvId) {
+        GridIntList list = new GridIntList(2);
+        Integer stateQueuedId = compactor.getStringIdIfPresent(BuildRef.STATE_QUEUED);
+        if (stateQueuedId != null)
+            list.add(stateQueuedId);
+
+        Integer stateRunningId = compactor.getStringIdIfPresent(BuildRef.STATE_RUNNING);
+        if (stateRunningId != null)
+            list.add(stateRunningId);
+
+
+        return compactedBuildsForServer(srvId)
+            .filter(e ->  list.contains(e.state) )
             .collect(Collectors.toList());
     }
 }

@@ -168,12 +168,12 @@ public class IgnitedTcInMemoryIntegrationTest {
         ITeamcityIgnited srv = injector.getInstance(ITeamcityIgnitedProvider.class).server(APACHE, creds());
 
         TeamcityIgnitedImpl teamcityIgnited = (TeamcityIgnitedImpl)srv;
-        teamcityIgnited.runActualizeBuilds(APACHE, true, null);
+        teamcityIgnited.fullReindex();
 
         for (int i = queuedBuildIdx; i < tcBuilds.size(); i++)
             tcBuilds.get(i).state = BuildRef.STATE_FINISHED;
 
-        teamcityIgnited.runActualizeBuilds(APACHE, false, null);
+        teamcityIgnited.actualizeRecentBuilds();
 
         String buildTypeId = "IgniteTests24Java8_RunAll";
         String branchName = "<default>";
