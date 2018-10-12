@@ -163,13 +163,15 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         Build actBuild = fatBuild.toBuild(injector.getInstance(IStringCompactor.class));
 
+        try (FileWriter writer = new FileWriter("src/test/resources/build1.xml")) {
+            writer.write(XmlUtil.save(refBuild));
+        }
+
         String save = XmlUtil.save(actBuild);
-
         System.out.println(save);
-
-        FileWriter writer = new FileWriter("src/test/resources/build2.xml");
-        writer.write(save);
-        writer.close();
+        try (FileWriter writer = new FileWriter("src/test/resources/build2.xml")) {
+            writer.write(save);
+        }
 
         assertEquals(refBuild.getId(), actBuild.getId());
         assertEquals(refBuild.status(), actBuild.status());
