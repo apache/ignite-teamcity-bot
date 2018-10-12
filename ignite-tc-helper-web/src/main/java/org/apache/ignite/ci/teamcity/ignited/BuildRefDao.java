@@ -139,7 +139,7 @@ public class BuildRefDao {
 
 
         return compactedBuildsForServer(srvId)
-            .filter(e ->  list.contains(e.state) )
+            .filter(e ->  list.contains(e.state()) )
             .collect(Collectors.toList());
     }
 }

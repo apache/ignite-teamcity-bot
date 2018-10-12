@@ -107,4 +107,9 @@ public class BuildRefCompacted {
     public int branchName() {
         return branchName;
     }
+
+    /** */
+    public int state() {
+        return state;
+    }
 }

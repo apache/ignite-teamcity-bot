@@ -19,20 +19,27 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitSheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.di.scheduler.NoOpSheduler;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.util.XmlUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -123,6 +130,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         );
     }
 
+
     @Test
     public void incrementalActualizationOfBuildsContainsQueued() throws IOException {
         ITeamcityHttpConnection http = Mockito.mock(ITeamcityHttpConnection.class);
@@ -140,8 +148,58 @@ public class IgnitedTcInMemoryIntegrationTest {
             e.setId(i + 50000);
             tcBuilds.add(e);
         }
-        finally {
-            ignite.close();
+
+        BuildHistoryEmulator emulator = new BuildHistoryEmulator(tcBuilds);
+
+        when(http.sendGet(anyString(), anyString())).thenAnswer(
+            (invocationOnMock) -> {
+                String url = invocationOnMock.getArgument(1);
+
+                InputStream stream = emulator.handleUrl(url);
+
+                if (stream != null)
+                    return stream;
+
+                throw new FileNotFoundException(url);
+            }
+        );
+
+        TeamcityIgnitedModule module = new TeamcityIgnitedModule();
+
+        module.overrideHttp(http);
+
+        Injector injector = Guice.createInjector(module, new AbstractModule() {
+            @Override protected void configure() {
+                bind(Ignite.class).toInstance(ignite);
+                bind(IScheduler.class).to(NoOpSheduler.class);
+            }
+        });
+
+        ITeamcityIgnited srv = injector.getInstance(ITeamcityIgnitedProvider.class).server(APACHE, creds());
+
+        TeamcityIgnitedImpl teamcityIgnited = (TeamcityIgnitedImpl)srv;
+        teamcityIgnited.fullReindex();
+        String buildTypeId = "IgniteTests24Java8_RunAll";
+        String branchName = "<default>";
+        List<String> statues = srv.getBuildHistory(buildTypeId, branchName).stream().map(BuildRef::state).distinct().collect(Collectors.toList());
+        System.out.println("Before " + statues);
+
+        for (int i = queuedBuildIdx; i < tcBuilds.size(); i++)
+            tcBuilds.get(i).state = BuildRef.STATE_FINISHED;
+
+        teamcityIgnited.actualizeRecentBuilds();
+
+
+        List<BuildRef> hist = srv.getBuildHistory(buildTypeId, branchName);
+
+        assertTrue(!hist.isEmpty());
+
+        for (BuildRef h : hist) {
+            assertEquals(buildTypeId, h.suiteId());
+
+            assertEquals("refs/heads/master", h.branchName());
+
+            assertTrue("Build " + h + " is expected to be finished" , h.isFinished());
         }
 
         statues = hist.stream().map(BuildRef::state).distinct().collect(Collectors.toList());
