@@ -17,9 +17,24 @@
 
 package org.apache.ignite.ci;
 
+import java.util.Set;
+import org.apache.ignite.ci.analysis.BuildCondition;
+
 /**
  * Combination of REST data and persisted statistics.
  */
 public interface IAnalyticsEnabledTeamcity extends ITeamcity, ITcAnalytics {
     public void init(ITeamcity conn);
+
+    /**
+     *  Set condition "valid" or "invalid" for build.
+     *
+     * @param buildCond Build condition.
+     */
+    public boolean setBuildCondition(BuildCondition buildCond);
+
+    /**
+     * BuildConditions set for user.
+     */
+    public Set<BuildCondition> getBuildConditions(String username);
 }

@@ -17,7 +17,12 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
+import com.google.common.collect.BiMap;
 import com.google.inject.Injector;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.ignite.ci.analysis.BuildCondition;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -29,6 +34,7 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
@@ -158,6 +164,50 @@ public class GetBuildTestFailures {
         return res;
     }
 
+    /**
+     * Mark builds as "valid" or "invalid" for a specific user.
+     *
+     * @param buildId Build id.
+     * @param isValid Is valid.
+     * @param field Field.
+     * @param srv Server.
+     */
+    @GET
+    @Path("condition")
+    public SimpleResult setBuildCondition(
+        @QueryParam("buildId") Integer buildId,
+        @QueryParam("isValid") Boolean isValid,
+        @QueryParam("field") String field,
+        @QueryParam("serverId") String srv) {
+        String srvId = isNullOrEmpty(srv) ? "apache" : srv;
+
+        if (buildId == null || isValid == null)
+            return new SimpleResult("<i class='fas fa-exclamation-circle'></i><br><br>" + (buildId == null ?
+                ("BuildId" + (isValid == null ? "and condition are" : "is")) : "Build condition is") + " <b>null</b>!");
+
+        final ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
+
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
+
+        BiMap<String, String> problemNames = BuildStatisticsSummary.fullProblemNames;
+
+        BuildCondition buildCond =
+            new BuildCondition(buildId, prov.getPrincipalId(), isValid, problemNames.getOrDefault(field, field));
+
+        boolean res = teamcity.setBuildCondition(buildCond);
+
+        String text = "<i class='fas fa-" + (res ? "check" : "exclamation") + "-circle'></i><br><br>";
+
+        if (isValid)
+            text += res ? "Build <b>remove</b> from invalid list!" : "Invalid list <b>doesn't contain</b> build!";
+        else
+            text += "Build " + (res ? "<b>add</b> in" : "<b>is already</b> on the") + " invalid list!";
+
+        return new SimpleResult(text);
+    }
+
     @GET
     @Path("history")
     public List<BuildStatisticsSummary> getBuildsHistory(
@@ -173,8 +223,6 @@ public class GetBuildTestFailures {
         Date sinceDateFilter = isNullOrEmpty(sinceDate) ? null : dateParse(sinceDate);
         Date untilDateFilter = isNullOrEmpty(untilDate) ? null : dateParse(untilDate);
 
-        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(ctx);
-
         final ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
@@ -185,25 +233,33 @@ public class GetBuildTestFailures {
 
         List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
 
-        for (int i = 0; i < finishedBuilds.length; i++) {
-            int buildId = finishedBuilds[i];
+        String username = prov.getPrincipalId();
 
-            FullQueryParams param = new FullQueryParams();
-            param.setBuildId(buildId);
-            param.setBranch(branchName);
-            param.setServerId(srvId);
+        Set<Integer> buildIds = teamcity.getBuildConditions(username).stream()
+            .mapToInt(v -> v.buildId).boxed().collect(Collectors.toSet());
 
-            BuildStatisticsSummary buildsStatistic = updater.get(
-                BUILDS_STATISTICS_SUMMARY_CACHE_NAME, prov, param,
-                (k) -> getBuildStatisticsSummaryNoCache(srvId, buildId), false);
+        System.out.println(buildIds);
 
-            if (!buildsStatistic.isFakeStub)
-                buildsStatistics.add(buildsStatistic);
+        for (int buildId : finishedBuilds) {
+            BuildStatisticsSummary stat = new BuildStatisticsSummary(buildId);
+
+            stat.initialize(teamcity);
+
+            if (!buildIds.isEmpty())
+                stat.isValid = !buildIds.contains(buildId);
+
+            if ((!stat.isFakeStub))
+                buildsStatistics.add(stat);
         }
 
         return buildsStatistics;
     }
 
+    /**
+     * Parse date from format "ddMMyyyyHHmmss".
+     *
+     * @param date Date.
+     */
     private Date dateParse(String date){
         DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
 
@@ -213,21 +269,5 @@ public class GetBuildTestFailures {
         catch (ParseException e) {
             return null;
         }
-    }
-
-    private BuildStatisticsSummary getBuildStatisticsSummaryNoCache(String server, int buildId) {
-        String srvId = isNullOrEmpty(server) ? "apache" : server;
-
-        final ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
-
-        final ICredentialsProv creds = ICredentialsProv.get(req);
-
-        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds);
-
-        BuildStatisticsSummary stat = new BuildStatisticsSummary(buildId);
-
-        stat.initialize(teamcity);
-
-        return stat;
     }
 }
