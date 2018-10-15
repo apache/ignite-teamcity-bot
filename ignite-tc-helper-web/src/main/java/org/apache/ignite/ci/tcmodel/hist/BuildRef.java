@@ -18,11 +18,10 @@
 package org.apache.ignite.ci.tcmodel.hist;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
-
-import com.google.common.base.Objects;
 import org.apache.ignite.ci.tcmodel.result.AbstractRef;
 
 /**
