@@ -19,6 +19,7 @@ package org.apache.ignite.ci.web.model.hist;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.UncheckedIOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -29,9 +30,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.servlet.ServletContext;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
@@ -41,6 +45,8 @@ import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -67,7 +73,7 @@ public class BuildsHistory {
     private Date untilDateFilter;
 
     /** */
-    private Map<String, Set<String>> mergedTestsBySuites = new HashMap<>();
+    private Map<String, Set<String>> mergedTestsBySuites = new ConcurrentHashMap<>();
 
     /** */
     private boolean skipTests;
@@ -77,6 +83,9 @@ public class BuildsHistory {
 
     /** */
     public String mergedTestsJson;
+
+    /** */
+    private static final Logger logger = LoggerFactory.getLogger(BuildsHistory.class);
 
     /** */
     public void initialize(ICredentialsProv prov, ServletContext context) {
@@ -90,10 +99,10 @@ public class BuildsHistory {
         int[] finishedBuildsIds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName,
             sinceDateFilter, untilDateFilter);
 
-        initBuildsStatistics(teamcity, finishedBuildsIds);
+        initStatistics(teamcity, finishedBuildsIds);
 
         if (!skipTests) {
-            initBuildsMergedFailedTests(teamcity, finishedBuildsIds);
+            initFailedTests(teamcity, finishedBuildsIds);
         }
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -106,65 +115,105 @@ public class BuildsHistory {
     }
 
     /** */
-    private void initBuildsStatistics(IAnalyticsEnabledTeamcity teamcity, int[] buildIds) {
+    private void initStatistics(IAnalyticsEnabledTeamcity teamcity, int[] buildIds) {
+        List<CompletableFuture<BuildStatisticsSummary>> buildStatiscsFutures = new ArrayList<>();
+
         for (int buildId : buildIds) {
-            BuildStatisticsSummary buildsStatistic = new BuildStatisticsSummary(buildId);
+            CompletableFuture<BuildStatisticsSummary> buildFuture = CompletableFuture.supplyAsync(() -> {
+                BuildStatisticsSummary buildsStatistic = new BuildStatisticsSummary(buildId);
 
-            buildsStatistic.initialize(teamcity);
+                buildsStatistic.initialize(teamcity);
 
-            if (buildsStatistic != null && !buildsStatistic.isFakeStub)
-                buildsStatistics.add(buildsStatistic);
+                return buildsStatistic;
+
+            }, teamcity.getExecutor());
+
+            buildStatiscsFutures.add(buildFuture);
         }
+
+        buildStatiscsFutures.forEach(v -> {
+            try {
+                BuildStatisticsSummary buildsStatistic = v.get();
+
+                if (buildsStatistic != null && !buildsStatistic.isFakeStub)
+                    buildsStatistics.add(buildsStatistic);
+            } catch (UncheckedIOException e) {
+                logger.error(e.getMessage());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
+    /** */
+    private Map<Integer, String> getConfigurations(ITeamcity teamcity, int buildId) {
+        Map<Integer, String> configurations = new HashMap<>();
+
+        FullQueryParams key = new FullQueryParams();
+
+        key.setServerId(teamcity.serverId());
+        key.setBuildId(buildId);
+
+        teamcity.getConfigurations(key).getBuilds().forEach(buildRef -> {
+            Integer id = buildRef.getId();
+
+            String configurationName = buildRef.buildTypeId;
+
+            if (id != null && configurationName != null)
+                configurations.put(id, configurationName);
+        });
+
+        return configurations;
+    }
 
     /** */
-    private void initBuildsMergedFailedTests(IAnalyticsEnabledTeamcity teamcity, int[] buildIds) {
+    private void initFailedTests(IAnalyticsEnabledTeamcity teamcity, int[] buildIds) {
+        List<CompletableFuture<Void>> buildProcessorFutures = new ArrayList<>();
+
         for (int buildId : buildIds) {
-            Map<Integer, String> configurations = new HashMap<>();
+            CompletableFuture<Void> buildFuture = CompletableFuture.supplyAsync(() -> {
+                Map<Integer, String> configurations = getConfigurations(teamcity, buildId);
 
-            FullQueryParams key = new FullQueryParams();
+                Build build = teamcity.getBuild(teamcity.getBuildHrefById(buildId));
 
-            key.setServerId(teamcity.serverId());
-            key.setBuildId(buildId);
+                TestOccurrences testOccurrences = teamcity.getFailedTests(build.testOccurrences.href,
+                    build.testOccurrences.failed, BuildChainProcessor.normalizeBranch(build.branchName));
 
-            teamcity.getConfigurations(key).getBuilds().forEach(buildRef -> {
-                Integer id = buildRef.getId();
+                for (TestOccurrence testOccurrence : testOccurrences.getTests()) {
+                    String configurationName = configurations.get(testOccurrence.getBuildId());
 
-                String configurationName = buildRef.buildTypeId;
+                    if(configurationName == null)
+                        continue;
 
-                if (id != null && configurationName != null)
-                    configurations.put(id, configurationName);
+                    Set<String> tests = mergedTestsBySuites.computeIfAbsent(configurationName,
+                        k -> new HashSet<>());
 
-            });
+                    if (!tests.add(testOccurrence.getName()))
+                        continue;
 
-            Build build = teamcity.getBuild(teamcity.getBuildHrefById(buildId));
+                    FullQueryParams key = new FullQueryParams();
 
-            TestOccurrences testOccurrences = teamcity.getFailedUnmutedTestsNames(build.testOccurrences.href,
-                build.testOccurrences.failed, BuildChainProcessor.normalizeBranch(build.branchName));
+                    key.setServerId(srvId);
+                    key.setProjectId(projectId);
+                    key.setTestName(testOccurrence.getName());
+                    key.setSuiteId(configurationName);
 
-            for (TestOccurrence testOccurrence : testOccurrences.getTests()) {
-                String configurationName = configurations.get(testOccurrence.getBuildId());
+                    teamcity.getTestRef(key);
+                }
 
-                if(configurationName == null)
-                    continue;
+                return null;
+            }, teamcity.getExecutor());
 
-                Set<String> tests = mergedTestsBySuites.computeIfAbsent(configurationName,
-                    k -> new HashSet<>());
-
-                if (!tests.add(testOccurrence.getName()))
-                    continue;
-
-                key = new FullQueryParams();
-
-                key.setServerId(srvId);
-                key.setProjectId(projectId);
-                key.setTestName(testOccurrence.getName());
-                key.setSuiteId(configurationName);
-
-                teamcity.getTestRef(key);
-            }
+            buildProcessorFutures.add(buildFuture);
         }
+
+        buildProcessorFutures.forEach(v -> {
+            try {
+                v.get();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     /** */

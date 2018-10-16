@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -153,13 +154,11 @@ public interface ITeamcity extends ITeamcityConn {
      * @param build
      * @return
      */
-    ProblemOccurrences getProblems(Build build);
-
-    ProblemOccurrences getProblems(BuildRef buildId);
+    ProblemOccurrences getProblems(BuildRef build);
 
     TestOccurrences getTests(String href, String normalizedBranch);
 
-    TestOccurrences getFailedUnmutedTestsNames(String href, int count, String normalizedBranch);
+    TestOccurrences getFailedTests(String href, int count, String normalizedBranch);
 
     Statistics getBuildStatistics(String href);
 
@@ -261,6 +260,8 @@ public interface ITeamcity extends ITeamcityConn {
     CompletableFuture<LogCheckResult> analyzeBuildLog(Integer buildId, SingleBuildRunCtx ctx);
 
     void setExecutor(ExecutorService pool);
+
+    Executor getExecutor();
 
 
     /**

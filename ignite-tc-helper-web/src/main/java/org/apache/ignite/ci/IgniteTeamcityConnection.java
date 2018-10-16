@@ -125,6 +125,12 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** Build logger processing running. */
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
+    private static int MAX_CONFIG_CNT = 500;
+
+    public Executor getExecutor() {
+        return executor;
+    }
+
     /** {@inheritDoc} */
     public void init(@Nullable String tcName) {
         this.tcName = tcName;
@@ -427,25 +433,12 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     @AutoProfiling
     @Override public ProblemOccurrences getProblems(BuildRef buildRef) {
-        ProblemOccurrences coll = getJaxbUsingHref("app/rest/latest/problemOccurrences?locator=build:(id:" + buildRef.getId() + ")", ProblemOccurrences.class);
+        ProblemOccurrences coll = getJaxbUsingHref("app/rest/latest/problemOccurrences?" +
+            "locator=build:(id:" + buildRef.getId() + ")", ProblemOccurrences.class);
 
         coll.getProblemsNonNull().forEach(p -> p.buildRef = buildRef);
 
         return coll;
-    }
-
-    @Override
-    @AutoProfiling
-    public ProblemOccurrences getProblems(Build build) {
-        if (build.problemOccurrences != null) {
-            ProblemOccurrences coll = getJaxbUsingHref(build.problemOccurrences.href, ProblemOccurrences.class);
-
-            coll.getProblemsNonNull().forEach(p -> p.buildRef = build);
-
-            return coll;
-        }
-        else
-            return new ProblemOccurrences();
     }
 
     /** {@inheritDoc} */
@@ -468,7 +461,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public TestOccurrences getFailedUnmutedTestsNames(String href, int count, String normalizedBranch) {
+    @Override public TestOccurrences getFailedTests(String href, int count, String normalizedBranch) {
         return getTests(href + ",muted:false,status:FAILURE,count:" + count + "&fields=testOccurrence(id,name)", normalizedBranch);
     }
 
@@ -485,7 +478,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @AutoProfiling
     @Override public Configurations getConfigurations(FullQueryParams key) {
         return getJaxbUsingHref("app/rest/latest/builds?locator=snapshotDependency:(to:(id:" + key.getBuildId()
-                + "),includeInitial:true),defaultFilter:false,count:500",
+                + "),includeInitial:true),defaultFilter:false,count:" + MAX_CONFIG_CNT,
             Configurations.class);
     }
 

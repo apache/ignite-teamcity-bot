@@ -32,6 +32,7 @@ import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -789,27 +790,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc}*/
     @AutoProfiling
-    @Override public ProblemOccurrences getProblems(Build build) {
-        if (build.problemOccurrences != null) {
-            String href = build.problemOccurrences.href;
-
-            return loadIfAbsent(
-                buildProblemsCache(),
-                href,
-                k -> {
-                    ProblemOccurrences problems = teamcity.getProblems(build);
-
-                    registerCriticalBuildProblemInStat(build, problems);
-
-                    return problems;
-                });
-        }
-        else
-            return new ProblemOccurrences();
-    }
-
-    /** {@inheritDoc}*/
-    @AutoProfiling
     @Override public ProblemOccurrences getProblems(BuildRef buildRef) {
         return loadIfAbsent(
             buildProblemsCache(),
@@ -871,7 +851,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public TestOccurrences getFailedUnmutedTestsNames(String href, int count, String normalizedBranch) {
+    @Override public TestOccurrences getFailedTests(String href, int count, String normalizedBranch) {
         return getTests(href + ",muted:false,status:FAILURE,count:" + count + "&fields=testOccurrence(id,name)", normalizedBranch);
     }
 
@@ -880,10 +860,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Override public Configurations getConfigurations(FullQueryParams key) {
         return loadIfAbsent(configurationsCache(),
             key.toString(),
-            k -> {
-                    return teamcity.getConfigurations(key);
-            });
-
+            k -> teamcity.getConfigurations(key));
     }
 
     private void addTestOccurrencesToStat(TestOccurrences val) {
@@ -1186,6 +1163,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
             return val;
         });
+    }
+
+    public Executor getExecutor() {
+        return this.teamcity.getExecutor();
     }
 
     /** {@inheritDoc} */
