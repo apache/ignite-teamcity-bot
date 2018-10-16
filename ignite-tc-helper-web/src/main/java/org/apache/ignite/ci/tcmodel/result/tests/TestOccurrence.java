@@ -20,6 +20,7 @@ package org.apache.ignite.ci.tcmodel.result.tests;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
+import org.apache.ignite.ci.analysis.RunStat;
 
 /**
  * Test occurrence. Can be provided by build as list of occurrences.
@@ -103,13 +104,6 @@ public class TestOccurrence {
      * @return BuildId which that test occurrence belongs to
      */
     public Integer getBuildId() {
-        if (id == null)
-            return null;
-
-        String[] list = id.split(":");
-
-        String str = list[list.length - 1];
-
-        return Integer.valueOf(str.substring(0, str.length() - 1));
+        return RunStat.extractIdPrefixed(id, "build:(id:", ")");
     }
 }

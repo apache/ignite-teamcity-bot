@@ -36,4 +36,19 @@ public class Configurations {
     public List<BuildRef> getBuilds() {
         return builds == null ? new ArrayList<>() : builds;
     }
+
+    /** BuildId which that configurations belong to. */
+    private Integer build;
+
+    /** */
+    public Configurations setBuild(Integer build) {
+        this.build = build;
+
+        return this;
+    }
+
+    /** */
+    public Integer getBuild() {
+        return build;
+    }
 }

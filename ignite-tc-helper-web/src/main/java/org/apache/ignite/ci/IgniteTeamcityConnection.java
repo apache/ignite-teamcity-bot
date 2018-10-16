@@ -477,9 +477,10 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public Configurations getConfigurations(FullQueryParams key) {
-        return getJaxbUsingHref("app/rest/latest/builds?locator=snapshotDependency:(to:(id:" + key.getBuildId()
-                + "),includeInitial:true),defaultFilter:false,count:" + MAX_CFG_CNT,
-            Configurations.class);
+        Configurations configurations = getJaxbUsingHref("app/rest/latest/builds?locator=snapshotDependency:(to:(id:" + key.getBuildId()
+            + "),includeInitial:true),defaultFilter:false,count:" + MAX_CFG_CNT, Configurations.class);
+
+        return configurations.setBuild(key.getBuildId());
     }
 
 

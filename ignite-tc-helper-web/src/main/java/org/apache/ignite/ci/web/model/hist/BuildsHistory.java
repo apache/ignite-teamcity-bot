@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import javax.servlet.ServletContext;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
@@ -138,9 +139,13 @@ public class BuildsHistory {
 
                 if (buildsStatistic != null && !buildsStatistic.isFakeStub)
                     buildsStatistics.add(buildsStatistic);
-            } catch (UncheckedIOException e) {
-                logger.error(e.getStackTrace().toString());
-            } catch (Exception e) {
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof  UncheckedIOException)
+                    logger.error(e.getStackTrace().toString());
+
+                else
+                    throw new RuntimeException(e);
+            } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         });
@@ -211,7 +216,13 @@ public class BuildsHistory {
         buildProcessorFutures.forEach(v -> {
             try {
                 v.get();
-            } catch (Exception e) {
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof  UncheckedIOException)
+                    logger.error(e.getStackTrace().toString());
+
+                else
+                    throw new RuntimeException(e);
+            } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         });
