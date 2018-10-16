@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import javax.servlet.ServletContext;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -116,10 +117,10 @@ public class BuildsHistory {
 
     /** */
     private void initStatistics(IAnalyticsEnabledTeamcity teamcity, int[] buildIds) {
-        List<CompletableFuture<BuildStatisticsSummary>> buildStatiscsFutures = new ArrayList<>();
+        List<Future<BuildStatisticsSummary>> buildStatiscsFutures = new ArrayList<>();
 
         for (int buildId : buildIds) {
-            CompletableFuture<BuildStatisticsSummary> buildFuture = CompletableFuture.supplyAsync(() -> {
+            Future<BuildStatisticsSummary> buildFuture = CompletableFuture.supplyAsync(() -> {
                 BuildStatisticsSummary buildsStatistic = new BuildStatisticsSummary(buildId);
 
                 buildsStatistic.initialize(teamcity);
@@ -138,7 +139,7 @@ public class BuildsHistory {
                 if (buildsStatistic != null && !buildsStatistic.isFakeStub)
                     buildsStatistics.add(buildsStatistic);
             } catch (UncheckedIOException e) {
-                logger.error(e.getMessage());
+                logger.error(e.getStackTrace().toString());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -168,10 +169,10 @@ public class BuildsHistory {
 
     /** */
     private void initFailedTests(IAnalyticsEnabledTeamcity teamcity, int[] buildIds) {
-        List<CompletableFuture<Void>> buildProcessorFutures = new ArrayList<>();
+        List<Future<Void>> buildProcessorFutures = new ArrayList<>();
 
         for (int buildId : buildIds) {
-            CompletableFuture<Void> buildFuture = CompletableFuture.supplyAsync(() -> {
+            Future<Void> buildFuture = CompletableFuture.supplyAsync(() -> {
                 Map<Integer, String> configurations = getConfigurations(teamcity, buildId);
 
                 Build build = teamcity.getBuild(teamcity.getBuildHrefById(buildId));
