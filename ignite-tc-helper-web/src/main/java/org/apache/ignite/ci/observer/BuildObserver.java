@@ -17,8 +17,8 @@
 
 package org.apache.ignite.ci.observer;
 
+import java.util.Collection;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.Timer;
 import javax.inject.Inject;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -61,7 +61,7 @@ public class BuildObserver {
      * @param ticket JIRA ticket name.
      */
     public void observe(String srvId, ICredentialsProv prov, String ticket, Build... builds) {
-        observerTask.builds.add(new BuildsInfo(srvId, prov, ticket, builds));
+        observerTask.addBuild(new BuildsInfo(srvId, prov, ticket, builds));
     }
 
     /**
@@ -70,7 +70,7 @@ public class BuildObserver {
      */
     public String getObservationStatus(String srvId, String branch) {
         StringBuilder sb = new StringBuilder();
-        Queue<BuildsInfo> builds = observerTask.builds;
+        Collection<BuildsInfo> builds = observerTask.getBuilds();
 
         for (BuildsInfo bi : builds) {
             if (Objects.equals(bi.branchName, branch)
