@@ -5,6 +5,7 @@ function drawTable(srvId, suiteId, element) {
         "            <thead>\n" +
         "            <tr class=\"ui-widget-header \">\n" +
         "                <th>.</th>\n" +
+        "                <th>.</th>\n" +
         "                <th>...</th>\n" +
         "                <th>Loading</th>\n" +
         "                <th>...</th>\n" +
@@ -31,6 +32,10 @@ function requestTableForServer(srvId, suiteId, element) {
     });
 }
 
+function normalizeDateNum(num) {
+    return num < 10 ? '0' + num : num;
+}
+
 function showContributionsTable(result, srvId, suiteId) {
     let tableId = 'serverContributions-' + srvId;
     let tableForSrv = $('#' + tableId);
@@ -38,11 +43,18 @@ function showContributionsTable(result, srvId, suiteId) {
     tableForSrv.dataTable().fnDestroy();
 
     var table = tableForSrv.DataTable({
+        order: [[1, 'desc']],
         data: result,
         "iDisplayLength": 30, //rows to be shown by default
         //"dom": '<lf<t>ip>',
         //"dom": '<"wrapper"flipt>',
         stateSave: true,
+        columnDefs: [
+            {
+                targets: 1,
+                className: 'dt-body-center'
+            }
+        ],
         columns: [
             {
                 "className": 'details-control',
@@ -54,6 +66,21 @@ function showContributionsTable(result, srvId, suiteId) {
                     if (type === 'display') {
                         return "<button>&#x2714; Inspect</button>";
                     }
+                }
+            },
+            {
+                "data": "prTimeUpdate",
+                title: "Update Time",
+                "render": function (data, type, row, meta) {
+                    if (type === 'display') {
+                        let date = new Date(data);
+
+                        data = normalizeDateNum(date.getFullYear()) + '-' + normalizeDateNum(date.getMonth()) +
+                            '-' + normalizeDateNum(date.getDate()) + "<br>" + normalizeDateNum(date.getHours()) +
+                            ':' + normalizeDateNum(date.getMinutes()) + ":" + normalizeDateNum(date.getSeconds());
+                    }
+
+                    return data;
                 }
             },
             {
