@@ -28,6 +28,15 @@ import org.apache.ignite.ci.user.ICredentialsProv;
  *
  */
 public class BuildsInfo {
+    /** */
+    public static final String FINISHED_STATE = "finished";
+
+    /** */
+    public static final String RUNNING_STATE = "running";
+
+    /** */
+    public static final String UNKNOWN_STATE = "unknown";
+
     /** Server id. */
     public final String srvId;
 
@@ -66,15 +75,41 @@ public class BuildsInfo {
     /**
      * @param teamcity Teamcity.
      */
-    public boolean isFinished(IAnalyticsEnabledTeamcity teamcity) {
+    private String getState(IAnalyticsEnabledTeamcity teamcity) {
         for (Map.Entry<Build, Boolean> entry : finishedBuilds.entrySet()) {
+            if (entry.getValue() == null)
+                return UNKNOWN_STATE;
+
             if (!entry.getValue()) {
                 Build build = teamcity.getBuild(entry.getKey().getId());
-                entry.setValue(build.isFinished());
+
+                if (build.isFinished()) {
+                    if (build.isUnknown()) {
+                        entry.setValue(null);
+
+                        return UNKNOWN_STATE;
+                    }
+
+                    entry.setValue(true);
+                }
             }
         }
 
-        return !finishedBuilds.containsValue(false);
+        return finishedBuilds.containsValue(false) ? RUNNING_STATE : FINISHED_STATE;
+    }
+
+    /**
+     * @param teamcity Teamcity.
+     */
+    public boolean isFinished(IAnalyticsEnabledTeamcity teamcity) {
+        return FINISHED_STATE.equals(getState(teamcity));
+    }
+
+    /**
+     * @param teamcity Teamcity.
+     */
+    public boolean isUnknownState(IAnalyticsEnabledTeamcity teamcity) {
+        return UNKNOWN_STATE.equals(getState(teamcity));
     }
 
     /**

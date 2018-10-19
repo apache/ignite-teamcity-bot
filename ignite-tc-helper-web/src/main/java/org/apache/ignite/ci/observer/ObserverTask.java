@@ -86,6 +86,13 @@ public class ObserverTask extends TimerTask {
                 continue;
             }
 
+            if (info.isUnknownState(teamcity)) {
+                builds.remove(info);
+
+                return "JIRA will not be commented because one or more builds have UNKNOWN status." +
+                    " [ticket: " + info.ticket + ", branch:" + info.branchName + "]";
+            }
+
             String jiraRes = jiraIntegration.notifyJira(info.srvId, info.prov, info.buildTypeId,
                 info.branchName, info.ticket);
 
