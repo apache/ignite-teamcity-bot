@@ -181,7 +181,7 @@ public class GetBuildTestFailures {
         @QueryParam("serverId") String srv) {
         String srvId = isNullOrEmpty(srv) ? "apache" : srv;
 
-        if (buildId == null || isValid == null)
+        if (buildId == null || isValid == null) {
             return new SimpleResult("<i class='fas fa-exclamation-circle'></i><br><br>" + (buildId == null ?
                 ("BuildId" + (isValid == null ? "and condition are" : "is")) : "Build condition is") + " <b>null</b>!");
 
