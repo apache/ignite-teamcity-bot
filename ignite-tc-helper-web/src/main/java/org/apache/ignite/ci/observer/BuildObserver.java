@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.observer;
 
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Timer;
@@ -69,7 +70,7 @@ public class BuildObserver {
 
         helper.getVisasHistoryStorage().putVisa(buildsInfo);
 
-        observerTask.builds.add(buildsInfo);
+        observerTask.addBuild(buildsInfo);
     }
 
     /**
@@ -78,7 +79,7 @@ public class BuildObserver {
      */
     public String getObservationStatus(String srvId, String branch) {
         StringBuilder sb = new StringBuilder();
-        Queue<BuildsInfo> builds = observerTask.builds;
+        Collection<BuildsInfo> builds = observerTask.getBuilds();
 
         for (BuildsInfo bi : builds) {
             if (Objects.equals(bi.branchName, branch)

@@ -33,26 +33,14 @@ import org.apache.ignite.configuration.CollectionConfiguration;
 public class VisasHistoryStorage {
     /** */
     private static final String VISAS_SET_NAME = "visasSet";
+
     /** */
     @Inject
-    private Provider<Ignite> igniteProvider;
-
-    /** */
-    private volatile Ignite ignite;
-
-    /** */
-    public Ignite getIgnite() {
-        if (ignite != null)
-            return ignite;
-
-        final Ignite ignite = igniteProvider.get();
-        this.ignite = ignite;
-        return ignite;
-    }
+    private Ignite ignite;
 
     /** */
     private IgniteSet<BuildsInfo> builds() {
-        return getIgnite().set(VISAS_SET_NAME, new CollectionConfiguration().setGroupName(VISAS_SET_NAME));
+        return ignite.set(VISAS_SET_NAME, new CollectionConfiguration().setBackups(1));
     }
 
     /** */

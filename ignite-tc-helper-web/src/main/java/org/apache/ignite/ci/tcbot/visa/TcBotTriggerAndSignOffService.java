@@ -19,6 +19,8 @@ package org.apache.ignite.ci.tcbot.visa;
 
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -27,17 +29,20 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.github.GitHubUser;
+import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
-import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
+import org.apache.ignite.ci.observer.BuildsInfo;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.internal.util.typedef.F;
@@ -64,6 +69,36 @@ public class TcBotTriggerAndSignOffService {
     @Inject ITeamcityIgnitedProvider teamcityIgnitedProvider;
 
     @Inject Provider<BuildObserver> observer;
+
+    /** */
+    @Inject ITcHelper tcHelper;
+
+    /** */
+    public void startObserver() {
+        buildObserverProvider.get();
+    }
+
+    /** */
+    public List<VisaStatus> getVisaStatuses(String srvId) {
+        List<VisaStatus> visas = new ArrayList<>();
+
+        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, tcHelper.getServerAuthorizerCreds());
+
+        Collection<BuildsInfo> infos = tcHelper.getVisasHistoryStorage().getVisas();
+
+        for (BuildsInfo build : tcHelper.getVisasHistoryStorage().getVisas()) {
+            VisaStatus visa = new VisaStatus();
+
+            visa.branchName = build.branchName;
+            visa.state = build.getState(teamcity);
+            visa.userName = build.userName;
+            visa.ticket = build.ticket;
+
+            visas.add(visa);
+        }
+
+        return visas;
+    }
 
     /**
      * @param pr Pull Request.
@@ -154,7 +189,12 @@ public class TcBotTriggerAndSignOffService {
 
         buildObserverProvider.get().observe(srvId, prov, ticketFullName, builds);
 
-        return "JIRA ticket IGNITE-" + ticketFullName + " will be notified after the tests are completed.";
+        if (!tcHelper.isServerAuthorized()) {
+            return "Ask server administrator to authorize the Bot to enable JIRA notifications.";
+        }
+
+        return "JIRA ticket IGNITE-" + ticketFullName +
+            " will be notified after the tests are completed.";
     }
 
     /**

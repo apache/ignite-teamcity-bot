@@ -49,9 +49,6 @@ public class BuildsInfo {
     /** Branch name. */
     public final String branchName;
 
-    /** Credentials. */
-    public final ICredentialsProv prov;
-
     /** JIRA ticket full name. */
     public final String ticket;
 
@@ -67,7 +64,6 @@ public class BuildsInfo {
     public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, Build[] builds) {
         this.userName = prov.getUser(srvId);
         this.srvId = srvId;
-        this.prov = prov;
         this.ticket = ticket;
         this.buildTypeId = builds.length > 1 ? "IgniteTests24Java8_RunAll" : builds[0].buildTypeId;
         this.branchName = builds[0].branchName;
@@ -79,7 +75,7 @@ public class BuildsInfo {
     /**
      * @param teamcity Teamcity.
      */
-    private String getState(IAnalyticsEnabledTeamcity teamcity) {
+    public String getState(IAnalyticsEnabledTeamcity teamcity) {
         for (Map.Entry<Build, Boolean> entry : finishedBuilds.entrySet()) {
             if (entry.getValue() == null)
                 return UNKNOWN_STATE;
@@ -99,7 +95,21 @@ public class BuildsInfo {
             }
         }
 
-        return !finishedBuilds.containsValue(false);
+        return finishedBuilds.containsValue(false) ? RUNNING_STATE : FINISHED_STATE;
+    }
+
+    /**
+     * @param teamcity Teamcity.
+     */
+    public boolean isFinished(IAnalyticsEnabledTeamcity teamcity) {
+        return FINISHED_STATE.equals(getState(teamcity));
+    }
+
+    /**
+     * @param teamcity Teamcity.
+     */
+    public boolean isStateUnknown(IAnalyticsEnabledTeamcity teamcity) {
+        return UNKNOWN_STATE.equals(getState(teamcity));
     }
 
     /**
@@ -129,13 +139,12 @@ public class BuildsInfo {
         return Objects.equals(srvId, info.srvId) &&
             Objects.equals(buildTypeId, info.buildTypeId) &&
             Objects.equals(branchName, info.branchName) &&
-            Objects.equals(prov, info.prov) &&
             Objects.equals(ticket, info.ticket) &&
-            Objects.equals(finishedBuilds, info.finishedBuilds);
+            Objects.equals(finishedBuilds.keySet(), info.finishedBuilds.keySet());
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(srvId, buildTypeId, branchName, prov, ticket, finishedBuilds);
+        return Objects.hash(srvId, buildTypeId, branchName, ticket, finishedBuilds.keySet());
     }
 }

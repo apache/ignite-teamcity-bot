@@ -27,11 +27,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.visa.ContributionCheckStatus;
 import org.apache.ignite.ci.tcbot.visa.ContributionToCheck;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
+import org.apache.ignite.ci.tcbot.visa.VisaStatus;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
@@ -50,10 +49,10 @@ public class TcBotVisaService {
 
     @GET
     @Path("history")
-    public Collection<BuildsInfo> history() {
-        ITcHelper helper = CtxListener.getTcHelper(ctx);
-
-        return helper.getVisasHistoryStorage().getVisas();
+    public Collection<VisaStatus> history(@Nullable @QueryParam("serverId") String srvId) {
+        return CtxListener.getInjector(ctx)
+            .getInstance(TcBotTriggerAndSignOffService.class)
+            .getVisaStatuses(srvId);
     }
 
     /**

@@ -55,6 +55,9 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     /** Stop guard. */
     private AtomicBoolean stop = new AtomicBoolean();
 
+    /** Server authorizer credentials. */
+    private ICredentialsProv serverAuthorizerCreds;
+
     @Inject private IssuesStorage issuesStorage;
 
     @Inject private ITcServerProvider serverProvider;
@@ -68,6 +71,21 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     @Inject private VisasHistoryStorage visasHistoryStorage;
 
     public TcHelper() {
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setServerAuthorizerCreds(ICredentialsProv creds) {
+        this.serverAuthorizerCreds = creds;
+    }
+
+    /** {@inheritDoc} */
+    @Override public ICredentialsProv getServerAuthorizerCreds() {
+        return serverAuthorizerCreds;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isServerAuthorized() {
+        return !Objects.isNull(serverAuthorizerCreds);
     }
 
     /** {@inheritDoc} */

@@ -28,91 +28,96 @@
                 <th>.</th>
                 <th>.</th>
                 <th>.</th>
+                <th>.</th>
             </tr>
         </thead>
     </table>
     <br>
     <div id="version"></div>
 <script>
-    function showErrInLoadStatus(jqXHR, exception) {
-        if (jqXHR.status === 0) {
-            $("#loadStatus").html('Not connect.\n Verify Network.');
-        } else if (jqXHR.status === 404) {
-            $("#loadStatus").html('Requested page not found. [404]');
-        } else if (jqXHR.status === 401) {
-            $("#loadStatus").html('Unauthorized [401]');
+function showErrInLoadStatus(jqXHR, exception) {
+    if (jqXHR.status === 0) {
+        $("#loadStatus").html('Not connect.\n Verify Network.');
+    } else if (jqXHR.status === 404) {
+        $("#loadStatus").html('Requested page not found. [404]');
+    } else if (jqXHR.status === 401) {
+        $("#loadStatus").html('Unauthorized [401]');
 
-            setTimeout(function() {
-                window.location.href = "/login.html" + "?backref=" + encodeURIComponent(window.location.href);
-            }, 1000);
-        } else if (jqXHR.status === 403) {
-            $("#loadStatus").html('Forbidden [403]');
-        } else if( jqXHR.status === 418) {
-            $("#loadStatus").html('Services are starting [418], I\'m a teapot');
-        } else if (jqXHR.status === 424) {
-            $("#loadStatus").html('Dependency problem: [424]: ' + jqXHR.responseText);
-        } else if (jqXHR.status === 500) {
-            $("#loadStatus").html('Internal Server Error [500].');
-        } else if (exception === 'parsererror') {
-            $("#loadStatus").html('Requested JSON parse failed.');
-        } else if (exception === 'timeout') {
-            $("#loadStatus").html('Time out error.');
-        } else if (exception === 'abort') {
-            $("#loadStatus").html('Ajax request aborted.');
-        } else {
-            $("#loadStatus").html('Uncaught Error.\n' + jqXHR.responseText);
-        }
+        setTimeout(function() {
+            window.location.href = "/login.html" + "?backref=" + encodeURIComponent(window.location.href);
+        }, 1000);
+    } else if (jqXHR.status === 403) {
+        $("#loadStatus").html('Forbidden [403]');
+    } else if( jqXHR.status === 418) {
+        $("#loadStatus").html('Services are starting [418], I\'m a teapot');
+    } else if (jqXHR.status === 424) {
+        $("#loadStatus").html('Dependency problem: [424]: ' + jqXHR.responseText);
+    } else if (jqXHR.status === 500) {
+        $("#loadStatus").html('Internal Server Error [500].');
+    } else if (exception === 'parsererror') {
+        $("#loadStatus").html('Requested JSON parse failed.');
+    } else if (exception === 'timeout') {
+        $("#loadStatus").html('Time out error.');
+    } else if (exception === 'abort') {
+        $("#loadStatus").html('Ajax request aborted.');
+    } else {
+        $("#loadStatus").html('Uncaught Error.\n' + jqXHR.responseText);
     }
+}
 
-    $(document).ready(function() {
-        loadData();
+$(document).ready(function() {
+    loadData();
 
-        $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
-    });
+    $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
+});
 
-    function showVisasTable(result) {
-        let visasTable = $('#visasTable');
+function showVisasTable(result) {
+    let visasTable = $('#visasTable');
 
-        visasTable.dataTable().fnDestroy();
+    visasTable.dataTable().fnDestroy();
 
-        var table = visasTable.DataTable({
-            data: result,
-            "iDisplayLength": 30, //rows to be shown by default
-            stateSave: true,
-            columnDefs: [
-                {
-                    targets: '_all',
-                    className: 'dt-body-center'
-                }
-            ],
-            columns: [
-                {
-                    "data": "userName",
-                    title: "user Name"
-                },
-                {
-                    "data": "branchName",
-                    title: "branchName"
-                },
-                {
-                    "data": "ticket",
-                    title: "ticket"
-                }
-            ]
-        });
-    }
-
-    function loadData() {
-        $.ajax(
+    var table = visasTable.DataTable({
+        data: result,
+        "iDisplayLength": 30, //rows to be shown by default
+        stateSave: true,
+        columnDefs: [
             {
-                url: "rest/visa/history",
-                success: function (result) {
-                    showVisasTable(result);
-                },
-                error: showErrInLoadStatus
+                targets: '_all',
+                className: 'dt-body-center'
             }
-        );
-    }
+        ],
+        columns: [
+            {
+                "data": "status",
+                title: "Status"
+            },
+            {
+                "data": "userName",
+                title: "User"
+            },
+            {
+                "data": "branchName",
+                title: "Branch"
+            },
+            {
+                "data": "ticket",
+                title: "Ticket"
+            }
+        ]
+    });
+}
+
+function loadData() {
+    $.ajax(
+        {
+            url: "rest/visa/history?serverId=apache",
+            success: function (result) {
+                showVisasTable(result);
+            },
+            error: showErrInLoadStatus
+        }
+    );
+}
 </script>
 </body>
 </html>
