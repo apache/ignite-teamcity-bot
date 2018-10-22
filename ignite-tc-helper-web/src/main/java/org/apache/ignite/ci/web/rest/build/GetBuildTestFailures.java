@@ -189,6 +189,9 @@ public class GetBuildTestFailures {
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
+        if (!prov.hasAccess(serverId))
+            throw ServiceUnauthorizedException.noCreds(serverId);
+
         IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
 
         BiMap<String, String> problemNames = BuildStatisticsSummary.fullProblemNames;
