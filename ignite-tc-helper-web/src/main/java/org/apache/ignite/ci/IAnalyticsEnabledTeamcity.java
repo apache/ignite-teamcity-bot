@@ -27,7 +27,7 @@ public interface IAnalyticsEnabledTeamcity extends ITeamcity, ITcAnalytics {
     public void init(ITeamcity conn);
 
     /**
-     *  Set condition "valid" or "invalid" for build.
+     * Set condition "valid" or "invalid" for build.
      *
      * @param buildCond Build condition.
      */
