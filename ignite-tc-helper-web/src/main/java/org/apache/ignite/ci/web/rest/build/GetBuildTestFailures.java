@@ -186,7 +186,6 @@ public class GetBuildTestFailures {
                 ("BuildId" + (isValid == null ? "and condition are" : "is")) : "Build condition is") + " <b>null</b>!");
 
         final ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
-
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
         if (!prov.hasAccess(serverId))
