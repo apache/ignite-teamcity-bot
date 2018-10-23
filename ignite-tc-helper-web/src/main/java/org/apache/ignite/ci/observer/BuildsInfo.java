@@ -37,6 +37,9 @@ public class BuildsInfo {
     /** */
     public static final String UNKNOWN_STATE = "unknown";
 
+    /** Name of user who produced that visa request. */
+    public final String userName;
+
     /** Server id. */
     public final String srvId;
 
@@ -62,6 +65,7 @@ public class BuildsInfo {
      * @param builds Builds.
      */
     public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, Build[] builds) {
+        this.userName = prov.getUser(srvId);
         this.srvId = srvId;
         this.prov = prov;
         this.ticket = ticket;
@@ -95,21 +99,7 @@ public class BuildsInfo {
             }
         }
 
-        return finishedBuilds.containsValue(false) ? RUNNING_STATE : FINISHED_STATE;
-    }
-
-    /**
-     * @param teamcity Teamcity.
-     */
-    public boolean isFinished(IAnalyticsEnabledTeamcity teamcity) {
-        return FINISHED_STATE.equals(getState(teamcity));
-    }
-
-    /**
-     * @param teamcity Teamcity.
-     */
-    public boolean isUnknownState(IAnalyticsEnabledTeamcity teamcity) {
-        return UNKNOWN_STATE.equals(getState(teamcity));
+        return !finishedBuilds.containsValue(false);
     }
 
     /**

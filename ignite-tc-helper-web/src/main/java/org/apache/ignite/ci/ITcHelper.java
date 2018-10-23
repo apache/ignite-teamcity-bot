@@ -25,6 +25,7 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 
 import java.util.Collection;
+import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 
 /**
  * Teamcity Bot main interface
@@ -51,6 +52,8 @@ public interface ITcHelper extends ITcServerProvider {
     Collection<String> getServerIds();
 
     List<String> getTrackedBranchesIds();
+
+    VisasHistoryStorage getVisasHistoryStorage();
 
     /**
      * @param srvId Server id.

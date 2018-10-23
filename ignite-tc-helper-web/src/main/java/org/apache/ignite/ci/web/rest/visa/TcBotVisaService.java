@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.web.rest.visa;
 
+import java.util.Collection;
 import java.util.List;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
@@ -26,12 +27,13 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.visa.ContributionCheckStatus;
-import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.tcbot.visa.ContributionToCheck;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,6 +47,14 @@ public class TcBotVisaService {
     /** Current Request. */
     @Context
     private HttpServletRequest req;
+
+    @GET
+    @Path("history")
+    public Collection<BuildsInfo> history() {
+        ITcHelper helper = CtxListener.getTcHelper(ctx);
+
+        return helper.getVisasHistoryStorage().getVisas();
+    }
 
     /**
      * @param srvId Server id.

@@ -32,6 +32,7 @@ import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
+import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -64,7 +65,14 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
     @Inject private PrChainsProcessor prChainsProcessor;
 
+    @Inject private VisasHistoryStorage visasHistoryStorage;
+
     public TcHelper() {
+    }
+
+    /** {@inheritDoc} */
+    @Override public VisasHistoryStorage getVisasHistoryStorage() {
+        return visasHistoryStorage;
     }
 
     /** {@inheritDoc} */

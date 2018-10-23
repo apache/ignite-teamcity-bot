@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Timer;
 import javax.inject.Inject;
+import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 
@@ -36,6 +37,9 @@ public class BuildObserver {
 
     /** Task, which should be done periodically. */
     private ObserverTask observerTask;
+
+    /** Helper. */
+    @Inject ITcHelper helper;
 
     /**
      */
@@ -61,7 +65,11 @@ public class BuildObserver {
      * @param ticket JIRA ticket name.
      */
     public void observe(String srvId, ICredentialsProv prov, String ticket, Build... builds) {
-        observerTask.builds.add(new BuildsInfo(srvId, prov, ticket, builds));
+        BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, builds);
+
+        helper.getVisasHistoryStorage().putVisa(buildsInfo);
+
+        observerTask.builds.add(buildsInfo);
     }
 
     /**
