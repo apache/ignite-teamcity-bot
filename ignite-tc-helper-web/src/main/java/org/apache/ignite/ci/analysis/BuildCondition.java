@@ -24,16 +24,21 @@ import java.util.Objects;
  * Mark build as valid or invalid.
  */
 public class BuildCondition {
+
     /** Build id. */
-    public int buildId;
+    public final int buildId;
+
     /** Username. */
-    public String username;
+    public final String username;
+
     /** Is valid. */
-    public boolean isValid;
+    public final boolean isValid;
+
     /** Date. */
-    public Date date;
+    public final Date date;
+
     /** Field, where build was marked. */
-    public String field;
+    public final String field;
 
     /**
      * @param buildId Build id.
