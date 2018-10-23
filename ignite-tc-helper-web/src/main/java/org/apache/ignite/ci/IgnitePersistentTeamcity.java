@@ -692,7 +692,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     public boolean setBuildCondition(BuildCondition buildCond) {
-
         final IgniteCache<String, Set<BuildCondition>> cache = buildsConditionsCache();
 
         Set<BuildCondition> buildConditions = getBuildConditions(buildCond.username);

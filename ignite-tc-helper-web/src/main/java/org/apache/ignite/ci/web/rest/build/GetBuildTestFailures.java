@@ -187,8 +187,10 @@ public class GetBuildTestFailures {
         }
 
         final ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
-
         final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        if (!prov.hasAccess(serverId))
+            throw ServiceUnauthorizedException.noCreds(serverId);
 
         IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
 
