@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.analysis;
+package org.apache.ignite.ci.tcbot.condition;
 
 import java.util.Date;
 import java.util.Objects;
@@ -24,21 +24,25 @@ import java.util.Objects;
  * Mark build as valid or invalid.
  */
 public class BuildCondition {
-
     /** Build id. */
-    public final int buildId;
+    public int buildId;
 
     /** Username. */
-    public final String username;
+    public String username;
 
     /** Is valid. */
-    public final boolean isValid;
+    public boolean isValid;
 
     /** Date. */
-    public final Date date;
+    public Date date;
 
     /** Field, where build was marked. */
-    public final String field;
+    public String field;
+
+    /**
+     * Default constructor.
+     */
+    public BuildCondition(){}
 
     /**
      * @param buildId Build id.
@@ -54,11 +58,15 @@ public class BuildCondition {
         this.field = field;
     }
 
-    /**
-     * Return new BuildCondition with inverse "isValid" field.
-     */
-    public BuildCondition inverse(){
-        return new BuildCondition(buildId, username, !isValid, field);
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return "BuildCondition{" +
+            "buildId=" + buildId +
+            ", username='" + username + '\'' +
+            ", isValid=" + isValid +
+            ", date=" + date +
+            ", field='" + field + '\'' +
+            '}';
     }
 
     /** {@inheritDoc} */
@@ -81,4 +89,3 @@ public class BuildCondition {
         return Objects.hash(buildId, username, isValid);
     }
 }
-

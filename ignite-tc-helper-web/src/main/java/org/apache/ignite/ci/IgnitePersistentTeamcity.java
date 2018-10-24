@@ -26,9 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
@@ -52,7 +50,6 @@ import javax.ws.rs.BadRequestException;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.analysis.BuildCondition;
 import org.apache.ignite.ci.analysis.Expirable;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.analysis.LogCheckResult;
@@ -106,7 +103,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private static final String BUILD_STATISTICS = "buildStatistics";
     private static final String BUILD_HIST_FINISHED = "buildHistFinished";
     private static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
-    private static final String BUILD_CONDITIONS = "buildConditions";
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
 
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
@@ -201,13 +197,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         cache.enableStatistics(true);
 
         return cache;
-    }
-
-    /**
-     * @return Builds conditions cache, 32 parts.
-     */
-    private IgniteCache<String, Set<BuildCondition>> buildsConditionsCache() {
-        return getOrCreateCacheV2(ignCacheNme(BUILD_CONDITIONS));
     }
 
     /**
@@ -681,31 +670,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             teamcity::getQueuedBuilds,
             secondsUseCached,
             secondsUseCached == defaultSecs);
-    }
-
-    /** {@inheritDoc} */
-    public Set<BuildCondition> getBuildConditions(String username) {
-        final IgniteCache<String, Set<BuildCondition>> cache = buildsConditionsCache();
-
-        return cache.containsKey(username) ? cache.get(username) : new HashSet<>();
-    }
-
-    /** {@inheritDoc} */
-    public boolean setBuildCondition(BuildCondition buildCond) {
-        final IgniteCache<String, Set<BuildCondition>> cache = buildsConditionsCache();
-
-        Set<BuildCondition> buildConditions = getBuildConditions(buildCond.username);
-
-        boolean res;
-
-        if (buildCond.isValid)
-            res = (buildConditions.remove(buildCond.inverse()));
-        else
-            res = (buildConditions.add(buildCond));
-
-        cache.put(buildCond.username, buildConditions);
-
-        return res;
     }
 
     /** {@inheritDoc} */

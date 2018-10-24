@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Ignite Teamcity - comparison master's branch in the date interval</title>
+    <title>Ignite Teamcity - comparison master's branch in the dates interval</title>
     <link rel="icon" href="img/leaf-icon-png-7066.png">
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
@@ -279,6 +279,7 @@
                 'ET' : item.totalProblems.ET
             };
             this.isValid = item.isValid;
+            this.conditionLocal = false;
         }
     }
 
@@ -610,22 +611,31 @@
     }
 
     function setCondition(num, buildId, value, median, prefix) {
+        if (!isDefinedAndFilled(buildId) || buildId === "") {
+            showDialog("<i class='fas fa-exclamation-circle'></i><br><br>BuildId must be defined and filled!");
+
+            return;
+        }
+
         let isValid = !data[num].map.get(buildId).isValid;
+        let conditionLocal = data[num].map.get(buildId).conditionLocal;
         let modalDialog = $("#modalDialog");
         let diff = ((value / median - 1) * 100 | 0);
         let message = "<p style='text-align:center;opacity: 0.7;'><img src='img/tc.svg' width='100' height='100'></p>" +
             "<br><p style='text-align:justify'><b>Build [" + buildId +  "]</b> will be marked as &laquo;" +
             (isValid ? "" : "in") + "valid&raquo;. Value differs by <b>" + diff + "%</b> from the median.</p>" +
-            "<br><b>Field:</b>&nbsp;<select style='width: 200px'>";
+            "<br><b>Field:</b>&nbsp;<select id='selectField' style='width: 200px'>";
 
         for (let fieldName of fieldNames.keys())
             message += getHtmlOption(fieldName, false, fieldName === prefix, fieldNames.get(fieldName));
 
-        message += "</select><br><br><b>Mark: </b><select style='width: 200px'>" +
-            getHtmlOption(true, false, true, "Only for me") + getHtmlOption(false, true, false, "For all") + "</select>";
+        message += "</select><br><br><b>Mark: </b><select id='selectExclusionArea' style='width: 200px'>" +
+            getHtmlOption(false, isValid && !conditionLocal, isValid && conditionLocal, "For me") +
+            getHtmlOption(true, isValid && conditionLocal, isValid && !conditionLocal, "For all") + "</select>";
 
-        message += "<br><br><span style='color:grey;font-size:smaller;text-align:justify'><hr>If you select " +
-            "&laquo;Mark for all&raquo;, your request will be checked, and if successful, build will be hidden " +
+        message += "<br><br><span style='color:grey;font-size:smaller;text-align:justify'><hr>If you select &laquo;" +
+            "Mark for me&raquo;, build will be hidden from the results only for this dates interval until the page " +
+            "is updated.<br><hr>If you select &laquo;Mark for all&raquo;, your request will build will be hidden " +
             "from the results for all users, and will not be taken into account when analyzing tests.</span>";
 
         modalDialog.html(message);
@@ -634,30 +644,46 @@
             buttons: {
                 "Confirm": function () {
                     $(this).dialog("close");
-                    $.ajax({
-                        url: 'rest/build/condition',
-                        data: {
-                            "buildId": buildId,
-                            "field" : prefix,
-                            "isValid": isValid
-                        },
-                        success: function (result) {
-                            let resultDialog = $("#resultDialog");
-                            resultDialog.html("<p style='text-align:center'><br>" + result.result + "</p>");
 
-                            setBuildCondition(buildId, isValid);
+                    let forAll = $('#selectExclusionArea').val() === 'true';
+                    let text = "";
 
-                            resultDialog.dialog({
-                                modal: true,
-                                buttons: {
-                                    "Ok": function () {
-                                        $(this).dialog("close");
+                    if (forAll) {
+                        $.ajax({
+                            url: 'rest/build/condition',
+                            data: {
+                                "buildId": buildId,
+                                "isValid": isValid,
+                                "field": $('#selectField').val()
+                            },
+                            success: function (res) {
+                                if (isDefinedAndFilled(res)) {
+                                    text = "<i class='fas fa-" + (res ? "check" : "exclamation") + "-circle'></i>" +
+                                        "<br><br>";
+
+                                    if (isValid) {
+                                        text += res ? "Build <b>remove</b> from invalid list!" :
+                                            "Invalid list <b>doesn't contain</b> build!";
                                     }
+                                    else {
+                                        text += "Build " + (res ? "<b>add</b> in" :
+                                            "<b>is already</b> on the") + " invalid list!";
+                                    }
+                                } else {
+                                    text += "<i class='fas fa-exclamation-circle'><br><br></i>" +
+                                        "BuildId or condition is null!";
                                 }
-                            });
-                        },
-                        error: showErrInLoadStatus
-                    });
+
+                                setBuildConditionOnFrontAndShowDialog(buildId, isValid, text, false);
+                            },
+                            error: showErrInLoadStatus
+                        });
+                    } else {
+                        text = "<i class='fas fa-check-circle'></i><br><br>Build <b>"  + (isValid ? "remove</b> from" :
+                            "add</b> in") +" <i>temporary</i> invalid list!";
+
+                        setBuildConditionOnFrontAndShowDialog(buildId, isValid, text, !isValid);
+                    }
                 },
                 "Cancel": function () {
                     $(this).dialog("close");
@@ -669,6 +695,26 @@
             return "<option value='" + value + "' " + (disabled ? "disabled" : "") + (selected ? "selected" : "") +
                 ">" + text + "</option>";
         }
+    }
+
+    function setBuildConditionOnFrontAndShowDialog(buildId, isValid, text, conditionLocal) {
+        setBuildCondition(buildId, isValid, conditionLocal);
+
+        showDialog(text);
+    }
+    
+    function showDialog(text) {
+        let resultDialog = $("#resultDialog");
+        resultDialog.html("<p style='text-align:center'><br>" + text + "</p>");
+
+        resultDialog.dialog({
+            modal: true,
+            buttons: {
+                "Ok": function () {
+                    $(this).dialog("close");
+                }
+            }
+        });
     }
 
     function getBuildLink(buildId) { return "https://ci.ignite.apache.org/viewLog.html?buildId=" + buildId
@@ -713,16 +759,20 @@
         updateAll();
     });
 
-    function setBuildCondition(buildId, isValid) {
-        setBuildConditionForColumn(buildId, isValid, 1);
-        setBuildConditionForColumn(buildId, isValid, 2);
+    function setBuildCondition(buildId, isValid, conditionLocal) {
+        setBuildConditionForColumn(buildId, isValid, 1, conditionLocal);
+        setBuildConditionForColumn(buildId, isValid, 2, conditionLocal);
     }
 
-    function setBuildConditionForColumn(buildId, isValid, num) {
-        if (data[num].map.has(buildId))
-            data[num].map.get(buildId).isValid = isValid;
+    function setBuildConditionForColumn(buildId, isValid, num, conditionLocal) {
+        if (isDefinedAndFilled(data[num])) {
+            if (data[num].map.has(buildId)) {
+                data[num].map.get(buildId).isValid = isValid;
+                data[num].map.get(buildId).conditionLocal = conditionLocal;
+            }
 
-        updateColumn(num);
+            updateColumn(num);
+        }
     }
 
     function markBuild(buildId) {
@@ -732,7 +782,8 @@
     }
 
     function updateColumn(num) {
-        printStatistics(data[num]);
+        if (isDefinedAndFilled(data[num]))
+            printStatistics(data[num]);
     }
 
     function updateAll() {

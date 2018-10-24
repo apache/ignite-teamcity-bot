@@ -19,10 +19,7 @@ package org.apache.ignite.ci.web.rest.build;
 
 import com.google.common.collect.BiMap;
 import com.google.inject.Injector;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
-import org.apache.ignite.ci.analysis.BuildCondition;
+import org.apache.ignite.ci.tcbot.condition.BuildCondition;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -31,10 +28,11 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
@@ -170,27 +168,25 @@ public class GetBuildTestFailures {
      * @param buildId Build id.
      * @param isValid Is valid.
      * @param field Field.
-     * @param srv Server.
+     * @param serverId Server.
      */
     @GET
     @Path("condition")
-    public SimpleResult setBuildCondition(
+    public Boolean setBuildCondition(
         @QueryParam("buildId") Integer buildId,
         @QueryParam("isValid") Boolean isValid,
         @QueryParam("field") String field,
-        @QueryParam("serverId") String srv) {
-        String srvId = isNullOrEmpty(srv) ? "apache" : srv;
+        @QueryParam("serverId") String serverId) {
+        String srvId = isNullOrEmpty(serverId) ? "apache" : serverId;
 
-        if (buildId == null || isValid == null) {
-            return new SimpleResult("<i class='fas fa-exclamation-circle'></i><br><br>" + (buildId == null ?
-                ("BuildId" + (isValid == null ? "and condition are" : "is")) : "Build condition is") + " <b>null</b>!");
-        }
+        if (buildId == null || isValid == null)
+            return null;
 
         final ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        if (!prov.hasAccess(serverId))
-            throw ServiceUnauthorizedException.noCreds(serverId);
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
 
         IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
 
@@ -199,16 +195,11 @@ public class GetBuildTestFailures {
         BuildCondition buildCond =
             new BuildCondition(buildId, prov.getPrincipalId(), isValid, problemNames.getOrDefault(field, field));
 
-        boolean res = teamcity.setBuildCondition(buildCond);
+        TeamcityIgnitedImpl ignited = CtxListener.getInjector(ctx).getInstance(TeamcityIgnitedImpl.class);
 
-        String text = "<i class='fas fa-" + (res ? "check" : "exclamation") + "-circle'></i><br><br>";
+        ignited.init(srvId, teamcity);
 
-        if (isValid)
-            text += res ? "Build <b>remove</b> from invalid list!" : "Invalid list <b>doesn't contain</b> build!";
-        else
-            text += "Build " + (res ? "<b>add</b> in" : "<b>is already</b> on the") + " invalid list!";
-
-        return new SimpleResult(text);
+        return ignited.setBuildCondition(buildCond);
     }
 
     @GET
@@ -236,18 +227,16 @@ public class GetBuildTestFailures {
 
         List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
 
-        String username = prov.getPrincipalId();
+        TeamcityIgnitedImpl tc = CtxListener.getInjector(ctx).getInstance(TeamcityIgnitedImpl.class);
 
-        Set<Integer> buildIds = teamcity.getBuildConditions(username).stream()
-            .mapToInt(v -> v.buildId).boxed().collect(Collectors.toSet());
+        tc.init(srvId, teamcity);
 
         for (int buildId : finishedBuilds) {
             BuildStatisticsSummary stat = new BuildStatisticsSummary(buildId);
 
             stat.initialize(teamcity);
 
-            if (!buildIds.isEmpty())
-                stat.isValid = !buildIds.contains(buildId);
+            stat.isValid = tc.buildIsValid(buildId);
 
             if ((!stat.isFakeStub))
                 buildsStatistics.add(stat);
