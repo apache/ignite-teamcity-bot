@@ -89,7 +89,10 @@ import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBran
 
 /**
  * Apache Ignite based cache over teamcity responses (REST caches).
+ *
+ * Cache is now overloaded with data, Compacted
  */
+@Deprecated
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(IgnitePersistentTeamcity.class);

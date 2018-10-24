@@ -23,10 +23,12 @@ import org.apache.ignite.ci.web.model.Version;
 import org.apache.ignite.lang.IgniteProductVersion;
 
 /**
- *
+ * Service for general requests processing, which are not related to builds/JIRA/GitHub.
  */
 public class TcBotGeneralService {
+    /** Ignite provider. */
     @Inject Provider<Ignite> igniteProvider;
+
     /**
      *
      */
