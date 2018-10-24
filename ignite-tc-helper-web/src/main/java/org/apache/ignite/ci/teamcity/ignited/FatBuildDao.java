@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
@@ -30,7 +31,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 
 /**
  *
@@ -55,12 +56,16 @@ public class FatBuildDao {
         buildsCache = igniteProvider.get().getOrCreateCache(TcHelperDb.getCacheV2Config(TEAMCITY_FAT_BUILD_CACHE_NAME));
     }
 
+
     /**
      * @param srvIdMaskHigh Server id mask high.
-     * @param ghData Gh data.
+     * @param build Build data.
+     * @param tests TestOccurrences.
      */
-    public int saveChunk(long srvIdMaskHigh, List<Build> ghData) {
-        Set<Long> ids = ghData.stream().map(BuildRef::getId)
+    public int saveBuild(long srvIdMaskHigh,
+        Build build,
+        List<TestOccurrences> tests) {
+        Set<Long> ids = Stream.of(build).map(BuildRef::getId)
             .filter(Objects::nonNull)
             .map(buildId -> buildIdToCacheKey(srvIdMaskHigh, buildId))
             .collect(Collectors.toSet());
@@ -68,7 +73,35 @@ public class FatBuildDao {
         Map<Long, FatBuildCompacted> existingEntries = buildsCache.getAll(ids);
         Map<Long, FatBuildCompacted> entriesToPut = new TreeMap<>();
 
-        List<FatBuildCompacted> collect = ghData.stream()
+        FatBuildCompacted compacted = new FatBuildCompacted(compactor, build);
+
+        long cacheKey = buildIdToCacheKey(srvIdMaskHigh, compacted.id());
+        FatBuildCompacted buildPersisted = existingEntries.get(cacheKey);
+
+        if (buildPersisted == null || !buildPersisted.equals(compacted))
+            entriesToPut.put(cacheKey, compacted);
+
+        int size = entriesToPut.size();
+        if (size != 0)
+            buildsCache.putAll(entriesToPut);
+
+        return size;
+    }
+
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param buildData Gh data.
+     */
+    public int saveChunk(long srvIdMaskHigh, List<Build> buildData) {
+        Set<Long> ids = buildData.stream().map(BuildRef::getId)
+            .filter(Objects::nonNull)
+            .map(buildId -> buildIdToCacheKey(srvIdMaskHigh, buildId))
+            .collect(Collectors.toSet());
+
+        Map<Long, FatBuildCompacted> existingEntries = buildsCache.getAll(ids);
+        Map<Long, FatBuildCompacted> entriesToPut = new TreeMap<>();
+
+        List<FatBuildCompacted> collect = buildData.stream()
             .map(ref -> new FatBuildCompacted(compactor, ref))
             .collect(Collectors.toList());
 

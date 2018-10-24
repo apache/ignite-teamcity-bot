@@ -37,6 +37,7 @@ import org.apache.ignite.ci.di.scheduler.NoOpSheduler;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -242,8 +243,9 @@ public class IgnitedTcInMemoryIntegrationTest {
 
     @Test
     public void testFatBuild() throws JAXBException, IOException {
-        InputStream stream = getClass().getResourceAsStream("/build.xml");
-        Build refBuild = XmlUtil.load(Build.class, new InputStreamReader(stream));
+        Build refBuild = jaxbTestXml("/build.xml", Build.class);
+        TestOccurrences tests = jaxbTestXml("/testList.xml", TestOccurrences.class);
+
         Injector injector = Guice.createInjector(new AbstractModule() {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
@@ -255,22 +257,17 @@ public class IgnitedTcInMemoryIntegrationTest {
         instance.init();
 
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(APACHE);
-        int i = instance.saveChunk(srvIdMaskHigh, Collections.singletonList(refBuild));
+        List<TestOccurrences> occurrences = Collections.singletonList(tests);
+        int i = instance.saveBuild(srvIdMaskHigh, refBuild, occurrences);
         assertEquals(1, i);
 
         FatBuildCompacted fatBuild = instance.getFatBuild(srvIdMaskHigh, 2039380);
 
-        Build actBuild = fatBuild.toBuild(injector.getInstance(IStringCompactor.class));
+        IStringCompactor compactor = injector.getInstance(IStringCompactor.class);
+        Build actBuild = fatBuild.toBuild(compactor);
 
-        try (FileWriter writer = new FileWriter("src/test/resources/build1.xml")) {
-            writer.write(XmlUtil.save(refBuild));
-        }
-
-        String save = XmlUtil.save(actBuild);
-        System.out.println(save);
-        try (FileWriter writer = new FileWriter("src/test/resources/build2.xml")) {
-            writer.write(save);
-        }
+        saveTmpFile(refBuild, "src/test/resources/build1.xml");
+        saveTmpFile(actBuild, "src/test/resources/build2.xml");
 
         assertEquals(refBuild.getId(), actBuild.getId());
         assertEquals(refBuild.status(), actBuild.status());
@@ -283,6 +280,20 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertEquals(refBt.getName(), actBt.getName());
         assertEquals(refBt.getProjectId(), actBt.getProjectId());
         assertEquals(refBt.getId(), actBt.getId());
+    }
+
+    public void saveTmpFile(Build refBuild, String name) throws IOException, JAXBException {
+        try (FileWriter writer = new FileWriter(name)) {
+            writer.write(XmlUtil.save(refBuild));
+        }
+    }
+
+    public <E> E jaxbTestXml(String ref, Class<E> cls) throws IOException, JAXBException {
+        E refBuild;
+        try(InputStream stream = getClass().getResourceAsStream(ref)) {
+            refBuild = XmlUtil.load(cls, new InputStreamReader(stream));
+        }
+        return refBuild;
     }
 
 }

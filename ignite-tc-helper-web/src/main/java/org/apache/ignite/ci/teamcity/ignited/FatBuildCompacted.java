@@ -104,6 +104,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         type.name(compactor.getStringFromId(name));
         type.projectId(compactor.getStringFromId(projectId));
         res.setBuildType(type);
+
+        res.href = "/app/rest/latest/builds/id:" + id();
     }
 
 }
