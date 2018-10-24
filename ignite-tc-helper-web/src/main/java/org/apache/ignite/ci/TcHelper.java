@@ -24,7 +24,7 @@ import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
@@ -45,8 +45,9 @@ import static org.apache.ignite.ci.analysis.RunStat.MAX_LATEST_RUNS;
 import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
 
 /**
- * TC Bot implementation
+ * TC Bot implementation. To be migrated to smaller injected classes
  */
+@Deprecated
 public class TcHelper implements ITcHelper, IJiraIntegration {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TcHelper.class);

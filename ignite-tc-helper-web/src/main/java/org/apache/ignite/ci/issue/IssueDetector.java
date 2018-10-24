@@ -35,7 +35,7 @@ import javax.inject.Provider;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
@@ -79,28 +79,31 @@ public class IssueDetector {
 
     private final AtomicBoolean init = new AtomicBoolean();
     private ICredentialsProv backgroundOpsCreds;
-    private ITcHelper backgroundOpsTcHelper;
     @Deprecated //todo use scheduler
     private ScheduledExecutorService executorService;
 
     @Inject private Provider<CheckQueueJob> checkQueueJobProv;
 
+    /** TrackedBranch Processor. */
     @Inject private TrackedBranchChainsProcessor tbProc;
 
     /** Tc helper. */
     @Inject private ITcHelper tcHelper;
 
+    /** Server provider. */
+    @Inject private ITcServerProvider srvProvider;
+
     /** Send notification guard. */
     private final AtomicBoolean sndNotificationGuard = new AtomicBoolean();
 
 
-    private void registerIssuesAndNotifyLater(TestFailuresSummary res, ITcServerProvider helper,
+    private void registerIssuesAndNotifyLater(TestFailuresSummary res,
         ICredentialsProv creds) {
 
         if (creds == null)
             return;
 
-        registerNewIssues(res, helper, creds);
+        registerNewIssues(res, creds);
 
         if (sndNotificationGuard.compareAndSet(false, true))
             executorService.schedule(this::sendNewNotifications, 90, TimeUnit.SECONDS);
@@ -207,14 +210,13 @@ public class IssueDetector {
 
     /**
      * @param res summary of failures in test
-     * @param srvProvider Server provider.
      * @param creds Credentials provider.
      * @return Displayable string with operation status.
      */
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @AutoProfiling
     @MonitoredTask(name = "Register new issues")
-    protected String registerNewIssues(TestFailuresSummary res, ITcServerProvider srvProvider, ICredentialsProv creds) {
+    protected String registerNewIssues(TestFailuresSummary res, ICredentialsProv creds) {
         int newIssues = 0;
 
         for (ChainAtServerCurrentStatus next : res.servers) {
@@ -375,14 +377,13 @@ public class IssueDetector {
      *
      */
     public boolean isAuthorized() {
-        return backgroundOpsCreds != null && backgroundOpsTcHelper != null;
+        return backgroundOpsCreds != null;
     }
 
-    public void startBackgroundCheck(ITcHelper helper, ICredentialsProv prov) {
+    public void startBackgroundCheck(ICredentialsProv prov) {
         try {
             if (init.compareAndSet(false, true)) {
                 this.backgroundOpsCreds = prov;
-                this.backgroundOpsTcHelper = helper;
 
                 executorService = Executors.newScheduledThreadPool(3);
 
@@ -390,7 +391,7 @@ public class IssueDetector {
 
                 final CheckQueueJob checkQueueJob = checkQueueJobProv.get();
 
-                checkQueueJob.init(backgroundOpsTcHelper, backgroundOpsCreds);
+                checkQueueJob.init(backgroundOpsCreds);
 
                 executorService.scheduleAtFixedRate(checkQueueJob, 0, 10, TimeUnit.MINUTES);
 
@@ -446,7 +447,7 @@ public class IssueDetector {
                         backgroundOpsCreds
                 );
 
-        registerIssuesAndNotifyLater(failures, backgroundOpsTcHelper, backgroundOpsCreds);
+        registerIssuesAndNotifyLater(failures, backgroundOpsCreds);
 
         return "Tests " + failures.failedTests + " Suites " + failures.failedToFinish + " were checked";
     }
