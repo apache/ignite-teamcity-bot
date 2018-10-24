@@ -19,17 +19,19 @@ package org.apache.ignite.ci.di;
 import com.google.common.base.Preconditions;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
+import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
+import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerFactory;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.junit.Test;
 
-import java.util.Collection;
-
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class DiContextTest {
     /**
@@ -37,12 +39,18 @@ public class DiContextTest {
      */
     @Test
     public void checkSingletons() {
-        IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
-        Injector injector = Guice.createInjector(igniteTcBotModule);
+        Injector injector = getInjector();
 
         validateInstanceCachedFor(injector, ITcServerProvider.class);
         validateInstanceCachedFor(injector, ITcServerFactory.class);
         validateInstanceCachedFor(injector, ObserverTask.class);
+    }
+
+    public Injector getInjector() {
+        IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
+        igniteTcBotModule.setIgniteFut(CompletableFuture.completedFuture(mock(Ignite.class)));
+
+        return Guice.createInjector(igniteTcBotModule);
     }
 
     /**
@@ -50,8 +58,7 @@ public class DiContextTest {
      */
     @Test
     public void checkPoolIsOne() {
-        IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
-        Injector injector = Guice.createInjector(igniteTcBotModule);
+        Injector injector = getInjector();
 
         TcUpdatePool pool = injector.getInstance(TcUpdatePool.class);
         Preconditions.checkState(pool == injector.getInstance((Class<?>) TcUpdatePool.class),
@@ -73,22 +80,21 @@ public class DiContextTest {
         IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
         final Injector injector = Guice.createInjector(igniteTcBotModule);
         final MonitorTest instance = injector.getInstance(MonitorTest.class);
-        final String parameter = "parameter";
-        instance.doSmth(parameter);
+
+        final String param = "parameter";
+        instance.doSmth(param);
         instance.doSmth();
         final MonitoredTaskInterceptor interceptor = injector.getInstance(MonitoredTaskInterceptor.class);
         final Collection<MonitoredTaskInterceptor.Invocation> list = interceptor.getList();
 
         boolean foundPar = false, found = false;
         for (MonitoredTaskInterceptor.Invocation next : list) {
-            final String fullParametrized = MonitorTest.TASK_NME + "." + parameter;
-            if (fullParametrized.equals(next.name())) {
+            final String fullParametrized = MonitorTest.TASK_NME + "." + param;
+            if (fullParametrized.equals(next.name()))
                 foundPar = true;
-            }
 
-            if (MonitorTest.TASK_NME .equals(next.name())) {
+            if (MonitorTest.TASK_NME .equals(next.name()))
                 found  = true;
-            }
         }
 
         assertTrue(foundPar);
@@ -109,8 +115,7 @@ public class DiContextTest {
 
     @Test
     public void checkSingletonTcHelper() {
-        IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
-        Injector injector = Guice.createInjector(igniteTcBotModule);
+        Injector injector = getInjector();
 
         validateInstanceCachedFor(injector, ITcHelper.class);
 
