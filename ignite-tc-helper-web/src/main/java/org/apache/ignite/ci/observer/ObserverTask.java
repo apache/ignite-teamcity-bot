@@ -60,7 +60,11 @@ public class ObserverTask extends TimerTask {
 
     /** */
     private Queue<BuildsInfo> buildsQueue() {
-        return ignite.queue("buildsQueue", 0, new CollectionConfiguration());
+        CollectionConfiguration cfg = new CollectionConfiguration();
+
+        cfg.setBackups(1);
+
+        return ignite.queue("buildsQueue", 0, cfg);
     }
 
     /** */

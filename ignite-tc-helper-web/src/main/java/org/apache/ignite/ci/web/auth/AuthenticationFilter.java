@@ -123,6 +123,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             ExceptionUtil.throwIfRest(e);
 
             reqCtx.abortWith(rspUnathorized());
+
+            return;
         }
 
         if (!authenticate(reqCtx, tokFull, users)) {
