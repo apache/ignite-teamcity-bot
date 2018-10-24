@@ -94,8 +94,6 @@ import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBran
  */
 @Deprecated
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
-    /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(IgnitePersistentTeamcity.class);
 
     //V2 caches, 32 parts (V1 caches were 1024 parts)
     private static final String TESTS_OCCURRENCES = "testOccurrences";

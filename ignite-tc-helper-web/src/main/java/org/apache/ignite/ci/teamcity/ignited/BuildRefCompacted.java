@@ -72,6 +72,7 @@ public class BuildRefCompacted {
         res.branchName = compactor.getStringFromId(branchName);
         res.status = compactor.getStringFromId(status);
         res.state = compactor.getStringFromId(state);
+        res.href = "/app/rest/latest/builds/id:" + id();
     }
 
     /** {@inheritDoc} */

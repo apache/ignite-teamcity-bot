@@ -39,8 +39,8 @@ import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
 
 public class IgniteStringCompactor implements IStringCompactor {
-    AtomicBoolean initGuard = new AtomicBoolean();
-    CountDownLatch initLatch = new CountDownLatch(1);
+    private final AtomicBoolean initGuard = new AtomicBoolean();
+    private final CountDownLatch initLatch = new CountDownLatch(1);
 
     /** Cache name */
     public static final String STRINGS_CACHE = "stringsCache";

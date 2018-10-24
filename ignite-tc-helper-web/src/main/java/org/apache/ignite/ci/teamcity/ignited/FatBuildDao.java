@@ -32,6 +32,7 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 
 /**
  *
@@ -74,6 +75,9 @@ public class FatBuildDao {
         Map<Long, FatBuildCompacted> entriesToPut = new TreeMap<>();
 
         FatBuildCompacted compacted = new FatBuildCompacted(compactor, build);
+
+        for (TestOccurrences next : tests)
+            compacted.addTests(compactor, next.getTests());
 
         long cacheKey = buildIdToCacheKey(srvIdMaskHigh, compacted.id());
         FatBuildCompacted buildPersisted = existingEntries.get(cacheKey);
