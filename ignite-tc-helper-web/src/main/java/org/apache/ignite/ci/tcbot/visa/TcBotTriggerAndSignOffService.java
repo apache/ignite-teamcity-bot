@@ -232,6 +232,7 @@ public class TcBotTriggerAndSignOffService {
             check.prNumber = pr.getNumber();
             check.prTitle = pr.getTitle();
             check.prHtmlUrl = pr.htmlUrl();
+            check.prTimeUpdate = pr.getTimeUpdate();
 
             GitHubUser user = pr.gitHubUser();
             if (user != null) {
