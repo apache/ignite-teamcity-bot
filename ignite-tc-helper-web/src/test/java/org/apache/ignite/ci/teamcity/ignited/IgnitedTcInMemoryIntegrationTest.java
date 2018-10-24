@@ -18,6 +18,7 @@ package org.apache.ignite.ci.teamcity.ignited;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -53,6 +54,7 @@ import org.mockito.Mockito;
 
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
+import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 import static org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.STRINGS_CACHE;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -254,21 +256,26 @@ public class IgnitedTcInMemoryIntegrationTest {
             }
         });
 
-        FatBuildDao instance = injector.getInstance(FatBuildDao.class);
-        instance.init();
+        FatBuildDao stor = injector.getInstance(FatBuildDao.class);
+        stor.init();
 
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(APACHE);
         List<TestOccurrences> occurrences = Collections.singletonList(tests);
-        int i = instance.saveBuild(srvIdMaskHigh, refBuild, occurrences);
+        int i = stor.saveBuild(srvIdMaskHigh, refBuild, occurrences);
         assertEquals(1, i);
 
-        FatBuildCompacted fatBuild = instance.getFatBuild(srvIdMaskHigh, 2039380);
+        FatBuildCompacted fatBuild = stor.getFatBuild(srvIdMaskHigh, 2153237);
 
         IStringCompactor compactor = injector.getInstance(IStringCompactor.class);
+
         Build actBuild = fatBuild.toBuild(compactor);
 
-        saveTmpFile(refBuild, "src/test/resources/build1.xml");
-        saveTmpFile(actBuild, "src/test/resources/build2.xml");
+        saveTmpFile(refBuild, "src/test/tmp/buildRef.xml");
+        saveTmpFile(actBuild, "src/test/tmp/buildAct.xml");
+
+        TestOccurrences occurrencesAct = fatBuild.getTestOcurrences(compactor);
+        saveTmpFile(tests, "src/test/tmp/testListRef.xml");
+        saveTmpFile(occurrencesAct, "src/test/tmp/testListAct.xml");
 
         assertEquals(refBuild.getId(), actBuild.getId());
         assertEquals(refBuild.status(), actBuild.status());
@@ -283,9 +290,11 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertEquals(refBt.getId(), actBt.getId());
     }
 
-    public void saveTmpFile(Build refBuild, String name) throws IOException, JAXBException {
+    public void saveTmpFile(Object obj, String name) throws IOException, JAXBException {
+        ensureDirExist(new File(name).getParentFile());
+
         try (FileWriter writer = new FileWriter(name)) {
-            writer.write(XmlUtil.save(refBuild));
+            writer.write(XmlUtil.save(obj));
         }
     }
 

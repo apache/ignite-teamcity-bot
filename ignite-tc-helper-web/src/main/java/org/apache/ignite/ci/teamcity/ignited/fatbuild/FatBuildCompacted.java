@@ -24,6 +24,7 @@ import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.jetbrains.annotations.Nullable;
@@ -142,5 +143,25 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
             tests.add(compacted);
         }
+    }
+
+    /**
+     * @param compactor Compactor.
+     */
+    public TestOccurrences getTestOcurrences(IStringCompactor compactor) {
+        if (tests == null)
+            return new TestOccurrences();
+
+        List<TestOccurrence> res = new ArrayList<>();
+
+        for (TestCompacted compacted : tests)
+            res.add(compacted.toTestOccurrence(compactor, id()));
+
+        TestOccurrences testOccurrences = new TestOccurrences();
+
+        testOccurrences.setTests(res);
+        testOccurrences.count = res.size();
+
+        return testOccurrences;
     }
 }

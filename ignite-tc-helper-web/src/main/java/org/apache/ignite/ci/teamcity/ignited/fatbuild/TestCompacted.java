@@ -63,4 +63,24 @@ public class TestCompacted {
         status = compactor.getStringId(testOccurrence.status);
         duration = testOccurrence.duration == null ? -1 : testOccurrence.duration;
     }
+
+    public TestOccurrence toTestOccurrence(IStringCompactor compactor, int buildId) {
+        TestOccurrence occurrence = new TestOccurrence();
+
+        String fullStrId = "id:" +
+            idInBuild() + ",build:(id:" +
+            buildId +
+            ")";
+        occurrence.id(fullStrId);
+        occurrence.duration = duration < 0 ? null : duration;
+        occurrence.name = compactor.getStringFromId(name);
+        occurrence.status = compactor.getStringFromId(status);
+        occurrence.href = "/app/rest/latest/testOccurrences/" + fullStrId;
+
+        return occurrence;
+    }
+
+    private int idInBuild() {
+        return idInBuild;
+    }
 }
