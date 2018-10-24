@@ -48,4 +48,25 @@ public class BuildType {
     public String getProjectId() {
         return projectId;
     }
+
+    /**
+     * @param id New id.
+     */
+    public void id(String id) {
+        this.id = id;
+    }
+
+    /**
+     * @param name Name.
+     */
+    public void name(String name) {
+        this.name = name;
+    }
+
+    /**
+     * @param projectId Project id.
+     */
+    public void projectId(String projectId) {
+        this.projectId = projectId;
+    }
 }

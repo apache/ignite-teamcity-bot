@@ -41,10 +41,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Pure HTTP Connection API. */
     private ITeamcityConn conn;
 
-
     /** Scheduler. */
     @Inject private IScheduler scheduler;
 
+    /** Build reference DAO. */
     @Inject private BuildRefDao buildRefDao;
 
     /** Server ID mask for cache Entries. */
@@ -55,7 +55,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         this.srvId = srvId;
         this.conn = conn;
 
-        srvIdMaskHigh = Math.abs(srvId.hashCode());
+        srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
         buildRefDao.init(); //todo init somehow in auto
     }
 

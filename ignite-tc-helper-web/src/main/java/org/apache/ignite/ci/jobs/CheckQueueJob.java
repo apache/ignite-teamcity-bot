@@ -165,7 +165,7 @@ public class CheckQueueJob implements Runnable {
         int running = 0;
 
         for (Agent agent : agents) {
-            if (agent.getBuild() != null) //  || !STATE_RUNNING.equals(agent.getBuild().status)
+            if (agent.getBuild() != null) //  || !STATE_RUNNING.equals(agent.getFatBuild().status)
                 ++running;
         }
 
