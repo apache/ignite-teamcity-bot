@@ -17,17 +17,21 @@
 
 package org.apache.ignite.ci.observer;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TimerTask;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.inject.Inject;
+import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
+import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.configuration.CollectionConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,18 +45,36 @@ public class ObserverTask extends TimerTask {
     private static final Logger logger = LoggerFactory.getLogger(ObserverTask.class);
 
     /** Helper. */
-    @Inject private ITcServerProvider srvProvider;
+    @Inject private ITcHelper tcHelper;
 
     /** Helper. */
     @Inject private IJiraIntegration jiraIntegration;
 
-    /** Builds. */
-    final Queue<BuildsInfo> builds;
+    /** Ignite. */
+    @Inject private Ignite ignite;
 
     /**
      */
     ObserverTask() {
-        builds = new ConcurrentLinkedQueue<>();
+    }
+
+    /** */
+    private Queue<BuildsInfo> buildsQueue() {
+        CollectionConfiguration cfg = new CollectionConfiguration();
+
+        cfg.setBackups(1);
+
+        return ignite.queue("buildsQueue", 0, cfg);
+    }
+
+    /** */
+    public Collection<BuildsInfo> getBuilds() {
+        return Collections.unmodifiableCollection(buildsQueue());
+    }
+
+    /** */
+    public void addBuild(BuildsInfo build) {
+        buildsQueue().add(build);
     }
 
     /** {@inheritDoc} */
@@ -71,14 +93,19 @@ public class ObserverTask extends TimerTask {
     @AutoProfiling
     @MonitoredTask(name = "Build Observer")
     protected String runObserverTask() {
+        if (!tcHelper.isServerAuthorized())
+            return "Server authorization required.";
+
         int checkedBuilds = 0;
         int notFinishedBuilds = 0;
         Set<String> ticketsNotified = new HashSet<>();
 
+        Queue<BuildsInfo> builds = buildsQueue();
+
         for (BuildsInfo info : builds) {
             checkedBuilds += info.buildsCount();
 
-            IAnalyticsEnabledTeamcity teamcity = srvProvider.server(info.srvId, info.prov);
+            IAnalyticsEnabledTeamcity teamcity = tcHelper.server(info.srvId, tcHelper.getServerAuthorizerCreds());
 
             if (!info.isFinished(teamcity)) {
                 notFinishedBuilds += info.buildsCount() - info.finishedBuildsCount();
@@ -86,7 +113,9 @@ public class ObserverTask extends TimerTask {
                 continue;
             }
 
-            String jiraRes = jiraIntegration.notifyJira(info.srvId, info.prov, info.buildTypeId,
+            ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
+
+            String jiraRes = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
                 info.branchName, info.ticket);
 
             if (JIRA_COMMENTED.equals(jiraRes)) {

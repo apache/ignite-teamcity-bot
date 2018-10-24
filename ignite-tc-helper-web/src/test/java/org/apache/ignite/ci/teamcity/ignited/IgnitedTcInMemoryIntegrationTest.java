@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitSheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.di.scheduler.NoOpSheduler;
@@ -40,6 +41,8 @@ import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.XmlUtil;
+import org.apache.ignite.configuration.IgniteConfiguration;
+import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -57,7 +60,11 @@ import static org.mockito.Mockito.when;
  */
 public class IgnitedTcInMemoryIntegrationTest {
     /** Server Name for test. */
-    public static final String APACHE = "apache";
+    public static final String APACHE = "apachetest";
+
+    /** Test ignite port. */
+    public static final int TEST_IGNITE_PORT = 64124;
+
     /** Ignite. */
     private static Ignite ignite;
 
@@ -66,7 +73,18 @@ public class IgnitedTcInMemoryIntegrationTest {
      */
     @BeforeClass
     public static void startIgnite() {
-        ignite = Ignition.start();
+        IgniteConfiguration cfg = new IgniteConfiguration();
+        final TcpDiscoverySpi spi = new TcpDiscoverySpi();
+        int locPort = TEST_IGNITE_PORT;
+
+
+        spi.setLocalPort(locPort);
+        spi.setLocalPortRange(1);
+        spi.setIpFinder(new TcHelperDb.LocalOnlyTcpDiscoveryIpFinder(locPort));
+
+        cfg.setDiscoverySpi(spi);
+
+        ignite = Ignition.start(cfg);
     }
 
     /**
@@ -74,7 +92,8 @@ public class IgnitedTcInMemoryIntegrationTest {
      */
     @AfterClass
     public static void stopIgnite() {
-        ignite.close();
+        if (ignite != null)
+            ignite.close();
     }
 
     @Test

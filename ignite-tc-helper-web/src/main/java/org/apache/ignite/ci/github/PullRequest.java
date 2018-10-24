@@ -57,6 +57,12 @@ public class PullRequest implements IVersionedEntity {
 
     @SerializedName("base") private GitHubBranch base;
 
+    /**
+     * @return Pull Request time update.
+     */
+    public String getTimeUpdate() {
+        return  updatedAt;
+    }
 
     /**
      * @return Pull Request number.

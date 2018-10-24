@@ -62,7 +62,7 @@ public class BuildRefDao {
     }
 
     /**
-     * @param srvIdMaskHigh Server id mask high.
+     * @param srvId Server id mask high.
      * @param ghData Gh data.
      */
     public int saveChunk(long srvId, List<BuildRef> ghData) {

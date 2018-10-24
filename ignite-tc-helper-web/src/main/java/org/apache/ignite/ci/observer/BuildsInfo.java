@@ -37,9 +37,6 @@ public class BuildsInfo {
     /** Branch name. */
     public final String branchName;
 
-    /** Credentials. */
-    public final ICredentialsProv prov;
-
     /** JIRA ticket full name. */
     public final String ticket;
 
@@ -54,7 +51,6 @@ public class BuildsInfo {
      */
     public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, Build[] builds) {
         this.srvId = srvId;
-        this.prov = prov;
         this.ticket = ticket;
         this.buildTypeId = builds.length > 1 ? "IgniteTests24Java8_RunAll" : builds[0].buildTypeId;
         this.branchName = builds[0].branchName;
@@ -104,13 +100,12 @@ public class BuildsInfo {
         return Objects.equals(srvId, info.srvId) &&
             Objects.equals(buildTypeId, info.buildTypeId) &&
             Objects.equals(branchName, info.branchName) &&
-            Objects.equals(prov, info.prov) &&
             Objects.equals(ticket, info.ticket) &&
-            Objects.equals(finishedBuilds, info.finishedBuilds);
+            Objects.equals(finishedBuilds.keySet(), info.finishedBuilds.keySet());
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(srvId, buildTypeId, branchName, prov, ticket, finishedBuilds);
+        return Objects.hash(srvId, buildTypeId, branchName, ticket, finishedBuilds.keySet());
     }
 }

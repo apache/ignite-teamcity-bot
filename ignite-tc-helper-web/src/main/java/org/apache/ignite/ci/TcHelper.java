@@ -54,6 +54,9 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     /** Stop guard. */
     private AtomicBoolean stop = new AtomicBoolean();
 
+    /** Server authorizer credentials. */
+    private ICredentialsProv serverAuthorizerCreds;
+
     @Inject private IssuesStorage issuesStorage;
 
     @Inject private ITcServerProvider serverProvider;
@@ -65,6 +68,21 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     @Inject private PrChainsProcessor prChainsProcessor;
 
     public TcHelper() {
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setServerAuthorizerCreds(ICredentialsProv creds) {
+        this.serverAuthorizerCreds = creds;
+    }
+
+    /** {@inheritDoc} */
+    @Override public ICredentialsProv getServerAuthorizerCreds() {
+        return serverAuthorizerCreds;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isServerAuthorized() {
+        return !Objects.isNull(serverAuthorizerCreds);
     }
 
     /** {@inheritDoc} */
@@ -224,7 +242,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
             }
         }
 
-        res.append("\\n").append("[TeamCity Run All|").append(webUrl).append(']');
+        res.append("\\n").append("[TeamCity Run All Results|").append(webUrl).append(']');
 
         return xmlEscapeText(res.toString());
     }

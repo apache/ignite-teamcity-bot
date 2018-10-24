@@ -31,7 +31,7 @@ public interface IStringCompactor {
     public String getStringFromId(int id);
 
     /**
-     * @param val Id.
+     * @param val Value to check in the compactor.
      */
     public Integer getStringIdIfPresent(String val);
 }

@@ -15,17 +15,40 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.result.tests;
+package org.apache.ignite.ci.tcmodel.result;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import java.util.ArrayList;
+import java.util.List;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.ignite.ci.tcmodel.result.AbstractRef;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
 /**
- * Reference to particular test
  */
-@XmlRootElement(name = "test")
-public class TestRef extends AbstractRef {
-    @XmlAttribute public Long id;
-    @XmlAttribute public String name;
+@XmlRootElement(name = "builds")
+public class Configurations {
+    /** */
+    @XmlElement(name = "build")
+    private List<BuildRef> builds;
+
+    /** */
+    public List<BuildRef> getBuilds() {
+        return builds == null ? new ArrayList<>() : builds;
+    }
+
+    /** BuildId which that configurations belong to. */
+    private Integer build;
+
+    /** */
+    public Configurations setBuild(Integer build) {
+        this.build = build;
+
+        return this;
+    }
+
+    /** */
+    public Integer getBuild() {
+        return build;
+    }
 }
