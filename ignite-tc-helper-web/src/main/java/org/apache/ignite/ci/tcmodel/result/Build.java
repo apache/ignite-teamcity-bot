@@ -186,4 +186,8 @@ public class Build extends BuildRef implements IVersionedEntity {
     public void setBuildType(BuildType type) {
         buildType = type;
     }
+
+    public void snapshotDependencies(List<BuildRef> dependencies) {
+        snapshotDependencies = dependencies;
+    }
 }

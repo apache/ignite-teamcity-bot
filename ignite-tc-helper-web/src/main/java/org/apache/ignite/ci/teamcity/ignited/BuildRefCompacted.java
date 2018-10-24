@@ -19,6 +19,7 @@ package org.apache.ignite.ci.teamcity.ignited;
 import com.google.common.base.Objects;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.jetbrains.annotations.NotNull;
 
 @Persisted
 public class BuildRefCompacted {
@@ -72,7 +73,11 @@ public class BuildRefCompacted {
         res.branchName = compactor.getStringFromId(branchName);
         res.status = compactor.getStringFromId(status);
         res.state = compactor.getStringFromId(state);
-        res.href = "/app/rest/latest/builds/id:" + id();
+        res.href = getHrefForId(id());
+    }
+
+    @NotNull protected static String getHrefForId(int id) {
+        return "/app/rest/latest/builds/id:" + id;
     }
 
     /** {@inheritDoc} */

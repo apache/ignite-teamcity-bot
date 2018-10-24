@@ -17,10 +17,15 @@
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
@@ -54,6 +59,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     @Nullable private List<TestCompacted> tests;
 
+    @Nullable private int snapshotDeps[];
+
+    private BitSet flags = new BitSet();
+
     /** {@inheritDoc} */
     @Override public int version() {
         return _ver;
@@ -72,21 +81,29 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     /**
      * @param compactor Compactor.
-     * @param ref Reference.
+     * @param build Reference.
      */
-    public FatBuildCompacted(IStringCompactor compactor, Build ref) {
-        super(compactor, ref);
+    public FatBuildCompacted(IStringCompactor compactor, Build build) {
+        super(compactor, build);
 
-        startDate = ref.getStartDate() == null ? -1L : ref.getStartDate().getTime();
-        finishDate = ref.getFinishDate() == null ? -1L : ref.getFinishDate().getTime();
-        queuedDate = ref.getQueuedDate() == null ? -1L : ref.getQueuedDate().getTime();
+        startDate = build.getStartDate() == null ? -1L : build.getStartDate().getTime();
+        finishDate = build.getFinishDate() == null ? -1L : build.getFinishDate().getTime();
+        queuedDate = build.getQueuedDate() == null ? -1L : build.getQueuedDate().getTime();
 
 
-        BuildType type = ref.getBuildType();
+        BuildType type = build.getBuildType();
         if (type != null) {
             projectId = compactor.getStringId(type.getProjectId());
             name = compactor.getStringId(type.getName());
         }
+
+        int[] arr = build.getSnapshotDependenciesNonNull().stream()
+            .filter(b -> b.getId() != null).mapToInt(BuildRef::getId).toArray();
+
+        snapshotDeps = arr.length > 0 ? arr : null;
+
+        setFlag(0, build.defaultBranch);
+        setFlag(2, build.composite);
     }
 
     /**
@@ -128,6 +145,23 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             testOccurrencesRef.count = tests.size();
             res.testOccurrences = testOccurrencesRef;
         }
+
+        if (snapshotDeps != null) {
+            List<BuildRef> snapshotDependencies = new ArrayList<>();
+            for (int i = 0; i < snapshotDeps.length; i++) {
+                int depId = snapshotDeps[i];
+
+                BuildRef ref = new BuildRef();
+                ref.setId(depId);
+                ref.href = getHrefForId(depId);
+                snapshotDependencies.add(ref);
+            }
+
+            res.snapshotDependencies(snapshotDependencies);
+        }
+
+        res.defaultBranch = getFlag(0);
+        res.composite = getFlag(2);
     }
 
     /**
@@ -143,6 +177,28 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
             tests.add(compacted);
         }
+    }
+
+
+    private void setFlag(int off, Boolean val) {
+        flags.clear(off, off + 2);
+
+        boolean valPresent = val != null;
+        flags.set(off, valPresent);
+
+        if (valPresent)
+            flags.set(off + 1, val);
+    }
+
+
+    /**
+     * @param off Offset.
+     */
+    private Boolean getFlag(int off) {
+        if (!flags.get(off))
+            return null;
+
+        return flags.get(off + 1);
     }
 
     /**
