@@ -77,7 +77,7 @@ class NamedTask {
 
     }
 
-    public Runnable needRun() {
+    public Runnable runIfNeeded() throws Exception {
         long optReadStamp = lock.tryOptimisticRead();
         boolean canSkip = canSkipStartNow();
         boolean optRead = lock.validate(optReadStamp);
