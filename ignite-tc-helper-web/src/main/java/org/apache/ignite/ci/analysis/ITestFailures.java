@@ -18,8 +18,12 @@
 package org.apache.ignite.ci.analysis;
 
 import java.util.stream.Stream;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
-public interface ITestFailureOccurrences {
+/**
+ * Multiple test ocurrence
+ */
+public interface ITestFailures {
     String getName();
 
     boolean isInvestigated();
@@ -31,4 +35,6 @@ public interface ITestFailureOccurrences {
     public int failuresCount();
 
     public long getAvgDurationMs();
+
+    Iterable<TestOccurrenceFull> getOccurrences();
 }

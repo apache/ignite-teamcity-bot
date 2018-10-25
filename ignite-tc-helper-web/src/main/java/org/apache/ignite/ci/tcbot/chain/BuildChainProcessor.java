@@ -23,7 +23,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -46,8 +45,7 @@ import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
@@ -60,7 +58,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.apache.ignite.ci.db.DbMigrations.TESTS_COUNT_7700;
 
 /**
  * Process whole Build Chain, E.g. runAll at particular server, including all builds involved
@@ -72,8 +69,7 @@ public class BuildChainProcessor {
     /** TC REST updates pool. */
     @Inject private TcUpdatePool tcUpdatePool;
 
-    @Inject private ITeamcityIgnitedProvider teamcityIgnitedProvider;
-
+    /** Compactor. */
     @Inject private IStringCompactor compactor;
 
     /**
@@ -216,22 +212,9 @@ public class BuildChainProcessor {
         }
 
         if (build.testOccurrences != null && !build.isComposite()) {
-            List<TestOccurrence> tests
-                = teamcity.getTests(build.testOccurrences.href + TESTS_COUNT_7700).getTests();
+            TestOccurrencesFull tests = buildCompacted.getTestOcurrences(compactor);
 
-            ctx.setTests(tests);
-
-            mCtx.addTests(tests);
-
-            for (TestOccurrence next : tests) {
-                if (next.href != null && next.isFailedTest()) {
-                    CompletableFuture<TestOccurrenceFull> testFullFut = teamcity.getTestFull(next.href);
-
-                    String testInBuildId = next.getId();
-
-                    mCtx.addTestInBuildToTestFull(testInBuildId, testFullFut);
-                }
-            }
+            mCtx.addTests(tests.getTests());
         }
 
         if (build.statisticsRef != null)

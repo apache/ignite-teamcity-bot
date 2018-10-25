@@ -53,9 +53,6 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     private List<Change> changes = new ArrayList<>();
 
-    @Deprecated
-    private List<TestOccurrence> tests = new ArrayList<>();
-
     public SingleBuildRunCtx(Build build,
         FatBuildCompacted buildCompacted,
         IStringCompactor compactor) {
@@ -157,11 +154,6 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     public List<Change> getChanges() {
         return changes;
-    }
-
-    @Deprecated
-    public void setTests(List<TestOccurrence> tests) {
-        this.tests = tests;
     }
 
     public List<? extends TestOccurrence> getTests() {

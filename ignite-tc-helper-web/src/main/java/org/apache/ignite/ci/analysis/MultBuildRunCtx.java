@@ -61,14 +61,6 @@ public class MultBuildRunCtx implements ISuiteResults {
     private final Map<String, MultTestFailureOccurrences> tests = new ConcurrentSkipListMap<>();
 
     /**
-     * Mapping for building test occurrence reference to test full results:
-     * Map from "Occurrence in build id" test detailed info.
-     * Note: only failed tests are loaded here
-     */
-    @Deprecated
-    private Map<String, CompletableFuture<TestOccurrenceFull>> testFullMap = new HashMap<>();
-
-    /**
      * Statistics for last build.
      */
     @Nullable private Statistics stat;
@@ -214,7 +206,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         getCriticalFailLastStartedTest().forEach(lastStartedTest ->
             builder.append("\t").append(lastStartedTest).append(" (Last started) \n"));
 
-        getFailedTests().map(ITestFailureOccurrences::getName).forEach(
+        getFailedTests().map(ITestFailures::getName).forEach(
             name -> {
                 builder.append("\t").append(name).append("\n");
             }
@@ -300,19 +292,19 @@ public class MultBuildRunCtx implements ISuiteResults {
         return CollectionUtil.top(logSizeBytes.entrySet().stream(), 3 ,comparing).stream();
     }
 
-    public Stream<? extends ITestFailureOccurrences> getTopLongRunning() {
+    public Stream<? extends ITestFailures> getTopLongRunning() {
         Stream<MultTestFailureOccurrences> stream = tests.values().stream();
         Comparator<MultTestFailureOccurrences> comparing = Comparator.comparing(MultTestFailureOccurrences::getAvgDurationMs);
         return CollectionUtil.top(stream, 3, comparing).stream();
     }
 
-    public Stream<? extends ITestFailureOccurrences> getFailedTests() {
+    public Stream<? extends ITestFailures> getFailedTests() {
         return tests.values().stream().filter(MultTestFailureOccurrences::hasFailedButNotMuted);
     }
 
     @Deprecated
-    public void addTests(Iterable<TestOccurrence> tests) {
-        for (TestOccurrence next : tests) {
+    public void addTests(Iterable<TestOccurrenceFull> tests) {
+        for (TestOccurrenceFull next : tests) {
             this.tests.computeIfAbsent(next.name,
                 k -> new MultTestFailureOccurrences())
                 .add(next);
@@ -346,23 +338,6 @@ public class MultBuildRunCtx implements ISuiteResults {
     @Nullable
     public Long getSourceUpdateDuration() {
         return stat == null ? null : stat.getSourceUpdateDuration();
-    }
-
-    /**
-     * @param testOccurrenceInBuildId, something like: 'id:15666,build:(id:1093907)'
-     * @param fullFut
-     */
-    @Deprecated
-    public void addTestInBuildToTestFull(String testOccurrenceInBuildId,
-        CompletableFuture<TestOccurrenceFull> fullFut) {
-        testFullMap.put(testOccurrenceInBuildId, fullFut);
-    }
-
-    @Deprecated
-    private Optional<TestOccurrenceFull> getFullTest(String testOccurrenceInBuildId) {
-        return Optional.ofNullable(testFullMap.get(testOccurrenceInBuildId))
-            .flatMap(fut ->
-                Optional.ofNullable(fut.isDone() ? FutureUtil.getResultSilent(fut) : null));
     }
 
     /**
@@ -409,14 +384,6 @@ public class MultBuildRunCtx implements ISuiteResults {
         return val == null ? 0 : val.intValue();
     }
 
-    @Deprecated
-    public Stream<TestOccurrenceFull> getFullTests(ITestFailureOccurrences occurrence) {
-        return occurrence.getOccurrenceIds()
-            .map(this::getFullTest)
-            .filter(Optional::isPresent)
-            .map(Optional::get);
-    }
-
     /**
      * @return Username's stream for users introduced changes in this commit
      */
@@ -431,14 +398,12 @@ public class MultBuildRunCtx implements ISuiteResults {
         Stream<CompletableFuture<?>> stream1 = queuedBuildCount != null ? Stream.of(queuedBuildCount) : Stream.empty();
         Stream<CompletableFuture<?>> stream2 = runningBuildCount != null ? Stream.of(runningBuildCount) : Stream.empty();
 
-        Stream<? extends Future<?>> stream3 = testFullMap.values().stream();
-
         Stream<? extends Future<?>> stream4 = buildsStream().flatMap(SingleBuildRunCtx::getFutures);
 
         return
             concat(
                 concat(stream1, stream2),
-                concat(stream4, stream3));
+                stream4);
     }
 
     /**
