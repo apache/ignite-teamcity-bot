@@ -17,26 +17,20 @@
 package org.apache.ignite.ci.di.scheduler;
 
 import com.google.common.base.Preconditions;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 class TcBotScheduler implements IScheduler {
     public static final int POOL_SIZE = 3;
     /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(TcHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(TcBotScheduler.class);
 
     /** Executor service. */
     private volatile ScheduledExecutorService executorSvc = Executors.newScheduledThreadPool(POOL_SIZE);

@@ -23,13 +23,7 @@ import java.io.UncheckedIOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -119,7 +113,7 @@ public class BuildsHistory {
 
     /** */
     private void initStatistics(IAnalyticsEnabledTeamcity teamcity, int[] buildIds) {
-        List<Future<BuildStatisticsSummary>> buildStatiscsFutures = new ArrayList<>();
+        List<Future<BuildStatisticsSummary>> buildStaticsFutures = new ArrayList<>();
 
         for (int buildId : buildIds) {
             Future<BuildStatisticsSummary> buildFuture = CompletableFuture.supplyAsync(() -> {
@@ -131,10 +125,10 @@ public class BuildsHistory {
 
             }, teamcity.getExecutor());
 
-            buildStatiscsFutures.add(buildFuture);
+            buildStaticsFutures.add(buildFuture);
         }
 
-        buildStatiscsFutures.forEach(new Consumer<Future<BuildStatisticsSummary>>() {
+        buildStaticsFutures.forEach(new Consumer<Future<BuildStatisticsSummary>>() {
             @Override public void accept(Future<BuildStatisticsSummary> v) {
                 try {
                     BuildStatisticsSummary buildsStatistic = v.get();
@@ -144,7 +138,7 @@ public class BuildsHistory {
                 }
                 catch (ExecutionException e) {
                     if (e.getCause() instanceof UncheckedIOException)
-                        logger.error(e.getStackTrace().toString());
+                        logger.error(Arrays.toString(e.getStackTrace()));
 
                     else
                         throw new RuntimeException(e);
@@ -223,7 +217,7 @@ public class BuildsHistory {
                 v.get();
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof  UncheckedIOException)
-                    logger.error(e.getStackTrace().toString());
+                    logger.error(Arrays.toString(e.getStackTrace()));
 
                 else
                     throw new RuntimeException(e);

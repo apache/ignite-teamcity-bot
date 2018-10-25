@@ -95,6 +95,7 @@ import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBran
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
 
     //V2 caches, 32 parts (V1 caches were 1024 parts)
+    @Deprecated
     private static final String TESTS_OCCURRENCES = "testOccurrences";
     private static final String TESTS_RUN_STAT = "testsRunStat";
     private static final String CALCULATED_STATISTIC = "calculatedStatistic";
@@ -102,6 +103,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private static final String CHANGE_INFO_FULL = "changeInfoFull";
     private static final String CHANGES_LIST = "changesList";
     private static final String ISSUES_USAGES_LIST = "issuesUsagesList";
+    @Deprecated
     private static final String TEST_FULL = "testFull";
     private static final String BUILD_PROBLEMS = "buildProblems";
     private static final String BUILD_STATISTICS = "buildStatistics";
@@ -219,6 +221,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /**
      * @return {@link TestOccurrences} instances cache, 32 parts.
      */
+    @Deprecated
     private IgniteCache<String, TestOccurrences> testOccurrencesCache() {
         return getOrCreateCacheV2(ignCacheNme(TESTS_OCCURRENCES));
     }
@@ -226,6 +229,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /**
      * @return {@link TestOccurrenceFull} instances cache, 32 parts.
      */
+    @Deprecated
     private IgniteCache<String, TestOccurrenceFull> testFullCache() {
         return getOrCreateCacheV2(ignCacheNme(TEST_FULL));
     }
@@ -837,6 +841,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
+    @Deprecated
     @Override public TestOccurrences getTests(String fullUrl) {
         String hrefForDb = DbMigrations.removeCountFromRef(fullUrl);
 
@@ -847,6 +852,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
+    @Deprecated
     @Override public TestOccurrences getFailedTests(String href, int cnt, String normalizedBranch) {
         return getTests(href + ",muted:false,status:FAILURE,count:" + cnt + "&fields=testOccurrence(id,name)");
     }

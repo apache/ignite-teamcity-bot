@@ -161,6 +161,7 @@ public class GetBuildTestFailures {
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     @Path("testRef")
+    @Deprecated
     public String getTestRef(
         @NotNull @QueryParam("testName") String name,
         @NotNull @QueryParam("suiteName") String suiteName,

@@ -113,15 +113,6 @@ public interface ITeamcity extends ITeamcityConn {
     /**
      * @param projectId Suite ID (string without spaces).
      * @param branchNameForHist Branch in TC identification.
-     * @return List of build numbers in historical order, recent builds coming last.
-     */
-    default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist) {
-        return getBuildNumbersFromHistory(projectId, branchNameForHist, null, null);
-    }
-
-    /**
-     * @param projectId Suite ID (string without spaces).
-     * @param branchNameForHist Branch in TC identification.
      * @param sinceDate Since date.
      * @param untilDate Until date.
      * @return List of build numbers in historical order in date interval, recent builds coming last.
@@ -151,8 +142,10 @@ public interface ITeamcity extends ITeamcityConn {
      */
     ProblemOccurrences getProblems(BuildRef build);
 
+    @Deprecated
     public TestOccurrences getTests(String fullUrl);
 
+    @Deprecated
     TestOccurrences getFailedTests(String href, int count, String normalizedBranch);
 
     Statistics getBuildStatistics(String href);
@@ -164,6 +157,7 @@ public interface ITeamcity extends ITeamcityConn {
 
     ChangesList getChangesList(String href);
 
+    @Deprecated
     CompletableFuture<TestRef> getTestRef(FullQueryParams key);
 
     Configurations getConfigurations(FullQueryParams key);
