@@ -19,18 +19,17 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.jetbrains.annotations.Nullable;
@@ -216,16 +215,16 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     /**
      * @param compactor Compactor.
      */
-    public TestOccurrences getTestOcurrences(IStringCompactor compactor) {
+    public TestOccurrencesFull getTestOcurrences(IStringCompactor compactor) {
         if (tests == null)
-            return new TestOccurrences();
+            return new TestOccurrencesFull();
 
-        List<TestOccurrence> res = new ArrayList<>();
+        List<TestOccurrenceFull> res = new ArrayList<>();
 
         for (TestCompacted compacted : tests)
             res.add(compacted.toTestOccurrence(compactor, id()));
 
-        TestOccurrences testOccurrences = new TestOccurrences();
+        TestOccurrencesFull testOccurrences = new TestOccurrencesFull();
 
         testOccurrences.setTests(res);
         testOccurrences.count = res.size();
@@ -265,5 +264,15 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         Boolean flag = getFlag(COMPOSITE_F);
 
         return flag != null && flag;
+    }
+
+    public List<String> getFailedNotMutedTestNames(IStringCompactor compactor) {
+        if (tests == null)
+            return Collections.emptyList();
+
+        return tests.stream()
+            .filter(t -> t.isFailedButNotMuted(compactor))
+            .map(t -> t.getTestName(compactor))
+            .collect(Collectors.toList());
     }
 }

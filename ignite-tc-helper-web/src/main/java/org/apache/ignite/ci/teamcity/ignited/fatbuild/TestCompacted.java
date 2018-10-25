@@ -19,13 +19,19 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xerial.snappy.Snappy;
 
 /**
  *
@@ -45,10 +51,14 @@ public class TestCompacted {
     private BitSet flags = new BitSet();
 
     /** Test global, can be used for references. */
-    private long testId;
+    private long testId = 0;
 
     /** Actual build id. */
-    private int actualBuildId;
+    private int actualBuildId = -1;
+
+    /** Snappy comressed test log Details. */
+    private byte[] details;
+
 
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TestCompacted.class);
@@ -82,6 +92,22 @@ public class TestCompacted {
         setFlag(CUR_MUTED_F, testOccurrence.currentlyMuted);
         setFlag(CUR_INV_F, testOccurrence.currentlyInvestigated);
         setFlag(IGNORED_F, testOccurrence.ignored);
+
+        if (testOccurrence.build != null && testOccurrence.build.getId() != null)
+            actualBuildId = testOccurrence.build.getId();
+
+        if (testOccurrence.test != null && testOccurrence.test.id != null)
+            testId = testOccurrence.test.id;
+
+        String details = testOccurrence.details;
+        if (!Strings.isNullOrEmpty(details)) {
+            try {
+                this.details = Snappy.compress(details.getBytes(StandardCharsets.UTF_8));
+            }
+            catch (Exception e) {
+                logger.error("Snappy.compress failed: " + e.getMessage(), e);
+            }
+        }
     }
 
     private void setFlag(int off, Boolean val) {
@@ -105,8 +131,8 @@ public class TestCompacted {
         return flags.get(off + 1);
     }
 
-    public TestOccurrence toTestOccurrence(IStringCompactor compactor, int buildId) {
-        TestOccurrence occurrence = new TestOccurrence();
+    public TestOccurrenceFull toTestOccurrence(IStringCompactor compactor, int buildId) {
+        TestOccurrenceFull occurrence = new TestOccurrenceFull();
 
         String fullStrId = "id:" +
             idInBuild() + ",build:(id:" +
@@ -118,12 +144,58 @@ public class TestCompacted {
         occurrence.status = compactor.getStringFromId(status);
         occurrence.href = "/app/rest/latest/testOccurrences/" + fullStrId;
 
-        occurrence.muted = getFlag(MUTED_F);
+        occurrence.muted = getMutedFlag();
         occurrence.currentlyMuted = getFlag(CUR_MUTED_F);
         occurrence.currentlyInvestigated = getFlag(CUR_INV_F);
-        occurrence.ignored = getFlag(IGNORED_F);
+        occurrence.ignored = getIgnoredFlag();
+
+        if (actualBuildId > 0) {
+            BuildRef buildRef = new BuildRef();
+
+            buildRef.setId(actualBuildId);
+
+            occurrence.build = buildRef;
+        }
+
+        if (testId != 0) {
+            TestRef test = new TestRef();
+
+            test.id = testId;
+
+            occurrence.test = test;
+        }
+
+        occurrence.details = getDetailsText();
 
         return occurrence;
+    }
+
+    /**
+     *
+     */
+    @Nullable public String getDetailsText() {
+        if (details == null)
+            return "";
+
+        try {
+            byte[] uncompressed = Snappy.uncompress(details);
+            return new String(uncompressed, StandardCharsets.UTF_8);
+        }
+        catch (IOException e) {
+
+            logger.error("Snappy.uncompress failed: " + e.getMessage(), e);
+            return null;
+
+        }
+
+    }
+
+    public Boolean getIgnoredFlag() {
+        return getFlag(IGNORED_F);
+    }
+
+    public Boolean getMutedFlag() {
+        return getFlag(MUTED_F);
     }
 
     private int idInBuild() {
@@ -147,5 +219,30 @@ public class TestCompacted {
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(idInBuild, name, status, duration, flags);
+    }
+
+
+    public boolean isFailedButNotMuted(IStringCompactor compactor) {
+        return isFailedTest(compactor) && !(isMutedTest() || isIgnoredTest());
+    }
+
+    private boolean isIgnoredTest() {
+        Boolean flag = getIgnoredFlag();
+
+        return flag != null && flag;
+    }
+
+    private boolean isMutedTest() {
+        Boolean flag = getMutedFlag();
+
+        return flag != null && flag;
+    }
+
+    public boolean isFailedTest(IStringCompactor compactor) {
+        return compactor.getStringId(TestOccurrence.STATUS_SUCCESS) != status;
+    }
+
+    public String getTestName(IStringCompactor compactor) {
+        return compactor.getStringFromId(name);
     }
 }

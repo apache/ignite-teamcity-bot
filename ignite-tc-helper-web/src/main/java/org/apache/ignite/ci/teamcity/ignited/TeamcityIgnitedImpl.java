@@ -102,7 +102,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     @Override public FatBuildCompacted getFatBuild(int buildId) {
         FatBuildCompacted buildPersisted = fatBuildDao.getFatBuild(srvIdMaskHigh, buildId);
-        if (buildPersisted != null)
+        if (buildPersisted != null && !buildPersisted.isOutdatedEntityVersion())
             return buildPersisted;
 
         //todo some sort of locking to avoid double requests

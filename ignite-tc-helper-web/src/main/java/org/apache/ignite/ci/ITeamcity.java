@@ -155,6 +155,7 @@ public interface ITeamcity extends ITeamcityConn {
 
     Statistics getBuildStatistics(String href);
 
+    @Deprecated
     CompletableFuture<TestOccurrenceFull> getTestFull(String href);
 
     Change getChange(String href);

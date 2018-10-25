@@ -279,7 +279,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         saveTmpFile(refBuild, "src/test/tmp/buildRef.xml");
         saveTmpFile(actBuild, "src/test/tmp/buildAct.xml");
 
-        TestOccurrences testsAct = fatBuild.getTestOcurrences(compactor);
+        TestOccurrencesFull testsAct = fatBuild.getTestOcurrences(compactor);
         saveTmpFile(testsRef, "src/test/tmp/testListRef.xml");
         saveTmpFile(testsAct, "src/test/tmp/testListAct.xml");
 

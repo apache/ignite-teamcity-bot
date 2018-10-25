@@ -188,6 +188,7 @@ public class BuildChainProcessor {
         @Deprecated MultBuildRunCtx mCtx, ITeamcityIgnited tcIgnited) {
 
         FatBuildCompacted buildCompacted = tcIgnited.getFatBuild(build.getId());
+
         SingleBuildRunCtx ctx = new SingleBuildRunCtx(build, buildCompacted, compactor);
         if (build.problemOccurrences != null)
             ctx.setProblems(teamcity.getProblems(build).getProblemsNonNull());

@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.analysis;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +28,6 @@ import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.changes.Change;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
@@ -64,6 +64,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     public Integer buildId() {
+        Preconditions.checkNotNull(buildCompacted);
         return buildCompacted.id() < 0 ? null : buildCompacted.id();
     }
 
@@ -158,13 +159,15 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return changes;
     }
 
+    @Deprecated
     public void setTests(List<TestOccurrence> tests) {
         this.tests = tests;
     }
 
-    public List<TestOccurrence> getTests() {
-        return tests;
+    public List<? extends TestOccurrence> getTests() {
+        return buildCompacted.getTestOcurrences(compactor).getTests();
     }
+
 
     @Nonnull Stream<? extends Future<?>> getFutures() {
         return logCheckResultFut == null ? Stream.empty() : Stream.of((Future<?>)logCheckResultFut);
@@ -176,5 +179,10 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     public String getBranch() {
         return compactor.getStringFromId(buildCompacted.branchName());
+    }
+
+
+    public List<String> getFailedNotMutedTestNames() {
+        return buildCompacted.getFailedNotMutedTestNames(compactor);
     }
 }

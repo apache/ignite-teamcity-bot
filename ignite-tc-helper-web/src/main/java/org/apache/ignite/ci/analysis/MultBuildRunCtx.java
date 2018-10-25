@@ -88,16 +88,20 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public Stream<String> getCriticalFailLastStartedTest() {
-        return builds.stream().map(SingleBuildRunCtx::getCriticalFailLastStartedTest).filter(Objects::nonNull);
+        return buildsStream().map(SingleBuildRunCtx::getCriticalFailLastStartedTest).filter(Objects::nonNull);
+    }
+
+    public Stream<SingleBuildRunCtx> buildsStream() {
+        return builds.stream();
     }
 
     public Stream<Integer> getBuildsWithThreadDump() {
-        return builds.stream().map(SingleBuildRunCtx::getBuildIdIfHasThreadDump).filter(Objects::nonNull);
+        return buildsStream().map(SingleBuildRunCtx::getBuildIdIfHasThreadDump).filter(Objects::nonNull);
     }
 
 
     public Stream<Map<String, TestLogCheckResult>> getLogsCheckResults() {
-        return builds.stream().map(SingleBuildRunCtx::getTestLogCheckResult).filter(Objects::nonNull);
+        return buildsStream().map(SingleBuildRunCtx::getTestLogCheckResult).filter(Objects::nonNull);
     }
 
     public String suiteId() {
@@ -129,7 +133,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     @NotNull public Stream<ProblemOccurrence> allProblemsInAllBuilds() {
-        return builds.stream().flatMap(SingleBuildRunCtx::getProblemsStream);
+        return buildsStream().flatMap(SingleBuildRunCtx::getProblemsStream);
     }
 
     public List<SingleBuildRunCtx> getBuilds() {
@@ -141,7 +145,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     private long getExecutionTimeoutCount() {
-        return builds.stream().filter(ISuiteResults::hasTimeoutProblem).count();
+        return buildsStream().filter(ISuiteResults::hasTimeoutProblem).count();
     }
 
     public boolean hasJvmCrashProblem() {
@@ -149,7 +153,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public long getJvmCrashProblemCount() {
-        return builds.stream().filter(ISuiteResults::hasJvmCrashProblem).count();
+        return buildsStream().filter(ISuiteResults::hasJvmCrashProblem).count();
     }
 
     public boolean hasOomeProblem() {
@@ -161,16 +165,16 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     private long getExitCodeProblemsCount() {
-        return builds.stream().filter(ISuiteResults::hasExitCodeProblem).count();
+        return buildsStream().filter(ISuiteResults::hasExitCodeProblem).count();
     }
 
     private long getOomeProblemCount() {
-        return builds.stream().filter(ISuiteResults::hasOomeProblem).count();
+        return buildsStream().filter(ISuiteResults::hasOomeProblem).count();
     }
 
     public int failedTests() {
-        return (int)tests.values().stream().mapToInt(MultTestFailureOccurrences::failuresCount)
-            .filter(cnt -> cnt > 0).count();
+        return (int)buildsStream().flatMap(ctx -> ctx.getFailedNotMutedTestNames().stream()).distinct().count();
+
     }
 
     public int mutedTests() {
@@ -348,11 +352,13 @@ public class MultBuildRunCtx implements ISuiteResults {
      * @param testOccurrenceInBuildId, something like: 'id:15666,build:(id:1093907)'
      * @param fullFut
      */
+    @Deprecated
     public void addTestInBuildToTestFull(String testOccurrenceInBuildId,
         CompletableFuture<TestOccurrenceFull> fullFut) {
         testFullMap.put(testOccurrenceInBuildId, fullFut);
     }
 
+    @Deprecated
     private Optional<TestOccurrenceFull> getFullTest(String testOccurrenceInBuildId) {
         return Optional.ofNullable(testFullMap.get(testOccurrenceInBuildId))
             .flatMap(fut ->
@@ -403,6 +409,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return val == null ? 0 : val.intValue();
     }
 
+    @Deprecated
     public Stream<TestOccurrenceFull> getFullTests(ITestFailureOccurrences occurrence) {
         return occurrence.getOccurrenceIds()
             .map(this::getFullTest)
@@ -414,7 +421,7 @@ public class MultBuildRunCtx implements ISuiteResults {
      * @return Username's stream for users introduced changes in this commit
      */
     public Stream<String> lastChangeUsers() {
-        return builds.stream()
+        return buildsStream()
             .flatMap(k -> k.getChanges().stream())
             .map(change -> change.username)
             .filter(Objects::nonNull);
@@ -426,7 +433,7 @@ public class MultBuildRunCtx implements ISuiteResults {
 
         Stream<? extends Future<?>> stream3 = testFullMap.values().stream();
 
-        Stream<? extends Future<?>> stream4 = builds.stream().flatMap(SingleBuildRunCtx::getFutures);
+        Stream<? extends Future<?>> stream4 = buildsStream().flatMap(SingleBuildRunCtx::getFutures);
 
         return
             concat(
@@ -439,7 +446,7 @@ public class MultBuildRunCtx implements ISuiteResults {
      */
     public boolean isComposite() {
         return !builds.isEmpty()
-            && builds.stream().allMatch(SingleBuildRunCtx::isComposite);
+            && buildsStream().allMatch(SingleBuildRunCtx::isComposite);
     }
 
     /**
@@ -450,6 +457,6 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public Stream<LogCheckResult> getLogChecksIfFinished() {
-        return builds.stream().map(SingleBuildRunCtx::getLogCheckIfFinished).filter(Objects::nonNull);
+        return buildsStream().map(SingleBuildRunCtx::getLogCheckIfFinished).filter(Objects::nonNull);
     }
 }
