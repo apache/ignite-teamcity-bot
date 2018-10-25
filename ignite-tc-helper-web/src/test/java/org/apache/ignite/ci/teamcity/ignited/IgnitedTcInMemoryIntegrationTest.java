@@ -26,7 +26,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -41,8 +40,6 @@ import org.apache.ignite.ci.di.scheduler.NoOpSheduler;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
@@ -267,7 +264,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(APACHE);
         List<TestOccurrencesFull> occurrences = Collections.singletonList(testsRef);
-        FatBuildCompacted buildCompacted = stor.saveBuild(srvIdMaskHigh, refBuild, occurrences);
+        FatBuildCompacted buildCompacted = stor.saveBuild(srvIdMaskHigh, refBuild, occurrences, null);
         assertNotNull(buildCompacted);
 
         FatBuildCompacted fatBuild = stor.getFatBuild(srvIdMaskHigh, 2153237);

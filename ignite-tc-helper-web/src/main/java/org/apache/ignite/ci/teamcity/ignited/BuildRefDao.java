@@ -65,7 +65,7 @@ public class BuildRefDao {
      * @param srvId Server id mask high.
      * @param ghData Gh data.
      */
-    public int saveChunk(long srvId, List<BuildRef> ghData) {
+    public Set<Long> saveChunk(long srvId, List<BuildRef> ghData) {
         Set<Long> ids = ghData.stream().map(BuildRef::getId)
             .filter(Objects::nonNull)
             .map(buildId -> buildIdToCacheKey(srvId, buildId))
@@ -89,15 +89,21 @@ public class BuildRefDao {
         int size = entriesToPut.size();
         if (size != 0)
             buildsCache.putAll(entriesToPut);
-        return size;
+
+        return entriesToPut.keySet();
     }
 
     /**
      * @param srvId Server id mask high.
      * @param buildId Build id.
      */
-    private long buildIdToCacheKey(long srvId, int buildId) {
+    public long buildIdToCacheKey(long srvId, int buildId) {
         return (long)buildId | srvId << 32;
+    }
+
+    public static int cacheKeyToBuildId(Long cacheKey) {
+        long l = cacheKey << 32;
+        return (int) (l>>32);
     }
 
     /**

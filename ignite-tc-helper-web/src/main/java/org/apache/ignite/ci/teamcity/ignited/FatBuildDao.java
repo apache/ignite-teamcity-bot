@@ -17,23 +17,21 @@
 
 package org.apache.ignite.ci.teamcity.ignited;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.jetbrains.annotations.Nullable;
 
 /**
  *
@@ -61,23 +59,22 @@ public class FatBuildDao {
     /**
      * @param srvIdMaskHigh Server id mask high.
      * @param build Build data.
-     * @param tests TestOccurrences.
+     * @param tests TestOccurrences one or several pages.
+     * @param existingBuild existing version of build in the DB.
      * @return Fat Build saved (if modifications detected)
      */
     public FatBuildCompacted saveBuild(long srvIdMaskHigh,
         Build build,
-        List<TestOccurrencesFull> tests) {
-
-        long cacheKey = buildIdToCacheKey(srvIdMaskHigh, build.getId());
-        FatBuildCompacted existingEntry = buildsCache.get(cacheKey);
+        List<TestOccurrencesFull> tests,
+        @Nullable FatBuildCompacted existingBuild) {
 
         FatBuildCompacted newBuild = new FatBuildCompacted(compactor, build);
 
         for (TestOccurrencesFull next : tests)
             newBuild.addTests(compactor, next.getTests());
 
-        if (existingEntry == null || !existingEntry.equals(newBuild)) {
-            buildsCache.put(cacheKey, newBuild);
+        if (existingBuild == null || !existingBuild.equals(newBuild)) {
+            buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, build.getId()), newBuild);
             return newBuild;
         }
 
@@ -86,41 +83,9 @@ public class FatBuildDao {
 
     /**
      * @param srvIdMaskHigh Server id mask high.
-     * @param buildData Gh data.
-     */
-    public int saveChunk(long srvIdMaskHigh, List<Build> buildData) {
-        Set<Long> ids = buildData.stream().map(BuildRef::getId)
-            .filter(Objects::nonNull)
-            .map(buildId -> buildIdToCacheKey(srvIdMaskHigh, buildId))
-            .collect(Collectors.toSet());
-
-        Map<Long, FatBuildCompacted> existingEntries = buildsCache.getAll(ids);
-        Map<Long, FatBuildCompacted> entriesToPut = new TreeMap<>();
-
-        List<FatBuildCompacted> collect = buildData.stream()
-            .map(ref -> new FatBuildCompacted(compactor, ref))
-            .collect(Collectors.toList());
-
-        for (FatBuildCompacted next : collect) {
-            long cacheKey = buildIdToCacheKey(srvIdMaskHigh, next.id());
-            FatBuildCompacted buildPersisted = existingEntries.get(cacheKey);
-
-            if (buildPersisted == null || !buildPersisted.equals(next))
-                entriesToPut.put(cacheKey, next);
-        }
-
-        int size = entriesToPut.size();
-        if (size != 0)
-            buildsCache.putAll(entriesToPut);
-
-        return size;
-    }
-
-    /**
-     * @param srvIdMaskHigh Server id mask high.
      * @param buildId Build id.
      */
-    private long buildIdToCacheKey(long srvIdMaskHigh, int buildId) {
+    public static long buildIdToCacheKey(long srvIdMaskHigh, int buildId) {
         return (long)buildId | srvIdMaskHigh << 32;
     }
 
@@ -130,5 +95,18 @@ public class FatBuildDao {
      */
     public FatBuildCompacted getFatBuild(int srvIdMaskHigh, int buildId) {
         return buildsCache.get(buildIdToCacheKey(srvIdMaskHigh, buildId));
+    }
+
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param buildsIds Builds ids.
+     */
+    public Map<Long, FatBuildCompacted> getAllFatBuilds(int srvIdMaskHigh, Collection<Integer> buildsIds ) {
+        Set<Long> ids = buildsIds.stream()
+            .filter(Objects::nonNull)
+            .map(buildId -> buildIdToCacheKey(srvIdMaskHigh, buildId))
+            .collect(Collectors.toSet());
+
+        return buildsCache.getAll(ids);
     }
 }
