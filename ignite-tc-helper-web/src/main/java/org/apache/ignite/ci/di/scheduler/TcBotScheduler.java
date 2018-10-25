@@ -17,6 +17,9 @@
 package org.apache.ignite.ci.di.scheduler;
 
 import com.google.common.base.Preconditions;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
@@ -24,10 +27,17 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.di.MonitoredTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class TcBotScheduler implements IScheduler {
     public static final int POOL_SIZE = 3;
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(TcHelper.class);
+
     /** Executor service. */
     private volatile ScheduledExecutorService executorSvc = Executors.newScheduledThreadPool(POOL_SIZE);
 
@@ -54,15 +64,22 @@ class TcBotScheduler implements IScheduler {
     /**
      *
      */
+    @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
     @MonitoredTask(name = "Run Named Scheduled Tasks")
     protected String checkNamedTasks() {
-        AtomicInteger started = new AtomicInteger();
+        AtomicInteger run = new AtomicInteger();
+        List<Throwable> problems = new ArrayList<>();
         namedTasks.forEach((s, task) -> {
-            Runnable runnable = task.needRun();
-            if (runnable != null)
-                started.incrementAndGet();
+            try {
+                Runnable runnable = task.runIfNeeded();
+                if (runnable != null)
+                    run.incrementAndGet();
+            } catch (Exception e) {
+                logger.error("Background task [" + s + "] execution failure: " + e.getMessage(), e);
+                problems.add(e);
+            }
         });
-        return "Started " + started.get();
+        return "Finished " + run.get() + (problems.isEmpty() ? ", exceptions: " : problems.toString());
     }
 
     /** {@inheritDoc} */
