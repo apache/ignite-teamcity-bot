@@ -22,6 +22,7 @@ import com.google.common.base.Strings;
 import java.util.BitSet;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,12 @@ public class TestCompacted {
 
     private BitSet flags = new BitSet();
 
+    /** Test global, can be used for references. */
+    private long testId;
+
+    /** Actual build id. */
+    private int actualBuildId;
+
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TestCompacted.class);
 
@@ -56,7 +63,7 @@ public class TestCompacted {
      * @param compactor Compactor.
      * @param testOccurrence TestOccurrence.
      */
-    public TestCompacted(IStringCompactor compactor, TestOccurrence testOccurrence) {
+    public TestCompacted(IStringCompactor compactor, TestOccurrenceFull testOccurrence) {
         String testOccurrenceId = testOccurrence.getId();
         if (!Strings.isNullOrEmpty(testOccurrenceId)) {
             try {

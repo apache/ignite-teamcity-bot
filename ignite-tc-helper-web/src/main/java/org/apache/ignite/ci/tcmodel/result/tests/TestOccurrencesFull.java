@@ -17,23 +17,35 @@
 
 package org.apache.ignite.ci.tcmodel.result.tests;
 
+import java.util.Collections;
+import java.util.List;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 
 /**
- * Full test occurrence optionally with text details returned by REST,
- *
- * See example of XML, e.g. here
- * https://ci.ignite.apache.org/app/rest/latest/testOccurrences/id:17264,build:(id:1705802)
+ * Full tests occurrences, may have reference to next occurrences
  */
-@XmlRootElement(name = "testOccurrence")
-public class TestOccurrenceFull extends TestOccurrence {
-    @XmlElement(name = "test") public TestRef test;
+@XmlRootElement(name = "testOccurrences")
+@XmlAccessorType(XmlAccessType.FIELD)
+public class TestOccurrencesFull extends TestOccurrencesRef {
+    @XmlElement(name = "testOccurrence")
+    private List<TestOccurrenceFull> testOccurrences;
 
-    /** Actual Build there this test was executed. */
-    @XmlElement public BuildRef build;
+    @XmlAttribute private String nextHref;
 
-    /** Failure text details */
-    @XmlElement public String details;
+    public List<TestOccurrenceFull> getTests() {
+        return testOccurrences == null ? Collections.emptyList() : testOccurrences;
+    }
+
+    public void setTests(List<TestOccurrenceFull> res) {
+        testOccurrences = res;
+    }
+
+    public String nextHref() {
+        return nextHref;
+    }
 }

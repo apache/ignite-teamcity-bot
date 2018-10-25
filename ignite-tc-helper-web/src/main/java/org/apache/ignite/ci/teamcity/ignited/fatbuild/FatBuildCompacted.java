@@ -29,6 +29,7 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -40,8 +41,12 @@ import org.jetbrains.annotations.Nullable;
 @Persisted
 public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEntity {
     /** Latest version. */
-    private static final int LATEST_VERSION = 0;
+    private static final int LATEST_VERSION = 1;
+
+    /** Default branch flag offset. */
     public static final int DEF_BR_F = 0;
+
+    /** Composite flag offset. */
     public static final int COMPOSITE_F = 2;
 
     /** Entity fields version. */
@@ -171,8 +176,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
      * @param compactor Compactor.
      * @param page Page.
      */
-    public void addTests(IStringCompactor compactor, List<TestOccurrence> page) {
-        for (TestOccurrence next : page) {
+    public void addTests(IStringCompactor compactor, List<TestOccurrenceFull> page) {
+        for (TestOccurrenceFull next : page) {
             TestCompacted compacted = new TestCompacted(compactor, next);
 
             if (tests == null)
@@ -183,6 +188,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     }
 
 
+    /**
+     * @param off Offset.
+     * @param val Value.
+     */
     private void setFlag(int off, Boolean val) {
         flags.clear(off, off + 2);
 
@@ -224,6 +233,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return testOccurrences;
     }
 
+    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
@@ -243,7 +253,17 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             Objects.equal(flags, that.flags);
     }
 
+    /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests, snapshotDeps, flags);
+    }
+
+    /**
+     *
+     */
+    public boolean isComposite() {
+        Boolean flag = getFlag(COMPOSITE_F);
+
+        return flag != null && flag;
     }
 }

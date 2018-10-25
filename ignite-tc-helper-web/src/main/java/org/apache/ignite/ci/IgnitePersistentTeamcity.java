@@ -74,6 +74,7 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.util.CacheUpdateUtil;
@@ -81,8 +82,6 @@ import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXParseException;
 
 import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBranch;
@@ -838,18 +837,18 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public TestOccurrences getTests(String href, String normalizedBranch) {
-        String hrefForDb = DbMigrations.removeCountFromRef(href);
+    @Override public TestOccurrences getTests(String fullUrl) {
+        String hrefForDb = DbMigrations.removeCountFromRef(fullUrl);
 
         return loadIfAbsent(testOccurrencesCache(),
             hrefForDb,  //hack to avoid test reloading from store in case of href filter replaced
-            hrefIgnored -> teamcity.getTests(href, normalizedBranch));
+            hrefIgnored -> teamcity.getTests(fullUrl));
     }
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public TestOccurrences getFailedTests(String href, int count, String normalizedBranch) {
-        return getTests(href + ",muted:false,status:FAILURE,count:" + count + "&fields=testOccurrence(id,name)", normalizedBranch);
+    @Override public TestOccurrences getFailedTests(String href, int cnt, String normalizedBranch) {
+        return getTests(href + ",muted:false,status:FAILURE,count:" + cnt + "&fields=testOccurrence(id,name)");
     }
 
     /** {@inheritDoc} */
@@ -1128,7 +1127,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             return;
 
         for (TestOccurrence testOccurrence : ctx.getTests())
-            addTestOccurrenceToStat(testOccurrence, normalizeBranch(ctx.getBuild()), !ctx.getChanges().isEmpty());
+            addTestOccurrenceToStat(testOccurrence, normalizeBranch(ctx.getBranch()), !ctx.getChanges().isEmpty());
 
         calculatedStatistic().put(ctx.buildId(), true);
     }
@@ -1223,5 +1222,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> nextPage) {
         return teamcity.getBuildRefs(fullUrl, nextPage);
+    }
+
+    /** {@inheritDoc} */
+    @Override public TestOccurrencesFull getTestsPage(int buildId, String href) {
+        return teamcity.getTestsPage(buildId, href);
     }
 }

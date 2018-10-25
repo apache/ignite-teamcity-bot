@@ -46,6 +46,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.annotation.XmlAttribute;
 import org.apache.ignite.ci.analysis.ISuiteResults;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.LogCheckTask;
@@ -68,6 +69,7 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
@@ -443,8 +445,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public TestOccurrences getTests(String href, String normalizedBranch) {
-        return getJaxbUsingHref(href, TestOccurrences.class);
+    @Override public TestOccurrences getTests(String fullUrl) {
+        return getJaxbUsingHref(fullUrl, TestOccurrences.class);
     }
 
     /** {@inheritDoc} */
@@ -462,7 +464,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public TestOccurrences getFailedTests(String href, int count, String normalizedBranch) {
-        return getTests(href + ",muted:false,status:FAILURE,count:" + count + "&fields=testOccurrence(id,name)", normalizedBranch);
+        return getTests(href + ",muted:false,status:FAILURE,count:" + count + "&fields=testOccurrence(id,name)");
     }
 
     /** {@inheritDoc} */
@@ -652,14 +654,32 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> outNextPage) {
         String relPath = "app/rest/latest/builds?locator=defaultFilter:false";
         String relPathSelected = Strings.isNullOrEmpty(fullUrl) ? relPath : fullUrl;
-        String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPath);
+        String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
         Builds builds = sendGetXmlParseJaxb(url, Builds.class);
 
         outNextPage.set(Strings.emptyToNull(builds.nextHref()));
 
         return builds.getBuildsNonNull();
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public TestOccurrencesFull getTestsPage(int buildId, @Nullable String href) {
+        String relPathSelected = Strings.isNullOrEmpty(href) ? testsStartHref(buildId) : href;
+        String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
+        return sendGetXmlParseJaxb(url, TestOccurrencesFull.class);
+    }
+
+    /**
+     * @param buildId Build id.
+     */
+    @NotNull public String testsStartHref(int buildId) {
+        return "app/rest/latest/testOccurrences?locator=build:(id:" +
+                buildId + ")" +
+                "&fields=testOccurrence(id,name,details,status,duration,muted,currentlyMuted,currentlyInvestigated,ignored,test(id),build(id))";
     }
 }

@@ -32,6 +32,7 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 
 /**
@@ -65,14 +66,14 @@ public class FatBuildDao {
      */
     public FatBuildCompacted saveBuild(long srvIdMaskHigh,
         Build build,
-        List<TestOccurrences> tests) {
+        List<TestOccurrencesFull> tests) {
 
         long cacheKey = buildIdToCacheKey(srvIdMaskHigh, build.getId());
         FatBuildCompacted existingEntry = buildsCache.get(cacheKey);
 
         FatBuildCompacted newBuild = new FatBuildCompacted(compactor, build);
 
-        for (TestOccurrences next : tests)
+        for (TestOccurrencesFull next : tests)
             newBuild.addTests(compactor, next.getTests());
 
         if (existingEntry == null || !existingEntry.equals(newBuild)) {

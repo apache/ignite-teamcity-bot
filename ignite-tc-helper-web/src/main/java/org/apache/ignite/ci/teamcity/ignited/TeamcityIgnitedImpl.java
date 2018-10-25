@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.teamcity.ignited;
 
 
+import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,6 +34,8 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 
@@ -98,14 +101,24 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     @Override public FatBuildCompacted getFatBuild(int buildId) {
-        FatBuildCompacted build = fatBuildDao.getFatBuild(srvIdMaskHigh, buildId);
-        if (build != null)
-            return build;
+        FatBuildCompacted buildPersisted = fatBuildDao.getFatBuild(srvIdMaskHigh, buildId);
+        if (buildPersisted != null)
+            return buildPersisted;
 
         //todo some sort of locking to avoid double requests
-        Build build1 = conn.getBuild(buildId);
+        Build build = conn.getBuild(buildId);
 
-        return fatBuildDao.saveBuild(srvIdMaskHigh, build1, new ArrayList<>());
+        List<TestOccurrencesFull> tests = new ArrayList<>();
+        String nextHref = null;
+        do {
+            TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref);
+            nextHref = page.nextHref();
+
+            tests.add(page);
+        }
+        while (!Strings.isNullOrEmpty(nextHref));
+
+        return fatBuildDao.saveBuild(srvIdMaskHigh, build, tests);
     }
 
     /**

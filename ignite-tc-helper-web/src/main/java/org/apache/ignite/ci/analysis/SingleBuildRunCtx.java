@@ -27,6 +27,7 @@ import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.changes.Change;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
@@ -39,10 +40,10 @@ import org.jetbrains.annotations.Nullable;
  * Single build ocurrence,
  */
 public class SingleBuildRunCtx implements ISuiteResults {
-    @Deprecated
-    private Build build;
-
+    /** Build compacted. */
     private FatBuildCompacted buildCompacted;
+    /** Compactor. */
+    private IStringCompactor compactor;
 
     /** Logger check result future. */
     private CompletableFuture<LogCheckResult> logCheckResultFut;
@@ -56,17 +57,14 @@ public class SingleBuildRunCtx implements ISuiteResults {
     private List<TestOccurrence> tests = new ArrayList<>();
 
     public SingleBuildRunCtx(Build build,
-        FatBuildCompacted buildCompacted, IStringCompactor compactor) {
-        this.build = build;
+        FatBuildCompacted buildCompacted,
+        IStringCompactor compactor) {
         this.buildCompacted = buildCompacted;
-    }
-
-    public Build getBuild() {
-        return build;
+        this.compactor = compactor;
     }
 
     public Integer buildId() {
-        return build.getId();
+        return buildCompacted.id() < 0 ? null : buildCompacted.id();
     }
 
     public boolean hasTimeoutProblem() {
@@ -97,7 +95,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     @Override public String suiteId() {
-        return build.suiteId();
+        return compactor.getStringFromId(buildCompacted.buildTypeId());
     }
 
     public void setLogCheckResultFut(CompletableFuture<LogCheckResult> logCheckResultFut) {
@@ -173,6 +171,10 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     public boolean isComposite() {
-        return build.isComposite();
+        return buildCompacted.isComposite();
+    }
+
+    public String getBranch() {
+        return compactor.getStringFromId(buildCompacted.branchName());
     }
 }

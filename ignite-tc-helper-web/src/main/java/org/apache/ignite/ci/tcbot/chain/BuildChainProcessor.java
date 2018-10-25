@@ -215,10 +215,8 @@ public class BuildChainProcessor {
         }
 
         if (build.testOccurrences != null && !build.isComposite()) {
-            String normalizedBranch = BuildChainProcessor.normalizeBranch(build);
-
             List<TestOccurrence> tests
-                = teamcity.getTests(build.testOccurrences.href + TESTS_COUNT_7700, normalizedBranch).getTests();
+                = teamcity.getTests(build.testOccurrences.href + TESTS_COUNT_7700).getTests();
 
             ctx.setTests(tests);
 

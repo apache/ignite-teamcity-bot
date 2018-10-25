@@ -41,7 +41,9 @@ import org.apache.ignite.ci.di.scheduler.NoOpSheduler;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
@@ -251,7 +253,7 @@ public class IgnitedTcInMemoryIntegrationTest {
     @Test
     public void testFatBuild() throws JAXBException, IOException {
         Build refBuild = jaxbTestXml("/build.xml", Build.class);
-        TestOccurrences testsRef = jaxbTestXml("/testList.xml", TestOccurrences.class);
+        TestOccurrencesFull testsRef = jaxbTestXml("/testList.xml", TestOccurrencesFull.class);
 
         Injector injector = Guice.createInjector(new AbstractModule() {
             @Override protected void configure() {
@@ -264,7 +266,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         stor.init();
 
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(APACHE);
-        List<TestOccurrences> occurrences = Collections.singletonList(testsRef);
+        List<TestOccurrencesFull> occurrences = Collections.singletonList(testsRef);
         FatBuildCompacted buildCompacted = stor.saveBuild(srvIdMaskHigh, refBuild, occurrences);
         assertNotNull(buildCompacted);
 

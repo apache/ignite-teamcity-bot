@@ -56,8 +56,8 @@ public class MultBuildRunCtx implements ISuiteResults {
     /** Builds: Single execution. */
     private List<SingleBuildRunCtx> builds = new CopyOnWriteArrayList<>();
 
-    @Deprecated
     /** Tests: Map from full test name to multiple test occurrence. */
+    @Deprecated
     private final Map<String, MultTestFailureOccurrences> tests = new ConcurrentSkipListMap<>();
 
     /**
@@ -65,6 +65,7 @@ public class MultBuildRunCtx implements ISuiteResults {
      * Map from "Occurrence in build id" test detailed info.
      * Note: only failed tests are loaded here
      */
+    @Deprecated
     private Map<String, CompletableFuture<TestOccurrenceFull>> testFullMap = new HashMap<>();
 
     /**
