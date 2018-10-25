@@ -62,6 +62,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
         buildRefDao.init(); //todo init somehow in auto
+        fatBuildDao.init();
     }
 
     /** {@inheritDoc} */
