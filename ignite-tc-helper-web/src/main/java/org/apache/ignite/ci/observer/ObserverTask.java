@@ -30,6 +30,8 @@ import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.configuration.CollectionConfiguration;
 import org.apache.ignite.ci.tcmodel.result.JiraCommentResult;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.configuration.CollectionConfiguration;
@@ -54,9 +56,6 @@ public class ObserverTask extends TimerTask {
     /** Ignite. */
     @Inject private Ignite ignite;
 
-    /** */
-    private static final String QUEUE_CACHE_NAME = "buildsQueue";
-
     /**
      */
     ObserverTask() {
@@ -68,7 +67,7 @@ public class ObserverTask extends TimerTask {
 
         cfg.setBackups(1);
 
-        return ignite.queue(QUEUE_CACHE_NAME, 0, cfg);
+        return ignite.queue("buildsQueue", 0, cfg);
     }
 
     /** */

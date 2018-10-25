@@ -95,7 +95,9 @@ public class UserService {
 
         IssueDetector detector = helper.issueDetector();
 
-        detector.startBackgroundCheck(helper, prov);
+        detector.startBackgroundCheck(prov);
+
+        CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class).startObserver();
 
         CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class).startObserver();
 

@@ -121,7 +121,7 @@ public class TcHelperDb {
 
     }
 
-    private static class LocalOnlyTcpDiscoveryIpFinder implements TcpDiscoveryIpFinder {
+    public static class LocalOnlyTcpDiscoveryIpFinder implements TcpDiscoveryIpFinder {
         private int port;
 
         public LocalOnlyTcpDiscoveryIpFinder(int port) {

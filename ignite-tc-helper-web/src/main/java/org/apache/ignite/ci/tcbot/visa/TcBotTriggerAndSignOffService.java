@@ -30,6 +30,7 @@ import javax.annotation.Nonnull;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
+import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.github.GitHubUser;
@@ -39,9 +40,12 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.tcmodel.result.JiraCommentResult;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
@@ -71,6 +75,14 @@ public class TcBotTriggerAndSignOffService {
     @Inject ITeamcityIgnitedProvider teamcityIgnitedProvider;
 
     @Inject Provider<BuildObserver> observer;
+
+    /** Helper. */
+    @Inject ITcHelper tcHelper;
+
+    /** */
+    public void startObserver() {
+        buildObserverProvider.get();
+    }
 
     /** Helper. */
     @Inject ITcHelper tcHelper;
@@ -207,9 +219,8 @@ public class TcBotTriggerAndSignOffService {
 
         buildObserverProvider.get().observe(srvId, prov, ticketFullName, branchForTc, builds);
 
-        if (!tcHelper.isServerAuthorized()) {
+        if (!tcHelper.isServerAuthorized())
             return "Ask server administrator to authorize the Bot to enable JIRA notifications.";
-        }
 
         return "JIRA ticket IGNITE-" + ticketFullName +
             " will be notified after the tests are completed.";
@@ -283,6 +294,7 @@ public class TcBotTriggerAndSignOffService {
             check.prNumber = pr.getNumber();
             check.prTitle = pr.getTitle();
             check.prHtmlUrl = pr.htmlUrl();
+            check.prTimeUpdate = pr.getTimeUpdate();
 
             GitHubUser user = pr.gitHubUser();
             if (user != null) {

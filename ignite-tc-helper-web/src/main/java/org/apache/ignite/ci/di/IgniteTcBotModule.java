@@ -85,7 +85,7 @@ public class IgniteTcBotModule extends AbstractModule {
         install(new SchedulerModule());
     }
 
-    //todo fallback to TC big class
+    //todo now it is just fallback to TC big class, extract JIRA integation module
     private static class Jira implements IJiraIntegration {
         @Inject ITcHelper helper;
 

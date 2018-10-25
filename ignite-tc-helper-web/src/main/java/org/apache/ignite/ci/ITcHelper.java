@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.tcmodel.result.JiraCommentResult;
 import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -30,8 +31,9 @@ import java.util.Collection;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 
 /**
- * Teamcity Bot main interface
+ * Teamcity Bot main interface. This inteface became too huge.
  */
+@Deprecated
 public interface ITcHelper extends ITcServerProvider {
     /** System property to specify: Teamcity helper home. Ignite home will be set to same dir. */
     public String TEAMCITY_HELPER_HOME = "teamcity.helper.home";
@@ -54,6 +56,7 @@ public interface ITcHelper extends ITcServerProvider {
     Collection<String> getServerIds();
 
     List<String> getTrackedBranchesIds();
+
 
     /** */
     void setServerAuthorizerCreds(ICredentialsProv creds);

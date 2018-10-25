@@ -62,11 +62,13 @@ import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.hist.Builds;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.Configurations;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
@@ -75,6 +77,7 @@ import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.UrlUtil;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
+import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,6 +124,12 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** Build logger processing running. */
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
+
+    private static int MAX_CFG_CNT = 500;
+
+    public Executor getExecutor() {
+        return executor;
+    }
 
     /** {@inheritDoc} */
     public void init(@Nullable String tcName) {
@@ -422,18 +431,14 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getJaxbUsingHref(href, Build.class);
     }
 
-    @Override
     @AutoProfiling
-    public ProblemOccurrences getProblems(Build build) {
-        if (build.problemOccurrences != null) {
-            ProblemOccurrences coll = getJaxbUsingHref(build.problemOccurrences.href, ProblemOccurrences.class);
+    @Override public ProblemOccurrences getProblems(BuildRef buildRef) {
+        ProblemOccurrences coll = getJaxbUsingHref("app/rest/latest/problemOccurrences?" +
+            "locator=build:(id:" + buildRef.getId() + ")", ProblemOccurrences.class);
 
-            coll.getProblemsNonNull().forEach(p -> p.buildRef = build);
+        coll.getProblemsNonNull().forEach(p -> p.buildRef = buildRef);
 
-            return coll;
-        }
-        else
-            return new ProblemOccurrences();
+        return coll;
     }
 
     /** {@inheritDoc} */
@@ -453,6 +458,31 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
         return supplyAsync(() -> getJaxbUsingHref(href, TestOccurrenceFull.class), executor);
     }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public TestOccurrences getFailedTests(String href, int count, String normalizedBranch) {
+        return getTests(href + ",muted:false,status:FAILURE,count:" + count + "&fields=testOccurrence(id,name)", normalizedBranch);
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public CompletableFuture<TestRef> getTestRef(FullQueryParams key) {
+        return supplyAsync(() -> {
+            return getJaxbUsingHref("app/rest/latest/tests/name:" + key.getTestName(), TestRef.class);
+        }, executor);
+    }
+
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public Configurations getConfigurations(FullQueryParams key) {
+        Configurations configurations = getJaxbUsingHref("app/rest/latest/builds?locator=snapshotDependency:(to:(id:" + key.getBuildId()
+            + "),includeInitial:true),defaultFilter:false,count:" + MAX_CFG_CNT, Configurations.class);
+
+        return configurations.setBuild(key.getBuildId());
+    }
+
 
     /** {@inheritDoc} */
     @AutoProfiling

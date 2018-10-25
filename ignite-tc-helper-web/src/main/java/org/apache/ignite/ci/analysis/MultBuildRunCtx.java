@@ -75,9 +75,6 @@ public class MultBuildRunCtx implements ISuiteResults {
         builds.add(ctx);
     }
 
-    /** Thread dump short file name */
-    @Nullable private Integer threadDumpFileIdx;
-
     /** Currently running builds */
     @Nullable private CompletableFuture<Long> runningBuildCount;
 

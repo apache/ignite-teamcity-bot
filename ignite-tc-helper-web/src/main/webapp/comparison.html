@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Ignite Teamcity - comparison master's branch in the date interval</title>
+    <title>Apache Ignite Teamcity Bot - Master trends</title>
     <link rel="icon" href="img/leaf-icon-png-7066.png">
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
@@ -17,7 +17,7 @@
 <body>
 <br>
 <br>
-<table class="compare"  width="100%">
+<table style="table-layout: fixed" class="compare">
     <tr>
         <th class="section"  width="15%">DATE INTERVAL</th>
         <th width="5%"></th>
@@ -148,14 +148,63 @@
         <td class="t2 data2" id="RunsCount2"></td>
     </tr>
 </table><br>
+<table style="table-layout: fixed" id="testsTable" class="testsTable">
+    <tbody>
+    <tr>
+        <th class="failedTestsHeader" width="15%">FAILED TESTS</th>
+        <th width="5%">
+            <label class="switch">
+                <input type="checkbox" onclick="toggleTests()">
+                <span class="slider"></span>
+            </label>
+        </th>
+        <th width="40%"></th>
+        <th width="40%"></th>
+        </tr>
+    </tbody>
+</table>
+
+<div id="myModal" class="modal">
+
+    <!-- Modal content -->
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <p id="tooltipText"></p>
+    </div>
+
+</div>
+
 <div id="version"></div>
 <script>
-    let oneWeekAgo = new Date(),
-        twoWeekAgo = new Date(),
-        g_updTimer = null;
+    const TESTS_TABLE = '#testsTable';
+    const SKIP_TESTS = 'skipTests=true';
+    let oneWeekAgo = new Date();
+    let twoWeekAgo = new Date();
+    let g_updTimer = null;
+    let testsTrigger = false;
+
+    /** Structure for storing tests by suites parsed response for every date interval. */
+    let mergedTestsResults = {1 : {}, 2 : {} };
+
 
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     twoWeekAgo.setDate(twoWeekAgo.getDate() - 14);
+
+    let dateIntervals = {1: {start: moment(oneWeekAgo), end: moment()},
+        2: {start: moment(twoWeekAgo), end: moment(oneWeekAgo)}};
+
+    function showTooltip(message) {
+        $("#tooltipText").html(message);
+        modal.show();
+    }
+
+    function toggleTests() {
+        testsTrigger = !testsTrigger;
+
+        loadData(1, dateIntervals[1].start, dateIntervals[1].end, testsTrigger);
+
+        loadData(2, dateIntervals[2].start, dateIntervals[2].end, testsTrigger);
+    }
 
     const parseTime = d3.timeParse("%d-%m-%YT%H:%M:%S"),
         formatTime = d3.timeFormat("%d-%m-%Y %H:%M:%S"),
@@ -222,6 +271,130 @@
             return (parseInt(stringMedian.split(":")[0]) * 60 + parseInt(stringMedian.split(":")[1])) * 60;
         else
             return parseFloat(stringMedian);
+    }
+
+    var changeDisplay = function(id) {
+        $('*[id=' + id + ']').each(function() {
+            $(this).toggle();
+        });
+    }
+
+    function mergeSuits(results) {
+        let mergedSuites = new Set();
+
+        for (let key of Object.keys(results)) {
+            for (let suite of Object.keys(results[key]))
+                mergedSuites.add(suite);
+        }
+
+        return Array.from(mergedSuites);
+    }
+
+    function printTests(results) {
+        $(TESTS_TABLE + " tr:not(:first-child)").remove();
+
+        let markedRow = true;
+
+        for (let suite of mergeSuits(results).sort()) {
+            let suiteName = suite.split('_').filter((value, index) => index != 0).join('_');
+            let testsCntCells = '';
+            let testsCells = '';
+
+            for (let key of Object.keys(results)) {
+                let obj = results[key];
+                let testLength = !obj.hasOwnProperty(suite) || obj[suite].length == 0 ?
+                    '' : obj[suite].length;
+
+                testsCntCells = testsCntCells + '<td class="testsCntCell"><p id="' + suite + '">' + testLength + '</p></td>';
+
+                testsCells = testsCells + '<td class="testsCell">' + getSuiteTestsHtml(results, suite, key) + '</td>'
+            }
+
+            $(TESTS_TABLE + " > tbody:last-child").append('<tr class="testsCntRow" onclick="changeDisplay(\'' + suite + '\')">' +
+                '<td class = "suiteCell">' + suiteName + '</td>' +
+                '<td></td>' + testsCntCells + '</tr>');
+
+            $(TESTS_TABLE + " > tbody:last-child").append('<tr class="testsRow" id="' + suite + '">' +
+                '<td class="testsSuiteCell" onclick="changeDisplay(\'' + suite + '\')"></td>' +
+                '<td></td>' + testsCells + '</tr>');
+        }
+    }
+
+    function generateCompareTestsResults(results) {
+        let compareTestsResults = {};
+
+        for (let key of  Object.keys(results)) {
+            let uniqueObj = {};
+
+            for (let suite of  Object.keys(results[key])) {
+                let allTests = [];
+
+                for (let key2 of Object.keys(results)) {
+                    if (key == key2)
+                        continue;
+
+                    allTests = allTests.concat(results[key2][suite]);
+                }
+
+                let uniqTests = results[key][suite].filter(function(test) {
+                    return allTests.indexOf(test) == -1;
+                });
+
+                if (uniqTests.length != 0)
+                    uniqueObj[suite] = uniqTests;
+            }
+
+            compareTestsResults[key] = uniqueObj;
+        }
+
+        return compareTestsResults;
+    }
+
+    function getSuiteTestsHtml(results, suite, key) {
+        if (!results[key].hasOwnProperty(suite) || results[key][suite].length == 0)
+            return '';
+
+        let res = '<body><div  id="' + suite + key + '"style="cursor: default; margin-left: 10px;">';
+
+        for (let test of results[key][suite].sort()) {
+            let list = test.toString().split(".");
+
+            if (list.length < 2)
+                list = test.toString().split(":");
+
+            let testName = list.pop();
+            let testClass = list.pop();
+
+            res += '<p align="left" title="' + test + '">' + testClass + '.' + testName +
+                '<a href="#" onclick="getTestRef(\'' + test + '\'' + ',\'' + suite + '\'); return false;">' +
+                ' &gt&gt</a>' + '</p>'
+        }
+
+        res += '</div></body>';
+
+        return res;
+    }
+
+    function getTestRef(testName, suite) {
+        let res = null;
+
+        $.ajax({
+                async: false,
+                url: 'rest/build/testRef?testName=' + testName + '&suiteName=' + suite,
+                success: function (result) {
+                    res = result;
+                },
+                error: showErrInLoadStatus
+            }
+        );
+
+        if (res == null) {
+            showTooltip('Link to TC test history is not ready yet. Try later.');
+
+            return;
+        }
+
+        window.open(res);
     }
 
     function printStatistics(num, map, sinceDate, untilDate) {
@@ -325,8 +498,8 @@
     }
 
     $(document).ready(function() {
-        loadData(1, moment(oneWeekAgo), moment());
-        loadData(2, moment(twoWeekAgo), moment(oneWeekAgo));
+        loadData(1, moment(oneWeekAgo), moment(), testsTrigger);
+        loadData(2, moment(twoWeekAgo), moment(oneWeekAgo), testsTrigger);
 
         $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 
@@ -353,6 +526,7 @@
     
     function fillAllDataCells(num, message) {
         $('.data' + num).html(message);
+        $('.testsCntCell').html(message);
     }
 
     function clearGraphs(num) {
@@ -375,16 +549,32 @@
         $('#showInfo').css('display', '');
     }
 
-    function loadData(num, sinceDate, untilDate) {
+    function loadData(num, sinceDate, untilDate, testsTrigger) {
         loadGif(num);
-        $.ajax(
-            {
-                url: 'rest/build/history?sinceDate=' + sinceDate.format("DDMMYYYY") +
-                '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959',
+
+        mergedTestsResults[num] = {};
+
+        let url = 'rest/build/history?sinceDate=' + sinceDate.format("DDMMYYYY") +
+            '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
+
+        if (!testsTrigger)
+            url = url + '&' + SKIP_TESTS;
+
+        $.ajax({
+                url: url,
                 success: function (result) {
-                    printStatistics(num, result, sinceDate, untilDate);
+                    printStatistics(num, result.buildsStatistics, sinceDate, untilDate);
+
+                    try {
+                        mergedTestsResults[num] = JSON.parse(result.mergedTestsJson);
+                    } catch (e) {
+                        printImportantMessage(num, "#ff0000", "Invalid server response. Unable to parse JSON");
+                    }
+
+                    printTests(generateCompareTestsResults(mergedTestsResults));
                 },
-                error: showErrInLoadStatus
+                error: showErrInLoadStatus,
+                timeout: 1800000
             }
         );
     }
@@ -392,14 +582,22 @@
     $(function() {
         $('input[name="daterange1"]').daterangepicker(
             dateRangePickerParam(oneWeekAgo, new Date()), function (start, end, label) {
-                loadData(1, start, end);
+                dateIntervals[1].start = start;
+
+                dateIntervals[1].end = end;
+
+                loadData(1, start, end, testsTrigger);
             });
     });
 
     $(function() {
         $('input[name="daterange2"]').daterangepicker(
             dateRangePickerParam(twoWeekAgo, oneWeekAgo), function (start, end, label) {
-                loadData(2, start, end);
+                dateIntervals[2].start = start;
+
+                dateIntervals[2].end = end;
+
+                loadData(2, start, end, testsTrigger);
             });
     });
 
@@ -545,6 +743,18 @@
             }
         });
     }
+
+    // Get the modal
+    var modal = $('#myModal');
+
+    // Get the <span> element that closes the modal
+    var span = $(".close");
+
+    // When the user clicks on <span> (x), close the modal
+    span.click(function() {
+        modal.hide();
+    })
+
 </script>
 <div style="visibility:hidden"><div id="modalDialog" title="Information"></div></div>
 </body>

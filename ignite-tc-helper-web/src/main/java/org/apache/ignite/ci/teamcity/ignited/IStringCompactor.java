@@ -16,6 +16,9 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+/**
+ *
+ */
 public interface IStringCompactor {
     /**
      * @param val Value.
@@ -27,5 +30,8 @@ public interface IStringCompactor {
      */
     public String getStringFromId(int id);
 
-    public Integer getStringIdIfPresent(String id);
+    /**
+     * @param val Value to check in the compactor.
+     */
+    public Integer getStringIdIfPresent(String val);
 }

@@ -34,6 +34,7 @@ import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.util.TimeUtil;
 import org.apache.ignite.ci.web.IBackgroundUpdatable;
+import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 
 /**
  * Summary of build statistics.
@@ -132,7 +133,7 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
 
         for (BuildRef buildRef : builds)
             problemOccurrences.addAll(teamcity
-                .getProblems(teamcity.getBuild(buildRef.href))
+                .getProblems(buildRef)
                 .getProblemsNonNull());
 
         return problemOccurrences;
@@ -145,17 +146,12 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
      * @param buildRef Build reference.
      */
     private List<BuildRef> getSnapshotDependencies(@Nonnull final ITeamcity teamcity, BuildRef buildRef){
-        List<BuildRef> snapshotDependencies = new ArrayList<>();
+        FullQueryParams key = new FullQueryParams();
 
-        if (buildRef.isComposite()){
-            Build build = teamcity.getBuild(buildRef.href);
+        key.setServerId(teamcity.serverId());
+        key.setBuildId(buildRef.getId());
 
-            for (BuildRef snDep : build.getSnapshotDependenciesNonNull())
-                snapshotDependencies.addAll(getSnapshotDependencies(teamcity, snDep));
-        } else
-            snapshotDependencies.add(buildRef);
-
-        return snapshotDependencies;
+        return teamcity.getConfigurations(key).getBuilds();
     }
 
     /**

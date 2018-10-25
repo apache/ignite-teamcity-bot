@@ -29,7 +29,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.db.TcHelperDb;
