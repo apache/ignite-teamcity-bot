@@ -23,12 +23,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
@@ -40,14 +42,25 @@ import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
+import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.apache.ignite.ci.db.DbMigrations.TESTS_COUNT_7700;
 
 /**
  * Process whole Build Chain, E.g. runAll at particular server, including all builds involved
@@ -59,8 +72,13 @@ public class BuildChainProcessor {
     /** TC REST updates pool. */
     @Inject private TcUpdatePool tcUpdatePool;
 
+    @Inject private ITeamcityIgnitedProvider teamcityIgnitedProvider;
+
+    @Inject private IStringCompactor compactor;
+
     /**
      * @param teamcity Teamcity.
+     * @param teamcityIgnited
      * @param entryPoints Entry points.
      * @param includeLatestRebuild Include latest rebuild.
      * @param procLog Process logger.
@@ -70,6 +88,7 @@ public class BuildChainProcessor {
     @AutoProfiling
     public FullChainRunCtx loadFullChainContext(
         IAnalyticsEnabledTeamcity teamcity,
+        ITeamcityIgnited teamcityIgnited,
         Collection<BuildRef> entryPoints,
         LatestRebuildMode includeLatestRebuild,
         ProcessLogsMode procLog,
@@ -104,7 +123,7 @@ public class BuildChainProcessor {
         final List<Future<? extends Stream<? extends BuildRef>>> phase2Submitted = phase1Submitted.stream()
                 .map(FutureUtil::getResult)
                 .map((s) -> svc.submit(
-                        () -> processBuildList(teamcity, buildsCtxMap, s)))
+                        () -> processBuildList(teamcity, teamcityIgnited, buildsCtxMap, s)))
                 .collect(Collectors.toList());
 
         phase2Submitted.forEach(FutureUtil::getResult);
@@ -141,25 +160,85 @@ public class BuildChainProcessor {
     }
 
     @NotNull
-    public static Stream<? extends BuildRef> processBuildList(ITeamcity teamcity,
-                                                              Map<String, MultBuildRunCtx> buildsCtxMap,
-                                                              Stream<? extends BuildRef> list) {
+    public Stream<? extends BuildRef> processBuildList(ITeamcity teamcity,
+        ITeamcityIgnited teamcityIgnited, Map<String, MultBuildRunCtx> buildsCtxMap,
+        Stream<? extends BuildRef> list) {
         list.forEach((BuildRef ref) -> {
-            processBuildAndAddToCtx(teamcity, buildsCtxMap, ref);
+            Build build = teamcity.getBuild(ref.getId());
+
+            if (build == null || build.isFakeStub())
+                return;
+
+            MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(build.buildTypeId, k -> new MultBuildRunCtx(build));
+
+            ctx.addBuild(loadTestsAndProblems(teamcity, build, ctx, teamcityIgnited));
         });
 
         return list;
     }
 
-    public static void processBuildAndAddToCtx(ITeamcity teamcity, Map<String, MultBuildRunCtx> buildsCtxMap, BuildRef buildRef) {
-        Build build = teamcity.getBuild(buildRef.href);
+    /**
+     * Runs deep collection of all related statistics for particular build.
+     *
+     * @param tcIgnited
+     * @param build Build from history with references to tests.
+     * @return Full context.
+     */
+    public SingleBuildRunCtx loadTestsAndProblems(ITeamcity teamcity, @Nonnull Build build,
+        @Deprecated MultBuildRunCtx mCtx, ITeamcityIgnited tcIgnited) {
 
-        if (build == null || build.isFakeStub())
-            return;
+        FatBuildCompacted buildCompacted = tcIgnited.getFatBuild(build.getId());
+        SingleBuildRunCtx ctx = new SingleBuildRunCtx(build, buildCompacted, compactor);
+        if (build.problemOccurrences != null)
+            ctx.setProblems(teamcity.getProblems(build).getProblemsNonNull());
 
-        MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(build.buildTypeId, k -> new MultBuildRunCtx(build));
+        if (build.lastChanges != null) {
+            for (ChangeRef next : build.lastChanges.changes) {
+                if(!isNullOrEmpty(next.href)) {
+                    // just to cache this change
+                    teamcity.getChange(next.href);
+                }
+            }
+        }
 
-        ctx.addBuild(teamcity.loadTestsAndProblems(build, ctx));
+        if (build.changesRef != null) {
+            ChangesList changeList = teamcity.getChangesList(build.changesRef.href);
+            // System.err.println("changes: " + changeList);
+            if (changeList.changes != null) {
+                for (ChangeRef next : changeList.changes) {
+                    if (!isNullOrEmpty(next.href)) {
+                        // just to cache this change
+                        ctx.addChange(teamcity.getChange(next.href));
+                    }
+                }
+            }
+        }
+
+        if (build.testOccurrences != null && !build.isComposite()) {
+            String normalizedBranch = BuildChainProcessor.normalizeBranch(build);
+
+            List<TestOccurrence> tests
+                = teamcity.getTests(build.testOccurrences.href + TESTS_COUNT_7700, normalizedBranch).getTests();
+
+            ctx.setTests(tests);
+
+            mCtx.addTests(tests);
+
+            for (TestOccurrence next : tests) {
+                if (next.href != null && next.isFailedTest()) {
+                    CompletableFuture<TestOccurrenceFull> testFullFut = teamcity.getTestFull(next.href);
+
+                    String testInBuildId = next.getId();
+
+                    mCtx.addTestInBuildToTestFull(testInBuildId, testFullFut);
+                }
+            }
+        }
+
+        if (build.statisticsRef != null)
+            mCtx.setStat(teamcity.getBuildStatistics(build.statisticsRef.href));
+
+        return ctx;
     }
 
     @NotNull

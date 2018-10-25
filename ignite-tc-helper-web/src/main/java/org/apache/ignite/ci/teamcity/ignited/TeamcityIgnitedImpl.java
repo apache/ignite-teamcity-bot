@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.teamcity.ignited;
 
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +33,7 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
@@ -47,8 +49,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Build reference DAO. */
     @Inject private BuildRefDao buildRefDao;
 
+    /** Build DAO. */
+    @Inject private FatBuildDao fatBuildDao;
+
     /** Server ID mask for cache Entries. */
-    private long srvIdMaskHigh;
+    private int srvIdMaskHigh;
 
 
     public void init(String srvId, ITeamcityConn conn) {
@@ -89,6 +94,17 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         runActualizeBuilds(srvId, false, Sets.newHashSet(build.getId()));
 
         return build;
+    }
+
+    @Override public FatBuildCompacted getFatBuild(int buildId) {
+        FatBuildCompacted build = fatBuildDao.getFatBuild(srvIdMaskHigh, buildId);
+        if (build != null)
+            return build;
+
+        //todo some sort of locking to avoid double requests
+        Build build1 = conn.getBuild(buildId);
+
+        return fatBuildDao.saveBuild(srvIdMaskHigh, build1, new ArrayList<>());
     }
 
     /**

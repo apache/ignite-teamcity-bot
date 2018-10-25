@@ -56,6 +56,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     /** Builds: Single execution. */
     private List<SingleBuildRunCtx> builds = new CopyOnWriteArrayList<>();
 
+    @Deprecated
     /** Tests: Map from full test name to multiple test occurrence. */
     private final Map<String, MultTestFailureOccurrences> tests = new ConcurrentSkipListMap<>();
 
@@ -304,6 +305,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return tests.values().stream().filter(MultTestFailureOccurrences::hasFailedButNotMuted);
     }
 
+    @Deprecated
     public void addTests(Iterable<TestOccurrence> tests) {
         for (TestOccurrence next : tests) {
             this.tests.computeIfAbsent(next.name,

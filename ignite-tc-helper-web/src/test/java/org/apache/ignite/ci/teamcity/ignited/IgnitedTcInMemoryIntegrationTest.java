@@ -26,7 +26,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
@@ -53,6 +56,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 import static org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.STRINGS_CACHE;
@@ -247,7 +251,7 @@ public class IgnitedTcInMemoryIntegrationTest {
     @Test
     public void testFatBuild() throws JAXBException, IOException {
         Build refBuild = jaxbTestXml("/build.xml", Build.class);
-        TestOccurrences tests = jaxbTestXml("/testList.xml", TestOccurrences.class);
+        TestOccurrences testsRef = jaxbTestXml("/testList.xml", TestOccurrences.class);
 
         Injector injector = Guice.createInjector(new AbstractModule() {
             @Override protected void configure() {
@@ -260,9 +264,9 @@ public class IgnitedTcInMemoryIntegrationTest {
         stor.init();
 
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(APACHE);
-        List<TestOccurrences> occurrences = Collections.singletonList(tests);
-        int i = stor.saveBuild(srvIdMaskHigh, refBuild, occurrences);
-        assertEquals(1, i);
+        List<TestOccurrences> occurrences = Collections.singletonList(testsRef);
+        FatBuildCompacted buildCompacted = stor.saveBuild(srvIdMaskHigh, refBuild, occurrences);
+        assertNotNull(buildCompacted);
 
         FatBuildCompacted fatBuild = stor.getFatBuild(srvIdMaskHigh, 2153237);
 
@@ -273,9 +277,9 @@ public class IgnitedTcInMemoryIntegrationTest {
         saveTmpFile(refBuild, "src/test/tmp/buildRef.xml");
         saveTmpFile(actBuild, "src/test/tmp/buildAct.xml");
 
-        TestOccurrences occurrencesAct = fatBuild.getTestOcurrences(compactor);
-        saveTmpFile(tests, "src/test/tmp/testListRef.xml");
-        saveTmpFile(occurrencesAct, "src/test/tmp/testListAct.xml");
+        TestOccurrences testsAct = fatBuild.getTestOcurrences(compactor);
+        saveTmpFile(testsRef, "src/test/tmp/testListRef.xml");
+        saveTmpFile(testsAct, "src/test/tmp/testListAct.xml");
 
         assertEquals(refBuild.getId(), actBuild.getId());
         assertEquals(refBuild.status(), actBuild.status());
@@ -288,6 +292,14 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertEquals(refBt.getName(), actBt.getName());
         assertEquals(refBt.getProjectId(), actBt.getProjectId());
         assertEquals(refBt.getId(), actBt.getId());
+
+        Set<String> testNamesAct = new TreeSet<>();
+        testsAct.getTests().forEach(testOccurrence -> testNamesAct.add(testOccurrence.name));
+
+
+        Set<String> testNamesRef = new TreeSet<>();
+        testsRef.getTests().forEach(testOccurrence -> testNamesRef.add(testOccurrence.name));
+        assertEquals(testNamesRef, testNamesAct);
     }
 
     public void saveTmpFile(Object obj, String name) throws IOException, JAXBException {

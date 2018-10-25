@@ -136,17 +136,18 @@ public interface ITeamcity extends ITeamcityConn {
         return getFinishedBuilds(projectId, branchNameForHist, sinceDate, untilDate, null).stream().mapToInt(BuildRef::getId).toArray();
     }
 
+    @Deprecated
     Build getBuild(String href);
 
-    default Build getBuild(int id) {
-        return getBuild(getBuildHrefById(id));
+    default Build getBuild(int buildId) {
+        return getBuild(getBuildHrefById(buildId));
     }
 
     @NotNull default String getBuildHrefById(int id) {
         return buildHref(id);
     }
 
-    @NotNull  static String buildHref(int id) {
+    @NotNull static String buildHref(int id) {
         return "app/rest/latest/builds/id:" + Integer.toString(id);
     }
 
@@ -178,74 +179,6 @@ public interface ITeamcity extends ITeamcityConn {
      * @param href IssuesUsagesList href.
      */
     IssuesUsagesList getIssuesUsagesList(String href);
-
-    /**
-     * Runs deep collection of all related statistics for particular build.
-     *
-     * @param build Build from history with references to tests.
-     * @return Full context.
-     */
-    @Nonnull default MultBuildRunCtx loadTestsAndProblems(@Nonnull Build build) {
-        MultBuildRunCtx ctx = new MultBuildRunCtx(build);
-
-        loadTestsAndProblems(build, ctx);
-
-        return ctx;
-    }
-
-    default SingleBuildRunCtx loadTestsAndProblems(@Nonnull Build build, @Deprecated MultBuildRunCtx mCtx) {
-        SingleBuildRunCtx ctx = new SingleBuildRunCtx(build);
-        if (build.problemOccurrences != null)
-            ctx.setProblems(getProblems(build).getProblemsNonNull());
-
-        if (build.lastChanges != null) {
-            for (ChangeRef next : build.lastChanges.changes) {
-                if(!isNullOrEmpty(next.href)) {
-                    // just to cache this change
-                    getChange(next.href);
-                }
-            }
-        }
-
-        if (build.changesRef != null) {
-            ChangesList changeList = getChangesList(build.changesRef.href);
-            // System.err.println("changes: " + changeList);
-            if (changeList.changes != null) {
-                for (ChangeRef next : changeList.changes) {
-                    if (!isNullOrEmpty(next.href)) {
-                        // just to cache this change
-                        ctx.addChange(getChange(next.href));
-                    }
-                }
-            }
-        }
-
-        if (build.testOccurrences != null && !build.isComposite()) {
-            String normalizedBranch = BuildChainProcessor.normalizeBranch(build);
-
-            List<TestOccurrence> tests
-                = getTests(build.testOccurrences.href + TESTS_COUNT_7700, normalizedBranch).getTests();
-
-            ctx.setTests(tests);
-
-            mCtx.addTests(tests);
-
-            for (TestOccurrence next : tests) {
-                if (next.href != null && next.isFailedTest()) {
-                    CompletableFuture<TestOccurrenceFull> testFullFut = getTestFull(next.href);
-
-                    String testInBuildId = next.getId();
-
-                    mCtx.addTestInBuildToTestFull(testInBuildId, testFullFut);
-                }
-            }
-        }
-
-        if (build.statisticsRef != null)
-            mCtx.setStat(getBuildStatistics(build.statisticsRef.href));
-
-        return ctx;
-    }
 
     CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut);
 

@@ -32,6 +32,8 @@ public interface ITeamcityConn {
      */
     public String host();
 
+    public Build getBuild(int buildId);
+
     public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> nextPage);
 
     /**

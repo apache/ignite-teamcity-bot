@@ -30,6 +30,8 @@ import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,7 +39,10 @@ import org.jetbrains.annotations.Nullable;
  * Single build ocurrence,
  */
 public class SingleBuildRunCtx implements ISuiteResults {
+    @Deprecated
     private Build build;
+
+    private FatBuildCompacted buildCompacted;
 
     /** Logger check result future. */
     private CompletableFuture<LogCheckResult> logCheckResultFut;
@@ -47,10 +52,13 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     private List<Change> changes = new ArrayList<>();
 
+    @Deprecated
     private List<TestOccurrence> tests = new ArrayList<>();
 
-    public SingleBuildRunCtx(Build build) {
+    public SingleBuildRunCtx(Build build,
+        FatBuildCompacted buildCompacted, IStringCompactor compactor) {
         this.build = build;
+        this.buildCompacted = buildCompacted;
     }
 
     public Build getBuild() {

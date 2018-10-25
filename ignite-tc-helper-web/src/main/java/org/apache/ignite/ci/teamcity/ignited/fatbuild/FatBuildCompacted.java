@@ -16,10 +16,10 @@
  */
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
+import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
@@ -41,6 +41,8 @@ import org.jetbrains.annotations.Nullable;
 public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEntity {
     /** Latest version. */
     private static final int LATEST_VERSION = 0;
+    public static final int DEF_BR_F = 0;
+    public static final int COMPOSITE_F = 2;
 
     /** Entity fields version. */
     private short _ver;
@@ -102,8 +104,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         snapshotDeps = arr.length > 0 ? arr : null;
 
-        setFlag(0, build.defaultBranch);
-        setFlag(2, build.composite);
+        setFlag(DEF_BR_F, build.defaultBranch);
+        setFlag(COMPOSITE_F, build.composite);
     }
 
     /**
@@ -160,8 +162,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             res.snapshotDependencies(snapshotDependencies);
         }
 
-        res.defaultBranch = getFlag(0);
-        res.composite = getFlag(2);
+        res.defaultBranch = getFlag(DEF_BR_F);
+        res.composite = getFlag(COMPOSITE_F);
+
     }
 
     /**
@@ -219,5 +222,28 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         testOccurrences.count = res.size();
 
         return testOccurrences;
+    }
+
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        if (!super.equals(o))
+            return false;
+        FatBuildCompacted that = (FatBuildCompacted)o;
+        return _ver == that._ver &&
+            startDate == that.startDate &&
+            finishDate == that.finishDate &&
+            queuedDate == that.queuedDate &&
+            projectId == that.projectId &&
+            name == that.name &&
+            Objects.equal(tests, that.tests) &&
+            Objects.equal(snapshotDeps, that.snapshotDeps) &&
+            Objects.equal(flags, that.flags);
+    }
+
+    @Override public int hashCode() {
+        return Objects.hashCode(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests, snapshotDeps, flags);
     }
 }

@@ -55,7 +55,7 @@ public class BuildRefDao {
         buildsCache = igniteProvider.get().getOrCreateCache(cfg);
     }
 
-    @NotNull protected Stream<BuildRefCompacted> compactedBuildsForServer(long srvId) {
+    @NotNull protected Stream<BuildRefCompacted> compactedBuildsForServer(int srvId) {
         return StreamSupport.stream(buildsCache.spliterator(), false)
             .filter(entry -> entry.getKey() >> 32 == srvId)
             .map(javax.cache.Cache.Entry::getValue);
@@ -105,7 +105,7 @@ public class BuildRefDao {
      * @param buildTypeId Build type id.
      * @param bracnhNameQry Bracnh name query.
      */
-    @NotNull public List<BuildRef> findBuildsInHistory(long srvId,
+    @NotNull public List<BuildRef> findBuildsInHistory(int srvId,
         @Nullable String buildTypeId,
         String bracnhNameQry) {
 
@@ -127,7 +127,7 @@ public class BuildRefDao {
     /**
      * @param srvId Server id.
      */
-    public List<BuildRefCompacted> getQueuedAndRunning(long srvId) {
+    public List<BuildRefCompacted> getQueuedAndRunning(int srvId) {
         GridIntList list = new GridIntList(2);
         Integer stateQueuedId = compactor.getStringIdIfPresent(BuildRef.STATE_QUEUED);
         if (stateQueuedId != null)

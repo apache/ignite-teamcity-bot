@@ -57,39 +57,30 @@ public class FatBuildDao {
         buildsCache = igniteProvider.get().getOrCreateCache(TcHelperDb.getCacheV2Config(TEAMCITY_FAT_BUILD_CACHE_NAME));
     }
 
-
     /**
      * @param srvIdMaskHigh Server id mask high.
      * @param build Build data.
      * @param tests TestOccurrences.
+     * @return Fat Build saved (if modifications detected)
      */
-    public int saveBuild(long srvIdMaskHigh,
+    public FatBuildCompacted saveBuild(long srvIdMaskHigh,
         Build build,
         List<TestOccurrences> tests) {
-        Set<Long> ids = Stream.of(build).map(BuildRef::getId)
-            .filter(Objects::nonNull)
-            .map(buildId -> buildIdToCacheKey(srvIdMaskHigh, buildId))
-            .collect(Collectors.toSet());
 
-        Map<Long, FatBuildCompacted> existingEntries = buildsCache.getAll(ids);
-        Map<Long, FatBuildCompacted> entriesToPut = new TreeMap<>();
+        long cacheKey = buildIdToCacheKey(srvIdMaskHigh, build.getId());
+        FatBuildCompacted existingEntry = buildsCache.get(cacheKey);
 
-        FatBuildCompacted compacted = new FatBuildCompacted(compactor, build);
+        FatBuildCompacted newBuild = new FatBuildCompacted(compactor, build);
 
         for (TestOccurrences next : tests)
-            compacted.addTests(compactor, next.getTests());
+            newBuild.addTests(compactor, next.getTests());
 
-        long cacheKey = buildIdToCacheKey(srvIdMaskHigh, compacted.id());
-        FatBuildCompacted buildPersisted = existingEntries.get(cacheKey);
+        if (existingEntry == null || !existingEntry.equals(newBuild)) {
+            buildsCache.put(cacheKey, newBuild);
+            return newBuild;
+        }
 
-        if (buildPersisted == null || !buildPersisted.equals(compacted))
-            entriesToPut.put(cacheKey, compacted);
-
-        int size = entriesToPut.size();
-        if (size != 0)
-            buildsCache.putAll(entriesToPut);
-
-        return size;
+        return null;
     }
 
     /**

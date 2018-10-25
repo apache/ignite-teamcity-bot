@@ -20,6 +20,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 
 /**
  *
@@ -56,4 +57,9 @@ public interface ITeamcityIgnited {
     public static int serverIdToInt(String srvId) {
         return Math.abs(srvId.hashCode());
     }
+
+    /**
+     * @param id Id.
+     */
+    public FatBuildCompacted getFatBuild(int id);
 }

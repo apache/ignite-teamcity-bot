@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import java.util.BitSet;
 import org.apache.ignite.ci.analysis.RunStat;
@@ -120,5 +121,24 @@ public class TestCompacted {
 
     private int idInBuild() {
         return idInBuild;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        TestCompacted compacted = (TestCompacted)o;
+        return idInBuild == compacted.idInBuild &&
+            name == compacted.name &&
+            status == compacted.status &&
+            duration == compacted.duration &&
+            Objects.equal(flags, compacted.flags);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hashCode(idInBuild, name, status, duration, flags);
     }
 }
