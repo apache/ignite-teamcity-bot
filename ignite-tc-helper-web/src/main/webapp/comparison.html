@@ -29,7 +29,7 @@
     </tr>
     <tr id="showInfo">
         <td class="section">SHOW INVALID BUILD</td>
-        <td class="icon"><div class="switch-btn"></div></td>
+        <td class="icon"><div class="switch-btn builds"></div></td>
         <td style="text-align: center;" id="info1"></td>
         <td style="text-align: center;" id="info2"></td>
     </tr>
@@ -156,12 +156,7 @@
     <tbody>
     <tr>
         <th class="failedTestsHeader" width="13%">FAILED TESTS</th>
-        <th width="3%">
-            <label class="switch">
-                <input type="checkbox" onclick="toggleTests()">
-                <span class="slider"></span>
-            </label>
-        </th>
+        <th width="3%"><div class="switch-btn tests"></div></th>
         <th width="42%"></th>
         <th width="42%"></th>
         </tr>
@@ -262,7 +257,7 @@
         }
 
         get isEmpty() {
-            return this.map.size === 0;
+            return this.builds.length === 0;
         }
 
         get builds() {
@@ -492,7 +487,6 @@
                 printRunsCount(data);
             else
                 fillTitleForData(data.num, 'total', "");
-
 
             return;
         } else {
@@ -960,12 +954,18 @@
     })
 
 
-    $('.switch-btn').click(function(){
+    $('.switch-btn.builds').click(function(){
         $(this).toggleClass('switch-on');
 
         invalidInclude = $(this).hasClass('switch-on');
 
         updateAll();
+    });
+
+    $('.switch-btn.tests').click(function(){
+        $(this).toggleClass('switch-on');
+
+        toggleTests();
     });
 
     function setBuildCondition(buildId, isValid, conditionLocal) {
@@ -998,6 +998,9 @@
     function updateAll() {
         updateColumn(1);
         updateColumn(2);
+
+        if (isDefinedAndFilled(mergedTestsResults))
+            printTests(generateCompareTestsResults(mergedTestsResults));
     }
 
     function multiFormat(date) {
