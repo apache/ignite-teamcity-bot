@@ -111,29 +111,47 @@ public class MonitoredTaskInterceptor implements MethodInterceptor {
 
     @NotNull
     private String taskName(MethodInvocation invocation) {
-        final Method method = invocation.getMethod();
-        final String cls = method.getDeclaringClass().getSimpleName();
-        final String mtd = method.getName();
+        final Method invocationMtd = invocation.getMethod();
+        final String cls = invocationMtd.getDeclaringClass().getSimpleName();
+        final String mtd = invocationMtd.getName();
 
 
-        String fullKey ;
+        StringBuilder fullKey= new StringBuilder();
 
-        final MonitoredTask annotation = method.getAnnotation(MonitoredTask.class);
+        final MonitoredTask annotation = invocationMtd.getAnnotation(MonitoredTask.class);
         if (annotation != null) {
             String activityName = annotation.name();
 
-            fullKey = !Strings.isNullOrEmpty(activityName) ? activityName : cls + "." + mtd;
+            if (!Strings.isNullOrEmpty(activityName))
+                fullKey.append(activityName);
+            else
+                fullKey.append(cls).append(".").append(mtd);
 
             final Object[] arguments = invocation.getArguments();
 
             final int idx = annotation.nameExtArgIndex();
             if (arguments != null && idx >= 0 && idx < arguments.length)
-                fullKey += "." + Objects.toString(arguments[idx]);
+                fullKey.append(".").append(arguments[idx]);
+
+            int[] ints = annotation.nameExtArgsIndexes();
+
+            for (int i = 0; i < ints.length; i++) {
+                int argIdx = ints[i];
+                if (arguments != null && argIdx >= 0 && argIdx < arguments.length) {
+                    if (i == 0)
+                        fullKey.append(":");
+                    else
+                        fullKey.append(", ");
+
+                    fullKey.append(arguments[argIdx]);
+                }
+            }
+
         }
         else
-            fullKey = cls + "." + mtd;
+            fullKey.append(cls).append(".").append(mtd);
 
-        return fullKey;
+        return fullKey.toString();
     }
 
     public Collection<Invocation> getList() {

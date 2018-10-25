@@ -48,7 +48,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     public static final int COMPOSITE_F = 2;
 
     /** Entity fields version. */
-    private short _ver;
+    private short _ver = LATEST_VERSION;
 
     /** Start date. The number of milliseconds since January 1, 1970, 00:00:00 GMT */
     private long startDate;

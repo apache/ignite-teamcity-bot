@@ -32,6 +32,7 @@ import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.internal.util.GridIntList;
@@ -133,6 +134,7 @@ public class BuildRefDao {
     /**
      * @param srvId Server id.
      */
+    @AutoProfiling
     public List<BuildRefCompacted> getQueuedAndRunning(int srvId) {
         GridIntList list = new GridIntList(2);
         Integer stateQueuedId = compactor.getStringIdIfPresent(BuildRef.STATE_QUEUED);

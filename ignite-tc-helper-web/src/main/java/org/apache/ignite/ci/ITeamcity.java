@@ -103,9 +103,11 @@ public interface ITeamcity extends ITeamcityConn {
     List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId);
 
     /**   */
+    @Deprecated
     CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch);
 
     /**   */
+    @Deprecated
     CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch);
 
     /**

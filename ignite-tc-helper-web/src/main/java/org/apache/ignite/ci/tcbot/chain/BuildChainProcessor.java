@@ -23,6 +23,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -128,7 +129,7 @@ public class BuildChainProcessor {
         contexts.forEach(multiCtx -> {
             analyzeTests(multiCtx, teamcity, procLog);
 
-            fillBuildCounts(multiCtx, teamcity, includeScheduledInfo);
+            fillBuildCounts(multiCtx, teamcityIgnited, includeScheduledInfo);
         });
 
         if (teamcity != null) {
@@ -263,7 +264,8 @@ public class BuildChainProcessor {
         return prevVal == null;
     }
 
-    private static void fillBuildCounts(MultBuildRunCtx outCtx, ITeamcity teamcity, boolean includeScheduledInfo) {
+    private static void fillBuildCounts(MultBuildRunCtx outCtx,
+        ITeamcityIgnited teamcityIgnited, boolean includeScheduledInfo) {
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {
             Function<List<BuildRef>, Long> cntRelatedToThisBuildType = list ->
                 list.stream()
@@ -271,8 +273,16 @@ public class BuildChainProcessor {
                     .filter(ref -> Objects.equals(normalizeBranch(outCtx.branchName()), normalizeBranch(ref)))
                     .count();
 
-            outCtx.setRunningBuildCount(teamcity.getRunningBuilds("").thenApply(cntRelatedToThisBuildType));
-            outCtx.setQueuedBuildCount(teamcity.getQueuedBuilds("").thenApply(cntRelatedToThisBuildType));
+            //todo queue all builds instead of specific + caching
+            long cntRunning = teamcityIgnited.getBuildHistory(outCtx.buildTypeId(), outCtx.branchName())
+                .stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isRunning).count();
+
+            outCtx.setRunningBuildCount(CompletableFuture.completedFuture(cntRunning));
+
+            long cntQueued = teamcityIgnited.getBuildHistory(outCtx.buildTypeId(), outCtx.branchName())
+                .stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isQueued).count();
+
+            outCtx.setQueuedBuildCount(CompletableFuture.completedFuture(cntQueued));
         }
     }
 

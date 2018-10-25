@@ -387,6 +387,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
      * @param untilDate Until date.
      * @param sinceBuildId Since build id. Value is ignored if dates filter is present.
      */
+    @Deprecated
     private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
         @Nullable String branchName,
         boolean dfltFilter,

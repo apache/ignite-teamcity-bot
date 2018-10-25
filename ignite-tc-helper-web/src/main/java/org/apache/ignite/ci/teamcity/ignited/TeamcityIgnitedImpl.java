@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -50,6 +51,9 @@ import org.slf4j.LoggerFactory;
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TestCompacted.class);
+
+    /** Max build id diff to enforce reload during incremental refresh. */
+    public static final int MAX_ID_DIFF_TO_ENFORCE = 5000;
 
     /** Server id. */
     private String srvId;
@@ -164,7 +168,13 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     void actualizeRecentBuilds() {
         List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdMaskHigh);
 
+        //todo intersect with ever found during current launch
         Set<Integer> collect = running.stream().map(BuildRefCompacted::id).collect(Collectors.toSet());
+
+        OptionalInt max = collect.stream().mapToInt(i -> i).max();
+        if (max.isPresent())
+            collect = collect.stream().filter(id -> id > (max.getAsInt() - MAX_ID_DIFF_TO_ENFORCE)).collect(Collectors.toSet());
+        //drop stucked builds.
 
         runActualizeBuilds(srvId, false, collect);
 
@@ -191,7 +201,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      * @param fullReindex Reindex all builds from TC history.
      * @param mandatoryToReload Build ID can be used as end of syncing. Ignored if fullReindex mode.
      */
-    @MonitoredTask(name = "Actualize BuildRefs, full resync", nameExtArgIndex = 1)
+    @MonitoredTask(name = "Actualize BuildRefs(srv, full resync)", nameExtArgsIndexes = {0, 1})
     @AutoProfiling
     protected String runActualizeBuilds(String srvId, boolean fullReindex,
         @Nullable Set<Integer> mandatoryToReload) {
@@ -206,6 +216,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         final Set<Integer> stillNeedToFind =
             mandatoryToReload == null ? Collections.emptySet() : Sets.newHashSet(mandatoryToReload);
+        tcDataFirstPage.stream().map(BuildRef::getId).forEach(stillNeedToFind::remove);
 
         while (outLinkNext.get() != null) {
             String nextPageUrl = outLinkNext.get();

@@ -32,4 +32,6 @@ public @interface MonitoredTask {
      * Argument index (0-based) to be used to extend name.
      */
     int nameExtArgIndex() default  -1;
+
+    int[] nameExtArgsIndexes() default {};
 }
