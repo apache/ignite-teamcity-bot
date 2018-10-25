@@ -44,6 +44,7 @@ import org.apache.ignite.ci.web.model.CredentialsUi;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.ci.web.model.TcHelperUserUi;
 import org.apache.ignite.ci.web.model.UserMenuResult;
+import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -97,6 +98,8 @@ public class UserService {
         detector.startBackgroundCheck(helper, prov);
 
         CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class).startObserver();
+
+        CtxListener.getInjector(ctx).getInstance(VisasHistoryStorage.class).clear();
 
         return userMenu(prov, helper);
     }

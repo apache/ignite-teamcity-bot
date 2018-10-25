@@ -17,39 +17,69 @@
 
 package org.apache.ignite.ci.web.model.hist;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
-import org.apache.ignite.IgniteSet;
+import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.observer.BuildsInfo;
-import org.apache.ignite.configuration.CollectionConfiguration;
+import org.apache.ignite.ci.tcmodel.result.JiraCommentResult;
+import org.apache.ignite.internal.util.typedef.T2;
 
 /**
  *
  */
 public class VisasHistoryStorage {
     /** */
-    private static final String VISAS_SET_NAME = "visasSet";
+    private static final String VISAS_CACHE_NAME = "visasCache";
 
     /** */
     @Inject
-    private Ignite ignite;
+    private Provider<Ignite> igniteProvider;
 
     /** */
-    private IgniteSet<BuildsInfo> builds() {
-        return ignite.set(VISAS_SET_NAME, new CollectionConfiguration().setBackups(1));
+    private volatile Ignite ignite;
+
+    /** */
+    public Ignite getIgnite() {
+        if (ignite != null)
+            return ignite;
+
+        final Ignite ignite = igniteProvider.get();
+        this.ignite = ignite;
+        return ignite;
     }
 
     /** */
-    public void putVisa(BuildsInfo buildsInfo) {
-        builds().add(buildsInfo);
+    public void clear() {
+        visas().clear();
     }
 
     /** */
-    public Collection<BuildsInfo> getVisas() {
-        return Collections.unmodifiableCollection(builds());
+    private Cache<BuildsInfo, JiraCommentResult> visas() {
+        return getIgnite().getOrCreateCache(TcHelperDb.getCacheV2TxConfig(VISAS_CACHE_NAME));
+    }
+
+    /** */
+    public void put(BuildsInfo buildsInfo) {
+        visas().put(buildsInfo, new JiraCommentResult());
+    }
+
+    /** */
+    public void put(BuildsInfo buildsInfo, JiraCommentResult result) {
+        visas().put(buildsInfo, result);
+    }
+
+    /** */
+    public Collection<Cache.Entry<BuildsInfo, JiraCommentResult>> getVisas() {
+        List<Cache.Entry<BuildsInfo, JiraCommentResult>> res = new ArrayList<>();
+
+        visas().forEach(entry -> res.add(entry));
+
+        return Collections.unmodifiableCollection(res);
     }
 }

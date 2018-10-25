@@ -29,6 +29,8 @@
                 <th>.</th>
                 <th>.</th>
                 <th>.</th>
+                <th>.</th>
+                <th>.</th>
             </tr>
         </thead>
     </table>
@@ -77,6 +79,7 @@ function showVisasTable(result) {
     visasTable.dataTable().fnDestroy();
 
     var table = visasTable.DataTable({
+        "order": [[ 1, 'desc' ]],
         data: result,
         "iDisplayLength": 30, //rows to be shown by default
         stateSave: true,
@@ -84,12 +87,24 @@ function showVisasTable(result) {
             {
                 targets: '_all',
                 className: 'dt-body-center'
-            }
+            },
         ],
         columns: [
             {
-                "data": "status",
-                title: "Status"
+                "data": "state",
+                title: "State",
+                "render": function (data, type, row, meta) {
+                    if (type === 'display') {
+                        if (data ==='finished')
+                            data = "<a href='" + row.commentUrl + "'>" + data + "</a>";
+                    }
+
+                    return data;
+                }
+            },
+            {
+                "data": "date",
+                title: "Date"
             },
             {
                 "data": "userName",
@@ -102,7 +117,12 @@ function showVisasTable(result) {
             {
                 "data": "ticket",
                 title: "Ticket"
+            },
+            {
+                "data": "blockers",
+                title: "Blockers"
             }
+
         ]
     });
 }

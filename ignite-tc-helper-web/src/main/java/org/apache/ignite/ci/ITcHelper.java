@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.tcmodel.result.JiraCommentResult;
 import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -74,5 +75,5 @@ public interface ITcHelper extends ITcServerProvider {
      * @param ticket JIRA ticket full name.
      * @return {@code True} if JIRA was notified.
      */
-    String notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc, String ticket);
+    JiraCommentResult notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc, String ticket);
 }

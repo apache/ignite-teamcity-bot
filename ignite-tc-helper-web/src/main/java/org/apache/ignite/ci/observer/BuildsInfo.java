@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.observer;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -35,9 +37,9 @@ public class BuildsInfo {
     public static final String RUNNING_STATE = "running";
 
     /** */
-    public static final String UNKNOWN_STATE = "unknown";
+    public static final String FINISHED_WITH_FAILURES_STATE = "finished with failures";
 
-    /** Name of user who produced that visa request. */
+    /** Name of user who requested that visa request. */
     public final String userName;
 
     /** Server id. */
@@ -52,6 +54,9 @@ public class BuildsInfo {
     /** JIRA ticket full name. */
     public final String ticket;
 
+    /** */
+    public final Date date;
+
     /** Finished builds. */
     private final Map<Build, Boolean> finishedBuilds = new HashMap<>();
 
@@ -61,12 +66,13 @@ public class BuildsInfo {
      * @param ticket Ticket.
      * @param builds Builds.
      */
-    public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, Build[] builds) {
+    public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, String branchName, Build... builds) {
         this.userName = prov.getUser(srvId);
+        this.date = Calendar.getInstance().getTime();
         this.srvId = srvId;
         this.ticket = ticket;
-        this.buildTypeId = builds.length > 1 ? "IgniteTests24Java8_RunAll" : builds[0].buildTypeId;
-        this.branchName = builds[0].branchName;
+        this.branchName = branchName;
+        this.buildTypeId = builds.length == 1 ? builds[0].buildTypeId : "IgniteTests24Java8_RunAll";
 
         for (Build build : builds)
             finishedBuilds.put(build, false);
@@ -78,7 +84,7 @@ public class BuildsInfo {
     public String getState(IAnalyticsEnabledTeamcity teamcity) {
         for (Map.Entry<Build, Boolean> entry : finishedBuilds.entrySet()) {
             if (entry.getValue() == null)
-                return UNKNOWN_STATE;
+                return FINISHED_WITH_FAILURES_STATE;
 
             if (!entry.getValue()) {
                 Build build = teamcity.getBuild(entry.getKey().getId());
@@ -87,7 +93,7 @@ public class BuildsInfo {
                     if (build.isUnknown()) {
                         entry.setValue(null);
 
-                        return UNKNOWN_STATE;
+                        return FINISHED_WITH_FAILURES_STATE;
                     }
 
                     entry.setValue(true);
@@ -109,7 +115,7 @@ public class BuildsInfo {
      * @param teamcity Teamcity.
      */
     public boolean isStateUnknown(IAnalyticsEnabledTeamcity teamcity) {
-        return UNKNOWN_STATE.equals(getState(teamcity));
+        return FINISHED_WITH_FAILURES_STATE.equals(getState(teamcity));
     }
 
     /**
@@ -140,11 +146,12 @@ public class BuildsInfo {
             Objects.equals(buildTypeId, info.buildTypeId) &&
             Objects.equals(branchName, info.branchName) &&
             Objects.equals(ticket, info.ticket) &&
-            Objects.equals(finishedBuilds.keySet(), info.finishedBuilds.keySet());
+            Objects.equals(finishedBuilds.keySet(), info.finishedBuilds.keySet()) &&
+            Objects.equals(date, info.date);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(srvId, buildTypeId, branchName, ticket, finishedBuilds.keySet());
+        return Objects.hash(srvId, buildTypeId, branchName, ticket, finishedBuilds.keySet(), date);
     }
 }

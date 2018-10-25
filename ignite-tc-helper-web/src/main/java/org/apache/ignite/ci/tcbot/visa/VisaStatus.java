@@ -32,4 +32,13 @@ public class VisaStatus {
 
     /** */
     public String state;
+
+    /** */
+    public String commentUrl;
+
+    /** */
+    public String date;
+
+    /** */
+    public int blockers;
 }

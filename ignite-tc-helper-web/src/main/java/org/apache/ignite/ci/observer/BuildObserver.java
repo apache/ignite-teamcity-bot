@@ -19,7 +19,6 @@ package org.apache.ignite.ci.observer;
 
 import java.util.Collection;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.Timer;
 import javax.inject.Inject;
 import org.apache.ignite.ci.ITcHelper;
@@ -65,10 +64,10 @@ public class BuildObserver {
      * @param prov Credentials.
      * @param ticket JIRA ticket name.
      */
-    public void observe(String srvId, ICredentialsProv prov, String ticket, Build... builds) {
-        BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, builds);
+    public void observe(String srvId, ICredentialsProv prov, String ticket, String branch, Build... builds) {
+        BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, branch, builds);
 
-        helper.getVisasHistoryStorage().putVisa(buildsInfo);
+        helper.getVisasHistoryStorage().put(buildsInfo);
 
         observerTask.addBuild(buildsInfo);
     }

@@ -52,7 +52,7 @@ public class TcBotVisaService {
     public Collection<VisaStatus> history(@Nullable @QueryParam("serverId") String srvId) {
         return CtxListener.getInjector(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .getVisaStatuses(srvId);
+            .getVisasStatus(srvId, ICredentialsProv.get(req));
     }
 
     /**

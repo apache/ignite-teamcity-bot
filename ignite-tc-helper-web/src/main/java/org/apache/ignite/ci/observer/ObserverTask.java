@@ -25,12 +25,12 @@ import java.util.Set;
 import java.util.TimerTask;
 import javax.inject.Inject;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteQueue;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.tcmodel.result.JiraCommentResult;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.configuration.CollectionConfiguration;
 import org.slf4j.Logger;
@@ -54,6 +54,9 @@ public class ObserverTask extends TimerTask {
     /** Ignite. */
     @Inject private Ignite ignite;
 
+    /** */
+    private static final String QUEUE_CACHE_NAME = "buildsQueue";
+
     /**
      */
     ObserverTask() {
@@ -61,7 +64,11 @@ public class ObserverTask extends TimerTask {
 
     /** */
     private Queue<BuildsInfo> buildsQueue() {
-        return ignite.queue("buildsQueue", 0, new CollectionConfiguration().setBackups(1));
+        CollectionConfiguration cfg = new CollectionConfiguration();
+
+        cfg.setBackups(1);
+
+        return ignite.queue(QUEUE_CACHE_NAME, 0, cfg);
     }
 
     /** */
@@ -112,13 +119,17 @@ public class ObserverTask extends TimerTask {
 
             ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
 
-            String jiraRes = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
+            JiraCommentResult jiraCommentResult = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
                 info.branchName, info.ticket);
+
+            tcHelper.getVisasHistoryStorage().put(info, jiraCommentResult);
+
+            String jiraRes = jiraCommentResult.getResult();
 
             if (info.isStateUnknown(teamcity)) {
                 builds.remove(info);
 
-                return "JIRA will not be commented because one or more builds have UNKNOWN status." +
+                return "JIRA will not be commented because one or more re-runned blockers finished with UNKNOWN status." +
                     " [ticket: " + info.ticket + ", branch:" + info.branchName + "]";
             }
 
