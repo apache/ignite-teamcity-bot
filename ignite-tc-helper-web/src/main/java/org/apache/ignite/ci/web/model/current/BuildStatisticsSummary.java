@@ -34,8 +34,6 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.util.TimeUtil;
-import org.apache.ignite.ci.web.IBackgroundUpdatable;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 
 /**
@@ -212,13 +210,6 @@ public class BuildStatisticsSummary {
         occurrences.put(shortProblemNames.get(TOTAL), occurrences.values().stream().mapToLong(Long::longValue).sum());
 
         return occurrences;
-    }
-
-    /**
-     * @return Full problem names.
-     */
-    public BiMap<String, String> fullProblemNames() {
-        return fullProblemNames;
     }
 
     /** {@inheritDoc} */

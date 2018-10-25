@@ -49,6 +49,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Build reference DAO. */
     @Inject private BuildRefDao buildRefDao;
 
+    /** Build condition DAO. */
     @Inject private BuildConditionDao buildConditionDao;
 
     /** Server ID mask for cache Entries. */

@@ -155,15 +155,15 @@
 <table style="table-layout: fixed" id="testsTable" class="testsTable">
     <tbody>
     <tr>
-        <th class="failedTestsHeader" width="15%">FAILED TESTS</th>
-        <th width="5%">
+        <th class="failedTestsHeader" width="13%">FAILED TESTS</th>
+        <th width="3%">
             <label class="switch">
                 <input type="checkbox" onclick="toggleTests()">
                 <span class="slider"></span>
             </label>
         </th>
-        <th width="40%"></th>
-        <th width="40%"></th>
+        <th width="42%"></th>
+        <th width="42%"></th>
         </tr>
     </tbody>
 </table>
@@ -183,20 +183,23 @@
     let oneWeekAgo = new Date(),
         twoWeekAgo = new Date(),
         invalidInclude = false,
-        markBuildId = 0;
-    const TESTS_TABLE = '#testsTable';
-    const SKIP_TESTS = 'skipTests=true';
-    let oneWeekAgo = new Date();
-    let twoWeekAgo = new Date();
-    let g_updTimer = null;
-    let testsTrigger = false;
-
-    /** Structure for storing tests by suites parsed response for every date interval. */
-    let mergedTestsResults = {1 : {}, 2 : {} };
-
+        markBuildId = 0,
+        testsTrigger = false;
 
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     twoWeekAgo.setDate(twoWeekAgo.getDate() - 14);
+
+    function getDateFewWeeksAgo(numberOfWeeksAgo) {
+        let date = new Date();
+
+        if (isDefinedAndFilled(numberOfWeeksAgo) && Number.isInteger(numberOfWeeksAgo))
+            date.setDate(date.getDate() - numberOfWeeksAgo * 7);
+
+        return date;
+    }
+
+    /** Structure for storing tests by suites parsed response for every date interval. */
+    let mergedTestsResults = {1 : {}, 2 : {} };
 
     let dateIntervals = {1: {start: moment(oneWeekAgo), end: moment()},
         2: {start: moment(twoWeekAgo), end: moment(oneWeekAgo)}};
@@ -232,6 +235,8 @@
         mmmTitle = "min - median - max",
         tTitle = "total",
         duration = "Duration",
+        TESTS_TABLE = '#testsTable',
+        SKIP_TESTS = 'skipTests=true',
         data = [];
 
     class Data {
@@ -551,18 +556,34 @@
         $('.' + cssClass + '.data.' + num).prop('title', title);
     }
 
-    function loadData(num, sinceDate, untilDate) {
+    function loadData(num, sinceDate, untilDate, testsTrigger) {
         loadGif(num);
-        $.ajax(
-            {
-                url: 'rest/build/history?sinceDate=' + sinceDate.format("DDMMYYYY") +
-                '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959',
+
+        mergedTestsResults[num] = {};
+
+        let url = 'rest/build/history?sinceDate=' + sinceDate.format("DDMMYYYY") +
+            '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
+
+        if (!testsTrigger)
+            url = url + '&' + SKIP_TESTS;
+
+        $.ajax({
+                url: url,
                 success: function (result) {
-                    data[num] = new Data(num, result, sinceDate, untilDate);
+                    data[num] = new Data(num, result.buildsStatistics, sinceDate, untilDate);
 
                     printStatistics(data[num]);
+
+                    try {
+                        mergedTestsResults[num] = JSON.parse(result.mergedTestsJson);
+                    } catch (e) {
+                        printImportantMessage(num, "#ff0000", "Invalid server response. Unable to parse JSON");
+                    }
+
+                    printTests(generateCompareTestsResults(mergedTestsResults));
                 },
-                error: showErrInLoadStatus
+                error: showErrInLoadStatus,
+                timeout: 1800000
             }
         );
     }
@@ -631,56 +652,17 @@
         $('#showInfo').css('display', '');
     }
 
-    function loadData(num, sinceDate, untilDate, testsTrigger) {
-        loadGif(num);
-
-        mergedTestsResults[num] = {};
-
-        let url = 'rest/build/history?sinceDate=' + sinceDate.format("DDMMYYYY") +
-            '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
-
-        if (!testsTrigger)
-            url = url + '&' + SKIP_TESTS;
-
-        $.ajax({
-                url: url,
-                success: function (result) {
-                    printStatistics(num, result.buildsStatistics, sinceDate, untilDate);
-
-                    try {
-                        mergedTestsResults[num] = JSON.parse(result.mergedTestsJson);
-                    } catch (e) {
-                        printImportantMessage(num, "#ff0000", "Invalid server response. Unable to parse JSON");
-                    }
-
-                    printTests(generateCompareTestsResults(mergedTestsResults));
-                },
-                error: showErrInLoadStatus,
-                timeout: 1800000
-            }
-        );
-    }
-
     $(function() {
-        $('input[name="daterange1"]').daterangepicker(
-            dateRangePickerParam(oneWeekAgo, new Date()), function (start, end) {
-                dateIntervals[1].start = start;
+        for (let i = 1; i <= 2; i++) {
+            $('input[name="daterange' + i + '"]').daterangepicker(
+                dateRangePickerParam(getDateFewWeeksAgo(i), getDateFewWeeksAgo(i - 1), i), function (start, end) {
+                    dateIntervals[i].start = start;
 
-                dateIntervals[1].end = end;
+                    dateIntervals[i].end = end;
 
-                loadData(1, start, end, testsTrigger);
-            });
-    });
-
-    $(function() {
-        $('input[name="daterange2"]').daterangepicker(
-            dateRangePickerParam(twoWeekAgo, oneWeekAgo), function (start, end) {
-                dateIntervals[2].start = start;
-
-                dateIntervals[2].end = end;
-
-                loadData(2, start, end, testsTrigger);
-            });
+                    loadData(i, start, end, testsTrigger);
+                });
+        }
     });
 
     for (let fieldName of fieldNames.keys())
@@ -850,7 +832,7 @@
 
         message += "<br><br><span style='color:grey;font-size:smaller;text-align:justify'><hr>If you select &laquo;" +
             "Mark for me&raquo;, build will be hidden from the results only for this dates interval until the page " +
-            "is updated.<br><hr>If you select &laquo;Mark for all&raquo;, your request will build will be hidden " +
+            "is updated.<br><hr>If you select &laquo;Mark for all&raquo;, your request will be hidden " +
             "from the results for all users, and will not be taken into account when analyzing tests.</span>";
 
         modalDialog.html(message);
@@ -1028,9 +1010,9 @@
                                 : formatYear)(date);
     }
 
-    function dateRangePickerParam(startDate, endDate) {
+    function dateRangePickerParam(startDate, endDate, num) {
         return {
-            "opens" : 'left',
+            "opens" : (num === 1 ? 'right' : 'left'),
             "maxSpan": { "days": 7 },
             "locale": {
                 "format": "DD/MM/YYYY", "separator": " - ", "applyLabel": "Apply", "cancelLabel": "Cancel",

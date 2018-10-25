@@ -72,5 +72,3 @@ public interface ITeamcityIgnited {
      */
     public boolean setBuildCondition(BuildCondition cond);
 }
-
-}

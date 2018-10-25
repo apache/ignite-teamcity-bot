@@ -219,16 +219,16 @@ form li:after
 	padding: 10px 5px 10px 5px;
 }
 
-.data1, .data2{
+.data {
 	text-align: center;
 	vertical-align: middle;
 }
 
-.section{
+.section {
 	font-weight: bold;
 }
 
-.compare .field{
+.compare .field {
 	padding-left: 15px;
 }
 
