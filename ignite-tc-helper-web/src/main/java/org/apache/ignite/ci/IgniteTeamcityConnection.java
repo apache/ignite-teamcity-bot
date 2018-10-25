@@ -46,7 +46,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.xml.bind.JAXBException;
-import javax.xml.bind.annotation.XmlAttribute;
 import org.apache.ignite.ci.analysis.ISuiteResults;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.LogCheckTask;
@@ -668,18 +667,22 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public TestOccurrencesFull getTestsPage(int buildId, @Nullable String href) {
-        String relPathSelected = Strings.isNullOrEmpty(href) ? testsStartHref(buildId) : href;
+    @Override public TestOccurrencesFull getTestsPage(int buildId, @Nullable String href, boolean testDtls) {
+        String relPathSelected = Strings.isNullOrEmpty(href) ? testsStartHref(buildId, testDtls) : href;
         String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
         return sendGetXmlParseJaxb(url, TestOccurrencesFull.class);
     }
 
     /**
      * @param buildId Build id.
+     * @param testDtls request test details string
      */
-    @NotNull public String testsStartHref(int buildId) {
+    @NotNull public String testsStartHref(int buildId, boolean testDtls) {
+        String fieldList = "id,name," +
+            (testDtls ? "details," : "") +
+            "status,duration,muted,currentlyMuted,currentlyInvestigated,ignored,test(id),build(id)";
         return "app/rest/latest/testOccurrences?locator=build:(id:" +
-                buildId + ")" +
-                "&fields=testOccurrence(id,name,details,status,duration,muted,currentlyMuted,currentlyInvestigated,ignored,test(id),build(id))";
+            buildId + ")" +
+            "&fields=testOccurrence(" + fieldList + ")";
     }
 }

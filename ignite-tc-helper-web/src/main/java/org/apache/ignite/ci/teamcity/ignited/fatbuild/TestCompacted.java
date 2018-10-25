@@ -213,14 +213,16 @@ public class TestCompacted {
             name == compacted.name &&
             status == compacted.status &&
             duration == compacted.duration &&
-            Objects.equal(flags, compacted.flags);
+            testId == compacted.testId &&
+            actualBuildId == compacted.actualBuildId &&
+            Objects.equal(flags, compacted.flags) &&
+            Objects.equal(details, compacted.details);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(idInBuild, name, status, duration, flags);
+        return Objects.hashCode(idInBuild, name, status, duration, flags, testId, actualBuildId, details);
     }
-
 
     public boolean isFailedButNotMuted(IStringCompactor compactor) {
         return isFailedTest(compactor) && !(isMutedTest() || isIgnoredTest());

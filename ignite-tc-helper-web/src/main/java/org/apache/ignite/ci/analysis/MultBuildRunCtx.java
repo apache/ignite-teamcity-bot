@@ -165,8 +165,11 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public int failedTests() {
-        return (int)buildsStream().flatMap(ctx -> ctx.getFailedNotMutedTestNames().stream()).distinct().count();
+        return (int)getFailedTestsNames().count();
+    }
 
+    @NotNull public Stream<String> getFailedTestsNames() {
+        return buildsStream().flatMap(SingleBuildRunCtx::getFailedNotMutedTestNames).distinct();
     }
 
     public int mutedTests() {
@@ -206,7 +209,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         getCriticalFailLastStartedTest().forEach(lastStartedTest ->
             builder.append("\t").append(lastStartedTest).append(" (Last started) \n"));
 
-        getFailedTests().map(ITestFailures::getName).forEach(
+        getFailedTestsNames().forEach(
             name -> {
                 builder.append("\t").append(name).append("\n");
             }
@@ -418,7 +421,7 @@ public class MultBuildRunCtx implements ISuiteResults {
      * @return Set of tests.
      */
     public Set<String> tests() {
-        return tests.keySet();
+        return buildsStream().flatMap(SingleBuildRunCtx::getAllTestNames).collect(Collectors.toSet());
     }
 
     public Stream<LogCheckResult> getLogChecksIfFinished() {

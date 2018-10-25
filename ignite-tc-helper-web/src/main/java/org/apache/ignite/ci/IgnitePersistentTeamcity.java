@@ -1226,7 +1226,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public TestOccurrencesFull getTestsPage(int buildId, String href) {
-        return teamcity.getTestsPage(buildId, href);
+    @Override public TestOccurrencesFull getTestsPage(int buildId, String href, boolean testDtls) {
+        return teamcity.getTestsPage(buildId, href, testDtls);
     }
 }

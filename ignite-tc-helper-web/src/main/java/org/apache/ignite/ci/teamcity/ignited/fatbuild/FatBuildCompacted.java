@@ -19,9 +19,8 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -266,13 +265,19 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return flag != null && flag;
     }
 
-    public List<String> getFailedNotMutedTestNames(IStringCompactor compactor) {
+    public Stream<String> getFailedNotMutedTestNames(IStringCompactor compactor) {
         if (tests == null)
-            return Collections.emptyList();
+            return Stream.of();
 
         return tests.stream()
             .filter(t -> t.isFailedButNotMuted(compactor))
-            .map(t -> t.getTestName(compactor))
-            .collect(Collectors.toList());
+            .map(t -> t.getTestName(compactor));
+    }
+
+    public Stream<String> getAllTestNames(IStringCompactor compactor) {
+        if (tests == null)
+            return Stream.of();
+
+        return tests.stream().map(t -> t.getTestName(compactor));
     }
 }

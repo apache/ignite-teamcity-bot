@@ -111,7 +111,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         List<TestOccurrencesFull> tests = new ArrayList<>();
         String nextHref = null;
         do {
-            TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref);
+            boolean testDtls = !build.isComposite(); // don't query test details for compoite
+            TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, testDtls);
             nextHref = page.nextHref();
 
             tests.add(page);

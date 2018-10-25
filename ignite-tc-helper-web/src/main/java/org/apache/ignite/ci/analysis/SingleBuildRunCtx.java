@@ -46,13 +46,19 @@ public class SingleBuildRunCtx implements ISuiteResults {
     private IStringCompactor compactor;
 
     /** Logger check result future. */
-    private CompletableFuture<LogCheckResult> logCheckResultFut;
+    private CompletableFuture<LogCheckResult> logCheckResFut;
 
     /** Build problems occurred during single build run. */
     @Nullable private List<ProblemOccurrence> problems;
 
+    /** Changes. */
     private List<Change> changes = new ArrayList<>();
 
+    /**
+     * @param build Build.
+     * @param buildCompacted Build compacted.
+     * @param compactor Compactor.
+     */
     public SingleBuildRunCtx(Build build,
         FatBuildCompacted buildCompacted,
         IStringCompactor compactor) {
@@ -60,6 +66,9 @@ public class SingleBuildRunCtx implements ISuiteResults {
         this.compactor = compactor;
     }
 
+    /**
+     *
+     */
     public Integer buildId() {
         Preconditions.checkNotNull(buildCompacted);
         return buildCompacted.id() < 0 ? null : buildCompacted.id();
@@ -96,16 +105,16 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return compactor.getStringFromId(buildCompacted.buildTypeId());
     }
 
-    public void setLogCheckResultFut(CompletableFuture<LogCheckResult> logCheckResultFut) {
-        this.logCheckResultFut = logCheckResultFut;
+    public void setLogCheckResFut(CompletableFuture<LogCheckResult> logCheckResFut) {
+        this.logCheckResFut = logCheckResFut;
     }
 
     @Nullable public String getCriticalFailLastStartedTest() {
-        LogCheckResult logCheckResult = getLogCheckIfFinished();
-        if (logCheckResult == null)
+        LogCheckResult logCheckRes = getLogCheckIfFinished();
+        if (logCheckRes == null)
             return null;
 
-        return logCheckResult.getLastStartedTest();
+        return logCheckRes.getLastStartedTest();
     }
 
     @Nullable public Map<String, TestLogCheckResult> getTestLogCheckResult() {
@@ -127,13 +136,13 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     @Nullable public LogCheckResult getLogCheckIfFinished() {
-        if (logCheckResultFut == null)
+        if (logCheckResFut == null)
             return null;
 
-        if (!logCheckResultFut.isDone() || logCheckResultFut.isCancelled())
+        if (!logCheckResFut.isDone() || logCheckResFut.isCancelled())
             return null;
 
-        LogCheckResult logCheckRes = FutureUtil.getResultSilent(logCheckResultFut);
+        LogCheckResult logCheckRes = FutureUtil.getResultSilent(logCheckResFut);
 
         if (logCheckRes == null)
             return null;
@@ -162,7 +171,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
 
     @Nonnull Stream<? extends Future<?>> getFutures() {
-        return logCheckResultFut == null ? Stream.empty() : Stream.of((Future<?>)logCheckResultFut);
+        return logCheckResFut == null ? Stream.empty() : Stream.of((Future<?>)logCheckResFut);
     }
 
     public boolean isComposite() {
@@ -174,7 +183,11 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
 
-    public List<String> getFailedNotMutedTestNames() {
+    public Stream<String> getFailedNotMutedTestNames() {
         return buildCompacted.getFailedNotMutedTestNames(compactor);
+    }
+
+    public Stream<String> getAllTestNames() {
+        return buildCompacted.getAllTestNames(compactor);
     }
 }
