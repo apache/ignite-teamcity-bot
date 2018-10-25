@@ -51,6 +51,14 @@ public interface ITeamcityIgnited {
     public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop);
 
     /**
+     * @param srvId Server id.
+     * @return integer representation of server ID.
+     */
+    public static int serverIdToInt(String srvId) {
+        return Math.abs(srvId.hashCode());
+    }
+
+    /**
      * Check build condition.
      *
      * @param buildId Build id.
@@ -63,4 +71,6 @@ public interface ITeamcityIgnited {
      * @param cond Condition.
      */
     public boolean setBuildCondition(BuildCondition cond);
+}
+
 }

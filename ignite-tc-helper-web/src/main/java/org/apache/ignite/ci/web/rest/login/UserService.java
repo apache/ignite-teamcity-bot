@@ -17,9 +17,9 @@
 
 package org.apache.ignite.ci.web.rest.login;
 
-
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.inject.Injector;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.FormParam;
@@ -31,10 +31,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Form;
 import javax.ws.rs.core.MediaType;
-
-import com.google.inject.Injector;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.issue.IssueDetector;
+import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.teamcity.pure.ITcLogin;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -91,9 +90,13 @@ public class UserService {
 
         final ITcHelper helper = CtxListener.getTcHelper(ctx);
 
+        helper.setServerAuthorizerCreds(prov);
+
         IssueDetector detector = helper.issueDetector();
 
-        detector.startBackgroundCheck(helper, prov);
+        detector.startBackgroundCheck(prov);
+
+        CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class).startObserver();
 
         return userMenu(prov, helper);
     }

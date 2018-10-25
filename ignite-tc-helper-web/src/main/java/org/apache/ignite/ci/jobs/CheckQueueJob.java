@@ -30,7 +30,7 @@ import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
@@ -63,9 +63,6 @@ public class CheckQueueJob implements Runnable {
     private ICredentialsProv creds;
 
     /** */
-    private ITcServerProvider tcHelper;
-
-    /** */
     @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
 
     /** */
@@ -77,9 +74,8 @@ public class CheckQueueJob implements Runnable {
     /**
      * @param creds Background credentials provider.
      */
-    public void init(ITcServerProvider tcHelper, ICredentialsProv creds) {
+    public void init(ICredentialsProv creds) {
         this.creds = creds;
-        this.tcHelper = tcHelper;
     }
 
     /** {@inheritDoc} */
@@ -165,7 +161,7 @@ public class CheckQueueJob implements Runnable {
         int running = 0;
 
         for (Agent agent : agents) {
-            if (agent.getBuild() != null) //  || !STATE_RUNNING.equals(agent.getBuild().status)
+            if (agent.getBuild() != null) //  || !STATE_RUNNING.equals(agent.getFatBuild().status)
                 ++running;
         }
 

@@ -28,12 +28,18 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.changes.ChangesListRef;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+
+
+import org.apache.ignite.ci.util.ExceptionUtil;
 import org.jetbrains.annotations.NotNull;
+
+import static org.apache.ignite.ci.util.ExceptionUtil.propagateException;
 
 /**
  * Build from history with test and problems references
@@ -42,11 +48,16 @@ import org.jetbrains.annotations.NotNull;
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Build extends BuildRef implements IVersionedEntity {
     public static final int LATEST_VERSION = 2;
-    @XmlElement(name = "buildType") BuildType buildType;
+
+    /** Format local. */
+    @XmlTransient private static ThreadLocal<SimpleDateFormat> fmtLoc
+        = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyyMMdd'T'HHmmssZ"));
+
+    @XmlElement(name = "buildType") private BuildType buildType;
 
     @XmlElement public String queuedDate;
-    @XmlElement public String startDate;
-    @XmlElement public String finishDate;
+    @XmlElement private String startDate;
+    @XmlElement private String finishDate;
 
     @XmlElement(name = "build")
     @XmlElementWrapper(name = "snapshot-dependencies")
@@ -69,6 +80,7 @@ public class Build extends BuildRef implements IVersionedEntity {
     /** Information about build triggering. */
     @XmlElement(name = "triggered") private Triggered triggered;
 
+    @XmlTransient
     @SuppressWarnings("FieldCanBeLocal") public Integer _version = LATEST_VERSION;
 
     @NotNull public static Build createFakeStub() {
@@ -83,28 +95,43 @@ public class Build extends BuildRef implements IVersionedEntity {
         return buildType == null ? null : buildType.getName();
     }
 
-    public String getFinishDateDdMmYyyy() throws ParseException {
-        Date parse = getFinishDate();
-        return new SimpleDateFormat("dd.MM.yyyy").format(parse);
-    }
-
+    /**
+     *
+     */
     public Date getFinishDate() {
         return getDate(finishDate);
     }
 
+    /**
+     *
+     */
     public Date getStartDate() {
         return getDate(startDate);
     }
 
+    /**
+     * @param ts Timestamp.
+     */
+    public void setStartDateTs(long ts) {
+        startDate = ts < 0 ? null : fmtLoc.get().format(new Date(ts));
+    }
+
+    /**
+     * @param ts Timestamp.
+     */
+    public void setFinishDateTs(long ts) {
+        finishDate = ts < 0 ? null : fmtLoc.get().format(new Date(ts));
+    }
+
+    /**
+     * @param date Date as string.
+     */
     private Date getDate(String date) {
         try {
-            if (date == null)
-                return null;
-            SimpleDateFormat f = new SimpleDateFormat("yyyyMMdd'T'HHmmssZ");
-            return f.parse(date);
+            return date == null ? null : fmtLoc.get().parse(date);
         }
         catch (ParseException e) {
-            throw new IllegalStateException(e);
+            throw propagateException(e);
         }
     }
 
@@ -136,5 +163,12 @@ public class Build extends BuildRef implements IVersionedEntity {
      */
     public void setTriggered(Triggered triggered) {
         this.triggered = triggered;
+    }
+
+    /**
+     * @param type Type.
+     */
+    public void setBuildType(BuildType type) {
+        buildType = type;
     }
 }

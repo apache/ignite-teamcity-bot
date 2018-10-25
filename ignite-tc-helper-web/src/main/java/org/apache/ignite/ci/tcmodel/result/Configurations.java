@@ -15,46 +15,40 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.hist;
+package org.apache.ignite.ci.tcmodel.result;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
-/** List of builds from build history */
+/**
+ */
 @XmlRootElement(name = "builds")
-@XmlAccessorType(XmlAccessType.FIELD)
-public class Builds {
-    @XmlAttribute
-    private String nextHref;
-
-    @XmlAttribute
-    private Integer count;
-
+public class Configurations {
+    /** */
     @XmlElement(name = "build")
     private List<BuildRef> builds;
 
-    public List<BuildRef> getBuildsNonNull() {
-        return builds == null ? Collections.emptyList() : builds;
+    /** */
+    public List<BuildRef> getBuilds() {
+        return builds == null ? new ArrayList<>() : builds;
     }
 
-    public String nextHref() {
-        return nextHref;
+    /** BuildId which that configurations belong to. */
+    private Integer build;
+
+    /** */
+    public Configurations setBuild(Integer build) {
+        this.build = build;
+
+        return this;
     }
 
-    public void count(int count) {
-        this.count = count;
-    }
-
-    public void nextHref(String nextHref) {
-        this.nextHref = nextHref;
-    }
-
-    public void builds(List<BuildRef> list) {
-        this.builds = list;
+    /** */
+    public Integer getBuild() {
+        return build;
     }
 }

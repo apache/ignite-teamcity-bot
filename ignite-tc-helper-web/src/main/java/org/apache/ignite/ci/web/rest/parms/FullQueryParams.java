@@ -60,6 +60,12 @@ public class FullQueryParams {
     /** TC identified base branch: null means the same as &lt;default>, master. For not tracked branches. */
     @Nullable @QueryParam("baseBranchForTc") private String baseBranchForTc;
 
+    /** TC project identifier */
+    @Nullable @QueryParam("projectId") String projectId;
+
+    /** TC test name  */
+    @Nullable @QueryParam("testName") String testName;
+
     public FullQueryParams() {
     }
 
@@ -97,6 +103,14 @@ public class FullQueryParams {
         return count;
     }
 
+    @Nullable public String getTestName() {
+        return testName;
+    }
+
+    @Nullable public String getProjectId() {
+        return projectId ;
+    }
+
     @Nullable public Boolean getCheckAllLogs() {
         return checkAllLogs;
     }
@@ -118,13 +132,15 @@ public class FullQueryParams {
             Objects.equal(count, param.count) &&
             Objects.equal(checkAllLogs, param.checkAllLogs) &&
             Objects.equal(buildId, param.buildId) &&
+            Objects.equal(projectId, param.projectId) &&
+            Objects.equal(testName, param.testName) &&
             Objects.equal(baseBranchForTc, param.baseBranchForTc);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(branch, serverId, suiteId, branchForTc, action, count, checkAllLogs, buildId,
-            baseBranchForTc);
+            baseBranchForTc, testName, projectId);
     }
 
     public void setBranch(@Nullable String branch) {
@@ -146,11 +162,25 @@ public class FullQueryParams {
             .add("checkAllLogs", checkAllLogs)
             .add("buildId", buildId)
             .add("baseBranchForTc", baseBranchForTc)
+            .add("projectId", projectId)
+            .add("testName", testName)
             .toString();
+    }
+
+    public void setSuiteId(@Nonnull String suiteId) {
+        this.suiteId = suiteId;
     }
 
     public void setCount(@Nullable int count) {
         this.count = count;
+    }
+
+    public void setProjectId(@Nullable String projectId) {
+        this.projectId = projectId;
+    }
+
+    public void setTestName(@Nullable String testName) {
+        this.testName = testName;
     }
 
     public void setBuildId(Integer buildId) {

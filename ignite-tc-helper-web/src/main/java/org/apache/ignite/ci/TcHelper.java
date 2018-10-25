@@ -24,7 +24,7 @@ import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.teamcity.pure.ITcServerProvider;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
@@ -45,14 +45,18 @@ import static org.apache.ignite.ci.analysis.RunStat.MAX_LATEST_RUNS;
 import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
 
 /**
- * TC Bot implementation
+ * TC Bot implementation. To be migrated to smaller injected classes
  */
+@Deprecated
 public class TcHelper implements ITcHelper, IJiraIntegration {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TcHelper.class);
 
     /** Stop guard. */
     private AtomicBoolean stop = new AtomicBoolean();
+
+    /** Server authorizer credentials. */
+    private ICredentialsProv serverAuthorizerCreds;
 
     @Inject private IssuesStorage issuesStorage;
 
@@ -65,6 +69,21 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     @Inject private PrChainsProcessor prChainsProcessor;
 
     public TcHelper() {
+    }
+
+    /** {@inheritDoc} */
+    @Override public void setServerAuthorizerCreds(ICredentialsProv creds) {
+        this.serverAuthorizerCreds = creds;
+    }
+
+    /** {@inheritDoc} */
+    @Override public ICredentialsProv getServerAuthorizerCreds() {
+        return serverAuthorizerCreds;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isServerAuthorized() {
+        return !Objects.isNull(serverAuthorizerCreds);
     }
 
     /** {@inheritDoc} */
@@ -224,7 +243,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
             }
         }
 
-        res.append("\\n").append("[TeamCity Run All|").append(webUrl).append(']');
+        res.append("\\n").append("[TeamCity Run All Results|").append(webUrl).append(']');
 
         return xmlEscapeText(res.toString());
     }

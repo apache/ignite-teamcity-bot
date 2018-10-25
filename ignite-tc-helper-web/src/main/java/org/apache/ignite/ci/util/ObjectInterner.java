@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Class with util method for custom strings deduplication (intern analogue).
  */
 public class ObjectInterner {
+    /** String cache. */
     private static final LoadingCache<String, String> stringCache
         = CacheBuilder
         .<String, String>newBuilder()
@@ -39,13 +40,16 @@ public class ObjectInterner {
         .initialCapacity(67537)
         .build(
             new CacheLoader<String, String>() {
-                @Override public String load(String key) throws Exception {
+                @Override public String load(String key) {
                     return key;
                 }
             }
         );
 
-    private static String internString(String str) {
+    /**
+     * @param str String.
+     */
+    public static String internString(String str) {
         if (str == null)
             return null;
 

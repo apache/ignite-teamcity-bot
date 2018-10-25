@@ -1,0 +1,15 @@
+<!--https://ci.ignite.apache.org/app/rest/latest/changes/id:834843-->
+<change id="834843" version="5925444df9170652d4436288f470bf6d031c104e" username="jokserfn" date="20181011T190027+0300" href="/app/rest/latest/changes/id:834843" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=834843&personal=false">
+    <comment>
+        IGNITE-9561 Optimize affinity initialization for started cache groups - Fixes #4854.
+    </comment>
+    <user username="pkovalenko" name="Pavel Kovalenko" id="138" href="/app/rest/latest/users/id:138"/>
+    <files count="5">
+        <file before-revision="584652293c8646d8a893eed1a2b2ae1a179a5d20" after-revision="5925444df9170652d4436288f470bf6d031c104e" changeType="edited" file="modules/core/src/main/java/org/apache/ignite/internal/processors/cache/CacheAffinitySharedManager.java" relative-file="modules/core/src/main/java/org/apache/ignite/internal/processors/cache/CacheAffinitySharedManager.java"/>
+        <file before-revision="584652293c8646d8a893eed1a2b2ae1a179a5d20" after-revision="5925444df9170652d4436288f470bf6d031c104e" changeType="edited" file="modules/core/src/main/java/org/apache/ignite/internal/processors/cache/CacheGroupDescriptor.java" relative-file="modules/core/src/main/java/org/apache/ignite/internal/processors/cache/CacheGroupDescriptor.java"/>
+        <file before-revision="584652293c8646d8a893eed1a2b2ae1a179a5d20" after-revision="5925444df9170652d4436288f470bf6d031c104e" changeType="edited" file="modules/core/src/main/java/org/apache/ignite/internal/processors/cache/distributed/dht/preloader/CacheGroupAffinityMessage.java" relative-file="modules/core/src/main/java/org/apache/ignite/internal/processors/cache/distributed/dht/preloader/CacheGroupAffinityMessage.java"/>
+        <file before-revision="584652293c8646d8a893eed1a2b2ae1a179a5d20" after-revision="5925444df9170652d4436288f470bf6d031c104e" changeType="edited" file="modules/core/src/main/java/org/apache/ignite/internal/processors/cache/distributed/dht/preloader/GridDhtPartitionsExchangeFuture.java" relative-file="modules/core/src/main/java/org/apache/ignite/internal/processors/cache/distributed/dht/preloader/GridDhtPartitionsExchangeFuture.java"/>
+        <file before-revision="584652293c8646d8a893eed1a2b2ae1a179a5d20" after-revision="5925444df9170652d4436288f470bf6d031c104e" changeType="edited" file="modules/core/src/main/java/org/apache/ignite/internal/util/IgniteUtils.java" relative-file="modules/core/src/main/java/org/apache/ignite/internal/util/IgniteUtils.java"/>
+    </files>
+    <vcsRootInstance id="278" vcs-root-id="GitHubApacheIgnite" name="(proxy) GitHub [apache/ignite]" href="/app/rest/latest/vcs-root-instances/id:278"/>
+</change>

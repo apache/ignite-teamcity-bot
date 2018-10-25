@@ -14,18 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.di.scheduler;
 
-package org.apache.ignite.ci.tcmodel.result.tests;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.ignite.ci.tcmodel.result.AbstractRef;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Reference to particular test
+ * Sheduler which never waits
  */
-@XmlRootElement(name = "test")
-public class TestRef extends AbstractRef {
-    @XmlAttribute public Long id;
-    @XmlAttribute public String name;
+public class NoOpSheduler implements IScheduler {
+    /** {@inheritDoc} */
+    @Override public void invokeLater(Runnable cmd, long delay, TimeUnit unit) {
+
+    }
+
+    /** {@inheritDoc} */
+    @Override public void sheduleNamed(String fullName, Runnable cmd, long queitPeriod, TimeUnit unit) {
+
+    }
+
+    /** {@inheritDoc} */
+    @Override public void stop() {
+
+    }
 }

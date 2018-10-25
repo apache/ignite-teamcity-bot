@@ -18,6 +18,9 @@
 package org.apache.ignite.ci.web.rest.build;
 
 import com.google.common.collect.BiMap;
+import java.text.ParseException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import com.google.inject.Injector;
 import org.apache.ignite.ci.tcbot.condition.BuildCondition;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
@@ -30,10 +33,11 @@ import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl;
+import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.hist.BuildsHistory;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
@@ -50,16 +54,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
-import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-
-import static com.google.common.base.Strings.isNullOrEmpty;
 
 @Path(GetBuildTestFailures.BUILD)
 @Produces(MediaType.APPLICATION_JSON)
@@ -162,6 +158,43 @@ public class GetBuildTestFailures {
         return res;
     }
 
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("testRef")
+    public String getTestRef(
+        @NotNull @QueryParam("testName") String name,
+        @NotNull @QueryParam("suiteName") String suiteName,
+        @Nullable @QueryParam("server") String srv,
+        @Nullable @QueryParam("projectId") String projectId)
+        throws InterruptedException, ExecutionException, ServiceUnauthorizedException {
+        final ITcHelper helper = CtxListener.getTcHelper(ctx);
+
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        String project = projectId == null ? "IgniteTests24Java8" : projectId;
+
+        String srvId = srv == null ? "apache" : srv;
+
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
+
+        IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, prov);
+
+        FullQueryParams key = new FullQueryParams();
+
+        key.setTestName(name);
+        key.setProjectId(project);
+        key.setServerId(srvId);
+        key.setSuiteId(suiteName);
+
+        CompletableFuture<TestRef> ref = teamcity.getTestRef(key);
+
+        return ref.isDone() && !ref.isCompletedExceptionally() ? teamcity.host() + "project.html?"
+            + "projectId=" + project
+            + "&testNameId=" + ref.get().id
+            + "&tab=testDetails" : null;
+    }
+
     /**
      * Mark builds as "valid" or "invalid" for a specific user.
      *
@@ -204,60 +237,27 @@ public class GetBuildTestFailures {
 
     @GET
     @Path("history")
-    public List<BuildStatisticsSummary> getBuildsHistory(
-        @Nullable @QueryParam("server") String srv,
+    public BuildsHistory getBuildsHistory(
+        @Nullable @QueryParam("server") String srvId,
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("sinceDate") String sinceDate,
-        @Nullable @QueryParam("untilDate") String untilDate)
-        throws ServiceUnauthorizedException {
-        String srvId = isNullOrEmpty(srv) ? "apache" : srv;
-        String buildTypeId = isNullOrEmpty(buildType) ? "IgniteTests24Java8_RunAll" : buildType;
-        String branchName = isNullOrEmpty(branch) ? "refs/heads/master" : branch;
-        Date sinceDateFilter = isNullOrEmpty(sinceDate) ? null : dateParse(sinceDate);
-        Date untilDateFilter = isNullOrEmpty(untilDate) ? null : dateParse(untilDate);
+        @Nullable @QueryParam("untilDate") String untilDate,
+        @Nullable @QueryParam("skipTests") String skipTests)  throws ParseException {
+        BuildsHistory.Builder builder = new BuildsHistory.Builder()
+            .branch(branch)
+            .server(srvId)
+            .buildType(buildType)
+            .sinceDate(sinceDate)
+            .untilDate(untilDate);
 
-        final ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
+        if (Boolean.valueOf(skipTests))
+            builder.skipTests();
 
-        final ICredentialsProv prov = ICredentialsProv.get(req);
+        BuildsHistory buildsHistory = builder.build();
 
-        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
+        buildsHistory.initialize(ICredentialsProv.get(req), ctx);
 
-        int[] finishedBuilds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName, sinceDateFilter, untilDateFilter);
-
-        List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
-
-        TeamcityIgnitedImpl tc = CtxListener.getInjector(ctx).getInstance(TeamcityIgnitedImpl.class);
-
-        tc.init(srvId, teamcity);
-
-        for (int buildId : finishedBuilds) {
-            BuildStatisticsSummary stat = new BuildStatisticsSummary(buildId);
-
-            stat.initialize(teamcity);
-
-            stat.isValid = tc.buildIsValid(buildId);
-
-            if ((!stat.isFakeStub))
-                buildsStatistics.add(stat);
-        }
-
-        return buildsStatistics;
-    }
-
-    /**
-     * Parse date from format "ddMMyyyyHHmmss".
-     *
-     * @param date Date.
-     */
-    private Date dateParse(String date){
-        DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
-
-        try {
-            return dateFormat.parse(date);
-        }
-        catch (ParseException e) {
-            return null;
-        }
+        return buildsHistory;
     }
 }
