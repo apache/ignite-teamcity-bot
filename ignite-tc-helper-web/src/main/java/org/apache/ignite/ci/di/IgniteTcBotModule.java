@@ -30,6 +30,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.db.Ignite1Init;
+import org.apache.ignite.ci.di.cache.GuavaCachedModule;
 import org.apache.ignite.ci.di.scheduler.SchedulerModule;
 import org.apache.ignite.ci.github.ignited.GitHubIgnitedModule;
 import org.apache.ignite.ci.issue.IssueDetector;
@@ -52,6 +53,7 @@ public class IgniteTcBotModule extends AbstractModule {
 
     /** {@inheritDoc} */
     @Override protected void configure() {
+        install(new GuavaCachedModule());
         configProfiling();
         configTaskMonitor();
 

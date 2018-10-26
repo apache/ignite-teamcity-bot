@@ -14,17 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.runners;
 
-import java.util.Map;
-import java.util.TreeMap;
-import org.apache.ignite.ci.analysis.FullChainRunCtx;
+package org.apache.ignite.ci.di.cache;
+
+import com.google.inject.AbstractModule;
+import com.google.inject.matcher.Matchers;
 
 /**
  *
  */
+public class GuavaCachedModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        GuavaCachedInterceptor cachedInterceptor = new GuavaCachedInterceptor();
 
-@Deprecated
-public class BuildHistory {
-    public Map<String, FullChainRunCtx> map = new TreeMap<>();
+        bindInterceptor(Matchers.any(),
+            Matchers.annotatedWith(GuavaCached.class),
+            cachedInterceptor);
+
+        bind(GuavaCachedInterceptor.class).toInstance(cachedInterceptor);
+    }
 }

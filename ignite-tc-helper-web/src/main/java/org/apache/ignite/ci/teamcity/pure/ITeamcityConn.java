@@ -20,8 +20,10 @@ package org.apache.ignite.ci.teamcity.pure;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 
 /**
  * Pure Teamcity Connection API for calling methods from REST service: https://confluence.jetbrains.com/display/TCD10/REST+API
@@ -32,7 +34,16 @@ public interface ITeamcityConn {
      */
     public String host();
 
+    public Build getBuild(int buildId);
+
     public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> nextPage);
+
+    /**
+     * @param buildId Build id.
+     * @param href Href. Null activates first page loaded.
+     * @param testDtls Query test details.
+     */
+    public TestOccurrencesFull getTestsPage(int buildId, @Nullable String href, boolean testDtls);
 
     /**
      * Trigger build.

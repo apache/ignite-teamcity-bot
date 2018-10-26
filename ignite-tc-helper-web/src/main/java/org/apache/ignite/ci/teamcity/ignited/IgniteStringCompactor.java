@@ -33,14 +33,20 @@ import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IgniteStringCompactor implements IStringCompactor {
-    AtomicBoolean initGuard = new AtomicBoolean();
-    CountDownLatch initLatch = new CountDownLatch(1);
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(IgniteStringCompactor.class);
+
+    private final AtomicBoolean initGuard = new AtomicBoolean();
+    private final CountDownLatch initLatch = new CountDownLatch(1);
 
     /** Cache name */
     public static final String STRINGS_CACHE = "stringsCache";
@@ -108,6 +114,7 @@ public class IgniteStringCompactor implements IStringCompactor {
 
     /** {@inheritDoc} */
     @AutoProfiling
+    @GuavaCached(cacheNegativeNumbersRval = false)
     @Override public int getStringId(String val) {
         if (val == null)
             return -1;
@@ -116,7 +123,7 @@ public class IgniteStringCompactor implements IStringCompactor {
 
         CompactorEntity entity = stringsCache.get(val);
         if (entity != null)
-            return entity == null ? -1 : entity.id;
+            return entity.id;
 
         int codeCandidate = (int)seq.incrementAndGet();
 
@@ -127,6 +134,7 @@ public class IgniteStringCompactor implements IStringCompactor {
 
     /** {@inheritDoc} */
     @AutoProfiling
+    @GuavaCached(cacheNullRval = false)
     @Override public String getStringFromId(int id) {
         if (id < 0)
             return null;
@@ -152,6 +160,7 @@ public class IgniteStringCompactor implements IStringCompactor {
     }
 
     /** {@inheritDoc} */
+    @GuavaCached(cacheNullRval = false, cacheNegativeNumbersRval = false)
     @Override public Integer getStringIdIfPresent(String val) {
         if (val == null)
             return -1;

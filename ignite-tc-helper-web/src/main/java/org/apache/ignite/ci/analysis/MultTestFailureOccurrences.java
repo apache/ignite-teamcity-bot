@@ -22,9 +22,10 @@ import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
-public class MultTestFailureOccurrences implements ITestFailureOccurrences {
-    private final List<TestOccurrence> occurrences = new CopyOnWriteArrayList<>();
+public class MultTestFailureOccurrences implements ITestFailures {
+    private final List<TestOccurrenceFull> occurrences = new CopyOnWriteArrayList<>();
 
     public MultTestFailureOccurrences() {
 
@@ -66,7 +67,11 @@ public class MultTestFailureOccurrences implements ITestFailureOccurrences {
         return stream.findAny().orElse(0L);
     }
 
-    public void add(TestOccurrence next) {
+    @Override public Iterable<TestOccurrenceFull> getOccurrences() {
+        return occurrences;
+    }
+
+    public void add(TestOccurrenceFull next) {
         if (next.getId() == null)
             return;
 

@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcbot.condition.BuildCondition;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 
 /**
  *
@@ -32,6 +33,8 @@ public interface ITeamcityIgnited {
     public String host();
 
     /**
+     * Retun all builds for branch and suite, without relation to its status.
+     *
      * @param buildTypeId Build type identifier.
      * @param branchName Branch name.
      * @return list of builds in history, includes all statuses: queued, running, etc
@@ -71,4 +74,9 @@ public interface ITeamcityIgnited {
      * @param cond Condition.
      */
     public boolean setBuildCondition(BuildCondition cond);
+
+    /**
+     * @param id Id.
+     */
+    public FatBuildCompacted getFatBuild(int id);
 }

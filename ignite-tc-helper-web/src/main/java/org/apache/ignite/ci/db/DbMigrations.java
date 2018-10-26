@@ -43,7 +43,6 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
-import org.apache.ignite.ci.web.rest.Metrics;
 import org.apache.ignite.ci.web.rest.build.GetBuildTestFailures;
 import org.apache.ignite.ci.web.rest.pr.GetPrTestFailures;
 import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
@@ -88,6 +87,10 @@ public class DbMigrations {
 
     @Deprecated
     public static final String ISSUES = "issues";
+
+    /** Cache name */
+    public static final String TEAMCITY_BUILD_CACHE_NAME_OLD = "teamcityBuild";
+
     public static final int SUITES_CNT = 100;
 
     private final Ignite ignite;
@@ -277,8 +280,7 @@ public class DbMigrations {
         });
 
         applyRemoveCache(GetTrackedBranchTestResults.ALL_TEST_FAILURES_SUMMARY);
-        applyRemoveCache(Metrics.FAILURES_PUBLIC);
-        applyRemoveCache(Metrics.FAILURES_PRIVATE);
+
         applyRemoveCache(GetTrackedBranchTestResults.TEST_FAILURES_SUMMARY_CACHE_NAME);
         applyRemoveCache(GetBuildTestFailures.TEST_FAILURES_SUMMARY_CACHE_NAME);
         applyRemoveCache(GetPrTestFailures.CURRENT_PR_FAILURES);
@@ -394,17 +396,24 @@ public class DbMigrations {
             }
         });
 
-        applyDestroyCacheMigration(RUNNING_BUILDS);
+        applyDestroyIgnCacheMigration(RUNNING_BUILDS);
 
-        applyDestroyCacheMigration(BUILD_QUEUE);
+        applyDestroyIgnCacheMigration(BUILD_QUEUE);
 
-        applyDestroyCacheMigration(FINISHED_BUILDS_INCLUDE_FAILED);
-        applyDestroyCacheMigration(TEST_OCCURRENCE_FULL);
+        applyDestroyIgnCacheMigration(FINISHED_BUILDS_INCLUDE_FAILED);
+        applyDestroyIgnCacheMigration(TEST_OCCURRENCE_FULL);
+        //todo destroy
+    //    applyDestroyIgnCacheMigration(TEAMCITY_BUILD_CACHE_NAME_OLD);
     }
 
-    public void applyDestroyCacheMigration(String cacheName) {
+    public void applyDestroyIgnCacheMigration(String cacheName) {
+        String ignCacheNme = ignCacheNme(cacheName);
+        applyDestroyCacheMigration(cacheName, ignCacheNme);
+    }
+
+    public void applyDestroyCacheMigration(String cacheName, String ignCacheNme) {
         applyMigration("destroy-" + cacheName, () -> {
-            IgniteCache<Object, Object> cache = ignite.cache(ignCacheNme(cacheName));
+            IgniteCache<Object, Object> cache = ignite.cache(ignCacheNme);
 
             if (cache == null) {
                 System.err.println("cache not found");

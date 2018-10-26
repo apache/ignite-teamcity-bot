@@ -23,12 +23,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
@@ -40,14 +42,22 @@ import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
+import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  * Process whole Build Chain, E.g. runAll at particular server, including all builds involved
@@ -59,8 +69,12 @@ public class BuildChainProcessor {
     /** TC REST updates pool. */
     @Inject private TcUpdatePool tcUpdatePool;
 
+    /** Compactor. */
+    @Inject private IStringCompactor compactor;
+
     /**
      * @param teamcity Teamcity.
+     * @param teamcityIgnited
      * @param entryPoints Entry points.
      * @param includeLatestRebuild Include latest rebuild.
      * @param procLog Process logger.
@@ -70,6 +84,7 @@ public class BuildChainProcessor {
     @AutoProfiling
     public FullChainRunCtx loadFullChainContext(
         IAnalyticsEnabledTeamcity teamcity,
+        ITeamcityIgnited teamcityIgnited,
         Collection<BuildRef> entryPoints,
         LatestRebuildMode includeLatestRebuild,
         ProcessLogsMode procLog,
@@ -98,13 +113,14 @@ public class BuildChainProcessor {
 
         final List<Future<Stream<BuildRef>>> phase1Submitted = uniqueBuldsInvolved
                 .map((buildRef) -> svc.submit(
-                        () -> replaceWithRecent(teamcity, includeLatestRebuild, unique, buildRef, entryPoints.size())))
+                        () -> replaceWithRecent(teamcity, teamcityIgnited, includeLatestRebuild, unique, buildRef, entryPoints.size())))
                 .collect(Collectors.toList());
+
 
         final List<Future<? extends Stream<? extends BuildRef>>> phase2Submitted = phase1Submitted.stream()
                 .map(FutureUtil::getResult)
                 .map((s) -> svc.submit(
-                        () -> processBuildList(teamcity, buildsCtxMap, s)))
+                        () -> processBuildList(teamcity, teamcityIgnited, buildsCtxMap, s)))
                 .collect(Collectors.toList());
 
         phase2Submitted.forEach(FutureUtil::getResult);
@@ -114,7 +130,7 @@ public class BuildChainProcessor {
         contexts.forEach(multiCtx -> {
             analyzeTests(multiCtx, teamcity, procLog);
 
-            fillBuildCounts(multiCtx, teamcity, includeScheduledInfo);
+            fillBuildCounts(multiCtx, teamcityIgnited, includeScheduledInfo);
         });
 
         if (teamcity != null) {
@@ -141,46 +157,96 @@ public class BuildChainProcessor {
     }
 
     @NotNull
-    public static Stream<? extends BuildRef> processBuildList(ITeamcity teamcity,
-                                                              Map<String, MultBuildRunCtx> buildsCtxMap,
-                                                              Stream<? extends BuildRef> list) {
+    public Stream<? extends BuildRef> processBuildList(ITeamcity teamcity,
+        ITeamcityIgnited teamcityIgnited, Map<String, MultBuildRunCtx> buildsCtxMap,
+        Stream<? extends BuildRef> list) {
         list.forEach((BuildRef ref) -> {
-            processBuildAndAddToCtx(teamcity, buildsCtxMap, ref);
+            MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(ref.buildTypeId, k -> new MultBuildRunCtx(ref));
+
+            ctx.addBuild(loadTestsAndProblems(teamcity, ref, ctx, teamcityIgnited));
         });
 
         return list;
     }
 
-    public static void processBuildAndAddToCtx(ITeamcity teamcity, Map<String, MultBuildRunCtx> buildsCtxMap, BuildRef buildRef) {
-        Build build = teamcity.getBuild(buildRef.href);
+    /**
+     * Runs deep collection of all related statistics for particular build.
+     *
+     * @param tcIgnited
+     * @param buildRef Build ref from history with references to tests.
+     * @return Full context.
+     */
+    public SingleBuildRunCtx loadTestsAndProblems(ITeamcity teamcity, @Nonnull BuildRef buildRef,
+        @Deprecated MultBuildRunCtx mCtx, ITeamcityIgnited tcIgnited) {
+
+        FatBuildCompacted buildCompacted = tcIgnited.getFatBuild(buildRef.getId());
+        Build buildFromFat = buildCompacted.toBuild(compactor);
+
+        SingleBuildRunCtx ctx = new SingleBuildRunCtx(buildFromFat, buildCompacted, compactor);
+
+        if (!buildFromFat.isComposite())
+            mCtx.addTests(buildCompacted.getTestOcurrences(compactor).getTests());
+
+
+        //todo migrate rest of the method to fat build from TC ignited
+        Build build = teamcity.getBuild(buildRef.getId());
 
         if (build == null || build.isFakeStub())
-            return;
+            return ctx;
+        if (build.problemOccurrences != null)
+            ctx.setProblems(teamcity.getProblems(build).getProblemsNonNull());
 
-        MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(build.buildTypeId, k -> new MultBuildRunCtx(build));
+        if (build.lastChanges != null) {
+            for (ChangeRef next : build.lastChanges.changes) {
+                if(!isNullOrEmpty(next.href)) {
+                    // just to cache this change
+                    teamcity.getChange(next.href);
+                }
+            }
+        }
 
-        ctx.addBuild(teamcity.loadTestsAndProblems(build, ctx));
+        if (build.changesRef != null) {
+            ChangesList changeList = teamcity.getChangesList(build.changesRef.href);
+            // System.err.println("changes: " + changeList);
+            if (changeList.changes != null) {
+                for (ChangeRef next : changeList.changes) {
+                    if (!isNullOrEmpty(next.href)) {
+                        // just to cache this change
+                        ctx.addChange(teamcity.getChange(next.href));
+                    }
+                }
+            }
+        }
+
+        if (build.statisticsRef != null)
+            mCtx.setStat(teamcity.getBuildStatistics(build.statisticsRef.href));
+
+        return ctx;
     }
 
     @NotNull
     public static Stream< BuildRef> replaceWithRecent(ITeamcity teamcity,
-                                                      LatestRebuildMode includeLatestRebuild,
-                                                      Map<Integer, BuildRef> unique, BuildRef buildRef, int cntLimit) {
+        ITeamcityIgnited teamcityIgnited, LatestRebuildMode includeLatestRebuild,
+        Map<Integer, BuildRef> unique, BuildRef buildRef, int cntLimit) {
         if (includeLatestRebuild == LatestRebuildMode.NONE)
             return Stream.of(buildRef);
 
         final String branch = getBranchOrDefault(buildRef.branchName);
 
-        final List<BuildRef> builds = teamcity.getFinishedBuilds(buildRef.buildTypeId, branch);
+        //todo now it is a full scan without caching, probably it is better to make branch based index query & caching results
+        Stream<BuildRef> history = teamcityIgnited.getBuildHistory(buildRef.buildTypeId, branch)
+            .stream()
+            .filter(BuildRef::isNotCancelled)
+            .filter(BuildRef::isFinished);
 
         if (includeLatestRebuild == LatestRebuildMode.LATEST) {
-            BuildRef recentRef = builds.stream().max(Comparator.comparing(BuildRef::getId)).orElse(buildRef);
+            BuildRef recentRef = history.max(Comparator.comparing(BuildRef::getId)).orElse(buildRef);
 
             return Stream.of(recentRef.isFakeStub() ? buildRef : recentRef);
         }
 
         if (includeLatestRebuild == LatestRebuildMode.ALL) {
-            return builds.stream()
+            return history
                 .filter(ref -> !ref.isFakeStub())
                 .filter(ref -> ensureUnique(unique, ref))
                 .sorted(Comparator.comparing(BuildRef::getId).reversed())
@@ -203,7 +269,8 @@ public class BuildChainProcessor {
         return prevVal == null;
     }
 
-    private static void fillBuildCounts(MultBuildRunCtx outCtx, ITeamcity teamcity, boolean includeScheduledInfo) {
+    private static void fillBuildCounts(MultBuildRunCtx outCtx,
+        ITeamcityIgnited teamcityIgnited, boolean includeScheduledInfo) {
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {
             Function<List<BuildRef>, Long> cntRelatedToThisBuildType = list ->
                 list.stream()
@@ -211,8 +278,16 @@ public class BuildChainProcessor {
                     .filter(ref -> Objects.equals(normalizeBranch(outCtx.branchName()), normalizeBranch(ref)))
                     .count();
 
-            outCtx.setRunningBuildCount(teamcity.getRunningBuilds("").thenApply(cntRelatedToThisBuildType));
-            outCtx.setQueuedBuildCount(teamcity.getQueuedBuilds("").thenApply(cntRelatedToThisBuildType));
+            //todo queue all builds instead of specific + caching
+            long cntRunning = teamcityIgnited.getBuildHistory(outCtx.buildTypeId(), outCtx.branchName())
+                .stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isRunning).count();
+
+            outCtx.setRunningBuildCount(CompletableFuture.completedFuture(cntRunning));
+
+            long cntQueued = teamcityIgnited.getBuildHistory(outCtx.buildTypeId(), outCtx.branchName())
+                .stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isQueued).count();
+
+            outCtx.setQueuedBuildCount(CompletableFuture.completedFuture(cntQueued));
         }
     }
 
@@ -224,7 +299,7 @@ public class BuildChainProcessor {
 
             if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
                 || procLog == ProcessLogsMode.ALL)
-                ctx.setLogCheckResultFut(teamcity.analyzeBuildLog(ctx.buildId(), ctx));
+                ctx.setLogCheckResFut(teamcity.analyzeBuildLog(ctx.buildId(), ctx));
         }
     }
 

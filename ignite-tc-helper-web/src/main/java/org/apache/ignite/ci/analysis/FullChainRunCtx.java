@@ -34,7 +34,7 @@ public class FullChainRunCtx {
     private Build chainResults;
     private List<MultBuildRunCtx> buildCfgsResults = new ArrayList<>();
 
-    public FullChainRunCtx(Build chainResults ) {
+    public FullChainRunCtx(Build chainResults) {
         this.chainResults = chainResults;
 
         fakeStub = chainResults.isFakeStub();
@@ -70,18 +70,6 @@ public class FullChainRunCtx {
 
     public String branchName() {
         return chainResults.branchName;
-    }
-
-    public int failedTests() {
-        return buildCfgsResults.stream().mapToInt(MultBuildRunCtx::failedTests).sum();
-    }
-
-    public int mutedTests() {
-        return buildCfgsResults.stream().mapToInt(MultBuildRunCtx::mutedTests).sum();
-    }
-
-    public int totalTests() {
-        return buildCfgsResults.stream().mapToInt(MultBuildRunCtx::totalTests).sum();
     }
 
     public Stream<MultBuildRunCtx> failedChildSuites() {

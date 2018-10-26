@@ -73,6 +73,12 @@ public class BuildRef extends AbstractRef {
         return STATUS_UNKNOWN.equals(status);
     }
 
+    public void setCancelled() {
+        status = STATUS_UNKNOWN;
+        state = STATE_FINISHED;
+    }
+
+
     public boolean isSuccess() {
         return STATUS_SUCCESS.equals(status);
     }

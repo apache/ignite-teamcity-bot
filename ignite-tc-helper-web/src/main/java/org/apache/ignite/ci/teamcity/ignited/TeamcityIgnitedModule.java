@@ -19,6 +19,7 @@ package org.apache.ignite.ci.teamcity.ignited;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.tcbot.condition.BuildConditionDao;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.teamcity.restcached.TcRestCachedModule;
 import org.jetbrains.annotations.Nullable;
@@ -35,6 +36,7 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(ITeamcityIgnitedProvider.class).to(TcIgnitedCachingProvider.class).in(new SingletonScope());
         bind(BuildRefDao.class).in(new SingletonScope());
         bind(BuildConditionDao.class).in(new SingletonScope());
+        bind(FatBuildDao.class).in(new SingletonScope());
 
         bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
 

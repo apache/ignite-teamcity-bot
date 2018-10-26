@@ -31,7 +31,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
+import org.apache.ignite.ci.analysis.ITestFailures;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
@@ -140,9 +140,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         webToHistBaseBranch = buildWebLink(teamcity, suite, baseBranch);
         webToBuild = buildWebLinkToBuild(teamcity, suite);
 
-        Stream<? extends ITestFailureOccurrences> tests = suite.getFailedTests();
+        Stream<? extends ITestFailures> tests = suite.getFailedTests();
         if (tcAnalytics != null) {
-            Function<ITestFailureOccurrences, Float> function = foccur -> {
+            Function<ITestFailures, Float> function = foccur -> {
                 TestInBranch branch = new TestInBranch(foccur.getName(), failRateNormalizedBranch);
 
                 RunStat apply = tcAnalytics.getTestRunStatProvider().apply(branch);
@@ -153,10 +153,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         }
 
         tests.forEach(occurrence -> {
-            Stream<TestOccurrenceFull> stream = suite.getFullTests(occurrence);
-
             final TestFailure failure = new TestFailure();
-            failure.initFromOccurrence(occurrence, stream, teamcity, suite.projectId(), suite.branchName(), baseBranch);
+            failure.initFromOccurrence(occurrence, teamcity, suite.projectId(), suite.branchName(), baseBranch);
             if (tcAnalytics != null)
                 failure.initStat(tcAnalytics.getTestRunStatProvider(), failRateNormalizedBranch, curBranchNormalized);
 
@@ -271,13 +269,11 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     @NotNull public static TestFailure createOrrucForLongRun(@Nonnull ITeamcity teamcity,
         @Nonnull MultBuildRunCtx suite,
         @Nullable final ITcAnalytics tcAnalytics,
-        final ITestFailureOccurrences occurrence,
+        final ITestFailures occurrence,
         @Nullable final String failRateBranch) {
         final TestFailure failure = new TestFailure();
 
-        Stream<TestOccurrenceFull> stream = suite.getFullTests(occurrence);
-
-        failure.initFromOccurrence(occurrence, stream, teamcity, suite.projectId(), suite.branchName(), failRateBranch);
+        failure.initFromOccurrence(occurrence, teamcity, suite.projectId(), suite.branchName(), failRateBranch);
 
         if (tcAnalytics != null) {
             failure.initStat(tcAnalytics.getTestRunStatProvider(),

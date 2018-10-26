@@ -1,5 +1,5 @@
 <!--https://ci.ignite.apache.org/app/rest/latest/changes/id:834843-->
-<change id="834843" version="5925444df9170652d4436288f470bf6d031c104e" username="jokserfn" date="20181011T190027+0300" href="/app/rest/latest/changes/id:834843" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=834843&personal=false">
+<change id="834843" version="5925444df9170652d4436288f470bf6d031c104e" username="jokserfn" date="20181011T190027+0300" href="/app/rest/latest/changes/id:834843" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=834843&amp;personal=false">
     <comment>
         IGNITE-9561 Optimize affinity initialization for started cache groups - Fixes #4854.
     </comment>

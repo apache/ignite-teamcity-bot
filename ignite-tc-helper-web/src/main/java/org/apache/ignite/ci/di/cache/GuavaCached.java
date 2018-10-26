@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.di;
+package org.apache.ignite.ci.di.cache;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -22,16 +22,27 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.METHOD)
-public @interface MonitoredTask {
+public @interface GuavaCached {
     /**
-     * @return Display name for monitoring page.
+     * Specifies the maximum number of entries the cache may contain.
      */
-    String name() default "";
+    long maximumSize() default -1L;
 
     /**
-     * Argument index (0-based) to be used to extend name.
+     *
      */
-    int nameExtArgIndex() default  -1;
+    boolean softValues() default false;
 
-    int[] nameExtArgsIndexes() default {};
+    /**
+     * Cache null as valid return value. For caching Ignite entries it is always require to set this parameter.
+     */
+    boolean cacheNullRval() default true;
+
+
+    /**
+     * Cache negative number values as valid return value. For caching Ignite entries it is always require to set this parameter.
+     */
+    boolean cacheNegativeNumbersRval() default true;
+
+    long expireAfterAccessSecs() default -1;
 }

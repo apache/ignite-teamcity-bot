@@ -46,6 +46,7 @@ public class CtxListener implements ServletContextListener {
     /** Javax.Injector property code for servlet context. */
     public static final String INJECTOR = "injector";
 
+    @Deprecated
     public static ITcHelper getTcHelper(ServletContext ctx) {
         return getInjector(ctx).getInstance(ITcHelper.class);
     }
@@ -56,14 +57,6 @@ public class CtxListener implements ServletContextListener {
 
     public static BackgroundUpdater getBackgroundUpdater(ServletContext ctx) {
         return getInjector(ctx).getInstance(BackgroundUpdater.class);
-    }
-
-    public static IAnalyticsEnabledTeamcity server(@QueryParam("serverId") @Nullable String srvId,
-                                                   ServletContext ctx,
-                                                   HttpServletRequest req) {
-        ITcHelper tcHelper = getTcHelper(ctx);
-        final ICredentialsProv creds = ICredentialsProv.get(req);
-        return tcHelper.server(srvId, creds);
     }
 
     /** {@inheritDoc} */

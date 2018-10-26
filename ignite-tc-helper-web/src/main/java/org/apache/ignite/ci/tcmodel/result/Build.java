@@ -123,6 +123,21 @@ public class Build extends BuildRef implements IVersionedEntity {
         finishDate = ts < 0 ? null : fmtLoc.get().format(new Date(ts));
     }
 
+
+    /**
+     *
+     */
+    public Date getQueuedDate() {
+        return getDate(queuedDate);
+    }
+
+    /**
+     * @param ts Timestamp.
+     */
+    public void setQueuedDateTs(long ts) {
+        queuedDate = ts < 0 ? null : fmtLoc.get().format(new Date(ts));
+    }
+
     /**
      * @param date Date as string.
      */
@@ -170,5 +185,9 @@ public class Build extends BuildRef implements IVersionedEntity {
      */
     public void setBuildType(BuildType type) {
         buildType = type;
+    }
+
+    public void snapshotDependencies(List<BuildRef> dependencies) {
+        snapshotDependencies = dependencies;
     }
 }

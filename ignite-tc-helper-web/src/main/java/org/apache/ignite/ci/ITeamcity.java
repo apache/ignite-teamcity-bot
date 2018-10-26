@@ -24,15 +24,11 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.LogCheckResult;
-import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
-import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
-import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
@@ -41,7 +37,6 @@ import org.apache.ignite.ci.tcmodel.result.Configurations;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
@@ -50,9 +45,6 @@ import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
-
-import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.apache.ignite.ci.db.DbMigrations.TESTS_COUNT_7700;
 
 /**
  * API for calling methods from REST service:
@@ -95,6 +87,7 @@ public interface ITeamcity extends ITeamcityConn {
      * @param branch branch in TC identification.
      * @return list of builds in historical order, recent builds coming last.
      */
+    @Deprecated
     default List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch){
         return getFinishedBuildsIncludeSnDepFailed(projectId, branch, null);
     };
@@ -108,22 +101,16 @@ public interface ITeamcity extends ITeamcityConn {
      * @param sinceBuildId limit builds export with some build number, not operational for Persistent connection.
      * @return list of builds in historical order, recent builds coming last.
      */
+    @Deprecated
     List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId);
 
     /**   */
+    @Deprecated
     CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch);
 
     /**   */
+    @Deprecated
     CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch);
-
-    /**
-     * @param projectId Suite ID (string without spaces).
-     * @param branchNameForHist Branch in TC identification.
-     * @return List of build numbers in historical order, recent builds coming last.
-     */
-    default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist) {
-        return getBuildNumbersFromHistory(projectId, branchNameForHist, null, null);
-    }
 
     /**
      * @param projectId Suite ID (string without spaces).
@@ -136,17 +123,18 @@ public interface ITeamcity extends ITeamcityConn {
         return getFinishedBuilds(projectId, branchNameForHist, sinceDate, untilDate, null).stream().mapToInt(BuildRef::getId).toArray();
     }
 
+    @Deprecated
     Build getBuild(String href);
 
-    default Build getBuild(int id) {
-        return getBuild(getBuildHrefById(id));
+    default Build getBuild(int buildId) {
+        return getBuild(getBuildHrefById(buildId));
     }
 
     @NotNull default String getBuildHrefById(int id) {
         return buildHref(id);
     }
 
-    @NotNull  static String buildHref(int id) {
+    @NotNull static String buildHref(int id) {
         return "app/rest/latest/builds/id:" + Integer.toString(id);
     }
 
@@ -156,18 +144,22 @@ public interface ITeamcity extends ITeamcityConn {
      */
     ProblemOccurrences getProblems(BuildRef build);
 
-    TestOccurrences getTests(String href, String normalizedBranch);
+    @Deprecated
+    public TestOccurrences getTests(String fullUrl);
 
+    @Deprecated
     TestOccurrences getFailedTests(String href, int count, String normalizedBranch);
 
     Statistics getBuildStatistics(String href);
 
+    @Deprecated
     CompletableFuture<TestOccurrenceFull> getTestFull(String href);
 
     Change getChange(String href);
 
     ChangesList getChangesList(String href);
 
+    @Deprecated
     CompletableFuture<TestRef> getTestRef(FullQueryParams key);
 
     Configurations getConfigurations(FullQueryParams key);
@@ -178,74 +170,6 @@ public interface ITeamcity extends ITeamcityConn {
      * @param href IssuesUsagesList href.
      */
     IssuesUsagesList getIssuesUsagesList(String href);
-
-    /**
-     * Runs deep collection of all related statistics for particular build.
-     *
-     * @param build Build from history with references to tests.
-     * @return Full context.
-     */
-    @Nonnull default MultBuildRunCtx loadTestsAndProblems(@Nonnull Build build) {
-        MultBuildRunCtx ctx = new MultBuildRunCtx(build);
-
-        loadTestsAndProblems(build, ctx);
-
-        return ctx;
-    }
-
-    default SingleBuildRunCtx loadTestsAndProblems(@Nonnull Build build, @Deprecated MultBuildRunCtx mCtx) {
-        SingleBuildRunCtx ctx = new SingleBuildRunCtx(build);
-        if (build.problemOccurrences != null)
-            ctx.setProblems(getProblems(build).getProblemsNonNull());
-
-        if (build.lastChanges != null) {
-            for (ChangeRef next : build.lastChanges.changes) {
-                if(!isNullOrEmpty(next.href)) {
-                    // just to cache this change
-                    getChange(next.href);
-                }
-            }
-        }
-
-        if (build.changesRef != null) {
-            ChangesList changeList = getChangesList(build.changesRef.href);
-            // System.err.println("changes: " + changeList);
-            if (changeList.changes != null) {
-                for (ChangeRef next : changeList.changes) {
-                    if (!isNullOrEmpty(next.href)) {
-                        // just to cache this change
-                        ctx.addChange(getChange(next.href));
-                    }
-                }
-            }
-        }
-
-        if (build.testOccurrences != null && !build.isComposite()) {
-            String normalizedBranch = BuildChainProcessor.normalizeBranch(build);
-
-            List<TestOccurrence> tests
-                = getTests(build.testOccurrences.href + TESTS_COUNT_7700, normalizedBranch).getTests();
-
-            ctx.setTests(tests);
-
-            mCtx.addTests(tests);
-
-            for (TestOccurrence next : tests) {
-                if (next.href != null && next.isFailedTest()) {
-                    CompletableFuture<TestOccurrenceFull> testFullFut = getTestFull(next.href);
-
-                    String testInBuildId = next.getId();
-
-                    mCtx.addTestInBuildToTestFull(testInBuildId, testFullFut);
-                }
-            }
-        }
-
-        if (build.statisticsRef != null)
-            mCtx.setStat(getBuildStatistics(build.statisticsRef.href));
-
-        return ctx;
-    }
 
     CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut);
 

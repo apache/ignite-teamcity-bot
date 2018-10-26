@@ -1,47 +1,48 @@
-<!--https://ci.ignite.apache.org/app/rest/latest/builds/id:2039380-->
-<build id="2039380" buildTypeId="IgniteTests24Java8_Jta" number="3617" status="SUCCESS" state="finished" branchName="refs/heads/master" defaultBranch="true" href="/app/rest/latest/builds/id:2039380" webUrl="http://ci.ignite.apache.org/viewLog.html?buildId=2039380&amp;buildTypeId=IgniteTests24Java8_Jta">
-    <statusText>Tests passed: 30</statusText>
-    <buildType id="IgniteTests24Java8_Jta" name="JTA" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/latest/buildTypes/id:IgniteTests24Java8_Jta" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Jta"/>
-    <queuedDate>20181009T062019+0300</queuedDate>
-    <startDate>20181009T063622+0300</startDate>
-    <finishDate>20181009T063721+0300</finishDate>
-    <triggered type="snapshotDependency" date="20181009T062019+0300">
-        <user username="dpavlov" name="Dmitriy Pavlov" id="129" href="/app/rest/latest/users/id:129"/>
-        <build id="2039462" buildTypeId="IgniteTests24Java8_RunAll" number="5370" status="FAILURE" state="finished" composite="true" branchName="refs/heads/master" defaultBranch="true" href="/app/rest/latest/builds/id:2039462" webUrl="http://ci.ignite.apache.org/viewLog.html?buildId=2039462&amp;buildTypeId=IgniteTests24Java8_RunAll"/>
+
+<build id="2153237" buildTypeId="IgniteTests24Java8_MvccCache_2" number="1160" status="FAILURE" state="finished" branchName="refs/heads/master" defaultBranch="true" href="/app/rest/latest/builds/id:2153237" webUrl="http://ci.ignite.apache.org/viewLog.html?buildId=2153237&amp;buildTypeId=IgniteTests24Java8_MvccCache_2">
+    <statusText>Tests failed: 1, passed: 152, muted: 19</statusText>
+    <buildType id="IgniteTests24Java8_MvccCache_2" name="MVCC Cache" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/latest/buildTypes/id:IgniteTests24Java8_MvccCache_2" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_MvccCache_2"/>
+    <queuedDate>20181024T104538+0300</queuedDate>
+    <startDate>20181024T111749+0300</startDate>
+    <finishDate>20181024T115928+0300</finishDate>
+    <triggered type="snapshotDependency" date="20181024T104538+0300">
+        <user username="amashenkov" name="Andrey Mashenkov" id="84" href="/app/rest/latest/users/id:84"/>
+        <build id="2153291" buildTypeId="IgniteTests24Java8_RunAll" number="5904" status="FAILURE" state="finished" composite="true" failedToStart="true" branchName="refs/heads/master" defaultBranch="true" href="/app/rest/latest/builds/id:2153291" webUrl="http://ci.ignite.apache.org/viewLog.html?buildId=2153291&amp;buildTypeId=IgniteTests24Java8_RunAll"/>
         <buildType id="IgniteTests24Java8_RunAll" name="--> Run :: All" description="Dummy build for run all build in project by one click" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/latest/buildTypes/id:IgniteTests24Java8_RunAll" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_RunAll"/>
     </triggered>
     <lastChanges count="1">
-        <change id="834072" version="b50a9dc18a115d5fc599ac15a11546911ae0bc45" username="29892836+stuartmacd" date="20181008T182104+0300" href="/app/rest/latest/changes/id:834072" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=834072&amp;personal=false"/>
+        <change id="836137" version="a9b65d6e4a86e00876fdbfc17a13ceed718c21e7" username="spiderru5597" date="20181024T005228+0300" href="/app/rest/latest/changes/id:836137" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=836137&amp;personal=false"/>
     </lastChanges>
-    <changes href="/app/rest/latest/changes?locator=build:(id:2039380)"/>
+    <changes href="/app/rest/latest/changes?locator=build:(id:2153237)"/>
     <revisions count="1">
-        <revision version="b50a9dc18a115d5fc599ac15a11546911ae0bc45" vcsBranchName="refs/heads/master">
+        <revision version="a9b65d6e4a86e00876fdbfc17a13ceed718c21e7" vcsBranchName="refs/heads/master">
             <vcs-root-instance id="278" vcs-root-id="GitHubApacheIgnite" name="(proxy) GitHub [apache/ignite]" href="/app/rest/latest/vcs-root-instances/id:278"/>
         </revision>
     </revisions>
-    <agent id="239" name="publicagent12_9095" typeId="241" href="/app/rest/latest/agents/id:239" webUrl="http://ci.ignite.apache.org/agentDetails.html?id=239&amp;realAgentName=publicagent12_9095&amp;agentTypeId=241"/>
-    <testOccurrences count="30" href="/app/rest/latest/testOccurrences?locator=build:(id:2039380)" passed="30"/>
-    <artifacts href="/app/rest/latest/builds/id:2039380/artifacts/children/"/>
-    <relatedIssues href="/app/rest/latest/builds/id:2039380/relatedIssues"/>
+    <agent id="207" name="publicagent10_9094" typeId="209" href="/app/rest/latest/agents/id:207" webUrl="http://ci.ignite.apache.org/agentDetails.html?id=207&amp;realAgentName=publicagent10_9094&amp;agentTypeId=209"/>
+    <testOccurrences count="172" href="/app/rest/latest/testOccurrences?locator=build:(id:2153237)" passed="152" failed="1" muted="19"/>
+    <problemOccurrences count="1" href="/app/rest/latest/problemOccurrences?locator=build:(id:2153237)"/>
+    <artifacts href="/app/rest/latest/builds/id:2153237/artifacts/children/"/>
+    <relatedIssues href="/app/rest/latest/builds/id:2153237/relatedIssues"/>
     <properties count="12">
         <property name="ACTUAL_VERSION" value="%dep.IgniteTests24Java8_BuildApacheIgnite.ACTUAL_VERSION%" inherited="true"/>
         <property name="env.JAVA_HOME" value="%env.JDK_ORA_18%"/>
         <property name="JVM_ARGS" value="" inherited="true"/>
         <property name="JVM_EXTRA_ARGS" value="%dep.IgniteTests24Java8_BuildApacheIgnite.JVM_EXTRA_ARGS%" inherited="true"/>
         <property name="MAVEN_GOALS" value="surefire:test" inherited="true"/>
-        <property name="MAVEN_MODULES" value=":ignite-jta" inherited="true"/>
+        <property name="MAVEN_MODULES" value=":ignite-core" inherited="true"/>
         <property name="MAVEN_OPTS" value="" inherited="true"/>
         <property name="reverse.dep.*.env.JAVA_HOME" value="%env.JDK_ORA_18%" inherited="true"/>
         <property name="system.IGNITE_DUMP_THREADS_ON_FAILURE" value="false" inherited="true"/>
-        <property name="TEST_SUITE" value="IgniteJtaTestSuite" inherited="true"/>
+        <property name="TEST_SUITE" value="IgniteCacheMvccTestSuite" inherited="true"/>
         <property name="XMS" value="2g" inherited="true"/>
         <property name="XMX" value="2g" inherited="true"/>
     </properties>
-    <statistics href="/app/rest/latest/builds/id:2039380/statistics"/>
+    <statistics href="/app/rest/latest/builds/id:2153237/statistics"/>
     <snapshot-dependencies count="1">
-        <build id="2039356" buildTypeId="IgniteTests24Java8_BuildApacheIgnite" number="6721" status="SUCCESS" state="finished" branchName="refs/heads/master" defaultBranch="true" href="/app/rest/latest/builds/id:2039356" webUrl="http://ci.ignite.apache.org/viewLog.html?buildId=2039356&amp;buildTypeId=IgniteTests24Java8_BuildApacheIgnite"/>
+        <build id="2153181" buildTypeId="IgniteTests24Java8_BuildApacheIgnite" number="7495" status="SUCCESS" state="finished" branchName="refs/heads/master" defaultBranch="true" href="/app/rest/latest/builds/id:2153181" webUrl="http://ci.ignite.apache.org/viewLog.html?buildId=2153181&amp;buildTypeId=IgniteTests24Java8_BuildApacheIgnite"/>
     </snapshot-dependencies>
     <artifact-dependencies count="1">
-        <build id="2039356" buildTypeId="IgniteTests24Java8_BuildApacheIgnite" number="6721" status="SUCCESS" state="finished" branchName="refs/heads/master" defaultBranch="true" href="/app/rest/latest/builds/id:2039356" webUrl="http://ci.ignite.apache.org/viewLog.html?buildId=2039356&amp;buildTypeId=IgniteTests24Java8_BuildApacheIgnite"/>
+        <build id="2153181" buildTypeId="IgniteTests24Java8_BuildApacheIgnite" number="7495" status="SUCCESS" state="finished" branchName="refs/heads/master" defaultBranch="true" href="/app/rest/latest/builds/id:2153181" webUrl="http://ci.ignite.apache.org/viewLog.html?buildId=2153181&amp;buildTypeId=IgniteTests24Java8_BuildApacheIgnite"/>
     </artifact-dependencies>
 </build>

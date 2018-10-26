@@ -15,22 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity.ignited;
+package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
+import com.google.common.base.Preconditions;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Provider;
+import javax.validation.constraints.NotNull;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.jetbrains.annotations.Nullable;
 
 /**
  *
@@ -57,41 +60,39 @@ public class FatBuildDao {
 
     /**
      * @param srvIdMaskHigh Server id mask high.
-     * @param ghData Gh data.
+     * @param buildId
+     * @param build Build data.
+     * @param tests TestOccurrences one or several pages.
+     * @param existingBuild existing version of build in the DB.
+     * @return Fat Build saved (if modifications detected), otherwise null.
      */
-    public int saveChunk(long srvIdMaskHigh, List<Build> ghData) {
-        Set<Long> ids = ghData.stream().map(BuildRef::getId)
-            .filter(Objects::nonNull)
-            .map(buildId -> buildIdToCacheKey(srvIdMaskHigh, buildId))
-            .collect(Collectors.toSet());
+    public FatBuildCompacted saveBuild(long srvIdMaskHigh,
+        int buildId,
+        @NotNull Build build,
+        List<TestOccurrencesFull> tests,
+        @Nullable FatBuildCompacted existingBuild) {
+        Preconditions.checkNotNull(buildsCache, "init() was not called");
+        Preconditions.checkNotNull(build, "build can't be null");
 
-        Map<Long, FatBuildCompacted> existingEntries = buildsCache.getAll(ids);
-        Map<Long, FatBuildCompacted> entriesToPut = new TreeMap<>();
+        FatBuildCompacted newBuild = new FatBuildCompacted(compactor, build);
 
-        List<FatBuildCompacted> collect = ghData.stream()
-            .map(ref -> new FatBuildCompacted(compactor, ref))
-            .collect(Collectors.toList());
+        for (TestOccurrencesFull next : tests)
+            newBuild.addTests(compactor, next.getTests());
 
-        for (FatBuildCompacted next : collect) {
-            long cacheKey = buildIdToCacheKey(srvIdMaskHigh, next.id());
-            FatBuildCompacted buildPersisted = existingEntries.get(cacheKey);
+        if (existingBuild == null || !existingBuild.equals(newBuild)) {
+            buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
 
-            if (buildPersisted == null || !buildPersisted.equals(next))
-                entriesToPut.put(cacheKey, next);
+            return newBuild;
         }
 
-        int size = entriesToPut.size();
-        if (size != 0)
-            buildsCache.putAll(entriesToPut);
-
-        return size;
+        return null;
     }
 
     /**
      * @param srvIdMaskHigh Server id mask high.
      * @param buildId Build id.
      */
-    private long buildIdToCacheKey(long srvIdMaskHigh, int buildId) {
+    public static long buildIdToCacheKey(long srvIdMaskHigh, int buildId) {
         return (long)buildId | srvIdMaskHigh << 32;
     }
 
@@ -100,6 +101,23 @@ public class FatBuildDao {
      * @param buildId Build id.
      */
     public FatBuildCompacted getFatBuild(int srvIdMaskHigh, int buildId) {
+        Preconditions.checkNotNull(buildsCache, "init() was not called");
+
         return buildsCache.get(buildIdToCacheKey(srvIdMaskHigh, buildId));
+    }
+
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param buildsIds Builds ids.
+     */
+    public Map<Long, FatBuildCompacted> getAllFatBuilds(int srvIdMaskHigh, Collection<Integer> buildsIds) {
+        Preconditions.checkNotNull(buildsCache, "init() was not called");
+
+        Set<Long> ids = buildsIds.stream()
+            .filter(Objects::nonNull)
+            .map(buildId -> buildIdToCacheKey(srvIdMaskHigh, buildId))
+            .collect(Collectors.toSet());
+
+        return buildsCache.getAll(ids);
     }
 }

@@ -19,6 +19,8 @@ package org.apache.ignite.ci.tcmodel.result.tests;
 
 import java.util.Collections;
 import java.util.List;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -28,6 +30,7 @@ import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
  * Full tests occurrences, may have reference to next occurrences
  */
 @XmlRootElement(name = "testOccurrences")
+@XmlAccessorType(XmlAccessType.FIELD)
 public class TestOccurrences extends TestOccurrencesRef {
     @XmlElement(name = "testOccurrence")
     private List<TestOccurrence> testOccurrences;
@@ -36,5 +39,9 @@ public class TestOccurrences extends TestOccurrencesRef {
 
     public List<TestOccurrence> getTests() {
         return testOccurrences == null ? Collections.emptyList() : testOccurrences;
+    }
+
+    public void setTests(List<TestOccurrence> res) {
+        testOccurrences = res;
     }
 }

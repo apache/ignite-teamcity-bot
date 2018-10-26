@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
@@ -41,6 +43,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 public class TrackedBranchChainsProcessor {
     @Inject private ITcServerProvider srvProv;
+    @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
 
     /** Chains processor. */
     @Inject private BuildChainProcessor chainProc;
@@ -75,6 +78,8 @@ public class TrackedBranchChainsProcessor {
 
                 IAnalyticsEnabledTeamcity teamcity = srvProv.server(srvId, creds);
 
+                ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, creds);
+
                 final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
                     chainTracked.getSuiteIdMandatory(),
                     branchForTc);
@@ -96,7 +101,7 @@ public class TrackedBranchChainsProcessor {
                 boolean includeScheduled = buildResMergeCnt == 1;
 
                 final FullChainRunCtx ctx = chainProc.loadFullChainContext(teamcity,
-                    chains,
+                    tcIgnited, chains,
                     rebuild,
                     logs,
                     includeScheduled,

@@ -29,6 +29,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
 import com.google.inject.Injector;
+import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
@@ -36,6 +37,10 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
@@ -72,9 +77,12 @@ public class GetChainResultsAsHtml {
         build.href = hrefById;
         String failRateBranch = ITeamcity.DEFAULT;
 
-        IAnalyticsEnabledTeamcity teamcity = CtxListener.server(srvId, ctx, req);
+        ITcServerProvider tcHelper = injector.getInstance(ITcServerProvider.class);
+        final ICredentialsProv creds = ICredentialsProv.get(req);
+        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds);
+        ITeamcityIgnited teamcityIgnited = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvId, creds);
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, Collections.singletonList(build),
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, teamcityIgnited, Collections.singletonList(build),
             LatestRebuildMode.NONE,
             ProcessLogsMode.SUITE_NOT_COMPLETE, false,
             failRateBranch);

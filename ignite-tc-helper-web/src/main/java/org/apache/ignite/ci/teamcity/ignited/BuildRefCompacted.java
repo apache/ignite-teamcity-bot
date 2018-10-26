@@ -17,8 +17,10 @@
 package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.common.base.Objects;
+import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.jetbrains.annotations.NotNull;
 
 @Persisted
 public class BuildRefCompacted {
@@ -29,6 +31,7 @@ public class BuildRefCompacted {
     private int buildTypeId = -1;
 
     /** Compacter identifier for string 'Branch name'. */
+    @QuerySqlField(index = true)
     private int branchName = -1;
 
     /** Compacter identifier for string 'Status'. */
@@ -56,6 +59,18 @@ public class BuildRefCompacted {
     }
 
     /**
+     * @param refCompacted Reference compacted.
+     */
+    public BuildRefCompacted(BuildRefCompacted refCompacted) {
+        id = refCompacted.id();
+        buildTypeId = refCompacted.buildTypeId();
+        branchName = refCompacted.branchName();
+        status = refCompacted.status();
+        state = refCompacted.state();
+    }
+
+
+    /**
      * @param compactor Compacter.
      */
     public BuildRef toBuildRef(IStringCompactor compactor) {
@@ -72,6 +87,11 @@ public class BuildRefCompacted {
         res.branchName = compactor.getStringFromId(branchName);
         res.status = compactor.getStringFromId(status);
         res.state = compactor.getStringFromId(state);
+        res.href = getHrefForId(id());
+    }
+
+    @NotNull protected static String getHrefForId(int id) {
+        return "/app/rest/latest/builds/id:" + id;
     }
 
     /** {@inheritDoc} */
@@ -106,6 +126,11 @@ public class BuildRefCompacted {
     /** */
     public int branchName() {
         return branchName;
+    }
+
+    /** */
+    private int status() {
+        return status;
     }
 
     /** */

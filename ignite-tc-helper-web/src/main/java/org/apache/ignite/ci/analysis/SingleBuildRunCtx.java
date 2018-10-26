@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.analysis;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +31,8 @@ import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,28 +40,38 @@ import org.jetbrains.annotations.Nullable;
  * Single build ocurrence,
  */
 public class SingleBuildRunCtx implements ISuiteResults {
-    private Build build;
+    /** Build compacted. */
+    private FatBuildCompacted buildCompacted;
+    /** Compactor. */
+    private IStringCompactor compactor;
 
     /** Logger check result future. */
-    private CompletableFuture<LogCheckResult> logCheckResultFut;
+    private CompletableFuture<LogCheckResult> logCheckResFut;
 
     /** Build problems occurred during single build run. */
     @Nullable private List<ProblemOccurrence> problems;
 
+    /** Changes. */
     private List<Change> changes = new ArrayList<>();
 
-    private List<TestOccurrence> tests = new ArrayList<>();
-
-    public SingleBuildRunCtx(Build build) {
-        this.build = build;
+    /**
+     * @param build Build.
+     * @param buildCompacted Build compacted.
+     * @param compactor Compactor.
+     */
+    public SingleBuildRunCtx(Build build,
+        FatBuildCompacted buildCompacted,
+        IStringCompactor compactor) {
+        this.buildCompacted = buildCompacted;
+        this.compactor = compactor;
     }
 
-    public Build getBuild() {
-        return build;
-    }
-
+    /**
+     *
+     */
     public Integer buildId() {
-        return build.getId();
+        Preconditions.checkNotNull(buildCompacted);
+        return buildCompacted.id() < 0 ? null : buildCompacted.id();
     }
 
     public boolean hasTimeoutProblem() {
@@ -89,19 +102,19 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     @Override public String suiteId() {
-        return build.suiteId();
+        return compactor.getStringFromId(buildCompacted.buildTypeId());
     }
 
-    public void setLogCheckResultFut(CompletableFuture<LogCheckResult> logCheckResultFut) {
-        this.logCheckResultFut = logCheckResultFut;
+    public void setLogCheckResFut(CompletableFuture<LogCheckResult> logCheckResFut) {
+        this.logCheckResFut = logCheckResFut;
     }
 
     @Nullable public String getCriticalFailLastStartedTest() {
-        LogCheckResult logCheckResult = getLogCheckIfFinished();
-        if (logCheckResult == null)
+        LogCheckResult logCheckRes = getLogCheckIfFinished();
+        if (logCheckRes == null)
             return null;
 
-        return logCheckResult.getLastStartedTest();
+        return logCheckRes.getLastStartedTest();
     }
 
     @Nullable public Map<String, TestLogCheckResult> getTestLogCheckResult() {
@@ -123,13 +136,13 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     @Nullable public LogCheckResult getLogCheckIfFinished() {
-        if (logCheckResultFut == null)
+        if (logCheckResFut == null)
             return null;
 
-        if (!logCheckResultFut.isDone() || logCheckResultFut.isCancelled())
+        if (!logCheckResFut.isDone() || logCheckResFut.isCancelled())
             return null;
 
-        LogCheckResult logCheckRes = FutureUtil.getResultSilent(logCheckResultFut);
+        LogCheckResult logCheckRes = FutureUtil.getResultSilent(logCheckResFut);
 
         if (logCheckRes == null)
             return null;
@@ -152,19 +165,37 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return changes;
     }
 
-    public void setTests(List<TestOccurrence> tests) {
-        this.tests = tests;
+    public List<? extends TestOccurrence> getTests() {
+        return buildCompacted.getTestOcurrences(compactor).getTests();
     }
 
-    public List<TestOccurrence> getTests() {
-        return tests;
-    }
 
     @Nonnull Stream<? extends Future<?>> getFutures() {
-        return logCheckResultFut == null ? Stream.empty() : Stream.of((Future<?>)logCheckResultFut);
+        return logCheckResFut == null ? Stream.empty() : Stream.of((Future<?>)logCheckResFut);
     }
 
     public boolean isComposite() {
-        return build.isComposite();
+        return buildCompacted.isComposite();
+    }
+
+    public String getBranch() {
+        return compactor.getStringFromId(buildCompacted.branchName());
+    }
+
+
+    public Stream<String> getFailedNotMutedTestNames() {
+        return buildCompacted.getFailedNotMutedTestNames(compactor);
+    }
+
+    public Stream<String> getAllTestNames() {
+        return buildCompacted.getAllTestNames(compactor);
+    }
+
+    public String suiteName() {
+        return buildCompacted.buildTypeName(compactor);
+    }
+
+    public String projectId() {
+        return buildCompacted.projectId(compactor);
     }
 }

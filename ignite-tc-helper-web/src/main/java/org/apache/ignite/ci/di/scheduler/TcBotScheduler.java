@@ -17,29 +17,23 @@
 package org.apache.ignite.ci.di.scheduler;
 
 import com.google.common.base.Preconditions;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 class TcBotScheduler implements IScheduler {
-    public static final int POOL_SIZE = 3;
+    public static final int POOL_SIZE = 8;
     /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(TcHelper.class);
+    private static final Logger logger = LoggerFactory.getLogger(TcBotScheduler.class);
 
     /** Executor service. */
-    private volatile ScheduledExecutorService executorSvc = Executors.newScheduledThreadPool(3);
+    private volatile ScheduledExecutorService executorSvc = Executors.newScheduledThreadPool(POOL_SIZE);
 
     /** Submit named task checker guard. */
     private AtomicBoolean tickGuard = new AtomicBoolean();
@@ -55,16 +49,23 @@ class TcBotScheduler implements IScheduler {
 
         task.sheduleWithQuitePeriod(cmd, queitPeriod, unit);
 
-        if (tickGuard.compareAndSet(false, true))
-            service().scheduleAtFixedRate(this::checkNamedTasks, 0, 1, TimeUnit.SECONDS);
+        if (tickGuard.compareAndSet(false, true)) {
+            for (int i = 0; i < POOL_SIZE; i++) {
+                int threadNo = i;
+
+                int period = 15000 + ThreadLocalRandom.current().nextInt(10000);
+                service().scheduleAtFixedRate(() -> checkNamedTasks(threadNo), 0, period, TimeUnit.MILLISECONDS);
+            }
+        }
     }
 
     /**
      *
+     * @param threadNo
      */
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
-    @MonitoredTask(name = "Run Named Scheduled Tasks")
-    protected String checkNamedTasks() {
+    @MonitoredTask(name = "Scheduled, runner", nameExtArgIndex = 0)
+    protected String checkNamedTasks(int threadNo) {
         AtomicInteger run = new AtomicInteger();
         List<Throwable> problems = new ArrayList<>();
         namedTasks.forEach((s, task) -> {
@@ -77,7 +78,8 @@ class TcBotScheduler implements IScheduler {
                 problems.add(e);
             }
         });
-        return "Finished " + run.get() + (problems.isEmpty() ? ", exceptions: " : problems.toString());
+
+        return "Finished " + run.get() + " task(s) " + (problems.isEmpty() ? "" : (", exceptions: " + problems.toString()));
     }
 
     /** {@inheritDoc} */

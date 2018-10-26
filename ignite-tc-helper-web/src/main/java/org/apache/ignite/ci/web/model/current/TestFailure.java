@@ -24,17 +24,15 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
+import org.apache.ignite.ci.analysis.ITestFailures;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
 import org.apache.ignite.ci.logs.LogMsgToWarn;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.model.hist.TestHistory;
 import org.jetbrains.annotations.NotNull;
@@ -94,14 +92,12 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 
     /**
      * @param failure
-     * @param testFullOpt all related full test ocurrences
      * @param teamcity
      * @param projectId
      * @param branchName
      * @param baseBranchName base branch name (e.g. master).
      */
-    public void initFromOccurrence(@Nonnull final ITestFailureOccurrences failure,
-        @Nonnull final Stream<TestOccurrenceFull> testFullOpt,
+    public void initFromOccurrence(@Nonnull final ITestFailures failure,
         @Nonnull final ITeamcity teamcity,
         @Nullable final String projectId,
         @Nullable final String branchName,
@@ -124,7 +120,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
                 testName = testComps[testComps.length - 2] + "." + testComps[testComps.length - 1];
         }
 
-        testFullOpt.forEach(full -> {
+        failure.getOccurrences().forEach(full -> {
             String details = full.details;
 
             if (details != null) {
