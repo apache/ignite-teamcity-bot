@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -46,6 +47,7 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.util.ExceptionUtil;
@@ -97,11 +99,17 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     public void scheduleBuildsLoad(List<Integer> buildsToAskFromTc) {
+        if (buildsToAskFromTc.isEmpty())
+            return;
+
         synchronized (this) {
             buildToLoad.addAll(buildsToAskFromTc);
         }
 
-        scheduler.sheduleNamed(taskName("loadFatBuilds"), this::loadFatBuilds, 2, TimeUnit.MINUTES);
+        int ldrToActivate = ThreadLocalRandom.current().nextInt(5);
+
+        scheduler.sheduleNamed(taskName("loadFatBuilds" + ldrToActivate), () -> loadFatBuilds(ldrToActivate), 2, TimeUnit.MINUTES);
+
     }
 
     @NotNull public String taskName(String taskName) {
@@ -235,7 +243,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         runActualizeBuilds(srvId, false, collect);
 
         // schedule full resync later
-        scheduler.invokeLater(this::sheduleResync, 20, TimeUnit.MINUTES);
+        scheduler.invokeLater(this::sheduleResync, 15, TimeUnit.MINUTES);
     }
 
     /**
@@ -302,18 +310,24 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return cacheKeysUpdated.stream().map(BuildRefDao::cacheKeyToBuildId).collect(Collectors.toList());
     }
 
-    private void loadFatBuilds() {
+    /** */
+    private void loadFatBuilds(int ldrNo) {
         Set<Integer> load;
+
         synchronized (this) {
             load = buildToLoad;
             buildToLoad = new HashSet<>();
         }
-        doLoadBuilds(srvId, load);
+
+        doLoadBuilds(ldrNo, srvId, load);
     }
 
-    @MonitoredTask(name = "Proactive Builds Loading", nameExtArgIndex = 0)
+    @MonitoredTask(name = "Proactive Builds Loading (agent,server)", nameExtArgsIndexes = {0, 1})
     @AutoProfiling
-    protected String doLoadBuilds(String srvId, Set<Integer> load) {
+    protected String doLoadBuilds(int ldrNo, String srvId, Set<Integer> load) {
+        if(load.isEmpty())
+            return "Nothing to load";
+
         AtomicInteger err = new AtomicInteger();
         AtomicInteger ld = new AtomicInteger();
 
@@ -335,6 +349,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
                 }
             }
         );
-        return "Builds Loaded " + ld.get() + " from " + load.size() + " requested, errors: " + err;
+
+        return "Builds updated " + ld.get() + " from " + load.size() + " requested, errors: " + err;
     }
 }

@@ -17,23 +17,22 @@
 package org.apache.ignite.ci.di;
 
 import com.google.common.base.Strings;
+import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.ignite.ci.util.TimeUtil;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
 public class MonitoredTaskInterceptor implements MethodInterceptor {
-    private final ConcurrentMap<String, Invocation> totalTime = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Invocation> totalTime = new ConcurrentSkipListMap<>();
 
     public static class Invocation {
         private final AtomicLong lastStartTs = new AtomicLong();

@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class TcBotScheduler implements IScheduler {
-    public static final int POOL_SIZE = 3;
+    public static final int POOL_SIZE = 8;
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TcBotScheduler.class);
 
@@ -50,17 +50,21 @@ class TcBotScheduler implements IScheduler {
         task.sheduleWithQuitePeriod(cmd, queitPeriod, unit);
 
         if (tickGuard.compareAndSet(false, true)) {
-            for (int i = 0; i < POOL_SIZE; i++)
-                service().scheduleAtFixedRate(this::checkNamedTasks, 0, 5, TimeUnit.SECONDS);
+            for (int i = 0; i < POOL_SIZE; i++) {
+                int threadNo = i;
+
+                service().scheduleAtFixedRate(() -> checkNamedTasks(threadNo), 0, 20, TimeUnit.SECONDS);
+            }
         }
     }
 
     /**
      *
+     * @param threadNo
      */
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
-    @MonitoredTask(name = "Run Named Scheduled Tasks")
-    protected String checkNamedTasks() {
+    @MonitoredTask(name = "Scheduled, runner", nameExtArgIndex = 0)
+    protected String checkNamedTasks(int threadNo) {
         AtomicInteger run = new AtomicInteger();
         List<Throwable> problems = new ArrayList<>();
         namedTasks.forEach((s, task) -> {
@@ -73,7 +77,8 @@ class TcBotScheduler implements IScheduler {
                 problems.add(e);
             }
         });
-        return "Finished " + run.get() + (problems.isEmpty() ? ", exceptions: " : problems.toString());
+
+        return "Finished " + run.get() + " task(s) " + (problems.isEmpty() ? "" : (", exceptions: " + problems.toString()));
     }
 
     /** {@inheritDoc} */

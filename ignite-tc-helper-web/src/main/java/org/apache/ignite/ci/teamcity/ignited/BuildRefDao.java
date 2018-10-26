@@ -72,12 +72,14 @@ public class BuildRefDao {
      */
     @NotNull protected Stream<BuildRefCompacted> compactedBuildsForServer(int srvId) {
         return StreamSupport.stream(buildRefsCache.spliterator(), false)
-            .filter(entry -> {
-                return isKeyForServer(entry.getKey(), srvId);
-            })
+            .filter(entry -> isKeyForServer(entry.getKey(), srvId))
             .map(javax.cache.Cache.Entry::getValue);
     }
 
+    /**
+     * @param key Key.
+     * @param srvId Server id.
+     */
     private boolean isKeyForServer(Long key, int srvId) {
         return key!=null && key >> 32 == srvId;
     }
@@ -86,6 +88,7 @@ public class BuildRefDao {
      * @param srvId Server id mask high.
      * @param ghData Gh data.
      */
+    @AutoProfiling
     public Set<Long> saveChunk(long srvId, List<BuildRef> ghData) {
         Set<Long> ids = ghData.stream().map(BuildRef::getId)
             .filter(Objects::nonNull)
@@ -132,6 +135,7 @@ public class BuildRefDao {
      * @param buildTypeId Build type id.
      * @param bracnhNameQry Bracnh name query.
      */
+    @AutoProfiling
     @NotNull public List<BuildRef> findBuildsInHistory(int srvId,
         @Nullable String buildTypeId,
         String bracnhNameQry) {
@@ -206,6 +210,7 @@ public class BuildRefDao {
      * @param srvId Server id.
      * @param refCompacted Reference compacted.
      */
+    @AutoProfiling
     public boolean save(int srvId, BuildRefCompacted refCompacted) {
         long cacheKey = buildIdToCacheKey(srvId, refCompacted.id());
         BuildRefCompacted buildPersisted = buildRefsCache.get(cacheKey);
