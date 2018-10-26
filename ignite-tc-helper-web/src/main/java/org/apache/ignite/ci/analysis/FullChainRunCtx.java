@@ -72,18 +72,6 @@ public class FullChainRunCtx {
         return chainResults.branchName;
     }
 
-    public int failedTests() {
-        return buildCfgsResults.stream().mapToInt(MultBuildRunCtx::failedTests).sum();
-    }
-
-    public int mutedTests() {
-        return buildCfgsResults.stream().mapToInt(MultBuildRunCtx::mutedTests).sum();
-    }
-
-    public int totalTests() {
-        return buildCfgsResults.stream().mapToInt(MultBuildRunCtx::totalTests).sum();
-    }
-
     public Stream<MultBuildRunCtx> failedChildSuites() {
         return suites().stream().filter(MultBuildRunCtx::isFailed);
     }

@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
@@ -51,7 +52,8 @@ import static java.util.stream.Stream.concat;
  * Includes tests and problem occurrences; if logs processing is done also contains last started test
  */
 public class MultBuildRunCtx implements ISuiteResults {
-    @Nonnull private final Build firstBuildInfo;
+    /** First build info. */
+    @Nonnull private final BuildRef firstBuildInfo;
 
     /** Builds: Single execution. */
     private List<SingleBuildRunCtx> builds = new CopyOnWriteArrayList<>();
@@ -75,7 +77,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     /** Currently scheduled builds */
     @Nullable private CompletableFuture<Long> queuedBuildCount;
 
-    public MultBuildRunCtx(@Nonnull final Build buildInfo) {
+    public MultBuildRunCtx(@Nonnull final BuildRef buildInfo) {
         this.firstBuildInfo = buildInfo;
     }
 
@@ -98,10 +100,6 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     public String suiteId() {
         return firstBuildInfo.suiteId();
-    }
-
-    public String suiteName() {
-        return firstBuildInfo.suiteName();
     }
 
     public String buildTypeId() {
@@ -170,26 +168,6 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     @NotNull public Stream<String> getFailedTestsNames() {
         return buildsStream().flatMap(SingleBuildRunCtx::getFailedNotMutedTestNames).distinct();
-    }
-
-    public int mutedTests() {
-        TestOccurrencesRef testOccurrences = firstBuildInfo.testOccurrences;
-        if (testOccurrences == null)
-            return 0;
-        final Integer muted = testOccurrences.muted;
-
-        return muted == null ? 0 : muted;
-    }
-
-    public int totalTests() {
-        final TestOccurrencesRef testOccurrences = firstBuildInfo.testOccurrences;
-
-        if (testOccurrences == null)
-            return 0;
-
-        final Integer cnt = testOccurrences.count;
-
-        return cnt == null ? 0 : cnt;
     }
 
     public String getPrintableStatusString() {
@@ -343,16 +321,17 @@ public class MultBuildRunCtx implements ISuiteResults {
         return stat == null ? null : stat.getSourceUpdateDuration();
     }
 
+
+
+    @Nullable public String suiteName() {
+        return buildsStream().findFirst().map(SingleBuildRunCtx::suiteName).orElse(null);
+    }
+
     /**
      * @return aggregation project ID, such as "Ignite_Tests_20"
      */
     @Nullable public String projectId() {
-        final BuildType type = firstBuildInfo.getBuildType();
-
-        if (type == null)
-            return null;
-
-        return type.getProjectId();
+        return buildsStream().findFirst().map(SingleBuildRunCtx::projectId).orElse(null);
     }
 
 

@@ -60,6 +60,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     private long queuedDate;
 
     private int projectId = -1;
+    /** Suite Name for this builds. */
     private int name = -1;
 
     @Nullable private List<TestCompacted> tests;
@@ -140,8 +141,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         BuildType type = new BuildType();
         type.id(res.buildTypeId());
-        type.name(compactor.getStringFromId(name));
-        type.projectId(compactor.getStringFromId(projectId));
+        type.name(buildTypeName(compactor));
+        type.projectId(projectId(compactor));
         res.setBuildType(type);
 
         if (tests != null) {
@@ -279,5 +280,13 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             return Stream.of();
 
         return tests.stream().map(t -> t.getTestName(compactor));
+    }
+
+    public String buildTypeName(IStringCompactor compactor) {
+        return compactor.getStringFromId(name);
+    }
+
+    public String projectId(IStringCompactor compactor) {
+        return compactor.getStringFromId(projectId);
     }
 }

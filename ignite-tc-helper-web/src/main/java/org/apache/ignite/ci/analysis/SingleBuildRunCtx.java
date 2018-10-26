@@ -190,4 +190,12 @@ public class SingleBuildRunCtx implements ISuiteResults {
     public Stream<String> getAllTestNames() {
         return buildCompacted.getAllTestNames(compactor);
     }
+
+    public String suiteName() {
+        return buildCompacted.buildTypeName(compactor);
+    }
+
+    public String projectId() {
+        return buildCompacted.projectId(compactor);
+    }
 }

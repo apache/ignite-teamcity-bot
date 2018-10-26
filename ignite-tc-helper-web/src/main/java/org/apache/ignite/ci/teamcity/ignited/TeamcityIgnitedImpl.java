@@ -197,7 +197,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         runActualizeBuilds(srvId, false, collect);
 
         // schedule full resync later
-        scheduler.invokeLater(this::sheduleResync, 60, TimeUnit.SECONDS);
+        scheduler.invokeLater(this::sheduleResync, 20, TimeUnit.MINUTES);
     }
 
     /**

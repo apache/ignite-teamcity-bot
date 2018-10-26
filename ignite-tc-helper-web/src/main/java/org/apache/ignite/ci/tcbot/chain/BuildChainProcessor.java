@@ -113,8 +113,9 @@ public class BuildChainProcessor {
 
         final List<Future<Stream<BuildRef>>> phase1Submitted = uniqueBuldsInvolved
                 .map((buildRef) -> svc.submit(
-                        () -> replaceWithRecent(teamcity, includeLatestRebuild, unique, buildRef, entryPoints.size())))
+                        () -> replaceWithRecent(teamcity, teamcityIgnited, includeLatestRebuild, unique, buildRef, entryPoints.size())))
                 .collect(Collectors.toList());
+
 
         final List<Future<? extends Stream<? extends BuildRef>>> phase2Submitted = phase1Submitted.stream()
                 .map(FutureUtil::getResult)
@@ -160,14 +161,9 @@ public class BuildChainProcessor {
         ITeamcityIgnited teamcityIgnited, Map<String, MultBuildRunCtx> buildsCtxMap,
         Stream<? extends BuildRef> list) {
         list.forEach((BuildRef ref) -> {
-            Build build = teamcity.getBuild(ref.getId());
+            MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(ref.buildTypeId, k -> new MultBuildRunCtx(ref));
 
-            if (build == null || build.isFakeStub())
-                return;
-
-            MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(build.buildTypeId, k -> new MultBuildRunCtx(build));
-
-            ctx.addBuild(loadTestsAndProblems(teamcity, build, ctx, teamcityIgnited));
+            ctx.addBuild(loadTestsAndProblems(teamcity, ref, ctx, teamcityIgnited));
         });
 
         return list;
@@ -177,15 +173,26 @@ public class BuildChainProcessor {
      * Runs deep collection of all related statistics for particular build.
      *
      * @param tcIgnited
-     * @param build Build from history with references to tests.
+     * @param buildRef Build ref from history with references to tests.
      * @return Full context.
      */
-    public SingleBuildRunCtx loadTestsAndProblems(ITeamcity teamcity, @Nonnull Build build,
+    public SingleBuildRunCtx loadTestsAndProblems(ITeamcity teamcity, @Nonnull BuildRef buildRef,
         @Deprecated MultBuildRunCtx mCtx, ITeamcityIgnited tcIgnited) {
 
-        FatBuildCompacted buildCompacted = tcIgnited.getFatBuild(build.getId());
+        FatBuildCompacted buildCompacted = tcIgnited.getFatBuild(buildRef.getId());
+        Build buildFromFat = buildCompacted.toBuild(compactor);
 
-        SingleBuildRunCtx ctx = new SingleBuildRunCtx(build, buildCompacted, compactor);
+        SingleBuildRunCtx ctx = new SingleBuildRunCtx(buildFromFat, buildCompacted, compactor);
+
+        if (!buildFromFat.isComposite())
+            mCtx.addTests(buildCompacted.getTestOcurrences(compactor).getTests());
+
+
+        //todo migrate rest of the method to fat build from TC ignited
+        Build build = teamcity.getBuild(buildRef.getId());
+
+        if (build == null || build.isFakeStub())
+            return ctx;
         if (build.problemOccurrences != null)
             ctx.setProblems(teamcity.getProblems(build).getProblemsNonNull());
 
@@ -211,12 +218,6 @@ public class BuildChainProcessor {
             }
         }
 
-        if (build.testOccurrences != null && !build.isComposite()) {
-            TestOccurrencesFull tests = buildCompacted.getTestOcurrences(compactor);
-
-            mCtx.addTests(tests.getTests());
-        }
-
         if (build.statisticsRef != null)
             mCtx.setStat(teamcity.getBuildStatistics(build.statisticsRef.href));
 
@@ -225,23 +226,25 @@ public class BuildChainProcessor {
 
     @NotNull
     public static Stream< BuildRef> replaceWithRecent(ITeamcity teamcity,
-                                                      LatestRebuildMode includeLatestRebuild,
-                                                      Map<Integer, BuildRef> unique, BuildRef buildRef, int cntLimit) {
+        ITeamcityIgnited teamcityIgnited, LatestRebuildMode includeLatestRebuild,
+        Map<Integer, BuildRef> unique, BuildRef buildRef, int cntLimit) {
         if (includeLatestRebuild == LatestRebuildMode.NONE)
             return Stream.of(buildRef);
 
         final String branch = getBranchOrDefault(buildRef.branchName);
 
-        final List<BuildRef> builds = teamcity.getFinishedBuilds(buildRef.buildTypeId, branch);
+        //todo now it is a full scan without caching, probably it is better to make branch based index query & caching results
+        Stream<BuildRef> history = teamcityIgnited.getBuildHistory(buildRef.buildTypeId, branch)
+            .stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isFinished);
 
         if (includeLatestRebuild == LatestRebuildMode.LATEST) {
-            BuildRef recentRef = builds.stream().max(Comparator.comparing(BuildRef::getId)).orElse(buildRef);
+            BuildRef recentRef = history.max(Comparator.comparing(BuildRef::getId)).orElse(buildRef);
 
             return Stream.of(recentRef.isFakeStub() ? buildRef : recentRef);
         }
 
         if (includeLatestRebuild == LatestRebuildMode.ALL) {
-            return builds.stream()
+            return history
                 .filter(ref -> !ref.isFakeStub())
                 .filter(ref -> ensureUnique(unique, ref))
                 .sorted(Comparator.comparing(BuildRef::getId).reversed())
