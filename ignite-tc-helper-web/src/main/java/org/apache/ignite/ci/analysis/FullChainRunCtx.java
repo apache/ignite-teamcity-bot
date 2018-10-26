@@ -34,7 +34,7 @@ public class FullChainRunCtx {
     private Build chainResults;
     private List<MultBuildRunCtx> buildCfgsResults = new ArrayList<>();
 
-    public FullChainRunCtx(Build chainResults ) {
+    public FullChainRunCtx(Build chainResults) {
         this.chainResults = chainResults;
 
         fakeStub = chainResults.isFakeStub();

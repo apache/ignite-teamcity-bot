@@ -87,6 +87,7 @@ public interface ITeamcity extends ITeamcityConn {
      * @param branch branch in TC identification.
      * @return list of builds in historical order, recent builds coming last.
      */
+    @Deprecated
     default List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch){
         return getFinishedBuildsIncludeSnDepFailed(projectId, branch, null);
     };
@@ -100,6 +101,7 @@ public interface ITeamcity extends ITeamcityConn {
      * @param sinceBuildId limit builds export with some build number, not operational for Persistent connection.
      * @return list of builds in historical order, recent builds coming last.
      */
+    @Deprecated
     List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId);
 
     /**   */

@@ -314,6 +314,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
+    @Deprecated
     protected List<BuildRef> loadBuildHistory(IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> cache,
                                               int seconds,
                                               SuiteInBranch key,
