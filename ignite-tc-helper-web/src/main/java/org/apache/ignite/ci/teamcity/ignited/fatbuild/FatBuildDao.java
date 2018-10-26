@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
+import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -25,13 +26,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Provider;
+import javax.validation.constraints.NotNull;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -59,15 +60,19 @@ public class FatBuildDao {
 
     /**
      * @param srvIdMaskHigh Server id mask high.
+     * @param buildId
      * @param build Build data.
      * @param tests TestOccurrences one or several pages.
      * @param existingBuild existing version of build in the DB.
      * @return Fat Build saved (if modifications detected), otherwise null.
      */
     public FatBuildCompacted saveBuild(long srvIdMaskHigh,
-        Build build,
+        int buildId,
+        @NotNull Build build,
         List<TestOccurrencesFull> tests,
         @Nullable FatBuildCompacted existingBuild) {
+        Preconditions.checkNotNull(buildsCache, "init() was not called");
+        Preconditions.checkNotNull(build, "build can't be null");
 
         FatBuildCompacted newBuild = new FatBuildCompacted(compactor, build);
 
@@ -75,7 +80,7 @@ public class FatBuildDao {
             newBuild.addTests(compactor, next.getTests());
 
         if (existingBuild == null || !existingBuild.equals(newBuild)) {
-            buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, build.getId()), newBuild);
+            buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
 
             return newBuild;
         }
@@ -96,6 +101,8 @@ public class FatBuildDao {
      * @param buildId Build id.
      */
     public FatBuildCompacted getFatBuild(int srvIdMaskHigh, int buildId) {
+        Preconditions.checkNotNull(buildsCache, "init() was not called");
+
         return buildsCache.get(buildIdToCacheKey(srvIdMaskHigh, buildId));
     }
 
@@ -103,7 +110,9 @@ public class FatBuildDao {
      * @param srvIdMaskHigh Server id mask high.
      * @param buildsIds Builds ids.
      */
-    public Map<Long, FatBuildCompacted> getAllFatBuilds(int srvIdMaskHigh, Collection<Integer> buildsIds ) {
+    public Map<Long, FatBuildCompacted> getAllFatBuilds(int srvIdMaskHigh, Collection<Integer> buildsIds) {
+        Preconditions.checkNotNull(buildsCache, "init() was not called");
+
         Set<Long> ids = buildsIds.stream()
             .filter(Objects::nonNull)
             .map(buildId -> buildIdToCacheKey(srvIdMaskHigh, buildId))

@@ -60,7 +60,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     private static final Logger logger = LoggerFactory.getLogger(TestCompacted.class);
 
     /** Max build id diff to enforce reload during incremental refresh. */
-    public static final int MAX_ID_DIFF_TO_ENFORCE = 5000;
+    public static final int MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN = 3000;
+    public static final int FAT_BUILD_PROACTIVE_TASKS = 4;
 
     /** Server id. */
     private String srvId;
@@ -98,7 +99,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         fatBuildDao.init();
     }
 
-    public void scheduleBuildsLoad(List<Integer> buildsToAskFromTc) {
+    /**
+     * Invoke load fat builds later, re-load provided builds.
+     *
+     * @param buildsToAskFromTc Builds to ask from tc.
+     */
+    public void scheduleBuildsLoad(Collection<Integer> buildsToAskFromTc) {
         if (buildsToAskFromTc.isEmpty())
             return;
 
@@ -106,7 +112,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             buildToLoad.addAll(buildsToAskFromTc);
         }
 
-        int ldrToActivate = ThreadLocalRandom.current().nextInt(5);
+        int ldrToActivate = ThreadLocalRandom.current().nextInt(FAT_BUILD_PROACTIVE_TASKS);
 
         scheduler.sheduleNamed(taskName("loadFatBuilds" + ldrToActivate), () -> loadFatBuilds(ldrToActivate), 2, TimeUnit.MINUTES);
 
@@ -223,7 +229,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         //if we are here because of some sort of outdated version of build,
         // new save will be performed with new entity version for compacted build
-        return fatBuildDao.saveBuild(srvIdMaskHigh, build, tests, existingBuild);
+        return fatBuildDao.saveBuild(srvIdMaskHigh, buildId, build, tests, existingBuild);
     }
 
     /**
@@ -232,15 +238,29 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     void actualizeRecentBuilds() {
         List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdMaskHigh);
 
-        //todo intersect with ever found during current launch
-        Set<Integer> collect = running.stream().map(BuildRefCompacted::id).collect(Collectors.toSet());
+        List<Integer> runningIds = running.stream().map(BuildRefCompacted::id).collect(Collectors.toList());
 
-        OptionalInt max = collect.stream().mapToInt(i -> i).max();
-        if (max.isPresent())
-            collect = collect.stream().filter(id -> id > (max.getAsInt() - MAX_ID_DIFF_TO_ENFORCE)).collect(Collectors.toSet());
-        //drop stucked builds.
+        Set<Integer> paginateUntil = new HashSet<>();
+        Set<Integer> directUpload = new HashSet<>();
 
-        runActualizeBuilds(srvId, false, collect);
+        OptionalInt max = runningIds.stream().mapToInt(i -> i).max();
+        if (max.isPresent()) {
+            runningIds.forEach(id->{
+                if(id > (max.getAsInt() - MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN))
+                    paginateUntil.add(id);
+                else
+                    directUpload.add(id);
+            });
+        }
+        //schedule direct reload for Fat Builds for all queued too-old builds
+        scheduleBuildsLoad(directUpload);
+
+        runActualizeBuilds(srvId, false, paginateUntil);
+
+        if(!paginateUntil.isEmpty()) {
+            //some builds may stuck in the queued or running, enforce loading as well
+            directUpload.addAll(paginateUntil);
+        }
 
         // schedule full resync later
         scheduler.invokeLater(this::sheduleResync, 15, TimeUnit.MINUTES);
@@ -263,7 +283,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /**
      * @param srvId Server id. todo to be added as composite name extend
      * @param fullReindex Reindex all builds from TC history.
-     * @param mandatoryToReload Build ID can be used as end of syncing. Ignored if fullReindex mode.
+     * @param mandatoryToReload [in/out] Build ID should be found before end of sync. Ignored if fullReindex mode.
+     *
      */
     @MonitoredTask(name = "Actualize BuildRefs(srv, full resync)", nameExtArgsIndexes = {0, 1})
     @AutoProfiling
@@ -277,10 +298,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         scheduleBuildsLoad(cacheKeysToBuildIds(buildsUpdated));
 
         int totalChecked = tcDataFirstPage.size();
+        int neededToFind = 0;
+        if (mandatoryToReload != null) {
+            neededToFind = mandatoryToReload.size();
 
-        final Set<Integer> stillNeedToFind =
-            mandatoryToReload == null ? Collections.emptySet() : Sets.newHashSet(mandatoryToReload);
-        tcDataFirstPage.stream().map(BuildRef::getId).forEach(stillNeedToFind::remove);
+            tcDataFirstPage.stream().map(BuildRef::getId).forEach(mandatoryToReload::remove);
+        }
 
         while (outLinkNext.get() != null) {
             String nextPageUrl = outLinkNext.get();
@@ -295,15 +318,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             totalChecked += tcDataNextPage.size();
 
             if (!fullReindex) {
-                if (!stillNeedToFind.isEmpty())
-                    tcDataNextPage.stream().map(BuildRef::getId).forEach(stillNeedToFind::remove);
+                if (mandatoryToReload!=null && !mandatoryToReload.isEmpty())
+                    tcDataNextPage.stream().map(BuildRef::getId).forEach(mandatoryToReload::remove);
 
-                if (savedCurChunk == 0 && stillNeedToFind.isEmpty())
+                if (savedCurChunk == 0 && (mandatoryToReload==null || mandatoryToReload.isEmpty()))
                     break; // There are no modification at current page, hopefully no modifications at all
             }
         }
 
-        return "Entries saved " + totalUpdated + " Builds checked " + totalChecked;
+        int leftToFind = mandatoryToReload == null ? 0 : mandatoryToReload.size();
+        return "Entries saved " + totalUpdated + " Builds checked " + totalChecked + " Needed to find " + neededToFind   + " remained to find " + leftToFind;
     }
 
     @NotNull private List<Integer> cacheKeysToBuildIds(Collection<Long> cacheKeysUpdated) {

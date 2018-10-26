@@ -53,7 +53,8 @@ class TcBotScheduler implements IScheduler {
             for (int i = 0; i < POOL_SIZE; i++) {
                 int threadNo = i;
 
-                service().scheduleAtFixedRate(() -> checkNamedTasks(threadNo), 0, 20, TimeUnit.SECONDS);
+                int period = 15000 + ThreadLocalRandom.current().nextInt(10000);
+                service().scheduleAtFixedRate(() -> checkNamedTasks(threadNo), 0, period, TimeUnit.MILLISECONDS);
             }
         }
     }

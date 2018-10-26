@@ -265,7 +265,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(APACHE);
         List<TestOccurrencesFull> occurrences = Collections.singletonList(testsRef);
-        FatBuildCompacted buildCompacted = stor.saveBuild(srvIdMaskHigh, refBuild, occurrences, null);
+        FatBuildCompacted buildCompacted = stor.saveBuild(srvIdMaskHigh, refBuild.getId(), refBuild, occurrences, null);
         assertNotNull(buildCompacted);
 
         FatBuildCompacted fatBuild = stor.getFatBuild(srvIdMaskHigh, 2153237);
