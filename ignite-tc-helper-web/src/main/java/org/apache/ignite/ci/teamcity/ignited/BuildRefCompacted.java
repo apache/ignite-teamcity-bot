@@ -59,6 +59,18 @@ public class BuildRefCompacted {
     }
 
     /**
+     * @param refCompacted Reference compacted.
+     */
+    public BuildRefCompacted(BuildRefCompacted refCompacted) {
+        id = refCompacted.id();
+        buildTypeId = refCompacted.buildTypeId();
+        branchName = refCompacted.branchName();
+        status = refCompacted.status();
+        state = refCompacted.state();
+    }
+
+
+    /**
      * @param compactor Compacter.
      */
     public BuildRef toBuildRef(IStringCompactor compactor) {
@@ -114,6 +126,11 @@ public class BuildRefCompacted {
     /** */
     public int branchName() {
         return branchName;
+    }
+
+    /** */
+    private int status() {
+        return status;
     }
 
     /** */

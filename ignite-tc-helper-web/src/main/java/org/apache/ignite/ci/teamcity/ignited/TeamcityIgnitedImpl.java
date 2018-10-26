@@ -18,6 +18,9 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 
 import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
+import com.google.common.collect.Sets;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,7 +36,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import javax.inject.Inject;
-import com.google.common.collect.Sets;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
@@ -46,6 +48,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
+import org.apache.ignite.ci.util.ExceptionUtil;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +77,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** Build DAO. */
     @Inject private FatBuildDao fatBuildDao;
+
+    @Inject private IStringCompactor compactor;
 
     /** Server ID mask for cache Entries. */
     private int srvIdMaskHigh;
@@ -155,6 +160,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         FatBuildCompacted savedVer = reloadBuild(buildId, existingBuild);
 
+        //build was modified, probably we need also to update reference accordindly
+        if (savedVer != null)
+            buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(savedVer));
+
         return savedVer == null ? existingBuild : savedVer;
     }
 
@@ -163,22 +172,49 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      * @param existingBuild
      * @return new build if it was updated or null if no updates detected
      */
-    public FatBuildCompacted reloadBuild(int buildId, FatBuildCompacted existingBuild) {
+    public FatBuildCompacted reloadBuild(int buildId, @Nullable FatBuildCompacted existingBuild) {
         //  System.err.println(Thread.currentThread().getName()+ ": Build " + buildId);
         //todo some sort of locking to avoid double requests
-        Build build = conn.getBuild(buildId);
-
+        Build build;
         List<TestOccurrencesFull> tests = new ArrayList<>();
-        String nextHref = null;
-        do {
-            boolean testDtls = !build.isComposite(); // don't query test details for compoite
-            TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, testDtls);
-            nextHref = page.nextHref();
+        try {
+            build = conn.getBuild(buildId);
 
-            tests.add(page);
+            String nextHref = null;
+            do {
+                boolean testDtls = !build.isComposite(); // don't query test details for compoite
+                TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, testDtls);
+                nextHref = page.nextHref();
+
+                tests.add(page);
+            }
+            while (!Strings.isNullOrEmpty(nextHref));
         }
-        while (!Strings.isNullOrEmpty(nextHref));
+        catch (Exception e) {
+            if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+                logger.info("Loading build [" + buildId + "] for server [" + srvId + "] failed:" + e.getMessage(), e);
 
+                if (existingBuild != null) {
+                    build = existingBuild.toBuild(compactor);
+
+                    if(build.isRunning() || build.isQueued())
+                        build.setCancelled();
+
+                    tests = Collections.singletonList(existingBuild.getTestOcurrences(compactor));
+                }
+                else
+                    build = Build.createFakeStub();
+            } else {
+                logger.error("Loading build [" + buildId + "] for server [" + srvId + "] failed:" + e.getMessage(), e);
+
+                e.printStackTrace();
+
+                throw ExceptionUtil.propagateException(e);
+            }
+        }
+
+        //if we are here because of some sort of outdated version of build,
+        // new save will be performed with new entity version for compacted build
         return fatBuildDao.saveBuild(srvIdMaskHigh, build, tests, existingBuild);
     }
 

@@ -1222,7 +1222,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.sendJiraComment(ticket, comment);
     }
 
-
     /** {@inheritDoc} */
     @Override public void setJiraApiUrl(String url) {
         teamcity.setJiraApiUrl(url);

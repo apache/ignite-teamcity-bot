@@ -19,7 +19,6 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -201,5 +200,22 @@ public class BuildRefDao {
         }
 
         return list;
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param refCompacted Reference compacted.
+     */
+    public boolean save(int srvId, BuildRefCompacted refCompacted) {
+        long cacheKey = buildIdToCacheKey(srvId, refCompacted.id());
+        BuildRefCompacted buildPersisted = buildRefsCache.get(cacheKey);
+
+        if (buildPersisted == null || !buildPersisted.equals(refCompacted)) {
+            buildRefsCache.put(cacheKey, refCompacted);
+
+            return true;
+        }
+
+        return false;
     }
 }

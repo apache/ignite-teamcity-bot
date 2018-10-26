@@ -61,7 +61,7 @@ public class FatBuildDao {
      * @param build Build data.
      * @param tests TestOccurrences one or several pages.
      * @param existingBuild existing version of build in the DB.
-     * @return Fat Build saved (if modifications detected)
+     * @return Fat Build saved (if modifications detected), otherwise null.
      */
     public FatBuildCompacted saveBuild(long srvIdMaskHigh,
         Build build,
@@ -75,6 +75,7 @@ public class FatBuildDao {
 
         if (existingBuild == null || !existingBuild.equals(newBuild)) {
             buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, build.getId()), newBuild);
+
             return newBuild;
         }
 

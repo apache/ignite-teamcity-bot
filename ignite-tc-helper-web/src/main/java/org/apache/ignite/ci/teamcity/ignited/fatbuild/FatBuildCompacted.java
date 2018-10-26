@@ -47,6 +47,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     /** Composite flag offset. */
     public static final int COMPOSITE_F = 2;
 
+    /**   flag offset. */
+    public static final int FAKE_BUILD_F = 4;
+
     /** Entity fields version. */
     private short _ver = LATEST_VERSION;
 
@@ -59,7 +62,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     /** Finish date. The number of milliseconds since January 1, 1970, 00:00:00 GMT */
     private long queuedDate;
 
+    /** Project ID, where suite is located. */
     private int projectId = -1;
+
     /** Suite Name for this builds. */
     private int name = -1;
 
@@ -110,6 +115,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         setFlag(DEF_BR_F, build.defaultBranch);
         setFlag(COMPOSITE_F, build.composite);
+
+        if(build.isFakeStub())
+            setFlag(FAKE_BUILD_F, true);
     }
 
     /**

@@ -35,6 +35,7 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(ITeamcityIgnitedProvider.class).to(TcIgnitedCachingProvider.class).in(new SingletonScope());
         bind(BuildRefDao.class).in(new SingletonScope());
         bind(BuildConditionDao.class).in(new SingletonScope());
+        bind(FatBuildDao.class).in(new SingletonScope());
 
         bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
 
