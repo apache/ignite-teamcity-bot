@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.common.base.Objects;
+import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.jetbrains.annotations.NotNull;
@@ -30,6 +31,7 @@ public class BuildRefCompacted {
     private int buildTypeId = -1;
 
     /** Compacter identifier for string 'Branch name'. */
+    @QuerySqlField(index = true)
     private int branchName = -1;
 
     /** Compacter identifier for string 'Status'. */

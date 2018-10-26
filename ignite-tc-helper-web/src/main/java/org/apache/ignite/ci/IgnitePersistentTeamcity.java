@@ -997,7 +997,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @Override public Function<TestInBranch, RunStat> getTestRunStatProvider() {
-        return key -> key == null ? null : testRunStatCache().get(key);
+        return key -> key == null ? null : getRunStatForTest(key);
+    }
+
+    @AutoProfiling
+    protected RunStat getRunStatForTest(TestInBranch key) {
+        return testRunStatCache().get(key);
     }
 
     private Stream<RunStat> allTestAnalysis() {
@@ -1015,7 +1020,13 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @Override public Function<SuiteInBranch, RunStat> getBuildFailureRunStatProvider() {
-        return key -> key == null ? null : buildsFailureRunStatCache().get(key);
+        return key -> key == null ? null : getRunStatForTest(key);
+    }
+
+
+    @AutoProfiling
+    protected RunStat getRunStatForTest(SuiteInBranch key) {
+        return buildsFailureRunStatCache().get(key);
     }
 
     private Stream<RunStat> buildsFailureAnalysis() {

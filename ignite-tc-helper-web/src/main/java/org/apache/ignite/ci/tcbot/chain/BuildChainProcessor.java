@@ -235,7 +235,9 @@ public class BuildChainProcessor {
 
         //todo now it is a full scan without caching, probably it is better to make branch based index query & caching results
         Stream<BuildRef> history = teamcityIgnited.getBuildHistory(buildRef.buildTypeId, branch)
-            .stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isFinished);
+            .stream()
+            .filter(BuildRef::isNotCancelled)
+            .filter(BuildRef::isFinished);
 
         if (includeLatestRebuild == LatestRebuildMode.LATEST) {
             BuildRef recentRef = history.max(Comparator.comparing(BuildRef::getId)).orElse(buildRef);
