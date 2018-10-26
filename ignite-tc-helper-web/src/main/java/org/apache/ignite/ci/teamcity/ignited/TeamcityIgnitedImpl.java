@@ -238,11 +238,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     void actualizeRecentBuilds() {
         List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdMaskHigh);
 
-        List<Integer> runningIds = running.stream().map(BuildRefCompacted::id).collect(Collectors.toList());
-
         Set<Integer> paginateUntil = new HashSet<>();
         Set<Integer> directUpload = new HashSet<>();
 
+        List<Integer> runningIds = running.stream().map(BuildRefCompacted::id).collect(Collectors.toList());
         OptionalInt max = runningIds.stream().mapToInt(i -> i).max();
         if (max.isPresent()) {
             runningIds.forEach(id->{
@@ -259,7 +258,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         if(!paginateUntil.isEmpty()) {
             //some builds may stuck in the queued or running, enforce loading as well
-            directUpload.addAll(paginateUntil);
+            scheduleBuildsLoad(paginateUntil);
         }
 
         // schedule full resync later
