@@ -11,155 +11,154 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
     <link rel="stylesheet" href="css/style-1.5.css">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css"
+          integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
     <script src="js/common-1.6.js"></script>
     <script src="https://d3js.org/d3.v4.min.js"></script>
 </head>
 <body>
 <br>
 <br>
+
 <table style="table-layout: fixed" class="compare">
     <tr>
-        <th class="section"  width="15%">DATE INTERVAL</th>
-        <th width="5%"></th>
-        <th style="text-align: center;" width="40%"><input type='text' name='daterange1'/></th>
-        <th style="text-align: center;" width="40%"><input type='text' name='daterange2'/></th>
-    </tr><tr><td></td><td></td><td></td></tr>
-    <tr><td class="field">DURATION</td>
-        <td><img id="clickGraphDuration" src='/img/browser.png'></td>
-        <td class="mmm1 data1" id="Duration1" data-allow-highlight="true"></td>
-        <td class="mmm2 data2" id="Duration2" data-allow-highlight="true"></td>
+        <th class="section"  width="13%">DATE INTERVAL</th>
+        <th width="3%"></th>
+        <th style="text-align: center;" width="42%"><input type='text' name='daterange1'/></th>
+        <th style="text-align: center;" width="42%"><input type='text' name='daterange2'/></th>
     </tr>
-    <tr id="showGraphDuration" style="display: none;"><td></td>
-        <td></td>
-        <td style="text-align: center;"><svg id="graphDuration1" width="500" height="200"></svg></td>
-        <td style="text-align: center;"><svg id="graphDuration2" width="500" height="200"></svg></td>
-    </tr>
-    <tr id="showInfo" style="display: none;">
-        <td class="section">FEATURES</td><td></td>
+    <tr id="showInfo">
+        <td class="section">SHOW INVALID BUILD</td>
+        <td class="icon"><div class="switch-btn builds"></div></td>
         <td style="text-align: center;" id="info1"></td>
         <td style="text-align: center;" id="info2"></td>
     </tr>
-    <tr><td class="section">TESTS</td><td></td><td class="title mmm1"></td><td class="title mmm2"></td></tr>
+    <tr><td class="field">DURATION</td>
+        <td class="icon"><img id="clickGraphDuration" src='/img/browser.png'></td>
+        <td class="mmm data 1" id="Duration1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="Duration2" data-allow-highlight="true"></td>
+    </tr>
+    <tr id="showGraphDuration" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphDuration1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphDuration2" width="500" height="200"></svg></td>
+    </tr><tr></tr>
+    <tr><td class="section">TESTS</td><td></td><td class="mmm title 1"></td><td class="mmm title 2"></td></tr>
     <tr><td class="field">COUNT</td>
-        <td><img id="clickGraphCount" src='/img/browser.png'></td>
-        <td class="mmm1 data1" id="Count1" data-allow-highlight="false"></td>
-        <td class="mmm2 data2" id="Count2" data-allow-highlight="false"></td>
+        <td class="icon"><img id="clickGraphCount" src='/img/browser.png'></td>
+        <td class="mmm data 1" id="Count1" data-allow-highlight="false"></td>
+        <td class="mmm data 2" id="Count2" data-allow-highlight="false"></td>
     </tr>
     <tr id="showGraphCount" style="display: none;"><td></td>
         <td></td>
-        <td style="text-align: center;"><svg id="graphCount1" width="500" height="200"></svg></td>
-        <td style="text-align: center;"><svg id="graphCount2" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphCount1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphCount2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">PASSED</td>
-        <td><img id="clickGraphPassed" src='/img/browser.png'></td>
-        <td class="mmm1 data1" id="Passed1" data-allow-highlight="false"></td>
-        <td class="mmm2 data2" id="Passed2" data-allow-highlight="false"></td>
+        <td class="icon"><img id="clickGraphPassed" src='/img/browser.png'></td>
+        <td class="mmm data 1" id="Passed1" data-allow-highlight="false"></td>
+        <td class="mmm data 2" id="Passed2" data-allow-highlight="false"></td>
     </tr>
     <tr id="showGraphPassed" style="display: none;"><td></td>
         <td></td>
-        <td style="text-align: center;"><svg id="graphPassed1" width="500" height="200"></svg></td>
-        <td style="text-align: center;"><svg id="graphPassed2" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphPassed1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphPassed2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">FAILED</td>
-        <td><img id="clickGraphFailed" src='/img/browser.png'></td>
-        <td class="mmm1 data1" id="Failed1" data-allow-highlight="true"></td>
-        <td class="mmm2 data2" id="Failed2" data-allow-highlight="true"></td>
+        <td class="icon"><img id="clickGraphFailed" src='/img/browser.png'></td>
+        <td class="mmm data 1" id="Failed1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="Failed2" data-allow-highlight="true"></td>
     </tr>
     <tr id="showGraphFailed" style="display: none;"><td></td>
         <td></td>
-        <td style="text-align: center;"><svg id="graphFailed1" width="500" height="200"></svg></td>
-        <td style="text-align: center;"><svg id="graphFailed2" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphFailed1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphFailed2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">IGNORED</td>
-        <td><img id="clickGraphIgnored" src='/img/browser.png'></td>
-        <td class="mmm1 data1" id="Ignored1" data-allow-highlight="false"></td>
-        <td class="mmm2 data2" id="Ignored2" data-allow-highlight="false"></td>
+        <td class="icon"><img id="clickGraphIgnored" src='/img/browser.png'></td>
+        <td class="mmm data 1" id="Ignored1" data-allow-highlight="false"></td>
+        <td class="mmm data 2" id="Ignored2" data-allow-highlight="false"></td>
     </tr>
     <tr id="showGraphIgnored" style="display: none;"><td></td>
         <td></td>
-        <td style="text-align: center;"><svg id="graphIgnored1" width="500" height="200"></svg></td>
-        <td style="text-align: center;"><svg id="graphIgnored2" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphIgnored1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphIgnored2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">MUTED</td>
-        <td><img id="clickGraphMuted" src='/img/browser.png'></td>
-        <td class="mmm1 data1" id="Muted1" data-allow-highlight="false"></td>
-        <td class="mmm2 data2" id="Muted2" data-allow-highlight="false"></td></tr>
+        <td class="icon"><img id="clickGraphMuted" src='/img/browser.png'></td>
+        <td class="mmm data 1" id="Muted1" data-allow-highlight="false"></td>
+        <td class="mmm data 2" id="Muted2" data-allow-highlight="false"></td></tr>
     <tr id="showGraphMuted" style="display: none;"><td></td>
         <td></td>
-        <td style="text-align: center;"><svg id="graphMuted1" width="500" height="200"></svg></td>
-        <td style="text-align: center;"><svg id="graphMuted2" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphMuted1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphMuted2" width="500" height="200"></svg></td>
     </tr>
-    <tr><td class="section">PROBLEMS</td><td></td><td class="title mmm1"></td><td class="title mmm2"></td></tr>
+    <tr><td class="section">PROBLEMS</td><td></td><td class="mmm title 1"></td><td class="mmm title 2"></td></tr>
     <tr style="display: none;"><td></td><td></td><td></td></tr>
     <tr><td class="field">TOTAL</td>
-        <td><img id="clickGraphTT" src='/img/browser.png'></td>
-        <td class="mmm1 data1" id="TT1" data-allow-highlight="true"></td>
-        <td class="mmm2 data2" id="TT2" data-allow-highlight="true"></td></tr>
+        <td class="icon"><img id="clickGraphTT" src='/img/browser.png'></td>
+        <td class="mmm data 1" id="TT1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="TT2" data-allow-highlight="true"></td></tr>
     <tr id="showGraphTT" style="display: none;"><td></td>
         <td></td>
-        <td style="text-align: center;"><svg id="graphTT1" width="500" height="200"></svg></td>
-        <td style="text-align: center;"><svg id="graphTT2" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphTT1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphTT2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">EXECUTION TIMEOUT</td>
-        <td><img id="clickGraphET" src='/img/browser.png'></td>
-        <td class="mmm1 data1" id="ET1" data-allow-highlight="true"></td>
-        <td class="mmm2 data2" id="ET2" data-allow-highlight="true"></td>
+        <td class="icon"><img id="clickGraphET" src='/img/browser.png'></td>
+        <td class="mmm data 1" id="ET1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="ET2" data-allow-highlight="true"></td>
     </tr>
     <tr id="showGraphET" style="display: none;"><td></td>
         <td></td>
-        <td style="text-align: center;"><svg id="graphET1" width="500" height="200"></svg></td>
-        <td style="text-align: center;"><svg id="graphET2" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphET1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphET2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">JVM CRASH</td>
-        <td><img id="clickGraphJC" src='/img/browser.png'></td>
-        <td class="mmm1 data1" id="JC1" data-allow-highlight="true"></td>
-        <td class="mmm2 data2" id="JC2" data-allow-highlight="true"></td>
+        <td class="icon"><img id="clickGraphJC" src='/img/browser.png'></td>
+        <td class="mmm data 1" id="JC1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="JC2" data-allow-highlight="true"></td>
     </tr>
     <tr id="showGraphJC" style="display: none;"><td></td>
         <td></td>
-        <td style="text-align: center;"><svg id="graphJC1" width="500" height="200"></svg></td>
-        <td style="text-align: center;"><svg id="graphJC2" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphJC1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphJC2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">OOME</td>
-        <td><img id="clickGraphOO" src='/img/browser.png'></td>
-        <td class="mmm1 data1" id="OO1" data-allow-highlight="true"></td>
-        <td class="mmm2 data2" id="OO2" data-allow-highlight="true"></td>
+        <td class="icon"><img id="clickGraphOO" src='/img/browser.png'></td>
+        <td class="mmm data 1" id="OO1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="OO2" data-allow-highlight="true"></td>
     </tr>
     <tr id="showGraphOO" style="display: none;"><td></td>
         <td></td>
-        <td style="text-align: center;"><svg id="graphOO1" width="500" height="200"></svg></td>
-        <td style="text-align: center;"><svg id="graphOO2" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphOO1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphOO2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">EXIT CODE</td>
-        <td><img id="clickGraphEC" src='/img/browser.png'></td>
-        <td class="mmm1 data1" id="EC1" data-allow-highlight="true"></td>
-        <td class="mmm2 data2" id="EC2" data-allow-highlight="true"></td>
+        <td class="icon"><img id="clickGraphEC" src='/img/browser.png'></td>
+        <td class="mmm data 1" id="EC1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="EC2" data-allow-highlight="true"></td>
     </tr>
     <tr id="showGraphEC" style="display: none;"><td></td>
         <td></td>
-        <td style="text-align: center;"><svg id="graphEC1" width="500" height="200"></svg></td>
-        <td style="text-align: center;"><svg id="graphEC2" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphEC1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphEC2" width="500" height="200"></svg></td>
     </tr>
-    <tr><td class="section">OTHER METRICS</td><td></td><td class="title t1"></td><td class="title t2"></td></tr>
+    <tr><td class="section">OTHER METRICS</td><td></td><td class="total title 1"></td><td class="total title 2"></td></tr>
     <tr style="display: none;"><td></td><td></td><td></td></tr>
     <tr><td class="field">RUNS COUNT</td>
         <td></td>
-        <td class="t1 data1" id="RunsCount1"></td>
-        <td class="t2 data2" id="RunsCount2"></td>
+        <td class="total data 1" id="RunsCount1"></td>
+        <td class="total data 2" id="RunsCount2"></td>
     </tr>
 </table><br>
 <table style="table-layout: fixed" id="testsTable" class="testsTable">
     <tbody>
     <tr>
-        <th class="failedTestsHeader" width="15%">FAILED TESTS</th>
-        <th width="5%">
-            <label class="switch">
-                <input type="checkbox" onclick="toggleTests()">
-                <span class="slider"></span>
-            </label>
-        </th>
-        <th width="40%"></th>
-        <th width="40%"></th>
+        <th class="failedTestsHeader" width="13%">FAILED TESTS</th>
+        <th width="3%"><div class="switch-btn tests"></div></th>
+        <th width="42%"></th>
+        <th width="42%"></th>
         </tr>
     </tbody>
 </table>
@@ -176,19 +175,26 @@
 
 <div id="version"></div>
 <script>
-    const TESTS_TABLE = '#testsTable';
-    const SKIP_TESTS = 'skipTests=true';
-    let oneWeekAgo = new Date();
-    let twoWeekAgo = new Date();
-    let g_updTimer = null;
-    let testsTrigger = false;
-
-    /** Structure for storing tests by suites parsed response for every date interval. */
-    let mergedTestsResults = {1 : {}, 2 : {} };
-
+    let oneWeekAgo = new Date(),
+        twoWeekAgo = new Date(),
+        invalidInclude = false,
+        markBuildId = 0,
+        testsTrigger = false;
 
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     twoWeekAgo.setDate(twoWeekAgo.getDate() - 14);
+
+    function getDateFewWeeksAgo(numberOfWeeksAgo) {
+        let date = new Date();
+
+        if (isDefinedAndFilled(numberOfWeeksAgo) && Number.isInteger(numberOfWeeksAgo))
+            date.setDate(date.getDate() - numberOfWeeksAgo * 7);
+
+        return date;
+    }
+
+    /** Structure for storing tests by suites parsed response for every date interval. */
+    let mergedTestsResults = {1 : {}, 2 : {} };
 
     let dateIntervals = {1: {start: moment(oneWeekAgo), end: moment()},
         2: {start: moment(twoWeekAgo), end: moment(oneWeekAgo)}};
@@ -218,59 +224,130 @@
         formatYear = d3.timeFormat("%Y"),
         parseDuration = d3.utcParse("%s");
 
-    const tOcc = ["Count", "Passed", "Failed", "Ignored", "Muted"],
-        prOcc = ["TT", "ET", "JC", "OO", "EC"],
+    const fieldNames = new Map([['Duration', 'Duration'], ['Count', 'Count'], ['Passed', 'Passed'], ['Failed','Failed'],
+            ['Ignored','Ignored'], ['Muted','Muted'], ['OO' ,'OOME'], ['TT', 'Total'], ['JC', 'JVM crash'],
+            ['EC', 'Exit code'], ['ET', 'Execution timeout']]),
         mmmTitle = "min - median - max",
         tTitle = "total",
-        duration = "Duration";
+        duration = "Duration",
+        TESTS_TABLE = '#testsTable',
+        SKIP_TESTS = 'skipTests=true',
+        data = [];
 
-    function multiFormat(date) {
-        return (d3.timeSecond(date) < date ? formatMillisecond
-            : d3.timeMinute(date) < date ? formatSecond
-                : d3.timeHour(date) < date ? formatMinute
-                    : d3.timeDay(date) < date ? formatHour
-                        : d3.timeMonth(date) < date ? (d3.timeWeek(date) < date ? formatDay : formatWeek)
-                            : d3.timeYear(date) < date ? formatMonth
-                                : formatYear)(date);
-    }
+    class Data {
+        constructor(num, array, sinceDate, untilDate) {
+            this.num = num;
+            this.map = new Map(array.map(item => [item.buildId, new BuildStatistics(item)]));
+            this.sinceDate = sinceDate;
+            this.untilDate = untilDate;
+        }
 
-    function dateRangePickerParam(data1, data2) {
-        return {
-            "opens" : 'left',
-            "maxSpan": { "days": 7 },
-            "locale": {
-                "format": "DD/MM/YYYY", "separator": " - ", "applyLabel": "Apply", "cancelLabel": "Cancel",
-                "fromLabel": "From", "toLabel": "To", "customRangeLabel": "Custom", "weekLabel": "W",
-                "daysOfWeek": [ "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" ],
-                "monthNames": [ "January", "February", "March", "April", "May", "June", "July",
-                    "August", "September", "October", "November", "December" ],
-                "firstDay": 1
-            },
-            "startDate": moment(data1).format("DD-MM-YYYY"), "endDate": moment(data2).format("DD-MM-YYYY")
+        get hasInvalidBuilds() {
+            return this.invalidBuildsCount !== 0;
+        }
+
+        get invalidBuildsCount() {
+            let count = 0;
+            for(let item of this.map.values()) {
+                if (!item.isValid)
+                    count++
+            }
+
+            return count;
+        }
+
+        get isEmpty() {
+            return this.builds.length === 0;
+        }
+
+        get builds() {
+            let builds = [];
+            for (let item of this.map.values()) {
+                if (invalidInclude || item.isValid) {
+                    builds.push(item);
+                }
+            }
+            return builds;
+        }
+
+        get realSinceDate() {
+            return this.builds[0].date;
+        }
+
+        get realUntilDate() {
+            return this.builds[this.builds.length - 1].date;
+        }
+
+        get fieldsStatistics() {
+            let fieldsStatistics = new FieldsStatistics(this.num);
+            for(let build of this.builds) {
+                for (let fieldName of fieldNames.keys())
+                    fieldsStatistics[fieldName].push(build.stat[fieldName]);
+
+                fieldsStatistics.dates.push(build.date);
+                fieldsStatistics.buildIds.push(build.date);
+            }
+
+            return fieldsStatistics;
         }
     }
 
-    function getMinMaxMedian(arr) {
-        let newArr = arr.slice();
-        newArr = newArr.sort(function(a, b){ return a - b; });
-
-        let i = newArr.length / 2;
-
-        let result = {};
-        result.median = i % 1 === 0 ? (newArr[i - 1] + newArr[i]) / 2 : newArr[Math.floor(i)];
-        result.min = newArr[0];
-        result.max = newArr[newArr.length - 1];
-
-        return result;
+    class FieldsStatistics {
+         constructor(num){
+             this.dates = [];
+             this.buildIds = [];
+             this.num = num;
+             this['Duration'] = [];
+             this['DurationF'] = [];
+             this['Count'] = [];
+             this['Passed'] = [];
+             this['Failed'] = [];
+             this['Ignored'] = [];
+             this['Muted'] = [];
+             this['OO'] = [];
+             this['TT'] = [];
+             this['JC'] = [];
+             this['EC'] = [];
+             this['ET'] = [];
+         }
     }
 
-    function parseMedian(string) {
-        let stringMedian = string.substring(string.indexOf("-") + 2, string.lastIndexOf("-") - 1);
+    class BuildStatistics {
+        constructor(item) {
+            this.buildId = item.buildId;
+            this.date = parseTime(item.startDate);
+            this.stat = {
+                'Duration' : item.duration,
+                'DurationF' : parseDuration(parseInt(item.duration)),
+                'Count' : item.testOccurrences.count,
+                'Passed' : item.testOccurrences.passed,
+                'Failed' : item.testOccurrences.failed,
+                'Ignored' : item.testOccurrences.ignored,
+                'Muted' : item.testOccurrences.muted,
+                'OO' : item.totalProblems.OO,
+                'TT' : item.totalProblems.TT,
+                'JC' : item.totalProblems.JC,
+                'EC' : item.totalProblems.EC,
+                'ET' : item.totalProblems.ET
+            };
+            this.isValid = item.isValid;
+            this.conditionLocal = false;
+        }
+    }
 
-        if (stringMedian.indexOf(":") !== -1)
-            return (parseInt(stringMedian.split(":")[0]) * 60 + parseInt(stringMedian.split(":")[1])) * 60;
-        else
-            return parseFloat(stringMedian);
+    class Statistic {
+        constructor(array, name, num) {
+            let newArr = array.slice();
+            newArr = newArr.sort(function(a, b){ return a - b; });
+
+            let i = newArr.length / 2;
+
+            this.median = i % 1 === 0 ? (newArr[i - 1] + newArr[i]) / 2 : newArr[Math.floor(i)];
+            this.min = newArr[0];
+            this.max = newArr[newArr.length - 1];
+            this.name = name;
+            this.num = num;
+        }
     }
 
     var changeDisplay = function(id) {
@@ -397,91 +474,129 @@
         window.open(res);
     }
 
-    function printStatistics(num, map, sinceDate, untilDate) {
+    function printStatistics(data) {
         clearBackgroundFromAllDataCells();
-        clearGraphs(num);
+        clearGraphs(data.num);
+        fillAllDataCells(data.num, "");
 
-        const anotherNum = (num === 1) ? 2 : 1;
+        if (data.isEmpty) {
+            printImportantMessage(data.num, "#ff0000", "No data for the selected period");
+            fillTitleForData(data.num, 'mmm', "");
 
-        let statistics = {},
-            dates = [],
-            buildIds = [];
-
-        statistics[duration] = [];
-
-        for (let i = 0; i < prOcc.length; i++) {
-            statistics[prOcc[i]] = [];
-            statistics[tOcc[i]] = [];
-        }
-
-        for (let j = 0; j < map.length; j++) {
-            dates[j] = parseTime(map[j].startDate);
-            buildIds[j] = map[j].buildId;
-            statistics[duration][j] = map[j].duration;
-
-            for (let i = 0; i < prOcc.length; i++) {
-                statistics[prOcc[i]][j] = map[j].totalProblems[prOcc[i]];
-                statistics[tOcc[i]][j] = map[j].testOccurrences[tOcc[i].toLowerCase()];
-            }
-        }
-
-        if (dates.length === 0) {
-            printImportantMessage(num, "#ff0000", "No data for the selected period");
-            fillAllDataCells(num, "");
-            $('.title' + num).html("");
+            if (data.hasInvalidBuilds && !invalidInclude)
+                printRunsCount(data);
+            else
+                fillTitleForData(data.num, 'total', "");
 
             return;
         } else {
-            let firstDate = moment(parseTime(map[0].startDate)).format("DD-MM-YYYY");
-            let lastDate = moment(parseTime(map[map.length - 1].startDate)).format("DD-MM-YYYY");
+            let firstDate = moment(data.realSinceDate).format("DD-MM-YYYY");
+            let lastDate = moment(data.realUntilDate).format("DD-MM-YYYY");
 
-            if ((sinceDate.format("DD-MM-YYYY") !== firstDate) || (untilDate.format("DD-MM-YYYY") !== lastDate)) {
-                printImportantMessage(num, "#ffb856", "Data for " +
+            if ((data.sinceDate.format("DD-MM-YYYY") !== firstDate) || (data.untilDate.format("DD-MM-YYYY") !== lastDate)) {
+                printImportantMessage(data.num, "#ffb856", "Data for " +
                     (firstDate === lastDate ? firstDate : ("the period from " + firstDate + " to " + lastDate)) + "");
-            } else {
-                $("#info" + num).html("");
-                if ($('#info' + anotherNum).text() === ''){
-                    $('#showInfo').css('display', 'none')
-                }
-            }
+            } else
+                $("#info" + data.num).html("");
         }
 
-        $('.title.mmm' + num).html(mmmTitle);
-        $('.mmm' + num).prop('title', mmmTitle);
-        $('.title.t' + num).html(tTitle);
-        $('.t' + num).prop('title', tTitle);
+        fillNameForMinMedianMaxColumn(mmmTitle);
+        fillNameForTotalColumn(tTitle);
 
-        fillCellWithStatistics(duration, num, statistics, dates, buildIds);
+        fillTitleForData(data.num, 'mmm', mmmTitle);
+        fillTitleForData(data.num, 'total', tTitle);
 
-        for (let i = 0; i < prOcc.length; i++) {
-            fillCellWithStatistics(prOcc[i], num, statistics, dates, buildIds);
-            fillCellWithStatistics(tOcc[i], num, statistics, dates, buildIds);
+        let fieldsStatistics = data.fieldsStatistics;
+
+        for (let fieldName of fieldNames.keys()) {
+            let stat = new Statistic(fieldsStatistics[fieldName], fieldName, data.num);
+
+            fillCellWithStatistics(stat);
+
+            drawGraph(data.builds, fieldName, stat.median, data.num);
         }
 
-        $('#RunsCount' + num).html(map.length);
+        printRunsCount(data);
     }
 
-    function fillCellWithStatistics(prefix, num, statistics, dates, buildIds) {
-        let result = getMinMaxMedian(statistics[prefix]);
+    function printRunsCount(data){
+        $('#RunsCount' + data.num).html(data.builds.length + "<br>" + (invalidInclude || (!data.hasInvalidBuilds) ? "" :
+            "<span class='compare title'>(" + data.invalidBuildsCount +
+            " invalid builds hide)</span>"));
+    }
 
-        if (prefix === duration)
-            $('#' + prefix + num).html(time(result.min) + " - " + time(result.median) + " - " + time(result.max));
+    function fillCellWithStatistics(stat) {
+        if (stat.name === duration)
+            $('#' + stat.name + stat.num).html(time(stat.min) + " - " + time(stat.median) + " - " + time(stat.max));
         else
-            $('#' + prefix + num).html(result.min + " - " + result.median +  " - " + result.max);
+            $('#' + stat.name + stat.num).html(stat.min + " - " + stat.median +  " - " + stat.max);
 
-        compareAndHighlight(prefix, num, result.median);
-
-        drawGraph(prefix, num, dates, statistics[prefix], buildIds);
+        compareAndHighlight(stat);
 
         function time(ms){
             return moment(ms * 1000).utcOffset(0).format("H:mm");
         }
     }
 
-    function compareAndHighlight(prefix, thisNum, thisMedian){
-        let anotherNum = (thisNum === 1) ? 2 : 1,
-            thisElement = $('#' + prefix + thisNum),
-            anotherElement =  $('#' + prefix + anotherNum);
+    function fillNameForTotalColumn(num, title) {
+        $('.title.total.' + num).html(title);
+    }
+
+    function fillNameForMinMedianMaxColumn(num, title) {
+        $('.title.mmm .' + num).html(title);
+    }
+
+    function fillTitleForData(num, cssClass, title) {
+        $('.' + cssClass + '.data.' + num).prop('title', title);
+    }
+
+    function loadData(num, sinceDate, untilDate, testsTrigger) {
+        loadGif(num);
+
+        mergedTestsResults[num] = {};
+
+        let url = 'rest/build/history?sinceDate=' + sinceDate.format("DDMMYYYY") +
+            '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
+
+        if (!testsTrigger)
+            url = url + '&' + SKIP_TESTS;
+
+        $.ajax({
+                url: url,
+                success: function (result) {
+                    data[num] = new Data(num, result.buildsStatistics, sinceDate, untilDate);
+
+                    printStatistics(data[num]);
+
+                    try {
+                        mergedTestsResults[num] = JSON.parse(result.mergedTestsJson);
+                    } catch (e) {
+                        printImportantMessage(num, "#ff0000", "Invalid server response. Unable to parse JSON");
+                    }
+
+                    printTests(generateCompareTestsResults(mergedTestsResults));
+                },
+                error: showErrInLoadStatus,
+                timeout: 1800000
+            }
+        );
+    }
+
+    function parseMedian(string) {
+        let stringMedian = string.substring(string.indexOf("-") + 2, string.lastIndexOf("-") - 1);
+
+        if (stringMedian.indexOf(":") !== -1)
+            return (parseInt(stringMedian.split(":")[0]) * 60 + parseInt(stringMedian.split(":")[1])) * 60;
+        else
+            return parseFloat(stringMedian);
+    }
+
+    function compareAndHighlight(stat){
+
+        let anotherNum = (stat.num === 1) ? 2 : 1,
+            thisElement = $('#' + stat.name + stat.num),
+            anotherElement =  $('#' + stat.name + anotherNum),
+            thisMedian = stat.median;
 
         if (thisElement.data('allowHighlight').toString() === "true") {
             let anotherMedian = parseMedian(anotherElement.text());
@@ -502,44 +617,26 @@
         loadData(2, moment(twoWeekAgo), moment(oneWeekAgo), testsTrigger);
 
         $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
-
-        if(g_updTimer == null) {
-            g_updTimer = setTimeout(tstTimeout, 3200);
-        }
-        setInterval(tstTimeout, 10000);
     });
 
-    function tstTimeout() {
-        if (g_updTimer != null) {
-            clearTimeout(g_updTimer);
-            g_updTimer = null;
-        }
-
-        if (g_updTimer == null) {
-            g_updTimer = setTimeout(tstTimeout, 3200);
-        }
-    }
-    
     function clearBackgroundFromAllDataCells(num){
-        $('.data' + (num == null ? '1, .data2' : num)).css('background', '');
+        $('.data.' + (num == null ? '1, .data.2' : num)).css('background', '');
     }
-    
+
     function fillAllDataCells(num, message) {
-        $('.data' + num).html(message);
+        $(".data." + num).html(message);
         $('.testsCntCell').html(message);
     }
 
     function clearGraphs(num) {
-        $("#graph" + duration + num).empty();
-        for (let i = 0; i < prOcc.length; i++) {
-            $("#graph" + prOcc[i] + num).empty();
-            $("#graph" + tOcc[i] + num).empty();
-        }
+        $(".graph." + num).empty();
     }
 
     function loadGif(num) {
         clearBackgroundFromAllDataCells();
+
         clearGraphs(num);
+
         fillAllDataCells(num, "<img src='/img/loading.gif' width=15px height=15px>");
     }
 
@@ -549,102 +646,51 @@
         $('#showInfo').css('display', '');
     }
 
-    function loadData(num, sinceDate, untilDate, testsTrigger) {
-        loadGif(num);
-
-        mergedTestsResults[num] = {};
-
-        let url = 'rest/build/history?sinceDate=' + sinceDate.format("DDMMYYYY") +
-            '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
-
-        if (!testsTrigger)
-            url = url + '&' + SKIP_TESTS;
-
-        $.ajax({
-                url: url,
-                success: function (result) {
-                    printStatistics(num, result.buildsStatistics, sinceDate, untilDate);
-
-                    try {
-                        mergedTestsResults[num] = JSON.parse(result.mergedTestsJson);
-                    } catch (e) {
-                        printImportantMessage(num, "#ff0000", "Invalid server response. Unable to parse JSON");
-                    }
-
-                    printTests(generateCompareTestsResults(mergedTestsResults));
-                },
-                error: showErrInLoadStatus,
-                timeout: 1800000
-            }
-        );
-    }
-
     $(function() {
-        $('input[name="daterange1"]').daterangepicker(
-            dateRangePickerParam(oneWeekAgo, new Date()), function (start, end, label) {
-                dateIntervals[1].start = start;
+        for (let i = 1; i <= 2; i++) {
+            $('input[name="daterange' + i + '"]').daterangepicker(
+                dateRangePickerParam(getDateFewWeeksAgo(i), getDateFewWeeksAgo(i - 1), i), function (start, end) {
+                    dateIntervals[i].start = start;
 
-                dateIntervals[1].end = end;
+                    dateIntervals[i].end = end;
 
-                loadData(1, start, end, testsTrigger);
-            });
+                    loadData(i, start, end, testsTrigger);
+                });
+        }
     });
 
-    $(function() {
-        $('input[name="daterange2"]').daterangepicker(
-            dateRangePickerParam(twoWeekAgo, oneWeekAgo), function (start, end, label) {
-                dateIntervals[2].start = start;
+    for (let fieldName of fieldNames.keys())
+        graphSpoiler(fieldName);
 
-                dateIntervals[2].end = end;
-
-                loadData(2, start, end, testsTrigger);
-            });
-    });
-
-    graphSpoiler(duration);
-
-    for (let i = 0; i < prOcc.length; i++) {
-        graphSpoiler(prOcc[i]);
-        graphSpoiler(tOcc[i]);
-    }
-    
-    function graphSpoiler(prefix) {
-        $("#clickGraph" + prefix).click(function() {
-            let element = $('#showGraph' + prefix);
+    function graphSpoiler(fieldName) {
+        $("#clickGraph" + fieldName).click(function() {
+            let element = $('#showGraph' + fieldName);
             element.css('display') === 'none' ? element.css('display', '') : element.css('display', 'none');
         });
     }
 
-    function drawGraph(prefix, num, dates, counts, buildIds) {
-        let data = [],
-            isDuration = prefix === duration;
-
-        for (let i = 0; i < dates.length; i++) {
-            data[i] = {};
-            data[i].date = dates[i];
-            data[i].value = (isDuration ? parseDuration(parseInt(counts[i])) : counts[i]);
-            data[i].buildId = buildIds[i];
-        }
-
-        let svg = d3.select("#graph" + prefix + num).append("svg:svg"),
+    function drawGraph(builds, fieldName, median, num) {
+        let isDuration = (fieldName === duration),
+            F = isDuration ? "F" : "",
+            svg = d3.select("#graph" + fieldName + num).append("svg:svg"),
             margin = {top: 20, right: 20, bottom: 30, left: 50},
             width = 500 - margin.left - margin.right,
             height = 200 - margin.top - margin.bottom,
             g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        let div = d3.select("body").append("div")
-            .attr("class", "tooltip")
-            .style("opacity", 0);
+        let buildDate = d3.select("body").append("div").attr("class", "tooltip buildDate").style("opacity", 0),
+            condition = d3.select("body").append("div").attr("class", "tooltip condition").style("opacity", 0),
+            mark = d3.select("body").append("div").attr("class", "tooltip mark").style("opacity", 0);
 
         let y = (isDuration ? d3.scaleTime() : d3.scaleLinear()).range([height, 0]),
             x = d3.scaleTime().rangeRound([0, width]);
 
         let line = d3.line()
             .x(function(d) { return x(d.date); })
-            .y(function(d) { return y(d.value); });
+            .y(function(d) { return y(d.stat[fieldName + F]); });
 
-        x.domain(d3.extent(data, function(d) { return d.date; }));
-        y.domain(d3.extent(data, function(d) { return d.value; }));
+        x.domain(d3.extent(builds, function(d) { return d.date; }));
+        y.domain(d3.extent(builds, function(d) { return d.stat[fieldName + F]; }));
 
         g.append("svg:g").attr("transform", "translate(0," + (height) + ")")
             .call(d3.axisBottom(x).tickFormat(multiFormat));
@@ -657,10 +703,22 @@
             .attr("x2",400)
             .attr("y1",200)
             .attr("y2",200)
-            .style("display", "None");
+            .attr("stroke", "#4682B4")
+            .attr("stroke-width", "1")
+            .style("display", "none");
+
+        let median_line = g.append("line")
+            .attr("class", "line")
+            .attr("x1",0)
+            .attr("x2",width)
+            .attr("y1",y(isDuration ? parseDuration(parseInt(median)) : median))
+            .attr("y2",y(isDuration ? parseDuration(parseInt(median)) : median))
+            .attr("stroke", "red")
+            .attr("stroke-width", "0.2")
+            .style("display", "block");
 
         g.append("path")
-            .datum(data)
+            .datum(builds)
             .attr("fill", "none")
             .attr("stroke", "steelblue")
             .attr("stroke-linejoin", "round")
@@ -668,46 +726,186 @@
             .attr("stroke-width", 1.5)
             .attr("d", line);
 
-        g.selectAll("dot").data(data)
+        g.selectAll("dot").data(builds)
             .enter()
             .append("circle")
             .attr("r", 3)
             .attr("cx", function(d){return x(d.date); })
-            .attr("cy", function(d){return y(d.value); })
-            .attr("class", "dot")
+            .attr("cy", function(d){return y(d.stat[fieldName + F]); })
+            .attr("class", function(d) {
+                return getDotClass(d);
+            })
             .on("mouseover", function(d) {
                 d3.select(this).transition().duration(100)
-                    .style("fill", "green")
+                    .style("fill", "#12AD5E")
                     .attr("r", 5)
                     .attr("onclick", "checkAvailable(" + d.buildId + "," +  d.date.getTime() + ");" +
-                    "return false;");
-                div.transition()
-                    .duration(200)
-                    .style("opacity", .8);
+                        "return false;");
 
-                let graphTd = document.getElementById("graph" + prefix + num).getBoundingClientRect(),
-                    scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-                div	.html(formatTime(d.date))
-                    .style("left", graphTd.left + x(d.date) + (x(d.date) > (500 - 150) ? -150 : 0) + "px")
-                    .style("top", scrollTop + graphTd.top - 10 + "px" );
                 svg_aline.transition().duration(10)
                     .style("display", "block")
                     .attr("x1", x(d.date))
-                    .attr("y1", y(d.value))
+                    .attr("y1", y(d.stat[fieldName + F]))
                     .attr("x2", x(d.date))
-                    .attr("y2", height)
+                    .attr("y2", height);
+
+                let graphTd = document.getElementById("graph" + fieldName + num).getBoundingClientRect(),
+                    scrollTop = window.pageYOffset || document.documentElement.scrollTop,
+                    top = scrollTop + graphTd.top + y(d.stat[fieldName + F]) - 10,
+                    partLeft = graphTd.left + x(d.date),
+                    buildDateNearTheBorder = x(d.date) > (440 - 140);
+
+                buildDate.html(formatTime(d.date))
+                    .style("left", partLeft + (buildDateNearTheBorder ? -99 : 49) + "px")
+                    .style("top", top + "px" ).transition()
+                    .duration(200).style("opacity", .8).style("display", "block");
+
+                mark.html('<i class="fas fa-' + (markBuildId === d.buildId ? 'eraser' : 'highlighter') + '"></i>')
+                    .style("left", partLeft + (buildDateNearTheBorder ? 49 : 23) + "px")
+                    .style("top", top + "px" )
+                    .attr("onclick", "markBuild(" + d.buildId + "); return false;").transition()
+                    .duration(200).style("opacity", .8).style("display", "block");
+
+                condition.html('<i class="' + (!d.isValid ? 'fas fa-undo' : 'far fa-trash')
+                    + '-alt"></i>')
+                    .style("left", partLeft + (buildDateNearTheBorder ? 75 : -3) + "px")
+                    .style("top", top + "px" )
+                    .attr("onclick", "setCondition(" + num + ", " + d.buildId + ", " +
+                        (isDuration ? d.stat[fieldName + F].getTime() / 1000 : d.stat[fieldName + F]) +
+                        ", " + median + ", '" + (fieldName + F) + "'); return false;").transition()
+                    .duration(200).style("opacity", .8).style("display", "block");
             })
 
-            .on("mouseout", function(d) {
+            .on("mouseout", function() {
                 d3.select(this).transition().duration(100)
-                    .style("fill", "grey")
+                    .style("fill", null)
                     .attr("r", 3);
-                div.transition()
-                    .duration(500)
-                    .style("opacity", 0);
-                svg_aline.style("display","None")
+
+                buildDate.transition().duration(2000)
+                    .style("opacity", 0).on("end", function() { buildDate.style("display", "none"); });
+
+                condition.transition().duration(2000)
+                    .style("opacity", 0).on("end", function() { condition.style("display", "none"); });
+
+                mark.transition().duration(2000)
+                    .style("opacity", 0).on("end", function() { mark.style("display", "none"); });
+
+                svg_aline.style("display","none")
             });
+
+        function getDotClass(build) {
+            if (markBuildId === build.buildId)
+                return "mark-dot";
+            else
+                return ((invalidInclude && !build.isValid) ? "hidden-dot" : "dot");
+        }
+    }
+
+    function setCondition(num, buildId, value, median, prefix) {
+        if (!isDefinedAndFilled(buildId) || buildId === "") {
+            showDialog("<i class='fas fa-exclamation-circle'></i><br><br>BuildId must be defined and filled!");
+
+            return;
+        }
+
+        let isValid = !data[num].map.get(buildId).isValid;
+        let conditionLocal = data[num].map.get(buildId).conditionLocal;
+        let modalDialog = $("#modalDialog");
+        let diff = ((value / median - 1) * 100 | 0);
+        let message = "<p style='text-align:center;opacity: 0.7;'><img src='img/tc.svg' width='100' height='100'></p>" +
+            "<br><p style='text-align:justify'><b>Build [" + buildId +  "]</b> will be marked as &laquo;" +
+            (isValid ? "" : "in") + "valid&raquo;. Value differs by <b>" + diff + "%</b> from the median.</p>" +
+            "<br><b>Field:</b>&nbsp;<select id='selectField' style='width: 200px'>";
+
+        for (let fieldName of fieldNames.keys())
+            message += getHtmlOption(fieldName, false, fieldName === prefix, fieldNames.get(fieldName));
+
+        message += "</select><br><br><b>Mark: </b><select id='selectExclusionArea' style='width: 200px'>" +
+            getHtmlOption(false, isValid && !conditionLocal, isValid && conditionLocal, "For me") +
+            getHtmlOption(true, isValid && conditionLocal, isValid && !conditionLocal, "For all") + "</select>";
+
+        message += "<br><br><span style='color:grey;font-size:smaller;text-align:justify'><hr>If you select &laquo;" +
+            "Mark for me&raquo;, build will be hidden from the results only for this dates interval until the page " +
+            "is updated.<br><hr>If you select &laquo;Mark for all&raquo;, your request will be hidden " +
+            "from the results for all users, and will not be taken into account when analyzing tests.</span>";
+
+        modalDialog.html(message);
+        modalDialog.dialog({
+            modal: true,
+            buttons: {
+                "Confirm": function () {
+                    $(this).dialog("close");
+
+                    let forAll = $('#selectExclusionArea').val() === 'true';
+                    let text = "";
+
+                    if (forAll) {
+                        $.ajax({
+                            url: 'rest/build/condition',
+                            data: {
+                                "buildId": buildId,
+                                "isValid": isValid,
+                                "field": $('#selectField').val()
+                            },
+                            success: function (res) {
+                                if (isDefinedAndFilled(res)) {
+                                    text = "<i class='fas fa-" + (res ? "check" : "exclamation") + "-circle'></i>" +
+                                        "<br><br>";
+
+                                    if (isValid) {
+                                        text += res ? "Build <b>remove</b> from invalid list!" :
+                                            "Invalid list <b>doesn't contain</b> build!";
+                                    }
+                                    else {
+                                        text += "Build " + (res ? "<b>add</b> in" :
+                                            "<b>is already</b> on the") + " invalid list!";
+                                    }
+                                } else {
+                                    text += "<i class='fas fa-exclamation-circle'><br><br></i>" +
+                                        "BuildId or condition is null!";
+                                }
+
+                                setBuildConditionOnFrontAndShowDialog(buildId, isValid, text, false);
+                            },
+                            error: showErrInLoadStatus
+                        });
+                    } else {
+                        text = "<i class='fas fa-check-circle'></i><br><br>Build <b>"  + (isValid ? "remove</b> from" :
+                            "add</b> in") +" <i>temporary</i> invalid list!";
+
+                        setBuildConditionOnFrontAndShowDialog(buildId, isValid, text, !isValid);
+                    }
+                },
+                "Cancel": function () {
+                    $(this).dialog("close");
+                }
+            }
+        });
+
+        function getHtmlOption(value, disabled, selected, text){
+            return "<option value='" + value + "' " + (disabled ? "disabled" : "") + (selected ? "selected" : "") +
+                ">" + text + "</option>";
+        }
+    }
+
+    function setBuildConditionOnFrontAndShowDialog(buildId, isValid, text, conditionLocal) {
+        setBuildCondition(buildId, isValid, conditionLocal);
+
+        showDialog(text);
+    }
+
+    function showDialog(text) {
+        let resultDialog = $("#resultDialog");
+        resultDialog.html("<p style='text-align:center'><br>" + text + "</p>");
+
+        resultDialog.dialog({
+            modal: true,
+            buttons: {
+                "Ok": function () {
+                    $(this).dialog("close");
+                }
+            }
+        });
     }
 
     function getBuildLink(buildId) { return "https://ci.ignite.apache.org/viewLog.html?buildId=" + buildId
@@ -755,7 +953,84 @@
         modal.hide();
     })
 
+
+    $('.switch-btn.builds').click(function(){
+        $(this).toggleClass('switch-on');
+
+        invalidInclude = $(this).hasClass('switch-on');
+
+        updateAll();
+    });
+
+    $('.switch-btn.tests').click(function(){
+        $(this).toggleClass('switch-on');
+
+        toggleTests();
+    });
+
+    function setBuildCondition(buildId, isValid, conditionLocal) {
+        setBuildConditionForColumn(buildId, isValid, 1, conditionLocal);
+        setBuildConditionForColumn(buildId, isValid, 2, conditionLocal);
+    }
+
+    function setBuildConditionForColumn(buildId, isValid, num, conditionLocal) {
+        if (isDefinedAndFilled(data[num])) {
+            if (data[num].map.has(buildId)) {
+                data[num].map.get(buildId).isValid = isValid;
+                data[num].map.get(buildId).conditionLocal = conditionLocal;
+            }
+
+            updateColumn(num);
+        }
+    }
+
+    function markBuild(buildId) {
+        markBuildId = (markBuildId === buildId) ? 0 : buildId;
+
+        updateAll();
+    }
+
+    function updateColumn(num) {
+        if (isDefinedAndFilled(data[num]))
+            printStatistics(data[num]);
+    }
+
+    function updateAll() {
+        updateColumn(1);
+        updateColumn(2);
+
+        if (isDefinedAndFilled(mergedTestsResults))
+            printTests(generateCompareTestsResults(mergedTestsResults));
+    }
+
+    function multiFormat(date) {
+        return (d3.timeSecond(date) < date ? formatMillisecond
+            : d3.timeMinute(date) < date ? formatSecond
+                : d3.timeHour(date) < date ? formatMinute
+                    : d3.timeDay(date) < date ? formatHour
+                        : d3.timeMonth(date) < date ? (d3.timeWeek(date) < date ? formatDay : formatWeek)
+                            : d3.timeYear(date) < date ? formatMonth
+                                : formatYear)(date);
+    }
+
+    function dateRangePickerParam(startDate, endDate, num) {
+        return {
+            "opens" : (num === 1 ? 'right' : 'left'),
+            "maxSpan": { "days": 7 },
+            "locale": {
+                "format": "DD/MM/YYYY", "separator": " - ", "applyLabel": "Apply", "cancelLabel": "Cancel",
+                "fromLabel": "From", "toLabel": "To", "customRangeLabel": "Custom", "weekLabel": "W",
+                "daysOfWeek": [ "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" ],
+                "monthNames": [ "January", "February", "March", "April", "May", "June", "July",
+                    "August", "September", "October", "November", "December" ],
+                "firstDay": 1
+            },
+            "startDate": moment(startDate).format("DD-MM-YYYY"), "endDate": moment(endDate).format("DD-MM-YYYY")
+        }
+    }
 </script>
-<div style="visibility:hidden"><div id="modalDialog" title="Information"></div></div>
+<div style="visibility:hidden">
+    <div id="modalDialog" title="Information"></div><div id="resultDialog" title="Result"></div>
+</div>
 </body>
 </html>

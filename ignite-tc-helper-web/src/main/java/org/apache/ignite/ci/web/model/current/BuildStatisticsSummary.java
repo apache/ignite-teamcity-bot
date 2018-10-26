@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.web.model.current;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -32,18 +34,20 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.util.TimeUtil;
-import org.apache.ignite.ci.web.IBackgroundUpdatable;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 
 /**
  * Summary of build statistics.
  */
-public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpdatable {
+public class BuildStatisticsSummary {
     /** Short problem names. */
     public static final String TOTAL = "TOTAL";
 
-    private static Map<String, String> shortProblemNames = new HashMap<>();
+    /** Short problem names map. Full name - key, short name - value. */
+    public static BiMap<String, String> shortProblemNames = HashBiMap.create();
+
+    /** Full problem names map. Short name - key, full name - value. */
+    public static BiMap<String, String> fullProblemNames;
 
     static {
         shortProblemNames.put(TOTAL, "TT");
@@ -51,6 +55,8 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
         shortProblemNames.put(ProblemOccurrence.TC_JVM_CRASH, "JC");
         shortProblemNames.put(ProblemOccurrence.TC_OOME, "OO");
         shortProblemNames.put(ProblemOccurrence.TC_EXIT_CODE, "EC");
+
+        fullProblemNames = shortProblemNames.inverse();
     }
 
     /** Build with test and problems references. */
@@ -73,6 +79,9 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
 
     /** Is fake stub. */
     public boolean isFakeStub;
+
+    /** Is valid. */
+    public boolean isValid = true;
 
     /**
      * @param buildId Build id.
@@ -201,11 +210,6 @@ public class BuildStatisticsSummary extends UpdateInfo implements IBackgroundUpd
         occurrences.put(shortProblemNames.get(TOTAL), occurrences.values().stream().mapToLong(Long::longValue).sum());
 
         return occurrences;
-    }
-
-    /** {@inheritDoc} */
-    @Override public void setUpdateRequired(boolean update) {
-        updateRequired = update;
     }
 
     /** {@inheritDoc} */

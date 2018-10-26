@@ -38,6 +38,8 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.tcbot.condition.BuildCondition;
+import org.apache.ignite.ci.tcbot.condition.BuildConditionDao;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
@@ -67,6 +69,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Build reference DAO. */
     @Inject private BuildRefDao buildRefDao;
 
+    /** Build condition DAO. */
+    @Inject private BuildConditionDao buildConditionDao;
+
     /** Build DAO. */
     @Inject private FatBuildDao fatBuildDao;
 
@@ -82,6 +87,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
         buildRefDao.init(); //todo init somehow in auto
+        buildConditionDao.init();
         fatBuildDao.init();
     }
 
@@ -126,6 +132,18 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         runActualizeBuilds(srvId, false, Sets.newHashSet(build.getId()));
 
         return build;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean buildIsValid(int buildId) {
+        BuildCondition cond = buildConditionDao.getBuildCondition(srvIdMaskHigh, buildId);
+
+        return cond == null || cond.isValid;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean setBuildCondition(BuildCondition cond) {
+        return buildConditionDao.setBuildCondition(srvIdMaskHigh, cond);
     }
 
     @Override public FatBuildCompacted getFatBuild(int buildId) {

@@ -18,6 +18,7 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import java.util.List;
 import javax.annotation.Nullable;
+import org.apache.ignite.ci.tcbot.condition.BuildCondition;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
@@ -41,7 +42,7 @@ public interface ITeamcityIgnited {
         @Nullable String branchName);
 
     /**
-     * Trigger build. Enforces TC Bot to load all buidls related to this triggered one.
+     * Trigger build. Enforces TC Bot to load all builds related to this triggered one.
      *
      * @param buildTypeId Build type identifier.
      * @param branchName Branch name.
@@ -57,6 +58,20 @@ public interface ITeamcityIgnited {
     public static int serverIdToInt(String srvId) {
         return Math.abs(srvId.hashCode());
     }
+
+    /**
+     * Check build condition.
+     *
+     * @param buildId Build id.
+     */
+    public boolean buildIsValid(int buildId);
+
+    /**
+     * Set build condition.
+     *
+     * @param cond Condition.
+     */
+    public boolean setBuildCondition(BuildCondition cond);
 
     /**
      * @param id Id.

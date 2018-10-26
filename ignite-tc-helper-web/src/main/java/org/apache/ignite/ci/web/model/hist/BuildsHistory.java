@@ -19,7 +19,9 @@ package org.apache.ignite.ci.web.model.hist;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import java.io.UncheckedIOException;
+import java.lang.reflect.Array;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -29,6 +31,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.servlet.ServletContext;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -37,6 +41,8 @@ import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
@@ -93,14 +99,26 @@ public class BuildsHistory {
 
         IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
 
+        ITeamcityIgnitedProvider tcIgnitedProv = CtxListener.getInjector(context)
+            .getInstance(ITeamcityIgnitedProvider.class);
+
+        ITeamcityIgnited ignited = tcIgnitedProv.server(srvId, prov);
+
         int[] finishedBuildsIds = teamcity.getBuildNumbersFromHistory(buildTypeId, branchName,
             sinceDateFilter, untilDateFilter);
 
-        initStatistics(teamcity, finishedBuildsIds);
+        Map<Integer, Boolean> buildIdsWithConditions = IntStream.of(finishedBuildsIds)
+            .boxed().collect(Collectors.toMap(v -> v, ignited::buildIsValid,  (e1, e2) -> e1, LinkedHashMap::new));
 
-        if (!skipTests) {
-            initFailedTests(teamcity, finishedBuildsIds);
-        }
+        initStatistics(teamcity, buildIdsWithConditions);
+
+        List<Integer> validBuilds = buildIdsWithConditions.keySet()
+            .stream()
+            .filter(buildIdsWithConditions::get)
+            .collect(Collectors.toList());
+
+        if (!skipTests)
+            initFailedTests(teamcity, validBuilds);
 
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -112,12 +130,13 @@ public class BuildsHistory {
     }
 
     /** */
-    private void initStatistics(IAnalyticsEnabledTeamcity teamcity, int[] buildIds) {
+    private void initStatistics(IAnalyticsEnabledTeamcity teamcity, Map<Integer, Boolean> buildIdsWithConditions) {
         List<Future<BuildStatisticsSummary>> buildStaticsFutures = new ArrayList<>();
 
-        for (int buildId : buildIds) {
+        for (int buildId : buildIdsWithConditions.keySet()) {
             Future<BuildStatisticsSummary> buildFuture = CompletableFuture.supplyAsync(() -> {
                 BuildStatisticsSummary buildsStatistic = new BuildStatisticsSummary(buildId);
+                buildsStatistic.isValid = buildIdsWithConditions.get(buildId);
 
                 buildsStatistic.initialize(teamcity);
 
@@ -172,7 +191,7 @@ public class BuildsHistory {
     }
 
     /** */
-    private void initFailedTests(IAnalyticsEnabledTeamcity teamcity, int[] buildIds) {
+    private void initFailedTests(IAnalyticsEnabledTeamcity teamcity, List<Integer> buildIds) {
         List<Future<Void>> buildProcessorFutures = new ArrayList<>();
 
         for (int buildId : buildIds) {
