@@ -148,6 +148,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     @Override public FatBuildCompacted getFatBuild(int buildId) {
         FatBuildCompacted existingBuild = fatBuildDao.getFatBuild(srvIdMaskHigh, buildId);
+
+        //todo additionally check queued and running builds, refesh builds if they are queued.
         if (existingBuild != null && !existingBuild.isOutdatedEntityVersion())
             return existingBuild;
 

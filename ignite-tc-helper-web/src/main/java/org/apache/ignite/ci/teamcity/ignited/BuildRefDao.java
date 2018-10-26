@@ -39,6 +39,7 @@ import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.internal.util.GridIntList;
@@ -177,6 +178,7 @@ public class BuildRefDao {
     }
 
     @AutoProfiling
+    @GuavaCached(softValues = true, maximumSize = 1000, expireAfterAccessSecs = 30)
     public List<BuildRefCompacted> getBuildsForBranch(int srvId, String branchName) {
         Integer branchNameId = compactor.getStringIdIfPresent(branchName);
         if (branchNameId == null)
