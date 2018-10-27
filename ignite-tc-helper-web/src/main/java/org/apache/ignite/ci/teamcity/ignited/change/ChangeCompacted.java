@@ -33,6 +33,7 @@ public class ChangeCompacted implements IVersionedEntity {
     private static final int LATEST_VERSION = 1;
 
     /** Entity fields version. */
+    @SuppressWarnings("FieldCanBeLocal")
     private short _ver = LATEST_VERSION;
 
     /**

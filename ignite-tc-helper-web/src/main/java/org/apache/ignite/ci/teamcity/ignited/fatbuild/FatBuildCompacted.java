@@ -45,7 +45,7 @@ import java.util.stream.Stream;
 @Persisted
 public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEntity {
     /** Latest version. */
-    private static final int LATEST_VERSION = 4;
+    private static final int LATEST_VERSION = 5;
 
     /** Default branch flag offset. */
     public static final int DEF_BR_F = 0;
