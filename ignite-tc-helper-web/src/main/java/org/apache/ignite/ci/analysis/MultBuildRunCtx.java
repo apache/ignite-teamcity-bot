@@ -24,28 +24,22 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
+
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.util.CollectionUtil;
-import org.apache.ignite.ci.util.FutureUtil;
-import org.apache.ignite.ci.util.TimeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import static java.util.stream.Stream.concat;
 
 /**
  * Run configuration execution results loaded from different API URLs.
@@ -54,6 +48,8 @@ import static java.util.stream.Stream.concat;
 public class MultBuildRunCtx implements ISuiteResults {
     /** First build info. */
     @Nonnull private final BuildRef firstBuildInfo;
+
+    private IStringCompactor compactor;
 
     /** Builds: Single execution. */
     private List<SingleBuildRunCtx> builds = new CopyOnWriteArrayList<>();
@@ -77,8 +73,9 @@ public class MultBuildRunCtx implements ISuiteResults {
     /** Currently scheduled builds */
     private Integer queuedBuildCount;
 
-    public MultBuildRunCtx(@Nonnull final BuildRef buildInfo) {
+    public MultBuildRunCtx(@Nonnull final BuildRef buildInfo, IStringCompactor compactor) {
         this.firstBuildInfo = buildInfo;
+        this.compactor = compactor;
     }
 
     public Stream<String> getCriticalFailLastStartedTest() {
@@ -106,23 +103,13 @@ public class MultBuildRunCtx implements ISuiteResults {
         return firstBuildInfo.buildTypeId;
     }
 
-
-    @Deprecated
-    //currently used only in old metrics
-    public boolean hasNontestBuildProblem() {
-        return allProblemsInAllBuilds().anyMatch(problem ->
-            !problem.isFailedTests()
-                && !problem.isSnapshotDepProblem()
-                && !ProblemOccurrence.BUILD_FAILURE_ON_MESSAGE.equals(problem.type));
-        //todo what to do with BuildFailureOnMessage, now it is ignored
-    }
-
     public boolean hasAnyBuildProblemExceptTestOrSnapshot() {
         return allProblemsInAllBuilds()
-            .anyMatch(p -> !p.isFailedTests() && !p.isSnapshotDepProblem());
+            .anyMatch(p -> !p.isFailedTests(compactor) && !p.isSnapshotDepProblem(compactor));
     }
 
-    @NotNull public Stream<ProblemOccurrence> allProblemsInAllBuilds() {
+    @NotNull
+    private Stream<ProblemCompacted> allProblemsInAllBuilds() {
         return buildsStream().flatMap(SingleBuildRunCtx::getProblemsStream);
     }
 
@@ -184,21 +171,21 @@ public class MultBuildRunCtx implements ISuiteResults {
         addKnownProblemCnt(res, "Exit Code", getExitCodeProblemsCount());
 
         {
-            Stream<ProblemOccurrence> stream =
+            Stream<ProblemCompacted> stream =
                 allProblemsInAllBuilds().filter(p ->
-                    !p.isFailedTests()
-                        && !p.isSnapshotDepProblem()
-                        && !p.isExecutionTimeout()
-                        && !p.isJvmCrash()
-                        && !p.isExitCode()
-                        && !p.isJavaLevelDeadlock()
-                        && !p.isOome());
-            Optional<ProblemOccurrence> bpOpt = stream.findAny();
+                    !p.isFailedTests(compactor)
+                        && !p.isSnapshotDepProblem(compactor)
+                        && !p.isExecutionTimeout(compactor)
+                        && !p.isJvmCrash(compactor)
+                        && !p.isExitCode(compactor)
+                        //&& !p.isJavaLevelDeadlock(compactor)
+                        && !p.isOome(compactor));
+            Optional<ProblemCompacted> bpOpt = stream.findAny();
             if (bpOpt.isPresent()) {
                 if (res.length() > 0)
                     res.append(", ");
 
-                res.append(bpOpt.get().type).append(" ");
+                res.append(bpOpt.get().type(compactor)).append(" ");
             }
         }
 

@@ -1122,6 +1122,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public void calculateBuildStatistic(SingleBuildRunCtx ctx) {
+        if (ctx.buildId() == null)
+            return;
+
         if (calculatedStatistic().containsKey(ctx.buildId()))
             return;
 

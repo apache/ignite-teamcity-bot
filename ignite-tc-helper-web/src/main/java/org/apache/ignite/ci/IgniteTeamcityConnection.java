@@ -318,6 +318,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     @Override
+    @AutoProfiling
     public ProblemOccurrences getProblems(int buildId) {
         return getJaxbUsingHref("app/rest/latest/problemOccurrences" +
                 "?locator=build:(id:" + buildId + ")" +

@@ -45,6 +45,9 @@ import static org.apache.ignite.ci.analysis.RunStat.extractIdPrefixed;
  *
  */
 public class ProblemCompacted {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(ProblemCompacted.class);
+
     /** Id  */
     private int id = -1;
     private int type = -1;
@@ -54,9 +57,6 @@ public class ProblemCompacted {
     private int actualBuildId = -1;
 
     // later details may be needed @Nullable private byte[] details;
-
-    /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(ProblemCompacted.class);
 
     /**
      * Default constructor.
@@ -74,7 +74,7 @@ public class ProblemCompacted {
             try {
                 final Integer problemId = extractIdPrefixed(problemIdStr, "problem:(id:", ")");
                 if (problemId != null)
-                    id = problemId ;
+                    id = problemId;
             } catch (Exception e) {
                 logger.error("Failed to handle TC response: " + problemIdStr, e);
             }
@@ -138,5 +138,26 @@ public class ProblemCompacted {
 
     public String type(IStringCompactor compactor) {
         return compactor.getStringFromId(type);
+    }
+
+    public boolean isJvmCrash(IStringCompactor compactor) {
+        return compactor.getStringId(ProblemOccurrence.TC_JVM_CRASH) == type;
+    }
+
+    public boolean isOome(IStringCompactor compactor) {
+        return compactor.getStringId(ProblemOccurrence.TC_OOME) == type;
+    }
+
+    public boolean isExitCode(IStringCompactor compactor) {
+        return compactor.getStringId(ProblemOccurrence.TC_EXIT_CODE) == type;
+    }
+
+    public boolean isFailedTests(IStringCompactor compactor) {
+        return compactor.getStringId(ProblemOccurrence.TC_FAILED_TESTS) == type;
+    }
+
+    public boolean isSnapshotDepProblem(IStringCompactor compactor) {
+        return compactor.getStringId(ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR) == type
+                || compactor.getStringId(ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE) == type;
     }
 }

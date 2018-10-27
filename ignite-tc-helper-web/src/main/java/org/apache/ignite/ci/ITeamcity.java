@@ -133,10 +133,7 @@ public interface ITeamcity extends ITeamcityConn {
         return "app/rest/latest/builds/id:" + Integer.toString(id);
     }
 
-    /**
-     * @param build
-     * @return
-     */
+    @Deprecated
     ProblemOccurrences getProblems(BuildRef build);
 
     @Deprecated

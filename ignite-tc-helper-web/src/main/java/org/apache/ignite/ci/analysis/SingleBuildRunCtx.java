@@ -26,12 +26,10 @@ import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.changes.Change;
-import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,26 +39,22 @@ import org.jetbrains.annotations.Nullable;
 public class SingleBuildRunCtx implements ISuiteResults {
     /** Build compacted. */
     private FatBuildCompacted buildCompacted;
+
     /** Compactor. */
     private IStringCompactor compactor;
 
     /** Logger check result future. */
     private CompletableFuture<LogCheckResult> logCheckResFut;
 
-    /** Build problems occurred during single build run. */
-    @Nullable private List<ProblemOccurrence> problems;
-
     /** Changes. */
     private List<Change> changes = new ArrayList<>();
 
     /**
-     * @param build Build.
      * @param buildCompacted Build compacted.
      * @param compactor Compactor.
      */
-    public SingleBuildRunCtx(Build build,
-        FatBuildCompacted buildCompacted,
-        IStringCompactor compactor) {
+    public SingleBuildRunCtx(FatBuildCompacted buildCompacted,
+                             IStringCompactor compactor) {
         this.buildCompacted = buildCompacted;
         this.compactor = compactor;
     }
@@ -78,26 +72,23 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     private long getExecutionTimeoutCount() {
-        return getProblemsStream().filter(ProblemOccurrence::isExecutionTimeout).count();
+        return getProblemsStream().filter(p -> p.isExecutionTimeout(compactor)).count();
     }
 
-    Stream<ProblemOccurrence> getProblemsStream() {
-        if (problems == null)
-            return Stream.empty();
-
-        return problems.stream().filter(Objects::nonNull);
+    Stream<ProblemCompacted> getProblemsStream() {
+        return buildCompacted.problems().stream();
     }
 
     @Override public boolean hasJvmCrashProblem() {
-        return getProblemsStream().anyMatch(ProblemOccurrence::isJvmCrash);
+        return getProblemsStream().anyMatch(p -> p.isJvmCrash(compactor));
     }
 
     @Override public boolean hasOomeProblem() {
-        return getProblemsStream().anyMatch(ProblemOccurrence::isOome);
+        return getProblemsStream().anyMatch(p -> p.isOome(compactor));
     }
 
     @Override public boolean hasExitCodeProblem() {
-        return getProblemsStream().anyMatch(ProblemOccurrence::isExitCode);
+        return getProblemsStream().anyMatch(p -> p.isExitCode(compactor));
     }
 
     @Override public String suiteId() {
@@ -147,10 +138,6 @@ public class SingleBuildRunCtx implements ISuiteResults {
             return null;
 
         return logCheckRes;
-    }
-
-    public void setProblems(@Nullable List<ProblemOccurrence> problems) {
-        this.problems = problems;
     }
 
     public void addChange(Change change) {

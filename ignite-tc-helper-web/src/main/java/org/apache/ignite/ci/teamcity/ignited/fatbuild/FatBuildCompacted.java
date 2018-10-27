@@ -262,12 +262,14 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             name == that.name &&
             Objects.equal(tests, that.tests) &&
             Objects.equal(snapshotDeps, that.snapshotDeps) &&
-            Objects.equal(flags, that.flags);
+        Objects.equal(flags, that.flags) &&
+                Objects.equal(problems, that.problems);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests, snapshotDeps, flags);
+        return Objects.hashCode(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests,
+                snapshotDeps, flags, problems);
     }
 
     /**
@@ -310,6 +312,13 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return this.problems.stream()
                 .map(pc -> pc.toProblemOccurrence(compactor, id()))
                 .collect(Collectors.toList());
+    }
+
+    public List<ProblemCompacted> problems() {
+        if (this.problems == null)
+            return Collections.emptyList();
+
+        return Collections.unmodifiableList(this.problems);
     }
 
     public void addProblems(IStringCompactor compactor, List<ProblemOccurrence> occurrences) {

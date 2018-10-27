@@ -232,8 +232,7 @@ public class ProactiveFatBuildSync {
             }
 
             if (build.problemOccurrences != null) {
-                ProblemOccurrences po = conn.getProblems(buildId);
-                problems = new ArrayList<>(po.getProblemsNonNull());
+                problems = conn.getProblems(buildId).getProblemsNonNull();
             } else
                 problems = Collections.emptyList();
         }

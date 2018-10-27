@@ -23,7 +23,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -158,7 +157,8 @@ public class BuildChainProcessor {
         ITeamcityIgnited teamcityIgnited, Map<String, MultBuildRunCtx> buildsCtxMap,
         Stream<? extends BuildRef> list) {
         list.forEach((BuildRef ref) -> {
-            MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(ref.buildTypeId, k -> new MultBuildRunCtx(ref));
+            MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(ref.buildTypeId,
+                    k -> new MultBuildRunCtx(ref, compactor));
 
             ctx.addBuild(loadTestsAndProblems(teamcity, ref, ctx, teamcityIgnited));
         });
@@ -177,9 +177,8 @@ public class BuildChainProcessor {
         @Deprecated MultBuildRunCtx mCtx, ITeamcityIgnited tcIgnited) {
 
         FatBuildCompacted buildCompacted = tcIgnited.getFatBuild(buildRef.getId());
-        Build buildFromFat = buildCompacted.toBuild(compactor);
 
-        SingleBuildRunCtx ctx = new SingleBuildRunCtx(buildFromFat, buildCompacted, compactor);
+        SingleBuildRunCtx ctx = new SingleBuildRunCtx(buildCompacted, compactor);
 
         if (!buildCompacted.isComposite())
             mCtx.addTests(buildCompacted.getTestOcurrences(compactor).getTests());
@@ -190,8 +189,6 @@ public class BuildChainProcessor {
 
         if (build == null || build.isFakeStub())
             return ctx;
-        if (build.problemOccurrences != null)
-            ctx.setProblems(teamcity.getProblems(build).getProblemsNonNull());
 
         if (build.lastChanges != null) {
             for (ChangeRef next : build.lastChanges.changes) {
