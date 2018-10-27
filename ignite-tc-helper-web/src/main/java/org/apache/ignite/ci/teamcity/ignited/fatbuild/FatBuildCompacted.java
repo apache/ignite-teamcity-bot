@@ -19,6 +19,7 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
@@ -27,6 +28,7 @@ import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
@@ -296,5 +298,13 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     public String projectId(IStringCompactor compactor) {
         return compactor.getStringFromId(projectId);
+    }
+
+    public List<ProblemOccurrence> problems(IStringCompactor compactor) {
+        return Collections.emptyList(); //todo
+    }
+
+    public void addProblems(IStringCompactor compactor, List<ProblemOccurrence> problems) {
+        //todo
     }
 }

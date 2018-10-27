@@ -142,12 +142,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** cached loads of queued builds for branch. */
     private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> queuedBuildsFuts = new ConcurrentHashMap<>();
 
-    /** cached running builds for branch. */
-    private ConcurrentMap<String, Expirable<List<BuildRef>>> runningBuilds = new ConcurrentHashMap<>();
-
-    /** cached loads of running builds for branch. */
-    private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> runningBuildsFuts = new ConcurrentHashMap<>();
-
     /**   */
     private ConcurrentMap<SuiteInBranch, Long> lastQueuedHistory = new ConcurrentHashMap<>();
 
@@ -667,20 +661,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
 
-    /** {@inheritDoc} */
-    @Override public CompletableFuture<List<BuildRef>> getRunningBuilds(String branch) {
-        int defaultSecs = 60;
-        int secondsUseCached = getTriggerRelCacheValidSecs(defaultSecs);
-
-        return loadAsyncIfAbsentOrExpired(
-            runningBuilds,
-            Strings.nullToEmpty(branch),
-            runningBuildsFuts,
-            teamcity::getRunningBuilds,
-            secondsUseCached,
-            secondsUseCached == defaultSecs);
-    }
-
     public static int getTriggerRelCacheValidSecs(int defaultSecs) {
         long msSinceTrigger = System.currentTimeMillis() - lastTriggerMs;
         long secondsSinceTrigger = TimeUnit.MILLISECONDS.toSeconds(msSinceTrigger);
@@ -1191,10 +1171,15 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
+    @Override public Build triggerBuild(String buildTypeId, @NotNull String branchName, boolean cleanRebuild, boolean queueAtTop) {
         lastTriggerMs = System.currentTimeMillis();
 
         return teamcity.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
+    }
+
+    @Override
+    public ProblemOccurrences getProblems(int buildId) {
+        return teamcity.getProblems(buildId);
     }
 
     /** {@inheritDoc} */

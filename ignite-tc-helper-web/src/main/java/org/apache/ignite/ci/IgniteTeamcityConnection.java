@@ -272,10 +272,10 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public Build triggerBuild(
-        String buildTypeId,
-        @Nonnull String branchName,
-        boolean cleanRebuild,
-        boolean queueAtTop
+            String buildTypeId,
+            @NotNull @Nonnull String branchName,
+            boolean cleanRebuild,
+            boolean queueAtTop
     ) {
         String triggeringOptions =
             " <triggeringOptions" +
@@ -315,6 +315,13 @@ public class IgniteTeamcityConnection implements ITeamcity {
         catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    @Override
+    public ProblemOccurrences getProblems(int buildId) {
+        return getJaxbUsingHref("app/rest/latest/problemOccurrences" +
+                "?locator=build:(id:" + buildId + ")" +
+                "&fields=problemOccurrence(id,type,identity,href,details,build(id))", ProblemOccurrences.class);
     }
 
     private CompletableFuture<List<File>> unzip(CompletableFuture<File> zipFileFut) {
@@ -545,12 +552,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @AutoProfiling
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId) {
         return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, sinceBuildId);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    @AutoProfiling public CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch) {
-        return supplyAsync(() -> getBuildsInState(null, branch, BuildRef.STATE_RUNNING), executor);
     }
 
     /** {@inheritDoc} */

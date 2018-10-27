@@ -23,6 +23,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 
 /**
@@ -59,4 +60,6 @@ public interface ITeamcityConn {
      * @param queueAtTop Put at the top of the build queue.
      */
     public Build triggerBuild(String buildTypeId, @Nonnull String branchName, boolean cleanRebuild, boolean queueAtTop);
+
+    ProblemOccurrences getProblems(int buildId);
 }

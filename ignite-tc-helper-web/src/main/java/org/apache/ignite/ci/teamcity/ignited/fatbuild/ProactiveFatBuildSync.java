@@ -22,6 +22,8 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -213,18 +215,27 @@ public class ProactiveFatBuildSync {
 
         Build build;
         List<TestOccurrencesFull> tests = new ArrayList<>();
+        List<ProblemOccurrence> problems;
         try {
             build = conn.getBuild(buildId);
 
-            String nextHref = null;
-            do {
-                boolean testDtls = !build.isComposite(); // don't query test details for compoite
-                TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, testDtls);
-                nextHref = page.nextHref();
+            if(build.testOccurrences!=null) {
+                String nextHref = null;
+                do {
+                    boolean testDtls = !build.isComposite(); // don't query test details for compoite
+                    TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, testDtls);
+                    nextHref = page.nextHref();
 
-                tests.add(page);
+                    tests.add(page);
+                }
+                while (!Strings.isNullOrEmpty(nextHref));
             }
-            while (!Strings.isNullOrEmpty(nextHref));
+
+            if (build.problemOccurrences != null) {
+                ProblemOccurrences po = conn.getProblems(buildId);
+                problems = new ArrayList<>(po.getProblemsNonNull());
+            } else
+                problems = Collections.emptyList();
         }
         catch (Exception e) {
             if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
@@ -237,9 +248,13 @@ public class ProactiveFatBuildSync {
                         build.setCancelled();
 
                     tests = Collections.singletonList(existingBuild.getTestOcurrences(compactor));
+
+                    problems = existingBuild.problems(compactor);
                 }
-                else
+                else {
                     build = Build.createFakeStub();
+                    problems = Collections.emptyList();
+                }
             } else {
                 logger.error("Loading build [" + buildId + "] for server [" + srvNme + "] failed:" + e.getMessage(), e);
 
@@ -251,6 +266,6 @@ public class ProactiveFatBuildSync {
 
         //if we are here because of some sort of outdated version of build,
         // new save will be performed with new entity version for compacted build
-        return fatBuildDao.saveBuild(srvIdMask, buildId, build, tests, existingBuild);
+        return fatBuildDao.saveBuild(srvIdMask, buildId, build, tests, problems, existingBuild);
     }
 }

@@ -105,10 +105,6 @@ public interface ITeamcity extends ITeamcityConn {
 
     /**   */
     @Deprecated
-    CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch);
-
-    /**   */
-    @Deprecated
     CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch);
 
     /**

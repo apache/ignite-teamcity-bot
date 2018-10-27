@@ -24,20 +24,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.validation.constraints.NotNull;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.internal.util.GridIntList;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -68,14 +64,16 @@ public class FatBuildDao {
      * @param buildId
      * @param build Build data.
      * @param tests TestOccurrences one or several pages.
+     * @param problems
      * @param existingBuild existing version of build in the DB.
      * @return Fat Build saved (if modifications detected), otherwise null.
      */
     public FatBuildCompacted saveBuild(long srvIdMaskHigh,
-        int buildId,
-        @NotNull Build build,
-        List<TestOccurrencesFull> tests,
-        @Nullable FatBuildCompacted existingBuild) {
+                                       int buildId,
+                                       @NotNull Build build,
+                                       @NotNull List<TestOccurrencesFull> tests,
+                                       @NotNull List<ProblemOccurrence> problems,
+                                       @Nullable FatBuildCompacted existingBuild) {
         Preconditions.checkNotNull(buildsCache, "init() was not called");
         Preconditions.checkNotNull(build, "build can't be null");
 
@@ -83,6 +81,8 @@ public class FatBuildDao {
 
         for (TestOccurrencesFull next : tests)
             newBuild.addTests(compactor, next.getTests());
+
+        newBuild.addProblems(compactor, problems);
 
         if (existingBuild == null || !existingBuild.equals(newBuild)) {
             buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
