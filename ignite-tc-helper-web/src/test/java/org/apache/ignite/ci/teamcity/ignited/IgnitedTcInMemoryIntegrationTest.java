@@ -37,6 +37,7 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitSheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.di.scheduler.NoOpSheduler;
+import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -257,6 +258,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         TestOccurrencesFull testsRef = jaxbTestXml("/testList.xml", TestOccurrencesFull.class);
         ProblemOccurrences problemsList = jaxbTestXml("/problemList.xml", ProblemOccurrences.class);
         Statistics statistics = jaxbTestXml("/statistics.xml", Statistics.class);
+        ChangesList changesList = jaxbTestXml("/changeList.xml", ChangesList.class);
 
         Injector injector = Guice.createInjector(new AbstractModule() {
             @Override protected void configure() {
@@ -271,7 +273,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(APACHE);
         List<TestOccurrencesFull> occurrences = Collections.singletonList(testsRef);
         FatBuildCompacted buildCompacted = stor.saveBuild(srvIdMaskHigh, refBuild.getId(), refBuild, occurrences,
-                problemsList.getProblemsNonNull(), statistics, null);
+                problemsList.getProblemsNonNull(), statistics, changesList, null);
         assertNotNull(buildCompacted);
 
         FatBuildCompacted fatBuild = stor.getFatBuild(srvIdMaskHigh, 2153237);
@@ -317,6 +319,10 @@ public class IgnitedTcInMemoryIntegrationTest {
         Long duration = buildCompacted.buildDuration(compactor);
         assertNotNull(duration);
         assertTrue(duration>10000L);
+
+        int[] ch = buildCompacted.changes();
+
+        assertEquals(6, ch.length);
     }
 
     public void saveTmpFile(Object obj, String name) throws IOException, JAXBException {

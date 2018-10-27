@@ -28,6 +28,10 @@ import org.apache.ignite.ci.tcmodel.result.AbstractRef;
 public class ChangeRef extends AbstractRef {
     @XmlAttribute public String id;
     @XmlAttribute public String version;
+
+    /**
+     * VCS username
+     */
     @XmlAttribute public String username;
     @XmlAttribute public String date;
     @XmlAttribute public String webUrl;

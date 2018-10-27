@@ -45,6 +45,9 @@ public class Parameters {
     }
 
     public List<Property> properties() {
+        if(this.properties==null)
+            return Collections.emptyList();
+
         return Collections.unmodifiableList(this.properties);
     }
 }

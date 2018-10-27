@@ -17,23 +17,24 @@
 
 package org.apache.ignite.ci.analysis;
 
+import com.google.common.base.Strings;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
+import org.apache.ignite.ci.util.CollectionUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nonnull;
-
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
-import org.apache.ignite.ci.util.CollectionUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Run configuration execution results loaded from different API URLs.
@@ -261,9 +262,11 @@ public class MultBuildRunCtx implements ISuiteResults {
     @Nullable
     public Long getBuildDuration() {
         final OptionalDouble average = buildsStream()
-                .mapToLong(SingleBuildRunCtx::getBuildDuration)
+                .map(SingleBuildRunCtx::getBuildDuration)
                 .filter(Objects::nonNull)
+                .mapToLong(l->l)
                 .average();
+
         if(average.isPresent())
             return (long) average.getAsDouble();
 
@@ -307,9 +310,19 @@ public class MultBuildRunCtx implements ISuiteResults {
      */
     public Stream<String> lastChangeUsers() {
         return buildsStream()
-            .flatMap(k -> k.getChanges().stream())
-            .map(change -> change.username)
-            .filter(Objects::nonNull);
+                .flatMap(k -> k.getChanges().stream())
+                .filter(ChangeCompacted::hasUsername)
+                .map(change -> {
+                    final String tcUserFullName = change.tcUserFullName(compactor);
+
+                    final String vcsUsername = change.vcsUsername(compactor);
+
+                    if (Strings.isNullOrEmpty(tcUserFullName))
+                        return vcsUsername;
+
+
+                    return vcsUsername + " [" + tcUserFullName + "]";
+                });
     }
 
     Stream<? extends Future<?>> getFutures() {

@@ -20,6 +20,7 @@ package org.apache.ignite.ci.tcbot.condition;
 import java.util.Date;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
+//todo move to ignited package, change cache to 8 partitions
 public class BuildConditionCompacted {
     /** Build id. */
     int buildId = -1;

@@ -24,8 +24,12 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcbot.condition.BuildCondition;
 import org.apache.ignite.ci.tcbot.condition.BuildConditionDao;
+import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
@@ -68,6 +72,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     @Inject private ProactiveFatBuildSync buildSync;
 
+    /** Changes DAO. */
+    @Inject private ChangeDao changesDao;
+
+    /** Changes DAO. */
+    @Inject private ChangeSync changeSync;
+
     /** Server ID mask for cache Entries. */
     private int srvIdMaskHigh;
 
@@ -79,6 +89,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         buildRefDao.init(); //todo init somehow in auto
         buildConditionDao.init();
         fatBuildDao.init();
+        changesDao.init();
     }
 
 
@@ -146,6 +157,29 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return savedVer == null ? existingBuild : savedVer;
     }
 
+    @Override
+    public Collection<ChangeCompacted> getAllChanges(int[] changeIds) {
+        final Map<Long, ChangeCompacted> all = changesDao.getAll(srvIdMaskHigh, changeIds);
+
+        final Map<Integer, ChangeCompacted> changes = new HashMap<>();
+
+        //todo support change version upgrade
+        all.forEach((k, v) -> {
+            final int changeId = ChangeDao.cacheKeyToChangeId(k);
+
+            changes.put(changeId, v);
+        });
+
+        for (int changeId : changeIds) {
+            if (!changes.containsKey(changeId)) {
+                final ChangeCompacted change = changeSync.change(srvIdMaskHigh, changeId, conn);
+
+                changes.put(changeId, change);
+            }
+        }
+
+        return changes.values();
+    }
 
 
     /**

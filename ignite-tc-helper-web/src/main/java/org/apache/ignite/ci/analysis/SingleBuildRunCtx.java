@@ -28,6 +28,7 @@ import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
@@ -43,11 +44,11 @@ public class SingleBuildRunCtx implements ISuiteResults {
     /** Compactor. */
     private IStringCompactor compactor;
 
+    /** Changes. */
+    private List<ChangeCompacted> changes = new ArrayList<>();
+
     /** Logger check result future. */
     private CompletableFuture<LogCheckResult> logCheckResFut;
-
-    /** Changes. */
-    private List<Change> changes = new ArrayList<>();
 
     /**
      * @param buildCompacted Build compacted.
@@ -140,15 +141,8 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return logCheckRes;
     }
 
-    public void addChange(Change change) {
-        if (change.isFakeStub())
-            return;
-
-        this.changes.add(change);
-    }
-
-    public List<Change> getChanges() {
-        return changes;
+    public List<ChangeCompacted> getChanges() {
+        return Collections.unmodifiableList(changes);
     }
 
     public List<TestOccurrenceFull> getTests() {
@@ -196,5 +190,10 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     public Long getBuildDuration() {
         return buildCompacted.buildDuration(compactor);
+    }
+
+    public void setChanges(Collection<ChangeCompacted> changes) {
+        this.changes.clear();
+        this.changes.addAll(changes);
     }
 }

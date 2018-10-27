@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import org.apache.ignite.ci.tcmodel.changes.Change;
+import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
@@ -65,4 +68,8 @@ public interface ITeamcityConn {
     ProblemOccurrences getProblems(int buildId);
 
     Statistics getStatistics(int buildId);
+
+    ChangesList getChangesList(int buildId);
+
+    Change getChange(int changeId);
 }

@@ -17,12 +17,6 @@
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.Objects;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -37,6 +31,13 @@ import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  *
@@ -82,6 +83,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     @Nullable private List<ProblemCompacted> problems;
 
     @Nullable private StatisticsCompacted statistics;
+
+    @Nullable private int changesIds[];
 
     /** {@inheritDoc} */
     @Override public int version() {
@@ -266,13 +269,14 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             Objects.equal(snapshotDeps, that.snapshotDeps) &&
             Objects.equal(flags, that.flags) &&
                 Objects.equal(problems, that.problems) &&
-                Objects.equal(statistics, that.statistics);
+                Objects.equal(statistics, that.statistics)
+                && Objects.equal(changesIds, that.changesIds);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests,
-                snapshotDeps, flags, problems, statistics);
+                snapshotDeps, flags, problems, statistics, changesIds);
     }
 
     /**
@@ -343,5 +347,16 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     public void statistics(IStringCompactor compactor, Statistics statistics) {
         this.statistics = new StatisticsCompacted(compactor, statistics);
+    }
+
+    public void changes(int[] changes) {
+        this.changesIds = changes;
+    }
+
+    public int[] changes() {
+        if(changesIds==null)
+            return new int[0];
+
+        return changesIds;
     }
 }

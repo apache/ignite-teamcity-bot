@@ -1161,6 +1161,16 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.getStatistics(buildId);
     }
 
+    @Override
+    public ChangesList getChangesList(int buildId) {
+        return teamcity.getChangesList(buildId);
+    }
+
+    @Override
+    public Change getChange(int changeId) {
+        return teamcity.getChange(changeId);
+    }
+
     /** {@inheritDoc} */
     @Override public void setAuthToken(String tok) {
         teamcity.setAuthToken(tok);
