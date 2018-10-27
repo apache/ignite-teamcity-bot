@@ -102,19 +102,6 @@ public class FullChainRunCtx {
             + (hasFullDurationInfo() ? "" : "+");
     }
 
-    private Stream<Long> getSourceUpdateDurations() {
-        return suites().stream().map(MultBuildRunCtx::getSourceUpdateDuration);
-    }
-
-    public Long getTotalSourceUpdateDuration() {
-        return getSourceUpdateDurations().filter(Objects::nonNull).mapToLong(t -> t).sum();
-    }
-
-    @NotNull public String getSourceUpdateDurationPrintable() {
-        return (TimeUtil.millisToDurationPrintable(getTotalSourceUpdateDuration()))
-            + (hasFullDurationInfo() ? "" : "+");
-    }
-
     public void addAllSuites(ArrayList<MultBuildRunCtx> suites) {
         this.buildCfgsResults.addAll(suites);
     }

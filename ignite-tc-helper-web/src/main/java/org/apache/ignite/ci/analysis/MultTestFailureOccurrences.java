@@ -39,10 +39,6 @@ public class MultTestFailureOccurrences implements ITestFailures {
         return occurrences.stream().anyMatch(TestOccurrence::isInvestigated);
     }
 
-    @Override public Stream<String> getOccurrenceIds() {
-        return occurrences.stream().map(TestOccurrence::getId);
-    }
-
     public boolean hasFailedButNotMuted() {
         return getFailedButNotMutedCount() > 0;
     }
@@ -51,10 +47,6 @@ public class MultTestFailureOccurrences implements ITestFailures {
         return (int)occurrences.stream()
             .filter(Objects::nonNull)
             .filter(TestOccurrence::isFailedButNotMuted).count();
-    }
-
-    public int occurrencesCount() {
-        return (int)getOccurrenceIds().count();
     }
 
     @Override public int failuresCount() {

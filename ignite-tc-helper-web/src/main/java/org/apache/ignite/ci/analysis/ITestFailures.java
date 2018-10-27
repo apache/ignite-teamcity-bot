@@ -28,10 +28,6 @@ public interface ITestFailures {
 
     boolean isInvestigated();
 
-    Stream<String> getOccurrenceIds();
-
-    public int occurrencesCount();
-
     public int failuresCount();
 
     public long getAvgDurationMs();

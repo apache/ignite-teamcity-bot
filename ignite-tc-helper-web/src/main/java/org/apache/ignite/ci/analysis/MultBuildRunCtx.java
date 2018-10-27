@@ -72,10 +72,10 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     /** Currently running builds */
-    @Nullable private CompletableFuture<Long> runningBuildCount;
+    private Integer runningBuildCount;
 
     /** Currently scheduled builds */
-    @Nullable private CompletableFuture<Long> queuedBuildCount;
+    private Integer queuedBuildCount;
 
     public MultBuildRunCtx(@Nonnull final BuildRef buildInfo) {
         this.firstBuildInfo = buildInfo;
@@ -168,31 +168,6 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     @NotNull public Stream<String> getFailedTestsNames() {
         return buildsStream().flatMap(SingleBuildRunCtx::getFailedNotMutedTestNames).distinct();
-    }
-
-    public String getPrintableStatusString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("\t[").append(suiteName()).append("]\t");
-        builder.append(getResult());
-        builder.append(" ");
-        builder.append(failedTests());
-
-        if (stat != null) {
-            final Long durationMs = stat.getBuildDuration();
-            if (durationMs != null)
-                builder.append(" ").append(TimeUtil.millisToDurationPrintable(durationMs));
-        }
-
-        builder.append("\n");
-        getCriticalFailLastStartedTest().forEach(lastStartedTest ->
-            builder.append("\t").append(lastStartedTest).append(" (Last started) \n"));
-
-        getFailedTestsNames().forEach(
-            name -> {
-                builder.append("\t").append(name).append("\n");
-            }
-        );
-        return builder.toString();
     }
 
     /**
@@ -316,13 +291,6 @@ public class MultBuildRunCtx implements ISuiteResults {
         return stat == null ? null : stat.getBuildDuration();
     }
 
-    @Nullable
-    public Long getSourceUpdateDuration() {
-        return stat == null ? null : stat.getSourceUpdateDuration();
-    }
-
-
-
     @Nullable public String suiteName() {
         return buildsStream().findFirst().map(SingleBuildRunCtx::suiteName).orElse(null);
     }
@@ -335,11 +303,11 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
 
-    public void setRunningBuildCount(CompletableFuture<Long> runningBuildCount) {
+    public void setRunningBuildCount(int runningBuildCount) {
         this.runningBuildCount = runningBuildCount;
     }
 
-    public void setQueuedBuildCount(CompletableFuture<Long> queuedBuildCount) {
+    public void setQueuedBuildCount(int queuedBuildCount) {
         this.queuedBuildCount = queuedBuildCount;
     }
 
@@ -348,22 +316,11 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public Integer queuedBuildCount() {
-        if (queuedBuildCount == null)
-            return 0;
-
-        Long val = FutureUtil.getResultSilent(queuedBuildCount);
-
-        return val == null ? 0 : val.intValue();
-
+        return queuedBuildCount == null ? Integer.valueOf(0) : queuedBuildCount;
     }
 
     public Integer runningBuildCount() {
-        if (runningBuildCount == null)
-            return 0;
-
-        Long val = FutureUtil.getResultSilent(runningBuildCount);
-
-        return val == null ? 0 : val.intValue();
+        return runningBuildCount == null ? Integer.valueOf(0) : runningBuildCount;
     }
 
     /**
@@ -377,15 +334,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     Stream<? extends Future<?>> getFutures() {
-        Stream<CompletableFuture<?>> stream1 = queuedBuildCount != null ? Stream.of(queuedBuildCount) : Stream.empty();
-        Stream<CompletableFuture<?>> stream2 = runningBuildCount != null ? Stream.of(runningBuildCount) : Stream.empty();
-
-        Stream<? extends Future<?>> stream4 = buildsStream().flatMap(SingleBuildRunCtx::getFutures);
-
-        return
-            concat(
-                concat(stream1, stream2),
-                stream4);
+        return buildsStream().flatMap(SingleBuildRunCtx::getFutures);
     }
 
     /**

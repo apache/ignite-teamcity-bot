@@ -273,22 +273,16 @@ public class BuildChainProcessor {
     private static void fillBuildCounts(MultBuildRunCtx outCtx,
         ITeamcityIgnited teamcityIgnited, boolean includeScheduledInfo) {
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {
-            Function<List<BuildRef>, Long> cntRelatedToThisBuildType = list ->
-                list.stream()
-                    .filter(ref -> Objects.equals(ref.buildTypeId, outCtx.buildTypeId()))
-                    .filter(ref -> Objects.equals(normalizeBranch(outCtx.branchName()), normalizeBranch(ref)))
-                    .count();
-
-            //todo queue all builds instead of specific + caching
+            //todo queue compacted instead of full
             long cntRunning = teamcityIgnited.getBuildHistory(outCtx.buildTypeId(), outCtx.branchName())
                 .stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isRunning).count();
 
-            outCtx.setRunningBuildCount(CompletableFuture.completedFuture(cntRunning));
+            outCtx.setRunningBuildCount((int) cntRunning);
 
             long cntQueued = teamcityIgnited.getBuildHistory(outCtx.buildTypeId(), outCtx.branchName())
                 .stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isQueued).count();
 
-            outCtx.setQueuedBuildCount(CompletableFuture.completedFuture(cntQueued));
+            outCtx.setQueuedBuildCount((int) cntQueued);
         }
     }
 
