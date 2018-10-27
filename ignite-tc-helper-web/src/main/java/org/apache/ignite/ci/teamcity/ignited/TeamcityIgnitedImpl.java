@@ -175,13 +175,13 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             });
         }
         //schedule direct reload for Fat Builds for all queued too-old builds
-        buildSync.scheduleBuildsLoad(srvNme, directUpload);
+        buildSync.scheduleBuildsLoad(conn, directUpload);
 
         runActualizeBuildRefs(srvNme, false, paginateUntil);
 
         if(!paginateUntil.isEmpty()) {
             //some builds may stuck in the queued or running, enforce loading as well
-            buildSync.scheduleBuildsLoad(srvNme, paginateUntil);
+            buildSync.scheduleBuildsLoad(conn, paginateUntil);
         }
 
         // schedule full resync later
@@ -221,7 +221,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         Set<Long> buildsUpdated = buildRefDao.saveChunk(srvIdMaskHigh, tcDataFirstPage);
         int totalUpdated = buildsUpdated.size();
-        buildSync.scheduleBuildsLoad(srvNme, cacheKeysToBuildIds(buildsUpdated));
+        buildSync.scheduleBuildsLoad(conn, cacheKeysToBuildIds(buildsUpdated));
 
         int totalChecked = tcDataFirstPage.size();
         int neededToFind = 0;
@@ -237,7 +237,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             List<BuildRef> tcDataNextPage = conn.getBuildRefs(nextPageUrl, outLinkNext);
             Set<Long> curChunkBuildsSaved = buildRefDao.saveChunk(srvIdMaskHigh, tcDataNextPage);
             totalUpdated += curChunkBuildsSaved.size();
-            buildSync.scheduleBuildsLoad(srvNme, cacheKeysToBuildIds(curChunkBuildsSaved));
+            buildSync.scheduleBuildsLoad(conn, cacheKeysToBuildIds(curChunkBuildsSaved));
 
             int savedCurChunk = curChunkBuildsSaved.size();
 

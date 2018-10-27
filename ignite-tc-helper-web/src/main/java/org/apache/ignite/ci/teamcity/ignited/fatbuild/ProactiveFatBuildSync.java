@@ -59,28 +59,35 @@ public class ProactiveFatBuildSync {
 
     @Inject private IStringCompactor compactor;
 
-
     @GuardedBy("this")
-    private Set<Integer> buildToLoad = new HashSet<>();
+    private Map<String, SyncTask> buildToLoad = new HashMap<>();
 
+    private static class SyncTask {
+        ITeamcityConn conn;
+        Set<Integer> ids = new HashSet<>();
+    }
 
     /**
      * Invoke load fat builds later, re-load provided builds.
-     * @param srvNme
+     * @param conn
      * @param buildsToAskFromTc Builds to ask from tc.
      */
-    public void scheduleBuildsLoad(String srvNme , Collection<Integer> buildsToAskFromTc) {
+    public void scheduleBuildsLoad(ITeamcityConn conn, Collection<Integer> buildsToAskFromTc) {
         if (buildsToAskFromTc.isEmpty())
             return;
 
+
         synchronized (this) {
-            buildToLoad.addAll(buildsToAskFromTc);
+            final String serverId = conn.serverId();
+            final SyncTask syncTask = buildToLoad.computeIfAbsent(serverId, s -> new SyncTask());
+            syncTask.conn = conn;
+            syncTask.ids.addAll(buildsToAskFromTc);
         }
 
         int ldrToActivate = ThreadLocalRandom.current().nextInt(FAT_BUILD_PROACTIVE_TASKS);
 
-        scheduler.sheduleNamed(taskName("loadFatBuilds" + ldrToActivate, srvNme),
-                () -> loadFatBuilds(ldrToActivate, srvNme), 2, TimeUnit.MINUTES);
+        scheduler.sheduleNamed(taskName("loadFatBuilds" + ldrToActivate, conn.serverId()),
+                () -> loadFatBuilds(ldrToActivate, conn.serverId()), 2, TimeUnit.MINUTES);
 
     }
 
@@ -105,15 +112,30 @@ public class ProactiveFatBuildSync {
 
 
     /** */
-    private void loadFatBuilds(int ldrNo, String srvNme) {
+    private void loadFatBuilds(int ldrNo, String serverId) {
         Set<Integer> load;
-
+        ITeamcityConn conn;
         synchronized (this) {
-            load = buildToLoad;
-            buildToLoad = new HashSet<>();
+            final SyncTask syncTask = buildToLoad.get(serverId);
+            if (syncTask == null)
+                return;
+
+            if (syncTask.ids.isEmpty()) {
+                syncTask.conn = null;
+                return;
+            }
+
+            if (syncTask.conn == null)
+                return;
+
+            load = syncTask.ids;
+            syncTask.ids = new HashSet<>();
+
+            conn = syncTask.conn;
+            syncTask.conn = null;
         }
 
-        doLoadBuilds(ldrNo, srvNme, conn, load);
+        doLoadBuilds(ldrNo, serverId, conn, load);
     }
 
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
