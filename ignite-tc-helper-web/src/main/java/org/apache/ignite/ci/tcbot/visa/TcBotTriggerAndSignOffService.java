@@ -80,14 +80,6 @@ public class TcBotTriggerAndSignOffService {
     @Inject ITcHelper tcHelper;
 
     /** */
-    public void startObserver() {
-        buildObserverProvider.get();
-    }
-
-    /** Helper. */
-    @Inject ITcHelper tcHelper;
-
-    /** */
     SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     /** */

@@ -102,21 +102,6 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @Override public void setServerAuthorizerCreds(ICredentialsProv creds) {
-        this.serverAuthorizerCreds = creds;
-    }
-
-    /** {@inheritDoc} */
-    @Override public ICredentialsProv getServerAuthorizerCreds() {
-        return serverAuthorizerCreds;
-    }
-
-    /** {@inheritDoc} */
-    @Override public boolean isServerAuthorized() {
-        return !Objects.isNull(serverAuthorizerCreds);
-    }
-
-    /** {@inheritDoc} */
     @Override public IssuesStorage issues() {
         return issuesStorage;
     }
