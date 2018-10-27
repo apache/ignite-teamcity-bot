@@ -19,10 +19,8 @@ package org.apache.ignite.ci.analysis;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
@@ -31,6 +29,7 @@ import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
@@ -165,7 +164,10 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return changes;
     }
 
-    public List<? extends TestOccurrence> getTests() {
+    public List<TestOccurrenceFull> getTests() {
+        if(isComposite())
+            return Collections.emptyList();
+
         return buildCompacted.getTestOcurrences(compactor).getTests();
     }
 
@@ -183,7 +185,13 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
 
+    /**
+     * @return Names of not muted or ignored test failed for non composite build
+     */
     public Stream<String> getFailedNotMutedTestNames() {
+        if(isComposite())
+            return Stream.empty();
+
         return buildCompacted.getFailedNotMutedTestNames(compactor);
     }
 

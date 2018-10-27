@@ -46,7 +46,6 @@ import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
@@ -113,7 +112,7 @@ public class BuildChainProcessor {
 
         final List<Future<Stream<BuildRef>>> phase1Submitted = uniqueBuldsInvolved
                 .map((buildRef) -> svc.submit(
-                        () -> replaceWithRecent(teamcity, teamcityIgnited, includeLatestRebuild, unique, buildRef, entryPoints.size())))
+                        () -> replaceWithRecent(teamcityIgnited, includeLatestRebuild, unique, buildRef, entryPoints.size())))
                 .collect(Collectors.toList());
 
 
@@ -133,31 +132,29 @@ public class BuildChainProcessor {
             fillBuildCounts(multiCtx, teamcityIgnited, includeScheduledInfo);
         });
 
-        if (teamcity != null) {
-            Function<MultBuildRunCtx, Float> function = ctx -> {
-                SuiteInBranch key = new SuiteInBranch(ctx.suiteId(), normalizeBranch(failRateBranch));
+        Function<MultBuildRunCtx, Float> function = ctx -> {
+            SuiteInBranch key = new SuiteInBranch(ctx.suiteId(), normalizeBranch(failRateBranch));
 
-                RunStat runStat = teamcity.getBuildFailureRunStatProvider().apply(key);
+            RunStat runStat = teamcity.getBuildFailureRunStatProvider().apply(key);
 
-                if (runStat == null)
-                    return 0f;
+            if (runStat == null)
+                return 0f;
 
-                //some hack to bring timed out suites to top
-                return runStat.getCriticalFailRate() * 3.14f + runStat.getFailRate();
-            };
+            //some hack to bring timed out suites to top
+            return runStat.getCriticalFailRate() * 3.14f + runStat.getFailRate();
+        };
 
-            contexts.sort(Comparator.comparing(function).reversed());
-        }
-        else
-            contexts.sort(Comparator.comparing(MultBuildRunCtx::suiteName));
+        contexts.sort(Comparator.comparing(function).reversed());
 
         fullChainRunCtx.addAllSuites(contexts);
 
         return fullChainRunCtx;
     }
 
+    @SuppressWarnings("WeakerAccess")
     @NotNull
-    public Stream<? extends BuildRef> processBuildList(ITeamcity teamcity,
+    @AutoProfiling
+    protected Stream<? extends BuildRef> processBuildList(ITeamcity teamcity,
         ITeamcityIgnited teamcityIgnited, Map<String, MultBuildRunCtx> buildsCtxMap,
         Stream<? extends BuildRef> list) {
         list.forEach((BuildRef ref) -> {
@@ -184,7 +181,7 @@ public class BuildChainProcessor {
 
         SingleBuildRunCtx ctx = new SingleBuildRunCtx(buildFromFat, buildCompacted, compactor);
 
-        if (!buildFromFat.isComposite())
+        if (!buildCompacted.isComposite())
             mCtx.addTests(buildCompacted.getTestOcurrences(compactor).getTests());
 
 
@@ -224,10 +221,14 @@ public class BuildChainProcessor {
         return ctx;
     }
 
+    @SuppressWarnings("WeakerAccess")
     @NotNull
-    public static Stream< BuildRef> replaceWithRecent(ITeamcity teamcity,
-        ITeamcityIgnited teamcityIgnited, LatestRebuildMode includeLatestRebuild,
-        Map<Integer, BuildRef> unique, BuildRef buildRef, int cntLimit) {
+    @AutoProfiling
+    protected static Stream< BuildRef> replaceWithRecent(ITeamcityIgnited teamcityIgnited,
+                                                      LatestRebuildMode includeLatestRebuild,
+                                                      Map<Integer, BuildRef> unique,
+                                                      BuildRef buildRef,
+                                                      int cntLimit) {
         if (includeLatestRebuild == LatestRebuildMode.NONE)
             return Stream.of(buildRef);
 
@@ -292,13 +293,12 @@ public class BuildChainProcessor {
     }
 
     private static void analyzeTests(MultBuildRunCtx outCtx, IAnalyticsEnabledTeamcity teamcity,
-        ProcessLogsMode procLog) {
+                                     ProcessLogsMode procLog) {
         for (SingleBuildRunCtx ctx : outCtx.getBuilds()) {
-            if (teamcity != null)
-                teamcity.calculateBuildStatistic(ctx);
+            teamcity.calculateBuildStatistic(ctx);
 
             if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
-                || procLog == ProcessLogsMode.ALL)
+                    || procLog == ProcessLogsMode.ALL)
                 ctx.setLogCheckResFut(teamcity.analyzeBuildLog(ctx.buildId(), ctx));
         }
     }

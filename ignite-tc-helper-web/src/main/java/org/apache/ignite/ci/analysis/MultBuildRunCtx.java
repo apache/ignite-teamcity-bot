@@ -397,7 +397,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     /**
-     * @return Set of tests.
+     * @return Set of tests (both for composite and regular)
      */
     public Set<String> tests() {
         return buildsStream().flatMap(SingleBuildRunCtx::getAllTestNames).collect(Collectors.toSet());
