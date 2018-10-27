@@ -42,7 +42,6 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
-import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.web.rest.build.GetBuildTestFailures;
 import org.apache.ignite.ci.web.rest.pr.GetPrTestFailures;
 import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
@@ -64,6 +63,9 @@ public class DbMigrations {
     public static final String TESTS = "tests";
     @Deprecated
     private static final String BUILD_RESULTS = "buildResults";
+
+    private static final String BUILD_STATISTICS = "buildStatistics";
+
     public static final String TESTS_COUNT_7700 = ",count:7700";
 
     //V1 caches, 1024 parts
@@ -108,17 +110,15 @@ public class DbMigrations {
     }
 
     public void dataMigration(
-        IgniteCache<String, TestOccurrences> testOccurrencesCache, Consumer<TestOccurrences> saveTestToStat,
-        Consumer<TestOccurrences> saveTestToLatest,
-        Cache<String, Build> buildCache, Consumer<Build> saveBuildToStat,
-        IgniteCache<SuiteInBranch, RunStat> suiteHistCache,
-        IgniteCache<TestInBranch, RunStat> testHistCache,
-        Cache<String, TestOccurrenceFull> testFullCache,
-        Cache<String, ProblemOccurrences> problemsCache,
-        Cache<String, Statistics> buildStatCache,
-        Cache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistCache,
-        Cache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistInFailedCache,
-        Cache<String, TestRef> testRefsCache) {
+            IgniteCache<String, TestOccurrences> testOccurrencesCache, Consumer<TestOccurrences> saveTestToStat,
+            Consumer<TestOccurrences> saveTestToLatest,
+            Cache<String, Build> buildCache, Consumer<Build> saveBuildToStat,
+            IgniteCache<SuiteInBranch, RunStat> suiteHistCache,
+            IgniteCache<TestInBranch, RunStat> testHistCache,
+            Cache<String, TestOccurrenceFull> testFullCache,
+            Cache<String, ProblemOccurrences> problemsCache,
+            Cache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistCache,
+            Cache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistInFailedCache) {
 
         doneMigrations = doneMigrationsCache();
 
@@ -346,7 +346,6 @@ public class DbMigrations {
             }
         });
         applyV1toV2Migration(PROBLEMS, problemsCache);
-        applyV1toV2Migration(STAT, buildStatCache);
         applyV1toV2Migration(FINISHED_BUILDS, buildHistCache);
         applyV1toV2Migration(FINISHED_BUILDS_INCLUDE_FAILED, buildHistInFailedCache);
 
@@ -407,6 +406,8 @@ public class DbMigrations {
 
         applyDestroyCacheMigration(TEAMCITY_BUILD_CACHE_NAME_OLD, TEAMCITY_BUILD_CACHE_NAME_OLD);
         applyDestroyIgnCacheMigration(TESTS);
+        applyDestroyIgnCacheMigration(STAT);
+        applyDestroyIgnCacheMigration(BUILD_STATISTICS);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {

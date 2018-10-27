@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 
 /**
@@ -42,7 +43,7 @@ public interface ITeamcityConn {
 
     public Build getBuild(int buildId);
 
-    public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> nextPage);
+    public List<BuildRef> getBuildRefsPage(String fullUrl, AtomicReference<String> nextPage);
 
     /**
      * @param buildId Build id.
@@ -62,4 +63,6 @@ public interface ITeamcityConn {
     public Build triggerBuild(String buildTypeId, @Nonnull String branchName, boolean cleanRebuild, boolean queueAtTop);
 
     ProblemOccurrences getProblems(int buildId);
+
+    Statistics getStatistics(int buildId);
 }

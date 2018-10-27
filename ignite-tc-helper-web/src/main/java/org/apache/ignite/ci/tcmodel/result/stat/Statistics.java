@@ -29,11 +29,14 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "properties")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Statistics extends Parameters {
+    public static final String BUILD_DURATION = "BuildDuration";
+    public static final String BUILD_STAGE_DURATION_SOURCES_UPDATE = "buildStageDuration:sourcesUpdate";
+
     /**
      * @return build duration in millis or null.
      */
     @Nullable public Long getBuildDuration() {
-        String duration = getParameter("BuildDuration");
+        String duration = getParameter(BUILD_DURATION);
         if (duration == null)
             return null;
 
@@ -44,11 +47,12 @@ public class Statistics extends Parameters {
      * @return source update duration in millis.
      */
     @Nullable public Long getSourceUpdateDuration() {
-        String duration = getParameter(  "buildStageDuration:sourcesUpdate");
+        String duration = getParameter(BUILD_STAGE_DURATION_SOURCES_UPDATE);
 
         if (duration == null)
             return null;
 
         return Long.parseLong(duration);
     }
+
 }

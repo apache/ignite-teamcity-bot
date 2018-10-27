@@ -23,7 +23,7 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -215,7 +215,8 @@ public class ProactiveFatBuildSync {
 
         Build build;
         List<TestOccurrencesFull> tests = new ArrayList<>();
-        List<ProblemOccurrence> problems;
+        List<ProblemOccurrence> problems = null;
+        Statistics statistics = null;
         try {
             build = conn.getBuild(buildId);
 
@@ -231,10 +232,11 @@ public class ProactiveFatBuildSync {
                 while (!Strings.isNullOrEmpty(nextHref));
             }
 
-            if (build.problemOccurrences != null) {
+            if (build.problemOccurrences != null)
                 problems = conn.getProblems(buildId).getProblemsNonNull();
-            } else
-                problems = Collections.emptyList();
+
+            if(build.statisticsRef!=null)
+                statistics = conn.getStatistics(buildId);
         }
         catch (Exception e) {
             if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
@@ -252,7 +254,6 @@ public class ProactiveFatBuildSync {
                 }
                 else {
                     build = Build.createFakeStub();
-                    problems = Collections.emptyList();
                 }
             } else {
                 logger.error("Loading build [" + buildId + "] for server [" + srvNme + "] failed:" + e.getMessage(), e);
@@ -265,6 +266,6 @@ public class ProactiveFatBuildSync {
 
         //if we are here because of some sort of outdated version of build,
         // new save will be performed with new entity version for compacted build
-        return fatBuildDao.saveBuild(srvIdMask, buildId, build, tests, problems, existingBuild);
+        return fatBuildDao.saveBuild(srvIdMask, buildId, build, tests, problems, statistics, existingBuild);
     }
 }

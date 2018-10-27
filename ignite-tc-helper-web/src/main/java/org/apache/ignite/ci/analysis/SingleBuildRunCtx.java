@@ -193,4 +193,8 @@ public class SingleBuildRunCtx implements ISuiteResults {
     public String projectId() {
         return buildCompacted.projectId(compactor);
     }
+
+    public Long getBuildDuration() {
+        return buildCompacted.buildDuration(compactor);
+    }
 }

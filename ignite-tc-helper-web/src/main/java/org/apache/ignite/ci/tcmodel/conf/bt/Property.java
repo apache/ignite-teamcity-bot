@@ -36,4 +36,8 @@ public class Property {
     public String getValue() {
         return value;
     }
+
+    public String name() {
+        return name;
+    }
 }

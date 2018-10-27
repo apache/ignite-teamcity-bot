@@ -325,6 +325,12 @@ public class IgniteTeamcityConnection implements ITeamcity {
                 "&fields=problemOccurrence(id,type,identity,href,details,build(id))", ProblemOccurrences.class);
     }
 
+    @Override
+    @AutoProfiling
+    public Statistics getStatistics(int buildId) {
+        return getJaxbUsingHref("app/rest/latest/builds/id:" + buildId + "/statistics", Statistics.class);
+    }
+
     private CompletableFuture<List<File>> unzip(CompletableFuture<File> zipFileFut) {
         return zipFileFut.thenApplyAsync(ZipUtil::unZipToSameFolder, executor);
     }
@@ -459,12 +465,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public Statistics getBuildStatistics(String href) {
-        return getJaxbUsingHref(href, Statistics.class);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
     @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
         return supplyAsync(() -> getJaxbUsingHref(href, TestOccurrenceFull.class), executor);
     }
@@ -520,13 +520,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch) {
-
-        return getFinishedBuilds(projectId, branch, null, null, null);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
     @Override public List<BuildRef> getFinishedBuilds(String projectId,
                                             String branch,
                                             Date sinceDate,
@@ -561,6 +554,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return supplyAsync(() -> getBuildsInState(null, branch, BuildRef.STATE_QUEUED), executor);
     }
 
+    @Deprecated
     private List<BuildRef> getBuildsInState(
             @Nullable final String projectId,
             @Nullable final String branch,
@@ -579,6 +573,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
+    @Deprecated
     protected List<BuildRef> getBuildsInState(
             @Nullable final String projectId,
             @Nullable final String branch,
@@ -657,7 +652,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> outNextPage) {
+    @Override public List<BuildRef> getBuildRefsPage(String fullUrl, AtomicReference<String> outNextPage) {
         String relPath = "app/rest/latest/builds?locator=defaultFilter:false";
         String relPathSelected = Strings.isNullOrEmpty(fullUrl) ? relPath : fullUrl;
         String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
@@ -680,10 +675,12 @@ public class IgniteTeamcityConnection implements ITeamcity {
      * @param buildId Build id.
      * @param testDtls request test details string
      */
-    @NotNull public String testsStartHref(int buildId, boolean testDtls) {
+    @NotNull
+    private String testsStartHref(int buildId, boolean testDtls) {
         String fieldList = "id,name," +
             (testDtls ? "details," : "") +
             "status,duration,muted,currentlyMuted,currentlyInvestigated,ignored,test(id),build(id)";
+
         return "app/rest/latest/testOccurrences?locator=build:(id:" +
             buildId + ")" +
             "&fields=testOccurrence(" + fieldList + ")";

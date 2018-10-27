@@ -212,9 +212,6 @@ public class BuildChainProcessor {
             }
         }
 
-        if (build.statisticsRef != null)
-            mCtx.setStat(teamcity.getBuildStatistics(build.statisticsRef.href));
-
         return ctx;
     }
 

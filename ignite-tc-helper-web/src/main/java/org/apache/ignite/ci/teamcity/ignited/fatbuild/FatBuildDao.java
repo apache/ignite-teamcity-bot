@@ -32,6 +32,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.jetbrains.annotations.Nullable;
@@ -65,6 +66,7 @@ public class FatBuildDao {
      * @param build Build data.
      * @param tests TestOccurrences one or several pages.
      * @param problems
+     * @param statistics
      * @param existingBuild existing version of build in the DB.
      * @return Fat Build saved (if modifications detected), otherwise null.
      */
@@ -72,7 +74,8 @@ public class FatBuildDao {
                                        int buildId,
                                        @NotNull Build build,
                                        @NotNull List<TestOccurrencesFull> tests,
-                                       @NotNull List<ProblemOccurrence> problems,
+                                       @Nullable List<ProblemOccurrence> problems,
+                                       @Nullable Statistics statistics,
                                        @Nullable FatBuildCompacted existingBuild) {
         Preconditions.checkNotNull(buildsCache, "init() was not called");
         Preconditions.checkNotNull(build, "build can't be null");
@@ -82,7 +85,11 @@ public class FatBuildDao {
         for (TestOccurrencesFull next : tests)
             newBuild.addTests(compactor, next.getTests());
 
-        newBuild.addProblems(compactor, problems);
+        if (problems != null)
+            newBuild.addProblems(compactor, problems);
+
+        if (statistics != null)
+            newBuild.statistics(compactor, statistics);
 
         if (existingBuild == null || !existingBuild.equals(newBuild)) {
             buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);

@@ -30,10 +30,12 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -42,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
 @Persisted
 public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEntity {
     /** Latest version. */
-    private static final int LATEST_VERSION = 3;
+    private static final int LATEST_VERSION = 4;
 
     /** Default branch flag offset. */
     public static final int DEF_BR_F = 0;
@@ -79,6 +81,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     @Nullable private List<ProblemCompacted> problems;
 
+    @Nullable private StatisticsCompacted statistics;
+
     /** {@inheritDoc} */
     @Override public int version() {
         return _ver;
@@ -105,7 +109,6 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         startDate = build.getStartDate() == null ? -1L : build.getStartDate().getTime();
         finishDate = build.getFinishDate() == null ? -1L : build.getFinishDate().getTime();
         queuedDate = build.getQueuedDate() == null ? -1L : build.getQueuedDate().getTime();
-
 
         BuildType type = build.getBuildType();
         if (type != null) {
@@ -199,7 +202,6 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         }
     }
 
-
     /**
      * @param off Offset.
      * @param val Value.
@@ -262,14 +264,15 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             name == that.name &&
             Objects.equal(tests, that.tests) &&
             Objects.equal(snapshotDeps, that.snapshotDeps) &&
-        Objects.equal(flags, that.flags) &&
-                Objects.equal(problems, that.problems);
+            Objects.equal(flags, that.flags) &&
+                Objects.equal(problems, that.problems) &&
+                Objects.equal(statistics, that.statistics);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests,
-                snapshotDeps, flags, problems);
+                snapshotDeps, flags, problems, statistics);
     }
 
     /**
@@ -321,7 +324,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return Collections.unmodifiableList(this.problems);
     }
 
-    public void addProblems(IStringCompactor compactor, List<ProblemOccurrence> occurrences) {
+    public void addProblems(IStringCompactor compactor,
+                            @NotNull List<ProblemOccurrence> occurrences) {
         if (occurrences.isEmpty())
             return;
 
@@ -331,5 +335,13 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         occurrences.stream()
                 .map(p -> new ProblemCompacted(compactor, p))
                 .forEach(this.problems::add);
+    }
+
+    public Long buildDuration(IStringCompactor compactor) {
+        return statistics == null ? null : statistics.buildDuration(compactor);
+    }
+
+    public void statistics(IStringCompactor compactor, Statistics statistics) {
+        this.statistics = new StatisticsCompacted(compactor, statistics);
     }
 }

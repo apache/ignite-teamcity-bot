@@ -106,7 +106,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Deprecated
     private static final String TEST_FULL = "testFull";
     private static final String BUILD_PROBLEMS = "buildProblems";
-    private static final String BUILD_STATISTICS = "buildStatistics";
     private static final String BUILD_HIST_FINISHED = "buildHistFinished";
     private static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
@@ -165,10 +164,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 buildsFailureRunStatCache(), testRunStatCache(),
                 testFullCache(),
                 buildProblemsCache(),
-                buildStatisticsCache(),
                 buildHistCache(),
-                buildHistIncFailedCache(),
-                testRefsCache());
+                buildHistIncFailedCache());
     }
 
     @Override
@@ -249,12 +246,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return getOrCreateCacheV2(ignCacheNme(BUILD_PROBLEMS));
     }
 
-    /**
-     * @return Build {@link Statistics} instances cache, 32 parts.
-     */
-    private IgniteCache<String, Statistics> buildStatisticsCache() {
-        return getOrCreateCacheV2(ignCacheNme(BUILD_STATISTICS));
-    }
 
 
     /**
@@ -853,26 +844,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public Statistics getBuildStatistics(String href) {
-        return loadIfAbsent(buildStatisticsCache(),
-            href,
-            href1 -> {
-                try {
-                    return teamcity.getBuildStatistics(href1);
-                }
-                catch (Exception e) {
-                    if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                        e.printStackTrace();
-                        return new Statistics();// save null result, because persistence may refer to some  unexistent build on TC
-                    }
-                    else
-                        throw e;
-                }
-            });
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
     @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
         return CacheUpdateUtil.loadAsyncIfAbsent(
             testFullCache(),
@@ -1185,6 +1156,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.getProblems(buildId);
     }
 
+    @Override
+    public Statistics getStatistics(int buildId) {
+        return teamcity.getStatistics(buildId);
+    }
+
     /** {@inheritDoc} */
     @Override public void setAuthToken(String tok) {
         teamcity.setAuthToken(tok);
@@ -1226,8 +1202,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> nextPage) {
-        return teamcity.getBuildRefs(fullUrl, nextPage);
+    @Override public List<BuildRef> getBuildRefsPage(String fullUrl, AtomicReference<String> nextPage) {
+        return teamcity.getBuildRefsPage(fullUrl, nextPage);
     }
 
     /** {@inheritDoc} */

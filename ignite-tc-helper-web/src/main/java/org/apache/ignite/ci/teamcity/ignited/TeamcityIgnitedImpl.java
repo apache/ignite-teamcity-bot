@@ -211,7 +211,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     protected String runActualizeBuildRefs(String srvId, boolean fullReindex,
                                            @Nullable Set<Integer> mandatoryToReload) {
         AtomicReference<String> outLinkNext = new AtomicReference<>();
-        List<BuildRef> tcDataFirstPage = conn.getBuildRefs(null, outLinkNext);
+        List<BuildRef> tcDataFirstPage = conn.getBuildRefsPage(null, outLinkNext);
 
         Set<Long> buildsUpdated = buildRefDao.saveChunk(srvIdMaskHigh, tcDataFirstPage);
         int totalUpdated = buildsUpdated.size();
@@ -228,7 +228,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         while (outLinkNext.get() != null) {
             String nextPageUrl = outLinkNext.get();
             outLinkNext.set(null);
-            List<BuildRef> tcDataNextPage = conn.getBuildRefs(nextPageUrl, outLinkNext);
+            List<BuildRef> tcDataNextPage = conn.getBuildRefsPage(nextPageUrl, outLinkNext);
             Set<Long> curChunkBuildsSaved = buildRefDao.saveChunk(srvIdMaskHigh, tcDataNextPage);
             totalUpdated += curChunkBuildsSaved.size();
             buildSync.scheduleBuildsLoad(conn, cacheKeysToBuildIds(curChunkBuildsSaved));

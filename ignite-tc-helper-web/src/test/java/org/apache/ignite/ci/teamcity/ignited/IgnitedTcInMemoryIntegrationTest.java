@@ -42,6 +42,7 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
@@ -255,6 +256,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         Build refBuild = jaxbTestXml("/build.xml", Build.class);
         TestOccurrencesFull testsRef = jaxbTestXml("/testList.xml", TestOccurrencesFull.class);
         ProblemOccurrences problemsList = jaxbTestXml("/problemList.xml", ProblemOccurrences.class);
+        Statistics statistics = jaxbTestXml("/statistics.xml", Statistics.class);
 
         Injector injector = Guice.createInjector(new AbstractModule() {
             @Override protected void configure() {
@@ -269,7 +271,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(APACHE);
         List<TestOccurrencesFull> occurrences = Collections.singletonList(testsRef);
         FatBuildCompacted buildCompacted = stor.saveBuild(srvIdMaskHigh, refBuild.getId(), refBuild, occurrences,
-                problemsList.getProblemsNonNull(), null);
+                problemsList.getProblemsNonNull(), statistics, null);
         assertNotNull(buildCompacted);
 
         FatBuildCompacted fatBuild = stor.getFatBuild(srvIdMaskHigh, 2153237);
@@ -311,6 +313,10 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertTrue(problems.stream().anyMatch(ProblemOccurrence::isFailedTests));
         assertTrue(problems.stream().anyMatch(ProblemOccurrence::isExitCode));
         assertTrue(problems.stream().noneMatch(ProblemOccurrence::isJvmCrash));
+
+        Long duration = buildCompacted.buildDuration(compactor);
+        assertNotNull(duration);
+        assertTrue(duration>10000L);
     }
 
     public void saveTmpFile(Object obj, String name) throws IOException, JAXBException {

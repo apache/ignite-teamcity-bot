@@ -17,13 +17,7 @@
 
 package org.apache.ignite.ci.analysis;
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
@@ -57,11 +51,6 @@ public class MultBuildRunCtx implements ISuiteResults {
     /** Tests: Map from full test name to multiple test occurrence. */
     @Deprecated
     private final Map<String, MultTestFailureOccurrences> tests = new ConcurrentSkipListMap<>();
-
-    /**
-     * Statistics for last build.
-     */
-    @Nullable private Statistics stat;
 
     public void addBuild(SingleBuildRunCtx ctx) {
         builds.add(ctx);
@@ -266,16 +255,19 @@ public class MultBuildRunCtx implements ISuiteResults {
         return firstBuildInfo.branchName;
     }
 
-    public void setStat(@Nullable Statistics stat) {
-        this.stat = stat;
-    }
-
     /**
      * @return last build duration.
      */
     @Nullable
     public Long getBuildDuration() {
-        return stat == null ? null : stat.getBuildDuration();
+        final OptionalDouble average = buildsStream()
+                .mapToLong(SingleBuildRunCtx::getBuildDuration)
+                .filter(Objects::nonNull)
+                .average();
+        if(average.isPresent())
+            return (long) average.getAsDouble();
+
+        return null;
     }
 
     @Nullable public String suiteName() {
