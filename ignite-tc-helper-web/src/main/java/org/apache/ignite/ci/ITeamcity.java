@@ -59,7 +59,6 @@ public interface ITeamcity extends ITeamcityConn {
 
     CompletableFuture<List<BuildType>> getProjectSuites(String projectId);
 
-    String serverId();
 
     /**
      * @param projectId Suite ID (string without spaces).

@@ -17,13 +17,7 @@
 
 package org.apache.ignite.ci.teamcity.ignited;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -222,5 +216,18 @@ public class BuildRefDao {
         }
 
         return false;
+    }
+
+    @AutoProfiling
+    public int[] getAllIds(int srvId) {
+        GridIntList res = new GridIntList(buildRefsCache.size());
+
+        StreamSupport.stream(buildRefsCache.spliterator(), false)
+                .map(Cache.Entry::getKey)
+                .filter(entry -> isKeyForServer(entry, srvId))
+                .map(BuildRefDao::cacheKeyToBuildId)
+                .forEach(res::add);
+
+        return res.array();
     }
 }
