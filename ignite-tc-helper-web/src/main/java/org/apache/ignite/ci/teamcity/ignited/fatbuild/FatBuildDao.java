@@ -134,16 +134,7 @@ public class FatBuildDao {
         return key!=null && key >> 32 == srvId;
     }
 
-    @AutoProfiling
-    public int[] getAllIds(int srvId) {
-        GridIntList res = new GridIntList(buildsCache.size());
-
-        StreamSupport.stream(buildsCache.spliterator(), false)
-                .map(Cache.Entry::getKey)
-                .filter(entry -> isKeyForServer(entry, srvId))
-                .map(BuildRefDao::cacheKeyToBuildId)
-                .forEach(res::add);
-
-        return res.array();
+    public boolean containsKey(int srvIdMaskHigh, int buildRefKey) {
+        return buildsCache.containsKey(buildIdToCacheKey(srvIdMaskHigh, buildRefKey));
     }
 }

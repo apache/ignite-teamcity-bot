@@ -95,21 +95,34 @@ public class ProactiveFatBuildSync {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Find missing builds", nameExtArgsIndexes = {0})
     @AutoProfiling
-    protected String findMissingBuildsFromBuildRef(String srvId) {
-        int  srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
+    protected String findMissingBuildsFromBuildRef(String srvId, ITeamcityConn conn) {
+        int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
 
         final int[] buildRefKeys = buildRefDao.getAllIds(srvIdMaskHigh);
-        final int[] fatBuildKeys = fatBuildDao.getAllIds(srvIdMaskHigh);
 
         Arrays.parallelSort(buildRefKeys);
-        Arrays.parallelSort(fatBuildKeys);
-        /* ;
-         */
 
-        return "";
+        List<Integer> buildsIdsToLoad = new ArrayList<>();
+        int totalAskedToLoad = 0;
+
+        for (int buildRefKey : buildRefKeys) {
+            if (!fatBuildDao.containsKey(srvIdMaskHigh, buildRefKey))
+                buildsIdsToLoad.add(buildRefKey);
+
+            if (buildsIdsToLoad.size() >= 100) {
+                totalAskedToLoad += buildsIdsToLoad.size();
+                scheduleBuildsLoad(conn, buildsIdsToLoad);
+                buildsIdsToLoad.clear();
+            }
+        }
+
+        if (!buildsIdsToLoad.isEmpty()) {
+            totalAskedToLoad += buildsIdsToLoad.size();
+            scheduleBuildsLoad(conn, buildsIdsToLoad);
+        }
+
+        return "Invoked later load for " + totalAskedToLoad + " builds from " + srvId;
     }
-
-
 
     /** */
     private void loadFatBuilds(int ldrNo, String serverId) {
@@ -139,7 +152,7 @@ public class ProactiveFatBuildSync {
     }
 
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
-    @MonitoredTask(name = "Proactive Builds Loading (agent,server)", nameExtArgsIndexes = {0, 1})
+    @MonitoredTask(name = "Proactive Builds Loading (srv,agent)", nameExtArgsIndexes = {1, 0})
     @AutoProfiling
     protected String doLoadBuilds(int ldrNo, String srvId, ITeamcityConn conn, Set<Integer> load) {
         if(load.isEmpty())
@@ -177,9 +190,9 @@ public class ProactiveFatBuildSync {
         return ProactiveFatBuildSync.class.getSimpleName() +"." + taskName + "." + srvName;
     }
 
-    public void invokeLaterFindMissingByBuildRef(String srvName) {
+    public void invokeLaterFindMissingByBuildRef(String srvName, ITeamcityConn conn) {
         scheduler.sheduleNamed(taskName("findMissingBuildsFromBuildRef", srvName),
-                () -> findMissingBuildsFromBuildRef(srvName), 360, TimeUnit.MINUTES);
+                () -> findMissingBuildsFromBuildRef(srvName, conn), 360, TimeUnit.MINUTES);
     }
 
     /**

@@ -17,8 +17,6 @@
 package org.apache.ignite.ci.teamcity.ignited;
 
 
-import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -28,19 +26,16 @@ import org.apache.ignite.ci.tcbot.condition.BuildCondition;
 import org.apache.ignite.ci.tcbot.condition.BuildConditionDao;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
-import org.apache.ignite.ci.util.ExceptionUtil;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -84,8 +79,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         buildRefDao.init(); //todo init somehow in auto
         buildConditionDao.init();
         fatBuildDao.init();
-
-        buildSync.invokeLaterFindMissingByBuildRef(srvNme);
     }
 
 
@@ -159,6 +152,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      *
      */
     void actualizeRecentBuildRefs() {
+        // schedule find missing later
+        buildSync.invokeLaterFindMissingByBuildRef(srvNme, conn);
+
         List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdMaskHigh);
 
         Set<Integer> paginateUntil = new HashSet<>();
@@ -200,8 +196,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     void fullReindex() {
         runActualizeBuildRefs(srvNme, true, null);
-
-        buildSync.invokeLaterFindMissingByBuildRef(srvNme);
     }
 
 
