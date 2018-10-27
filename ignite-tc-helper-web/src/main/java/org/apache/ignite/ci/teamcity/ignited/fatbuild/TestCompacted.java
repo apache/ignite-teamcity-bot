@@ -55,7 +55,7 @@ public class TestCompacted {
     public static final int COMPRESS_TYPE_RFU3 = 10;
     public static final int COMPRESS_TYPE_RFU4 = 11;
 
-    /** Id in this build only. Does not idenfity test for its history */
+    /** Id in this build only. Does not identify test for its history */
     private int idInBuild = -1;
 
     private int name = -1;

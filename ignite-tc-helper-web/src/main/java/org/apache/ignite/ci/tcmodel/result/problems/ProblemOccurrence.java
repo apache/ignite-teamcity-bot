@@ -77,4 +77,12 @@ public class ProblemOccurrence {
     public boolean isJavaLevelDeadlock() {
         return JAVA_LEVEL_DEADLOCK.equals(type);
     }
+
+    public String id() {
+        return id;
+    }
+
+    public void id(String fullStrId) {
+        this.id = fullStrId;
+    }
 }

@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
@@ -41,7 +42,7 @@ import org.jetbrains.annotations.Nullable;
 @Persisted
 public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEntity {
     /** Latest version. */
-    private static final int LATEST_VERSION = 2;
+    private static final int LATEST_VERSION = 3;
 
     /** Default branch flag offset. */
     public static final int DEF_BR_F = 0;
@@ -75,6 +76,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     @Nullable private int snapshotDeps[];
 
     private BitSet flags = new BitSet();
+
+    @Nullable private List<ProblemCompacted> problems;
 
     /** {@inheritDoc} */
     @Override public int version() {
@@ -301,10 +304,23 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     }
 
     public List<ProblemOccurrence> problems(IStringCompactor compactor) {
-        return Collections.emptyList(); //todo
+        if (this.problems == null)
+             return Collections.emptyList();
+
+        return this.problems.stream()
+                .map(pc -> pc.toProblemOccurrence(compactor, id()))
+                .collect(Collectors.toList());
     }
 
-    public void addProblems(IStringCompactor compactor, List<ProblemOccurrence> problems) {
-        //todo
+    public void addProblems(IStringCompactor compactor, List<ProblemOccurrence> occurrences) {
+        if (occurrences.isEmpty())
+            return;
+
+        if (this.problems == null)
+            this.problems = new ArrayList<>();
+
+        occurrences.stream()
+                .map(p -> new ProblemCompacted(compactor, p))
+                .forEach(this.problems::add);
     }
 }

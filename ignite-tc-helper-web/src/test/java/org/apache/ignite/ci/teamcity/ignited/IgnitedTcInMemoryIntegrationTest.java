@@ -306,7 +306,11 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertEquals(testNamesRef, testNamesAct);
 
         final List<ProblemOccurrence> problems = buildCompacted.problems(compactor);
-        assertEquals(1, problems.size());
+        assertEquals(2, problems.size());
+
+        assertTrue(problems.stream().anyMatch(ProblemOccurrence::isFailedTests));
+        assertTrue(problems.stream().anyMatch(ProblemOccurrence::isExitCode));
+        assertTrue(problems.stream().noneMatch(ProblemOccurrence::isJvmCrash));
     }
 
     public void saveTmpFile(Object obj, String name) throws IOException, JAXBException {
