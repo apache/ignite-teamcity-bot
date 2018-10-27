@@ -26,6 +26,7 @@ import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
@@ -41,6 +42,7 @@ public class CompareBuildsService {
     @Inject ICredentialsProv prov;
     @Inject BuildChainProcessor bcp;
     @Inject ITeamcityIgnitedProvider tcIgnitedProv;
+    @Inject IStringCompactor compactor;
 
     public List<String> tests0(String srvId, Integer buildId ) {
         IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, prov);
@@ -74,7 +76,7 @@ public class CompareBuildsService {
         else {
             logger.info("Loading tests for build {}.", build.getId());
 
-            MultBuildRunCtx buildCtx = new MultBuildRunCtx(build);
+            MultBuildRunCtx buildCtx = new MultBuildRunCtx(build, compactor);
 
             buildCtx.addBuild(bcp.loadTestsAndProblems(tc, build, buildCtx, server));
 

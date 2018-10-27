@@ -106,7 +106,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Deprecated
     private static final String TEST_FULL = "testFull";
     private static final String BUILD_PROBLEMS = "buildProblems";
-    private static final String BUILD_STATISTICS = "buildStatistics";
     private static final String BUILD_HIST_FINISHED = "buildHistFinished";
     private static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
@@ -142,12 +141,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** cached loads of queued builds for branch. */
     private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> queuedBuildsFuts = new ConcurrentHashMap<>();
 
-    /** cached running builds for branch. */
-    private ConcurrentMap<String, Expirable<List<BuildRef>>> runningBuilds = new ConcurrentHashMap<>();
-
-    /** cached loads of running builds for branch. */
-    private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> runningBuildsFuts = new ConcurrentHashMap<>();
-
     /**   */
     private ConcurrentMap<SuiteInBranch, Long> lastQueuedHistory = new ConcurrentHashMap<>();
 
@@ -171,10 +164,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 buildsFailureRunStatCache(), testRunStatCache(),
                 testFullCache(),
                 buildProblemsCache(),
-                buildStatisticsCache(),
                 buildHistCache(),
-                buildHistIncFailedCache(),
-                testRefsCache());
+                buildHistIncFailedCache());
     }
 
     @Override
@@ -255,12 +246,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return getOrCreateCacheV2(ignCacheNme(BUILD_PROBLEMS));
     }
 
-    /**
-     * @return Build {@link Statistics} instances cache, 32 parts.
-     */
-    private IgniteCache<String, Statistics> buildStatisticsCache() {
-        return getOrCreateCacheV2(ignCacheNme(BUILD_STATISTICS));
-    }
 
 
     /**
@@ -667,20 +652,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
 
-    /** {@inheritDoc} */
-    @Override public CompletableFuture<List<BuildRef>> getRunningBuilds(String branch) {
-        int defaultSecs = 60;
-        int secondsUseCached = getTriggerRelCacheValidSecs(defaultSecs);
-
-        return loadAsyncIfAbsentOrExpired(
-            runningBuilds,
-            Strings.nullToEmpty(branch),
-            runningBuildsFuts,
-            teamcity::getRunningBuilds,
-            secondsUseCached,
-            secondsUseCached == defaultSecs);
-    }
-
     public static int getTriggerRelCacheValidSecs(int defaultSecs) {
         long msSinceTrigger = System.currentTimeMillis() - lastTriggerMs;
         long secondsSinceTrigger = TimeUnit.MILLISECONDS.toSeconds(msSinceTrigger);
@@ -869,26 +840,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private void addTestOccurrencesToStat(TestOccurrences val) {
         for (TestOccurrence next : val.getTests())
             addTestOccurrenceToStat(next, ITeamcity.DEFAULT, null);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public Statistics getBuildStatistics(String href) {
-        return loadIfAbsent(buildStatisticsCache(),
-            href,
-            href1 -> {
-                try {
-                    return teamcity.getBuildStatistics(href1);
-                }
-                catch (Exception e) {
-                    if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                        e.printStackTrace();
-                        return new Statistics();// save null result, because persistence may refer to some  unexistent build on TC
-                    }
-                    else
-                        throw e;
-                }
-            });
     }
 
     /** {@inheritDoc} */
@@ -1142,6 +1093,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public void calculateBuildStatistic(SingleBuildRunCtx ctx) {
+        if (ctx.buildId() == null)
+            return;
+
         if (calculatedStatistic().containsKey(ctx.buildId()))
             return;
 
@@ -1191,10 +1145,20 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
+    @Override public Build triggerBuild(String buildTypeId, @NotNull String branchName, boolean cleanRebuild, boolean queueAtTop) {
         lastTriggerMs = System.currentTimeMillis();
 
         return teamcity.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
+    }
+
+    @Override
+    public ProblemOccurrences getProblems(int buildId) {
+        return teamcity.getProblems(buildId);
+    }
+
+    @Override
+    public Statistics getStatistics(int buildId) {
+        return teamcity.getStatistics(buildId);
     }
 
     /** {@inheritDoc} */
@@ -1238,8 +1202,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> nextPage) {
-        return teamcity.getBuildRefs(fullUrl, nextPage);
+    @Override public List<BuildRef> getBuildRefsPage(String fullUrl, AtomicReference<String> nextPage) {
+        return teamcity.getBuildRefsPage(fullUrl, nextPage);
     }
 
     /** {@inheritDoc} */
