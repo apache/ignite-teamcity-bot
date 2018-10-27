@@ -189,20 +189,7 @@ public class BuildChainProcessor {
         Collection<ChangeCompacted> changes = tcIgnited.getAllChanges(changeIds);
         ctx.setChanges(changes);
 
-        //todo migrate rest of the method to fat build from TC ignited
-        Build build = teamcity.getBuild(buildRef.getId());
-
-        if (build == null || build.isFakeStub())
-            return ctx;
-
-        if (build.lastChanges != null) {
-            for (ChangeRef next : build.lastChanges.changes) {
-                if(!isNullOrEmpty(next.href)) {
-                    // just to cache this change
-                    teamcity.getChange(next.href);
-                }
-            }
-        }
+        //todo support storing build.lastChanges.changes) ?
 
         return ctx;
     }
