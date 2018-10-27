@@ -39,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
 @Persisted
 public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEntity {
     /** Latest version. */
-    private static final int LATEST_VERSION = 1;
+    private static final int LATEST_VERSION = 2;
 
     /** Default branch flag offset. */
     public static final int DEF_BR_F = 0;

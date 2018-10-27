@@ -24,15 +24,20 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.validation.constraints.NotNull;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.internal.util.GridIntList;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -119,5 +124,17 @@ public class FatBuildDao {
             .collect(Collectors.toSet());
 
         return buildsCache.getAll(ids);
+    }
+
+    /**
+     * @param key Key.
+     * @param srvId Server id.
+     */
+    private boolean isKeyForServer(Long key, int srvId) {
+        return key!=null && key >> 32 == srvId;
+    }
+
+    public boolean containsKey(int srvIdMaskHigh, int buildRefKey) {
+        return buildsCache.containsKey(buildIdToCacheKey(srvIdMaskHigh, buildRefKey));
     }
 }

@@ -30,6 +30,11 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
  */
 public interface ITeamcityConn {
     /**
+     * @return Internal server ID as string
+     */
+    String serverId();
+
+    /**
      * @return Normalized Host address, ends with '/'.
      */
     public String host();

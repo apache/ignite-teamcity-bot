@@ -214,7 +214,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         for (int i = queuedBuildIdx; i < tcBuilds.size(); i++)
             tcBuilds.get(i).state = BuildRef.STATE_FINISHED;
 
-        teamcityIgnited.actualizeRecentBuilds();
+        teamcityIgnited.actualizeRecentBuildRefs();
 
 
         List<BuildRef> hist = srv.getBuildHistory(buildTypeId, branchName);

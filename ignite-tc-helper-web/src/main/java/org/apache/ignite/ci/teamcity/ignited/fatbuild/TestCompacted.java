@@ -19,9 +19,16 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
@@ -41,6 +48,13 @@ public class TestCompacted {
     public static final int CUR_MUTED_F = 2;
     public static final int CUR_INV_F = 4;
     public static final int IGNORED_F = 6;
+    /** true when kept uncompressed */
+    public static final int COMPRESS_TYPE_FLAG1 = 8;
+    /** true when kept gzip */
+    public static final int COMPRESS_TYPE_FLAG2 = 9;
+    public static final int COMPRESS_TYPE_RFU3 = 10;
+    public static final int COMPRESS_TYPE_RFU4 = 11;
+
     /** Id in this build only. Does not idenfity test for its history */
     private int idInBuild = -1;
 
@@ -56,9 +70,8 @@ public class TestCompacted {
     /** Actual build id. */
     private int actualBuildId = -1;
 
-    /** Snappy comressed test log Details. */
-    private byte[] details;
-
+    /** Uncompressesd/ZIP/Snappy compressed test log Details. */
+    @Nullable private byte[] details;
 
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TestCompacted.class);
@@ -77,9 +90,10 @@ public class TestCompacted {
         String testOccurrenceId = testOccurrence.getId();
         if (!Strings.isNullOrEmpty(testOccurrenceId)) {
             try {
-                idInBuild = RunStat.extractFullId(testOccurrenceId).getTestId();
-            }
-            catch (Exception e) {
+                final RunStat.TestId testId = RunStat.extractFullId(testOccurrenceId);
+                if (testId != null)
+                    idInBuild = testId.getTestId();
+            } catch (Exception e) {
                 logger.error("Failed to handle TC response: " + testOccurrenceId, e);
             }
         }
@@ -99,15 +113,7 @@ public class TestCompacted {
         if (testOccurrence.test != null && testOccurrence.test.id != null)
             testId = testOccurrence.test.id;
 
-        String details = testOccurrence.details;
-        if (!Strings.isNullOrEmpty(details)) {
-            try {
-                this.details = Snappy.compress(details.getBytes(StandardCharsets.UTF_8));
-            }
-            catch (Exception e) {
-                logger.error("Snappy.compress failed: " + e.getMessage(), e);
-            }
-        }
+        setDetails(testOccurrence.details);
     }
 
     private void setFlag(int off, Boolean val) {
@@ -177,17 +183,98 @@ public class TestCompacted {
         if (details == null)
             return "";
 
-        try {
-            byte[] uncompressed = Snappy.uncompress(details);
-            return new String(uncompressed, StandardCharsets.UTF_8);
-        }
-        catch (IOException e) {
+        final boolean flag1 = flags.get(COMPRESS_TYPE_FLAG1);
+        final boolean flag2 = flags.get(COMPRESS_TYPE_FLAG2);
+        if(!flag1 && !flag2) {
+            try {
+                byte[] uncompressed = Snappy.uncompress(details);
+                return new String(uncompressed, StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                logger.error("Snappy.uncompress failed: " + e.getMessage(), e);
+                return null;
+            }
+        } else if(flag1 && !flag2) {
+            return new String(details, StandardCharsets.UTF_8);
+        } else if (!flag1 && flag2) {
+            try {
+                final ByteArrayInputStream in = new ByteArrayInputStream(details);
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                try (final GZIPInputStream gzi = new GZIPInputStream(in)) {
+                    byte[] outbuf = new byte[details.length];
+                    int len;
+                    while ((len = gzi.read(outbuf, 0, outbuf.length)) != -1) {
+                        bos.write(outbuf, 0, len);
+                    }
+                }
 
-            logger.error("Snappy.uncompress failed: " + e.getMessage(), e);
+                return new String(bos.toByteArray(), StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                logger.error("GZip.uncompress failed: " + e.getMessage(), e);
+                return null;
+            }
+        } else {
             return null;
+        }
+    }
 
+    public void setDetails(String dtlsString) {
+        if (Strings.isNullOrEmpty(dtlsString)) {
+            this.details = null;
+            return;
         }
 
+
+        byte[] uncompressed;
+        byte[] snappy = null;
+        byte[] gzip = null;
+        try {
+            uncompressed = dtlsString.getBytes(StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            logger.error("Set details failed: " + e.getMessage(), e);
+            return;
+        }
+        try {
+            snappy = Snappy.compress(uncompressed);
+        }
+        catch (Exception e) {
+            logger.error("Snappy.compress failed: " + e.getMessage(), e);
+        }
+
+        try {
+            final ByteArrayOutputStream out = new ByteArrayOutputStream();
+            try(final GZIPOutputStream gzipOutputStream = new GZIPOutputStream(out)) {
+                gzipOutputStream.write(uncompressed);
+            }
+            gzip = out.toByteArray();
+        }
+        catch (Exception e) {
+            logger.error("Snappy.compress failed: " + e.getMessage(), e);
+        }
+
+        final int snappyLen = snappy!=null ? snappy.length : -1;
+        final int gzipLen = gzip!=null ? gzip.length : -1;
+
+        flags.set(COMPRESS_TYPE_FLAG1, true);
+        flags.set(COMPRESS_TYPE_FLAG2, false);
+        //uncompressed
+        details = uncompressed;
+
+        if (snappyLen > 0 && snappyLen < details.length) {
+            flags.set(COMPRESS_TYPE_FLAG1, false);
+            flags.set(COMPRESS_TYPE_FLAG2, false);
+            details = snappy;
+        }
+
+        if (gzipLen > 0 && gzipLen < details.length) {
+            flags.set(COMPRESS_TYPE_FLAG1, false);
+            flags.set(COMPRESS_TYPE_FLAG2, true);
+            details = gzip;
+        }
+
+
+        logger.info("U " + uncompressed.length + " S " + snappyLen + " Z " + gzipLen + ": F (" +
+                flags.get(COMPRESS_TYPE_FLAG1) + ", " +
+                flags.get(COMPRESS_TYPE_FLAG2) +")");
     }
 
     public Boolean getIgnoredFlag() {
