@@ -84,8 +84,16 @@ class TcBotScheduler implements IScheduler {
 
     /** {@inheritDoc} */
     @Override public void stop() {
-        if (executorSvc != null)
+        if (executorSvc != null) {
             executorSvc.shutdown();
+            try {
+                if(!executorSvc.awaitTermination(10, TimeUnit.SECONDS))
+                    executorSvc.shutdownNow();
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     /**

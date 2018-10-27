@@ -150,7 +150,9 @@ public class DbMigrations {
         });
 
         applyMigration(TESTS + "-to-" + testOccurrencesCache.getName(), () -> {
-            IgniteCache<String, TestOccurrences> tests = getOrCreateIgnCacheV1(TESTS);
+            IgniteCache<String, TestOccurrences> tests = ignite.cache(ignCacheNme(TESTS));
+            if(tests==null)
+                return;
 
             int size = tests.size();
             if (size > 0) {
@@ -402,17 +404,18 @@ public class DbMigrations {
 
         applyDestroyIgnCacheMigration(FINISHED_BUILDS_INCLUDE_FAILED);
         applyDestroyIgnCacheMigration(TEST_OCCURRENCE_FULL);
-        //todo destroy
-    //    applyDestroyIgnCacheMigration(TEAMCITY_BUILD_CACHE_NAME_OLD);
+
+        applyDestroyCacheMigration(TEAMCITY_BUILD_CACHE_NAME_OLD, TEAMCITY_BUILD_CACHE_NAME_OLD);
+        applyDestroyIgnCacheMigration(TESTS);
     }
 
-    public void applyDestroyIgnCacheMigration(String cacheName) {
+    private void applyDestroyIgnCacheMigration(String cacheName) {
         String ignCacheNme = ignCacheNme(cacheName);
         applyDestroyCacheMigration(cacheName, ignCacheNme);
     }
 
-    public void applyDestroyCacheMigration(String cacheName, String ignCacheNme) {
-        applyMigration("destroy-" + cacheName, () -> {
+    private void applyDestroyCacheMigration(String dispCacheName, String ignCacheNme) {
+        applyMigration("destroy-" + dispCacheName, () -> {
             IgniteCache<Object, Object> cache = ignite.cache(ignCacheNme);
 
             if (cache == null) {
