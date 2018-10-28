@@ -106,4 +106,8 @@ public class TestOccurrence {
     public Integer getBuildId() {
         return RunStat.extractIdPrefixed(id, "build:(id:", ")");
     }
+
+    public void id(String s) {
+        id = s;
+    }
 }

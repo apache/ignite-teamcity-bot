@@ -1,5 +1,5 @@
 <!--https://ci.ignite.apache.org/app/rest/latest/changes/id:834837-->
-<change id="834837" version="584652293c8646d8a893eed1a2b2ae1a179a5d20" username="aplatonovv" date="20181011T184228+0300" href="/app/rest/latest/changes/id:834837" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=834837&personal=false">
+<change id="834837" version="584652293c8646d8a893eed1a2b2ae1a179a5d20" username="aplatonovv" date="20181011T184228+0300" href="/app/rest/latest/changes/id:834837" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=834837&amp;personal=false">
     <comment>
         IGNITE-9726 Prevent the whole suite lockup after GridCacheAbstractFailoverSelfTest failure - Fixes #4859. Signed-off-by: Alexey Goncharuk <alexey.goncharuk@gmail.com>
     </comment>

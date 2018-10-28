@@ -17,21 +17,22 @@
 
 package org.apache.ignite.ci.teamcity.ignited;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
+import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.QueryEntity;
+import org.apache.ignite.cache.query.QueryCursor;
+import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.internal.util.GridIntList;
@@ -39,39 +40,56 @@ import org.jetbrains.annotations.NotNull;
 
 public class BuildRefDao {
     /** Cache name */
-    public static final String TEAMCITY_BUILD_CACHE_NAME = "teamcityBuild";
+    public static final String TEAMCITY_BUILD_CACHE_NAME = "teamcityBuildRef";
 
     /** Ignite provider. */
     @Inject private Provider<Ignite> igniteProvider;
 
     /** Builds cache. */
-    private IgniteCache<Long, BuildRefCompacted> buildsCache;
+    private IgniteCache<Long, BuildRefCompacted> buildRefsCache;
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
 
-    public void init () {
+    /** */
+    public void init() {
         CacheConfiguration<Long, BuildRefCompacted> cfg = TcHelperDb.getCacheV2Config(TEAMCITY_BUILD_CACHE_NAME);
-        buildsCache = igniteProvider.get().getOrCreateCache(cfg);
+
+        cfg.setQueryEntities(Collections.singletonList(new QueryEntity(Long.class, BuildRefCompacted.class)));
+
+        buildRefsCache = igniteProvider.get().getOrCreateCache(cfg);
     }
 
-    @NotNull protected Stream<BuildRefCompacted> compactedBuildsForServer(long srvId) {
-        return StreamSupport.stream(buildsCache.spliterator(), false)
-            .filter(entry -> entry.getKey() >> 32 == srvId)
+    /**
+     * @param srvId Server id.
+     * @return all builds for a server, full scan.
+     */
+    @NotNull protected Stream<BuildRefCompacted> compactedBuildsForServer(int srvId) {
+        return StreamSupport.stream(buildRefsCache.spliterator(), false)
+            .filter(entry -> isKeyForServer(entry.getKey(), srvId))
             .map(javax.cache.Cache.Entry::getValue);
+    }
+
+    /**
+     * @param key Key.
+     * @param srvId Server id.
+     */
+    private boolean isKeyForServer(Long key, int srvId) {
+        return key!=null && key >> 32 == srvId;
     }
 
     /**
      * @param srvId Server id mask high.
      * @param ghData Gh data.
      */
-    public int saveChunk(long srvId, List<BuildRef> ghData) {
+    @AutoProfiling
+    public Set<Long> saveChunk(long srvId, List<BuildRef> ghData) {
         Set<Long> ids = ghData.stream().map(BuildRef::getId)
             .filter(Objects::nonNull)
             .map(buildId -> buildIdToCacheKey(srvId, buildId))
             .collect(Collectors.toSet());
 
-        Map<Long, BuildRefCompacted> existingEntries = buildsCache.getAll(ids);
+        Map<Long, BuildRefCompacted> existingEntries = buildRefsCache.getAll(ids);
         Map<Long, BuildRefCompacted> entriesToPut = new TreeMap<>();
 
         List<BuildRefCompacted> collect = ghData.stream()
@@ -88,16 +106,22 @@ public class BuildRefDao {
 
         int size = entriesToPut.size();
         if (size != 0)
-            buildsCache.putAll(entriesToPut);
-        return size;
+            buildRefsCache.putAll(entriesToPut);
+
+        return entriesToPut.keySet();
     }
 
     /**
      * @param srvId Server id mask high.
      * @param buildId Build id.
      */
-    private long buildIdToCacheKey(long srvId, int buildId) {
+    public long buildIdToCacheKey(long srvId, int buildId) {
         return (long)buildId | srvId << 32;
+    }
+
+    public static int cacheKeyToBuildId(Long cacheKey) {
+        long l = cacheKey << 32;
+        return (int) (l>>32);
     }
 
     /**
@@ -105,7 +129,8 @@ public class BuildRefDao {
      * @param buildTypeId Build type id.
      * @param bracnhNameQry Bracnh name query.
      */
-    @NotNull public List<BuildRef> findBuildsInHistory(long srvId,
+    @AutoProfiling
+    @NotNull public List<BuildRef> findBuildsInHistory(int srvId,
         @Nullable String buildTypeId,
         String bracnhNameQry) {
 
@@ -117,17 +142,23 @@ public class BuildRefDao {
         if (bracnhNameQryId == null)
             return Collections.emptyList();
 
+        return getBuildsForBranch(srvId, bracnhNameQry).stream()
+            .filter(e -> e.buildTypeId() == buildTypeIdId)
+            .map(compacted -> compacted.toBuildRef(compactor))
+            .collect(Collectors.toList());
+/*
         return compactedBuildsForServer(srvId)
             .filter(e -> e.buildTypeId() == buildTypeIdId)
             .filter(e -> e.branchName() == bracnhNameQryId)
             .map(compacted -> compacted.toBuildRef(compactor))
-            .collect(Collectors.toList());
+            .collect(Collectors.toList());*/
     }
 
     /**
      * @param srvId Server id.
      */
-    public List<BuildRefCompacted> getQueuedAndRunning(long srvId) {
+    @AutoProfiling
+    public List<BuildRefCompacted> getQueuedAndRunning(int srvId) {
         GridIntList list = new GridIntList(2);
         Integer stateQueuedId = compactor.getStringIdIfPresent(BuildRef.STATE_QUEUED);
         if (stateQueuedId != null)
@@ -141,5 +172,62 @@ public class BuildRefDao {
         return compactedBuildsForServer(srvId)
             .filter(e ->  list.contains(e.state()) )
             .collect(Collectors.toList());
+    }
+
+    @AutoProfiling
+    @GuavaCached(softValues = true, maximumSize = 1000, expireAfterAccessSecs = 30)
+    public List<BuildRefCompacted> getBuildsForBranch(int srvId, String branchName) {
+        Integer branchNameId = compactor.getStringIdIfPresent(branchName);
+        if (branchNameId == null)
+            return Collections.emptyList();
+
+        List<BuildRefCompacted> list = new ArrayList<>();
+        try (QueryCursor<Cache.Entry<Long, BuildRefCompacted>> qryCursor
+                 = buildRefsCache.query(
+            new SqlQuery<Long, BuildRefCompacted>(BuildRefCompacted.class, "branchName = ?")
+                .setArgs(branchNameId))) {
+
+            for (Cache.Entry<Long, BuildRefCompacted> next : qryCursor) {
+                Long key = next.getKey();
+
+                if (!isKeyForServer(key, srvId))
+                    continue;
+
+                list.add(next.getValue());
+            }
+        }
+
+        return list;
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param refCompacted Reference compacted.
+     */
+    @AutoProfiling
+    public boolean save(int srvId, BuildRefCompacted refCompacted) {
+        long cacheKey = buildIdToCacheKey(srvId, refCompacted.id());
+        BuildRefCompacted buildPersisted = buildRefsCache.get(cacheKey);
+
+        if (buildPersisted == null || !buildPersisted.equals(refCompacted)) {
+            buildRefsCache.put(cacheKey, refCompacted);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    @AutoProfiling
+    public int[] getAllIds(int srvId) {
+        GridIntList res = new GridIntList(buildRefsCache.size());
+
+        StreamSupport.stream(buildRefsCache.spliterator(), false)
+                .map(Cache.Entry::getKey)
+                .filter(entry -> isKeyForServer(entry, srvId))
+                .map(BuildRefDao::cacheKeyToBuildId)
+                .forEach(res::add);
+
+        return res.array();
     }
 }

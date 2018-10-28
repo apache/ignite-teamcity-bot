@@ -15,23 +15,22 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.runners;
+package org.apache.ignite.ci.analysis;
 
-class FailuresHistory {
-    int success = 0;
-    int totalRun = 0;
+import java.util.stream.Stream;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
-    public void addRun(boolean ok) {
-        totalRun++;
-        if (ok)
-            success++;
-    }
+/**
+ * Multiple test ocurrence
+ */
+public interface ITestFailures {
+    String getName();
 
-    public String passRateStr() {
-        return String.format("%.2f", passRate());
-    }
+    boolean isInvestigated();
 
-    public double passRate() {
-        return (double)(success) / totalRun;
-    }
+    public int failuresCount();
+
+    public long getAvgDurationMs();
+
+    Iterable<TestOccurrenceFull> getOccurrences();
 }

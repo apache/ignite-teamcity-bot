@@ -118,7 +118,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
      * @param srvId Server id.
      * @param fullReindex Reindex all open PRs
      */
-    @MonitoredTask(name = "Actualize PRs, full resync", nameExtArgIndex = 1)
+    @MonitoredTask(name = "Actualize PRs(srv, full resync)", nameExtArgsIndexes = {0, 1})
     @AutoProfiling
     protected String runAtualizePrs(String srvId, boolean fullReindex) {
         AtomicReference<String> outLinkNext = new AtomicReference<>();

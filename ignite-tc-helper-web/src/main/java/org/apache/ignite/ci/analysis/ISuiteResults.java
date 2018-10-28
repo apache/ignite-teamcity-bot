@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.analysis;
 
 /**
- * Results from one or several builds
+ * Results from one or several builds for specific build type.
  */
 public interface ISuiteResults {
     boolean hasTimeoutProblem();

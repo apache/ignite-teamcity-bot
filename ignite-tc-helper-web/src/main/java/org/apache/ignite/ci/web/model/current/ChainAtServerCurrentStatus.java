@@ -27,7 +27,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.ITestFailureOccurrences;
+import org.apache.ignite.ci.analysis.ITestFailures;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
@@ -110,16 +110,16 @@ public class ChainAtServerCurrentStatus {
         webToHist = buildWebLink(teamcity, ctx);
         webToBuild = buildWebLinkToBuild(teamcity, ctx);
 
-        Stream<T2<MultBuildRunCtx, ITestFailureOccurrences>> allLongRunning = ctx.suites().stream().flatMap(
+        Stream<T2<MultBuildRunCtx, ITestFailures>> allLongRunning = ctx.suites().stream().flatMap(
             suite -> suite.getTopLongRunning().map(t -> new T2<>(suite, t))
         );
-        Comparator<T2<MultBuildRunCtx, ITestFailureOccurrences>> durationComp
+        Comparator<T2<MultBuildRunCtx, ITestFailures>> durationComp
             = Comparator.comparing((pair) -> pair.get2().getAvgDurationMs());
 
         CollectionUtil.top(allLongRunning, 3, durationComp).forEach(
             pairCtxAndOccur -> {
                 MultBuildRunCtx suite = pairCtxAndOccur.get1();
-                ITestFailureOccurrences longRunningOccur = pairCtxAndOccur.get2();
+                ITestFailures longRunningOccur = pairCtxAndOccur.get2();
 
                 TestFailure failure = createOrrucForLongRun(teamcity, suite, tcAnalytics, longRunningOccur, baseBranchTc);
 

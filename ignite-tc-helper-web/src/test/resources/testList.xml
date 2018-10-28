@@ -1,33 +1,531 @@
-<!-- https://ci.ignite.apache.org/app/rest/latest/testOccurrences?locator=build:(id:2039380),expandInvocations:true-->
-<testOccurrences count="30" href="http://ci.ignite.apache.org:443/app/rest/testOccurrences?locator=build:(id:2039380),expandInvocations:true">
-    <testOccurrence id="id:3074,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridPartitionedCacheJtaFactorySelfTest.testJta" status="SUCCESS" duration="1912" href="/app/rest/latest/testOccurrences/id:3074,build:(id:2039380)"/>
-    <testOccurrence id="id:3076,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridPartitionedCacheJtaFactorySelfTest.testJtaTwoCaches" status="SUCCESS" duration="47" href="/app/rest/latest/testOccurrences/id:3076,build:(id:2039380)"/>
-    <testOccurrence id="id:3078,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridPartitionedCacheJtaFactorySelfTest.testAsyncOpAwait" status="SUCCESS" duration="102" href="/app/rest/latest/testOccurrences/id:3078,build:(id:2039380)"/>
-    <testOccurrence id="id:3080,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridReplicatedCacheJtaFactorySelfTest.testJta" status="SUCCESS" duration="202" href="/app/rest/latest/testOccurrences/id:3080,build:(id:2039380)"/>
-    <testOccurrence id="id:3082,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridReplicatedCacheJtaFactorySelfTest.testJtaTwoCaches" status="SUCCESS" duration="16" href="/app/rest/latest/testOccurrences/id:3082,build:(id:2039380)"/>
-    <testOccurrence id="id:3084,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridReplicatedCacheJtaFactorySelfTest.testAsyncOpAwait" status="SUCCESS" duration="37" href="/app/rest/latest/testOccurrences/id:3084,build:(id:2039380)"/>
-    <testOccurrence id="id:3086,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridPartitionedCacheJtaLookupClassNameSelfTest.testJta" status="SUCCESS" duration="237" href="/app/rest/latest/testOccurrences/id:3086,build:(id:2039380)"/>
-    <testOccurrence id="id:3088,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridPartitionedCacheJtaLookupClassNameSelfTest.testJtaTwoCaches" status="SUCCESS" duration="32" href="/app/rest/latest/testOccurrences/id:3088,build:(id:2039380)"/>
-    <testOccurrence id="id:3090,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridPartitionedCacheJtaLookupClassNameSelfTest.testAsyncOpAwait" status="SUCCESS" duration="82" href="/app/rest/latest/testOccurrences/id:3090,build:(id:2039380)"/>
-    <testOccurrence id="id:3092,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridReplicatedCacheJtaLookupClassNameSelfTest.testJta" status="SUCCESS" duration="172" href="/app/rest/latest/testOccurrences/id:3092,build:(id:2039380)"/>
-    <testOccurrence id="id:3094,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridReplicatedCacheJtaLookupClassNameSelfTest.testJtaTwoCaches" status="SUCCESS" duration="14" href="/app/rest/latest/testOccurrences/id:3094,build:(id:2039380)"/>
-    <testOccurrence id="id:3096,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridReplicatedCacheJtaLookupClassNameSelfTest.testAsyncOpAwait" status="SUCCESS" duration="42" href="/app/rest/latest/testOccurrences/id:3096,build:(id:2039380)"/>
-    <testOccurrence id="id:3098,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridPartitionedCacheJtaFactoryUseSyncSelfTest.testJta" status="SUCCESS" duration="207" href="/app/rest/latest/testOccurrences/id:3098,build:(id:2039380)"/>
-    <testOccurrence id="id:3100,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridPartitionedCacheJtaFactoryUseSyncSelfTest.testJtaTwoCaches" status="SUCCESS" duration="36" href="/app/rest/latest/testOccurrences/id:3100,build:(id:2039380)"/>
-    <testOccurrence id="id:3102,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridPartitionedCacheJtaFactoryUseSyncSelfTest.testAsyncOpAwait" status="SUCCESS" duration="50" href="/app/rest/latest/testOccurrences/id:3102,build:(id:2039380)"/>
-    <testOccurrence id="id:3104,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridReplicatedCacheJtaFactoryUseSyncSelfTest.testJta" status="SUCCESS" duration="179" href="/app/rest/latest/testOccurrences/id:3104,build:(id:2039380)"/>
-    <testOccurrence id="id:3106,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridReplicatedCacheJtaFactoryUseSyncSelfTest.testJtaTwoCaches" status="SUCCESS" duration="14" href="/app/rest/latest/testOccurrences/id:3106,build:(id:2039380)"/>
-    <testOccurrence id="id:3108,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.jta.GridReplicatedCacheJtaFactoryUseSyncSelfTest.testAsyncOpAwait" status="SUCCESS" duration="34" href="/app/rest/latest/testOccurrences/id:3108,build:(id:2039380)"/>
-    <testOccurrence id="id:3110,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.GridJtaLifecycleAwareSelfTest.testGlobalLookupLifecycleAware" status="SUCCESS" duration="11" href="/app/rest/latest/testOccurrences/id:3110,build:(id:2039380)"/>
-    <testOccurrence id="id:3112,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.GridJtaLifecycleAwareSelfTest.testFactoryLifecycleAware" status="SUCCESS" href="/app/rest/latest/testOccurrences/id:3112,build:(id:2039380)"/>
-    <testOccurrence id="id:3114,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.GridJtaLifecycleAwareSelfTest.testLifecycleAware" status="SUCCESS" duration="1" href="/app/rest/latest/testOccurrences/id:3114,build:(id:2039380)"/>
-    <testOccurrence id="id:3116,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.GridJtaLifecycleAwareSelfTest.testCacheLookupLifecycleAware" status="SUCCESS" duration="1" href="/app/rest/latest/testOccurrences/id:3116,build:(id:2039380)"/>
-    <testOccurrence id="id:3118,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.GridCacheJtaConfigurationValidationSelfTest.testAtomicWithTmLookup" status="SUCCESS" duration="1358" href="/app/rest/latest/testOccurrences/id:3118,build:(id:2039380)"/>
-    <testOccurrence id="id:3120,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.GridCacheJtaFactoryConfigValidationSelfTest.testNullFactory" status="SUCCESS" duration="98" href="/app/rest/latest/testOccurrences/id:3120,build:(id:2039380)"/>
-    <testOccurrence id="id:3122,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.GridCacheJtaFactoryConfigValidationSelfTest.testExceptionFactory" status="SUCCESS" duration="78" href="/app/rest/latest/testOccurrences/id:3122,build:(id:2039380)"/>
-    <testOccurrence id="id:3124,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.GridCacheJtaFactoryConfigValidationSelfTest.testWrongTypeFactory" status="SUCCESS" duration="68" href="/app/rest/latest/testOccurrences/id:3124,build:(id:2039380)"/>
-    <testOccurrence id="id:3126,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.GridJtaTransactionManagerSelfTest.testJtaTxContextSwitch" status="SUCCESS" duration="1438" href="/app/rest/latest/testOccurrences/id:3126,build:(id:2039380)"/>
-    <testOccurrence id="id:3128,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.GridJtaTransactionManagerSelfTest.testJtaTxContextSwitchWithExistingTx" status="SUCCESS" duration="32" href="/app/rest/latest/testOccurrences/id:3128,build:(id:2039380)"/>
-    <testOccurrence id="id:3130,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.CacheJndiTmFactorySelfTest.testFactory" status="SUCCESS" duration="31" href="/app/rest/latest/testOccurrences/id:3130,build:(id:2039380)"/>
-    <testOccurrence id="id:3132,build:(id:2039380)" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.CacheJndiTmFactorySelfTest.testFactoryException" status="SUCCESS" duration="3" href="/app/rest/latest/testOccurrences/id:3132,build:(id:2039380)"/>
+<!-- https://ci.ignite.apache.org/app/rest/latest/testOccurrences?locator=build:(id:2153237)&fields=testOccurrence(id,name,details,status,duration,muted,currentlyMuted,currentlyInvestigated,ignored,test(id),build(id))  -->
+<testOccurrences nextHref="/app/rest/latest/testOccurrences?fields=testOccurrence(id,name,details,status,duration,muted,currentlyMuted,currentlyInvestigated,ignored,test(id),build(id))&amp;locator=build:(id:2153237),start:100,count:100">
+    <testOccurrence id="id:286654,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutRemoveSimple_LargeKeys" status="SUCCESS" ignored="false" duration="5192" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="3810451959920173755"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286656,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_ClientServer_Backups2_Scan" status="SUCCESS" ignored="false" duration="34035" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="4815408593439090017"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286658,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutGetAllSimple" status="SUCCESS" ignored="false" duration="2245" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-4811343553553101238"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286660,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testEmptyTx" status="SUCCESS" ignored="false" duration="417" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="877486922451339438"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286662,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxScan_SingleNode_SinglePartition" status="SUCCESS" ignored="false" duration="30193" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="5468716610030980380"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286664,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxGetAll_SingleNode_SinglePartition" status="SUCCESS" ignored="false" duration="30180" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-9090333646497176446"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286666,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testOperationsSequenceScanConsistency_SingleNode" status="SUCCESS" ignored="false" duration="11218" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-2586929460052759063"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286668,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testUpdate_N_Objects_ClientServer_Backups1_Scan" status="SUCCESS" ignored="false" duration="37851" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="8664669843439175895"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286670,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_SingleNode_SinglePartition_Scan" status="SUCCESS" ignored="false" duration="33178" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="3600626532569910204"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286672,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testExpiration" status="FAILURE" ignored="false" duration="10" muted="true" currentlyMuted="true" currentlyInvestigated="false">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-7311 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testExpiration(CacheMvccTransactionsTest.java:3274) ------- Stdout: ------- [2018-10-24 08:21:35,250][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testExpiration &lt;&lt;&lt; [2018-10-24 08:21:35,257][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testExpiration in 6 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:21:35,253][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-7311 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testExpiration(CacheMvccTransactionsTest.java:3274) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="6708450862332975770"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286678,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testMvccCoordinatorInfoConsistency_Persistence" status="SUCCESS" ignored="false" duration="9869" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="6373402151621081555"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286680,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testChangeExpireTime" status="FAILURE" ignored="false" duration="4" muted="true" currentlyMuted="true" currentlyInvestigated="false">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-7311 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testChangeExpireTime(CacheMvccTransactionsTest.java:3329) ------- Stdout: ------- [2018-10-24 08:21:45,129][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testChangeExpireTime &lt;&lt;&lt; [2018-10-24 08:21:45,133][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testChangeExpireTime in 3 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:21:45,131][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-7311 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testChangeExpireTime(CacheMvccTransactionsTest.java:3329) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="-6049720477957281351"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286686,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testLoadWithStreamer" status="SUCCESS" ignored="false" duration="6793" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="4325051277907730031"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286688,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_ClientServer_Backups0_Persistence_GetAll" status="SUCCESS" ignored="false" duration="34706" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="4766589520071726413"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286690,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTxScanReadsSnapshot_ClientServer" status="FAILURE" ignored="false" duration="5" muted="true" currentlyMuted="true" currentlyInvestigated="true">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.txReadsSnapshot(CacheMvccTransactionsTest.java:1700) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTxScanReadsSnapshot_ClientServer(CacheMvccTransactionsTest.java:1682) ------- Stdout: ------- [2018-10-24 08:22:26,633][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testPessimisticTxScanReadsSnapshot_ClientServer &lt;&lt;&lt; [2018-10-24 08:22:26,637][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testPessimisticTxScanReadsSnapshot_ClientServer in 3 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:22:26,635][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.txReadsSnapshot(CacheMvccTransactionsTest.java:1700) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTxScanReadsSnapshot_ClientServer(CacheMvccTransactionsTest.java:1682) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="-3463865944086743777"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286696,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_SingleNode_Scan" status="SUCCESS" ignored="false" duration="33213" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="1176849918855034212"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286698,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_ClientServer_Backups1_Restart_Scan" status="FAILURE" ignored="false" duration="7" muted="true" currentlyMuted="true" currentlyInvestigated="true">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9774 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_ClientServer_Backups1_Restart_Scan(CacheMvccTransactionsTest.java:1512) ------- Stdout: ------- [2018-10-24 08:22:59,851][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testPutAllGetAll_ClientServer_Backups1_Restart_Scan &lt;&lt;&lt; [2018-10-24 08:22:59,856][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testPutAllGetAll_ClientServer_Backups1_Restart_Scan in 4 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:22:59,853][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9774 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_ClientServer_Backups1_Restart_Scan(CacheMvccTransactionsTest.java:1512) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="-1925062160131776226"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286704,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxScan_ClientServer_Backups0" status="SUCCESS" ignored="false" duration="32670" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="1769669638407282875"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286706,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxScan_ClientServer_Backups1" status="SUCCESS" ignored="false" duration="32992" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-4389826745836948255"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286708,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxScan_ClientServer_Backups2" status="SUCCESS" ignored="false" duration="32842" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="4179049975918807287"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286710,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testSize" status="SUCCESS" ignored="false" duration="169" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="9103089856757344416"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286712,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testCacheRecreate" status="SUCCESS" ignored="false" duration="347" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-6917182479425001417"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286714,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_ClientServer_Backups2_GetAll" status="SUCCESS" ignored="false" duration="32480" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="5921982231565515541"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286716,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testWaitPreviousTxAck" status="FAILURE" ignored="false" duration="8" muted="true" currentlyMuted="true" currentlyInvestigated="true">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testWaitPreviousTxAck(CacheMvccTransactionsTest.java:854) ------- Stdout: ------- [2018-10-24 08:25:11,358][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testWaitPreviousTxAck &lt;&lt;&lt; [2018-10-24 08:25:11,366][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testWaitPreviousTxAck in 7 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:25:11,364][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testWaitPreviousTxAck(CacheMvccTransactionsTest.java:854) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="491100542068222422"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286722,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testGetVersionRequestFailover" status="SUCCESS" ignored="false" duration="5063" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-4167909337079223288"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286724,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testRebalanceWithRemovedValuesSimple" status="SUCCESS" ignored="false" duration="2051" muted="false" currentlyMuted="false" currentlyInvestigated="true">
+        <details/>
+        <test id="-6853587727264880302"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286726,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testUpdate_N_Objects_ClientServer_Backups2_Get" status="SUCCESS" ignored="false" duration="37720" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="7500945915544508745"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286728,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxGetAll_ClientServer_Backups0" status="SUCCESS" ignored="false" duration="32530" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-1234335654745731081"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286730,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxGetAll_ClientServer_Backups1" status="SUCCESS" ignored="false" duration="32499" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="3838703775332588461"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286732,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxGetAll_ClientServer_Backups2" status="SUCCESS" ignored="false" duration="32391" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-3481541291463301189"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286734,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testActiveQueryCleanupOnNodeFailure" status="SUCCESS" ignored="false" duration="264" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="8726038592519894761"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286736,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testCleanupWaitsForGet1" status="SUCCESS" ignored="false" duration="2239" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-843725809302985702"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286738,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testCleanupWaitsForGet2" status="FAILURE" ignored="false" duration="3" muted="true" currentlyMuted="true" currentlyInvestigated="true">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testCleanupWaitsForGet2(CacheMvccTransactionsTest.java:1169) ------- Stdout: ------- [2018-10-24 08:27:36,123][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testCleanupWaitsForGet2 &lt;&lt;&lt; [2018-10-24 08:27:36,125][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testCleanupWaitsForGet2 in 2 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:27:36,124][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testCleanupWaitsForGet2(CacheMvccTransactionsTest.java:1169) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="1054053153780357132"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286744,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testCleanupWaitsForGet3" status="SUCCESS" ignored="false" duration="1172" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="3064249966424566615"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286746,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testOperationsSequenceGetConsistency_SingleNode_SinglePartition" status="SUCCESS" ignored="false" duration="11393" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="4468216830992651324"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286748,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_SingleNode_SinglePartition_GetAll" status="SUCCESS" ignored="false" duration="30169" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-7007616296495579040"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286750,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testUpdate_N_Objects_SingleNode_Scan" status="SUCCESS" ignored="false" duration="31875" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-181845693988305823"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286752,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_ClientServer_Backups0" status="FAILURE" ignored="false" duration="6" muted="true" currentlyMuted="true" currentlyInvestigated="true">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.doImplicitPartsScanTest(CacheMvccTransactionsTest.java:2830) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_ClientServer_Backups0(CacheMvccTransactionsTest.java:2799) ------- Stdout: ------- [2018-10-24 08:28:50,735][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testImplicitPartsScan_ClientServer_Backups0 &lt;&lt;&lt; [2018-10-24 08:28:50,740][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testImplicitPartsScan_ClientServer_Backups0 in 4 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:28:50,737][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.doImplicitPartsScanTest(CacheMvccTransactionsTest.java:2830) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_ClientServer_Backups0(CacheMvccTransactionsTest.java:2799) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="1971996347915211795"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286758,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_ClientServer_Backups1" status="FAILURE" ignored="false" duration="4" muted="true" currentlyMuted="true" currentlyInvestigated="true">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.doImplicitPartsScanTest(CacheMvccTransactionsTest.java:2830) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_ClientServer_Backups1(CacheMvccTransactionsTest.java:2806) ------- Stdout: ------- [2018-10-24 08:28:50,741][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testImplicitPartsScan_ClientServer_Backups1 &lt;&lt;&lt; [2018-10-24 08:28:50,744][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testImplicitPartsScan_ClientServer_Backups1 in 2 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:28:50,742][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.doImplicitPartsScanTest(CacheMvccTransactionsTest.java:2830) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_ClientServer_Backups1(CacheMvccTransactionsTest.java:2806) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="-4555704627702218679"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286764,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_ClientServer_Backups2" status="FAILURE" ignored="false" duration="5" muted="true" currentlyMuted="true" currentlyInvestigated="true">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.doImplicitPartsScanTest(CacheMvccTransactionsTest.java:2830) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_ClientServer_Backups2(CacheMvccTransactionsTest.java:2813) ------- Stdout: ------- [2018-10-24 08:28:50,745][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testImplicitPartsScan_ClientServer_Backups2 &lt;&lt;&lt; [2018-10-24 08:28:50,749][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testImplicitPartsScan_ClientServer_Backups2 in 3 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:28:50,747][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.doImplicitPartsScanTest(CacheMvccTransactionsTest.java:2830) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_ClientServer_Backups2(CacheMvccTransactionsTest.java:2813) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="4191768087058136159"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286770,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testUpdate_N_Objects_SingleNode_SinglePartition_Get" status="SUCCESS" ignored="false" duration="30443" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="1807503255094464261"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286772,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxScan_WithRemoves_ClientServer_Backups0" status="SUCCESS" ignored="false" duration="32885" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="3294195627094846813"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286774,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxScan_WithRemoves_ClientServer_Backups1" status="SUCCESS" ignored="false" duration="32722" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-708112400984016633"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286776,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxScan_WithRemoves_ClientServer_Backups2" status="SUCCESS" ignored="false" duration="32437" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="920567893229536529"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286778,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_ClientServer_Backups0_GetAll" status="SUCCESS" ignored="false" duration="32405" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-1529982603221328635"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286780,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxScan_WithRemoves_SingleNode" status="SUCCESS" ignored="false" duration="30129" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-334860657362926808"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286782,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTxScanReadsSnapshot_SingleNode_SinglePartition" status="FAILURE" ignored="false" duration="4" muted="true" currentlyMuted="true" currentlyInvestigated="true">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.txReadsSnapshot(CacheMvccTransactionsTest.java:1700) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTxScanReadsSnapshot_SingleNode_SinglePartition(CacheMvccTransactionsTest.java:1675) ------- Stdout: ------- [2018-10-24 08:32:01,771][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testPessimisticTxScanReadsSnapshot_SingleNode_SinglePartition &lt;&lt;&lt; [2018-10-24 08:32:01,774][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testPessimisticTxScanReadsSnapshot_SingleNode_SinglePartition in 2 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:32:01,772][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.txReadsSnapshot(CacheMvccTransactionsTest.java:1700) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTxScanReadsSnapshot_SingleNode_SinglePartition(CacheMvccTransactionsTest.java:1675) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="6719097388814341473"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286788,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPartialCommitResultNoVisible" status="SUCCESS" ignored="false" duration="2008" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="4803945081000234526"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286790,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_ClientServer_Backups0_Persistence_Scan" status="SUCCESS" ignored="false" duration="33580" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="5103025593706499831"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286792,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testWithCacheGroups" status="SUCCESS" ignored="false" duration="450" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="7829628344855653076"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286794,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testRebalanceSimple" status="SUCCESS" ignored="false" duration="6466" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="330846633324599128"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286796,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxGetAll_WithRemoves_ClientServer_Backups0" status="SUCCESS" ignored="false" duration="32531" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="3711505250320310840"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286798,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxGetAll_WithRemoves_ClientServer_Backups1" status="SUCCESS" ignored="false" duration="32434" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-1721790534714345886"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286800,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxGetAll_WithRemoves_ClientServer_Backups2" status="SUCCESS" ignored="false" duration="32473" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="1364657462785297012"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286802,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxGetAll_WithRemoves_SingleNode" status="SUCCESS" ignored="false" duration="30131" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="1727571182887099825"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286804,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testOperationsSequenceScanConsistency_ClientServer_Backups0" status="SUCCESS" ignored="false" duration="12417" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="3750861087911978087"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286806,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testOperationsSequenceScanConsistency_ClientServer_Backups1" status="SUCCESS" ignored="false" duration="12363" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-1182565761584304067"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286808,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testThreadUpdatesAreVisibleForThisThread" status="SUCCESS" ignored="false" duration="677" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-122232442757407868"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286810,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testMvccCoordinatorInfoConsistency" status="SUCCESS" ignored="false" duration="943" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="313615320482508897"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286812,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxGetAll_WithRemoves_SingleNode_SinglePartition" status="SUCCESS" ignored="false" duration="30106" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="3043771844975697273"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286814,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testOperationsSequenceGetConsistency_ClientServer_Backups0" status="SUCCESS" ignored="false" duration="12376" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="1954585546811240050"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286816,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testOperationsSequenceGetConsistency_ClientServer_Backups1" status="SUCCESS" ignored="false" duration="12339" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-4559041611150542296"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286818,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testActiveQueriesCleanupTx" status="SUCCESS" ignored="false" duration="7494" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-892414795644884164"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286820,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_SingleNode_GetAll" status="SUCCESS" ignored="false" duration="30153" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="1744021222949419776"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286822,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_ClientServer_Backups1_RestartCoordinator_GetAll" status="SUCCESS" ignored="false" duration="33267" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="8734415875273213581"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286824,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testTxPrepareFailureSimplePessimisticTx" status="SUCCESS" ignored="false" duration="895" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="3913047934039703622"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286826,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitTxOps" status="SUCCESS" ignored="false" duration="5185" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-2130053556259992914"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286828,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testOperationsSequenceGetConsistency_SingleNode" status="SUCCESS" ignored="false" duration="11250" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-7008580781316854256"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286830,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testActiveQueriesCleanup" status="SUCCESS" ignored="false" duration="7149" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-1335489160779483177"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286832,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_ClientServer_Backups1_RestartCoordinator_Scan" status="SUCCESS" ignored="false" duration="33718" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="5194262780075080199"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286834,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testUpdate_N_Objects_SingleNode_SinglePartition_Scan" status="SUCCESS" ignored="false" duration="31733" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-4071838554174986608"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286836,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTxGetAllReadsSnapshot_SingleNode_SinglePartition" status="FAILURE" ignored="false" duration="6" muted="true" currentlyMuted="true" currentlyInvestigated="true">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.txReadsSnapshot(CacheMvccTransactionsTest.java:1700) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTxGetAllReadsSnapshot_SingleNode_SinglePartition(CacheMvccTransactionsTest.java:1661) ------- Stdout: ------- [2018-10-24 08:38:53,915][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testPessimisticTxGetAllReadsSnapshot_SingleNode_SinglePartition &lt;&lt;&lt; [2018-10-24 08:38:53,920][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testPessimisticTxGetAllReadsSnapshot_SingleNode_SinglePartition in 4 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:38:53,916][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.txReadsSnapshot(CacheMvccTransactionsTest.java:1700) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTxGetAllReadsSnapshot_SingleNode_SinglePartition(CacheMvccTransactionsTest.java:1661) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="-2948820371272452864"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286842,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_ClientServer_Backups1_GetAll" status="SUCCESS" ignored="false" duration="32360" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="2831943965398085736"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286844,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testInternalApi" status="SUCCESS" ignored="false" duration="1332" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-4498030913957856278"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286846,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testUpdate_N_Objects_SingleNode_Get" status="SUCCESS" ignored="false" duration="30377" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-8928519641448137091"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286848,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_SingleNode" status="FAILURE" ignored="false" duration="3" muted="true" currentlyMuted="true" currentlyInvestigated="true">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.doImplicitPartsScanTest(CacheMvccTransactionsTest.java:2830) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_SingleNode(CacheMvccTransactionsTest.java:2792) ------- Stdout: ------- [2018-10-24 08:39:57,990][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testImplicitPartsScan_SingleNode &lt;&lt;&lt; [2018-10-24 08:39:57,993][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testImplicitPartsScan_SingleNode in 3 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:39:57,991][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.doImplicitPartsScanTest(CacheMvccTransactionsTest.java:2830) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_SingleNode(CacheMvccTransactionsTest.java:2792) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="-3270586031300522945"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286854,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxGetAll_SingleNode" status="SUCCESS" ignored="false" duration="30111" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-5908094668850848148"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286856,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testMvccCoordinatorChangeSimple" status="SUCCESS" ignored="false" duration="7269" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-6927219027805352920"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286858,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutRemoveSimple" status="SUCCESS" ignored="false" duration="314" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-5641451576071900178"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286860,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxScan_SingleNode" status="SUCCESS" ignored="false" duration="30596" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="5160264320167859841"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286862,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testAccountsTxScan_WithRemoves_SingleNode_SinglePartition" status="SUCCESS" ignored="false" duration="30584" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-1375213261875220006"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286864,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTxGetAllReadsSnapshot_ClientServer" status="FAILURE" ignored="false" duration="4" muted="true" currentlyMuted="true" currentlyInvestigated="true">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.txReadsSnapshot(CacheMvccTransactionsTest.java:1700) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTxGetAllReadsSnapshot_ClientServer(CacheMvccTransactionsTest.java:1668) ------- Stdout: ------- [2018-10-24 08:41:36,868][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testPessimisticTxGetAllReadsSnapshot_ClientServer &lt;&lt;&lt; [2018-10-24 08:41:36,872][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testPessimisticTxGetAllReadsSnapshot_ClientServer in 3 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:41:36,869][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.txReadsSnapshot(CacheMvccTransactionsTest.java:1700) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTxGetAllReadsSnapshot_ClientServer(CacheMvccTransactionsTest.java:1668) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="5650831108120409159"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286870,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testTxReadIsolationSimple" status="SUCCESS" ignored="false" duration="2198" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-5015605996185537572"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286872,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_SingleNode_SinglePartition" status="FAILURE" ignored="false" duration="4" muted="true" currentlyMuted="true" currentlyInvestigated="true">
+        <details>
+            junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.doImplicitPartsScanTest(CacheMvccTransactionsTest.java:2830) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_SingleNode_SinglePartition(CacheMvccTransactionsTest.java:2785) ------- Stdout: ------- [2018-10-24 08:41:39,071][INFO ][main][root] >>> Starting test: CacheMvccTransactionsTest#testImplicitPartsScan_SingleNode_SinglePartition &lt;&lt;&lt; [2018-10-24 08:41:39,074][INFO ][main][root] >>> Stopping test: CacheMvccTransactionsTest#testImplicitPartsScan_SingleNode_SinglePartition in 2 ms &lt;&lt;&lt; ------- Stderr: ------- [2018-10-24 08:41:39,072][ERROR][main][root] Test failed. junit.framework.AssertionFailedError: https://issues.apache.org/jira/browse/IGNITE-9470 at junit.framework.Assert.fail(Assert.java:57) at junit.framework.TestCase.fail(TestCase.java:227) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.doImplicitPartsScanTest(CacheMvccTransactionsTest.java:2830) at org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testImplicitPartsScan_SingleNode_SinglePartition(CacheMvccTransactionsTest.java:2785) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at junit.framework.TestCase.runTest(TestCase.java:176) at org.apache.ignite.testframework.junits.GridAbstractTest.runTestInternal(GridAbstractTest.java:2209) at org.apache.ignite.testframework.junits.GridAbstractTest.access$000(GridAbstractTest.java:144) at org.apache.ignite.testframework.junits.GridAbstractTest$5.run(GridAbstractTest.java:2124) at java.lang.Thread.run(Thread.java:748)
+        </details>
+        <test id="3584560224823040028"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286878,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTx1" status="SUCCESS" ignored="false" duration="2593" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-8184647008127199866"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286880,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTx2" status="SUCCESS" ignored="false" duration="2548" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="8394866883928697232"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286882,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPessimisticTx3" status="SUCCESS" ignored="false" duration="2528" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="5811427108555774667"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286884,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testOperationsSequenceScanConsistency_SingleNode_SinglePartition" status="SUCCESS" ignored="false" duration="10971" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-2614510016626665831"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286886,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_ClientServer_Backups0_Scan" status="SUCCESS" ignored="false" duration="32933" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="7847830748713839845"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286888,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccTransactionsTest.testPutAllGetAll_ClientServer_Backups1_Scan" status="SUCCESS" ignored="false" duration="33189" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="2272989352662624190"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286890,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccProcessorTest.testTreeWithPersistence" status="SUCCESS" ignored="false" duration="2305" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="4794696512566756249"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286892,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccProcessorTest.testTreeWithoutPersistence" status="SUCCESS" ignored="false" duration="2243" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-4056990416680495494"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286894,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccVacuumTest.testStartStopVacuumInMemory" status="SUCCESS" ignored="false" duration="468" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-4717120156772902611"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286896,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccVacuumTest.testStartStopVacuumPersistence" status="SUCCESS" ignored="false" duration="7006" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="776843160000754382"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286898,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccVacuumTest.testVacuumNotStartedWithoutMvccPersistence" status="SUCCESS" ignored="false" duration="1117" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="2405680535970444690"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286900,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccVacuumTest.testVacuumNotStartedWithoutMvcc" status="SUCCESS" ignored="false" duration="82" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="2658564908717211688"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286902,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccConfigurationValidationTest.testMvccModeMismatchForGroup1" status="SUCCESS" ignored="false" duration="149" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="7343887682327019700"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286904,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccConfigurationValidationTest.testMvccModeMismatchForGroup2" status="SUCCESS" ignored="false" duration="141" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-6989447030902358878"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286906,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccConfigurationValidationTest.testMvccLocalCacheDisabled" status="SUCCESS" ignored="false" duration="357" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="549519522662198377"/>
+        <build id="2153237"/>
+    </testOccurrence>
+    <testOccurrence id="id:286908,build:(id:2153237)" name="org.apache.ignite.testsuites.IgniteCacheMvccTestSuite: org.apache.ignite.internal.processors.cache.mvcc.CacheMvccConfigurationValidationTest.testNodeRestartWithCacheModeChangedMvccToTx" status="SUCCESS" ignored="false" duration="1854" muted="false" currentlyMuted="false" currentlyInvestigated="false">
+        <details/>
+        <test id="-8587021425918868817"/>
+        <build id="2153237"/>
+    </testOccurrence>
 </testOccurrences>

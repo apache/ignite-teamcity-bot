@@ -1,0 +1,23 @@
+<!--https://ci.ignite.apache.org/app/rest/latest/builds/id:2153237/statistics-->
+<properties count="20">
+    <property name="ArtifactsSize" value="101706824"/>
+    <property name="BuildDuration" value="2499107"/>
+    <property name="BuildDurationNetTime" value="2462538"/>
+    <property name="buildStageDuration:artifactsPublishing" value="9173"/>
+    <property name="buildStageDuration:buildFinishing" value="43"/>
+    <property name="buildStageDuration:buildStepRUNNER_225" value="6069"/>
+    <property name="buildStageDuration:buildStepRUNNER_264" value="1178"/>
+    <property name="buildStageDuration:buildStepRUNNER_265" value="2454000"/>
+    <property name="buildStageDuration:buildStepRUNNER_266" value="459"/>
+    <property name="buildStageDuration:buildStepRUNNER_287" value="832"/>
+    <property name="buildStageDuration:dependenciesResolving" value="23940"/>
+    <property name="buildStageDuration:firstStepPreparation" value="1"/>
+    <property name="buildStageDuration:sourcesUpdate" value="3236"/>
+    <property name="BuildTestStatus" value="3"/>
+    <property name="FailedTestCount" value="1"/>
+    <property name="PassedTestCount" value="152"/>
+    <property name="SuccessRate" value="0"/>
+    <property name="TimeSpentInQueue" value="1931204"/>
+    <property name="TotalTestCount" value="172"/>
+    <property name="VisibleArtifactsSize" value="8116625"/>
+</properties>

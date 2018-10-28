@@ -18,6 +18,8 @@ package org.apache.ignite.ci.tcbot.chain;
 
 import com.google.common.base.Strings;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -49,6 +51,9 @@ public class PrChainsProcessor {
 
     /** Tc server provider. */
     @Inject ITcServerProvider tcSrvProvider;
+
+    /** Tc server provider. */
+    @Inject ITeamcityIgnitedProvider tcIgnitedProvider;
     @Inject IGitHubConnectionProvider gitHubConnProvider;
 
     /**
@@ -77,6 +82,7 @@ public class PrChainsProcessor {
 
         //using here non persistent TC allows to skip update statistic
         IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, creds);
+        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvId, creds);
 
         IGitHubConnection gitHubConn = gitHubConnProvider.server(srvId);
 
@@ -117,7 +123,7 @@ public class PrChainsProcessor {
 
         String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
 
-        final FullChainRunCtx val = buildChainProcessor.loadFullChainContext(teamcity, chains,
+        final FullChainRunCtx val = buildChainProcessor.loadFullChainContext(teamcity, tcIgnited, chains,
             rebuild,
             logs, buildResMergeCnt == 1,
             baseBranch);

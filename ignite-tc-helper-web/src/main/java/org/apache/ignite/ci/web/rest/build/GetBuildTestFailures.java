@@ -17,10 +17,12 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
+import com.google.common.collect.BiMap;
 import java.text.ParseException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import com.google.inject.Injector;
+import org.apache.ignite.ci.tcbot.condition.BuildCondition;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -29,8 +31,14 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.hist.BuildsHistory;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
@@ -52,6 +60,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 @Path(GetBuildTestFailures.BUILD)
 @Produces(MediaType.APPLICATION_JSON)
@@ -107,21 +117,23 @@ public class GetBuildTestFailures {
     @GET
     @Path("failuresNoCache")
     @NotNull public TestFailuresSummary getBuildTestFailsNoCache(
-        @QueryParam("serverId") String serverId,
+        @QueryParam("serverId") String srvId,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        final ITcHelper helper = CtxListener.getTcHelper(ctx);
         final ICredentialsProv prov = ICredentialsProv.get(req);
         final Injector injector = CtxListener.getInjector(ctx);
+        ITeamcityIgnitedProvider tcIgnitedProv = injector.getInstance(ITeamcityIgnitedProvider.class);
+        ITcServerProvider tcSrvProvider = injector.getInstance(ITcServerProvider.class);
         final BuildChainProcessor buildChainProcessor = injector.getInstance(BuildChainProcessor.class);
 
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
-        if(!prov.hasAccess(serverId))
-            throw ServiceUnauthorizedException.noCreds(serverId);
+        if(!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
 
-        IAnalyticsEnabledTeamcity teamcity = helper.server(serverId, prov);
+        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, prov);
+        ITeamcityIgnited teamcityIgnited = tcIgnitedProv.server(srvId, prov);
 
         //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
         String hrefById = teamcity.getBuildHrefById(buildId);
@@ -132,13 +144,12 @@ public class GetBuildTestFailures {
 
         ProcessLogsMode procLogs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, Collections.singletonList(build),
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, teamcityIgnited, Collections.singletonList(build),
                 LatestRebuildMode.NONE,
                 procLogs, false,
             failRateBranch);
 
-
-        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(serverId, ctx.branchName());
+        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, ctx.branchName());
 
         int cnt = (int) ctx.getRunningUpdates().count();
         if (cnt > 0)
@@ -157,6 +168,7 @@ public class GetBuildTestFailures {
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     @Path("testRef")
+    @Deprecated
     public String getTestRef(
         @NotNull @QueryParam("testName") String name,
         @NotNull @QueryParam("suiteName") String suiteName,
@@ -191,6 +203,44 @@ public class GetBuildTestFailures {
             + "&tab=testDetails" : null;
     }
 
+    /**
+     * Mark builds as "valid" or "invalid".
+     *
+     * @param buildId Build id.
+     * @param isValid Is valid.
+     * @param field Field.
+     * @param serverId Server.
+     */
+    @GET
+    @Path("condition")
+    public Boolean setBuildCondition(
+        @QueryParam("buildId") Integer buildId,
+        @QueryParam("isValid") Boolean isValid,
+        @QueryParam("field") String field,
+        @QueryParam("serverId") String serverId) {
+        String srvId = isNullOrEmpty(serverId) ? "apache" : serverId;
+
+        if (buildId == null || isValid == null)
+            return null;
+
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
+
+        ITeamcityIgnitedProvider tcIgnitedProv = CtxListener.getInjector(ctx)
+            .getInstance(ITeamcityIgnitedProvider.class);
+
+        ITeamcityIgnited ignited = tcIgnitedProv.server(srvId, prov);
+
+        BiMap<String, String> problemNames = BuildStatisticsSummary.fullProblemNames;
+
+        BuildCondition buildCond =
+            new BuildCondition(buildId, prov.getPrincipalId(), isValid, problemNames.getOrDefault(field, field));
+
+        return ignited.setBuildCondition(buildCond);
+    }
+
     @GET
     @Path("history")
     public BuildsHistory getBuildsHistory(
@@ -210,10 +260,10 @@ public class GetBuildTestFailures {
         if (Boolean.valueOf(skipTests))
             builder.skipTests();
 
-        BuildsHistory buildsHistory = builder.build();
+        BuildsHistory buildsHist = builder.build();
 
-        buildsHistory.initialize(ICredentialsProv.get(req), ctx);
+        buildsHist.initialize(ICredentialsProv.get(req), ctx);
 
-        return buildsHistory;
+        return buildsHist;
     }
 }

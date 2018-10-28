@@ -22,9 +22,10 @@ import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
-public class MultTestFailureOccurrences implements ITestFailureOccurrences {
-    private final List<TestOccurrence> occurrences = new CopyOnWriteArrayList<>();
+public class MultTestFailureOccurrences implements ITestFailures {
+    private final List<TestOccurrenceFull> occurrences = new CopyOnWriteArrayList<>();
 
     public MultTestFailureOccurrences() {
 
@@ -38,10 +39,6 @@ public class MultTestFailureOccurrences implements ITestFailureOccurrences {
         return occurrences.stream().anyMatch(TestOccurrence::isInvestigated);
     }
 
-    @Override public Stream<String> getOccurrenceIds() {
-        return occurrences.stream().map(TestOccurrence::getId);
-    }
-
     public boolean hasFailedButNotMuted() {
         return getFailedButNotMutedCount() > 0;
     }
@@ -50,10 +47,6 @@ public class MultTestFailureOccurrences implements ITestFailureOccurrences {
         return (int)occurrences.stream()
             .filter(Objects::nonNull)
             .filter(TestOccurrence::isFailedButNotMuted).count();
-    }
-
-    public int occurrencesCount() {
-        return (int)getOccurrenceIds().count();
     }
 
     @Override public int failuresCount() {
@@ -66,7 +59,11 @@ public class MultTestFailureOccurrences implements ITestFailureOccurrences {
         return stream.findAny().orElse(0L);
     }
 
-    public void add(TestOccurrence next) {
+    @Override public Iterable<TestOccurrenceFull> getOccurrences() {
+        return occurrences;
+    }
+
+    public void add(TestOccurrenceFull next) {
         if (next.getId() == null)
             return;
 

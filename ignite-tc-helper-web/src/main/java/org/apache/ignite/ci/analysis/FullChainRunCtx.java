@@ -34,7 +34,7 @@ public class FullChainRunCtx {
     private Build chainResults;
     private List<MultBuildRunCtx> buildCfgsResults = new ArrayList<>();
 
-    public FullChainRunCtx(Build chainResults ) {
+    public FullChainRunCtx(Build chainResults) {
         this.chainResults = chainResults;
 
         fakeStub = chainResults.isFakeStub();
@@ -72,18 +72,6 @@ public class FullChainRunCtx {
         return chainResults.branchName;
     }
 
-    public int failedTests() {
-        return buildCfgsResults.stream().mapToInt(MultBuildRunCtx::failedTests).sum();
-    }
-
-    public int mutedTests() {
-        return buildCfgsResults.stream().mapToInt(MultBuildRunCtx::mutedTests).sum();
-    }
-
-    public int totalTests() {
-        return buildCfgsResults.stream().mapToInt(MultBuildRunCtx::totalTests).sum();
-    }
-
     public Stream<MultBuildRunCtx> failedChildSuites() {
         return suites().stream().filter(MultBuildRunCtx::isFailed);
     }
@@ -111,19 +99,6 @@ public class FullChainRunCtx {
      */
     @NotNull public String getDurationPrintable() {
         return (TimeUtil.millisToDurationPrintable(getTotalDuration()))
-            + (hasFullDurationInfo() ? "" : "+");
-    }
-
-    private Stream<Long> getSourceUpdateDurations() {
-        return suites().stream().map(MultBuildRunCtx::getSourceUpdateDuration);
-    }
-
-    public Long getTotalSourceUpdateDuration() {
-        return getSourceUpdateDurations().filter(Objects::nonNull).mapToLong(t -> t).sum();
-    }
-
-    @NotNull public String getSourceUpdateDurationPrintable() {
-        return (TimeUtil.millisToDurationPrintable(getTotalSourceUpdateDuration()))
             + (hasFullDurationInfo() ? "" : "+");
     }
 

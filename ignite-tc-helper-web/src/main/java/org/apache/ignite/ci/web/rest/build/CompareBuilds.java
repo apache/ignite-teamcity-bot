@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.build;
 
-import java.util.ArrayList;
+import com.google.inject.Injector;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -29,25 +29,16 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.tcbot.builds.CompareBuildsService;
 import org.apache.ignite.ci.util.Diff;
-import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** */
 @Path("compare")
 @Produces(MediaType.APPLICATION_JSON)
 public class CompareBuilds {
-    /** */
-    private static final Logger logger = LoggerFactory.getLogger(CompareBuilds.class);
 
     /** */
     @Context
@@ -125,58 +116,13 @@ public class CompareBuilds {
 
     /** */
     private List<String> tests(String srv, Integer buildId) {
-        final ITcHelper helper = CtxListener.getTcHelper(ctx);
+        Injector injector = CtxListener.getInjector(ctx);
+        CompareBuildsService compareBuildsSvc = injector.getInstance(CompareBuildsService.class);
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
         if (!prov.hasAccess(srv))
             throw ServiceUnauthorizedException.noCreds(srv);
 
-        IAnalyticsEnabledTeamcity teamcity = helper.server(srv, prov);
-
-        String hrefById = teamcity.getBuildHrefById(buildId);
-        BuildRef buildRef = new BuildRef();
-
-        buildRef.setId(buildId);
-        buildRef.href = hrefById;
-
-        return tests0(teamcity, buildRef);
-
-    }
-
-    /** */
-    private List<String> tests0(ITeamcity tc, BuildRef ref) {
-        List<String> tests = new ArrayList<>();
-
-        Build build = tc.getBuild(ref.href);
-
-        if (build.isComposite()) {
-            List<BuildRef> deps = build.getSnapshotDependenciesNonNull();
-
-            logger.info("Build {} is composite ({}).", build.getId(), deps.size());
-
-            for (BuildRef ref0 : deps)
-                tests.addAll(tests0(tc, ref0));
-        }
-        else {
-            logger.info("Loading tests for build {}.", build.getId());
-
-            MultBuildRunCtx buildCtx = tc.loadTestsAndProblems(build);
-
-            for (String testName : buildCtx.tests())
-                tests.add(extractTestName(testName));
-        }
-
-        return tests;
-    }
-
-    /**
-     * Get rid from suite name.
-     * @param testFullName Test full name.
-     * @return Test name.
-     */
-    private String extractTestName(String testFullName) {
-        int pos = testFullName.indexOf(": ");
-
-        return pos >= 0 ? testFullName.substring(pos + 2) : testFullName;
+        return compareBuildsSvc.tests0(srv, buildId);
     }
 }

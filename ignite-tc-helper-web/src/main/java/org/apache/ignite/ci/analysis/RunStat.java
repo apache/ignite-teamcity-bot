@@ -117,7 +117,7 @@ public class RunStat {
         addRunToLatest(id, new RunInfo(testToResCode(testOccurrence), changesState));
     }
 
-    private static TestId extractFullId(String id) {
+    public static TestId extractFullId(String id) {
         Integer buildId = extractIdPrefixed(id, "build:(id:", ")");
 
         if (buildId == null)

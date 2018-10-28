@@ -74,6 +74,7 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.util.CacheUpdateUtil;
@@ -81,8 +82,6 @@ import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXParseException;
 
 import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBranch;
@@ -94,10 +93,9 @@ import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBran
  */
 @Deprecated
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
-    /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(IgnitePersistentTeamcity.class);
 
     //V2 caches, 32 parts (V1 caches were 1024 parts)
+    @Deprecated
     private static final String TESTS_OCCURRENCES = "testOccurrences";
     private static final String TESTS_RUN_STAT = "testsRunStat";
     private static final String CALCULATED_STATISTIC = "calculatedStatistic";
@@ -105,6 +103,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private static final String CHANGE_INFO_FULL = "changeInfoFull";
     private static final String CHANGES_LIST = "changesList";
     private static final String ISSUES_USAGES_LIST = "issuesUsagesList";
+    @Deprecated
     private static final String TEST_FULL = "testFull";
     private static final String BUILD_PROBLEMS = "buildProblems";
     private static final String BUILD_STATISTICS = "buildStatistics";
@@ -222,6 +221,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /**
      * @return {@link TestOccurrences} instances cache, 32 parts.
      */
+    @Deprecated
     private IgniteCache<String, TestOccurrences> testOccurrencesCache() {
         return getOrCreateCacheV2(ignCacheNme(TESTS_OCCURRENCES));
     }
@@ -229,6 +229,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /**
      * @return {@link TestOccurrenceFull} instances cache, 32 parts.
      */
+    @Deprecated
     private IgniteCache<String, TestOccurrenceFull> testFullCache() {
         return getOrCreateCacheV2(ignCacheNme(TEST_FULL));
     }
@@ -313,6 +314,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return loaded;
     }
 
+    @Deprecated
     protected List<BuildRef> loadBuildHistory(IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> cache,
                                               int seconds,
                                               SuiteInBranch key,
@@ -840,18 +842,20 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public TestOccurrences getTests(String href, String normalizedBranch) {
-        String hrefForDb = DbMigrations.removeCountFromRef(href);
+    @Deprecated
+    @Override public TestOccurrences getTests(String fullUrl) {
+        String hrefForDb = DbMigrations.removeCountFromRef(fullUrl);
 
         return loadIfAbsent(testOccurrencesCache(),
             hrefForDb,  //hack to avoid test reloading from store in case of href filter replaced
-            hrefIgnored -> teamcity.getTests(href, normalizedBranch));
+            hrefIgnored -> teamcity.getTests(fullUrl));
     }
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public TestOccurrences getFailedTests(String href, int count, String normalizedBranch) {
-        return getTests(href + ",muted:false,status:FAILURE,count:" + count + "&fields=testOccurrence(id,name)", normalizedBranch);
+    @Deprecated
+    @Override public TestOccurrences getFailedTests(String href, int cnt, String normalizedBranch) {
+        return getTests(href + ",muted:false,status:FAILURE,count:" + cnt + "&fields=testOccurrence(id,name)");
     }
 
     /** {@inheritDoc} */
@@ -993,7 +997,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @Override public Function<TestInBranch, RunStat> getTestRunStatProvider() {
-        return key -> key == null ? null : testRunStatCache().get(key);
+        return key -> key == null ? null : getRunStatForTest(key);
+    }
+
+    @AutoProfiling
+    protected RunStat getRunStatForTest(TestInBranch key) {
+        return testRunStatCache().get(key);
     }
 
     private Stream<RunStat> allTestAnalysis() {
@@ -1011,7 +1020,13 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @Override public Function<SuiteInBranch, RunStat> getBuildFailureRunStatProvider() {
-        return key -> key == null ? null : buildsFailureRunStatCache().get(key);
+        return key -> key == null ? null : getRunStatForTest(key);
+    }
+
+
+    @AutoProfiling
+    protected RunStat getRunStatForTest(SuiteInBranch key) {
+        return buildsFailureRunStatCache().get(key);
     }
 
     private Stream<RunStat> buildsFailureAnalysis() {
@@ -1125,12 +1140,13 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
     @Override public void calculateBuildStatistic(SingleBuildRunCtx ctx) {
         if (calculatedStatistic().containsKey(ctx.buildId()))
             return;
 
         for (TestOccurrence testOccurrence : ctx.getTests())
-            addTestOccurrenceToStat(testOccurrence, normalizeBranch(ctx.getBuild()), !ctx.getChanges().isEmpty());
+            addTestOccurrenceToStat(testOccurrence, normalizeBranch(ctx.getBranch()), !ctx.getChanges().isEmpty());
 
         calculatedStatistic().put(ctx.buildId(), true);
     }
@@ -1206,7 +1222,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.sendJiraComment(ticket, comment);
     }
 
-
     /** {@inheritDoc} */
     @Override public void setJiraApiUrl(String url) {
         teamcity.setJiraApiUrl(url);
@@ -1225,5 +1240,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> nextPage) {
         return teamcity.getBuildRefs(fullUrl, nextPage);
+    }
+
+    /** {@inheritDoc} */
+    @Override public TestOccurrencesFull getTestsPage(int buildId, String href, boolean testDtls) {
+        return teamcity.getTestsPage(buildId, href, testDtls);
     }
 }
