@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.jira;
 
-import org.apache.ignite.ci.tcmodel.result.JiraCommentResult;
+import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.user.ICredentialsProv;
 
 /**
@@ -35,6 +35,6 @@ public interface IJiraIntegration {
      * @param ticket JIRA ticket full name. E.g. IGNITE-5555
      * @return {@code True} if JIRA was notified.
      */
-    public JiraCommentResult notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
+    public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
         String ticket);
 }

@@ -24,8 +24,8 @@ import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.result.JiraCommentResponse;
-import org.apache.ignite.ci.tcmodel.result.JiraCommentResult;
+import org.apache.ignite.ci.web.model.JiraCommentResponse;
+import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -72,6 +72,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
     @Inject private PrChainsProcessor prChainsProcessor;
 
+    /** */
     @Inject private VisasHistoryStorage visasHistoryStorage;
 
     /** */
@@ -147,33 +148,33 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @Override public JiraCommentResult notifyJira(
+    @Override public Visa notifyJira(
         String srvId,
         ICredentialsProv prov,
         String buildTypeId,
         String branchForTc,
         String ticket
     ) {
-        JiraCommentResult jiraCommentResult = new JiraCommentResult();
-
         IAnalyticsEnabledTeamcity teamcity = server(srvId, prov);
 
         List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchForTc);
 
         if (builds.isEmpty())
-            return jiraCommentResult.setResult("JIRA wasn't commented - no finished builds to analyze.");
+            return new Visa().setStatus("JIRA wasn't commented - no finished builds to analyze.");
 
         BuildRef build = builds.get(builds.size() - 1);
 
+        List<SuiteCurrentStatus> suitesStatuses;
+
+        JiraCommentResponse response;
+
         try {
-            jiraCommentResult.setSuitesStatus(getSuitesStatus(buildTypeId, build.branchName, srvId, prov));
+            suitesStatuses =  getSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
 
-            String comment = generateJiraComment(jiraCommentResult.getSuitesStatus(), build.webUrl);
+            String comment = generateJiraComment(suitesStatuses, build.webUrl);
 
-            JiraCommentResponse response = objectMapper.readValue(teamcity.sendJiraComment(ticket, comment),
+            response = objectMapper.readValue(teamcity.sendJiraComment(ticket, comment),
                 JiraCommentResponse.class);
-
-            jiraCommentResult.setResponse(response);
 
         }
         catch (Exception e) {
@@ -182,10 +183,13 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
             logger.error(errMsg);
 
-            return jiraCommentResult.setResult("JIRA wasn't commented - " + errMsg);
+            return new Visa().setStatus("JIRA wasn't commented - " + errMsg);
         }
 
-        return jiraCommentResult.setResult(JIRA_COMMENTED);
+        return new Visa()
+            .setStatus(JIRA_COMMENTED)
+            .setJiraCommentResponse(response)
+            .setSuitesStatuses(suitesStatuses);
     }
 
     /**
@@ -195,7 +199,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
      * @param prov Credentials.
      * @return List of suites with possible blockers.
      */
-    public List<SuiteCurrentStatus> getSuitesStatus(String buildTypeId,
+    public List<SuiteCurrentStatus> getSuitesStatuses(String buildTypeId,
         String branchForTc,
         String srvId,
         ICredentialsProv prov) {
@@ -270,7 +274,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
                 "borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
         }
 
-        res.append("\\n").append("[TeamCity Run All|").append(webUrl).append(']');
+        res.append("\\n").append("[TeamCity Run All Results|").append(webUrl).append(']');
 
         return xmlEscapeText(res.toString());
     }

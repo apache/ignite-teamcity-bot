@@ -27,12 +27,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
-import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
@@ -42,13 +40,11 @@ import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.observer.BuildsInfo;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.tcmodel.result.JiraCommentResult;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.web.model.VisaRequest;
+import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.internal.util.typedef.F;
@@ -89,37 +85,44 @@ public class TcBotTriggerAndSignOffService {
 
     /** */
     public List<VisaStatus> getVisasStatus(String srvId, ICredentialsProv prov) {
-        List<VisaStatus> visas = new ArrayList<>();
+        List<VisaStatus> visaStatuses = new ArrayList<>();
 
         IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
 
-        for (Cache.Entry<BuildsInfo, JiraCommentResult> visa : tcHelper.getVisasHistoryStorage().getVisas()) {
+        for (VisaRequest visaRequest : tcHelper.getVisasHistoryStorage().getVisas()) {
             VisaStatus visaStatus = new VisaStatus();
 
-            BuildsInfo buildsInfo = visa.getKey();
+            BuildsInfo info = visaRequest.getInfo();
 
-            JiraCommentResult jiraCommentResult = visa.getValue();
+            Visa visa = visaRequest.getResult();
 
-            visaStatus.date = formatter.format(buildsInfo.date);
-            visaStatus.branchName = buildsInfo.branchName;
-            visaStatus.state = buildsInfo.getState(teamcity);
-            visaStatus.userName = buildsInfo.userName;
-            visaStatus.ticket = buildsInfo.ticket;
+            visaStatus.date = formatter.format(info.date);
+            visaStatus.branchName = info.branchName;
+            visaStatus.userName = info.userName;
+            visaStatus.ticket = info.ticket;
 
-            if (jiraCommentResult.isSuccess()) {
+            if (!visaRequest.isFinished(teamcity)) {
+                visaStatus.state = info.getState(teamcity);
+            }
+            else if (!visa.isSuccess()) {
+                visaStatus.state = BuildsInfo.FINISHED_STATE + "(waiting results...)";
+            }
+            else {
                 visaStatus.commentUrl = "https://issues.apache.org/jira/browse/" + visaStatus.ticket +
-                    "?focusedCommentId=" + jiraCommentResult.getResponse().getId() +
+                    "?focusedCommentId=" + visa.getJiraCommentResponse().getId() +
                     "&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-" +
-                    jiraCommentResult.getResponse().getId();
+                    visa.getJiraCommentResponse().getId();
 
-                visaStatus.blockers = jiraCommentResult.getSuitesStatus().stream().mapToInt(suite ->
+                visaStatus.blockers = visa.getSuitesStatuses().stream().mapToInt(suite ->
                     suite.testFailures.size()).sum();
+
+                visaStatus.state = BuildsInfo.FINISHED_STATE;
             }
 
-            visas.add(visaStatus);
+            visaStatuses.add(visaStatus);
         }
 
-        return visas;
+        return visaStatuses;
     }
 
     /**
@@ -261,11 +264,12 @@ public class TcBotTriggerAndSignOffService {
         if (!Strings.isNullOrEmpty(ticketFullName)) {
             BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticketFullName, branchForTc);
 
-            JiraCommentResult jiraCommentResult = jiraIntegration.notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName);
+            Visa visa = jiraIntegration.notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName);
 
-            tcHelper.getVisasHistoryStorage().put(buildsInfo, jiraCommentResult);
+            tcHelper.getVisasHistoryStorage().put(new VisaRequest(buildsInfo)
+                .setResult(visa));
 
-            jiraRes = jiraCommentResult.getResult();
+            jiraRes = visa.getStatus();
 
             return new SimpleResult(jiraRes);
         }

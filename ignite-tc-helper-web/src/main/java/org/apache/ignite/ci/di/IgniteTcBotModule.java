@@ -37,7 +37,7 @@ import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
-import org.apache.ignite.ci.tcmodel.result.JiraCommentResult;
+import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedModule;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
@@ -91,7 +91,7 @@ public class IgniteTcBotModule extends AbstractModule {
     private static class Jira implements IJiraIntegration {
         @Inject ITcHelper helper;
 
-        @Override public JiraCommentResult notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
+        @Override public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
             String ticket) {
             return helper.notifyJira(srvId, prov, buildTypeId, branchForTc, ticket);
         }

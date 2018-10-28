@@ -92,10 +92,10 @@ function showVisasTable(result) {
         columns: [
             {
                 "data": "state",
-                title: "State",
+                title: "Status",
                 "render": function (data, type, row, meta) {
                     if (type === 'display') {
-                        if (data ==='finished')
+                        if (data ==='finished' && row.commentUrl)
                             data = "<a href='" + row.commentUrl + "'>" + data + "</a>";
                     }
 

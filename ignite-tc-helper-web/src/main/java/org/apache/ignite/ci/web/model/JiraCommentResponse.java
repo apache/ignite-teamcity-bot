@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.result;
+package org.apache.ignite.ci.web.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

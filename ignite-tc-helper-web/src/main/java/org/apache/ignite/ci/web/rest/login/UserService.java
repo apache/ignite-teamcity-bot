@@ -99,8 +99,6 @@ public class UserService {
 
         CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class).startObserver();
 
-        CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class).startObserver();
-
         CtxListener.getInjector(ctx).getInstance(VisasHistoryStorage.class).clear();
 
         return userMenu(prov, helper);

@@ -21,14 +21,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.observer.BuildsInfo;
-import org.apache.ignite.ci.tcmodel.result.JiraCommentResult;
-import org.apache.ignite.internal.util.typedef.T2;
+import org.apache.ignite.ci.web.model.Visa;
+import org.apache.ignite.ci.web.model.VisaRequest;
+import org.jetbrains.annotations.Nullable;
 
 /**
  *
@@ -50,35 +52,55 @@ public class VisasHistoryStorage {
             return ignite;
 
         final Ignite ignite = igniteProvider.get();
+
         this.ignite = ignite;
+
         return ignite;
     }
 
     /** */
     public void clear() {
         visas().clear();
+
+        visas().close();
+
+        ignite.destroyCache(VISAS_CACHE_NAME);
     }
 
     /** */
-    private Cache<BuildsInfo, JiraCommentResult> visas() {
+    private Cache<BuildsInfo, VisaRequest> visas() {
         return getIgnite().getOrCreateCache(TcHelperDb.getCacheV2TxConfig(VISAS_CACHE_NAME));
     }
 
     /** */
-    public void put(BuildsInfo buildsInfo) {
-        visas().put(buildsInfo, new JiraCommentResult());
+    public void put(VisaRequest visaRequest) {
+        visas().put(visaRequest.getInfo(), visaRequest);
     }
 
     /** */
-    public void put(BuildsInfo buildsInfo, JiraCommentResult result) {
-        visas().put(buildsInfo, result);
+    @Nullable public VisaRequest get(BuildsInfo info) {
+        return visas().get(info);
     }
 
     /** */
-    public Collection<Cache.Entry<BuildsInfo, JiraCommentResult>> getVisas() {
-        List<Cache.Entry<BuildsInfo, JiraCommentResult>> res = new ArrayList<>();
+    public boolean updateVisaRequestResult(BuildsInfo info, Visa visa) {
+        VisaRequest visaRequest = visas().get(info);
 
-        visas().forEach(entry -> res.add(entry));
+        if (Objects.isNull(visaRequest))
+            return false;
+
+        visaRequest.setResult(visa);
+
+        put(visaRequest);
+
+        return true;
+    }
+
+    /** */
+    public Collection<VisaRequest> getVisas() {
+        List<VisaRequest> res = new ArrayList<>();
+
+        visas().forEach(entry -> res.add(entry.getValue()));
 
         return Collections.unmodifiableCollection(res);
     }

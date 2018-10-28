@@ -20,6 +20,7 @@ package org.apache.ignite.ci.observer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TimerTask;
@@ -31,10 +32,9 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.VisaRequest;
 import org.apache.ignite.configuration.CollectionConfiguration;
-import org.apache.ignite.ci.tcmodel.result.JiraCommentResult;
-import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.configuration.CollectionConfiguration;
+import org.apache.ignite.ci.web.model.Visa;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,6 +110,16 @@ public class ObserverTask extends TimerTask {
 
             IAnalyticsEnabledTeamcity teamcity = tcHelper.server(info.srvId, tcHelper.getServerAuthorizerCreds());
 
+            if (info.isFinishedWithFailures(teamcity)) {
+                builds.remove(info);
+
+                logger.error("JIRA will not be commented." +
+                    " [ticket: " + info.ticket + ", branch:" + info.branchName + "] : " +
+                    "one or more re-runned blocker's builds finished with UNKNOWN status.");
+
+                continue;
+            }
+
             if (!info.isFinished(teamcity)) {
                 notFinishedBuilds += info.buildsCount() - info.finishedBuildsCount();
 
@@ -118,21 +128,12 @@ public class ObserverTask extends TimerTask {
 
             ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
 
-            JiraCommentResult jiraCommentResult = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
+            Visa visa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
                 info.branchName, info.ticket);
 
-            tcHelper.getVisasHistoryStorage().put(info, jiraCommentResult);
+            tcHelper.getVisasHistoryStorage().updateVisaRequestResult(info, visa);
 
-            String jiraRes = jiraCommentResult.getResult();
-
-            if (info.isStateUnknown(teamcity)) {
-                builds.remove(info);
-
-                return "JIRA will not be commented because one or more re-runned blockers finished with UNKNOWN status." +
-                    " [ticket: " + info.ticket + ", branch:" + info.branchName + "]";
-            }
-
-            if (JIRA_COMMENTED.equals(jiraRes)) {
+            if (visa.isSuccess()) {
                 ticketsNotified.add(info.ticket);
 
                 builds.remove(info);

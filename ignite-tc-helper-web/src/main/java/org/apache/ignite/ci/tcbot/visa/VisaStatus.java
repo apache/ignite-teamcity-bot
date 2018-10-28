@@ -17,28 +17,30 @@
 
 package org.apache.ignite.ci.tcbot.visa;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  *
  */
 public class VisaStatus {
     /** */
-    public String userName;
+    @Nullable public String userName;
 
     /** Branch name. */
-    public String branchName;
+    @Nullable public String branchName;
 
     /** JIRA ticket full name. */
-    public String ticket;
+    @Nullable public String ticket;
 
     /** */
-    public String state;
+    @Nullable public String state;
 
     /** */
-    public String commentUrl;
+    @Nullable public String commentUrl;
 
     /** */
-    public String date;
+    @Nullable public String date;
 
     /** */
-    public int blockers;
+    @Nullable public int blockers;
 }

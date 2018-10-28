@@ -39,7 +39,7 @@ public class BuildsInfo {
     /** */
     public static final String FINISHED_WITH_FAILURES_STATE = "finished with failures";
 
-    /** Name of user who requested that visa request. */
+    /** */
     public final String userName;
 
     /** Server id. */
@@ -114,7 +114,7 @@ public class BuildsInfo {
     /**
      * @param teamcity Teamcity.
      */
-    public boolean isStateUnknown(IAnalyticsEnabledTeamcity teamcity) {
+    public boolean isFinishedWithFailures(IAnalyticsEnabledTeamcity teamcity) {
         return FINISHED_WITH_FAILURES_STATE.equals(getState(teamcity));
     }
 

@@ -24,6 +24,7 @@ import javax.inject.Inject;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.VisaRequest;
 
 /**
  *
@@ -67,7 +68,7 @@ public class BuildObserver {
     public void observe(String srvId, ICredentialsProv prov, String ticket, String branch, Build... builds) {
         BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, branch, builds);
 
-        helper.getVisasHistoryStorage().put(buildsInfo);
+        helper.getVisasHistoryStorage().put(new VisaRequest(buildsInfo));
 
         observerTask.addBuild(buildsInfo);
     }

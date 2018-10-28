@@ -15,70 +15,75 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.result;
+package org.apache.ignite.ci.web.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import org.apache.ignite.ci.TcHelper;
+import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.jetbrains.annotations.Nullable;
 
 /**
  *
  */
-public class JiraCommentResult {
+public class Visa {
     /** */
-    @Nullable private String result;
+    @Nullable private String status;
 
     /** */
-    @Nullable private JiraCommentResponse response;
+    @Nullable private JiraCommentResponse jiraCommentResponse;
 
     /** */
-    @Nullable private List<SuiteCurrentStatus> suitesStatus = new ArrayList<>();
+    @Nullable private List<SuiteCurrentStatus> suitesStatuses;
 
     /** */
-    @Nullable public List<SuiteCurrentStatus> getSuitesStatus() {
-        return suitesStatus;
+    @Nullable public String getStatus() {
+        return status;
     }
 
     /** */
-    public JiraCommentResult setSuitesStatus(List<SuiteCurrentStatus> suiteCurrentStatuses) {
-        this.suitesStatus = suiteCurrentStatuses;
+    public Visa setStatus(@Nullable String status) {
+        this.status = status;
 
         return this;
     }
 
     /** */
-    public JiraCommentResult setResult(String result) {
-        this.result = result;
+    @Nullable public JiraCommentResponse getJiraCommentResponse() {
+        return jiraCommentResponse;
+    }
+
+    /** */
+    public Visa setJiraCommentResponse(@Nullable JiraCommentResponse jiraCommentResponse) {
+        this.jiraCommentResponse = jiraCommentResponse;
 
         return this;
     }
 
     /** */
-    @Nullable public String getResult() {
-        return result;
+    @Nullable public List<SuiteCurrentStatus> getSuitesStatuses() {
+        return suitesStatuses;
     }
 
     /** */
-    @Nullable public JiraCommentResponse getResponse() {
-        return response;
-    }
-
-    /** */
-    public JiraCommentResult setResponse(JiraCommentResponse response) {
-        this.response = response;
+    public Visa setSuitesStatuses(@Nullable List<SuiteCurrentStatus> suitesStatuses) {
+        this.suitesStatuses = suitesStatuses;
 
         return this;
     }
 
     /** */
     public boolean isSuccess() {
-        return TcHelper.JIRA_COMMENTED.equals(result);
+        return IJiraIntegration.JIRA_COMMENTED.equals(status) 
+            && jiraCommentResponse != null 
+            && suitesStatuses != null;
     }
 
     /** */
     @Override public String toString() {
-        return result;
+        return status;
     }
 }

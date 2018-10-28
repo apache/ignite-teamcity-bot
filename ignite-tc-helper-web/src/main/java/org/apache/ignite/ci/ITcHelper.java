@@ -21,7 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
-import org.apache.ignite.ci.tcmodel.result.JiraCommentResult;
+import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -54,7 +54,6 @@ public interface ITcHelper extends ITcServerProvider {
 
     List<String> getTrackedBranchesIds();
 
-
     /** */
     void setServerAuthorizerCreds(ICredentialsProv creds);
 
@@ -75,5 +74,5 @@ public interface ITcHelper extends ITcServerProvider {
      * @param ticket JIRA ticket full name.
      * @return {@code True} if JIRA was notified.
      */
-    JiraCommentResult notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc, String ticket);
+    Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc, String ticket);
 }
