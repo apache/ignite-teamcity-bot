@@ -46,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ProactiveFatBuildSync {
-    public static final int FAT_BUILD_PROACTIVE_TASKS = 4;
+    public static final int FAT_BUILD_PROACTIVE_TASKS = 5;
 
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(ProactiveFatBuildSync.class);

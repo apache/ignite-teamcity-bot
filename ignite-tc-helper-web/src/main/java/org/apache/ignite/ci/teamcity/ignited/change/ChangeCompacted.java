@@ -16,6 +16,10 @@
  */
 package org.apache.ignite.ci.teamcity.ignited.change;
 
+import com.google.common.base.Objects;
+import com.google.common.base.Strings;
+import javax.annotation.Nullable;
+import javax.xml.bind.DatatypeConverter;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.changes.Change;
@@ -30,7 +34,7 @@ public class ChangeCompacted implements IVersionedEntity {
     private static final Logger logger = LoggerFactory.getLogger(FatBuildDao.class);
 
     /** Latest version. */
-    private static final int LATEST_VERSION = 1;
+    private static final int LATEST_VERSION = 3;
 
     /** Entity fields version. */
     @SuppressWarnings("FieldCanBeLocal")
@@ -45,6 +49,12 @@ public class ChangeCompacted implements IVersionedEntity {
     private int tcUserUsername = -1;
     private int tcUserFullname = -1;
 
+    /** Version: For Git revision, 20 bytes. */
+    @Nullable private byte[] version;
+
+    /** Date timestamp. */
+    private long date;
+
     public ChangeCompacted(IStringCompactor compactor, Change change) {
         id = compactor.getStringId(change.id);
         vcsUsername = compactor.getStringId(change.username);
@@ -52,11 +62,30 @@ public class ChangeCompacted implements IVersionedEntity {
         if (change.user != null) {
             try {
                 tcUserId = Integer.parseInt(change.user.id);
-            } catch (NumberFormatException e) {
-                logger.error("TC User id parse failed " + change.user.id, e);
+            }
+            catch (NumberFormatException e) {
+                logger.error("TC User id parse failed " + change.user.id + ":" + e.getMessage(), e);
             }
             tcUserUsername = compactor.getStringId(change.user.username);
             tcUserFullname = compactor.getStringId(change.user.name);
+        }
+
+        if (!Strings.isNullOrEmpty(change.version)) {
+            try {
+                version = DatatypeConverter.parseHexBinary(change.version);
+            }
+            catch (Exception e) {
+                logger.error("TC Change version parse failed " + change.version + ":" + e.getMessage(), e);
+            }
+        }
+
+        try {
+            Long date = change.getDateTs();
+
+            this.date = date == null ? -1L : date;
+        }
+        catch (Exception e) {
+            logger.error("TC Change date parse failed " + change.date + ":" + e.getMessage(), e);
         }
 
     }
@@ -85,5 +114,27 @@ public class ChangeCompacted implements IVersionedEntity {
 
     public String tcUserFullName(IStringCompactor compactor) {
         return compactor.getStringFromId(tcUserFullname);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        ChangeCompacted compacted = (ChangeCompacted)o;
+        return _ver == compacted._ver &&
+            id == compacted.id &&
+            vcsUsername == compacted.vcsUsername &&
+            tcUserId == compacted.tcUserId &&
+            tcUserUsername == compacted.tcUserUsername &&
+            tcUserFullname == compacted.tcUserFullname &&
+            date == compacted.date &&
+            Objects.equal(version, compacted.version);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hashCode(_ver, id, vcsUsername, tcUserId, tcUserUsername, tcUserFullname, version, date);
     }
 }
