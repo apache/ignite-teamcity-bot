@@ -55,6 +55,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     /**   flag offset. */
     public static final int FAKE_BUILD_F = 4;
+    public static final int[] EMPTY = new int[0];
 
     /** Entity fields version. */
     private short _ver = LATEST_VERSION;
@@ -354,9 +355,16 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     }
 
     public int[] changes() {
-        if(changesIds==null)
-            return new int[0];
+        if (changesIds == null)
+            return EMPTY;
 
         return changesIds;
+    }
+
+    public int[] snapshotDependencies() {
+        if (snapshotDeps == null)
+            return EMPTY;
+
+        return snapshotDeps.clone();
     }
 }

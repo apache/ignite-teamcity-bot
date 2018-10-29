@@ -137,4 +137,9 @@ public class BuildRefCompacted {
     public int state() {
         return state;
     }
+
+    /** */
+    public boolean isFakeStub() {
+        return id() < 0;
+    }
 }

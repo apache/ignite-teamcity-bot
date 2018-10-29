@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
@@ -49,6 +50,7 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
+import org.apache.lucene.util.IntsRef;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -89,18 +91,14 @@ public class BuildChainProcessor {
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
 
-        BuildRef next = entryPoints.iterator().next();
-        Build results = teamcity.getBuild(next.href);
-        FullChainRunCtx fullChainRunCtx = new FullChainRunCtx(results);
 
         Map<Integer, BuildRef> unique = new ConcurrentHashMap<>();
+        Map<Integer, FatBuildCompacted> builds = new ConcurrentHashMap<>();
         Map<String, MultBuildRunCtx> buildsCtxMap = new ConcurrentHashMap<>();
 
         Stream<? extends BuildRef> uniqueBuldsInvolved = entryPoints.stream()
-                .parallel()
-                .unordered()
-                .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
-                .flatMap(ref -> dependencies(teamcity, ref)).filter(Objects::nonNull)
+                .flatMap(ref -> dependencies(teamcityIgnited, builds, teamcity, ref)).filter(Objects::nonNull)
+                .flatMap(ref -> dependencies(teamcityIgnited, builds, teamcity, ref)).filter(Objects::nonNull)
                 .filter(ref -> ensureUnique(unique, ref))
                 ;
 
@@ -139,6 +137,12 @@ public class BuildChainProcessor {
             //some hack to bring timed out suites to top
             return runStat.getCriticalFailRate() * 3.14f + runStat.getFailRate();
         };
+
+
+        BuildRef someEntryPoint = entryPoints.iterator().next();
+        FatBuildCompacted build = teamcityIgnited.getFatBuild(someEntryPoint.getId());
+        FullChainRunCtx fullChainRunCtx = new FullChainRunCtx(build.toBuild(compactor));
+
 
         contexts.sort(Comparator.comparing(function).reversed());
 
@@ -279,17 +283,32 @@ public class BuildChainProcessor {
         return branch;
     }
 
-    @Nullable private static Stream<? extends BuildRef> dependencies(ITeamcity teamcity, BuildRef ref) {
-        Build results = teamcity.getBuild(ref.href);
-        if (results == null)
+    @Nullable private static Stream<? extends BuildRef> dependencies(
+        ITeamcityIgnited teamcityIgnited,
+        Map<Integer, FatBuildCompacted> builds,
+        ITeamcity teamcity, BuildRef ref) {
+        FatBuildCompacted buildCompacted = builds.get(ref.getId());
+        if (buildCompacted != null)
+            return Stream.of(ref); // already processed build, so just keep current ID in stream
+
+        FatBuildCompacted build = teamcityIgnited.getFatBuild(ref.getId());
+
+        if (build.isFakeStub())
             return Stream.of(ref);
 
-        List<BuildRef> deps = results.getSnapshotDependenciesNonNull();
+        int[] ints = build.snapshotDependencies();
 
-        if(deps.isEmpty())
+        List<BuildRef> deps = IntStream.of(ints).mapToObj(i-> {
+            BuildRef ref1 = new BuildRef();
+            ref1.setId(i);
+
+            return ref1;
+        }).collect(Collectors.toList());
+
+        if (deps.isEmpty())
             return Stream.of(ref);
 
-        if(logger.isDebugEnabled())
+        if (logger.isDebugEnabled())
             logger.debug("Snapshot deps found: " +
                 ref.suiteId() + "->" + deps.stream().map(BuildRef::suiteId).collect(Collectors.toList()));
 

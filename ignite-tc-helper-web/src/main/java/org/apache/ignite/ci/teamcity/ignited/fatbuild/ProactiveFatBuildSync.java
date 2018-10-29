@@ -97,7 +97,6 @@ public class ProactiveFatBuildSync {
 
     }
 
-
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Find missing builds", nameExtArgsIndexes = {0})
     @AutoProfiling
@@ -105,8 +104,6 @@ public class ProactiveFatBuildSync {
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
 
         final int[] buildRefKeys = buildRefDao.getAllIds(srvIdMaskHigh);
-
-        Arrays.parallelSort(buildRefKeys);
 
         List<Integer> buildsIdsToLoad = new ArrayList<>();
         int totalAskedToLoad = 0;
