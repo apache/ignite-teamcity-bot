@@ -116,9 +116,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public List<BuildRef> getBuildHistory(
-        @Nullable String buildTypeId,
-        @Nullable String branchName) {
-        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), this::actualizeRecentBuildRefs, 2, TimeUnit.MINUTES);
+            @Nullable String buildTypeId,
+            @Nullable String branchName) {
+        ensureActualizeRequested();
 
         String bracnhNameQry ;
         if (ITeamcity.DEFAULT.equals(branchName))
@@ -127,6 +127,26 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             bracnhNameQry = branchName;
 
         return buildRefDao.findBuildsInHistory(srvIdMaskHigh, buildTypeId, bracnhNameQry);
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public List<BuildRefCompacted> getBuildHistoryCompacted(
+            @Nullable String buildTypeId,
+            @Nullable String branchName) {
+        ensureActualizeRequested();
+
+        String bracnhNameQry ;
+        if (ITeamcity.DEFAULT.equals(branchName))
+            bracnhNameQry = "refs/heads/master";
+        else
+            bracnhNameQry = branchName;
+
+        return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, bracnhNameQry);
+    }
+
+    public void ensureActualizeRequested() {
+        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), this::actualizeRecentBuildRefs, 2, TimeUnit.MINUTES);
     }
 
     /** {@inheritDoc} */
@@ -152,6 +172,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     @Override public FatBuildCompacted getFatBuild(int buildId) {
+        ensureActualizeRequested();
         FatBuildCompacted existingBuild = fatBuildDao.getFatBuild(srvIdMaskHigh, buildId);
 
         //todo additionally check queued and running builds, refesh builds if they are queued.
@@ -168,6 +189,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     @Override
+    @AutoProfiling
     public Collection<ChangeCompacted> getAllChanges(int[] changeIds) {
         final Map<Long, ChangeCompacted> all = changesDao.getAll(srvIdMaskHigh, changeIds);
 

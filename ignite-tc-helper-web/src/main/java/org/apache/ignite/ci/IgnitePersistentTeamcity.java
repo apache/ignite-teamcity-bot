@@ -971,12 +971,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @Override public Function<SuiteInBranch, RunStat> getBuildFailureRunStatProvider() {
-        return key -> key == null ? null : getRunStatForTest(key);
+        return key -> key == null ? null : getRunStatForSuite(key);
     }
 
 
     @AutoProfiling
-    protected RunStat getRunStatForTest(SuiteInBranch key) {
+    protected RunStat getRunStatForSuite(SuiteInBranch key) {
         return buildsFailureRunStatCache().get(key);
     }
 

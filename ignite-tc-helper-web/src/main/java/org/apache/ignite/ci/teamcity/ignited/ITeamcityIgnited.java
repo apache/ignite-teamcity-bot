@@ -46,6 +46,18 @@ public interface ITeamcityIgnited {
      * @param branchName Branch name.
      * @return list of builds in history, includes all statuses: queued, running, etc
      */
+    public List<BuildRefCompacted> getBuildHistoryCompacted(
+            @Nullable String buildTypeId,
+            @Nullable String branchName);
+
+
+    /**
+     * Retun all builds for branch and suite, without relation to its status.
+     *
+     * @param buildTypeId Build type identifier.
+     * @param branchName Branch name.
+     * @return list of builds in history, includes all statuses: queued, running, etc
+     */
     public List<BuildRef> getBuildHistory(
         @Nullable String buildTypeId,
         @Nullable String branchName);

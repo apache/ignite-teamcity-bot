@@ -29,6 +29,7 @@ import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.slf4j.Logger;
@@ -59,7 +60,7 @@ public class CompareBuildsService {
     }
 
     /** */
-    private List<String> tests0(ITeamcity tc, ITeamcityIgnited server,
+    private List<String> tests0(ITeamcity tc, ITeamcityIgnited tcIgnited,
         BuildRef ref, BuildChainProcessor bcp) {
         List<String> tests = new ArrayList<>();
 
@@ -71,14 +72,15 @@ public class CompareBuildsService {
             logger.info("Build {} is composite ({}).", build.getId(), deps.size());
 
             for (BuildRef ref0 : deps)
-                tests.addAll(tests0(tc, server, ref0, bcp));
+                tests.addAll(tests0(tc, tcIgnited, ref0, bcp));
         }
         else {
             logger.info("Loading tests for build {}.", build.getId());
 
             MultBuildRunCtx buildCtx = new MultBuildRunCtx(build, compactor);
 
-            buildCtx.addBuild(bcp.loadTestsAndProblems(tc, build, buildCtx, server));
+            final FatBuildCompacted fatBuild = tcIgnited.getFatBuild(build.getId());
+            buildCtx.addBuild(bcp.loadTestsAndProblems(fatBuild, buildCtx, tcIgnited));
 
             for (String testName : buildCtx.tests())
                 tests.add(extractTestName(testName));
