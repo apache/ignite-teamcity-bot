@@ -293,15 +293,13 @@ public class IssueDetector {
 
         if (build.changesRef != null) {
             ChangesList changeList = teamcity.getChangesList(build.changesRef.href);
-            // System.err.println("changes: " + changeList);
-            if (changeList.changes != null) {
-                for (ChangeRef next : changeList.changes) {
-                    if (!isNullOrEmpty(next.href)) {
-                        // just to cache this change
-                        Change change = teamcity.getChange(next.href);
 
-                        issue.addChange(change.username, change.webUrl);
-                    }
+            for (ChangeRef next : changeList.changes()) {
+                if (!isNullOrEmpty(next.href)) {
+                    // just to cache this change
+                    Change change = teamcity.getChange(next.href);
+
+                    issue.addChange(change.username, change.webUrl);
                 }
             }
         }

@@ -1,7 +1,7 @@
 <!--https://ci.ignite.apache.org/app/rest/latest/changes/id:834837-->
 <change id="834837" version="584652293c8646d8a893eed1a2b2ae1a179a5d20" username="aplatonovv" date="20181011T184228+0300" href="/app/rest/latest/changes/id:834837" webUrl="http://ci.ignite.apache.org/viewModification.html?modId=834837&amp;personal=false">
     <comment>
-        IGNITE-9726 Prevent the whole suite lockup after GridCacheAbstractFailoverSelfTest failure - Fixes #4859. Signed-off-by: Alexey Goncharuk <alexey.goncharuk@gmail.com>
+        IGNITE-9726 Prevent the whole suite lockup after GridCacheAbstractFailoverSelfTest failure - Fixes #4859. Signed-off-by: Alexey Goncharuk &lt;alexey.goncharuk@gmail.com>
     </comment>
     <files count="2">
         <file before-revision="88df5ee607b23a30e051e9724dcd97b7e43aa6d6" after-revision="584652293c8646d8a893eed1a2b2ae1a179a5d20" changeType="edited" file="modules/core/src/test/java/org/apache/ignite/internal/processors/cache/GridCacheAbstractFailoverSelfTest.java" relative-file="modules/core/src/test/java/org/apache/ignite/internal/processors/cache/GridCacheAbstractFailoverSelfTest.java"/>

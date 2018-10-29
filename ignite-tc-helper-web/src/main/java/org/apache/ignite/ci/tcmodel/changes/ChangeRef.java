@@ -17,20 +17,34 @@
 
 package org.apache.ignite.ci.tcmodel.changes;
 
+import com.google.common.base.Strings;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlTransient;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.result.AbstractRef;
+
+import static org.apache.ignite.ci.util.ExceptionUtil.propagateException;
 
 /**
  * Change short version.
  */
 @Persisted
+@XmlAccessorType(XmlAccessType.FIELD)
 public class ChangeRef extends AbstractRef {
     @XmlAttribute public String id;
     @XmlAttribute public String version;
+
+    /**
+     * VCS username
+     */
     @XmlAttribute public String username;
     @XmlAttribute public String date;
     @XmlAttribute public String webUrl;
+
 
     @Override public String toString() {
         return "ChangeRef{" +
@@ -41,5 +55,21 @@ public class ChangeRef extends AbstractRef {
             ", date='" + date + '\'' +
             ", webUrl='" + webUrl + '\'' +
             '}';
+    }
+
+    /** Format local. */
+    @XmlTransient private static ThreadLocal<SimpleDateFormat> fmtLoc
+        = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyyMMdd'T'HHmmssZ"));
+
+    /**
+     *
+     */
+    public Long getDateTs() {
+        try {
+            return Strings.isNullOrEmpty(date) ? null : fmtLoc.get().parse(date).getTime();
+        }
+        catch (ParseException e) {
+            throw propagateException(e);
+        }
     }
 }

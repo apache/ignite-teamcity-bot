@@ -21,6 +21,7 @@ import com.google.common.base.Throwables;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
@@ -28,6 +29,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.jetbrains.annotations.NotNull;
@@ -44,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ProactiveFatBuildSync {
-    public static final int FAT_BUILD_PROACTIVE_TASKS = 4;
+    public static final int FAT_BUILD_PROACTIVE_TASKS = 5;
 
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(ProactiveFatBuildSync.class);
@@ -60,6 +62,8 @@ public class ProactiveFatBuildSync {
     @Inject private IScheduler scheduler;
 
     @Inject private IStringCompactor compactor;
+
+    @Inject private ChangeSync changeSync;
 
     @GuardedBy("this")
     private Map<String, SyncTask> buildToLoad = new HashMap<>();
@@ -156,7 +160,7 @@ public class ProactiveFatBuildSync {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Proactive Builds Loading (srv,agent)", nameExtArgsIndexes = {1, 0})
     @AutoProfiling
-    protected String doLoadBuilds(int ldrNo, String srvId, ITeamcityConn conn, Set<Integer> load) {
+    public String doLoadBuilds(int ldrNo, String srvId, ITeamcityConn conn, Set<Integer> load) {
         if(load.isEmpty())
             return "Nothing to load";
 
@@ -217,6 +221,7 @@ public class ProactiveFatBuildSync {
         List<TestOccurrencesFull> tests = new ArrayList<>();
         List<ProblemOccurrence> problems = null;
         Statistics statistics = null;
+        ChangesList changesList = null;
         try {
             build = conn.getBuild(buildId);
 
@@ -235,8 +240,18 @@ public class ProactiveFatBuildSync {
             if (build.problemOccurrences != null)
                 problems = conn.getProblems(buildId).getProblemsNonNull();
 
-            if(build.statisticsRef!=null)
+            if (build.statisticsRef != null)
                 statistics = conn.getStatistics(buildId);
+
+            if (build.changesRef != null) {
+                changesList = conn.getChangesList(buildId);
+
+                for (int changeId : FatBuildDao.extractChangeIds(changesList)) {
+                    // consult change sync for provided changes data
+
+                    changeSync.change(srvIdMask, changeId, conn);
+                }
+            }
         }
         catch (Exception e) {
             if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
@@ -266,6 +281,6 @@ public class ProactiveFatBuildSync {
 
         //if we are here because of some sort of outdated version of build,
         // new save will be performed with new entity version for compacted build
-        return fatBuildDao.saveBuild(srvIdMask, buildId, build, tests, problems, statistics, existingBuild);
+        return fatBuildDao.saveBuild(srvIdMask, buildId, build, tests, problems, statistics, changesList, existingBuild);
     }
 }

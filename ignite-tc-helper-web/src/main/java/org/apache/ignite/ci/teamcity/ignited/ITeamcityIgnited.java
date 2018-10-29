@@ -16,11 +16,13 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+import java.util.Collection;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcbot.condition.BuildCondition;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 
 /**
@@ -79,4 +81,6 @@ public interface ITeamcityIgnited {
      * @param id Id.
      */
     public FatBuildCompacted getFatBuild(int id);
+
+    public Collection<ChangeCompacted> getAllChanges(int[] changeIds);
 }

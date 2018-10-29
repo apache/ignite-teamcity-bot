@@ -41,12 +41,11 @@ import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
-import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
@@ -54,8 +53,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  * Process whole Build Chain, E.g. runAll at particular server, including all builds involved
@@ -183,34 +180,12 @@ public class BuildChainProcessor {
         if (!buildCompacted.isComposite())
             mCtx.addTests(buildCompacted.getTestOcurrences(compactor).getTests());
 
+        final int[] changeIds = buildCompacted.changes();
 
-        //todo migrate rest of the method to fat build from TC ignited
-        Build build = teamcity.getBuild(buildRef.getId());
+        Collection<ChangeCompacted> changes = tcIgnited.getAllChanges(changeIds);
+        ctx.setChanges(changes);
 
-        if (build == null || build.isFakeStub())
-            return ctx;
-
-        if (build.lastChanges != null) {
-            for (ChangeRef next : build.lastChanges.changes) {
-                if(!isNullOrEmpty(next.href)) {
-                    // just to cache this change
-                    teamcity.getChange(next.href);
-                }
-            }
-        }
-
-        if (build.changesRef != null) {
-            ChangesList changeList = teamcity.getChangesList(build.changesRef.href);
-            // System.err.println("changes: " + changeList);
-            if (changeList.changes != null) {
-                for (ChangeRef next : changeList.changes) {
-                    if (!isNullOrEmpty(next.href)) {
-                        // just to cache this change
-                        ctx.addChange(teamcity.getChange(next.href));
-                    }
-                }
-            }
-        }
+        //todo support storing build.lastChanges.changes) ?
 
         return ctx;
     }

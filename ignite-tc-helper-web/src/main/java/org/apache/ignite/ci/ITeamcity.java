@@ -137,8 +137,10 @@ public interface ITeamcity extends ITeamcityConn {
     @Deprecated
     CompletableFuture<TestOccurrenceFull> getTestFull(String href);
 
+    @Deprecated
     Change getChange(String href);
 
+    @Deprecated
     ChangesList getChangesList(String href);
 
     @Deprecated

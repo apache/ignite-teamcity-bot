@@ -325,10 +325,25 @@ public class IgniteTeamcityConnection implements ITeamcity {
                 "&fields=problemOccurrence(id,type,identity,href,details,build(id))", ProblemOccurrences.class);
     }
 
-    @Override
     @AutoProfiling
-    public Statistics getStatistics(int buildId) {
+    @Override public Statistics getStatistics(int buildId) {
         return getJaxbUsingHref("app/rest/latest/builds/id:" + buildId + "/statistics", Statistics.class);
+    }
+
+    @AutoProfiling
+    @Override public ChangesList getChangesList(int buildId) {
+        String href = "app/rest/latest/changes" +
+                "?locator=build:(id:" + + buildId +")" +
+                "&fields=change(id)";
+
+        return getJaxbUsingHref(href, ChangesList.class);
+    }
+
+    @AutoProfiling
+    @Override public Change getChange(int changeId) {
+        String href = "app/rest/latest/changes/id:" + + changeId +"";
+
+        return getJaxbUsingHref(href, Change.class);
     }
 
     private CompletableFuture<List<File>> unzip(CompletableFuture<File> zipFileFut) {
@@ -342,13 +357,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
             Preconditions.checkState(!files.isEmpty(), "ZIP file can't be empty");
             return files.get(0);
         }, executor);
-    }
-
-    /**
-     * @return Basic auth token.
-     */
-    public String basicAuthToken() {
-        return basicAuthTok;
     }
 
     /**
