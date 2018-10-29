@@ -44,13 +44,13 @@ import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
-import org.apache.lucene.util.IntsRef;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -68,6 +68,8 @@ public class BuildChainProcessor {
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
+
+    @Inject private BuildRefDao buildRefDao;
 
     /**
      * @param teamcity Teamcity.
@@ -97,8 +99,8 @@ public class BuildChainProcessor {
         Map<String, MultBuildRunCtx> buildsCtxMap = new ConcurrentHashMap<>();
 
         Stream<? extends BuildRef> uniqueBuldsInvolved = entryPoints.stream()
-                .flatMap(ref -> dependencies(teamcityIgnited, builds, teamcity, ref)).filter(Objects::nonNull)
-                .flatMap(ref -> dependencies(teamcityIgnited, builds, teamcity, ref)).filter(Objects::nonNull)
+                .flatMap(ref -> dependencies(teamcityIgnited, builds, ref)).filter(Objects::nonNull)
+                .flatMap(ref -> dependencies(teamcityIgnited, builds, ref)).filter(Objects::nonNull)
                 .filter(ref -> ensureUnique(unique, ref))
                 ;
 
@@ -283,10 +285,10 @@ public class BuildChainProcessor {
         return branch;
     }
 
-    @Nullable private static Stream<? extends BuildRef> dependencies(
+    @Nullable private Stream<? extends BuildRef> dependencies(
         ITeamcityIgnited teamcityIgnited,
         Map<Integer, FatBuildCompacted> builds,
-        ITeamcity teamcity, BuildRef ref) {
+        BuildRef ref) {
         FatBuildCompacted buildCompacted = builds.get(ref.getId());
         if (buildCompacted != null)
             return Stream.of(ref); // already processed build, so just keep current ID in stream
@@ -298,12 +300,10 @@ public class BuildChainProcessor {
 
         int[] ints = build.snapshotDependencies();
 
-        List<BuildRef> deps = IntStream.of(ints).mapToObj(i-> {
-            BuildRef ref1 = new BuildRef();
-            ref1.setId(i);
-
-            return ref1;
-        }).collect(Collectors.toList());
+        //todo
+        List<BuildRef> deps = IntStream.of(ints).mapToObj(i -> {
+            return buildRefDao.getBuildRef(teamcityIgnited.serverId(), i);
+        }).filter(Objects::nonNull).collect(Collectors.toList());
 
         if (deps.isEmpty())
             return Stream.of(ref);

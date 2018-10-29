@@ -30,6 +30,11 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
  */
 public interface ITeamcityIgnited {
     /**
+     * @return Internal server ID as string
+     */
+    String serverId();
+
+    /**
      * @return Normalized Host address, ends with '/'.
      */
     public String host();

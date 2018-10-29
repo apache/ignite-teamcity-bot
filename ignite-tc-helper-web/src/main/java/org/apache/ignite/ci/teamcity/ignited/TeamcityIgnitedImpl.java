@@ -104,6 +104,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
+    @Override public String serverId() {
+        return srvNme;
+    }
+
+    /** {@inheritDoc} */
     @Override public String host() {
         return conn.host();
     }

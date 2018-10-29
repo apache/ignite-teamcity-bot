@@ -230,4 +230,14 @@ public class BuildRefDao {
 
         return res.array();
     }
+
+    public BuildRef getBuildRef(String serverId, int i) {
+        BuildRefCompacted ref = buildRefsCache.get(buildIdToCacheKey(
+            ITeamcityIgnited.serverIdToInt(serverId), i));
+
+        if(ref==null)
+            return null;
+
+        return ref.toBuildRef(compactor);
+    }
 }
