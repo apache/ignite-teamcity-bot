@@ -17,36 +17,39 @@
 
 package org.apache.ignite.ci.analysis;
 
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
-public class MultTestFailureOccurrences implements ITestFailures {
-    private final List<TestOccurrenceFull> occurrences = new CopyOnWriteArrayList<>();
+public class TestCompactedMult implements ITestFailures {
+    private final List<TestCompacted> occurrences = new ArrayList<>();
+    private IStringCompactor compactor;
+    private long avgDuration = -1;
 
-    public MultTestFailureOccurrences() {
-
+    public TestCompactedMult(IStringCompactor compactor) {
+        this.compactor = compactor;
     }
 
     @Override public String getName() {
-        return occurrences.isEmpty() ? "" : occurrences.iterator().next().name;
+        return occurrences.isEmpty() ? "" : occurrences.iterator().next().testName(compactor);
     }
 
     @Override public boolean isInvestigated() {
-        return occurrences.stream().anyMatch(TestOccurrence::isInvestigated);
-    }
-
-    public boolean hasFailedButNotMuted() {
-        return getFailedButNotMutedCount() > 0;
+        return occurrences.stream().anyMatch(TestCompacted::isInvestigated);
     }
 
     private int getFailedButNotMutedCount() {
         return (int)occurrences.stream()
             .filter(Objects::nonNull)
-            .filter(TestOccurrence::isFailedButNotMuted).count();
+            .filter(t -> t.isFailedButNotMuted(compactor)).count();
     }
 
     @Override public int failuresCount() {
@@ -54,19 +57,24 @@ public class MultTestFailureOccurrences implements ITestFailures {
     }
 
     public long getAvgDurationMs() {
-        //todo avg
-        Stream<Long> stream = occurrences.stream().map(TestOccurrence::getDuration);
-        return stream.findAny().orElse(0L);
+        if (this.avgDuration < 0) {
+            this.avgDuration = (long) occurrences.stream()
+                    .map(TestCompacted::getDuration)
+                    .filter(Objects::nonNull)
+                    .mapToInt(i -> i)
+                    .average()
+                    .orElse(0);
+        }
+        return avgDuration;
     }
 
     @Override public Iterable<TestOccurrenceFull> getOccurrences() {
-        return occurrences;
+        return occurrences.stream()
+                .map(testCompacted -> testCompacted.toTestOccurrence(compactor, 0))
+                .collect(Collectors.toList());
     }
 
-    public void add(TestOccurrenceFull next) {
-        if (next.getId() == null)
-            return;
-
+    public void add(TestCompacted next) {
         occurrences.add(next);
     }
 }

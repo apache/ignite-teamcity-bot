@@ -22,9 +22,7 @@ import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATE_FINISHED;
-import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATE_RUNNING;
-import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
+import static org.apache.ignite.ci.tcmodel.hist.BuildRef.*;
 
 @Persisted
 public class BuildRefCompacted {
@@ -171,4 +169,7 @@ public class BuildRefCompacted {
         return compactor.getStringId(STATE_FINISHED) == state();
     }
 
+    public boolean isQueued(IStringCompactor compactor) {
+        return compactor.getStringId(STATE_QUEUED) == state();
+    }
 }

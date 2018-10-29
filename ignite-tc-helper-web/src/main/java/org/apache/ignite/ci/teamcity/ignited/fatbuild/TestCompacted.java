@@ -145,14 +145,14 @@ public class TestCompacted {
             buildId +
             ")";
         occurrence.id(fullStrId);
-        occurrence.duration = duration < 0 ? null : duration;
+        occurrence.duration = getDuration();
         occurrence.name = compactor.getStringFromId(name);
         occurrence.status = compactor.getStringFromId(status);
         occurrence.href = "/app/rest/latest/testOccurrences/" + fullStrId;
 
         occurrence.muted = getMutedFlag();
         occurrence.currentlyMuted = getFlag(CUR_MUTED_F);
-        occurrence.currentlyInvestigated = getFlag(CUR_INV_F);
+        occurrence.currentlyInvestigated = getCurrInvestigatedFlag();
         occurrence.ignored = getIgnoredFlag();
 
         if (actualBuildId > 0) {
@@ -174,6 +174,10 @@ public class TestCompacted {
         occurrence.details = getDetailsText();
 
         return occurrence;
+    }
+
+    public Boolean getCurrInvestigatedFlag() {
+        return getFlag(CUR_INV_F);
     }
 
     /**
@@ -331,7 +335,22 @@ public class TestCompacted {
         return compactor.getStringId(TestOccurrence.STATUS_SUCCESS) != status;
     }
 
-    public String getTestName(IStringCompactor compactor) {
+    public String testName(IStringCompactor compactor) {
         return compactor.getStringFromId(name);
+    }
+
+    public int testName() {
+        return name;
+    }
+
+    public  boolean isInvestigated() {
+        final Boolean investigatedFlag = getCurrInvestigatedFlag();
+
+        return investigatedFlag != null && investigatedFlag;
+    }
+
+    @Nullable
+    public Integer getDuration() {
+        return duration < 0 ? null : duration;
     }
 }

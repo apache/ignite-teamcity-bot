@@ -120,11 +120,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             @Nullable String branchName) {
         ensureActualizeRequested();
 
-        String bracnhNameQry ;
-        if (ITeamcity.DEFAULT.equals(branchName))
-            bracnhNameQry = "refs/heads/master";
-        else
-            bracnhNameQry = branchName;
+        String bracnhNameQry = branchForQuery(branchName);
 
         return buildRefDao.findBuildsInHistory(srvIdMaskHigh, buildTypeId, bracnhNameQry);
     }
@@ -136,13 +132,18 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             @Nullable String branchName) {
         ensureActualizeRequested();
 
-        String bracnhNameQry ;
+        String bracnhNameQry = branchForQuery(branchName);
+
+        return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, bracnhNameQry);
+    }
+
+    public String branchForQuery(@Nullable String branchName) {
+        String bracnhNameQry;
         if (ITeamcity.DEFAULT.equals(branchName))
             bracnhNameQry = "refs/heads/master";
         else
             bracnhNameQry = branchName;
-
-        return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, bracnhNameQry);
+        return bracnhNameQry;
     }
 
     public void ensureActualizeRequested() {

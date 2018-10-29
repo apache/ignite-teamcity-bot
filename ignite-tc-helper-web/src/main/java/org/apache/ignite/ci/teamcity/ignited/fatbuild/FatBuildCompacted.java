@@ -289,20 +289,27 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return flag != null && flag;
     }
 
-    public Stream<String> getFailedNotMutedTestNames(IStringCompactor compactor) {
+    public Stream<TestCompacted> getFailedNotMutedTests(IStringCompactor compactor) {
         if (tests == null)
             return Stream.of();
 
         return tests.stream()
-            .filter(t -> t.isFailedButNotMuted(compactor))
-            .map(t -> t.getTestName(compactor));
+                .filter(t -> t.isFailedButNotMuted(compactor));
     }
 
-    public Stream<String> getAllTestNames(IStringCompactor compactor) {
+    public Stream<String> getFailedNotMutedTestNames(IStringCompactor compactor) {
+        return getFailedNotMutedTests(compactor).map(t -> t.testName(compactor));
+    }
+
+    public Stream<TestCompacted> getAllTests() {
         if (tests == null)
             return Stream.of();
 
-        return tests.stream().map(t -> t.getTestName(compactor));
+        return tests.stream();
+    }
+
+    public Stream<String> getAllTestNames(IStringCompactor compactor) {
+        return getAllTests().map(t -> t.testName(compactor));
     }
 
     public String buildTypeName(IStringCompactor compactor) {

@@ -131,6 +131,7 @@ public class BuildChainProcessor {
         Function<MultBuildRunCtx, Float> function = ctx -> {
             SuiteInBranch key = new SuiteInBranch(ctx.suiteId(), normalizeBranch(failRateBranch));
 
+            //todo place RunStat into suite context to compare
             RunStat runStat = teamcity.getBuildFailureRunStatProvider().apply(key);
 
             if (runStat == null)
@@ -180,22 +181,11 @@ public class BuildChainProcessor {
                                                   @Deprecated MultBuildRunCtx mCtx, ITeamcityIgnited tcIgnited) {
         SingleBuildRunCtx ctx = new SingleBuildRunCtx(buildCompacted, compactor);
 
-        _testList(buildCompacted, mCtx);
-
-        final int[] changeIds = buildCompacted.changes();
-
-        Collection<ChangeCompacted> changes = tcIgnited.getAllChanges(changeIds);
-        ctx.setChanges(changes);
+        ctx.setChanges(tcIgnited.getAllChanges(buildCompacted.changes()));
 
         //todo support storing build.lastChanges.changes) ?
 
         return ctx;
-    }
-
-    @AutoProfiling
-    public void _testList(@Nonnull FatBuildCompacted buildCompacted, @Deprecated MultBuildRunCtx mCtx) {
-        if (!buildCompacted.isComposite())
-            mCtx.addTests(buildCompacted.getTestOcurrences(compactor).getTests());
     }
 
     @SuppressWarnings("WeakerAccess")
@@ -211,8 +201,8 @@ public class BuildChainProcessor {
 
         final String branch = getBranchOrDefault(buildCompacted.branchName(compactor));
 
-        //todo now it is a full scan without caching, probably it is better to make branch based index query & caching results
-        Stream<BuildRefCompacted> history = teamcityIgnited.getBuildHistoryCompacted(buildCompacted.buildTypeId(compactor), branch)
+        final String buildTypeId = buildCompacted.buildTypeId(compactor);
+        Stream<BuildRefCompacted> history = teamcityIgnited.getBuildHistoryCompacted(buildTypeId, branch)
             .stream()
             .filter(t -> t.isNotCancelled(compactor))
             .filter(t -> t.isFinished(compactor));
@@ -244,16 +234,19 @@ public class BuildChainProcessor {
     protected void fillBuildCounts(MultBuildRunCtx outCtx,
         ITeamcityIgnited teamcityIgnited, boolean includeScheduledInfo) {
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {
-            long cntRunning = teamcityIgnited.getBuildHistoryCompacted(outCtx.buildTypeId(), outCtx.branchName())
+            final List<BuildRefCompacted> runAllBuilds = teamcityIgnited.getBuildHistoryCompacted(outCtx.buildTypeId(), outCtx.branchName());
+
+            long cntRunning = runAllBuilds
                 .stream()
                     .filter(r -> r.isNotCancelled(compactor))
                     .filter(r -> r.isRunning(compactor)).count();
 
             outCtx.setRunningBuildCount((int) cntRunning);
 
-            //todo queue compacted instead of full
-            long cntQueued = teamcityIgnited.getBuildHistory(outCtx.buildTypeId(), outCtx.branchName())
-                .stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isQueued).count();
+            long cntQueued =  runAllBuilds
+                    .stream()
+                    .filter(r -> r.isNotCancelled(compactor))
+                    .filter(r -> r.isQueued(compactor)).count();
 
             outCtx.setQueuedBuildCount((int) cntQueued);
         }

@@ -19,11 +19,8 @@ package org.apache.ignite.ci.web.model.current;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,12 +28,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.analysis.ITestFailures;
-import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.analysis.RunStat;
-import org.apache.ignite.ci.analysis.SuiteInBranch;
-import org.apache.ignite.ci.analysis.TestInBranch;
-import org.apache.ignite.ci.analysis.TestLogCheckResult;
+import org.apache.ignite.ci.analysis.*;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
@@ -116,7 +108,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public void initFromContext(@Nonnull final ITeamcity teamcity,
         @Nonnull final MultBuildRunCtx suite,
-        @Nullable final ITcAnalytics tcAnalytics,
+        @NotNull final ITcAnalytics tcAnalytics,
         @Nullable final String baseBranch) {
 
         name = suite.suiteName();
@@ -140,23 +132,21 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         webToHistBaseBranch = buildWebLink(teamcity, suite, baseBranch);
         webToBuild = buildWebLinkToBuild(teamcity, suite);
 
-        Stream<? extends ITestFailures> tests = suite.getFailedTests();
-        if (tcAnalytics != null) {
-            Function<ITestFailures, Float> function = foccur -> {
-                TestInBranch branch = new TestInBranch(foccur.getName(), failRateNormalizedBranch);
+        List<ITestFailures> tests = suite.getFailedTests();
+        Function<ITestFailures, Float> function = foccur -> {
+            TestInBranch testInBranch = new TestInBranch(foccur.getName(), failRateNormalizedBranch);
 
-                RunStat apply = tcAnalytics.getTestRunStatProvider().apply(branch);
+            RunStat apply = tcAnalytics.getTestRunStatProvider().apply(testInBranch);
 
-                return apply == null ? 0f : apply.getFailRate();
-            };
-            tests = tests.sorted(Comparator.comparing(function).reversed());
-        }
+            return apply == null ? 0f : apply.getFailRate();
+        };
+
+        tests.sort(Comparator.comparing(function).reversed());
 
         tests.forEach(occurrence -> {
             final TestFailure failure = new TestFailure();
             failure.initFromOccurrence(occurrence, teamcity, suite.projectId(), suite.branchName(), baseBranch);
-            if (tcAnalytics != null)
-                failure.initStat(tcAnalytics.getTestRunStatProvider(), failRateNormalizedBranch, curBranchNormalized);
+            failure.initStat(tcAnalytics.getTestRunStatProvider(), failRateNormalizedBranch, curBranchNormalized);
 
             testFailures.add(failure);
         });
