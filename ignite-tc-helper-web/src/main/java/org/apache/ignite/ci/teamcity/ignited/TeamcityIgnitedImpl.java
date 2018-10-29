@@ -52,6 +52,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Max build id diff to enforce reload during incremental refresh. */
     public static final int MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN = 3000;
 
+    /**
+     * Max builds to check during incremental sync. If this value is reached (50 pages) and some stuck builds still not
+     * found, then iteration stops
+     */
+    public static final int MAX_INCREMENTAL_BUILDS_TO_CHECK = 5000;
+
     /** Server id. */
     private String srvNme;
 
@@ -211,7 +217,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         if(!paginateUntil.isEmpty()) {
             //some builds may stuck in the queued or running, enforce loading as well
-            buildSync.scheduleBuildsLoad(conn, paginateUntil);
+            buildSync.doLoadBuilds(-1, srvNme, conn, paginateUntil);
         }
 
         // schedule full resync later
@@ -272,16 +278,22 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             totalChecked += tcDataNextPage.size();
 
             if (!fullReindex) {
-                if (mandatoryToReload!=null && !mandatoryToReload.isEmpty())
+                if (mandatoryToReload != null && !mandatoryToReload.isEmpty())
                     tcDataNextPage.stream().map(BuildRef::getId).forEach(mandatoryToReload::remove);
 
-                if (savedCurChunk == 0 && (mandatoryToReload==null || mandatoryToReload.isEmpty()))
-                    break; // There are no modification at current page, hopefully no modifications at all
+                if (savedCurChunk == 0 &&
+                    (mandatoryToReload == null
+                        || mandatoryToReload.isEmpty()
+                        || totalChecked > MAX_INCREMENTAL_BUILDS_TO_CHECK)
+                ) {
+                    // There are no modification at current page, hopefully no modifications at all
+                    break;
+                }
             }
         }
 
         int leftToFind = mandatoryToReload == null ? 0 : mandatoryToReload.size();
-        return "Entries saved " + totalUpdated + " Builds checked " + totalChecked + " Needed to find " + neededToFind   + " remained to find " + leftToFind;
+        return "Entries saved " + totalUpdated + " Builds checked " + totalChecked + " Needed to find " + neededToFind + " remained to find " + leftToFind;
     }
 
     @NotNull private List<Integer> cacheKeysToBuildIds(Collection<Long> cacheKeysUpdated) {

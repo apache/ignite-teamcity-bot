@@ -160,7 +160,7 @@ public class ProactiveFatBuildSync {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Proactive Builds Loading (srv,agent)", nameExtArgsIndexes = {1, 0})
     @AutoProfiling
-    protected String doLoadBuilds(int ldrNo, String srvId, ITeamcityConn conn, Set<Integer> load) {
+    public String doLoadBuilds(int ldrNo, String srvId, ITeamcityConn conn, Set<Integer> load) {
         if(load.isEmpty())
             return "Nothing to load";
 
