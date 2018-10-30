@@ -158,7 +158,7 @@ public class BuildRefCompacted {
     }
 
     private boolean hasUnknownStatus(IStringCompactor compactor) {
-        return compactor.getStringId(STATUS_UNKNOWN) == state();
+        return compactor.getStringId(STATUS_UNKNOWN) == status();
     }
 
     public boolean isRunning(IStringCompactor compactor) {
