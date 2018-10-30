@@ -26,7 +26,7 @@ import java.util.stream.Stream;
  * Collection util.
  */
 public class CollectionUtil {
-    public static <T> List<T> top(Stream<T> data, int cnt, Comparator<T> comp) {
+    public static <T> List<T> top(Stream<? extends T> data, int cnt, Comparator<T> comp) {
         Comparator<T> reversedComp = comp.reversed();
         return data.sorted(reversedComp).limit(cnt).collect(Collectors.toList());
     }

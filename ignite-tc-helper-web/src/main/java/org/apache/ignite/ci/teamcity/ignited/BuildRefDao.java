@@ -130,9 +130,9 @@ public class BuildRefDao {
      * @param bracnhNameQry Bracnh name query.
      */
     @AutoProfiling
-    @NotNull public List<BuildRef> findBuildsInHistory(int srvId,
-        @Nullable String buildTypeId,
-        String bracnhNameQry) {
+    @NotNull public List<BuildRefCompacted> findBuildsInHistoryCompacted(int srvId,
+                                                       @Nullable String buildTypeId,
+                                                       String bracnhNameQry) {
 
         Integer buildTypeIdId = compactor.getStringIdIfPresent(buildTypeId);
         if (buildTypeIdId == null)
@@ -143,15 +143,22 @@ public class BuildRefDao {
             return Collections.emptyList();
 
         return getBuildsForBranch(srvId, bracnhNameQry).stream()
-            .filter(e -> e.buildTypeId() == buildTypeIdId)
+                .filter(e -> e.buildTypeId() == buildTypeIdId)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * @param srvId Server id mask high.
+     * @param buildTypeId Build type id.
+     * @param bracnhNameQry Bracnh name query.
+     */
+    @AutoProfiling
+    @NotNull public List<BuildRef> findBuildsInHistory(int srvId,
+        @Nullable String buildTypeId,
+        String bracnhNameQry) {
+        return findBuildsInHistoryCompacted(srvId, buildTypeId, bracnhNameQry).stream()
             .map(compacted -> compacted.toBuildRef(compactor))
             .collect(Collectors.toList());
-/*
-        return compactedBuildsForServer(srvId)
-            .filter(e -> e.buildTypeId() == buildTypeIdId)
-            .filter(e -> e.branchName() == bracnhNameQryId)
-            .map(compacted -> compacted.toBuildRef(compactor))
-            .collect(Collectors.toList());*/
     }
 
     /**

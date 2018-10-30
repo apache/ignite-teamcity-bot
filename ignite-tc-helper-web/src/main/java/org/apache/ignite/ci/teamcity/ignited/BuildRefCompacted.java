@@ -22,6 +22,8 @@ import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.jetbrains.annotations.NotNull;
 
+import static org.apache.ignite.ci.tcmodel.hist.BuildRef.*;
+
 @Persisted
 public class BuildRefCompacted {
     /** Build Id without modifications, -1 if it is null. */
@@ -83,11 +85,19 @@ public class BuildRefCompacted {
 
     protected void fillBuildRefFields(IStringCompactor compactor, BuildRef res) {
         res.setId(id < 0 ? null : id);
-        res.buildTypeId = compactor.getStringFromId(buildTypeId);
-        res.branchName = compactor.getStringFromId(branchName);
+        res.buildTypeId = buildTypeId(compactor);
+        res.branchName = branchName(compactor);
         res.status = compactor.getStringFromId(status);
         res.state = compactor.getStringFromId(state);
         res.href = getHrefForId(id());
+    }
+
+    public String buildTypeId(IStringCompactor compactor) {
+        return compactor.getStringFromId(buildTypeId);
+    }
+
+    public String branchName(IStringCompactor compactor) {
+        return compactor.getStringFromId(branchName);
     }
 
     @NotNull protected static String getHrefForId(int id) {
@@ -136,5 +146,30 @@ public class BuildRefCompacted {
     /** */
     public int state() {
         return state;
+    }
+
+    /** */
+    public boolean isFakeStub() {
+        return id() < 0;
+    }
+
+    public boolean isNotCancelled(IStringCompactor compactor) {
+        return !hasUnknownStatus(compactor);
+    }
+
+    private boolean hasUnknownStatus(IStringCompactor compactor) {
+        return compactor.getStringId(STATUS_UNKNOWN) == state();
+    }
+
+    public boolean isRunning(IStringCompactor compactor) {
+        return compactor.getStringId(STATE_RUNNING) == state();
+    }
+
+    public boolean isFinished(IStringCompactor compactor) {
+        return compactor.getStringId(STATE_FINISHED) == state();
+    }
+
+    public boolean isQueued(IStringCompactor compactor) {
+        return compactor.getStringId(STATE_QUEUED) == state();
     }
 }

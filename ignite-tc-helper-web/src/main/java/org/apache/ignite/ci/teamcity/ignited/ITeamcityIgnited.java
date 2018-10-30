@@ -30,9 +30,26 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
  */
 public interface ITeamcityIgnited {
     /**
+     * @return Internal server ID as string
+     */
+    String serverId();
+
+    /**
      * @return Normalized Host address, ends with '/'.
      */
     public String host();
+
+    /**
+     * Retun all builds for branch and suite, without relation to its status.
+     *
+     * @param buildTypeId Build type identifier.
+     * @param branchName Branch name.
+     * @return list of builds in history, includes all statuses: queued, running, etc
+     */
+    public List<BuildRefCompacted> getBuildHistoryCompacted(
+            @Nullable String buildTypeId,
+            @Nullable String branchName);
+
 
     /**
      * Retun all builds for branch and suite, without relation to its status.

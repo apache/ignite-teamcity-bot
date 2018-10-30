@@ -30,6 +30,7 @@ import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.jetbrains.annotations.Nullable;
 
@@ -169,14 +170,19 @@ public class SingleBuildRunCtx implements ISuiteResults {
      * @return Names of not muted or ignored test failed for non composite build
      */
     public Stream<String> getFailedNotMutedTestNames() {
-        if(isComposite())
-            return Stream.empty();
+        return isComposite() ? Stream.empty() : buildCompacted.getFailedNotMutedTestNames(compactor);
+    }
 
-        return buildCompacted.getFailedNotMutedTestNames(compactor);
+    public Stream<TestCompacted> getFailedNotMutedTests() {
+        return isComposite() ? Stream.empty() : buildCompacted.getFailedNotMutedTests(compactor);
     }
 
     public Stream<String> getAllTestNames() {
         return buildCompacted.getAllTestNames(compactor);
+    }
+
+    public Stream<TestCompacted> getAllTests() {
+        return isComposite() ? Stream.empty() : buildCompacted.getAllTests();
     }
 
     public String suiteName() {

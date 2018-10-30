@@ -17,16 +17,17 @@
 
 package org.apache.ignite.ci.teamcity.ignited.change;
 
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.configuration.CacheConfiguration;
-
-import javax.inject.Inject;
-import javax.inject.Provider;
-import java.util.*;
 
 public class ChangeDao {
     /** Cache name */
@@ -92,14 +93,13 @@ public class ChangeDao {
         return changesCache.get(changeIdToCacheKey(srvId, changeId));
     }
 
+    @AutoProfiling
     public Map<Long, ChangeCompacted> getAll(int srvIdMaskHigh, int[] changeIds) {
         final Set<Long> collect = new HashSet<>();
-        for (int changeId : changeIds) {
+
+        for (int changeId : changeIds)
             collect.add(changeIdToCacheKey(srvIdMaskHigh, changeId));
-        }
 
-        final Map<Long, ChangeCompacted> all = changesCache.getAll(collect);
-
-        return all;
+        return changesCache.getAll(collect);
     }
 }
