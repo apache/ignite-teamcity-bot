@@ -294,71 +294,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         ICredentialsProv prov,
         String webUrl
     ) {
-        StringBuilder res = new StringBuilder();
-        TestFailuresSummary summary = prChainsProcessor.getTestFailuresSummary(
-            prov, srvId, buildTypeId, branchForTc,
-            FullQueryParams.LATEST, null, null, false);
-
-        if (summary != null) {
-            for (ChainAtServerCurrentStatus server : summary.servers) {
-                if (!"apache".equals(server.serverName()))
-                    continue;
-
-                Map<String, List<SuiteCurrentStatus>> fails = findFailures(server);
-
-                for (List<SuiteCurrentStatus> suites : fails.values()) {
-                    for (SuiteCurrentStatus suite : suites) {
-                        res.append("{color:#d04437}").append(suite.name).append("{color}");
-                        res.append(" [[tests ").append(suite.failedTests);
-
-                        if (suite.result != null && !suite.result.isEmpty())
-                            res.append(' ').append(suite.result);
-
-                        res.append('|').append(suite.webToBuild).append("]]\\n");
-
-                        for (TestFailure failure : suite.testFailures) {
-                            res.append("* ");
-
-                            if (failure.suiteName != null && failure.testName != null)
-                                res.append(failure.suiteName).append(": ").append(failure.testName);
-                            else
-                                res.append(failure.name);
-
-                            FailureSummary recent = failure.histBaseBranch.recent;
-
-                            if (recent != null) {
-                                if (recent.failureRate != null) {
-                                    res.append(" - ").append(recent.failureRate).append("% fails in last ")
-                                        .append(MAX_LATEST_RUNS).append(" master runs.");
-                                }
-                                else if (recent.failures != null && recent.runs != null) {
-                                    res.append(" - ").append(recent.failures).append(" fails / ")
-                                        .append(recent.runs).append(" runs.");
-                                }
-                            }
-
-                            res.append("\\n");
-                        }
-
-                        res.append("\\n");
-                    }
-                }
-
-                if (res.length() > 0) {
-                    res.insert(0, "{panel:title=Possible Blockers|" +
-                        "borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}\\n")
-                        .append("{panel}");
-                }
-                else {
-                    res.append("{panel:title=No blockers found!|" +
-                        "borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
-                }
-            }
-        }
-
-        res.append("\\n").append("[TeamCity Run All Results|").append(webUrl).append(']');
-
-        return xmlEscapeText(res.toString());
+        return generateJiraComment(getSuitesStatuses(buildTypeId, branchForTc,srvId, prov), webUrl);
     }
 
     /**

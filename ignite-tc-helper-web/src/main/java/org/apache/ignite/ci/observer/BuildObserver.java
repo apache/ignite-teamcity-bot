@@ -63,6 +63,8 @@ public class BuildObserver {
     /**
      * @param srvId Server id.
      * @param prov Credentials.
+     * @param ticket Ticket.
+     * @param branch Branch.
      * @param ticket JIRA ticket name.
      */
     public void observe(String srvId, ICredentialsProv prov, String ticket, String branch, Build... builds) {

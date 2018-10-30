@@ -47,6 +47,9 @@ public class TcBotVisaService {
     @Context
     private HttpServletRequest req;
 
+    /**
+     * @param srvId Server id.
+     */
     @GET
     @Path("history")
     public Collection<VisaStatus> history(@Nullable @QueryParam("serverId") String srvId) {

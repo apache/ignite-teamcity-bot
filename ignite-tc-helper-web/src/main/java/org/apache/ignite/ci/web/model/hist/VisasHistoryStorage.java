@@ -42,10 +42,6 @@ public class VisasHistoryStorage {
 
     /** */
     @Inject
-    private Provider<Ignite> igniteProvider;
-
-    /** */
-    @Inject
     private Ignite ignite;
 
     /** */

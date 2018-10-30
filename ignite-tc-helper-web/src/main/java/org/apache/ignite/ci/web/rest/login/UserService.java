@@ -44,7 +44,6 @@ import org.apache.ignite.ci.web.model.CredentialsUi;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.ci.web.model.TcHelperUserUi;
 import org.apache.ignite.ci.web.model.UserMenuResult;
-import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

@@ -67,7 +67,4 @@ public class VisaRequest {
     public boolean isFinishedWithFailures(IAnalyticsEnabledTeamcity teamcity) {
         return buildsInfo.isFinishedWithFailures(teamcity);
     }
-
-
-
 }
