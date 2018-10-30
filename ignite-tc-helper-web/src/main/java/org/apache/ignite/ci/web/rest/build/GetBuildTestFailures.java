@@ -22,7 +22,8 @@ import java.text.ParseException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import com.google.inject.Injector;
-import org.apache.ignite.ci.tcbot.condition.BuildCondition;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -34,8 +35,6 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
@@ -250,6 +249,8 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("sinceDate") String sinceDate,
         @Nullable @QueryParam("untilDate") String untilDate,
         @Nullable @QueryParam("skipTests") String skipTests)  throws ParseException {
+        sinceDate = (sinceDate.substring(0, 2).equals("24") ? "30" : "31") + sinceDate.substring(2);
+        untilDate = (sinceDate.substring(0, 2).equals("24") ? "30" : "31") + untilDate.substring(2);
         BuildsHistory.Builder builder = new BuildsHistory.Builder()
             .branch(branch)
             .server(srvId)
@@ -262,7 +263,9 @@ public class GetBuildTestFailures {
 
         BuildsHistory buildsHist = builder.build();
 
-        buildsHist.initialize(ICredentialsProv.get(req), ctx);
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        buildsHist.initialize(prov, ctx);
 
         return buildsHist;
     }

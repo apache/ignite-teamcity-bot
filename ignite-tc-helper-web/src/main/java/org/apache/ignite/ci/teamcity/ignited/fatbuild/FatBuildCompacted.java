@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.Objects;
+import java.util.Date;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -246,8 +247,22 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         testOccurrences.setTests(res);
         testOccurrences.count = res.size();
-
+        testOccurrences.muted = (int)getAllTests().filter(TestCompacted::getMutedFlag).count();
+        testOccurrences.ignored = (int)getAllTests().filter(TestCompacted::getIgnoredFlag).count();
+        testOccurrences.failed = (int)getAllTests().filter(t -> t.isFailedButNotMuted(compactor)).count();
+        testOccurrences.passed = testOccurrences.count - testOccurrences.failed -
+            testOccurrences.ignored - testOccurrences.muted;
         return testOccurrences;
+    }
+
+    /** Start date. */
+    public Date getStartDate() {
+        return new Date(startDate);
+    }
+
+    /** Finish date. */
+    public Date getFinishDate() {
+        return new Date(finishDate);
     }
 
     /** {@inheritDoc} */
@@ -284,6 +299,15 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
      */
     public boolean isComposite() {
         Boolean flag = getFlag(COMPOSITE_F);
+
+        return flag != null && flag;
+    }
+
+    /**
+     *
+     */
+    public boolean isFakeStub() {
+        Boolean flag = getFlag(FAKE_BUILD_F);
 
         return flag != null && flag;
     }

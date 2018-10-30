@@ -18,7 +18,7 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
-import org.apache.ignite.ci.tcbot.condition.BuildConditionDao;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;

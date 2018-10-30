@@ -18,12 +18,15 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 
 import com.google.common.collect.Sets;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.annotation.Nonnull;
+import javax.validation.constraints.Null;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.tcbot.condition.BuildCondition;
-import org.apache.ignite.ci.tcbot.condition.BuildConditionDao;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
@@ -106,6 +109,141 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @Override public String host() {
         return conn.host();
+    }
+
+    /** {@inheritDoc} */
+    public List<BuildRef> getFinishedBuilds(
+        @Nullable String buildTypeId,
+        @Nullable String branchName,
+        @Nullable Date sinceDate,
+        @Nullable Date untilDate) {
+        List<BuildRef> buildRefs = getBuildHistory(buildTypeId, branchName).stream()
+            .filter(BuildRef::isFinished)
+            .collect(Collectors.toList());
+
+        int idSince = 0;
+        int idUntil = buildRefs.size() - 1;
+
+        if (sinceDate != null) {
+            idSince = binarySearchDate(buildRefs, 0, buildRefs.size(), sinceDate, true);
+            idSince = idSince == -2 ? 0 : idSince;
+        }
+
+        if (untilDate != null) {
+            idUntil = idSince < 0 ? -1 : binarySearchDate(buildRefs, idSince, buildRefs.size(), untilDate, false);
+            idUntil = idUntil == -2 ? buildRefs.size() - 1 : idUntil;
+        }
+
+        if (idSince == -3 || idUntil == -3) {
+            AtomicBoolean stopFilter = new AtomicBoolean();
+            AtomicBoolean addBuild = new AtomicBoolean();
+
+            return buildRefs.stream()
+                .filter(b -> {
+                    if (stopFilter.get())
+                        return addBuild.get();
+
+                    FatBuildCompacted build = getFatBuild(b.getId());
+
+                    if (build == null || build.isFakeStub())
+                        return false;
+
+                    Date date = build.getStartDate();
+
+                    if (sinceDate != null && untilDate != null)
+                        if ((date.after(sinceDate) || date.equals(sinceDate)) &&
+                            (date.before(untilDate) || date.equals(untilDate)))
+                            return true;
+                        else {
+                            if (date.after(untilDate)) {
+                                stopFilter.set(true);
+                                addBuild.set(false);
+                            }
+
+                            return false;
+                        }
+                    else if (sinceDate != null) {
+                        if (date.after(sinceDate) || date.equals(sinceDate)) {
+                            stopFilter.set(true);
+                            addBuild.set(true);
+
+                            return true;
+                        }
+
+                        return false;
+                    }
+                    else {
+                        if (date.after(untilDate)) {
+                            stopFilter.set(true);
+                            addBuild.set(false);
+
+                            return false;
+                        }
+
+                        return true;
+                    }
+                })
+                .collect(Collectors.toList());
+        } else if (idSince == -1 || idUntil == -1)
+            return Collections.emptyList();
+        else
+            return buildRefs.subList(idSince, idUntil + 1);
+    }
+
+    /**
+     * @param buildRefs Build refs list.
+     * @param fromIdx From index.
+     * @param toIdx To index.
+     * @param key Key.
+     * @param since {@code true} If key is sinceDate, {@code false} is untilDate.
+     *
+     * @return {@value >= 0} Build id from list with min interval between key. If since {@code true}, min interval
+     * between key and same day or later. If since {@code false}, min interval between key and same day or earlier;
+     * {@value -1} If sinceDate after last list element date or untilDate before first list element;
+     * {@value -2} If sinceDate before first list element or untilDate after last list element;
+     * {@value -3} If method get null or fake stub build.
+     */
+    private int binarySearchDate(List<BuildRef> buildRefs, int fromIdx, int toIdx, Date key, boolean since){
+        int low = fromIdx;
+        int high = toIdx - 1;
+        long minDiff = key.getTime();
+        int minDiffId = since ? low : high;
+        long temp;
+        FatBuildCompacted highBuild = getFatBuild(buildRefs.get(high).getId());
+        FatBuildCompacted lowBuild = getFatBuild(buildRefs.get(low).getId());
+
+        if (highBuild != null && !highBuild.isFakeStub()){
+            if (highBuild.getStartDate().before(key))
+                return since ? -1 : -2;
+        }
+
+        if (lowBuild != null && !lowBuild.isFakeStub()){
+            if (lowBuild.getStartDate().after(key))
+                return since ? -2 : -1;
+        }
+
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            FatBuildCompacted midVal = getFatBuild(buildRefs.get(mid).getId());
+
+            if (midVal != null && !midVal.isFakeStub()) {
+                if (midVal.getStartDate().after(key))
+                    high = mid - 1;
+                else if (midVal.getStartDate().before(key))
+                    low = mid + 1;
+                else
+                    return mid;
+
+                temp = midVal.getStartDate().getTime() - key.getTime();
+
+                if ((temp > 0 == since) && (Math.abs(temp) < minDiff)) {
+                    minDiff = Math.abs(temp);
+                    minDiffId = mid;
+                }
+            } else
+                return -3;
+        }
+        return minDiffId;
     }
 
     /** {@inheritDoc} */

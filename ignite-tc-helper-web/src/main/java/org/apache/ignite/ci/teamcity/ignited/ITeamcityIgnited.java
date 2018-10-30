@@ -17,9 +17,10 @@
 package org.apache.ignite.ci.teamcity.ignited;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.tcbot.condition.BuildCondition;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
@@ -35,7 +36,7 @@ public interface ITeamcityIgnited {
     public String host();
 
     /**
-     * Retun all builds for branch and suite, without relation to its status.
+     * Return all builds for branch and suite, without relation to its status.
      *
      * @param buildTypeId Build type identifier.
      * @param branchName Branch name.
@@ -44,6 +45,19 @@ public interface ITeamcityIgnited {
     public List<BuildRef> getBuildHistory(
         @Nullable String buildTypeId,
         @Nullable String branchName);
+
+    /**
+     * Return all builds for branch and suite, without relation to its status.
+     *
+     * @param buildTypeId Build type identifier.
+     * @param branchName Branch name.
+     * @return list of builds in history, includes all statuses: queued, running, etc
+     */
+    public List<BuildRef> getFinishedBuilds(
+        @Nullable String buildTypeId,
+        @Nullable String branchName,
+        @Nullable Date sinceDate,
+        @Nullable Date untilDate);
 
     /**
      * Trigger build. Enforces TC Bot to load all builds related to this triggered one.

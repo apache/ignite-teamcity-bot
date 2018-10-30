@@ -29,12 +29,12 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
-import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 
 /**
  * Summary of build statistics.
@@ -91,8 +91,8 @@ public class BuildStatisticsSummary {
     }
 
     /** Initialize build statistics. */
-    public void initialize(@Nonnull final ITeamcity teamcity) {
-        Build build = teamcity.getBuild(buildId);
+    public void initialize(@Nonnull final IStringCompactor compactor, @Nonnull final ITeamcityIgnited ignitedTeamcity) {
+        FatBuildCompacted build = ignitedTeamcity.getFatBuild(buildId);
 
         isFakeStub = build.isFakeStub();
 
@@ -100,18 +100,18 @@ public class BuildStatisticsSummary {
             return;
 
         DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy'T'HH:mm:ss");
-        dateFormat.format(build.getFinishDate());
+
         startDate = dateFormat.format(build.getStartDate());
 
-        testOccurrences = build.testOccurrences;
+        testOccurrences = build.getTestOccurrences(compactor);
 
         duration = (build.getFinishDate().getTime() - build.getStartDate().getTime()) / 1000;
 
-        List<BuildRef> snapshotDependencies = getSnapshotDependencies(teamcity, build);
+        List<FatBuildCompacted> snapshotDependencies = getSnapshotDependencies(ignitedTeamcity, buildId);
 
-        List<BuildRef> snapshotDependenciesWithProblems = getBuildsWithProblems(snapshotDependencies);
+        List<FatBuildCompacted> snapshotDependenciesWithProblems = getBuildsWithProblems(snapshotDependencies, compactor);
 
-        problemOccurrenceList = getProblems(teamcity, snapshotDependenciesWithProblems);
+        problemOccurrenceList = getProblems(snapshotDependenciesWithProblems, compactor);
 
         totalProblems = getRes();
     }
@@ -132,18 +132,13 @@ public class BuildStatisticsSummary {
         return getProblemsStream(buildTypeId).filter(ProblemOccurrence::isOome).count();
     }
 
-    /**
-     * Problems for all snapshot-dependencies.
-     *
-     * @param teamcity Teamcity.
-     */
-    private List<ProblemOccurrence> getProblems(@Nonnull final ITeamcity teamcity, List<BuildRef> builds){
+    private List<ProblemOccurrence> getProblems(List<FatBuildCompacted> builds, IStringCompactor compactor){
         List<ProblemOccurrence> problemOccurrences = new ArrayList<>();
 
-        for (BuildRef buildRef : builds)
-            problemOccurrences.addAll(teamcity
-                .getProblems(buildRef)
-                .getProblemsNonNull());
+        for (FatBuildCompacted build : builds)
+            problemOccurrences.addAll(
+                build.problems(compactor)
+            );
 
         return problemOccurrences;
     }
@@ -151,24 +146,27 @@ public class BuildStatisticsSummary {
     /**
      * Snapshot-dependencies for build.
      *
-     * @param teamcity Teamcity.
-     * @param buildRef Build reference.
+     * @param ignitedTeamcity ignitedTeamcity.
+     * @param buildId Build Id.
      */
-    private List<BuildRef> getSnapshotDependencies(@Nonnull final ITeamcity teamcity, BuildRef buildRef){
-        FullQueryParams key = new FullQueryParams();
+    private List<FatBuildCompacted> getSnapshotDependencies(@Nonnull final ITeamcityIgnited ignitedTeamcity, Integer buildId){
+        List<FatBuildCompacted> snapshotDependencies = new ArrayList<>();
+        FatBuildCompacted build = ignitedTeamcity.getFatBuild(buildId);
 
-        key.setServerId(teamcity.serverId());
-        key.setBuildId(buildRef.getId());
+        if (build.isComposite()){
+            for (Integer id : build.snapshotDependencies())
+                snapshotDependencies.addAll(getSnapshotDependencies(ignitedTeamcity, id));
+        } else
+            snapshotDependencies.add(ignitedTeamcity.getFatBuild(buildId));
 
-        return teamcity.getConfigurations(key).getBuilds();
+        return snapshotDependencies;
     }
-
     /**
      * Builds without status "Success".
      */
-    private List<BuildRef> getBuildsWithProblems(List<BuildRef> builds){
+    private List<FatBuildCompacted> getBuildsWithProblems(List<FatBuildCompacted> builds, IStringCompactor compactor){
         return builds.stream()
-            .filter(b -> !b.isSuccess())
+            .filter(b -> !b.isSuccess(compactor))
             .collect(Collectors.toList());
     }
 
