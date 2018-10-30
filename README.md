@@ -36,6 +36,13 @@ Build can be done using following commands
 - gradle clean
 - gradle build
 
+It is recommended to use Java 8 for development.
+
+It may be required to install 
+[Java Cryptography Extension JCE Unlimited Strength Jurisdiction Policy Files 8 Download](https://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html)
+because the Bot uses strong AES cryptography, but default java distribution may limit AES256 usage.
+
+
 Resulting distribution can be found in projectRoot\jetty-launcher\build\distributions.
 Distribution will contain start script in \bin folder.
 
