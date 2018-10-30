@@ -97,7 +97,16 @@ public interface ITeamcityIgnited {
     /**
      * @param id Id.
      */
-    public FatBuildCompacted getFatBuild(int id);
+    public default FatBuildCompacted getFatBuild(int id) {
+        return getFatBuild(id, false);
+    }
+
+
+
+    /**
+     * @param id Id.
+     */
+    public FatBuildCompacted getFatBuild(int id, boolean acceptQueued);
 
     public Collection<ChangeCompacted> getAllChanges(int[] changeIds);
 }

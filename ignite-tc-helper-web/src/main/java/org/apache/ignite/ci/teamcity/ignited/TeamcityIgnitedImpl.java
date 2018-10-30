@@ -83,6 +83,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Changes DAO. */
     @Inject private ChangeSync changeSync;
 
+    /** Changes DAO. */
+    @Inject private IStringCompactor compactor;
+
     /** Server ID mask for cache Entries. */
     private int srvIdMaskHigh;
 
@@ -172,13 +175,17 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return buildConditionDao.setBuildCondition(srvIdMaskHigh, cond);
     }
 
-    @Override public FatBuildCompacted getFatBuild(int buildId) {
+    /** {@inheritDoc} */
+    @Override public FatBuildCompacted getFatBuild(int buildId, boolean acceptQueued) {
         ensureActualizeRequested();
         FatBuildCompacted existingBuild = fatBuildDao.getFatBuild(srvIdMaskHigh, buildId);
 
-        //todo additionally check queued and running builds, refesh builds if they are queued.
-        if (existingBuild != null && !existingBuild.isOutdatedEntityVersion())
-            return existingBuild;
+        if (existingBuild != null && !existingBuild.isOutdatedEntityVersion()) {
+            boolean finished = !existingBuild.isRunning(compactor) && !existingBuild.isQueued(compactor);
+
+            if(finished || acceptQueued)
+                return existingBuild;
+        }
 
         FatBuildCompacted savedVer = buildSync.reloadBuild(conn, buildId, existingBuild);
 
@@ -189,6 +196,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return savedVer == null ? existingBuild : savedVer;
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override public Collection<ChangeCompacted> getAllChanges(int[] changeIds) {
         final Map<Long, ChangeCompacted> all = changesDao.getAll(srvIdMaskHigh, changeIds);
