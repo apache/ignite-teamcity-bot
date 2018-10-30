@@ -64,11 +64,11 @@ public class BuildObserver {
      * @param srvId Server id.
      * @param prov Credentials.
      * @param ticket Ticket.
-     * @param branch Branch.
+     * @param branchForTc Branch for TC.
      * @param ticket JIRA ticket name.
      */
-    public void observe(String srvId, ICredentialsProv prov, String ticket, String branch, Build... builds) {
-        BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, branch, builds);
+    public void observe(String srvId, ICredentialsProv prov, String ticket, String branchForTc, Build... builds) {
+        BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, branchForTc, builds);
 
         helper.getVisasHistoryStorage().put(new VisaRequest(buildsInfo));
 
@@ -84,7 +84,7 @@ public class BuildObserver {
         Collection<BuildsInfo> builds = observerTask.getBuilds();
 
         for (BuildsInfo bi : builds) {
-            if (Objects.equals(bi.branchName, branch)
+            if (Objects.equals(bi.branchForTc, branch)
                 && Objects.equals(bi.srvId, srvId)) {
                 sb.append(bi.ticket).append(" to be commented, waiting for builds. ");
                 sb.append(bi.finishedBuildsCount());

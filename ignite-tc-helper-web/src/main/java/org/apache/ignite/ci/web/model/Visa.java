@@ -17,11 +17,7 @@
 
 package org.apache.ignite.ci.web.model;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.jetbrains.annotations.Nullable;
@@ -31,13 +27,13 @@ import org.jetbrains.annotations.Nullable;
  */
 public class Visa {
     /** */
-    @Nullable private String status;
+    private final String status;
 
     /** */
-    @Nullable private JiraCommentResponse jiraCommentResponse;
+    @Nullable private final JiraCommentResponse jiraCommentResponse;
 
     /** */
-    @Nullable private List<SuiteCurrentStatus> suitesStatuses;
+    @Nullable private final List<SuiteCurrentStatus> suitesStatuses;
 
     /** */
     @Nullable public String getStatus() {
@@ -45,10 +41,17 @@ public class Visa {
     }
 
     /** */
-    public Visa setStatus(@Nullable String status) {
+    public Visa(String status) {
         this.status = status;
+        this.jiraCommentResponse = null;
+        this.suitesStatuses = null;
+    }
 
-        return this;
+    /** */
+    public Visa(String status, JiraCommentResponse response, List<SuiteCurrentStatus> suitesStasuses) {
+        this.status = status;
+        this.jiraCommentResponse = response;
+        this.suitesStatuses = suitesStasuses;
     }
 
     /** */
@@ -57,22 +60,8 @@ public class Visa {
     }
 
     /** */
-    public Visa setJiraCommentResponse(@Nullable JiraCommentResponse jiraCommentResponse) {
-        this.jiraCommentResponse = jiraCommentResponse;
-
-        return this;
-    }
-
-    /** */
     @Nullable public List<SuiteCurrentStatus> getSuitesStatuses() {
         return suitesStatuses;
-    }
-
-    /** */
-    public Visa setSuitesStatuses(@Nullable List<SuiteCurrentStatus> suitesStatuses) {
-        this.suitesStatuses = suitesStatuses;
-
-        return this;
     }
 
     /** */

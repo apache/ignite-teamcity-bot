@@ -42,5 +42,5 @@ public class VisaStatus {
     @Nullable public String date;
 
     /** */
-    @Nullable public int blockers;
+    public int blockers;
 }

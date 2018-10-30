@@ -160,7 +160,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchForTc);
 
         if (builds.isEmpty())
-            return new Visa().setStatus("JIRA wasn't commented - no finished builds to analyze.");
+            return new Visa("JIRA wasn't commented - no finished builds to analyze.");
 
         BuildRef build = builds.get(builds.size() - 1);
 
@@ -173,9 +173,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
             String comment = generateJiraComment(suitesStatuses, build.webUrl);
 
-            response = objectMapper.readValue(teamcity.sendJiraComment(ticket, comment),
-                JiraCommentResponse.class);
-
+            response = objectMapper.readValue(teamcity.sendJiraComment(ticket, comment), JiraCommentResponse.class);
         }
         catch (Exception e) {
             String errMsg = "Exception happened during commenting JIRA ticket " +
@@ -183,13 +181,10 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
             logger.error(errMsg);
 
-            return new Visa().setStatus("JIRA wasn't commented - " + errMsg);
+            return new Visa("JIRA wasn't commented - " + errMsg);
         }
 
-        return new Visa()
-            .setStatus(JIRA_COMMENTED)
-            .setJiraCommentResponse(response)
-            .setSuitesStatuses(suitesStatuses);
+        return new Visa(JIRA_COMMENTED, response, suitesStatuses);
     }
 
     /**
@@ -216,7 +211,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
                 Map<String, List<SuiteCurrentStatus>> fails = findFailures(server);
 
-                fails.entrySet().forEach(e -> res.addAll(e.getValue()));
+                fails.forEach((k, v) -> res.addAll(v));
             }
         }
 
@@ -242,7 +237,6 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
                 if (failure.suiteName != null && failure.testName != null)
                     res.append(failure.suiteName).append(": ").append(failure.testName);
                 else
-
                     res.append(failure.name);
 
                 FailureSummary recent = failure.histBaseBranch.recent;

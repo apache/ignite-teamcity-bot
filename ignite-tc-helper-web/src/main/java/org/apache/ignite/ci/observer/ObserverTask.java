@@ -20,7 +20,6 @@ package org.apache.ignite.ci.observer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TimerTask;
@@ -32,13 +31,10 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.model.VisaRequest;
 import org.apache.ignite.configuration.CollectionConfiguration;
 import org.apache.ignite.ci.web.model.Visa;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.ignite.ci.jira.IJiraIntegration.JIRA_COMMENTED;
 
 /**
  * Checks observed builds for finished status and comments JIRA ticket.
@@ -114,7 +110,7 @@ public class ObserverTask extends TimerTask {
                 builds.remove(info);
 
                 logger.error("JIRA will not be commented." +
-                    " [ticket: " + info.ticket + ", branch:" + info.branchName + "] : " +
+                    " [ticket: " + info.ticket + ", branch:" + info.branchForTc + "] : " +
                     "one or more re-runned blocker's builds finished with UNKNOWN status.");
 
                 continue;
@@ -129,7 +125,7 @@ public class ObserverTask extends TimerTask {
             ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
 
             Visa visa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
-                info.branchName, info.ticket);
+                info.branchForTc, info.ticket);
 
             tcHelper.getVisasHistoryStorage().updateVisaRequestResult(info.date, visa);
 

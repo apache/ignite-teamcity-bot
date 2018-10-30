@@ -49,7 +49,7 @@ public class BuildsInfo {
     public final String buildTypeId;
 
     /** Branch name. */
-    public final String branchName;
+    public final String branchForTc;
 
     /** JIRA ticket full name. */
     public final String ticket;
@@ -63,15 +63,16 @@ public class BuildsInfo {
     /**
      * @param srvId Server id.
      * @param prov Prov.
+     * @param branchForTc Branch for TC.
      * @param ticket Ticket.
      * @param builds Builds.
      */
-    public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, String branchName, Build... builds) {
+    public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, String branchForTc, Build... builds) {
         this.userName = prov.getUser(srvId);
         this.date = Calendar.getInstance().getTime();
         this.srvId = srvId;
         this.ticket = ticket;
-        this.branchName = branchName;
+        this.branchForTc = branchForTc;
         this.buildTypeId = builds.length == 1 ? builds[0].buildTypeId : "IgniteTests24Java8_RunAll";
 
         for (Build build : builds)
@@ -144,7 +145,7 @@ public class BuildsInfo {
 
         return Objects.equals(srvId, info.srvId) &&
             Objects.equals(buildTypeId, info.buildTypeId) &&
-            Objects.equals(branchName, info.branchName) &&
+            Objects.equals(branchForTc, info.branchForTc) &&
             Objects.equals(ticket, info.ticket) &&
             Objects.equals(finishedBuilds.keySet(), info.finishedBuilds.keySet()) &&
             Objects.equals(date, info.date);
@@ -152,6 +153,6 @@ public class BuildsInfo {
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(srvId, buildTypeId, branchName, ticket, finishedBuilds.keySet(), date);
+        return Objects.hash(srvId, buildTypeId, branchForTc, ticket, finishedBuilds.keySet(), date);
     }
 }

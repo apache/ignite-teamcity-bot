@@ -25,10 +25,8 @@ import java.util.List;
 import java.util.Objects;
 import javax.cache.Cache;
 import javax.inject.Inject;
-import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.VisaRequest;
 import org.jetbrains.annotations.Nullable;
@@ -66,14 +64,14 @@ public class VisasHistoryStorage {
 
     /** */
     public boolean updateVisaRequestResult(Date date, Visa visa) {
-        VisaRequest visaRequest = visas().get(date);
+        VisaRequest req = visas().get(date);
 
-        if (Objects.isNull(visaRequest))
+        if (Objects.isNull(req))
             return false;
 
-        visaRequest.setResult(visa);
+        req.setResult(visa);
 
-        put(visaRequest);
+        put(req);
 
         return true;
     }

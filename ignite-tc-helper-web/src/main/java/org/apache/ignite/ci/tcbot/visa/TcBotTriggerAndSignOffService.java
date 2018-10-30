@@ -97,7 +97,7 @@ public class TcBotTriggerAndSignOffService {
             Visa visa = visaRequest.getResult();
 
             visaStatus.date = formatter.format(info.date);
-            visaStatus.branchName = info.branchName;
+            visaStatus.branchName = info.branchForTc;
             visaStatus.userName = info.userName;
             visaStatus.ticket = info.ticket;
 
@@ -115,10 +115,8 @@ public class TcBotTriggerAndSignOffService {
                 }
                 else if (visa != null && !visa.isSuccess())
                     visaStatus.state = BuildsInfo.FINISHED_WITH_FAILURES_STATE;
-
                 else if (visa == null)
                     visaStatus.state = BuildsInfo.FINISHED_STATE + " [ waiting results ]";
-
             }
             else
                 visaStatus.state = info.getState(teamcity);

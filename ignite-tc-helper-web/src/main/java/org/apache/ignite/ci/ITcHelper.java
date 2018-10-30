@@ -72,7 +72,7 @@ public interface ITcHelper extends ITcServerProvider {
      * @param buildTypeId Suite name.
      * @param branchForTc Branch for TeamCity.
      * @param ticket JIRA ticket full name.
-     * @return {@code True} if JIRA was notified.
+     * @return {@code Visa} which contains info about JIRA notification.
      */
     Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc, String ticket);
 }
