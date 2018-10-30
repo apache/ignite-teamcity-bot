@@ -252,10 +252,12 @@ public class BuildChainProcessor {
 
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
-    protected static void analyzeTests(MultBuildRunCtx outCtx, IAnalyticsEnabledTeamcity teamcity,
+    protected void analyzeTests(MultBuildRunCtx outCtx, IAnalyticsEnabledTeamcity teamcity,
                                      ProcessLogsMode procLog) {
         for (SingleBuildRunCtx ctx : outCtx.getBuilds()) {
-            teamcity.calculateBuildStatistic(ctx);
+            tcUpdatePool.getService().submit(() -> {
+                teamcity.calculateBuildStatistic(ctx);
+            });
 
             if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
                     || procLog == ProcessLogsMode.ALL)
