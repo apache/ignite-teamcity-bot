@@ -17,18 +17,16 @@
 
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
@@ -197,18 +195,17 @@ public class TestCompacted {
                 logger.error("Snappy.uncompress failed: " + e.getMessage(), e);
                 return null;
             }
-        } else if(flag1 && !flag2) {
+        } else if(flag1 && !flag2)
             return new String(details, StandardCharsets.UTF_8);
-        } else if (!flag1 && flag2) {
+        else if (!flag1 && flag2) {
             try {
                 final ByteArrayInputStream in = new ByteArrayInputStream(details);
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
                 try (final GZIPInputStream gzi = new GZIPInputStream(in)) {
                     byte[] outbuf = new byte[details.length];
                     int len;
-                    while ((len = gzi.read(outbuf, 0, outbuf.length)) != -1) {
+                    while ((len = gzi.read(outbuf, 0, outbuf.length)) != -1)
                         bos.write(outbuf, 0, len);
-                    }
                 }
 
                 return new String(bos.toByteArray(), StandardCharsets.UTF_8);
@@ -216,13 +213,12 @@ public class TestCompacted {
                 logger.error("GZip.uncompress failed: " + e.getMessage(), e);
                 return null;
             }
-        } else {
+        } else
             return null;
-        }
     }
 
-    public void setDetails(String dtlsString) {
-        if (Strings.isNullOrEmpty(dtlsString)) {
+    public void setDetails(String dtlsStr) {
+        if (Strings.isNullOrEmpty(dtlsStr)) {
             this.details = null;
             return;
         }
@@ -232,7 +228,7 @@ public class TestCompacted {
         byte[] snappy = null;
         byte[] gzip = null;
         try {
-            uncompressed = dtlsString.getBytes(StandardCharsets.UTF_8);
+            uncompressed = dtlsStr.getBytes(StandardCharsets.UTF_8);
         } catch (Exception e) {
             logger.error("Set details failed: " + e.getMessage(), e);
             return;
@@ -352,5 +348,18 @@ public class TestCompacted {
     @Nullable
     public Integer getDuration() {
         return duration < 0 ? null : duration;
+    }
+
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("idInBuild", idInBuild)
+            .add("name", name)
+            .add("status", status)
+            .add("duration", duration)
+            .add("flags", flags)
+            .add("testId", testId)
+            .add("actualBuildId", actualBuildId)
+            .add("details", details)
+            .toString() + "\n";
     }
 }

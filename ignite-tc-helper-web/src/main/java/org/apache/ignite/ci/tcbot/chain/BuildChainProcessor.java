@@ -155,7 +155,6 @@ public class BuildChainProcessor {
         return fullChainRunCtx;
     }
 
-
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
     protected void createCxt(ITeamcityIgnited teamcityIgnited, Map<String, MultBuildRunCtx> buildsCtxMap,
@@ -200,13 +199,13 @@ public class BuildChainProcessor {
         final String branch = getBranchOrDefault(buildCompacted.branchName(compactor));
 
         final String buildTypeId = buildCompacted.buildTypeId(compactor);
-        Stream<BuildRefCompacted> history = teamcityIgnited.getBuildHistoryCompacted(buildTypeId, branch)
+        Stream<BuildRefCompacted> hist = teamcityIgnited.getBuildHistoryCompacted(buildTypeId, branch)
             .stream()
             .filter(t -> t.isNotCancelled(compactor))
             .filter(t -> t.isFinished(compactor));
 
         if (includeLatestRebuild == LatestRebuildMode.LATEST) {
-            BuildRefCompacted recentRef = history.max(Comparator.comparing(BuildRefCompacted::id))
+            BuildRefCompacted recentRef = hist.max(Comparator.comparing(BuildRefCompacted::id))
                     .orElse(buildCompacted);
 
             return Stream.of(recentRef)
@@ -214,7 +213,7 @@ public class BuildChainProcessor {
         }
 
         if (includeLatestRebuild == LatestRebuildMode.ALL) {
-            return history
+            return hist
                     .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
                     .limit(cntLimit)
                     .map(b -> builds.computeIfAbsent(b.id(), teamcityIgnited::getFatBuild));
