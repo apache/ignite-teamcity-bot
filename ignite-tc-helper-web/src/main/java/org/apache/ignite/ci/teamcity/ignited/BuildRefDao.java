@@ -115,7 +115,7 @@ public class BuildRefDao {
      * @param srvId Server id mask high.
      * @param buildId Build id.
      */
-    public long buildIdToCacheKey(long srvId, int buildId) {
+    public static long buildIdToCacheKey(long srvId, int buildId) {
         return (long)buildId | srvId << 32;
     }
 

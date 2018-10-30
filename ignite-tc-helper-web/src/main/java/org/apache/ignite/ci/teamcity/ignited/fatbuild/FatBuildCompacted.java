@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
@@ -373,5 +374,23 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             return EMPTY;
 
         return snapshotDeps.clone();
+    }
+
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("_", super.toString())
+            .add("_ver", _ver)
+            .add("startDate", startDate)
+            .add("finishDate", finishDate)
+            .add("queuedDate", queuedDate)
+            .add("projectId", projectId)
+            .add("name", name)
+            .add("tests", tests)
+            .add("snapshotDeps", snapshotDeps)
+            .add("flags", flags)
+            .add("problems", problems)
+            .add("statistics", statistics)
+            .add("changesIds", changesIds)
+            .toString();
     }
 }

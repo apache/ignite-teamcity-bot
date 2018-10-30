@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.db.Persisted;
@@ -171,5 +172,15 @@ public class BuildRefCompacted {
 
     public boolean isQueued(IStringCompactor compactor) {
         return compactor.getStringId(STATE_QUEUED) == state();
+    }
+
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("id", id)
+            .add("buildTypeId", buildTypeId)
+            .add("branchName", branchName)
+            .add("status", status)
+            .add("state", state)
+            .toString();
     }
 }

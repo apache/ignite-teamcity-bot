@@ -17,27 +17,14 @@
 
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
-import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
-import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xerial.snappy.Snappy;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.BitSet;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import static org.apache.ignite.ci.analysis.RunStat.extractIdPrefixed;
 
@@ -159,5 +146,14 @@ public class ProblemCompacted {
     public boolean isSnapshotDepProblem(IStringCompactor compactor) {
         return compactor.getStringId(ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR) == type
                 || compactor.getStringId(ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE) == type;
+    }
+
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("id", id)
+            .add("type", type)
+            .add("identity", identity)
+            .add("actualBuildId", actualBuildId)
+            .toString() + "\n";
     }
 }
