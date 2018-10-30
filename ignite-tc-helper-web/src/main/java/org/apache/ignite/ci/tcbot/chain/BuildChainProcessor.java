@@ -52,7 +52,6 @@ import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jvnet.hk2.internal.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,25 +106,21 @@ public class BuildChainProcessor {
                 .stream()
                 .flatMap(fut -> FutureUtil.getResult(fut));
 
-        Stream<FatBuildCompacted> uniqueBuildsInvolved = depsFirstLevel
+        Stream<FatBuildCompacted> secondLevelDeps = depsFirstLevel
                 .map(ref -> svc.submit(() -> dependencies(teamcityIgnited, builds, ref)))
                 .collect(Collectors.toList())
                 .stream()
                 .flatMap(fut -> FutureUtil.getResult(fut));
 
-        final List<Future<Stream<FatBuildCompacted>>> phase1Submitted = uniqueBuildsInvolved
-                .map((buildRef) -> svc.submit(
-                        () -> replaceWithRecent(teamcityIgnited, includeLatestRebuild, builds, buildRef, entryPoints.size())))
+        // builds may became non unique because of rece in filtering and acquiring deps
+        final List<Future<Stream<FatBuildCompacted>>> phase3Submitted = secondLevelDeps
+                .map((fatBuild) -> svc.submit(
+                        () -> replaceWithRecent(teamcityIgnited, includeLatestRebuild, builds, fatBuild, entryPoints.size())))
                 .collect(Collectors.toList());
 
-
-        final List<Future<? extends Stream<FatBuildCompacted>>> phase2Submitted = phase1Submitted.stream()
-                .map(FutureUtil::getResult)
-                .map((s) -> svc.submit(
-                        () -> processBuildList(teamcityIgnited, buildsCtxMap, s)))
-                .collect(Collectors.toList());
-
-        phase2Submitted.forEach(FutureUtil::getResult);
+        phase3Submitted.stream()
+                .flatMap(fut -> FutureUtil.getResult(fut))
+                .forEach((fatBuild) -> createCxt(teamcityIgnited, buildsCtxMap, fatBuild));
 
         ArrayList<MultBuildRunCtx> contexts = new ArrayList<>(buildsCtxMap.values());
 
@@ -160,22 +155,17 @@ public class BuildChainProcessor {
         return fullChainRunCtx;
     }
 
+
     @SuppressWarnings("WeakerAccess")
-    @NotNull
     @AutoProfiling
-    protected Stream<FatBuildCompacted> processBuildList(ITeamcityIgnited teamcityIgnited,
-                                                         Map<String, MultBuildRunCtx> buildsCtxMap,
-                                                         Stream<FatBuildCompacted> list) {
-        list.forEach((FatBuildCompacted buildCompacted) -> {
-            final BuildRef ref = buildCompacted.toBuildRef(compactor);
+    protected void createCxt(ITeamcityIgnited teamcityIgnited, Map<String, MultBuildRunCtx> buildsCtxMap,
+        FatBuildCompacted buildCompacted) {
+        final BuildRef ref = buildCompacted.toBuildRef(compactor);
 
-            MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(ref.buildTypeId,
-                    k -> new MultBuildRunCtx(ref, compactor));
+        final MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(ref.buildTypeId,
+                k -> new MultBuildRunCtx(ref, compactor));
 
-            ctx.addBuild(loadTestsAndProblems(buildCompacted, teamcityIgnited));
-        });
-
-        return list;
+        ctx.addBuild(loadTestsAndProblems(buildCompacted, teamcityIgnited));
     }
 
     /**
@@ -290,12 +280,20 @@ public class BuildChainProcessor {
     private Stream<FatBuildCompacted> dependencies(
             ITeamcityIgnited teamcityIgnited,
             Map<Integer, FatBuildCompacted> builds,
-            FatBuildCompacted build) {
-        return Stream.concat(Stream.of(build),
-                IntStream.of(build.snapshotDependencies())
-                        .filter(id -> !builds.containsKey(id)) //load and propagate only new dependencies
-                        .mapToObj(id -> builds.computeIfAbsent(id, teamcityIgnited::getFatBuild)));
+        FatBuildCompacted build) {
+        return Stream.concat(
+            Stream.of(build),
+            IntStream.of(build.snapshotDependencies())
+                .mapToObj(id -> {
+                    if (builds.containsKey(id))
+                        return null; //load and propagate only new dependencies
 
-        //todo race here: double build id may appear
+                    FatBuildCompacted buildLoaded = teamcityIgnited.getFatBuild(id);
+
+                    FatBuildCompacted prevVal = builds.putIfAbsent(id, buildLoaded);
+
+                    return prevVal == null ? buildLoaded : null;
+                }))
+            .filter(Objects::nonNull);
     }
 }

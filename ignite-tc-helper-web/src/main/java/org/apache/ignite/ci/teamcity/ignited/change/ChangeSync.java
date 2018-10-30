@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.teamcity.ignited.change;
 
 import com.google.common.base.Throwables;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
@@ -48,6 +49,7 @@ public class ChangeSync {
     }
 
     @NotNull
+    @AutoProfiling
     public ChangeCompacted reloadChange(int srvId, int changeId, ITeamcityConn conn) {
         Change change;
         try {

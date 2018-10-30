@@ -189,9 +189,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return savedVer == null ? existingBuild : savedVer;
     }
 
-    @Override
     @AutoProfiling
-    public Collection<ChangeCompacted> getAllChanges(int[] changeIds) {
+    @Override public Collection<ChangeCompacted> getAllChanges(int[] changeIds) {
         final Map<Long, ChangeCompacted> all = changesDao.getAll(srvIdMaskHigh, changeIds);
 
         final Map<Integer, ChangeCompacted> changes = new HashMap<>();
@@ -205,7 +204,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         for (int changeId : changeIds) {
             if (!changes.containsKey(changeId)) {
-                final ChangeCompacted change = changeSync.change(srvIdMaskHigh, changeId, conn);
+                final ChangeCompacted change = changeSync.reloadChange(srvIdMaskHigh, changeId, conn);
 
                 changes.put(changeId, change);
             }
