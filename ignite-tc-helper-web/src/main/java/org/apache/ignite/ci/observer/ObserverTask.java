@@ -67,7 +67,7 @@ public class ObserverTask extends TimerTask {
 
         cfg.setBackups(1);
 
-        return ignite.queue("buildsQueue", 0, cfg);
+        return ignite.queue("builds", 0, cfg);
     }
 
     /** */
@@ -131,7 +131,7 @@ public class ObserverTask extends TimerTask {
             Visa visa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
                 info.branchName, info.ticket);
 
-            tcHelper.getVisasHistoryStorage().updateVisaRequestResult(info, visa);
+            tcHelper.getVisasHistoryStorage().updateVisaRequestResult(info.date, visa);
 
             if (visa.isSuccess()) {
                 ticketsNotified.add(info.ticket);

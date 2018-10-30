@@ -58,7 +58,7 @@ public class BuildsInfo {
     public final Date date;
 
     /** Finished builds. */
-    private final Map<Build, Boolean> finishedBuilds = new HashMap<>();
+    private final Map<Integer, Boolean> finishedBuilds = new HashMap<>();
 
     /**
      * @param srvId Server id.
@@ -75,19 +75,19 @@ public class BuildsInfo {
         this.buildTypeId = builds.length == 1 ? builds[0].buildTypeId : "IgniteTests24Java8_RunAll";
 
         for (Build build : builds)
-            finishedBuilds.put(build, false);
+            finishedBuilds.put(build.getId(), false);
     }
 
     /**
      * @param teamcity Teamcity.
      */
     public String getState(IAnalyticsEnabledTeamcity teamcity) {
-        for (Map.Entry<Build, Boolean> entry : finishedBuilds.entrySet()) {
+        for (Map.Entry<Integer, Boolean> entry : finishedBuilds.entrySet()) {
             if (entry.getValue() == null)
                 return FINISHED_WITH_FAILURES_STATE;
 
             if (!entry.getValue()) {
-                Build build = teamcity.getBuild(entry.getKey().getId());
+                Build build = teamcity.getBuild(entry.getKey());
 
                 if (build.isFinished()) {
                     if (build.isUnknown()) {

@@ -20,6 +20,7 @@ package org.apache.ignite.ci.web.model.hist;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import javax.cache.Cache;
@@ -44,47 +45,32 @@ public class VisasHistoryStorage {
     private Provider<Ignite> igniteProvider;
 
     /** */
-    private volatile Ignite ignite;
-
-    /** */
-    public Ignite getIgnite() {
-        if (ignite != null)
-            return ignite;
-
-        final Ignite ignite = igniteProvider.get();
-
-        this.ignite = ignite;
-
-        return ignite;
-    }
+    @Inject
+    private Ignite ignite;
 
     /** */
     public void clear() {
         visas().clear();
-
-        visas().close();
-
-        ignite.destroyCache(VISAS_CACHE_NAME);
     }
 
     /** */
-    private Cache<BuildsInfo, VisaRequest> visas() {
-        return getIgnite().getOrCreateCache(TcHelperDb.getCacheV2TxConfig(VISAS_CACHE_NAME));
+    private Cache<Date, VisaRequest> visas() {
+        return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(VISAS_CACHE_NAME));
     }
 
     /** */
     public void put(VisaRequest visaRequest) {
-        visas().put(visaRequest.getInfo(), visaRequest);
+        visas().put(visaRequest.getInfo().date, visaRequest);
     }
 
     /** */
-    @Nullable public VisaRequest get(BuildsInfo info) {
-        return visas().get(info);
+    @Nullable public VisaRequest get(Date date) {
+        return visas().get(date);
     }
 
     /** */
-    public boolean updateVisaRequestResult(BuildsInfo info, Visa visa) {
-        VisaRequest visaRequest = visas().get(info);
+    public boolean updateVisaRequestResult(Date date, Visa visa) {
+        VisaRequest visaRequest = visas().get(date);
 
         if (Objects.isNull(visaRequest))
             return false;

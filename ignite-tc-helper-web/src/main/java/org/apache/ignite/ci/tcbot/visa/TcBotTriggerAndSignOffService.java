@@ -101,23 +101,27 @@ public class TcBotTriggerAndSignOffService {
             visaStatus.userName = info.userName;
             visaStatus.ticket = info.ticket;
 
-            if (!visaRequest.isFinished(teamcity)) {
+            if (info.isFinished(teamcity)) {
+                if (visa != null && visa.isSuccess()) {
+                    visaStatus.commentUrl = "https://issues.apache.org/jira/browse/" + visaStatus.ticket +
+                        "?focusedCommentId=" + visa.getJiraCommentResponse().getId() +
+                        "&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-" +
+                        visa.getJiraCommentResponse().getId();
+
+                    visaStatus.blockers = visa.getSuitesStatuses().stream().mapToInt(suite ->
+                        suite.testFailures.size()).sum();
+
+                    visaStatus.state = BuildsInfo.FINISHED_STATE;
+                }
+                else if (visa != null && !visa.isSuccess())
+                    visaStatus.state = BuildsInfo.FINISHED_WITH_FAILURES_STATE;
+
+                else if (visa == null)
+                    visaStatus.state = BuildsInfo.FINISHED_STATE + " [ waiting results ]";
+
+            }
+            else
                 visaStatus.state = info.getState(teamcity);
-            }
-            else if (!visa.isSuccess()) {
-                visaStatus.state = BuildsInfo.FINISHED_STATE + "(waiting results...)";
-            }
-            else {
-                visaStatus.commentUrl = "https://issues.apache.org/jira/browse/" + visaStatus.ticket +
-                    "?focusedCommentId=" + visa.getJiraCommentResponse().getId() +
-                    "&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-" +
-                    visa.getJiraCommentResponse().getId();
-
-                visaStatus.blockers = visa.getSuitesStatuses().stream().mapToInt(suite ->
-                    suite.testFailures.size()).sum();
-
-                visaStatus.state = BuildsInfo.FINISHED_STATE;
-            }
 
             visaStatuses.add(visaStatus);
         }
@@ -144,7 +148,6 @@ public class TcBotTriggerAndSignOffService {
 
         return ticketId;
     }
-
 
     @NotNull public String triggerBuildsAndObserve(
         @Nullable String srvId,
