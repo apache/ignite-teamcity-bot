@@ -45,15 +45,14 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jvnet.hk2.internal.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,11 +99,19 @@ public class BuildChainProcessor {
                 .filter(id -> !builds.containsKey(id)) //load and propagate only new entry points
                 .map(id -> builds.computeIfAbsent(id, teamcityIgnited::getFatBuild));
 
-        Stream<FatBuildCompacted> uniqueBuildsInvolved = entryPointsFatBuilds
-                .flatMap(ref -> dependencies(teamcityIgnited, builds, ref))
-                .flatMap(ref -> dependencies(teamcityIgnited, builds, ref));
-
         final ExecutorService svc = tcUpdatePool.getService();
+
+        final Stream<FatBuildCompacted> depsFirstLevel = entryPointsFatBuilds
+                .map(ref -> svc.submit(() -> dependencies(teamcityIgnited, builds, ref)))
+                .collect(Collectors.toList())
+                .stream()
+                .flatMap(fut -> FutureUtil.getResult(fut));
+
+        Stream<FatBuildCompacted> uniqueBuildsInvolved = depsFirstLevel
+                .map(ref -> svc.submit(() -> dependencies(teamcityIgnited, builds, ref)))
+                .collect(Collectors.toList())
+                .stream()
+                .flatMap(fut -> FutureUtil.getResult(fut));
 
         final List<Future<Stream<FatBuildCompacted>>> phase1Submitted = uniqueBuildsInvolved
                 .map((buildRef) -> svc.submit(
@@ -156,7 +163,8 @@ public class BuildChainProcessor {
     @SuppressWarnings("WeakerAccess")
     @NotNull
     @AutoProfiling
-    protected Stream<FatBuildCompacted> processBuildList(ITeamcityIgnited teamcityIgnited, Map<String, MultBuildRunCtx> buildsCtxMap,
+    protected Stream<FatBuildCompacted> processBuildList(ITeamcityIgnited teamcityIgnited,
+                                                         Map<String, MultBuildRunCtx> buildsCtxMap,
                                                          Stream<FatBuildCompacted> list) {
         list.forEach((FatBuildCompacted buildCompacted) -> {
             final BuildRef ref = buildCompacted.toBuildRef(compactor);
@@ -164,7 +172,7 @@ public class BuildChainProcessor {
             MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(ref.buildTypeId,
                     k -> new MultBuildRunCtx(ref, compactor));
 
-            ctx.addBuild(loadTestsAndProblems(buildCompacted, ctx, teamcityIgnited));
+            ctx.addBuild(loadTestsAndProblems(buildCompacted, teamcityIgnited));
         });
 
         return list;
@@ -178,7 +186,7 @@ public class BuildChainProcessor {
      * @return Full context.
      */
     public SingleBuildRunCtx loadTestsAndProblems(@Nonnull FatBuildCompacted buildCompacted,
-                                                  @Deprecated MultBuildRunCtx mCtx, ITeamcityIgnited tcIgnited) {
+                                                  ITeamcityIgnited tcIgnited) {
         SingleBuildRunCtx ctx = new SingleBuildRunCtx(buildCompacted, compactor);
 
         ctx.setChanges(tcIgnited.getAllChanges(buildCompacted.changes()));
@@ -287,5 +295,7 @@ public class BuildChainProcessor {
                 IntStream.of(build.snapshotDependencies())
                         .filter(id -> !builds.containsKey(id)) //load and propagate only new dependencies
                         .mapToObj(id -> builds.computeIfAbsent(id, teamcityIgnited::getFatBuild)));
+
+        //todo race here: double build id may appear
     }
 }

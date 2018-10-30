@@ -80,7 +80,7 @@ public class CompareBuildsService {
             MultBuildRunCtx buildCtx = new MultBuildRunCtx(build, compactor);
 
             final FatBuildCompacted fatBuild = tcIgnited.getFatBuild(build.getId());
-            buildCtx.addBuild(bcp.loadTestsAndProblems(fatBuild, buildCtx, tcIgnited));
+            buildCtx.addBuild(bcp.loadTestsAndProblems(fatBuild, tcIgnited));
 
             for (String testName : buildCtx.tests())
                 tests.add(extractTestName(testName));
