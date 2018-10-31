@@ -28,6 +28,8 @@ function requestTableForServer(srvId, suiteId, element) {
         success:
             function (result) {
                 showContributionsTable(result, srvId, suiteId)
+                fillBranchAutocompleteList(result, srvId);
+                setAutocompleteFilter();
             }
     });
 }
