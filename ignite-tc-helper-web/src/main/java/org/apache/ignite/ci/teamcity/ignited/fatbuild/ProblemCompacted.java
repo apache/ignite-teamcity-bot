@@ -148,6 +148,10 @@ public class ProblemCompacted {
                 || compactor.getStringId(ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE) == type;
     }
 
+    public int type() {
+        return type;
+    }
+
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("id", id)

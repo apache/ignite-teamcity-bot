@@ -19,9 +19,7 @@ package org.apache.ignite.ci.web.model.hist;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
 import java.io.UncheckedIOException;
-import java.lang.reflect.Array;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -30,12 +28,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import javax.servlet.ServletContext;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
@@ -43,21 +38,19 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
-import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATE_FINISHED;
 
 /**
  * Builds History: includes statistic for every build and merged failed unmuted tests in specified time interval.
@@ -98,9 +91,6 @@ public class BuildsHistory {
 
     /** */
     public void initialize(ICredentialsProv prov, ServletContext context) {
-        if (!prov.hasAccess(srvId))
-            throw ServiceUnauthorizedException.noCreds(srvId);
-
         final IStringCompactor compactor = CtxListener.getInjector(context).getInstance(IStringCompactor.class);
 
         ITcHelper tcHelper = CtxListener.getTcHelper(context);
@@ -113,8 +103,8 @@ public class BuildsHistory {
         ITeamcityIgnited ignitedTeamcity = tcIgnitedProv.server(srvId, prov);
 
         List<Integer> finishedBuildsIds = ignitedTeamcity
-            .getFinishedBuilds(buildTypeId, branchName, sinceDateFilter, untilDateFilter)
-            .stream().mapToInt(BuildRef::getId).boxed()
+            .getFinishedBuildsCompacted(buildTypeId, branchName, sinceDateFilter, untilDateFilter)
+            .stream().mapToInt(BuildRefCompacted::id).boxed()
             .collect(Collectors.toList());
 
         Map<Integer, Boolean> buildIdsWithConditions = finishedBuildsIds.stream()
@@ -128,7 +118,7 @@ public class BuildsHistory {
             .collect(Collectors.toList());
 
         if (!skipTests)
-            initFailedTests(CtxListener.getTcHelper(context).server(srvId, prov), validBuilds);
+            initFailedTests(teamcity, validBuilds);
 
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -148,11 +138,9 @@ public class BuildsHistory {
             Future<BuildStatisticsSummary> buildFuture = CompletableFuture.supplyAsync(() -> {
                 BuildStatisticsSummary buildsStatistic = new BuildStatisticsSummary(buildId);
                 buildsStatistic.isValid = buildIdsWithConditions.get(buildId);
-
                 buildsStatistic.initialize(compactor, ignited);
 
                 return buildsStatistic;
-
             }, teamcity.getExecutor());
 
             buildStaticsFutures.add(buildFuture);
@@ -202,7 +190,7 @@ public class BuildsHistory {
     }
 
     /** */
-    private void initFailedTests(IAnalyticsEnabledTeamcity teamcity, List<Integer> buildIds) {
+    private void initFailedTests(ITeamcity teamcity, List<Integer> buildIds) {
         List<Future<Void>> buildProcessorFutures = new ArrayList<>();
 
         for (int buildId : buildIds) {

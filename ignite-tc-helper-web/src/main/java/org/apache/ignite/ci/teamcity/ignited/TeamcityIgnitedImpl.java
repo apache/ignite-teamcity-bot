@@ -19,8 +19,6 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.common.collect.Sets;
 import java.util.concurrent.atomic.AtomicBoolean;
-import javax.annotation.Nonnull;
-import javax.validation.constraints.Null;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
@@ -46,6 +44,8 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+
+import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
 
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Logger. */
@@ -120,14 +120,15 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    public List<BuildRef> getFinishedBuilds(
+    public List<BuildRefCompacted> getFinishedBuildsCompacted(
         @Nullable String buildTypeId,
         @Nullable String branchName,
         @Nullable Date sinceDate,
         @Nullable Date untilDate) {
-        List<BuildRef> buildRefs = getBuildHistory(buildTypeId, branchName).stream()
-            .filter(BuildRef::isFinished)
-            .collect(Collectors.toList());
+        int unknownStatus = compactor.getStringId(STATUS_UNKNOWN);
+
+        List<BuildRefCompacted> buildRefs = getBuildHistoryCompacted(buildTypeId, branchName)
+            .stream().filter(b -> b.status() != unknownStatus).collect(Collectors.toList());
 
         int idSince = 0;
         int idUntil = buildRefs.size() - 1;
@@ -151,7 +152,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
                     if (stopFilter.get())
                         return addBuild.get();
 
-                    FatBuildCompacted build = getFatBuild(b.getId());
+                    FatBuildCompacted build = getFatBuild(b.id());
 
                     if (build == null || build.isFakeStub())
                         return false;
@@ -211,14 +212,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      * {@value -2} If sinceDate before first list element or untilDate after last list element;
      * {@value -3} If method get null or fake stub build.
      */
-    private int binarySearchDate(List<BuildRef> buildRefs, int fromIdx, int toIdx, Date key, boolean since){
+    private int binarySearchDate(List<BuildRefCompacted> buildRefs, int fromIdx, int toIdx, Date key, boolean since){
         int low = fromIdx;
         int high = toIdx - 1;
         long minDiff = key.getTime();
         int minDiffId = since ? low : high;
         long temp;
-        FatBuildCompacted highBuild = getFatBuild(buildRefs.get(high).getId());
-        FatBuildCompacted lowBuild = getFatBuild(buildRefs.get(low).getId());
+        FatBuildCompacted highBuild = getFatBuild(buildRefs.get(high).id());
+        FatBuildCompacted lowBuild = getFatBuild(buildRefs.get(low).id());
 
         if (highBuild != null && !highBuild.isFakeStub()){
             if (highBuild.getStartDate().before(key))
@@ -232,7 +233,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         while (low <= high) {
             int mid = (low + high) >>> 1;
-            FatBuildCompacted midVal = getFatBuild(buildRefs.get(mid).getId());
+            FatBuildCompacted midVal = getFatBuild(buildRefs.get(mid).id());
 
             if (midVal != null && !midVal.isFakeStub()) {
                 if (midVal.getStartDate().after(key))

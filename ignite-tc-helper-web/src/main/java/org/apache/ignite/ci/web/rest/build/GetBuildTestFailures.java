@@ -19,10 +19,10 @@ package org.apache.ignite.ci.web.rest.build;
 
 import com.google.common.collect.BiMap;
 import java.text.ParseException;
+import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import com.google.inject.Injector;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
@@ -67,7 +67,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 public class GetBuildTestFailures {
     public static final String BUILD = "build";
     public static final String TEST_FAILURES_SUMMARY_CACHE_NAME = BUILD + "TestFailuresSummary";
-    public static final String BUILDS_STATISTICS_SUMMARY_CACHE_NAME = BUILD + "sStatisticsSummary";
     @Context
     private ServletContext ctx;
 
@@ -249,8 +248,6 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("sinceDate") String sinceDate,
         @Nullable @QueryParam("untilDate") String untilDate,
         @Nullable @QueryParam("skipTests") String skipTests)  throws ParseException {
-        sinceDate = (sinceDate.substring(0, 2).equals("24") ? "30" : "31") + sinceDate.substring(2);
-        untilDate = (sinceDate.substring(0, 2).equals("24") ? "30" : "31") + untilDate.substring(2);
         BuildsHistory.Builder builder = new BuildsHistory.Builder()
             .branch(branch)
             .server(srvId)
@@ -264,6 +261,9 @@ public class GetBuildTestFailures {
         BuildsHistory buildsHist = builder.build();
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
 
         buildsHist.initialize(prov, ctx);
 

@@ -19,6 +19,9 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -247,13 +250,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         TestOccurrencesFull testOccurrences = new TestOccurrencesFull();
 
-        testOccurrences.setTests(res);
         testOccurrences.count = res.size();
-        testOccurrences.muted = (int)getAllTests().filter(TestCompacted::getMutedFlag).count();
-        testOccurrences.ignored = (int)getAllTests().filter(TestCompacted::getIgnoredFlag).count();
-        testOccurrences.failed = (int)getAllTests().filter(t -> t.isFailedButNotMuted(compactor)).count();
-        testOccurrences.passed = testOccurrences.count - testOccurrences.failed -
-            testOccurrences.ignored - testOccurrences.muted;
+        testOccurrences.setTests(res);
+
         return testOccurrences;
     }
 
