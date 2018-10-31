@@ -24,6 +24,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -48,10 +49,6 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     /** Builds: Single execution. */
     private List<SingleBuildRunCtx> builds = new CopyOnWriteArrayList<>();
-
-    /** Tests: Map from full test name to multiple test occurrence. */
-    @Deprecated
-    private final Map<String, MultTestFailureOccurrences> tests = new ConcurrentSkipListMap<>();
 
     public void addBuild(SingleBuildRunCtx ctx) {
         builds.add(ctx);
@@ -226,22 +223,33 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public Stream<? extends ITestFailures> getTopLongRunning() {
-        Stream<MultTestFailureOccurrences> stream = tests.values().stream();
-        Comparator<MultTestFailureOccurrences> comparing = Comparator.comparing(MultTestFailureOccurrences::getAvgDurationMs);
-        return CollectionUtil.top(stream, 3, comparing).stream();
+        Comparator<ITestFailures> comparing = Comparator.comparing(ITestFailures::getAvgDurationMs);
+
+        Map<Integer, TestCompactedMult> res = new HashMap<>();
+
+        builds.forEach(singleBuildRunCtx -> {
+            saveToMap(res, singleBuildRunCtx.getAllTests());
+        });
+
+        return CollectionUtil.top(res.values().stream(), 3, comparing).stream();
     }
 
-    public Stream<? extends ITestFailures> getFailedTests() {
-        return tests.values().stream().filter(MultTestFailureOccurrences::hasFailedButNotMuted);
+    public List<ITestFailures> getFailedTests() {
+        Map<Integer, TestCompactedMult> res = new HashMap<>();
+
+        builds.forEach(singleBuildRunCtx -> {
+            saveToMap(res, singleBuildRunCtx.getFailedNotMutedTests());
+        });
+
+
+        return new ArrayList<>(res.values());
     }
 
-    @Deprecated
-    public void addTests(Iterable<TestOccurrenceFull> tests) {
-        for (TestOccurrenceFull next : tests) {
-            this.tests.computeIfAbsent(next.name,
-                k -> new MultTestFailureOccurrences())
-                .add(next);
-        }
+    public void saveToMap(Map<Integer, TestCompactedMult> res, Stream<TestCompacted> tests) {
+        tests.forEach(testCompacted -> {
+            res.computeIfAbsent(testCompacted.testName(), k -> new TestCompactedMult(compactor))
+                    .add(testCompacted);
+        });
     }
 
     public int getBuildId() {

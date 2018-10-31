@@ -404,10 +404,10 @@ public class DbMigrations {
         applyDestroyIgnCacheMigration(FINISHED_BUILDS_INCLUDE_FAILED);
         applyDestroyIgnCacheMigration(TEST_OCCURRENCE_FULL);
 
-        applyDestroyCacheMigration(TEAMCITY_BUILD_CACHE_NAME_OLD, TEAMCITY_BUILD_CACHE_NAME_OLD);
         applyDestroyIgnCacheMigration(TESTS);
         applyDestroyIgnCacheMigration(STAT);
         applyDestroyIgnCacheMigration(BUILD_STATISTICS);
+        applyDestroyCacheMigration(TEAMCITY_BUILD_CACHE_NAME_OLD, TEAMCITY_BUILD_CACHE_NAME_OLD);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {
@@ -415,12 +415,12 @@ public class DbMigrations {
         applyDestroyCacheMigration(cacheName, ignCacheNme);
     }
 
-    private void applyDestroyCacheMigration(String dispCacheName, String ignCacheNme) {
+    private void applyDestroyCacheMigration(String dispCacheName, String cacheNme) {
         applyMigration("destroy-" + dispCacheName, () -> {
-            IgniteCache<Object, Object> cache = ignite.cache(ignCacheNme);
+            IgniteCache<Object, Object> cache = ignite.cache(cacheNme);
 
             if (cache == null) {
-                System.err.println("cache not found");
+                System.err.println("cache [" + cacheNme + "] not found");
 
                 return;
             }

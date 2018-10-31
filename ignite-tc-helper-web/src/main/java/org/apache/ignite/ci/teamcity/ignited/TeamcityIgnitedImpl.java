@@ -86,6 +86,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Changes DAO. */
     @Inject private ChangeSync changeSync;
 
+    /** Changes DAO. */
+    @Inject private IStringCompactor compactor;
+
     /** Server ID mask for cache Entries. */
     private int srvIdMaskHigh;
 
@@ -104,6 +107,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @NotNull
     private String taskName(String taskName) {
         return ITeamcityIgnited.class.getSimpleName() +"." + taskName + "." + srvNme;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String serverId() {
+        return srvNme;
     }
 
     /** {@inheritDoc} */
@@ -249,17 +257,38 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public List<BuildRef> getBuildHistory(
-        @Nullable String buildTypeId,
-        @Nullable String branchName) {
-        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), this::actualizeRecentBuildRefs, 2, TimeUnit.MINUTES);
+            @Nullable String buildTypeId,
+            @Nullable String branchName) {
+        ensureActualizeRequested();
 
-        String bracnhNameQry ;
+        String bracnhNameQry = branchForQuery(branchName);
+
+        return buildRefDao.findBuildsInHistory(srvIdMaskHigh, buildTypeId, bracnhNameQry);
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public List<BuildRefCompacted> getBuildHistoryCompacted(
+            @Nullable String buildTypeId,
+            @Nullable String branchName) {
+        ensureActualizeRequested();
+
+        String bracnhNameQry = branchForQuery(branchName);
+
+        return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, bracnhNameQry);
+    }
+
+    public String branchForQuery(@Nullable String branchName) {
+        String bracnhNameQry;
         if (ITeamcity.DEFAULT.equals(branchName))
             bracnhNameQry = "refs/heads/master";
         else
             bracnhNameQry = branchName;
+        return bracnhNameQry;
+    }
 
-        return buildRefDao.findBuildsInHistory(srvIdMaskHigh, buildTypeId, bracnhNameQry);
+    public void ensureActualizeRequested() {
+        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), this::actualizeRecentBuildRefs, 2, TimeUnit.MINUTES);
     }
 
     /** {@inheritDoc} */
@@ -284,12 +313,17 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return buildConditionDao.setBuildCondition(srvIdMaskHigh, cond);
     }
 
-    @Override public FatBuildCompacted getFatBuild(int buildId) {
+    /** {@inheritDoc} */
+    @Override public FatBuildCompacted getFatBuild(int buildId, boolean acceptQueued) {
+        ensureActualizeRequested();
         FatBuildCompacted existingBuild = fatBuildDao.getFatBuild(srvIdMaskHigh, buildId);
 
-        //todo additionally check queued and running builds, refesh builds if they are queued.
-        if (existingBuild != null && !existingBuild.isOutdatedEntityVersion())
-            return existingBuild;
+        if (existingBuild != null && !existingBuild.isOutdatedEntityVersion()) {
+            boolean finished = !existingBuild.isRunning(compactor) && !existingBuild.isQueued(compactor);
+
+            if(finished || acceptQueued)
+                return existingBuild;
+        }
 
         FatBuildCompacted savedVer = buildSync.reloadBuild(conn, buildId, existingBuild);
 
@@ -300,8 +334,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return savedVer == null ? existingBuild : savedVer;
     }
 
-    @Override
-    public Collection<ChangeCompacted> getAllChanges(int[] changeIds) {
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public Collection<ChangeCompacted> getAllChanges(int[] changeIds) {
         final Map<Long, ChangeCompacted> all = changesDao.getAll(srvIdMaskHigh, changeIds);
 
         final Map<Integer, ChangeCompacted> changes = new HashMap<>();
@@ -315,7 +350,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         for (int changeId : changeIds) {
             if (!changes.containsKey(changeId)) {
-                final ChangeCompacted change = changeSync.change(srvIdMaskHigh, changeId, conn);
+                final ChangeCompacted change = changeSync.reloadChange(srvIdMaskHigh, changeId, conn);
 
                 changes.put(changeId, change);
             }

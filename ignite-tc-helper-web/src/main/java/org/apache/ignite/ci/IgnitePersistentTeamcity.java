@@ -61,6 +61,7 @@ import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -951,7 +952,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return key -> key == null ? null : getRunStatForTest(key);
     }
 
+    @SuppressWarnings("WeakerAccess")
     @AutoProfiling
+    @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
     protected RunStat getRunStatForTest(TestInBranch key) {
         return testRunStatCache().get(key);
     }
@@ -971,12 +974,14 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @Override public Function<SuiteInBranch, RunStat> getBuildFailureRunStatProvider() {
-        return key -> key == null ? null : getRunStatForTest(key);
+        return key -> key == null ? null : getRunStatForSuite(key);
     }
 
 
+    @SuppressWarnings("WeakerAccess")
     @AutoProfiling
-    protected RunStat getRunStatForTest(SuiteInBranch key) {
+    @GuavaCached(maximumSize = 500, expireAfterAccessSecs = 90, softValues = true)
+    protected RunStat getRunStatForSuite(SuiteInBranch key) {
         return buildsFailureRunStatCache().get(key);
     }
 

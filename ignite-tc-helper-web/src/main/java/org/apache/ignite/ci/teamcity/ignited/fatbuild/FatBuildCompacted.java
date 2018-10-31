@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import java.util.Date;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
@@ -56,6 +57,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     /**   flag offset. */
     public static final int FAKE_BUILD_F = 4;
+    public static final int[] EMPTY = new int[0];
 
     /** Entity fields version. */
     private short _ver = LATEST_VERSION;
@@ -312,20 +314,27 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return flag != null && flag;
     }
 
-    public Stream<String> getFailedNotMutedTestNames(IStringCompactor compactor) {
+    public Stream<TestCompacted> getFailedNotMutedTests(IStringCompactor compactor) {
         if (tests == null)
             return Stream.of();
 
         return tests.stream()
-            .filter(t -> t.isFailedButNotMuted(compactor))
-            .map(t -> t.getTestName(compactor));
+                .filter(t -> t.isFailedButNotMuted(compactor));
     }
 
-    public Stream<String> getAllTestNames(IStringCompactor compactor) {
+    public Stream<String> getFailedNotMutedTestNames(IStringCompactor compactor) {
+        return getFailedNotMutedTests(compactor).map(t -> t.testName(compactor));
+    }
+
+    public Stream<TestCompacted> getAllTests() {
         if (tests == null)
             return Stream.of();
 
-        return tests.stream().map(t -> t.getTestName(compactor));
+        return tests.stream();
+    }
+
+    public Stream<String> getAllTestNames(IStringCompactor compactor) {
+        return getAllTests().map(t -> t.testName(compactor));
     }
 
     public String buildTypeName(IStringCompactor compactor) {
@@ -378,9 +387,34 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     }
 
     public int[] changes() {
-        if(changesIds==null)
-            return new int[0];
+        if (changesIds == null)
+            return EMPTY;
 
         return changesIds;
+    }
+
+    public int[] snapshotDependencies() {
+        if (snapshotDeps == null)
+            return EMPTY;
+
+        return snapshotDeps.clone();
+    }
+
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("_", super.toString())
+            .add("_ver", _ver)
+            .add("startDate", startDate)
+            .add("finishDate", finishDate)
+            .add("queuedDate", queuedDate)
+            .add("projectId", projectId)
+            .add("name", name)
+            .add("tests", tests)
+            .add("snapshotDeps", snapshotDeps)
+            .add("flags", flags)
+            .add("problems", problems)
+            .add("statistics", statistics)
+            .add("changesIds", changesIds)
+            .toString();
     }
 }
