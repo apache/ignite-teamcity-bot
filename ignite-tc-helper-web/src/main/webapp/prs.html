@@ -63,21 +63,12 @@
                     $("#loadStatus").html("");
                     showSuitesForTeamCityRunData(result);
                     showFormAndSuitesForPrCheck(result);
-                    tryToFillAutocompleteLists();
                     showCommentJiraForm(result);
 
                     for (let chainAtServer of result)
                         requestTableForServer(chainAtServer.serverId,  chainAtServer.suiteId, $("#contributionsToCheck"));
                 },
                 error: showErrInLoadStatus
-            });
-
-            $.ajax({
-                url: "rest/branches/getServerIds",
-                success:
-                    function (result) {
-                        setupAutocompleteList(result);
-                    }
             });
         }
 

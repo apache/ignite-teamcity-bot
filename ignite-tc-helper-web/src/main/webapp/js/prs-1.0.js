@@ -27,7 +27,9 @@ function requestTableForServer(srvId, suiteId, element) {
         url: "rest/visa/contributions?serverId=" + srvId,
         success:
             function (result) {
-                showContributionsTable(result, srvId, suiteId)
+                showContributionsTable(result, srvId, suiteId);
+                fillBranchAutocompleteList(result, srvId);
+                setAutocompleteFilter();
             }
     });
 }
