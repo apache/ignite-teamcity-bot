@@ -81,7 +81,7 @@ public class TcBotTriggerAndSignOffService {
     @NotNull public static String getTicketFullName(PullRequest pr) {
         String ticketId = "";
 
-        if (pr.getTitle().startsWith("IGNITE-")) {
+        if (pr.getTitle().toUpperCase().startsWith("IGNITE-")) {
             int beginIdx = 7;
             int endIdx = 7;
 
