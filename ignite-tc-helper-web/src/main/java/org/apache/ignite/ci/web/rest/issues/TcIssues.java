@@ -63,7 +63,7 @@ public class TcIssues {
 
         final String branch = isNullOrEmpty(branchOpt) ? "master" : branchOpt;
 
-        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
+        final ICredentialsProv prov = ICredentialsProv.get(req);
 
         IssuesStorage issues = helper.issues();
 
