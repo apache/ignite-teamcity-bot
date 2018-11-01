@@ -345,6 +345,10 @@ public class TestCompacted {
         return investigatedFlag != null && investigatedFlag;
     }
 
+    public int status() {
+        return status;
+    }
+
     @Nullable
     public Integer getDuration() {
         return duration < 0 ? null : duration;

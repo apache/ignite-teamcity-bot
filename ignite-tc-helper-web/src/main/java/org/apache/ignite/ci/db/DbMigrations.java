@@ -66,6 +66,8 @@ public class DbMigrations {
 
     private static final String BUILD_STATISTICS = "buildStatistics";
 
+    private static final String BUILD_CONDITIONS_CACHE_NAME = "buildConditions";
+
     public static final String TESTS_COUNT_7700 = ",count:7700";
 
     //V1 caches, 1024 parts
@@ -407,6 +409,7 @@ public class DbMigrations {
         applyDestroyIgnCacheMigration(TESTS);
         applyDestroyIgnCacheMigration(STAT);
         applyDestroyIgnCacheMigration(BUILD_STATISTICS);
+        applyDestroyCacheMigration(BUILD_CONDITIONS_CACHE_NAME, BUILD_CONDITIONS_CACHE_NAME);
         applyDestroyCacheMigration(TEAMCITY_BUILD_CACHE_NAME_OLD, TEAMCITY_BUILD_CACHE_NAME_OLD);
     }
 

@@ -82,7 +82,7 @@ public class ProblemCompacted {
 
         String fullStrId =
                 "problem:(id:" + id + ")," +
-                        " build:(id:" + buildId + ")";
+                        "build:(id:" + buildId + ")";
         occurrence.id(fullStrId);
         occurrence.type = compactor.getStringFromId(type);
         occurrence.identity = compactor.getStringFromId(identity);
@@ -146,6 +146,10 @@ public class ProblemCompacted {
     public boolean isSnapshotDepProblem(IStringCompactor compactor) {
         return compactor.getStringId(ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR) == type
                 || compactor.getStringId(ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE) == type;
+    }
+
+    public int type() {
+        return type;
     }
 
     @Override public String toString() {
