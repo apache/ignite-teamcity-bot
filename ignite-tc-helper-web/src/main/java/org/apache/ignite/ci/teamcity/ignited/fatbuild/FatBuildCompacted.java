@@ -19,9 +19,7 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -60,6 +58,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     /**   flag offset. */
     public static final int FAKE_BUILD_F = 4;
+
+    /** Failed to start flag offset. */
+    public static final int FAILED_TO_START_F = 6;
     public static final int[] EMPTY = new int[0];
 
     /** Entity fields version. */
@@ -125,15 +126,25 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             name = compactor.getStringId(type.getName());
         }
 
+        AtomicBoolean failedToStart = new AtomicBoolean();
+
         int[] arr = build.getSnapshotDependenciesNonNull().stream()
-            .filter(b -> b.getId() != null).mapToInt(BuildRef::getId).toArray();
+            .filter(b -> {
+                if (!(failedToStart.get() || b.isNotCancelled()))
+                    failedToStart.set(true);
+
+                return b.getId() != null;
+            }).mapToInt(BuildRef::getId).toArray();
 
         snapshotDeps = arr.length > 0 ? arr : null;
 
         setFlag(DEF_BR_F, build.defaultBranch);
         setFlag(COMPOSITE_F, build.composite);
 
-        if(build.isFakeStub())
+        if (failedToStart.get())
+            setFlag(FAILED_TO_START_F, true);
+
+        if (build.isFakeStub())
             setFlag(FAKE_BUILD_F, true);
     }
 
@@ -261,11 +272,6 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return new Date(startDate);
     }
 
-    /** Finish date. */
-    public Date getFinishDate() {
-        return new Date(finishDate);
-    }
-
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
@@ -309,6 +315,15 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
      */
     public boolean isFakeStub() {
         Boolean flag = getFlag(FAKE_BUILD_F);
+
+        return flag != null && flag;
+    }
+
+    /**
+     *
+     */
+    public boolean isFailedToStart() {
+        Boolean flag = getFlag(FAILED_TO_START_F);
 
         return flag != null && flag;
     }

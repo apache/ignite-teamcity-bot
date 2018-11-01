@@ -125,7 +125,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         @Nullable String branchName,
         @Nullable Date sinceDate,
         @Nullable Date untilDate) {
-        int unknownStatus = compactor.getStringId(STATUS_UNKNOWN);
+        final int allDatesOutOfBounds = -1;
+        final int someDatesOutOfBounds = -2;
+        final int invalidVal = -3;
+        final int unknownStatus = compactor.getStringId(STATUS_UNKNOWN);
 
         List<BuildRefCompacted> buildRefs = getBuildHistoryCompacted(buildTypeId, branchName)
             .stream().filter(b -> b.status() != unknownStatus).collect(Collectors.toList());
@@ -135,15 +138,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         if (sinceDate != null) {
             idSince = binarySearchDate(buildRefs, 0, buildRefs.size(), sinceDate, true);
-            idSince = idSince == -2 ? 0 : idSince;
+            idSince = (idSince == someDatesOutOfBounds) ? 0 : idSince;
         }
 
         if (untilDate != null) {
-            idUntil = idSince < 0 ? -1 : binarySearchDate(buildRefs, idSince, buildRefs.size(), untilDate, false);
-            idUntil = idUntil == -2 ? buildRefs.size() - 1 : idUntil;
+            idUntil = (idSince < 0) ? allDatesOutOfBounds :
+                binarySearchDate(buildRefs, idSince, buildRefs.size(), untilDate, false);
+            idUntil = (idUntil == someDatesOutOfBounds) ? buildRefs.size() - 1 : idUntil;
         }
 
-        if (idSince == -3 || idUntil == -3) {
+        if (idSince == invalidVal || idUntil == invalidVal) {
             AtomicBoolean stopFilter = new AtomicBoolean();
             AtomicBoolean addBuild = new AtomicBoolean();
 
@@ -193,7 +197,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
                     }
                 })
                 .collect(Collectors.toList());
-        } else if (idSince == -1 || idUntil == -1)
+        } else if (idSince == allDatesOutOfBounds || idUntil == allDatesOutOfBounds)
             return Collections.emptyList();
         else
             return buildRefs.subList(idSince, idUntil + 1);
@@ -208,27 +212,34 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      *
      * @return {@value >= 0} Build id from list with min interval between key. If since {@code true}, min interval
      * between key and same day or later. If since {@code false}, min interval between key and same day or earlier;
-     * {@value -1} If sinceDate after last list element date or untilDate before first list element;
-     * {@value -2} If sinceDate before first list element or untilDate after last list element;
-     * {@value -3} If method get null or fake stub build.
+     * {@value -1} All dates out of bounds. If sinceDate after last list element date or untilDate before first list
+     * element;
+     * {@value -2} Some dates out of bounds. If sinceDate before first list element or untilDate after last list
+     * element;
+     * {@value -3} Invalid value. If method get null or fake stub build.
      */
-    private int binarySearchDate(List<BuildRefCompacted> buildRefs, int fromIdx, int toIdx, Date key, boolean since){
+    private int binarySearchDate(List<BuildRefCompacted> buildRefs, int fromIdx, int toIdx, Date key, boolean since) {
+        final int allDatesOutOfBounds = -1;
+        final int someDatesOutOfBounds = -2;
+        final int invalidVal = -3;
+
         int low = fromIdx;
         int high = toIdx - 1;
         long minDiff = key.getTime();
         int minDiffId = since ? low : high;
         long temp;
+
         FatBuildCompacted highBuild = getFatBuild(buildRefs.get(high).id());
         FatBuildCompacted lowBuild = getFatBuild(buildRefs.get(low).id());
 
         if (highBuild != null && !highBuild.isFakeStub()){
             if (highBuild.getStartDate().before(key))
-                return since ? -1 : -2;
+                return since ? allDatesOutOfBounds : someDatesOutOfBounds;
         }
 
         if (lowBuild != null && !lowBuild.isFakeStub()){
             if (lowBuild.getStartDate().after(key))
-                return since ? -2 : -1;
+                return since ? someDatesOutOfBounds : allDatesOutOfBounds;
         }
 
         while (low <= high) {
@@ -250,7 +261,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
                     minDiffId = mid;
                 }
             } else
-                return -3;
+                return invalidVal;
         }
         return minDiffId;
     }

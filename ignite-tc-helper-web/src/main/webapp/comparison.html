@@ -528,8 +528,11 @@
 
         compareAndHighlight(stat);
 
-        function time(ms){
-            return moment(ms * 1000).utcOffset(0).format("H:mm");
+        function time(s) {
+            let h = parseInt(s / 3600),
+                m = parseInt((s % 3600) / 60);
+
+            return h + ":" + ((m < 10) ? "0" : "") + m;
         }
     }
 

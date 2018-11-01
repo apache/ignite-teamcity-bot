@@ -29,7 +29,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
@@ -56,10 +55,10 @@ public class BuildStatisticsSummary {
 
     static {
         shortProblemNames.put(TOTAL, "TT");
-        shortProblemNames.put(ProblemOccurrence.TC_EXECUTION_TIMEOUT, "ET");
+        shortProblemNames.put(TC_EXECUTION_TIMEOUT, "ET");
         shortProblemNames.put(TC_JVM_CRASH, "JC");
         shortProblemNames.put(TC_OOME, "OO");
-        shortProblemNames.put(ProblemOccurrence.TC_EXIT_CODE, "EC");
+        shortProblemNames.put(TC_EXIT_CODE, "EC");
 
         fullProblemNames = shortProblemNames.inverse();
     }
@@ -71,7 +70,7 @@ public class BuildStatisticsSummary {
     public String startDate;
 
     /** Test occurrences. */
-    public TestOccurrencesRef testOccurrences = new TestOccurrencesRef();;
+    public TestOccurrencesRef testOccurrences = new TestOccurrencesRef();
 
     /** List of problem occurrences. */
     private List<ProblemCompacted> problemOccurrenceList;
@@ -91,7 +90,7 @@ public class BuildStatisticsSummary {
     /**
      * @param buildId Build id.
      */
-    public BuildStatisticsSummary(Integer buildId){
+    public BuildStatisticsSummary(Integer buildId) {
         this.buildId = buildId;
     }
 
@@ -136,7 +135,7 @@ public class BuildStatisticsSummary {
         testOccurrences.passed = testOccurrences.count - testOccurrences.failed - testOccurrences.ignored -
         testOccurrences.muted;
 
-        duration = (build.getFinishDate().getTime() - build.getStartDate().getTime()) / 1000;
+        duration = build.buildDuration(compactor) / 1000;
 
         List<FatBuildCompacted> snapshotDependencies = getSnapshotDependencies(ignitedTeamcity, buildId);
 
@@ -164,14 +163,14 @@ public class BuildStatisticsSummary {
      *
      * @param builds Builds.
      */
-    private List<ProblemCompacted> getProblems(List<FatBuildCompacted> builds){
+    private List<ProblemCompacted> getProblems(List<FatBuildCompacted> builds) {
         List<ProblemCompacted> problemOccurrences = new ArrayList<>();
 
-        for (FatBuildCompacted build : builds)
+        for (FatBuildCompacted build : builds) {
             problemOccurrences.addAll(
                 build.problems()
             );
-
+        }
         return problemOccurrences;
     }
 
@@ -181,22 +180,24 @@ public class BuildStatisticsSummary {
      * @param ignitedTeamcity ignitedTeamcity.
      * @param buildId Build Id.
      */
-    private List<FatBuildCompacted> getSnapshotDependencies(@Nonnull final ITeamcityIgnited ignitedTeamcity, Integer buildId){
+    private List<FatBuildCompacted> getSnapshotDependencies(@Nonnull final ITeamcityIgnited ignitedTeamcity,
+        Integer buildId) {
         List<FatBuildCompacted> snapshotDependencies = new ArrayList<>();
         FatBuildCompacted build = ignitedTeamcity.getFatBuild(buildId);
 
-        if (build.isComposite()){
+        if (build.snapshotDependencies().length > 0) {
             for (Integer id : build.snapshotDependencies())
                 snapshotDependencies.addAll(getSnapshotDependencies(ignitedTeamcity, id));
-        } else
-            snapshotDependencies.add(ignitedTeamcity.getFatBuild(buildId));
+        }
+
+        snapshotDependencies.add(build);
 
         return snapshotDependencies;
     }
     /**
      * Builds without status "Success".
      */
-    private List<FatBuildCompacted> getBuildsWithProblems(List<FatBuildCompacted> builds){
+    private List<FatBuildCompacted> getBuildsWithProblems(List<FatBuildCompacted> builds) {
         return builds.stream()
             .filter(b -> b.status() != strIds.get(STATUS_SUCCESS))
             .collect(Collectors.toList());
@@ -205,7 +206,7 @@ public class BuildStatisticsSummary {
     /**
      * BuildType problems count (EXECUTION TIMEOUT, JVM CRASH, OOMe, EXIT CODE, TOTAL PROBLEMS COUNT).
      */
-    private Map<String, Long> getBuildTypeProblemsCount(){
+    private Map<String, Long> getBuildTypeProblemsCount() {
         Map<String, Long> occurrences = new HashMap<>();
 
         occurrences.put(shortProblemNames.get(TC_EXECUTION_TIMEOUT), getProblemsCount(TC_EXECUTION_TIMEOUT));

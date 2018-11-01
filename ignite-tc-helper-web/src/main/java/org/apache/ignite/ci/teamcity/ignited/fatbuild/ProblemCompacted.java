@@ -82,7 +82,7 @@ public class ProblemCompacted {
 
         String fullStrId =
                 "problem:(id:" + id + ")," +
-                        " build:(id:" + buildId + ")";
+                        "build:(id:" + buildId + ")";
         occurrence.id(fullStrId);
         occurrence.type = compactor.getStringFromId(type);
         occurrence.identity = compactor.getStringFromId(identity);
