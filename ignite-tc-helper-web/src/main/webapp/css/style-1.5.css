@@ -117,6 +117,46 @@ input[type=button]:hover, input[type=submit]:hover, button:hover {
     transition: ease-in 0.175s;
 }
 
+button.more {
+	display: inline-block;
+	font-size: 15px;
+	border-radius: 4px;
+	padding-bottom: 2px;
+	padding-right: 5px;
+	padding-left: 5px;
+	margin-left: 10px;
+	text-align: center;
+}
+
+button.more.full {
+	width: 70px;
+}
+
+button.more.short {
+	width: 14px;
+}
+
+button.more.white {
+	border: 2px solid #12AD5E;
+	color: #12AD5E;
+}
+
+button.more.green {
+	background: #12AD5E;
+	color: #FFF;
+	box-shadow: 3px 2px 6px -2px rgba(0,0,0,0.64);
+	border: 2px solid #FFF;
+}
+
+button.more > b {
+	padding-right:5px;
+}
+
+button.more > i {
+	padding-left: 1px;
+	padding-right:1px;
+}
+
 form, .formgroup {
 	margin: 0px auto;
 	padding: 5px;
