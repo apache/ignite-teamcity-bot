@@ -34,7 +34,7 @@
         <td style="text-align: center;" id="info2"></td>
     </tr>
     <tr><td class="field">DURATION</td>
-        <td class="icon"><p class="tooltips"><img id="clickGraphDuration" src='/img/browser.png'><span>show graph</span></p></td>
+        <td class="icon"><button id="clickGraphDuration" class="more white short"><i class="fas fa-caret-down"></i></button></td>
         <td class="mmm data 1" id="Duration1" data-allow-highlight="true"></td>
         <td class="mmm data 2" id="Duration2" data-allow-highlight="true"></td>
     </tr>
@@ -45,7 +45,7 @@
     </tr><tr></tr>
     <tr><td class="section">TESTS</td><td></td><td class="mmm title 1"></td><td class="mmm title 2"></td></tr>
     <tr><td class="field">COUNT</td>
-        <td class="icon"><p class="tooltips"><img id="clickGraphCount" src='/img/browser.png'><span>show graph</span></p></td>
+        <td class="icon"><button id="clickGraphCount" class="more white short"><i class="fas fa-caret-down"></i></button></td>
         <td class="mmm data 1" id="Count1" data-allow-highlight="false"></td>
         <td class="mmm data 2" id="Count2" data-allow-highlight="false"></td>
     </tr>
@@ -55,7 +55,7 @@
         <td style="text-align: center;"><svg class="graph 2" id="graphCount2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">PASSED</td>
-        <td class="icon"><p class="tooltips"><img id="clickGraphPassed" src='/img/browser.png'><span>show graph</span></p></td>
+        <td class="icon"><button id="clickGraphPassed" class="more white short"><i class="fas fa-caret-down"></i></button></td>
         <td class="mmm data 1" id="Passed1" data-allow-highlight="false"></td>
         <td class="mmm data 2" id="Passed2" data-allow-highlight="false"></td>
     </tr>
@@ -65,7 +65,7 @@
         <td style="text-align: center;"><svg class="graph 2" id="graphPassed2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">FAILED</td>
-        <td class="icon"><p class="tooltips"><img id="clickGraphFailed" src='/img/browser.png'><span>show graph</span></p></td>
+        <td class="icon"><button id="clickGraphFailed" class="more white short"><i class="fas fa-caret-down"></i></button></td>
         <td class="mmm data 1" id="Failed1" data-allow-highlight="true"></td>
         <td class="mmm data 2" id="Failed2" data-allow-highlight="true"></td>
     </tr>
@@ -75,7 +75,7 @@
         <td style="text-align: center;"><svg class="graph 2" id="graphFailed2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">IGNORED</td>
-        <td class="icon"><p class="tooltips"><img id="clickGraphIgnored" src='/img/browser.png'><span>show graph</span></p></td>
+        <td class="icon"><button id="clickGraphIgnored" class="more white short"><i class="fas fa-caret-down"></i></button></td>
         <td class="mmm data 1" id="Ignored1" data-allow-highlight="false"></td>
         <td class="mmm data 2" id="Ignored2" data-allow-highlight="false"></td>
     </tr>
@@ -85,7 +85,7 @@
         <td style="text-align: center;"><svg class="graph 2" id="graphIgnored2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">MUTED</td>
-        <td class="icon"><p class="tooltips"><img id="clickGraphMuted" src='/img/browser.png'><span>show graph</span></p></td>
+        <td class="icon"><button id="clickGraphMuted" class="more white short"><i class="fas fa-caret-down"></i></button></td>
         <td class="mmm data 1" id="Muted1" data-allow-highlight="false"></td>
         <td class="mmm data 2" id="Muted2" data-allow-highlight="false"></td></tr>
     <tr id="showGraphMuted" style="display: none;"><td></td>
@@ -96,7 +96,7 @@
     <tr><td class="section">PROBLEMS</td><td></td><td class="mmm title 1"></td><td class="mmm title 2"></td></tr>
     <tr style="display: none;"><td></td><td></td><td></td></tr>
     <tr><td class="field">TOTAL</td>
-        <td class="icon"><p class="tooltips"><img id="clickGraphTT" src='/img/browser.png'><span>show graph</span></p></td>
+        <td class="icon"><button id="clickGraphTT" class="more white short"><i class="fas fa-caret-down"></i></button></td>
         <td class="mmm data 1" id="TT1" data-allow-highlight="true"></td>
         <td class="mmm data 2" id="TT2" data-allow-highlight="true"></td></tr>
     <tr id="showGraphTT" style="display: none;"><td></td>
@@ -105,7 +105,7 @@
         <td style="text-align: center;"><svg class="graph 2" id="graphTT2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">EXECUTION TIMEOUT</td>
-        <td class="icon"><p class="tooltips"><img id="clickGraphET" src='/img/browser.png'><span>show graph</span></p></td>
+        <td class="icon"><button id="clickGraphET" class="more white short"><i class="fas fa-caret-down"></i></button></td>
         <td class="mmm data 1" id="ET1" data-allow-highlight="true"></td>
         <td class="mmm data 2" id="ET2" data-allow-highlight="true"></td>
     </tr>
@@ -115,7 +115,7 @@
         <td style="text-align: center;"><svg class="graph 2" id="graphET2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">JVM CRASH</td>
-        <td class="icon"><p class="tooltips"><img id="clickGraphJC" src='/img/browser.png'><span>show graph</span></p></td>
+        <td class="icon"><button id="clickGraphJC" class="more white short"><i class="fas fa-caret-down"></i></button></td>
         <td class="mmm data 1" id="JC1" data-allow-highlight="true"></td>
         <td class="mmm data 2" id="JC2" data-allow-highlight="true"></td>
     </tr>
@@ -125,7 +125,7 @@
         <td style="text-align: center;"><svg class="graph 2" id="graphJC2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">OOME</td>
-        <td class="icon"></td>
+        <td class="icon"><button id="clickGraphOO" class="more white short"><i class="fas fa-caret-down"></i></button></td>
         <td class="mmm data 1" id="OO1" data-allow-highlight="true"></td>
         <td class="mmm data 2" id="OO2" data-allow-highlight="true"></td>
     </tr>
@@ -135,7 +135,7 @@
         <td style="text-align: center;"><svg class="graph 2" id="graphOO2" width="500" height="200"></svg></td>
     </tr>
     <tr><td class="field">EXIT CODE</td>
-        <td class="icon"><p class="tooltips"><img id="clickGraphEC" src='/img/browser.png'><span>show graph</span></p></td>
+        <td class="icon"><button id="clickGraphEC" class="more white short"><i class="fas fa-caret-down"></i></button></td>
         <td class="mmm data 1" id="EC1" data-allow-highlight="true"></td>
         <td class="mmm data 2" id="EC2" data-allow-highlight="true"></td>
     </tr>
@@ -663,7 +663,13 @@
     function graphSpoiler(fieldName) {
         $("#clickGraph" + fieldName).click(function() {
             let element = $('#showGraph' + fieldName);
-            element.css('display') === 'none' ? element.css('display', '') : element.css('display', 'none');
+            if (element.css('display') === 'none') {
+                element.css('display', '');
+                $(this).html("<i class='fas fa-caret-up'></i>");
+            } else {
+                element.css('display', 'none');
+                $(this).html("<i class='fas fa-caret-down'></i>");
+            }
         });
     }
 
