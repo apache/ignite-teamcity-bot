@@ -3,8 +3,8 @@
 //triggerConfirm & triggerDialog element should be provided on page (may be hidden)
 var g_initMoreInfoDone = false;
 
-var more = "<button class='more white full'><b>ᴍᴏʀᴇ</b><i class='fas fa-caret-down'></i></button>";
-var less = "<button class='more white full'><b>ʟᴇss&nbsp;</b><i class='fas fa-caret-up'></i></button>";
+var more = "<button class='more white short'><i class='fas fa-caret-down'></i></button>";
+var less = "<button class='more white short'><i class='fas fa-caret-up'></i></button>";
 
 /** Object used to notify git. See ChainAtServerCurrentStatus Java class. */
 var g_srv_to_notify_git;
