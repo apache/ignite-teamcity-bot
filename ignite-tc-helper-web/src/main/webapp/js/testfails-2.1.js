@@ -3,6 +3,9 @@
 //triggerConfirm & triggerDialog element should be provided on page (may be hidden)
 var g_initMoreInfoDone = false;
 
+var more = "<button class='more white short'><i class='fas fa-caret-down'></i></button>";
+var less = "<button class='more white short'><i class='fas fa-caret-up'></i></button>";
+
 /** Object used to notify git. See ChainAtServerCurrentStatus Java class. */
 var g_srv_to_notify_git;
 
@@ -159,7 +162,7 @@ function showChainCurrentStatusData(server, settings) {
 
     if(!isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
         res += "<div class='content'>" + mInfo + "</div></span>";
     }
 
@@ -646,7 +649,7 @@ function showSuiteData(suite, settings) {
 
     if(!isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
         res += "<div class='content'>" + mInfo + "</div></span>";
     }
 
@@ -891,7 +894,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
     if (isDefinedAndFilled(testFail.warnings) && testFail.warnings.length > 0
         && !isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
 
         res += "<div class='content'>";
 
@@ -986,9 +989,9 @@ function initMoreInfo() {
         $content.slideToggle(500, function() {
             //execute this after slideToggle is done
             //change text of header based on visibility of content div
-            $header.text(function() {
+            $header.html(function() {
                 //change text based on condition
-                return $content.is(":visible") ? "Hide <<" : "More >>";
+                return $content.is(":visible") ? less : more;
             });
         });
     });
