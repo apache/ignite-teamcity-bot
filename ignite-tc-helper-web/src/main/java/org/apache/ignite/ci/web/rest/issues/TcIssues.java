@@ -17,17 +17,17 @@
 
 package org.apache.ignite.ci.web.rest.issues;
 
-import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.issue.IssueList;
 import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
 import org.jetbrains.annotations.Nullable;
 
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -43,7 +43,10 @@ public class TcIssues {
     public static final String ISSUES = "issues";
 
     @Context
-    private ServletContext context;
+    private ServletContext ctx;
+
+    @Context
+    private HttpServletRequest req;
 
     @GET
     @Path("updates")
@@ -59,7 +62,7 @@ public class TcIssues {
     public IssueList listIssues(@Nullable @QueryParam("branch") String branchOpt,
                                 @Nullable @QueryParam("count") Integer count,
                                 @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        final ITcHelper helper = CtxListener.getTcHelper(context);
+        final ITcHelper helper = CtxListener.getTcHelper(ctx);
 
         final String branch = isNullOrEmpty(branchOpt) ? "master" : branchOpt;
 
