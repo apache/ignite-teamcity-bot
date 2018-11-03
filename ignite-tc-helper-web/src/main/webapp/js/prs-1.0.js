@@ -78,7 +78,7 @@ function showContributionsTable(result, srvId, suiteId) {
                     if (type === 'display') {
                         let date = new Date(data);
 
-                        data = normalizeDateNum(date.getFullYear()) + '-' + normalizeDateNum(date.getMonth()) +
+                        data = normalizeDateNum(date.getFullYear()) + '-' + normalizeDateNum(date.getMonth() + 1) +
                             '-' + normalizeDateNum(date.getDate()) + "<br>" + normalizeDateNum(date.getHours()) +
                             ':' + normalizeDateNum(date.getMinutes()) + ":" + normalizeDateNum(date.getSeconds());
                     }
@@ -187,6 +187,7 @@ function formatContributionDetails(row, srvId, suiteId) {
     var res = "";
     res += "<div class='formgroup'>";
     res += "<table cellpadding='5' cellspacing='0' border='0' style='padding-left:50px;'>\n";
+    res += "<tr><td colspan='4' id='choiceOfChain_" + prId + "'></td></tr>";
 
     //caption of stage
     res += "<tr>\n" +
@@ -200,7 +201,7 @@ function formatContributionDetails(row, srvId, suiteId) {
     //icon of stage
     res += "<tr>\n" +
         "                <th title='PR should have valid naming starting with issue name'><span class='visaStage' id='visaStage_1_" + prId + "'></span></th>\n" +
-        "                <th title='Run All should be triggered'><span class='visaStage' id='visaStage_2_" + prId + "'></span></th>\n" +
+        "                <th title='Suite should be triggered'><span class='visaStage' id='visaStage_2_" + prId + "'></span></th>\n" +
         "                <th><span class='visaStage' id='visaStage_3_" + prId + "'></span></th>\n" +
          "               <th><span class='visaStage' id='visaStage_4_" + prId + "'></span></th>\n" +
         //todo validityCheck;"                <th><span class='visaStage' id='visaStage_5_" + prId + "'></span></th>\n" +
@@ -232,7 +233,6 @@ function formatContributionDetails(row, srvId, suiteId) {
 
     res += "</div>";
 
-
     $.ajax({
         url: "rest/visa/contributionStatus" +
             "?serverId=" + srvId +
@@ -240,7 +240,45 @@ function formatContributionDetails(row, srvId, suiteId) {
             "&prId=" + prId,
         success:
             function (result) {
-                showContributionStatus(result, prId, row, srvId, suiteId);
+                let selectHtml = "<select id='selectChain_" + prId + "' style='width: 350px'>";
+                console.log(JSON.stringify(result));
+
+                let isCompleted = [],
+                    isIncompleted = [],
+                    suites = new Map();
+
+                for (let status of result) {
+                    suites.set(status.suiteId, status);
+
+                    if (isDefinedAndFilled(status.branchWithFinishedSuite))
+                        isCompleted.push(status);
+                    else
+                        isIncompleted.push(status);
+                }
+
+                for (let status of isCompleted)
+                    selectHtml += "<option value='true'>" + status.suiteId + "</option>";
+
+                for (let status of isIncompleted)
+                    selectHtml += "<option value='false' style='color:grey'>" + status.suiteId + "</option>";
+
+                selectHtml += "</select>";
+
+                $('#choiceOfChain_' + prId).html(selectHtml);
+
+                prs.set(prId, suites);
+
+                let select = $("#selectChain_" + prId);
+
+                select.change(function() {
+                    let pr = prs.get(prId),
+                        selectedOption = $("#selectChain_" + prId + " option:selected").text(),
+                        buildIsCompleted = select.val() === 'true';
+
+                    showContributionStatus(pr.get(selectedOption), prId, row, srvId, selectedOption, buildIsCompleted);
+                });
+
+                select.change();
             }
     });
     return res;
@@ -263,10 +301,7 @@ function repaint(srvId, suiteId) {
             }
         }
     }
-
-    datatable.draw();
 }
-
 
 function repaintLater(srvId, suiteId) {
     setTimeout(function () {
@@ -274,10 +309,9 @@ function repaintLater(srvId, suiteId) {
     }, 3000);
 }
 
-function showContributionStatus(status, prId, row, srvId, suiteId) {
-    let finishedBranch = status.branchWithFinishedRunAll;
+function showContributionStatus(status, prId, row, srvId, suiteId, buildIsCompleted) {
+    let finishedBranch = status.branchWithFinishedSuite;
     let tdForPr = $('#showResultFor' + prId);
-    let buildIsCompleted = isDefinedAndFilled(finishedBranch);
     let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
@@ -288,8 +322,8 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
         ");";
 
     var linksToRunningBuilds = "";
-    for (let i = 0; i < status.webLinksQueuedRunAlls.length; i++) {
-        const l = status.webLinksQueuedRunAlls[i];
+    for (let i = 0; i < status.webLinksQueuedSuites.length; i++) {
+        const l = status.webLinksQueuedSuites[i];
         linksToRunningBuilds += "<a href=" + l + ">View queued at TC</a> "
     }
     $('#viewQueuedBuildsFor' + prId).html(linksToRunningBuilds);

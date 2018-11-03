@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.web.rest.visa;
 
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -61,7 +62,7 @@ public class TcBotVisaService {
 
     @GET
     @Path("contributionStatus")
-    public ContributionCheckStatus contributionStatus(@Nullable @QueryParam("serverId") String srvId,
+    public Set<ContributionCheckStatus> contributionStatus(@Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @QueryParam("prId") String prId) {
         ICredentialsProv prov = ICredentialsProv.get(req);
@@ -71,6 +72,6 @@ public class TcBotVisaService {
         TcBotTriggerAndSignOffService instance = CtxListener.getInjector(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class);
 
-        return instance.contributionStatus(srvId, prov, suiteId, prId);
+        return instance.contributionStatuses(srvId, prov, prId);
     }
 }

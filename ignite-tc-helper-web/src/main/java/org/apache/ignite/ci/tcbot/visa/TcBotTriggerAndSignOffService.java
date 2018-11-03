@@ -20,8 +20,10 @@ package org.apache.ignite.ci.tcbot.visa;
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
@@ -49,6 +51,21 @@ import org.jetbrains.annotations.Nullable;
  * Provides method for TC Bot Visa obtaining
  */
 public class TcBotTriggerAndSignOffService {
+
+    static Set<String> buildTypes = new LinkedHashSet<>();
+
+    static {
+        buildTypes.add("IgniteTests24Java8_RunAll");
+        buildTypes.add("IgniteTests24Java8_RunAllNightly");
+        buildTypes.add("IgniteTests24Java8_RunBasicTests");
+        buildTypes.add("IgniteTests24Java8_RunAllNet");
+        buildTypes.add("IgniteTests24Java8_RunCache");
+        buildTypes.add("IgniteTests24Java8_RunIntelliJIdeaInspections");
+        buildTypes.add("IgniteTests24Java8_RunMl");
+        buildTypes.add("IgniteTests24Java8_RunMlTensorFlow");
+        buildTypes.add("IgniteTests24Java8_RunAllPds");
+        buildTypes.add("IgniteTests24Java8_RunAllSql");
+    }
 
     @Inject Provider<BuildObserver> buildObserverProvider;
 
@@ -246,7 +263,7 @@ public class TcBotTriggerAndSignOffService {
         }).collect(Collectors.toList());
     }
 
-    @Nonnull private List<BuildRef> findRunAllsForPr(String suiteId, String prId, ITeamcityIgnited server) {
+    @Nonnull private List<BuildRef> findBuildsForPr(String suiteId, String prId, ITeamcityIgnited server) {
 
         String branchName = branchForTcA(prId);
         List<BuildRef> buildHist = server.getBuildHistory(suiteId, branchName);
@@ -254,8 +271,6 @@ public class TcBotTriggerAndSignOffService {
         if (!buildHist.isEmpty())
             return buildHist;
 
-
-        //todo multibranch requestst
         buildHist = server.getBuildHistory(suiteId, branchForTcB(prId));
 
         if (!buildHist.isEmpty())
@@ -275,41 +290,59 @@ public class TcBotTriggerAndSignOffService {
     /**
      * @param srvId Server id.
      * @param prov Prov.
-     * @param suiteId Suite id.
      * @param prId Pr id.
      */
-    public ContributionCheckStatus contributionStatus(String srvId, ICredentialsProv prov, String suiteId,
+    public Set<ContributionCheckStatus> contributionStatuses(String srvId, ICredentialsProv prov,
         String prId) {
-        ContributionCheckStatus status = new ContributionCheckStatus();
+        Set<ContributionCheckStatus> statuses = new LinkedHashSet<>();
 
         ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(srvId, prov);
 
-        List<BuildRef> allRunAlls = findRunAllsForPr(suiteId, prId, teamcity);
+        List<BuildRef> forTests;
 
-        boolean finishedRunAllPresent = allRunAlls.stream().filter(BuildRef::isNotCancelled).anyMatch(BuildRef::isFinished);
+        for (String buildType : buildTypes) {
+            forTests = findBuildsForPr(buildType, prId, teamcity);
 
-        status.branchWithFinishedRunAll = finishedRunAllPresent ? allRunAlls.get(0).branchName : null;
+            statuses.add(forTests.isEmpty() ? new ContributionCheckStatus(buildType, branchForTcA(prId)) :
+                contributionStatus(srvId, buildType, forTests, teamcity, prId));
+        }
 
-        if (status.branchWithFinishedRunAll == null) {
-            if (!allRunAlls.isEmpty())
-                status.resolvedBranch = allRunAlls.get(0).branchName;
+        return statuses;
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param prId Pr id.
+     */
+    public ContributionCheckStatus contributionStatus(String srvId, String suiteId, List<BuildRef> builds, ITeamcityIgnited teamcity, String prId) {
+        ContributionCheckStatus status = new ContributionCheckStatus();
+
+        status.suiteId = suiteId;
+
+        boolean finishedPresent = builds.stream().filter(BuildRef::isNotCancelled).anyMatch(BuildRef::isFinished);
+
+        status.branchWithFinishedSuite = finishedPresent ? builds.get(0).branchName : null;
+
+        if (status.branchWithFinishedSuite == null) {
+            if (!builds.isEmpty())
+                status.resolvedBranch = builds.get(0).branchName;
             else
                 status.resolvedBranch = branchForTcA(prId);
         }
         else
             //todo take into account running/queued
-            status.resolvedBranch = status.branchWithFinishedRunAll;
+            status.resolvedBranch = status.branchWithFinishedSuite;
 
         String observationsStatus = observer.get().getObservationStatus(srvId, status.resolvedBranch);
 
         status.observationsStatus  = Strings.emptyToNull(observationsStatus);
 
-        List<BuildRef> queuedRunAlls = allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isQueued).collect(Collectors.toList());
-        List<BuildRef> runninRunAlls = allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isRunning).collect(Collectors.toList());
-        status.queuedBuilds = queuedRunAlls.size();//todo take into accounts not only run alls:
-        status.runningBuilds = runninRunAlls.size();
+        List<BuildRef> queuedSuites = builds.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isQueued).collect(Collectors.toList());
+        List<BuildRef> runningSuites = builds.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isRunning).collect(Collectors.toList());
+        status.queuedBuilds = queuedSuites.size();
+        status.runningBuilds = runningSuites.size();
 
-        status.webLinksQueuedRunAlls = Stream.concat(queuedRunAlls.stream(), runninRunAlls.stream())
+        status.webLinksQueuedSuites = Stream.concat(queuedSuites.stream(), runningSuites.stream())
             .map(ref -> getWebLinkToQueued(teamcity, ref)).collect(Collectors.toList());
 
         return status;

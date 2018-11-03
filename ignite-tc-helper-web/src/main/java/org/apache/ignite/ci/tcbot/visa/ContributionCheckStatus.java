@@ -25,14 +25,26 @@ import java.util.List;
 @SuppressWarnings("PublicField") public class ContributionCheckStatus {
     public int queuedBuilds;
     public int runningBuilds;
-    /** Branch with finished run all results, null if run all is running or in case there was no run alls at all. */
-    public String branchWithFinishedRunAll;
 
-    /** Resolved run all branch: Some branch probably with finished or queued builds in in, or default pull/nnnn/head. */
+    /** Suite id. */
+    public String suiteId;
+
+    /** Branch with finished suite results, null if suite is running or in case there was no run suite at all. */
+    public String branchWithFinishedSuite;
+
+    /** Resolved suite branch: Some branch probably with finished or queued builds in in, or default pull/nnnn/head. */
     public String resolvedBranch;
 
     /** Observations status: Filled if build observer has something sheduled related to {@link #resolvedBranch} */
     public String observationsStatus;
 
-    public List<String> webLinksQueuedRunAlls = new LinkedList<>();
+    public List<String> webLinksQueuedSuites = new LinkedList<>();
+
+    public ContributionCheckStatus() {
+    }
+
+    public ContributionCheckStatus(String suiteId, String resolvedBranch) {
+        this.suiteId = suiteId;
+        this.resolvedBranch = resolvedBranch;
+    }
 }

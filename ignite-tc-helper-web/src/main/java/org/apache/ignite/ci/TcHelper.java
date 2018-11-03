@@ -243,7 +243,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
             }
         }
 
-        res.append("\\n").append("[TeamCity Run All Results|").append(webUrl).append(']');
+        res.append("\\n").append("[TeamCity " + buildTypeId + " Results|").append(webUrl).append(']');
 
         return xmlEscapeText(res.toString());
     }
