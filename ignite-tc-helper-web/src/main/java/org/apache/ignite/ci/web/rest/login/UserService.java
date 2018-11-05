@@ -83,6 +83,7 @@ public class UserService {
         return res;
     }
 
+    /** */
     @POST
     @Path("authorize")
     public SimpleResult setAuthorizedState() {

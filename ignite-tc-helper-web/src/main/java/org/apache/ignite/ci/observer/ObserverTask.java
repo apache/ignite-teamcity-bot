@@ -17,22 +17,26 @@
 
 package org.apache.ignite.ci.observer;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.Queue;
+import java.util.List;
 import java.util.Set;
 import java.util.TimerTask;
+import javax.cache.Cache;
 import javax.inject.Inject;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.configuration.CollectionConfiguration;
 import org.apache.ignite.ci.web.model.Visa;
+import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +47,9 @@ public class ObserverTask extends TimerTask {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(ObserverTask.class);
 
+    /** */
+    public static final String BUILDS_CACHE_NAME = "compactBuildsInfos5";
+
     /** Helper. */
     @Inject private ITcHelper tcHelper;
 
@@ -52,28 +59,34 @@ public class ObserverTask extends TimerTask {
     /** Ignite. */
     @Inject private Ignite ignite;
 
+    /** */
+    @Inject private VisasHistoryStorage visasHistoryStorage;
+
+    /** */
+    @Inject private IgniteStringCompactor strCompactor;
+
     /**
      */
     ObserverTask() {
     }
 
     /** */
-    private Queue<BuildsInfo> buildsQueue() {
-        CollectionConfiguration cfg = new CollectionConfiguration();
-
-        cfg.setBackups(1);
-
-        return ignite.queue("builds", 0, cfg);
+    private IgniteCache<CompactBuildsInfo, Object> compactInfos() {
+        return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(BUILDS_CACHE_NAME));
     }
 
     /** */
-    public Collection<BuildsInfo> getBuilds() {
-        return Collections.unmodifiableCollection(buildsQueue());
+    public Collection<BuildsInfo> getInfos() {
+        List<BuildsInfo> buildsInfos = new ArrayList<>();
+
+        compactInfos().forEach(entry -> buildsInfos.add(entry.getKey().toBuildInfo(strCompactor)));
+
+        return buildsInfos;
     }
 
     /** */
-    public void addBuild(BuildsInfo build) {
-        buildsQueue().add(build);
+    public void addInfo(BuildsInfo info) {
+        compactInfos().put(new CompactBuildsInfo(info, strCompactor), new Object());
     }
 
     /** {@inheritDoc} */
@@ -99,15 +112,17 @@ public class ObserverTask extends TimerTask {
         int notFinishedBuilds = 0;
         Set<String> ticketsNotified = new HashSet<>();
 
-        Queue<BuildsInfo> builds = buildsQueue();
+        for (Cache.Entry<CompactBuildsInfo, Object> entry : compactInfos()) {
+            CompactBuildsInfo compactInfo = entry.getKey();
 
-        for (BuildsInfo info : builds) {
+            BuildsInfo info = compactInfo.toBuildInfo(strCompactor);
+
             checkedBuilds += info.buildsCount();
 
             IAnalyticsEnabledTeamcity teamcity = tcHelper.server(info.srvId, tcHelper.getServerAuthorizerCreds());
 
             if (info.isFinishedWithFailures(teamcity)) {
-                builds.remove(info);
+                compactInfos().remove(compactInfo);
 
                 logger.error("JIRA will not be commented." +
                     " [ticket: " + info.ticket + ", branch:" + info.branchForTc + "] : " +
@@ -127,12 +142,11 @@ public class ObserverTask extends TimerTask {
             Visa visa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
                 info.branchForTc, info.ticket);
 
-            tcHelper.getVisasHistoryStorage().updateVisaRequestResult(info.date, visa);
+            visasHistoryStorage.updateVisaRequestRes(compactInfo.getContributionKey(), compactInfo.date, visa);
 
             if (visa.isSuccess()) {
                 ticketsNotified.add(info.ticket);
-
-                builds.remove(info);
+                compactInfos().remove(compactInfo);
             }
         }
 

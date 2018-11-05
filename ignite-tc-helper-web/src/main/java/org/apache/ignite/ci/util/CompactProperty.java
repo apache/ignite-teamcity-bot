@@ -15,41 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.model;
+package org.apache.ignite.ci.util;
 
-import org.apache.ignite.ci.observer.BuildsInfo;
-import org.jetbrains.annotations.Nullable;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-/**
- *
- */
-public class VisaRequest {
-    /** */
-    private BuildsInfo info;
-
-    /** */
-    private Visa visa;
-
-    /** */
-    public VisaRequest(BuildsInfo info) {
-        this.info = info;
-        this.visa = Visa.emptyVisa();
-    }
-
-    /** */
-    @Nullable public BuildsInfo getInfo() {
-        return info;
-    }
-
-    /** */
-    @Nullable public Visa getRes() {
-        return visa;
-    }
-
-    /** */
-    public VisaRequest setRes(Visa res) {
-        this.visa = res;
-
-        return this;
-    }
+/** */
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+public @interface CompactProperty {
 }

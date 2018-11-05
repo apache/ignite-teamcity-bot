@@ -17,39 +17,36 @@
 
 package org.apache.ignite.ci.web.model;
 
-import org.apache.ignite.ci.observer.BuildsInfo;
-import org.jetbrains.annotations.Nullable;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.ignite.ci.util.CompactProperty;
 
 /**
  *
  */
-public class VisaRequest {
+public class ContributionKey {
     /** */
-    private BuildsInfo info;
+    @CompactProperty
+    @JsonProperty
+    private String srvId;
 
     /** */
-    private Visa visa;
+    @CompactProperty
+    @JsonProperty
+    private String ticket;
 
     /** */
-    public VisaRequest(BuildsInfo info) {
-        this.info = info;
-        this.visa = Visa.emptyVisa();
+    @CompactProperty
+    @JsonProperty
+    private String branchForTc;
+
+    /** */
+    public ContributionKey(){
     }
 
     /** */
-    @Nullable public BuildsInfo getInfo() {
-        return info;
-    }
-
-    /** */
-    @Nullable public Visa getRes() {
-        return visa;
-    }
-
-    /** */
-    public VisaRequest setRes(Visa res) {
-        this.visa = res;
-
-        return this;
+    public ContributionKey(String srvId, String ticket, String branchForTc) {
+        this.branchForTc = branchForTc;
+        this.srvId = srvId;
+        this.ticket = ticket;
     }
 }

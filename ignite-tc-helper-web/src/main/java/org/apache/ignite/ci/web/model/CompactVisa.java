@@ -17,39 +17,31 @@
 
 package org.apache.ignite.ci.web.model;
 
-import org.apache.ignite.ci.observer.BuildsInfo;
+import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
 import org.jetbrains.annotations.Nullable;
 
 /**
  *
  */
-public class VisaRequest {
+public class CompactVisa {
     /** */
-    private BuildsInfo info;
+    public final int status;
 
     /** */
-    private Visa visa;
+    @Nullable public final JiraCommentResponse jiraCommentRes;
 
     /** */
-    public VisaRequest(BuildsInfo info) {
-        this.info = info;
-        this.visa = Visa.emptyVisa();
+    public final int blockers;
+
+    /** */
+    public CompactVisa(Visa visa, IgniteStringCompactor strCompactor) {
+        this.status = strCompactor.getStringId(visa.status);
+        this.blockers = visa.blockers;
+        this.jiraCommentRes = visa.getJiraCommentResponse();
     }
 
     /** */
-    @Nullable public BuildsInfo getInfo() {
-        return info;
-    }
-
-    /** */
-    @Nullable public Visa getRes() {
-        return visa;
-    }
-
-    /** */
-    public VisaRequest setRes(Visa res) {
-        this.visa = res;
-
-        return this;
+    public Visa toVisa(IgniteStringCompactor strCompactor) {
+        return new Visa(strCompactor.getStringFromId(status), jiraCommentRes, blockers);
     }
 }

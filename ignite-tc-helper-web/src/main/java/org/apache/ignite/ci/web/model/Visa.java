@@ -17,9 +17,7 @@
 
 package org.apache.ignite.ci.web.model;
 
-import java.util.List;
 import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -27,49 +25,57 @@ import org.jetbrains.annotations.Nullable;
  */
 public class Visa {
     /** */
-    private final String status;
+    public static final String EMPTY_VISA_STATUS = "emptyVisa";
 
     /** */
-    @Nullable private final JiraCommentResponse jiraCommentResponse;
+    public final String status;
 
     /** */
-    @Nullable private final List<SuiteCurrentStatus> suitesStatuses;
+    @Nullable public final JiraCommentResponse jiraCommentRes;
 
     /** */
-    @Nullable public String getStatus() {
-        return status;
+    @Nullable public final int blockers;
+
+    /** */
+    public static Visa emptyVisa() {
+        return new Visa(EMPTY_VISA_STATUS);
     }
 
     /** */
     public Visa(String status) {
         this.status = status;
-        this.jiraCommentResponse = null;
-        this.suitesStatuses = null;
+        this.jiraCommentRes = null;
+        this.blockers = 0;
     }
 
     /** */
-    public Visa(String status, JiraCommentResponse response, List<SuiteCurrentStatus> suitesStasuses) {
+    public Visa(String status, JiraCommentResponse res, Integer blockers) {
         this.status = status;
-        this.jiraCommentResponse = response;
-        this.suitesStatuses = suitesStasuses;
+        this.jiraCommentRes = res;
+        this.blockers = blockers;
     }
 
     /** */
     @Nullable public JiraCommentResponse getJiraCommentResponse() {
-        return jiraCommentResponse;
+        return jiraCommentRes;
     }
 
     /** */
-    @Nullable public List<SuiteCurrentStatus> getSuitesStatuses() {
-        return suitesStatuses;
+    @Nullable public int getBlockers() {
+        return blockers;
     }
 
     /** */
     public boolean isSuccess() {
-        return IJiraIntegration.JIRA_COMMENTED.equals(status) 
-            && jiraCommentResponse != null 
-            && suitesStatuses != null;
+        return IJiraIntegration.JIRA_COMMENTED.equals(status)
+            && jiraCommentRes != null;
     }
+
+    /** */
+    public boolean isEmpty() {
+        return Visa.EMPTY_VISA_STATUS.equals(status);
+    }
+
 
     /** */
     @Override public String toString() {

@@ -37,12 +37,12 @@ import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
-import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedModule;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.TcUpdatePool;
+import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 
 /**

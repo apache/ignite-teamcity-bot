@@ -24,6 +24,7 @@ import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.web.model.CompactVisa;
 import org.apache.ignite.ci.web.model.JiraCommentResponse;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
@@ -73,9 +74,6 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     @Inject private PrChainsProcessor prChainsProcessor;
 
     /** */
-    @Inject private VisasHistoryStorage visasHistoryStorage;
-
-    /** */
     private final ObjectMapper objectMapper;
 
     public TcHelper() {
@@ -95,11 +93,6 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     /** {@inheritDoc} */
     @Override public boolean isServerAuthorized() {
         return !Objects.isNull(serverAuthorizerCreds);
-    }
-
-    /** {@inheritDoc} */
-    @Override public VisasHistoryStorage getVisasHistoryStorage() {
-        return visasHistoryStorage;
     }
 
     /** {@inheritDoc} */
@@ -143,6 +136,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         return HelperConfig.getTrackedBranches();
     }
 
+
     @Override public List<String> getTrackedBranchesIds() {
         return getTrackedBranches().getIds();
     }
@@ -164,16 +158,19 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
         BuildRef build = builds.get(builds.size() - 1);
 
-        List<SuiteCurrentStatus> suitesStatuses;
+        int blockers;
 
-        JiraCommentResponse response;
+        JiraCommentResponse res;
 
         try {
-            suitesStatuses =  getSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
+            List<SuiteCurrentStatus> suitesStatuses =  getSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
 
             String comment = generateJiraComment(suitesStatuses, build.webUrl);
 
-            response = objectMapper.readValue(teamcity.sendJiraComment(ticket, comment), JiraCommentResponse.class);
+            blockers = suitesStatuses.stream().mapToInt(suite ->
+                suite.testFailures.size()).sum();
+
+            res = objectMapper.readValue(teamcity.sendJiraComment(ticket, comment), JiraCommentResponse.class);
         }
         catch (Exception e) {
             String errMsg = "Exception happened during commenting JIRA ticket " +
@@ -184,7 +181,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
             return new Visa("JIRA wasn't commented - " + errMsg);
         }
 
-        return new Visa(JIRA_COMMENTED, response, suitesStatuses);
+        return new Visa(JIRA_COMMENTED, res, blockers);
     }
 
     /**

@@ -21,10 +21,11 @@ import java.util.Collection;
 import java.util.List;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
-import org.apache.ignite.ci.web.model.Visa;
+import org.apache.ignite.ci.web.model.CompactVisa;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
+import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 
 /**
@@ -62,9 +63,6 @@ public interface ITcHelper extends ITcServerProvider {
 
     /** */
     boolean isServerAuthorized();
-
-   /** */
-    VisasHistoryStorage getVisasHistoryStorage();
 
     /**
      * @param srvId Server id.

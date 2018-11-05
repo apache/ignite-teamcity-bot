@@ -18,12 +18,14 @@
 package org.apache.ignite.ci.observer;
 
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
 
 /**
@@ -59,6 +61,17 @@ public class BuildsInfo {
 
     /** Finished builds. */
     private final Map<Integer, Boolean> finishedBuilds = new HashMap<>();
+
+    /** */
+    public BuildsInfo(CompactBuildsInfo buildsInfo, IgniteStringCompactor strCompactor) {
+        this.userName = strCompactor.getStringFromId(buildsInfo.userName);
+        this.date = buildsInfo.date;
+        this.srvId = strCompactor.getStringFromId(buildsInfo.srvId);
+        this.ticket = strCompactor.getStringFromId(buildsInfo.ticket);
+        this.branchForTc = strCompactor.getStringFromId(buildsInfo.branchForTc);
+        this.buildTypeId = strCompactor.getStringFromId(buildsInfo.buildTypeId);
+        this.finishedBuilds.putAll(buildsInfo.getFinishedBuilds());
+    }
 
     /**
      * @param srvId Server id.
@@ -131,6 +144,11 @@ public class BuildsInfo {
      */
     public int finishedBuildsCount(){
         return (int)finishedBuilds.values().stream().filter(v -> v).count();
+    }
+
+    /** */
+    public Map<Integer, Boolean> getBuilds() {
+        return Collections.unmodifiableMap(finishedBuilds);
     }
 
     /** {@inheritDoc} */
