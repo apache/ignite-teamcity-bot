@@ -17,36 +17,31 @@
 
 package org.apache.ignite.ci.web.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.ignite.ci.util.CompactProperty;
+import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
+import org.jetbrains.annotations.Nullable;
 
 /**
  *
  */
-public class ContributionKey {
+public class CompactVisa {
     /** */
-    @CompactProperty
-    @JsonProperty
-    private String srvId;
+    public final int status;
 
     /** */
-    @CompactProperty
-    @JsonProperty
-    private String ticket;
+    @Nullable public final JiraCommentResponse jiraCommentRes;
 
     /** */
-    @CompactProperty
-    @JsonProperty
-    private String branchForTc;
+    public final int blockers;
 
     /** */
-    public ContributionKey(){
+    public CompactVisa(Visa visa, IgniteStringCompactor strCompactor) {
+        this.status = strCompactor.getStringId(visa.status);
+        this.blockers = visa.blockers;
+        this.jiraCommentRes = visa.getJiraCommentResponse();
     }
 
     /** */
-    public ContributionKey(String srvId, String ticket, String branchForTc) {
-        this.branchForTc = branchForTc;
-        this.srvId = srvId;
-        this.ticket = ticket;
+    public Visa toVisa(IgniteStringCompactor strCompactor) {
+        return new Visa(strCompactor.getStringFromId(status), jiraCommentRes, blockers);
     }
 }

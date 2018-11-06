@@ -17,36 +17,29 @@
 
 package org.apache.ignite.ci.web.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.ignite.ci.util.CompactProperty;
+import org.apache.ignite.ci.observer.CompactBuildsInfo;
+import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
 
 /**
  *
  */
-public class ContributionKey {
+public class CompactVisaRequest {
     /** */
-    @CompactProperty
-    @JsonProperty
-    private String srvId;
+    public final CompactVisa compactVisa;
 
     /** */
-    @CompactProperty
-    @JsonProperty
-    private String ticket;
+    public final CompactBuildsInfo compactInfo;
 
     /** */
-    @CompactProperty
-    @JsonProperty
-    private String branchForTc;
+    public CompactVisaRequest(VisaRequest visaReq, IgniteStringCompactor strCompactor) {
+        compactInfo = new CompactBuildsInfo(visaReq.getInfo(), strCompactor);
 
-    /** */
-    public ContributionKey(){
+        compactVisa = new CompactVisa(visaReq.getRes(), strCompactor);
     }
 
     /** */
-    public ContributionKey(String srvId, String ticket, String branchForTc) {
-        this.branchForTc = branchForTc;
-        this.srvId = srvId;
-        this.ticket = ticket;
+    public VisaRequest toVisaRequest(IgniteStringCompactor strCompactor) {
+        return new VisaRequest(compactInfo.toBuildInfo(strCompactor)).setRes(compactVisa.toVisa(strCompactor));
     }
+
 }
