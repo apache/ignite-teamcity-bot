@@ -109,7 +109,6 @@ public class TcBotTriggerAndSignOffService {
             visaStatus.userName = info.userName;
             visaStatus.ticket = info.ticket;
 
-
             if (info.isFinished(teamcity)) {
                 if (visa.isEmpty())
                     visaStatus.state = BuildsInfo.FINISHED_STATE + " [ waiting results ]";
@@ -154,7 +153,6 @@ public class TcBotTriggerAndSignOffService {
 
         return ticketId;
     }
-
 
     @NotNull public String triggerBuildsAndObserve(
         @Nullable String srvId,
