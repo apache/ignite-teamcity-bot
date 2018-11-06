@@ -63,14 +63,13 @@ public class BuildObserver {
     /**
      * @param srvId Server id.
      * @param prov Credentials.
-     * @param ticket Ticket.
      * @param branchForTc Branch for TC.
      * @param ticket JIRA ticket name.
      */
     public void observe(String srvId, ICredentialsProv prov, String ticket, String branchForTc, Build... builds) {
         BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, branchForTc, builds);
 
-       visasStorage.put(new VisaRequest(buildsInfo));
+        visasStorage.put(new VisaRequest(buildsInfo));
 
         observerTask.addInfo(buildsInfo);
     }

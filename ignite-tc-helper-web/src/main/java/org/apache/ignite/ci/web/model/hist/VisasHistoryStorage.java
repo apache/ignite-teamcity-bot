@@ -98,7 +98,7 @@ public class VisasHistoryStorage {
         if (req == null)
             return false;
 
-        req.setRes(visa);
+        req.setResult(visa);
 
         put(req);
 

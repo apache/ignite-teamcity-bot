@@ -73,7 +73,7 @@ public class Visa {
 
     /** */
     public boolean isEmpty() {
-        return Visa.EMPTY_VISA_STATUS.equals(status);
+        return EMPTY_VISA_STATUS.equals(status);
     }
 
 

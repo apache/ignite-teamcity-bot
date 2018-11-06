@@ -34,12 +34,12 @@ public class CompactVisaRequest {
     public CompactVisaRequest(VisaRequest visaReq, IgniteStringCompactor strCompactor) {
         compactInfo = new CompactBuildsInfo(visaReq.getInfo(), strCompactor);
 
-        compactVisa = new CompactVisa(visaReq.getRes(), strCompactor);
+        compactVisa = new CompactVisa(visaReq.getResult(), strCompactor);
     }
 
     /** */
     public VisaRequest toVisaRequest(IgniteStringCompactor strCompactor) {
-        return new VisaRequest(compactInfo.toBuildInfo(strCompactor)).setRes(compactVisa.toVisa(strCompactor));
+        return new VisaRequest(compactInfo.toBuildInfo(strCompactor)).setResult(compactVisa.toVisa(strCompactor));
     }
 
 }

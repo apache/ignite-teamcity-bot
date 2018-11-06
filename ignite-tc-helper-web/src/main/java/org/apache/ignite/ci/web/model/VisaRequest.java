@@ -42,12 +42,12 @@ public class VisaRequest {
     }
 
     /** */
-    @Nullable public Visa getRes() {
+    @Nullable public Visa getResult() {
         return visa;
     }
 
     /** */
-    public VisaRequest setRes(Visa res) {
+    public VisaRequest setResult(Visa res) {
         this.visa = res;
 
         return this;

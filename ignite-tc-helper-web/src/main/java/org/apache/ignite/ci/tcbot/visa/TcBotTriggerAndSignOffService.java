@@ -102,7 +102,7 @@ public class TcBotTriggerAndSignOffService {
 
             BuildsInfo info = visaRequest.getInfo();
 
-            Visa visa = visaRequest.getRes();
+            Visa visa = visaRequest.getResult();
 
             visaStatus.date = formatter.format(info.date);
             visaStatus.branchName = info.branchForTc;
@@ -275,7 +275,7 @@ public class TcBotTriggerAndSignOffService {
             Visa visa = jiraIntegration.notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName);
 
             visasHistoryStorage.put(new VisaRequest(buildsInfo)
-                .setRes(visa));
+                .setResult(visa));
 
             return new SimpleResult(visa.status);
         }
