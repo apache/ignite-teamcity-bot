@@ -30,23 +30,21 @@ import javax.cache.Cache;
 import javax.inject.Inject;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
-import org.apache.ignite.ci.web.model.CompactContributionKey;
-import org.apache.ignite.ci.web.model.CompactVisaRequest;
+import org.apache.ignite.ci.util.Compactor;
+import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.VisaRequest;
-import org.jetbrains.annotations.Nullable;
 
 /**
  *
  */
 public class VisasHistoryStorage {
     /** */
-    private static final String VISAS_CACHE_NAME = "visasCompactCache5";
+    private static final String VISAS_CACHE_NAME = "visasCompactCache15";
 
     /** */
     @Inject
-    private IgniteStringCompactor strCompactor;
+    private Compactor compactor;
 
     /** */
     @Inject
@@ -58,46 +56,41 @@ public class VisasHistoryStorage {
     }
 
     /** */
-    private Cache<CompactContributionKey, Map<Date, CompactVisaRequest>> visas() {
+    private Cache<Object, Map<Date, Object>> visas() {
         return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(VISAS_CACHE_NAME));
     }
 
     /** */
     public void put(VisaRequest visaReq) {
-        /*CompactVisaRequest compactVisaReq = new CompactVisaRequest(visaReq, strCompactor);
+        ContributionKey key = new ContributionKey(
+            visaReq.getInfo().srvId,
+            visaReq.getInfo().ticket,
+            visaReq.getInfo().branchForTc);
 
-        CompactContributionKey key = new CompactContributionKey(
-            compactVisaReq.compactInfo.srvId,
-            compactVisaReq.compactInfo.ticket,
-            compactVisaReq.compactInfo.branchForTc);
+        Object compactKey = compactor.marshall(key);
 
-        Map<Date, CompactVisaRequest> contributionVisas = visas().get(key);
+        Map<Date, Object> contributionVisas = visas().get(compactKey);
 
         if (contributionVisas == null)
             contributionVisas = new HashMap<>();
 
-        contributionVisas.put(compactVisaReq.compactInfo.date, compactVisaReq);
+        contributionVisas.put(visaReq.getInfo().date, compactor.marshall(visaReq));
 
-        visas().put(key, contributionVisas);*/
+        visas().put(compactKey, contributionVisas);
     }
 
     /** */
-    public VisaRequest getVisaReq(CompactContributionKey key, Date date) {
-        Map<Date, CompactVisaRequest> reqs = visas().get(key);
+    public VisaRequest getVisaReq(ContributionKey key, Date date) {
+        Map<Date, Object> reqs = visas().get(compactor.marshall(key));
 
         if (Objects.isNull(reqs))
             return null;
 
-        return reqs.get(date).toVisaRequest(strCompactor);
+        return compactor.unMarshall(reqs.get(date), VisaRequest.class);
     }
 
     /** */
-    @Nullable public Map<Date, CompactVisaRequest> get(CompactContributionKey key) {
-        return visas().get(key);
-    }
-
-    /** */
-    public boolean updateVisaRequestRes(CompactContributionKey key, Date date, Visa visa) {
+    public boolean updateVisaRequestRes(ContributionKey key, Date date, Visa visa) {
         VisaRequest req = getVisaReq(key, date);
 
         if (req == null)
@@ -115,7 +108,7 @@ public class VisasHistoryStorage {
         List<VisaRequest> res = new ArrayList<>();
 
         visas().forEach(entry -> res.addAll(entry.getValue().values().stream()
-            .map(v -> v.toVisaRequest(strCompactor))
+            .map(v -> compactor.unMarshall(v, VisaRequest.class))
             .collect(Collectors.toList())));
 
         return Collections.unmodifiableCollection(res);

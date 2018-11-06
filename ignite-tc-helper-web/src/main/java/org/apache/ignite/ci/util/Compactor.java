@@ -21,7 +21,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import java.io.IOException;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
+import javax.inject.Inject;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
  *
@@ -31,21 +32,32 @@ public class Compactor {
     private final ObjectMapper objMapper = new ObjectMapper();
 
     /** */
-    public Compactor(IgniteStringCompactor strCompactor) {
+    @Inject
+    public Compactor(IStringCompactor strCompactor) {
         SimpleModule module = new SimpleModule();
+
         module.addSerializer(String.class, new StringSerializer(strCompactor));
         module.addDeserializer(String.class, new StringDeserializer(strCompactor));
+
         objMapper.registerModule(module);
     }
 
     /** */
-    public String marshall(Object obj) throws JsonProcessingException {
-        return objMapper.writeValueAsString(obj);
+    public String marshall(Object obj) {
+        try {
+            return objMapper.writeValueAsString(obj);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /** */
-    public <T> T unMarshall(String json, Class<T> cls) throws IOException {
-        return objMapper.readValue(json, cls);
+    public <T> T unMarshall(Object obj, Class<T> cls) {
+        try {
+            return objMapper.readValue(obj.toString(), cls);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

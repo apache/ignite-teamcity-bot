@@ -26,17 +26,17 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import java.io.IOException;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
  *
  */
 public class StringDeserializer extends StdDeserializer<String> implements ContextualDeserializer {
     /** */
-    private final IgniteStringCompactor strCompactor;
+    private final IStringCompactor strCompactor;
 
     /** */
-    public StringDeserializer(IgniteStringCompactor strCompactor) {
+    public StringDeserializer(IStringCompactor strCompactor) {
         super(String.class);
 
         this.strCompactor = strCompactor;
@@ -51,9 +51,9 @@ public class StringDeserializer extends StdDeserializer<String> implements Conte
     }
 
     /** */
-    @Override public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property)
+    @Override public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty prop)
         throws JsonMappingException {
-        if (property.getAnnotation(CompactProperty.class) != null)
+        if (prop.getAnnotation(CompactProperty.class) != null)
             return this;
 
         return new com.fasterxml.jackson.databind.deser.std.StringDeserializer();

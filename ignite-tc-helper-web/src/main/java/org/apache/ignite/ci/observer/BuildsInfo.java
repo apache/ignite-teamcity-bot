@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.observer;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -25,8 +26,9 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.util.CompactProperty;
+import org.apache.ignite.ci.web.model.ContributionKey;
 
 /**
  *
@@ -42,35 +44,34 @@ public class BuildsInfo {
     public static final String FINISHED_WITH_FAILURES_STATE = "finished with failures";
 
     /** */
-    public final String userName;
+    @CompactProperty
+    public String userName;
 
     /** Server id. */
-    public final String srvId;
+    @CompactProperty
+    public String srvId;
 
     /** Build type id. */
-    public final String buildTypeId;
+    @CompactProperty
+    public String buildTypeId;
 
     /** Branch name. */
-    public final String branchForTc;
+    @CompactProperty
+    public String branchForTc;
 
     /** JIRA ticket full name. */
-    public final String ticket;
+    @CompactProperty
+    public String ticket;
 
     /** */
-    public final Date date;
+    public Date date;
 
     /** Finished builds. */
-    private final Map<Integer, Boolean> finishedBuilds = new HashMap<>();
+    public final Map<Integer, Boolean> finishedBuilds = new HashMap<>();
 
     /** */
-    public BuildsInfo(CompactBuildsInfo buildsInfo, IgniteStringCompactor strCompactor) {
-        this.userName = strCompactor.getStringFromId(buildsInfo.userName);
-        this.date = buildsInfo.date;
-        this.srvId = strCompactor.getStringFromId(buildsInfo.srvId);
-        this.ticket = strCompactor.getStringFromId(buildsInfo.ticket);
-        this.branchForTc = strCompactor.getStringFromId(buildsInfo.branchForTc);
-        this.buildTypeId = strCompactor.getStringFromId(buildsInfo.buildTypeId);
-        this.finishedBuilds.putAll(buildsInfo.getFinishedBuilds());
+    public BuildsInfo() {
+
     }
 
     /**
@@ -90,6 +91,11 @@ public class BuildsInfo {
 
         for (Build build : builds)
             finishedBuilds.put(build.getId(), false);
+    }
+
+    /** */
+    public ContributionKey produceContributionKey() {
+        return new ContributionKey(srvId, ticket, branchForTc);
     }
 
     /**
@@ -147,6 +153,7 @@ public class BuildsInfo {
     }
 
     /** */
+    @JsonIgnore
     public Map<Integer, Boolean> getBuilds() {
         return Collections.unmodifiableMap(finishedBuilds);
     }

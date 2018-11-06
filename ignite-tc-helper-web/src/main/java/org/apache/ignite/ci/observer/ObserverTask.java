@@ -33,8 +33,8 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.util.Compactor;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.slf4j.Logger;
@@ -48,7 +48,7 @@ public class ObserverTask extends TimerTask {
     private static final Logger logger = LoggerFactory.getLogger(ObserverTask.class);
 
     /** */
-    public static final String BUILDS_CACHE_NAME = "compactBuildsInfos5";
+    public static final String BUILDS_CACHE_NAME = "compactBuildsInfos15";
 
     /** Helper. */
     @Inject private ITcHelper tcHelper;
@@ -63,7 +63,7 @@ public class ObserverTask extends TimerTask {
     @Inject private VisasHistoryStorage visasHistoryStorage;
 
     /** */
-    @Inject private IgniteStringCompactor strCompactor;
+    @Inject private Compactor compactor;
 
     /**
      */
@@ -71,7 +71,7 @@ public class ObserverTask extends TimerTask {
     }
 
     /** */
-    private IgniteCache<CompactBuildsInfo, Object> compactInfos() {
+    private IgniteCache<Object, Object> compactInfos() {
         return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(BUILDS_CACHE_NAME));
     }
 
@@ -79,14 +79,14 @@ public class ObserverTask extends TimerTask {
     public Collection<BuildsInfo> getInfos() {
         List<BuildsInfo> buildsInfos = new ArrayList<>();
 
-        compactInfos().forEach(entry -> buildsInfos.add(entry.getKey().toBuildInfo(strCompactor)));
+        compactInfos().forEach(entry -> buildsInfos.add(compactor.unMarshall(entry.getKey(), BuildsInfo.class)));
 
         return buildsInfos;
     }
 
     /** */
     public void addInfo(BuildsInfo info) {
-        compactInfos().put(new CompactBuildsInfo(info, strCompactor), new Object());
+        compactInfos().put(compactor.marshall(info), new Object());
     }
 
     /** {@inheritDoc} */
@@ -112,10 +112,10 @@ public class ObserverTask extends TimerTask {
         int notFinishedBuilds = 0;
         Set<String> ticketsNotified = new HashSet<>();
 
-        for (Cache.Entry<CompactBuildsInfo, Object> entry : compactInfos()) {
-            CompactBuildsInfo compactInfo = entry.getKey();
+        for (Cache.Entry<Object, Object> entry : compactInfos()) {
+            Object compactInfo = entry.getKey();
 
-            BuildsInfo info = compactInfo.toBuildInfo(strCompactor);
+            BuildsInfo info = compactor.unMarshall(compactInfo, BuildsInfo.class);
 
             checkedBuilds += info.buildsCount();
 
@@ -142,7 +142,7 @@ public class ObserverTask extends TimerTask {
             Visa visa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
                 info.branchForTc, info.ticket);
 
-            visasHistoryStorage.updateVisaRequestRes(compactInfo.getContributionKey(), compactInfo.date, visa);
+            visasHistoryStorage.updateVisaRequestRes(info.produceContributionKey(), info.date, visa);
 
             if (visa.isSuccess()) {
                 ticketsNotified.add(info.ticket);

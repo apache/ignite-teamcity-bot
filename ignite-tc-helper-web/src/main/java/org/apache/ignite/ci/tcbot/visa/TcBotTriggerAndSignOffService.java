@@ -118,9 +118,9 @@ public class TcBotTriggerAndSignOffService {
                     visaStatus.state = BuildsInfo.FINISHED_STATE + " [ waiting results ]";
                 else if (visa.isSuccess()) {
                     visaStatus.commentUrl = "https://issues.apache.org/jira/browse/" + visaStatus.ticket +
-                        "?focusedCommentId=" + visa.getJiraCommentResponse().getId() +
+                        "?focusedCommentId=" + visa.getJiraCommentRes().getId() +
                         "&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-" +
-                        visa.getJiraCommentResponse().getId();
+                        visa.getJiraCommentRes().getId();
 
                     visaStatus.blockers = visa.getBlockers();
 
@@ -172,17 +172,17 @@ public class TcBotTriggerAndSignOffService {
 
         String[] suiteIds = Objects.requireNonNull(suiteIdList).split(",");
 
-        Build[] builds = new Build[2];
+        /*Build[] builds = new Build[2];
 
         builds[0] = teamcity.getFatBuild(2199974).toBuild(strCompactor);
 
-        builds[1] = teamcity.getFatBuild(2199976).toBuild(strCompactor);
+        builds[1] = teamcity.getFatBuild(2199976).toBuild(strCompactor);*/
 
 
-        /*Build[] builds = new Build[suiteIds.length];
+        Build[] builds = new Build[suiteIds.length];
 
         for (int i = 0; i < suiteIds.length; i++)
-            builds[i] = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top);*/
+            builds[i] = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top);
 
         if (observe != null && observe)
             jiraRes = observeJira(srvId, branchForTc, ticketId, prov, builds);

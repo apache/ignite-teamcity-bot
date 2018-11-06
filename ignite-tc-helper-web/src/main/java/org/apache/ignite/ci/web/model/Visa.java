@@ -17,7 +17,9 @@
 
 package org.apache.ignite.ci.web.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.util.CompactProperty;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -28,17 +30,22 @@ public class Visa {
     public static final String EMPTY_VISA_STATUS = "emptyVisa";
 
     /** */
-    public final String status;
+    @CompactProperty
+    public String status;
 
     /** */
-    @Nullable public final JiraCommentResponse jiraCommentRes;
+    @Nullable public JiraCommentResponse jiraCommentRes;
 
     /** */
-    @Nullable public final int blockers;
+    public int blockers;
 
     /** */
     public static Visa emptyVisa() {
         return new Visa(EMPTY_VISA_STATUS);
+    }
+
+    /** */
+    public Visa() {
     }
 
     /** */
@@ -56,7 +63,7 @@ public class Visa {
     }
 
     /** */
-    @Nullable public JiraCommentResponse getJiraCommentResponse() {
+    @Nullable public JiraCommentResponse getJiraCommentRes() {
         return jiraCommentRes;
     }
 
@@ -66,12 +73,14 @@ public class Visa {
     }
 
     /** */
+    @JsonIgnore
     public boolean isSuccess() {
         return IJiraIntegration.JIRA_COMMENTED.equals(status)
             && jiraCommentRes != null;
     }
 
     /** */
+    @JsonIgnore
     public boolean isEmpty() {
         return Visa.EMPTY_VISA_STATUS.equals(status);
     }

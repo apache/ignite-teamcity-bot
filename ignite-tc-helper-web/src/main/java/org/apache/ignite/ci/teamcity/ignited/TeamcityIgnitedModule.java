@@ -23,6 +23,7 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.teamcity.restcached.TcRestCachedModule;
+import org.apache.ignite.ci.util.Compactor;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -41,6 +42,7 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(ProactiveFatBuildSync.class).in(new SingletonScope());
 
         bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
+        bind(Compactor.class).in(new SingletonScope());
 
         TcRestCachedModule module = new TcRestCachedModule();
         module.overrideHttp(conn);

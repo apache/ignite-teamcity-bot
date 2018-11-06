@@ -26,17 +26,17 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.ContextualSerializer;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import java.io.IOException;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
  *
  */
 public class StringSerializer extends StdSerializer<String> implements ContextualSerializer {
     /** */
-    private final IgniteStringCompactor strCompactor;
+    private final IStringCompactor strCompactor;
 
     /** */
-    public StringSerializer(IgniteStringCompactor strCompactor) {
+    public StringSerializer(IStringCompactor strCompactor) {
         super(String.class);
 
         this.strCompactor = strCompactor;
