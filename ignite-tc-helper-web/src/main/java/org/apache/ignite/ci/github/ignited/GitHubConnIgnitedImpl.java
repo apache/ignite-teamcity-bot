@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.github.ignited;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,7 +53,6 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
     /** Ignite provider. */
     @Inject Provider<Ignite> igniteProvider;
-
     /** Scheduler. */
     @Inject IScheduler scheduler;
 
@@ -125,6 +125,9 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         AtomicReference<String> outLinkNext = new AtomicReference<>();
 
         List<PullRequest> ghData = conn.getPullRequests(null, outLinkNext);
+
+        Set<Integer> actualPrs = new HashSet<>();
+
         int cntSaved = saveChunk(ghData);
         int totalChecked = ghData.size();
         while (outLinkNext.get() != null) {
@@ -134,11 +137,28 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
             cntSaved += savedThisChunk;
             totalChecked += ghData.size();
 
+            if (fullReindex)
+                actualPrs.addAll(ghData.stream()
+                    .map(pr -> pr.getNumber())
+                    .collect(Collectors.toSet()));
+
             if (!fullReindex && savedThisChunk == 0)
                 break;
         }
 
+        if (fullReindex)
+            refreshOutdatedPrs(actualPrs);
+
         return "Entries saved " + cntSaved + " PRs checked " + totalChecked;
+    }
+
+    /** */
+    private void refreshOutdatedPrs(Set<Integer> actualPrs) {
+        StreamSupport.stream(prCache.spliterator(), false)
+            .filter(entry -> entry.getKey() >> 32 == srvIdMaskHigh)
+            .filter(entry -> PullRequest.OPEN.equals(entry.getValue().getState()))
+            .filter(entry -> !actualPrs.contains(entry.getValue().getNumber()))
+            .forEach(entry -> prCache.put(entry.getKey(), conn.getPullRequest(entry.getValue().getNumber())));
     }
 
     private int saveChunk(List<PullRequest> ghData) {
