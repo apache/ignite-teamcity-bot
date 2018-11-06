@@ -40,7 +40,7 @@ public class BuildObserver {
     private ObserverTask observerTask;
 
     /** Visas History Storage. */
-    @Inject VisasHistoryStorage visasStorage;
+    @Inject private VisasHistoryStorage visasStorage;
 
     /**
      */

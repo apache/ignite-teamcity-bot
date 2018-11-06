@@ -33,16 +33,16 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
 import org.apache.ignite.ci.web.model.CompactContributionKey;
 import org.apache.ignite.ci.web.model.CompactVisaRequest;
+import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.VisaRequest;
-import org.jetbrains.annotations.Nullable;
 
 /**
  *
  */
 public class VisasHistoryStorage {
     /** */
-    private static final String VISAS_CACHE_NAME = "visasCompactCache5";
+    private static final String VISAS_CACHE_NAME = "visasCompactCache";
 
     /** */
     @Inject
@@ -64,12 +64,12 @@ public class VisasHistoryStorage {
 
     /** */
     public void put(VisaRequest visaReq) {
-        /*CompactVisaRequest compactVisaReq = new CompactVisaRequest(visaReq, strCompactor);
+        CompactVisaRequest compactVisaReq = new CompactVisaRequest(visaReq, strCompactor);
 
-        CompactContributionKey key = new CompactContributionKey(
-            compactVisaReq.compactInfo.srvId,
-            compactVisaReq.compactInfo.ticket,
-            compactVisaReq.compactInfo.branchForTc);
+        CompactContributionKey key = new CompactContributionKey(new ContributionKey(
+            visaReq.getInfo().srvId,
+            visaReq.getInfo().ticket,
+            visaReq.getInfo().branchForTc), strCompactor);
 
         Map<Date, CompactVisaRequest> contributionVisas = visas().get(key);
 
@@ -78,12 +78,12 @@ public class VisasHistoryStorage {
 
         contributionVisas.put(compactVisaReq.compactInfo.date, compactVisaReq);
 
-        visas().put(key, contributionVisas);*/
+        visas().put(key, contributionVisas);
     }
 
     /** */
-    public VisaRequest getVisaReq(CompactContributionKey key, Date date) {
-        Map<Date, CompactVisaRequest> reqs = visas().get(key);
+    public VisaRequest getVisaReq(ContributionKey key, Date date) {
+        Map<Date, CompactVisaRequest> reqs = visas().get(new CompactContributionKey(key, strCompactor));
 
         if (Objects.isNull(reqs))
             return null;
@@ -92,12 +92,7 @@ public class VisasHistoryStorage {
     }
 
     /** */
-    @Nullable public Map<Date, CompactVisaRequest> get(CompactContributionKey key) {
-        return visas().get(key);
-    }
-
-    /** */
-    public boolean updateVisaRequestRes(CompactContributionKey key, Date date, Visa visa) {
+    public boolean updateVisaRequestRes(ContributionKey key, Date date, Visa visa) {
         VisaRequest req = getVisaReq(key, date);
 
         if (req == null)

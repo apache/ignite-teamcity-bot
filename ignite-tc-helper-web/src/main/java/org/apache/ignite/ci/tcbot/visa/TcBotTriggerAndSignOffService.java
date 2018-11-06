@@ -57,7 +57,7 @@ import org.jetbrains.annotations.Nullable;
  * Provides method for TC Bot Visa obtaining
  */
 public class TcBotTriggerAndSignOffService {
-    /** */
+
     @Inject Provider<BuildObserver> buildObserverProvider;
 
     /** Git hub pure http connection provider. */
@@ -66,19 +66,16 @@ public class TcBotTriggerAndSignOffService {
     /** Git hub connection ignited provider. */
     @Inject IGitHubConnIgnitedProvider gitHubConnIgnitedProvider;
 
-    /** */
     @Inject ITeamcityIgnitedProvider tcIgnitedProv;
 
-    /** */
     @Inject IJiraIntegration jiraIntegration;
 
     @Inject ITeamcityIgnitedProvider teamcityIgnitedProvider;
 
-    /** */
     @Inject Provider<BuildObserver> observer;
 
     /** */
-    @Inject VisasHistoryStorage visasHistoryStorage;
+    @Inject private VisasHistoryStorage visasHistoryStorage;
 
     /** */
     @Inject IgniteStringCompactor strCompactor;
@@ -158,6 +155,7 @@ public class TcBotTriggerAndSignOffService {
         return ticketId;
     }
 
+
     @NotNull public String triggerBuildsAndObserve(
         @Nullable String srvId,
         @Nullable String branchForTc,
@@ -172,17 +170,10 @@ public class TcBotTriggerAndSignOffService {
 
         String[] suiteIds = Objects.requireNonNull(suiteIdList).split(",");
 
-        Build[] builds = new Build[2];
-
-        builds[0] = teamcity.getFatBuild(2199974).toBuild(strCompactor);
-
-        builds[1] = teamcity.getFatBuild(2199976).toBuild(strCompactor);
-
-
-        /*Build[] builds = new Build[suiteIds.length];
+        Build[] builds = new Build[suiteIds.length];
 
         for (int i = 0; i < suiteIds.length; i++)
-            builds[i] = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top);*/
+            builds[i] = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top);
 
         if (observe != null && observe)
             jiraRes = observeJira(srvId, branchForTc, ticketId, prov, builds);

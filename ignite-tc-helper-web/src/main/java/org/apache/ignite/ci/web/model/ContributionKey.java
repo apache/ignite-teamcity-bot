@@ -17,31 +17,18 @@
 
 package org.apache.ignite.ci.web.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.ignite.ci.util.CompactProperty;
-
 /**
  *
  */
 public class ContributionKey {
     /** */
-    @CompactProperty
-    @JsonProperty
-    private String srvId;
+    public final String srvId;
 
     /** */
-    @CompactProperty
-    @JsonProperty
-    private String ticket;
+    public final String ticket;
 
     /** */
-    @CompactProperty
-    @JsonProperty
-    private String branchForTc;
-
-    /** */
-    public ContributionKey(){
-    }
+    public final String branchForTc;
 
     /** */
     public ContributionKey(String srvId, String ticket, String branchForTc) {

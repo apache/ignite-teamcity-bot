@@ -48,7 +48,7 @@ public class ObserverTask extends TimerTask {
     private static final Logger logger = LoggerFactory.getLogger(ObserverTask.class);
 
     /** */
-    public static final String BUILDS_CACHE_NAME = "compactBuildsInfos5";
+    public static final String BUILDS_CACHE_NAME = "compactBuildsInfos";
 
     /** Helper. */
     @Inject private ITcHelper tcHelper;
@@ -142,10 +142,11 @@ public class ObserverTask extends TimerTask {
             Visa visa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
                 info.branchForTc, info.ticket);
 
-            visasHistoryStorage.updateVisaRequestRes(compactInfo.getContributionKey(), compactInfo.date, visa);
+            visasHistoryStorage.updateVisaRequestRes(info.getContributionKey(), info.date, visa);
 
             if (visa.isSuccess()) {
                 ticketsNotified.add(info.ticket);
+
                 compactInfos().remove(compactInfo);
             }
         }

@@ -27,6 +27,7 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.ContributionKey;
 
 /**
  *
@@ -144,6 +145,11 @@ public class BuildsInfo {
      */
     public int finishedBuildsCount(){
         return (int)finishedBuilds.values().stream().filter(v -> v).count();
+    }
+
+    /** */
+    public ContributionKey getContributionKey() {
+        return new ContributionKey(srvId, ticket, branchForTc);
     }
 
     /** */

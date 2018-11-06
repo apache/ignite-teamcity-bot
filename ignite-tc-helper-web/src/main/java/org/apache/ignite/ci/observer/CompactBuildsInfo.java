@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
-import org.apache.ignite.ci.web.model.CompactContributionKey;
 
 /**
  *
@@ -64,12 +63,6 @@ public class CompactBuildsInfo {
     /** */
     public Map<Integer, Boolean> getFinishedBuilds() {
         return Collections.unmodifiableMap(finishedBuilds);
-    }
-
-    /** */
-    public CompactContributionKey getContributionKey() {
-       // return new CompactContributionKey(srvId, ticket, branchForTc);
-        return null;
     }
 
     /** */

@@ -34,7 +34,7 @@ public class Visa {
     @Nullable public final JiraCommentResponse jiraCommentRes;
 
     /** */
-    @Nullable public final int blockers;
+    public final int blockers;
 
     /** */
     public static Visa emptyVisa() {

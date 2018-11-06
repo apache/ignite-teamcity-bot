@@ -25,19 +25,19 @@ import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
  */
 public class CompactContributionKey {
     /** */
-    public final int srvId = 0;
+    public final int srvId;
 
     /** */
-    public final int ticket= 0;
+    public final int ticket;
 
     /** */
-    public final int branchForTc= 0;
+    public final int branchForTc;
 
     /** */
     public CompactContributionKey(ContributionKey key, IgniteStringCompactor strCompactor) {
-        /*this.branchForTc = strCompactor.getStringId(key.branchForTc);
+        this.branchForTc = strCompactor.getStringId(key.branchForTc);
         this.srvId = strCompactor.getStringId(key.srvId);
-        this.ticket = strCompactor.getStringId(key.ticket);*/
+        this.ticket = strCompactor.getStringId(key.ticket);
     }
 
     /** {@inheritDoc} */
@@ -48,11 +48,11 @@ public class CompactContributionKey {
         if (!(o instanceof CompactContributionKey))
             return false;
 
-        CompactContributionKey info = (CompactContributionKey)o;
+        CompactContributionKey key = (CompactContributionKey)o;
 
-        return Objects.equals(srvId, info.srvId) &&
-            Objects.equals(ticket, info.ticket) &&
-            Objects.equals(branchForTc, info.branchForTc);
+        return Objects.equals(srvId, key.srvId) &&
+            Objects.equals(ticket, key.ticket) &&
+            Objects.equals(branchForTc, key.branchForTc);
     }
 
     /** {@inheritDoc} */
