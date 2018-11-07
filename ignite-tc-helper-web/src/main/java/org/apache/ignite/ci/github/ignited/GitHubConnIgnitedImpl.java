@@ -137,10 +137,11 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
             cntSaved += savedThisChunk;
             totalChecked += ghData.size();
 
-            if (fullReindex)
+            if (fullReindex) {
                 actualPrs.addAll(ghData.stream()
                     .map(pr -> pr.getNumber())
                     .collect(Collectors.toSet()));
+            }
 
             if (!fullReindex && savedThisChunk == 0)
                 break;
