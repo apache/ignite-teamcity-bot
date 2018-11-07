@@ -99,7 +99,12 @@ function showChainCurrentStatusData(server, settings) {
     res += " <a href='" + server.webToBuild + "' title='" + altTxt + "'>";
     res += "tests " + server.failedTests + " suites " + server.failedToFinish + "";
     res += " </a>";
-    res += "]";
+    res += "] ";
+    res += "[";
+    res += "<a href='longRunningAll.html?branch=master'>";
+    res += "long running tests report"
+    res += "</a>";
+    res += "]"
     res += "</b>";
 
     var mInfo = "";

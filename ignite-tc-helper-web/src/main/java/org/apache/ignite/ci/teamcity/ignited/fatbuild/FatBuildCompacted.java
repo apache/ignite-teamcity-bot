@@ -309,6 +309,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return tests.stream();
     }
 
+    public int getTestsCount() {
+        return tests != null ? tests.size() : 0;
+    }
+
     public Stream<String> getAllTestNames(IStringCompactor compactor) {
         return getAllTests().map(t -> t.testName(compactor));
     }

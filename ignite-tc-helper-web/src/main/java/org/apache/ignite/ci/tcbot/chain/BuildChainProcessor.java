@@ -50,6 +50,8 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
+import org.apache.ignite.ci.web.model.long_running.FullLRTestsSummary;
+import org.apache.ignite.ci.web.model.long_running.SuiteLRTestsSummary;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -67,6 +69,36 @@ public class BuildChainProcessor {
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
+
+    public List<SuiteLRTestsSummary> loadLongRunningTestsSummary(
+        IAnalyticsEnabledTeamcity teamcity,
+        ITeamcityIgnited teamcityIgnited,
+        Collection<BuildRef> entryPoints
+    ) {
+        final List<SuiteLRTestsSummary> res = new ArrayList<>();
+
+        if (entryPoints.isEmpty())
+            return res;
+
+        Map<Integer, FatBuildCompacted> builds = new ConcurrentHashMap<>();
+
+        final Stream<FatBuildCompacted> entryPointsFatBuilds = entryPoints.stream().map(BuildRef::getId)
+            .filter(Objects::nonNull)
+            .filter(id -> !builds.containsKey(id)) //load and propagate only new entry points
+            .map(id -> builds.computeIfAbsent(id, teamcityIgnited::getFatBuild));
+
+        final ExecutorService svc = tcUpdatePool.getService();
+
+        final Stream<FatBuildCompacted> depsFirstLevel = entryPointsFatBuilds
+            .map(ref -> svc.submit(() -> dependencies(teamcityIgnited, builds, ref)))
+            .collect(Collectors.toList())
+            .stream()
+            .flatMap(fut -> FutureUtil.getResult(fut));
+
+        depsFirstLevel.forEach(b -> res.add(new SuiteLRTestsSummary(b.buildTypeName(compactor), b.getTestsCount())));
+
+        return res;
+    }
 
     /**
      * @param teamcity Teamcity.
@@ -111,7 +143,7 @@ public class BuildChainProcessor {
                 .stream()
                 .flatMap(fut -> FutureUtil.getResult(fut));
 
-        // builds may became non unique because of rece in filtering and acquiring deps
+        // builds may became non unique because of race in filtering and acquiring deps
         final List<Future<Stream<FatBuildCompacted>>> phase3Submitted = secondLevelDeps
                 .map((fatBuild) -> svc.submit(
                         () -> replaceWithRecent(teamcityIgnited, includeLatestRebuild, builds, fatBuild, entryPoints.size())))
