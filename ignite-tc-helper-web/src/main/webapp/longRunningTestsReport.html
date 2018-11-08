@@ -1,0 +1,48 @@
+<html lang="en">
+<head>
+    <title>Apache Ignite Teamcity Bot - Long Running Tests Report</title>
+    <link rel="icon" href="img/leaf-icon-png-7066.png">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="css/style-1.5.css">
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <script src="js/common-1.6.js"></script>
+    <script src="js/long_running-1.0.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            $.getScript("js/long_running-1.0.js", function(data, textStatus, jqxhr){ });
+
+            loadData();
+        });
+
+        function loadData() {
+            var longRunningUrl = "rest/long_running/summary?branch=master";
+
+            $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+
+            $.ajax({
+                url: longRunningUrl,
+
+                success: function(result) {
+                    $("#loadStatus").html("");
+
+                    showData(result);
+                },
+
+                error: showErrInLoadStatus
+            });
+        }
+
+        function showData(result) {
+            $("#divLongRunningSummary").html(showLongRunningTestsSummary(result));
+        }
+    </script>
+</head>
+<body>
+    <div id="loadStatus"></div>
+    <div id="divLongRunningSummary"></div>
+</body>
+</html>

@@ -375,3 +375,26 @@ function tryToFillAutocompleteLists() {
         }
     }
 }
+
+/**
+* Inits "More/Hide" UI element allowing to show/hide blocks of additional info.
+*/
+function initMoreInfo() {
+    var header = $(".header");
+
+    header.unbind("click");
+    header.click(function() {
+        $header = $(this);
+        //getting the next element
+        $content = $header.next();
+        //open up the content needed, toggle the slide: slide up if visible, slide down if not.
+        $content.slideToggle(500, function() {
+            //execute this after slideToggle is done
+            //change text of header based on visibility of content div
+            $header.text(function() {
+                //change text based on condition
+                return $content.is(":visible") ? "Hide <<" : "More >>";
+            });
+        });
+    });
+}

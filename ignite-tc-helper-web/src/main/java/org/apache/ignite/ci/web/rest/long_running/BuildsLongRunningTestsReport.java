@@ -16,8 +16,6 @@
  */
 package org.apache.ignite.ci.web.rest.long_running;
 
-import java.util.ArrayList;
-import java.util.List;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -26,12 +24,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.long_running.FullLRTestsSummary;
-import org.apache.ignite.ci.web.model.long_running.SuiteLRTestsSummary;
 import org.jetbrains.annotations.Nullable;
 
 @Path(BuildsLongRunningTestsReport.LONG_RUNNING_SUMMARY)

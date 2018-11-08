@@ -101,7 +101,7 @@ function showChainCurrentStatusData(server, settings) {
     res += " </a>";
     res += "] ";
     res += "[";
-    res += "<a href='longRunningAll.html?branch=master'>";
+    res += "<a href='longRunningTestsReport.html'>";
     res += "long running tests report"
     res += "</a>";
     res += "]"
@@ -976,25 +976,4 @@ function drawLatestRunsBlock(state, len) {
         runColor = "black";
 
     return "<span style='background-color: " + runColor + "; width:" + (len * 1) + "px; height:10px; display: inline-block;'></span>";
-}
-
-
-function initMoreInfo() {
-    var header = $(".header");
-
-    header.unbind("click");
-    header.click(function() {
-        $header = $(this);
-        //getting the next element
-        $content = $header.next();
-        //open up the content needed - toggle the slide- if visible, slide up, if not slidedown.
-        $content.slideToggle(500, function() {
-            //execute this after slideToggle is done
-            //change text of header based on visibility of content div
-            $header.text(function() {
-                //change text based on condition
-                return $content.is(":visible") ? "Hide <<" : "More >>";
-            });
-        });
-    });
 }

@@ -19,6 +19,7 @@ package org.apache.ignite.ci.tcbot.chain;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +51,7 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
-import org.apache.ignite.ci.web.model.long_running.FullLRTestsSummary;
+import org.apache.ignite.ci.web.model.long_running.LRTest;
 import org.apache.ignite.ci.web.model.long_running.SuiteLRTestsSummary;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -70,8 +71,15 @@ public class BuildChainProcessor {
     /** Compactor. */
     @Inject private IStringCompactor compactor;
 
+    /**
+     * Collects data about all long-running tests (run time more than one minute) across all suites in RunAll chain
+     * in master branch.
+     *
+     * @param teamcityIgnited interface to TC bot database.
+     * @param entryPoints
+     * @return list of summaries about individual suite runs.
+     */
     public List<SuiteLRTestsSummary> loadLongRunningTestsSummary(
-        IAnalyticsEnabledTeamcity teamcity,
         ITeamcityIgnited teamcityIgnited,
         Collection<BuildRef> entryPoints
     ) {
@@ -95,7 +103,49 @@ public class BuildChainProcessor {
             .stream()
             .flatMap(fut -> FutureUtil.getResult(fut));
 
-        depsFirstLevel.forEach(b -> res.add(new SuiteLRTestsSummary(b.buildTypeName(compactor), b.getTestsCount())));
+        depsFirstLevel
+            .filter(b -> !b.isComposite() && b.getTestsCount() > 0)
+            .forEach(b ->
+            {
+                List<LRTest> lrTests = new ArrayList<>();
+
+                b.getAllTests()
+                    .filter(t -> t.getDuration() > 60 * 1000)
+                    .forEach(
+                        t -> lrTests
+                            .add(new LRTest(t.testName(compactor), t.getDuration(), null))
+                    );
+
+                if (!lrTests.isEmpty()) {
+                    Collections.sort(lrTests, (test0, test1) -> {
+                        long t0 = test0.time;
+                        long t1 = test1.time;
+
+                        if (t0 < t1)
+                            return 1;
+
+                        if (t0 == t1)
+                            return 0;
+
+                        return -1;
+                    });
+
+                    res.add(
+                        new SuiteLRTestsSummary(b.buildTypeName(compactor),
+                            b.buildDuration(compactor) / b.getTestsCount(),
+                            lrTests));
+                }
+            });
+
+        Collections.sort(res, (s0, s1) -> {
+            if (s0.testAvgTime < s1.testAvgTime)
+                return 1;
+
+            if (s0.testAvgTime == s1.testAvgTime)
+                return 0;
+
+            return -1;
+        });
 
         return res;
     }

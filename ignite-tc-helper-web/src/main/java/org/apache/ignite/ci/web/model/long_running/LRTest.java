@@ -16,27 +16,24 @@
  */
 package org.apache.ignite.ci.web.model.long_running;
 
-import java.util.List;
-
 import static org.apache.ignite.ci.util.TimeUtil.millisToDurationPrintable;
 
 /**
  *
  */
-@SuppressWarnings("WeakerAccess")
-public class SuiteLRTestsSummary {
+public class LRTest {
     public String name;
 
-    public long testAvgTime;
+    public long time;
 
-    public String testAvgTimePrintable;
+    public String timePrintable;
 
-    public List<LRTest> tests;
+    public String webLink;
 
-    public SuiteLRTestsSummary(String name, long testAvgTime, List<LRTest> tests) {
+    public LRTest(String name, long time, String webLink) {
         this.name = name;
-        this.testAvgTime = testAvgTime;
-        testAvgTimePrintable = millisToDurationPrintable(testAvgTime);
-        this.tests = tests;
+        this.time = time;
+        timePrintable = millisToDurationPrintable(time);
+        this.webLink = webLink;
     }
 }
