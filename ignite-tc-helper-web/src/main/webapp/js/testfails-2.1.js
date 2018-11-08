@@ -693,11 +693,11 @@ function showSuiteData(suite, settings) {
  * @returns {boolean} True - if test is new. False - otherwise.
  */
 function isNewFailedTest(testFail) {
-    if (!isDefinedAndFilled(testFail.histBaseBranch) || !isDefinedAndFilled(testFail.histBaseBranch.latestRuns))
-        return true;
-
     if (isDefinedAndFilled(testFail.webIssueUrl))
         return false;
+
+    if (!isDefinedAndFilled(testFail.histBaseBranch) || !isDefinedAndFilled(testFail.histBaseBranch.latestRuns))
+        return true;
 
     var hist = testFail.histBaseBranch;
 
