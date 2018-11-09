@@ -152,13 +152,15 @@
         <td class="total data 2" id="RunsCount2"></td>
     </tr>
 </table><br>
-<table style="table-layout: fixed" id="testsTable" class="testsTable">
+<table id="testsTable" class="testsTable">
     <tbody>
     <tr>
-        <th class="failedTestsHeader" width="13%">FAILED TESTS</th>
-        <th width="3%"><div class="switch-btn tests"></div></th>
-        <th width="42%"></th>
-        <th width="42%"></th>
+        <th class="testsTableTitleHeader">FAILED TESTS</th>
+        <th class="testsTableBtnHeader"><div class="switch-btn tests"></div></th>
+        <th class="testsTableDataHeader1"></th>
+        <th class="testsTableDataHeader2">Fail-rate treshold:
+            <input id="treshold" class="treshold" type="number" min="0" max="100" value="0" onchange="refreshTests()">%
+        </th>
         </tr>
     </tbody>
 </table>
@@ -175,9 +177,15 @@
 
 <div id="version"></div>
 <script>
+    const FAIL_RATE_DIFF_TRESHOLD = 0.1;
+
     let invalidInclude = false,
         markBuildId = 0,
         testsTrigger = false;
+
+    function refreshTests() {
+        printTests(generateTestsResultsComparison(mergedTestsResults));
+    }
 
     function getDateFewWeeksAgo(numberOfWeeksAgo) {
         let date = new Date();
@@ -351,7 +359,7 @@
         });
     }
 
-    function mergeSuits(results) {
+    function mergeSuites(results) {
         let mergedSuites = new Set();
 
         for (let key of Object.keys(results)) {
@@ -365,19 +373,17 @@
     function printTests(results) {
         $(TESTS_TABLE + " tr:not(:first-child)").remove();
 
-        let markedRow = true;
-
-        for (let suite of mergeSuits(results).sort()) {
+        for (let suite of mergeSuites(results).sort()) {
             let suiteName = suite.split('_').filter((value, index) => index != 0).join('_');
             let testsCntCells = '';
             let testsCells = '';
 
             for (let key of Object.keys(results)) {
                 let obj = results[key];
-                let testLength = !obj.hasOwnProperty(suite) || obj[suite].length == 0 ?
-                    '' : obj[suite].length;
+                let testsCnt = !obj.hasOwnProperty(suite) || Object.keys(obj[suite]).length == 0 ?
+                    '' : Object.keys(obj[suite]).length;
 
-                testsCntCells = testsCntCells + '<td class="testsCntCell"><p id="' + suite + '">' + testLength + '</p></td>';
+                testsCntCells = testsCntCells + '<td class="testsCntCell"><p id="' + suite + '">' + testsCnt + '</p></td>';
 
                 testsCells = testsCells + '<td class="testsCell">' + getSuiteTestsHtml(results, suite, key) + '</td>'
             }
@@ -392,57 +398,68 @@
         }
     }
 
-    function generateCompareTestsResults(results) {
-        let compareTestsResults = {};
+    function generateTestsResultsComparison(results) {
+        let testsResultsComparison = {};
 
         for (let key of  Object.keys(results)) {
-            let uniqueObj = {};
+            let obj = {};
 
             for (let suite of  Object.keys(results[key])) {
-                let allTests = [];
+                let otherTests = {};
 
-                for (let key2 of Object.keys(results)) {
-                    if (key == key2)
+                for (let otherKey of Object.keys(results)) {
+                    if (key == otherKey)
                         continue;
 
-                    allTests = allTests.concat(results[key2][suite]);
+                    otherTests = Object.assign({}, results[otherKey][suite]);
                 }
 
-                let uniqTests = results[key][suite].filter(function(test) {
-                    return allTests.indexOf(test) == -1;
-                });
+                let newFailedTests = {};
 
-                if (uniqTests.length != 0)
-                    uniqueObj[suite] = uniqTests;
+                for (let testName of Object.keys(results[key][suite])) {
+                    let failRate = results[key][suite][testName];
+                    let otherFailRate = otherTests[testName];
+
+                    if ((otherFailRate == null || failRate - otherFailRate > FAIL_RATE_DIFF_TRESHOLD)
+                        && failRate > $('#treshold').val()/100)
+                        newFailedTests[testName] = failRate;
+                }
+
+                if (Object.keys(newFailedTests).length != 0)
+                    obj[suite] = newFailedTests;
             }
 
-            compareTestsResults[key] = uniqueObj;
+            testsResultsComparison[key] = obj;
         }
 
-        return compareTestsResults;
+        return testsResultsComparison;
     }
 
     function getSuiteTestsHtml(results, suite, key) {
-        if (!results[key].hasOwnProperty(suite) || results[key][suite].length == 0)
+        if (!results[key].hasOwnProperty(suite) || Object.keys(results[key][suite]).length == 0)
             return '';
 
-        let res = '<body><div  id="' + suite + key + '"style="cursor: default; margin-left: 10px;">';
+        let res = '<table class="innerTestTable">\n';
 
-        for (let test of results[key][suite].sort()) {
-            let list = test.toString().split(".");
+        for (let testName of Object.keys(results[key][suite]).sort()) {
+            let list = testName.toString().split(".");
 
             if (list.length < 2)
-                list = test.toString().split(":");
+                list = testName.toString().split(":");
 
-            let testName = list.pop();
+            let testMethodName = list.pop();
             let testClass = list.pop();
+            let failRate = results[key][suite][testName];
 
-            res += '<p align="left" title="' + test + '">' + testClass + '.' + testName +
-                '<a href="#" onclick="getTestRef(\'' + test + '\'' + ',\'' + suite + '\'); return false;">' +
-                ' &gt&gt</a>' + '</p>'
+            res += '<tr>' +
+                '<td class="innerTestName"><p title="' + testName + '">' + testClass + '.' + testMethodName + '</p></td>' +
+                '<td class="innerFailRate"><p title="Test\'s fail-rate for corresponding date period">' +
+                Number((failRate * 100).toFixed(1)) + '%</p></td>' +
+                '<td class="innerTcLink"><a href="#" onclick="getTestRef(\'' +
+                testName + '\',\'' + suite + '\'); return false;"> &gt&gt</a></td></tr>';
         }
 
-        res += '</div></body>';
+        res += '</table>';
 
         return res;
     }
@@ -572,7 +589,7 @@
                         printImportantMessage(num, "#ff0000", "Invalid server response. Unable to parse JSON");
                     }
 
-                    printTests(generateCompareTestsResults(mergedTestsResults));
+                    printTests(generateTestsResultsComparison(mergedTestsResults));
                 },
                 error: showErrInLoadStatus,
                 timeout: 1800000
@@ -1004,7 +1021,7 @@
         updateColumn(2);
 
         if (isDefinedAndFilled(mergedTestsResults))
-            printTests(generateCompareTestsResults(mergedTestsResults));
+            printTests(generateTestsResultsComparison(mergedTestsResults));
     }
 
     function multiFormat(date) {

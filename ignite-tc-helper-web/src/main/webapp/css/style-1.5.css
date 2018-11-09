@@ -313,6 +313,8 @@ form li:after
 }
 
 .testsCell {
+	padding-right: 2%;
+	padding-left: 2%;
 	cursor: default;
 	word-wrap: break-word;
 	vertical-align: top;
@@ -337,20 +339,72 @@ form li:after
 }
 
 .testsTable {
+	table-layout: fixed;
 	width: 96%;
 	border-collapse: collapse;
 	margin-left: 2%;
 	margin-right: 2%;
 }
 
-.testsTable tr:nth-child(4n + 2) {
+.innerTestName {
+	width: 85%;
+	padding-right: 2%;
+	vertical-align: middle;
+	text-align: left;
+}
+
+.innerFailRate {
+	width: 10%;
+	vertical-align: middle;
+	text-align: center;
+}
+
+.innerTcLink {
+	width: 5%;
+	vertical-align: middle;
+	text-align: center;
+}
+
+.testsTableBtnHeader {
+	width: 3%;
+	vertical-align: middle;
+}
+
+.testsTableDataHeader1 {
+	width: 42%;
+	vertical-align: middle;
+	text-align: center;
+}
+
+.testsTableDataHeader2 {
+	width: 42%;
+	vertical-align: middle;
+	text-align: right;
+}
+
+.treshold {
+	width: 8%;
+}
+
+.innerTestTable {
+	table-layout: fixed;
+	width: 96%;
+	border-collapse: collapse;
+	margin-left: 2%;
+	margin-right: 2%;
+}
+
+.testsTable tr.testsCntRow:nth-child(4n + 2) {
 	background-color: #fafaff;
 }
 
-.failedTestsHeader {
-	vertical-align: middle;
+.testsTableTitleHeader {
 	text-align: left;
-	padding: 5px
+	width: 13%;
+	vertical-align: middle;
+	padding-left: 5px;
+	padding-bottom: 10px;
+	padding-top: 10px;
 }
 
 td.details-control {
