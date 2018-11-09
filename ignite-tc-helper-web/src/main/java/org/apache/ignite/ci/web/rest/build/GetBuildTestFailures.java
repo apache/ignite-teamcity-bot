@@ -19,10 +19,11 @@ package org.apache.ignite.ci.web.rest.build;
 
 import com.google.common.collect.BiMap;
 import java.text.ParseException;
+import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import com.google.inject.Injector;
-import org.apache.ignite.ci.tcbot.condition.BuildCondition;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
@@ -34,8 +35,6 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
@@ -68,7 +67,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 public class GetBuildTestFailures {
     public static final String BUILD = "build";
     public static final String TEST_FAILURES_SUMMARY_CACHE_NAME = BUILD + "TestFailuresSummary";
-    public static final String BUILDS_STATISTICS_SUMMARY_CACHE_NAME = BUILD + "sStatisticsSummary";
+
     @Context
     private ServletContext ctx;
 
@@ -262,7 +261,12 @@ public class GetBuildTestFailures {
 
         BuildsHistory buildsHist = builder.build();
 
-        buildsHist.initialize(ICredentialsProv.get(req), ctx);
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
+
+        buildsHist.initialize(prov, ctx);
 
         return buildsHist;
     }

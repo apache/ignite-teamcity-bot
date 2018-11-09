@@ -164,7 +164,7 @@ function showChainCurrentStatusData(server, settings) {
 
     if(!isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
         res += "<div class='content'>" + mInfo + "</div></span>";
     }
 
@@ -651,7 +651,7 @@ function showSuiteData(suite, settings) {
 
     if(!isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
         res += "<div class='content'>" + mInfo + "</div></span>";
     }
 
@@ -896,7 +896,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
     if (isDefinedAndFilled(testFail.warnings) && testFail.warnings.length > 0
         && !isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
 
         res += "<div class='content'>";
 

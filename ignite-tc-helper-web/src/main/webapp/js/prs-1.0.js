@@ -27,7 +27,9 @@ function requestTableForServer(srvId, suiteId, element) {
         url: "rest/visa/contributions?serverId=" + srvId,
         success:
             function (result) {
-                showContributionsTable(result, srvId, suiteId)
+                showContributionsTable(result, srvId, suiteId);
+                fillBranchAutocompleteList(result, srvId);
+                setAutocompleteFilter();
             }
     });
 }
@@ -64,7 +66,8 @@ function showContributionsTable(result, srvId, suiteId) {
                 "defaultContent": "",
                 "render": function (data, type, row, meta) {
                     if (type === 'display') {
-                        return "<button>&#x2714; Inspect</button>";
+                        return "<button class='more full green' type='button' id='button_" + row.prNumber +"'>" +
+                            "<b>ᴍᴏʀᴇ</b><i class='fas fa-caret-down'></i></button>";
                     }
                 }
             },
@@ -140,11 +143,13 @@ function showContributionsTable(result, srvId, suiteId) {
         if (row.child.isShown()) {
             // This row is already open - close it
             row.child.hide();
+            $("#button_" + row.data().prNumber).html("<b>ᴍᴏʀᴇ</b><i class='fas fa-caret-down'></i>");
             tr.removeClass('shown');
         }
         else {
             // Open this row
             row.child(formatContributionDetails(row.data(), srvId, suiteId)).show();
+            $("#button_" + row.data().prNumber).html("<b>ʟᴇss&nbsp;</b><i class='fas fa-caret-up'></i>");
             tr.addClass('shown');
         }
     });

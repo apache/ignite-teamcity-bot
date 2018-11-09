@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.condition;
+package org.apache.ignite.ci.teamcity.ignited.buildcondition;
 
 import java.util.Date;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -44,7 +44,7 @@ public class BuildConditionCompacted {
     }
 
     /**
-     * @param compactor Compacter.
+     * @param compactor Compactor.
      * @param cond Build condition.
      */
     public BuildConditionCompacted(IStringCompactor compactor, BuildCondition cond) {

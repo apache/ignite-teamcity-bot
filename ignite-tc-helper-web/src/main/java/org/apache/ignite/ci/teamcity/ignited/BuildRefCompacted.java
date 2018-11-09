@@ -140,7 +140,7 @@ public class BuildRefCompacted {
     }
 
     /** */
-    private int status() {
+    public int status() {
         return status;
     }
 

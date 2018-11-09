@@ -51,9 +51,8 @@ function loadData() {
     $.ajax({
         url: "rest/branches/getServerIds",
         success: function(result) {
-            $("#loadStatus").html("");
-            setupAutocompleteList(result);
             showBuildsOnServers(result);
+            setAutocompleteFilter();
         },
         error: showErrInLoadStatus
     });
@@ -102,17 +101,28 @@ function showFormAndSuitesForPrCheck(result) {
 
 function showBuildsOnServers(result) {
     var res = "";
+
     for (var i = 0; i < result.length; i++) {
-        var serverId = result[i];
+        let srvId = result[i];
         //res+="<a href='pr.html?serverId=private&branchForTc=ignite-gg-12790-1&suiteId=id8xIgniteGridGainTests_RunAll="+id+"'>Check PR</a><br>";
 
         res+="<form action='build.html'>";
-        res+="Server: <input type='text' name='serverId' value=" + serverId +" readonly>" ;
+        res+="Server: <input type='text' name='serverId' value=" + srvId +" readonly>" ;
         res+="Check Logs: <input type='text' name='checkAllLogs' style='width: 20%;' value='true' readonly>" ;
         res+="Build Id: <input type='text' name='buildId' required> ";
         res+="<input type='submit' name='action' value='Check'>";
         res+="</form>";
+
+        $.ajax({
+            url: "rest/visa/contributions?serverId=" + srvId,
+            success:
+                function (result) {
+                    $("#loadStatus").html("");
+                    fillBranchAutocompleteList(result, srvId);
+                }
+        });
     }
+
     $("#buildsCheck").html(res);
 }
 </script>

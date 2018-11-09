@@ -1,3 +1,6 @@
+var more = "<button class='more white short'><i class='fas fa-caret-down'></i></button>";
+var less = "<button class='more white short'><i class='fas fa-caret-up'></i></button>";
+
 function isDefinedAndFilled(val) {
     return typeof val !== 'undefined' && val != null
 }
@@ -127,9 +130,12 @@ function showMenu(menuData) {
     } else {
         res += "<div class=\"navbar\">";
         res += "<a href=\"/\">Home</a>";
-        res += "<a href=\"/compare.html\">Compare builds</a>";
         res += "<a href=\"/prs.html\">PR/Branch check</a>";
+        res += "<a href=\"/guard.html\">Test status</a>";
         res += "<a href=\"/comparison.html\">Master Trends</a>";
+        res += "<a href=\"/compare.html\">Compare builds</a>";
+        res += "<a href=\"/issues.html\">Issues history</a>";
+        //uncomment when Visa history is merged: res += "<a href=\"/visas.html\">Visas history</a>";
 
 
         res += "<div class='topnav-right'>";
@@ -272,93 +278,27 @@ var gitUrls = new Map();
 var branchesForTc = {};
 
 /**
- * Fill git URLs and send requests to them.
+ * Fill autocomplete lists for the fields branchForTc.
  *
- * @param srvIds - Set of server IDs.
+ * @param result List of ContributionToCheck.
+ * @param srvId Server id.
  */
-function setupAutocompleteList(srvIds) {
-    for (let srvId of srvIds)
-        gitUrls.set(srvId, "");
-
-    setAutocompleteFilter();
-
-    startFillAutocompleteListsProcess();
-}
-
-/**
- * Retrieves recent PR numbers and fills autocomplete lists for the fields branchForTc.
- */
-function startFillAutocompleteListsProcess() {
-    _receiveIntegrationUrls();
-}
-
-/**
- * Receive api links for the servers.
- *
- * @private
- */
-function _receiveIntegrationUrls() {
-    var url = "rest/build/integrationUrls?serverIds=";
-
-    for (let key of gitUrls.keys())
-        url += key + ",";
-
-    $.ajax({
-        url: url,
-        success: function (result) {
-            _fillGitUrls(result);
-            _sendRequestsToFillAutocompleteLists();
-        }
-    });
-}
-
-/**
- * Fill git api URLs.
- *
- * @param result Array of ServerIntegrationLinks.
- *
- * @private
- */
-function _fillGitUrls(result) {
-    for (let links of result)
-        gitUrls.set(links.srvId, links.gitApiUrl);
-}
-
-/**
- * Send requests to the git to get pull requests for the branch autocomplete lists.
- *
- * @private
- */
-function _sendRequestsToFillAutocompleteLists() {
-    for (var entry of gitUrls.entries()) {
-        if (entry[1])
-            scriptRequest(entry[1] + "pulls?sort=updated&direction=desc", _fillBranchAutocompleteList);
-    }
-}
-
-/**
- * Takes all "branchForTc<server>" and add autocomplete list to them.
- *
- * @param result Response from git.
- */
-function _fillBranchAutocompleteList(result) {
-    if (!result.data || !result.data[0])
+function fillBranchAutocompleteList(result, srvId) {
+    if (!isDefinedAndFilled(result))
         return;
 
-    for (var entry of gitUrls.entries()) {
-        if (!result.data[0].url.startsWith(entry[1]))
-            continue;
+    if (!isDefinedAndFilled(gitUrls.get(srvId)))
+        gitUrls.set(srvId, "");
 
-        branchesForTc[entry[0]] = [{label:"master", value:"refs/heads/master"}];
+    branchesForTc[srvId] = [{label:"master", value:"refs/heads/master"}];
 
-        for (let pr of result.data) {
-            branchesForTc[entry[0]].push({label: pr.number + " " + pr.title, value: "pull/" + pr.number + "/head"});
-            branchesForTc[entry[0]].push({label: "pull/" + pr.number + "/head " + pr.title,
-                value: "pull/" + pr.number + "/head"});
-        }
-
-        $(".branchForTc" + entry[0]).autocomplete({source: branchesForTc[entry[0]]});
+    for (let pr of result) {
+        branchesForTc[srvId].push({label: pr.prNumber + " " + pr.prTitle, value: "pull/" + pr.prNumber + "/head"});
+        branchesForTc[srvId].push({label: "pull/" + pr.prNumber + "/head " + pr.prTitle,
+            value: "pull/" + pr.prNumber + "/head"});
     }
+
+    $(".branchForTc" + srvId).autocomplete({source: branchesForTc[srvId]});
 }
 
 /**
@@ -391,9 +331,9 @@ function initMoreInfo() {
         $content.slideToggle(500, function() {
             //execute this after slideToggle is done
             //change text of header based on visibility of content div
-            $header.text(function() {
+            $header.html(function() {
                 //change text based on condition
-                return $content.is(":visible") ? "Hide <<" : "More >>";
+                return $content.is(":visible") ? less : more;
             });
         });
     });

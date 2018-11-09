@@ -18,12 +18,13 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 
 import com.google.common.collect.Sets;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.tcbot.condition.BuildCondition;
-import org.apache.ignite.ci.tcbot.condition.BuildConditionDao;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
@@ -43,6 +44,8 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+
+import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
 
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Logger. */
@@ -114,6 +117,153 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @Override public String host() {
         return conn.host();
+    }
+
+    /** {@inheritDoc} */
+    public List<BuildRefCompacted> getFinishedBuildsCompacted(
+        @Nullable String buildTypeId,
+        @Nullable String branchName,
+        @Nullable Date sinceDate,
+        @Nullable Date untilDate) {
+        final int allDatesOutOfBounds = -1;
+        final int someDatesOutOfBounds = -2;
+        final int invalidVal = -3;
+        final int unknownStatus = compactor.getStringId(STATUS_UNKNOWN);
+
+        List<BuildRefCompacted> buildRefs = getBuildHistoryCompacted(buildTypeId, branchName)
+            .stream().filter(b -> b.status() != unknownStatus).collect(Collectors.toList());
+
+        int idSince = 0;
+        int idUntil = buildRefs.size() - 1;
+
+        if (sinceDate != null) {
+            idSince = binarySearchDate(buildRefs, 0, buildRefs.size(), sinceDate, true);
+            idSince = (idSince == someDatesOutOfBounds) ? 0 : idSince;
+        }
+
+        if (untilDate != null) {
+            idUntil = (idSince < 0) ? allDatesOutOfBounds :
+                binarySearchDate(buildRefs, idSince, buildRefs.size(), untilDate, false);
+            idUntil = (idUntil == someDatesOutOfBounds) ? buildRefs.size() - 1 : idUntil;
+        }
+
+        if (idSince == invalidVal || idUntil == invalidVal) {
+            AtomicBoolean stopFilter = new AtomicBoolean();
+            AtomicBoolean addBuild = new AtomicBoolean();
+
+            return buildRefs.stream()
+                .filter(b -> {
+                    if (stopFilter.get())
+                        return addBuild.get();
+
+                    FatBuildCompacted build = getFatBuild(b.id());
+
+                    if (build == null || build.isFakeStub())
+                        return false;
+
+                    Date date = build.getStartDate();
+
+                    if (sinceDate != null && untilDate != null)
+                        if ((date.after(sinceDate) || date.equals(sinceDate)) &&
+                            (date.before(untilDate) || date.equals(untilDate)))
+                            return true;
+                        else {
+                            if (date.after(untilDate)) {
+                                stopFilter.set(true);
+                                addBuild.set(false);
+                            }
+
+                            return false;
+                        }
+                    else if (sinceDate != null) {
+                        if (date.after(sinceDate) || date.equals(sinceDate)) {
+                            stopFilter.set(true);
+                            addBuild.set(true);
+
+                            return true;
+                        }
+
+                        return false;
+                    }
+                    else {
+                        if (date.after(untilDate)) {
+                            stopFilter.set(true);
+                            addBuild.set(false);
+
+                            return false;
+                        }
+
+                        return true;
+                    }
+                })
+                .collect(Collectors.toList());
+        } else if (idSince == allDatesOutOfBounds || idUntil == allDatesOutOfBounds)
+            return Collections.emptyList();
+        else
+            return buildRefs.subList(idSince, idUntil + 1);
+    }
+
+    /**
+     * @param buildRefs Build refs list.
+     * @param fromIdx From index.
+     * @param toIdx To index.
+     * @param key Key.
+     * @param since {@code true} If key is sinceDate, {@code false} is untilDate.
+     *
+     * @return {@value >= 0} Build id from list with min interval between key. If since {@code true}, min interval
+     * between key and same day or later. If since {@code false}, min interval between key and same day or earlier;
+     * {@value -1} All dates out of bounds. If sinceDate after last list element date or untilDate before first list
+     * element;
+     * {@value -2} Some dates out of bounds. If sinceDate before first list element or untilDate after last list
+     * element;
+     * {@value -3} Invalid value. If method get null or fake stub build.
+     */
+    private int binarySearchDate(List<BuildRefCompacted> buildRefs, int fromIdx, int toIdx, Date key, boolean since) {
+        final int allDatesOutOfBounds = -1;
+        final int someDatesOutOfBounds = -2;
+        final int invalidVal = -3;
+
+        int low = fromIdx;
+        int high = toIdx - 1;
+        long minDiff = key.getTime();
+        int minDiffId = since ? low : high;
+        long temp;
+
+        FatBuildCompacted highBuild = getFatBuild(buildRefs.get(high).id());
+        FatBuildCompacted lowBuild = getFatBuild(buildRefs.get(low).id());
+
+        if (highBuild != null && !highBuild.isFakeStub()){
+            if (highBuild.getStartDate().before(key))
+                return since ? allDatesOutOfBounds : someDatesOutOfBounds;
+        }
+
+        if (lowBuild != null && !lowBuild.isFakeStub()){
+            if (lowBuild.getStartDate().after(key))
+                return since ? someDatesOutOfBounds : allDatesOutOfBounds;
+        }
+
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            FatBuildCompacted midVal = getFatBuild(buildRefs.get(mid).id());
+
+            if (midVal != null && !midVal.isFakeStub()) {
+                if (midVal.getStartDate().after(key))
+                    high = mid - 1;
+                else if (midVal.getStartDate().before(key))
+                    low = mid + 1;
+                else
+                    return mid;
+
+                temp = midVal.getStartDate().getTime() - key.getTime();
+
+                if ((temp > 0 == since) && (Math.abs(temp) < minDiff)) {
+                    minDiff = Math.abs(temp);
+                    minDiffId = mid;
+                }
+            } else
+                return invalidVal;
+        }
+        return minDiffId;
     }
 
     /** {@inheritDoc} */

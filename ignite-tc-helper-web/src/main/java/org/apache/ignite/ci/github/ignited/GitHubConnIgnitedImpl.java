@@ -52,6 +52,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
     /** Ignite provider. */
     @Inject Provider<Ignite> igniteProvider;
+
     /** Scheduler. */
     @Inject IScheduler scheduler;
 
@@ -93,7 +94,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     }
 
     private void actualizePrs() {
-        runAtualizePrs(srvId, false);
+        runActualizePrs(srvId, false);
 
         // schedule full resync later
         scheduler.invokeLater(this::sheduleResync, 20, TimeUnit.SECONDS);
@@ -111,7 +112,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
      *
      */
     private void fullReindex() {
-        runAtualizePrs(srvId, true);
+        runActualizePrs(srvId, true);
     }
 
     /**
@@ -120,7 +121,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
      */
     @MonitoredTask(name = "Actualize PRs(srv, full resync)", nameExtArgsIndexes = {0, 1})
     @AutoProfiling
-    protected String runAtualizePrs(String srvId, boolean fullReindex) {
+    protected String runActualizePrs(String srvId, boolean fullReindex) {
         AtomicReference<String> outLinkNext = new AtomicReference<>();
 
         List<PullRequest> ghData = conn.getPullRequests(null, outLinkNext);
