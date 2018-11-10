@@ -351,18 +351,21 @@ form li:after
 	padding-right: 2%;
 	vertical-align: middle;
 	text-align: left;
+	word-wrap: break-word;
 }
 
 .innerFailRate {
 	width: 10%;
 	vertical-align: middle;
 	text-align: center;
+	word-wrap: break-word;
 }
 
 .innerTcLink {
 	width: 5%;
 	vertical-align: middle;
 	text-align: center;
+	word-wrap: break-word;
 }
 
 .testsTableBtnHeader {
