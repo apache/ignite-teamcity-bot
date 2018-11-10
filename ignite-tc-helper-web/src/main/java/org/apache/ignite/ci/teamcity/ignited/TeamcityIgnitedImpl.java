@@ -330,14 +330,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         ensureActualizeRequested();
         FatBuildCompacted existingBuild = fatBuildDao.getFatBuild(srvIdMaskHigh, buildId);
 
-        if (existingBuild != null && !existingBuild.isOutdatedEntityVersion()) {
-            boolean finished = !existingBuild.isRunning(compactor) && !existingBuild.isQueued(compactor);
-
-            if(finished || acceptQueued)
-                return existingBuild;
-        }
-
-        FatBuildCompacted savedVer = buildSync.reloadBuild(conn, buildId, existingBuild);
+        FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, acceptQueued);
 
         //build was modified, probably we need also to update reference accordindly
         if (savedVer != null)
