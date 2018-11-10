@@ -216,7 +216,6 @@
     }
 
     const parseTime = d3.timeParse("%d-%m-%YT%H:%M:%S"),
-        formatTime = d3.timeFormat("%d-%m-%Y %H:%M:%S"),
         formatMillisecond = d3.timeFormat(".%L"),
         formatSecond = d3.timeFormat(":%S"),
         formatMinute = d3.timeFormat("%H:%M"),
@@ -544,13 +543,13 @@
             $('#' + stat.name + stat.num).html(stat.min + " - " + stat.median +  " - " + stat.max);
 
         compareAndHighlight(stat);
+    }
 
-        function time(s) {
-            let h = parseInt(s / 3600),
-                m = parseInt((s % 3600) / 60);
+    function time(s) {
+        let h = parseInt(s / 3600),
+            m = parseInt((s % 3600) / 60);
 
-            return h + ":" + ((m < 10) ? "0" : "") + m;
-        }
+        return h + ":" + ((m < 10) ? "0" : "") + m;
     }
 
     function fillNameForTotalColumn(num, title) {
@@ -699,7 +698,7 @@
             height = 200 - margin.top - margin.bottom,
             g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        let buildDate = d3.select("body").append("div").attr("class", "tooltip buildDate").style("opacity", 0),
+        let value = d3.select("body").append("div").attr("class", "tooltip value").style("opacity", 0),
             condition = d3.select("body").append("div").attr("class", "tooltip condition").style("opacity", 0),
             mark = d3.select("body").append("div").attr("class", "tooltip mark").style("opacity", 0);
 
@@ -773,23 +772,26 @@
                 let graphTd = document.getElementById("graph" + fieldName + num).getBoundingClientRect(),
                     scrollTop = window.pageYOffset || document.documentElement.scrollTop,
                     top = scrollTop + graphTd.top + y(d.stat[fieldName + F]) - 10,
-                    partLeft = graphTd.left + x(d.date),
-                    buildDateNearTheBorder = x(d.date) > (440 - 140);
+                    partLeft = graphTd.left + x(d.date) + 44,
+                    minWidth = 18, interval = 8;
 
-                buildDate.html(formatTime(d.date))
-                    .style("left", partLeft + (buildDateNearTheBorder ? -99 : 49) + "px")
+                value.html('&nbsp;' + (isDuration ? time(d.stat[fieldName]) : d.stat[fieldName]) + '&nbsp;');
+
+                let valueWidth = parseInt(value.style("width"));
+
+                value.style("left", partLeft - valueWidth / 2 + "px")
                     .style("top", top + "px" ).transition()
                     .duration(200).style("opacity", .8).style("display", "block");
 
                 mark.html('<i class="fas fa-' + (markBuildId === d.buildId ? 'eraser' : 'highlighter') + '"></i>')
-                    .style("left", partLeft + (buildDateNearTheBorder ? 49 : 23) + "px")
+                    .style("left", partLeft + valueWidth / 2 + interval + "px")
                     .style("top", top + "px" )
                     .attr("onclick", "markBuild(" + d.buildId + "); return false;").transition()
                     .duration(200).style("opacity", .8).style("display", "block");
 
                 condition.html('<i class="' + (!d.isValid ? 'fas fa-undo' : 'far fa-trash')
                     + '-alt"></i>')
-                    .style("left", partLeft + (buildDateNearTheBorder ? 75 : -3) + "px")
+                    .style("left", partLeft - minWidth - interval - valueWidth / 2 + "px")
                     .style("top", top + "px" )
                     .attr("onclick", "setCondition(" + num + ", " + d.buildId + ", " +
                         (isDuration ? d.stat[fieldName + F].getTime() / 1000 : d.stat[fieldName + F]) +
@@ -802,8 +804,8 @@
                     .style("fill", null)
                     .attr("r", 3);
 
-                buildDate.transition().duration(2000)
-                    .style("opacity", 0).on("end", function() { buildDate.style("display", "none"); });
+                value.transition().duration(2000)
+                    .style("opacity", 0).on("end", function() { value.style("display", "none"); });
 
                 condition.transition().duration(2000)
                     .style("opacity", 0).on("end", function() { condition.style("display", "none"); });

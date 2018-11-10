@@ -464,8 +464,8 @@ div.tooltip {
 	height: 15px;
 }
 
-.buildDate {
-	width: 140px;
+.value {
+	min-width: 18px;
 	background: #12AD5E;
 }
 
