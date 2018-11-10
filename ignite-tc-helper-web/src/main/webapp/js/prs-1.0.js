@@ -1,6 +1,7 @@
 function drawTable(srvId, suiteId, element) {
 
-    element.append("<table id=\"serverContributions-" +
+    element.append("<div id='expandAllButton' align='right' style='margin-right:50px'></div><br>" +
+        "<table id=\"serverContributions-" +
         srvId + "\" class=\"ui-widget ui-widget-content\">\n" +
         "            <thead>\n" +
         "            <tr class=\"ui-widget-header \">\n" +
@@ -43,6 +44,9 @@ function showContributionsTable(result, srvId, suiteId) {
     let tableForSrv = $('#' + tableId);
 
     tableForSrv.dataTable().fnDestroy();
+
+    if (isDefinedAndFilled(result) && result.length > 0)
+        $("#expandAllButton").html("<button class='more green' id='expandAll'>Expand all</button>");
 
     var table = tableForSrv.DataTable({
         order: [[1, 'desc']],
@@ -133,6 +137,10 @@ function showContributionsTable(result, srvId, suiteId) {
                 }
             }
         ]
+    });
+
+    $('#expandAll').on('click', function () {
+        $('.details-control').click();
     });
 
     // Add event listener for opening and closing details, enable to only btn   'td.details-control'
