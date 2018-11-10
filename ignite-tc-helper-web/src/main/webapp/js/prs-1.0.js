@@ -1,8 +1,8 @@
 function drawTable(srvId, suiteId, element) {
+    let tableId = "serverContributions-" + srvId;
 
     element.append("<div id='expandAllButton' align='right' style='margin-right:50px'></div><br>" +
-        "<table id=\"serverContributions-" +
-        srvId + "\" class=\"ui-widget ui-widget-content\">\n" +
+        "<table id=\"" + tableId + "\" class='ui-widget ui-widget-content'>\n" +
         "            <thead>\n" +
         "            <tr class=\"ui-widget-header \">\n" +
         "                <th>.</th>\n" +
@@ -20,6 +20,11 @@ function drawTable(srvId, suiteId, element) {
 function requestTableForServer(srvId, suiteId, element) {
     // TODO multiple servers
     if (srvId != "apache")
+        return;
+
+    let tableId = "serverContributions-" + srvId;
+
+    if ($("#" + tableId).length > 0)
         return;
 
     drawTable(srvId, suiteId, element);
