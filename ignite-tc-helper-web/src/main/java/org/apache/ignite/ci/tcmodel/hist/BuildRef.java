@@ -55,6 +55,8 @@ public class BuildRef extends AbstractRef {
 
     @XmlAttribute public Boolean composite;
 
+    @XmlAttribute public Boolean failedToStart;
+
     /** Build page URL. */
     @XmlAttribute public String webUrl;
 
@@ -69,7 +71,7 @@ public class BuildRef extends AbstractRef {
         return !hasUnknownStatus();
     }
 
-    private boolean hasUnknownStatus() {
+    public boolean hasUnknownStatus() {
         return STATUS_UNKNOWN.equals(status);
     }
 
@@ -109,6 +111,10 @@ public class BuildRef extends AbstractRef {
      */
     public boolean isComposite() {
         return composite != null && composite;
+    }
+
+    public boolean isFailedToStart() {
+        return failedToStart != null && failedToStart;
     }
 
     /** {@inheritDoc} */
@@ -186,5 +192,10 @@ public class BuildRef extends AbstractRef {
 
     public boolean isRunning() {
         return STATE_RUNNING.equals(state());
+    }
+
+    /** */
+    public boolean isUnknown() {
+        return STATUS_UNKNOWN.equals(status());
     }
 }

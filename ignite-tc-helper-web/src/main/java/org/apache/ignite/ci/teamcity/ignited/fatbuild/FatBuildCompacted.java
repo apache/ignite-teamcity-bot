@@ -129,13 +129,20 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         AtomicBoolean failedToStart = new AtomicBoolean();
 
-        int[] arr = build.getSnapshotDependenciesNonNull().stream()
-            .filter(b -> {
-                if (!(failedToStart.get() || b.isNotCancelled()))
-                    failedToStart.set(true);
+        failedToStart.set(build.isFailedToStart());
 
-                return b.getId() != null;
-            }).mapToInt(BuildRef::getId).toArray();
+        int[] arr = build.getSnapshotDependenciesNonNull()
+                .stream()
+                .peek(b -> {
+                    if (failedToStart.get())
+                        return;
+
+                    if (b.hasUnknownStatus())
+                        failedToStart.set(true);
+                })
+                .filter(b -> b.getId() != null)
+                .mapToInt(BuildRef::getId)
+                .toArray();
 
         snapshotDeps = arr.length > 0 ? arr : null;
 
