@@ -26,14 +26,17 @@ import static org.apache.ignite.ci.analysis.RunStat.RunStatus.RES_OK;
 import static org.apache.ignite.ci.analysis.RunStat.RunStatus.RES_OK_OR_FAILURE;
 
 public class EventTemplates {
+    private static final int OK = RES_OK.getCode();
+    private static final int FAIL = RES_FAILURE.getCode();
+
     public static final EventTemplate newFailure = new EventTemplate(
-            new int[]{RES_OK.getCode(), RES_OK.getCode(), RES_OK.getCode(), RES_OK.getCode(), RES_OK.getCode()},
-            new int[]{RES_FAILURE.getCode(), RES_FAILURE.getCode(), RES_FAILURE.getCode(), RES_FAILURE.getCode()}
+            new int[]{OK, OK, OK, OK, OK},
+            new int[]{FAIL, FAIL, FAIL, FAIL}
     );
 
     public static final EventTemplate fixOfFailure = new EventTemplate(
-            new int[]{RES_FAILURE.getCode(), RES_FAILURE.getCode(), RES_FAILURE.getCode()},
-            new int[]{RES_OK.getCode(), RES_OK.getCode(), RES_OK.getCode(), RES_OK.getCode(), RES_OK.getCode()}
+            new int[]{FAIL, FAIL, FAIL},
+            new int[]{OK, OK, OK, OK, OK}
     );
 
     public static final EventTemplate newCriticalFailure = new EventTemplate(
@@ -43,14 +46,14 @@ public class EventTemplates {
 
     public static final EventTemplate newContributedTestFailure = new EventTemplate(
             new int[]{},
-            new int[]{RES_FAILURE.getCode(), RES_FAILURE.getCode(), RES_FAILURE.getCode(), RES_FAILURE.getCode()}
+            new int[]{FAIL, FAIL, FAIL, FAIL}
     ).setShouldBeFirst(true);
 
     public static final EventTemplate newFailureForFlakyTest = new EventTemplate(
-            new int[]{RES_OK.getCode(), RES_OK.getCode(), RES_OK.getCode(), RES_OK.getCode(), RES_OK.getCode()},
-            new int[]{RES_FAILURE.getCode(), RES_FAILURE.getCode(), RES_FAILURE.getCode(),
-                    RES_FAILURE.getCode(), RES_FAILURE.getCode(), RES_FAILURE.getCode(),
-                    RES_FAILURE.getCode(), RES_FAILURE.getCode()}
+            new int[]{OK, OK, OK, OK, OK},
+            new int[]{FAIL, FAIL, FAIL,
+                    FAIL, FAIL, FAIL,
+                    FAIL, FAIL}
     );
 
     public static ArrayList<EventTemplate> templates;

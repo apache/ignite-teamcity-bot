@@ -501,19 +501,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return configurations.setBuild(key.getBuildId());
     }
 
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public Change getChange(String href) {
-        return getJaxbUsingHref(href, Change.class);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public ChangesList getChangesList(String href) {
-        return getJaxbUsingHref(href, ChangesList.class);
-    }
-
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public IssuesUsagesList getIssuesUsagesList(String href) { return getJaxbUsingHref(href, IssuesUsagesList.class); }

@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.model;
 
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -34,14 +34,14 @@ public class CompactVisa {
     public final int blockers;
 
     /** */
-    public CompactVisa(Visa visa, IgniteStringCompactor strCompactor) {
+    public CompactVisa(Visa visa, IStringCompactor strCompactor) {
         this.status = strCompactor.getStringId(visa.status);
         this.blockers = visa.blockers;
         this.jiraCommentRes = visa.getJiraCommentResponse();
     }
 
     /** */
-    public Visa toVisa(IgniteStringCompactor strCompactor) {
+    public Visa toVisa(IStringCompactor strCompactor) {
         return new Visa(strCompactor.getStringFromId(status), jiraCommentRes, blockers);
     }
 }

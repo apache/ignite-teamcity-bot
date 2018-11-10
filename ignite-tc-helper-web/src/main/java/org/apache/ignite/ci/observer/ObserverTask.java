@@ -33,7 +33,7 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
@@ -63,7 +63,7 @@ public class ObserverTask extends TimerTask {
     @Inject private VisasHistoryStorage visasHistoryStorage;
 
     /** */
-    @Inject private IgniteStringCompactor strCompactor;
+    @Inject private IStringCompactor strCompactor;
 
     /**
      */

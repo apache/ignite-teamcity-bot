@@ -22,7 +22,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
+
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
  *
@@ -50,7 +51,7 @@ public class CompactBuildsInfo {
     private final Map<Integer, Boolean> finishedBuilds = new HashMap<>();
 
     /** */
-    public CompactBuildsInfo(BuildsInfo buildsInfo, IgniteStringCompactor strCompactor) {
+    public CompactBuildsInfo(BuildsInfo buildsInfo, IStringCompactor strCompactor) {
         this.userName = strCompactor.getStringId(buildsInfo.userName);
         this.date = buildsInfo.date;
         this.srvId = strCompactor.getStringId(buildsInfo.srvId);
@@ -66,7 +67,7 @@ public class CompactBuildsInfo {
     }
 
     /** */
-    public BuildsInfo toBuildInfo(IgniteStringCompactor compactor) {
+    public BuildsInfo toBuildInfo(IStringCompactor compactor) {
         return new BuildsInfo(this, compactor);
     }
 

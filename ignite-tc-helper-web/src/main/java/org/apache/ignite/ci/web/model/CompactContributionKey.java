@@ -18,7 +18,8 @@
 package org.apache.ignite.ci.web.model;
 
 import java.util.Objects;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
+
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
  *
@@ -34,7 +35,7 @@ public class CompactContributionKey {
     public final int branchForTc;
 
     /** */
-    public CompactContributionKey(ContributionKey key, IgniteStringCompactor strCompactor) {
+    public CompactContributionKey(ContributionKey key, IStringCompactor strCompactor) {
         this.branchForTc = strCompactor.getStringId(key.branchForTc);
         this.srvId = strCompactor.getStringId(key.srvId);
         this.ticket = strCompactor.getStringId(key.ticket);

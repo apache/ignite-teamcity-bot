@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web.model;
 
 import org.apache.ignite.ci.observer.CompactBuildsInfo;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
  *
@@ -31,14 +31,14 @@ public class CompactVisaRequest {
     public final CompactBuildsInfo compactInfo;
 
     /** */
-    public CompactVisaRequest(VisaRequest visaReq, IgniteStringCompactor strCompactor) {
+    public CompactVisaRequest(VisaRequest visaReq, IStringCompactor strCompactor) {
         compactInfo = new CompactBuildsInfo(visaReq.getInfo(), strCompactor);
 
         compactVisa = new CompactVisa(visaReq.getResult(), strCompactor);
     }
 
     /** */
-    public VisaRequest toVisaRequest(IgniteStringCompactor strCompactor) {
+    public VisaRequest toVisaRequest(IStringCompactor strCompactor) {
         return new VisaRequest(compactInfo.toBuildInfo(strCompactor)).setResult(compactVisa.toVisa(strCompactor));
     }
 
