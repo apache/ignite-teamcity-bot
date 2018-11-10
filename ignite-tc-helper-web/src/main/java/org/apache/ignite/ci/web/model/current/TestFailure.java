@@ -235,10 +235,13 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
      * @return {@code True} if this failure is appeared in the current branch.
      */
     public boolean isNewFailedTest() {
-        FailureSummary recent = histBaseBranch.recent;
-
         if (!Strings.isNullOrEmpty(webIssueUrl))
             return false;
+
+        if (histBaseBranch.latestRuns == null)
+            return true;
+
+        FailureSummary recent = histBaseBranch.recent;
 
         boolean lowFailureRate = recent != null && recent.failureRate != null &&
             Float.valueOf(recent.failureRate.replace(',', '.')) < 4.;
