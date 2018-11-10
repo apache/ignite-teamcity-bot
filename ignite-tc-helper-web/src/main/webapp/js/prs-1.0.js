@@ -22,6 +22,10 @@ function requestTableForServer(srvId, suiteId, element) {
     if (srvId != "apache")
         return;
 
+    // TODO multiple suites
+    if (suiteId != "IgniteTests24Java8_RunAll")
+        return;
+
     let tableId = "serverContributions-" + srvId;
 
     if ($("#" + tableId).length > 0)
