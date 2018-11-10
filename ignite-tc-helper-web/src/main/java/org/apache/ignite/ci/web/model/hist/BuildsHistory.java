@@ -73,7 +73,7 @@ public class BuildsHistory {
     private Date untilDateFilter;
 
     /** */
-    private Map<String, Set<String>> mergedTestsBySuites = new ConcurrentHashMap<>();
+    private Map<String, Map<String, Float>> mergedTestsBySuites = new ConcurrentHashMap<>();
 
     /** */
     private boolean skipTests;
@@ -88,14 +88,14 @@ public class BuildsHistory {
     private static final Logger logger = LoggerFactory.getLogger(BuildsHistory.class);
 
     /** */
-    public void initialize(ICredentialsProv prov, ServletContext context) {
-        final IStringCompactor compactor = CtxListener.getInjector(context).getInstance(IStringCompactor.class);
+    public void initialize(ICredentialsProv prov, ServletContext ctx) {
+       final IStringCompactor compactor = CtxListener.getInjector(ctx).getInstance(IStringCompactor.class);
 
-        ITcHelper tcHelper = CtxListener.getTcHelper(context);
+        ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
 
         ITeamcity teamcity = tcHelper.server(srvId, prov);
 
-        ITeamcityIgnitedProvider tcIgnitedProv = CtxListener.getInjector(context)
+        ITeamcityIgnitedProvider tcIgnitedProv = CtxListener.getInjector(ctx)
             .getInstance(ITeamcityIgnitedProvider.class);
 
         ITeamcityIgnited ignitedTeamcity = tcIgnitedProv.server(srvId, prov);
@@ -118,10 +118,10 @@ public class BuildsHistory {
         if (!skipTests)
             initFailedTests(teamcity, validBuilds);
 
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objMapper = new ObjectMapper();
 
         try {
-            mergedTestsJson = objectMapper.writeValueAsString(mergedTestsBySuites);
+            mergedTestsJson = objMapper.writeValueAsString(mergedTestsBySuites);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -133,7 +133,7 @@ public class BuildsHistory {
         List<Future<BuildStatisticsSummary>> buildStaticsFutures = new ArrayList<>();
 
         for (int buildId : buildIdsWithConditions.keySet()) {
-            Future<BuildStatisticsSummary> buildFuture = CompletableFuture.supplyAsync(() -> {
+            Future<BuildStatisticsSummary> buildFut = CompletableFuture.supplyAsync(() -> {
                 BuildStatisticsSummary buildsStatistic = new BuildStatisticsSummary(buildId);
                 buildsStatistic.isValid = buildIdsWithConditions.get(buildId);
                 buildsStatistic.initialize(compactor, ignited);
@@ -141,7 +141,7 @@ public class BuildsHistory {
                 return buildsStatistic;
             }, teamcity.getExecutor());
 
-            buildStaticsFutures.add(buildFuture);
+            buildStaticsFutures.add(buildFut);
         }
 
         buildStaticsFutures.forEach(new Consumer <Future<BuildStatisticsSummary>>() {
@@ -192,7 +192,7 @@ public class BuildsHistory {
         List<Future<Void>> buildProcessorFutures = new ArrayList<>();
 
         for (int buildId : buildIds) {
-            Future<Void> buildFuture = CompletableFuture.supplyAsync(() -> {
+            Future<Void> buildFut = CompletableFuture.supplyAsync(() -> {
                 Map<Integer, String> configurations = getConfigurations(teamcity, buildId);
 
                 Build build = teamcity.getBuild(teamcity.getBuildHrefById(buildId));
@@ -206,26 +206,31 @@ public class BuildsHistory {
                     if(configurationName == null)
                         continue;
 
-                    Set<String> tests = mergedTestsBySuites.computeIfAbsent(configurationName,
-                        k -> new HashSet<>());
+                    Map<String, Float> tests = mergedTestsBySuites.computeIfAbsent(configurationName,
+                        k -> new HashMap<>());
 
-                    if (!tests.add(testOccurrence.getName()))
-                        continue;
+                    String testName = testOccurrence.getName();
 
-                    FullQueryParams key = new FullQueryParams();
+                    if (!tests.containsKey(testName)) {
+                        tests.put(testName, 0F);
 
-                    key.setServerId(srvId);
-                    key.setProjectId(projectId);
-                    key.setTestName(testOccurrence.getName());
-                    key.setSuiteId(configurationName);
+                        FullQueryParams key = new FullQueryParams();
 
-                    teamcity.getTestRef(key);
+                        key.setServerId(srvId);
+                        key.setProjectId(projectId);
+                        key.setTestName(testOccurrence.getName());
+                        key.setSuiteId(configurationName);
+
+                        teamcity.getTestRef(key);
+                    }
+
+                    tests.put(testName, tests.get(testName) + 1F / buildIds.size());
                 }
 
                 return null;
             }, teamcity.getExecutor());
 
-            buildProcessorFutures.add(buildFuture);
+            buildProcessorFutures.add(buildFut);
         }
 
         buildProcessorFutures.forEach(v -> {
