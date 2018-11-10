@@ -187,4 +187,9 @@ public class BuildRef extends AbstractRef {
     public boolean isRunning() {
         return STATE_RUNNING.equals(state());
     }
+
+    /** */
+    public boolean isUnknown() {
+        return STATUS_UNKNOWN.equals(status());
+    }
 }
