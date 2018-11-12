@@ -19,6 +19,7 @@ package org.apache.ignite.ci.tcbot.chain;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,8 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
+import org.apache.ignite.ci.web.model.long_running.LRTest;
+import org.apache.ignite.ci.web.model.long_running.SuiteLRTestsSummary;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -67,6 +70,85 @@ public class BuildChainProcessor {
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
+
+    /**
+     * Collects data about all long-running tests (run time more than one minute) across all suites in RunAll chain
+     * in master branch.
+     *
+     * @param teamcityIgnited interface to TC bot database.
+     * @param entryPoints
+     * @return list of summaries about individual suite runs.
+     */
+    public List<SuiteLRTestsSummary> loadLongRunningTestsSummary(
+        ITeamcityIgnited teamcityIgnited,
+        Collection<BuildRef> entryPoints
+    ) {
+        final List<SuiteLRTestsSummary> res = new ArrayList<>();
+
+        if (entryPoints.isEmpty())
+            return res;
+
+        Map<Integer, FatBuildCompacted> builds = new ConcurrentHashMap<>();
+
+        final Stream<FatBuildCompacted> entryPointsFatBuilds = entryPoints.stream().map(BuildRef::getId)
+            .filter(Objects::nonNull)
+            .filter(id -> !builds.containsKey(id)) //load and propagate only new entry points
+            .map(id -> builds.computeIfAbsent(id, teamcityIgnited::getFatBuild));
+
+        final ExecutorService svc = tcUpdatePool.getService();
+
+        final Stream<FatBuildCompacted> depsFirstLevel = entryPointsFatBuilds
+            .map(ref -> svc.submit(() -> dependencies(teamcityIgnited, builds, ref)))
+            .collect(Collectors.toList())
+            .stream()
+            .flatMap(fut -> FutureUtil.getResult(fut));
+
+        depsFirstLevel
+            .filter(b -> !b.isComposite() && b.getTestsCount() > 0)
+            .forEach(b ->
+            {
+                List<LRTest> lrTests = new ArrayList<>();
+
+                b.getAllTests()
+                    .filter(t -> t.getDuration() > 60 * 1000)
+                    .forEach(
+                        t -> lrTests
+                            .add(new LRTest(t.testName(compactor), t.getDuration(), null))
+                    );
+
+                if (!lrTests.isEmpty()) {
+                    Collections.sort(lrTests, (test0, test1) -> {
+                        long t0 = test0.time;
+                        long t1 = test1.time;
+
+                        if (t0 < t1)
+                            return 1;
+
+                        if (t0 == t1)
+                            return 0;
+
+                        return -1;
+                    });
+
+                    res.add(
+                        new SuiteLRTestsSummary(b.buildTypeName(compactor),
+                            b.buildDuration(compactor) / b.getTestsCount(),
+                            lrTests));
+                }
+            });
+
+        Collections.sort(res, (s0, s1) -> {
+            if (s0.testAvgTime < s1.testAvgTime)
+                return 1;
+
+            if (s0.testAvgTime == s1.testAvgTime)
+                return 0;
+
+            return -1;
+        });
+
+        return res;
+    }
 
     /**
      * @param teamcity Teamcity.
@@ -111,7 +193,7 @@ public class BuildChainProcessor {
                 .stream()
                 .flatMap(fut -> FutureUtil.getResult(fut));
 
-        // builds may became non unique because of rece in filtering and acquiring deps
+        // builds may became non unique because of race in filtering and acquiring deps
         final List<Future<Stream<FatBuildCompacted>>> phase3Submitted = secondLevelDeps
                 .map((fatBuild) -> svc.submit(
                         () -> replaceWithRecent(teamcityIgnited, includeLatestRebuild, builds, fatBuild, entryPoints.size())))

@@ -1,3 +1,6 @@
+var more = "<button class='more white short'><i class='fas fa-caret-down'></i></button>";
+var less = "<button class='more white short'><i class='fas fa-caret-up'></i></button>";
+
 function isDefinedAndFilled(val) {
     return typeof val !== 'undefined' && val != null
 }
@@ -312,4 +315,27 @@ function tryToFillAutocompleteLists() {
                 field.autocomplete({source: branchesForTc[entry[0]]});
         }
     }
+}
+
+/**
+* Inits "More/Hide" UI element allowing to show/hide blocks of additional info.
+*/
+function initMoreInfo() {
+    var header = $(".header");
+
+    header.unbind("click");
+    header.click(function() {
+        $header = $(this);
+        //getting the next element
+        $content = $header.next();
+        //open up the content needed, toggle the slide: slide up if visible, slide down if not.
+        $content.slideToggle(500, function() {
+            //execute this after slideToggle is done
+            //change text of header based on visibility of content div
+            $header.html(function() {
+                //change text based on condition
+                return $content.is(":visible") ? less : more;
+            });
+        });
+    });
 }
