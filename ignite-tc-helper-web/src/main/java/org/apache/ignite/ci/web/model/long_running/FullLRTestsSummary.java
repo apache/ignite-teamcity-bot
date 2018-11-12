@@ -14,27 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.web.model.long_running;
 
-package org.apache.ignite.ci.jira;
-
-import org.apache.ignite.ci.web.model.Visa;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
  */
-public interface IJiraIntegration {
-    /** Message to show user when JIRA ticket was successfully commented by the Bot. */
-    public static String JIRA_COMMENTED = "JIRA commented.";
+@SuppressWarnings("WeakerAccess")
+public class FullLRTestsSummary {
+    public List<SuiteLRTestsSummary> suiteSummaries = new ArrayList<>();
 
-    /**
-     * @param srvId TC Server ID to take information about token from.
-     * @param prov Credentials.
-     * @param buildTypeId Suite name.
-     * @param branchForTc Branch for TeamCity.
-     * @param ticket JIRA ticket full name. E.g. IGNITE-5555
-     * @return {@code True} if JIRA was notified.
-     */
-    public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
-        String ticket);
+    public void addSuiteSummaries(List<SuiteLRTestsSummary> summaries) {
+        suiteSummaries.addAll(summaries);
+    }
 }

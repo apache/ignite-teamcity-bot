@@ -6,23 +6,45 @@
         {
           "serverId": "apache",
           "suiteId": "IgniteTests24Java8_RunAll",
+          "branchForRest": "\u003cdefault\u003e"
+        }
+      ]
+    },
+    {
+      "id": "master-nightly",
+      "chains": [
+        {
+          "serverId": "apache",
+          "suiteId": "IgniteTests24Java8_RunAllNightly",
           "branchForRest": "\u003cdefault\u003e",
           "triggerBuild": true,
           "triggerBuildQuietPeriod": 30 //triggering quiet period in minutes
         }
       ]
-    }
-    /* // uncomment it for release monitoring
+    },
     {
       "id": "ignite-2.7",
       "chains": [
         {
           "serverId": "apache",
           "suiteId": "IgniteTests24Java8_RunAll",
-          "branchForRest": "ignite-2.7"
+          "branchForRest": "ignite-2.7",
+          "baseBranchForTc": "\u003cdefault\u003e"
+        }
+      ]
+    },
+    {
+      "id": "ignite-2.7-nightly",
+      "chains": [
+        {
+          "serverId": "apache",
+          "suiteId": "IgniteTests24Java8_RunAllNightly",
+          "branchForRest": "ignite-2.7",
+          "baseBranchForTc": "\u003cdefault\u003e",
+          "triggerBuild": true,
+          "triggerBuildQuietPeriod": 30 //triggering quiet period in minutes
         }
       ]
     }
-    */
   ]
 }

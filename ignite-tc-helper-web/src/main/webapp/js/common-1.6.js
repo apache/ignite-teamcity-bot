@@ -1,3 +1,6 @@
+var more = "<button class='more white short'><i class='fas fa-caret-down'></i></button>";
+var less = "<button class='more white short'><i class='fas fa-caret-up'></i></button>";
+
 function isDefinedAndFilled(val) {
     return typeof val !== 'undefined' && val != null
 }
@@ -127,12 +130,13 @@ function showMenu(menuData) {
     } else {
         res += "<div class=\"navbar\">";
         res += "<a href=\"/\">Home</a>";
-        res += "<a href=\"/prs.html\">PR/Branch check</a>";
-        res += "<a href=\"/guard.html\">Test status</a>";
-        res += "<a href=\"/comparison.html\">Master Trends</a>";
-        res += "<a href=\"/compare.html\">Compare builds</a>";
-        res += "<a href=\"/issues.html\">Issues history</a>";
-        //uncomment when Visa history is merged: res += "<a href=\"/visas.html\">Visas history</a>";
+        res += "<a href=\"/prs.html\" title='PR or branch check'>PR Check</a>";
+        res += "<a href=\"/guard.html\" title='Monitoring: Current test failures in tracked Branches'>Test Status</a>";
+        res += "<a href=\"/comparison.html\" title='Monitoring: Test failures trends and graphs'>Master Trends</a>";
+        res += "<a href=\"/longRunningTestsReport.html\" title='Monitoring: Long running tests report''>Test Durations</a>";
+        res += "<a href=\"/compare.html\" title='Compare builds tests test'>Compare builds</a>";
+        res += "<a href=\"/issues.html\" title='Detected issues list'>Issues history</a>";
+        res += "<a href=\"/visas.html\" title='Issued TC Bot Visa history'>Visas history</a>";
 
 
         res += "<div class='topnav-right'>";
@@ -311,4 +315,27 @@ function tryToFillAutocompleteLists() {
                 field.autocomplete({source: branchesForTc[entry[0]]});
         }
     }
+}
+
+/**
+* Inits "More/Hide" UI element allowing to show/hide blocks of additional info.
+*/
+function initMoreInfo() {
+    var header = $(".header");
+
+    header.unbind("click");
+    header.click(function() {
+        $header = $(this);
+        //getting the next element
+        $content = $header.next();
+        //open up the content needed, toggle the slide: slide up if visible, slide down if not.
+        $content.slideToggle(500, function() {
+            //execute this after slideToggle is done
+            //change text of header based on visibility of content div
+            $header.html(function() {
+                //change text based on condition
+                return $content.is(":visible") ? less : more;
+            });
+        });
+    });
 }

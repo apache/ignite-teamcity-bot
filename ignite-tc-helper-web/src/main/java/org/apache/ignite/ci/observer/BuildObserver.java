@@ -23,6 +23,8 @@ import java.util.Timer;
 import javax.inject.Inject;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.VisaRequest;
+import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 
 /**
  *
@@ -36,6 +38,9 @@ public class BuildObserver {
 
     /** Task, which should be done periodically. */
     private ObserverTask observerTask;
+
+    /** Visas History Storage. */
+    @Inject private VisasHistoryStorage visasStorage;
 
     /**
      */
@@ -58,10 +63,15 @@ public class BuildObserver {
     /**
      * @param srvId Server id.
      * @param prov Credentials.
+     * @param branchForTc Branch for TC.
      * @param ticket JIRA ticket name.
      */
-    public void observe(String srvId, ICredentialsProv prov, String ticket, Build... builds) {
-        observerTask.addBuild(new BuildsInfo(srvId, prov, ticket, builds));
+    public void observe(String srvId, ICredentialsProv prov, String ticket, String branchForTc, Build... builds) {
+        BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, branchForTc, builds);
+
+        visasStorage.put(new VisaRequest(buildsInfo));
+
+        observerTask.addInfo(buildsInfo);
     }
 
     /**
@@ -70,10 +80,11 @@ public class BuildObserver {
      */
     public String getObservationStatus(String srvId, String branch) {
         StringBuilder sb = new StringBuilder();
-        Collection<BuildsInfo> builds = observerTask.getBuilds();
+
+        Collection<BuildsInfo> builds = observerTask.getInfos();
 
         for (BuildsInfo bi : builds) {
-            if (Objects.equals(bi.branchName, branch)
+            if (Objects.equals(bi.branchForTc, branch)
                 && Objects.equals(bi.srvId, srvId)) {
                 sb.append(bi.ticket).append(" to be commented, waiting for builds. ");
                 sb.append(bi.finishedBuildsCount());

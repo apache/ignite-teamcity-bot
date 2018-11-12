@@ -15,26 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.jira;
-
-import org.apache.ignite.ci.web.model.Visa;
-import org.apache.ignite.ci.user.ICredentialsProv;
+package org.apache.ignite.ci.web.model;
 
 /**
  *
  */
-public interface IJiraIntegration {
-    /** Message to show user when JIRA ticket was successfully commented by the Bot. */
-    public static String JIRA_COMMENTED = "JIRA commented.";
+public class ContributionKey {
+    /** */
+    public final String srvId;
 
-    /**
-     * @param srvId TC Server ID to take information about token from.
-     * @param prov Credentials.
-     * @param buildTypeId Suite name.
-     * @param branchForTc Branch for TeamCity.
-     * @param ticket JIRA ticket full name. E.g. IGNITE-5555
-     * @return {@code True} if JIRA was notified.
-     */
-    public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
-        String ticket);
+    /** */
+    public final String ticket;
+
+    /** */
+    public final String branchForTc;
+
+    /** */
+    public ContributionKey(String srvId, String ticket, String branchForTc) {
+        this.branchForTc = branchForTc;
+        this.srvId = srvId;
+        this.ticket = ticket;
+    }
 }

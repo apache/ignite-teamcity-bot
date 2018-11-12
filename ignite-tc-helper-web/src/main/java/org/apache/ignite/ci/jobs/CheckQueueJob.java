@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.HelperConfig;
@@ -101,29 +103,31 @@ public class CheckQueueJob implements Runnable {
             return msg;
         }
 
-        String branch = FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME;
-
         //todo support several branches
-        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branch);
+        List<BranchTracked> tracked = HelperConfig.getTrackedBranches().getBranches();
 
-        if (tracked == null || tracked.getChains() == null || tracked.getChains().isEmpty()) {
-            final String msg = "Background check queue skipped - no config specified for ";
-            logger.info(msg + "\"{}\".", branch);
+        if (tracked == null || tracked.isEmpty()) {
+            final String msg = "Background check queue skipped - no config set for tracked branches.";
+            logger.info(msg);
 
-            return msg + branch;
+            return msg;
         }
 
         int srvsChecked = 0, chainsChecked = 0;
 
-        Map<String, List<ChainAtServerTracked>> chainsBySrv = mapChainsByServer(tracked.getChains());
+        Map<String, List<ChainAtServerTracked>> chainsBySrv = mapChainsByServer(tracked);
 
         for (Map.Entry<String, List<ChainAtServerTracked>> entry : chainsBySrv.entrySet()) {
             String srvId = entry.getKey();
 
-            List<ChainAtServerTracked> chains = entry.getValue();
+            List<ChainAtServerTracked> chainsAll = entry.getValue();
+            List<ChainAtServerTracked> chains = chainsAll.stream()
+                    .filter(c -> Objects.equals(c.serverId, srvId))
+                    .collect(Collectors.toList());
 
             srvsChecked++;
-            chainsChecked += chains.stream().filter(c -> Objects.equals(c.serverId, srvId)).count();
+
+            chainsChecked += chainsAll.size();
 
             try {
                 checkQueue(srvId, chains);
@@ -180,32 +184,44 @@ public class CheckQueueJob implements Runnable {
 
         String selfLogin = creds.getUser(teamcity.serverId());
 
-        for (BuildRef ref : builds) {
-            Build build = teamcity.getBuild(ref.href);
-
-            User user = build.getTriggered().getUser();
-
-            if (user == null) {
-                logger.info("Unable to get username for queued build {} (type={}).", ref.getId(), ref.buildTypeId);
-
-                continue;
-            }
-
-            String login = user.username;
-
-            if (selfLogin.equalsIgnoreCase(login)) {
-                final String msg = MessageFormat.format("Queued build {0} was early triggered by me (user {1}). Will not startIgnite build.", ref.getId(), login);
-
-                logger.info(msg);
-
-                return msg;
-            }
-        }
-
         StringBuilder res = new StringBuilder();
 
         for (ChainAtServerTracked chain : chains) {
             if(!Objects.equals(chain.serverId, teamcity.serverId()))
+                continue;
+
+            boolean trigger = true;
+            for (BuildRef ref : builds) {
+                Build build = teamcity.getBuild(ref.href);
+
+                User user = build.getTriggered().getUser();
+
+                if (user == null) {
+                    logger.info("Unable to get username for queued build {} (type={}).", ref.getId(), ref.buildTypeId);
+
+                    continue;
+                }
+
+                String login = user.username;
+
+                if (selfLogin.equalsIgnoreCase(login)
+                        && Objects.equals(ref.branchName, chain.branchForRest)) {
+                    final String msg
+                            = MessageFormat.format("Queued build {0} was early triggered " +
+                            "(user {1}, branch {2}, suite {3})." +
+                            " Will not startIgnite build.", ref.getId(), login, ref.branchName, ref.buildTypeId);
+
+                    logger.info(msg);
+
+                    res.append(msg).append("; ");
+
+                    trigger = false;
+
+                    break;
+                }
+            }
+
+            if (!trigger)
                 continue;
 
             long curr = System.currentTimeMillis();
@@ -244,32 +260,34 @@ public class CheckQueueJob implements Runnable {
     }
 
     /**
-     * @param chains chains.
+     * @param branchesTracked Tracked branches.
      * @return Mapped chains to server identifier.
      */
-    private Map<String, List<ChainAtServerTracked>> mapChainsByServer(List<ChainAtServerTracked> chains) {
+    private Map<String, List<ChainAtServerTracked>> mapChainsByServer(List<BranchTracked> branchesTracked) {
         Map<String, List<ChainAtServerTracked>> chainsBySrv = new HashMap<>();
 
-        for (ChainAtServerTracked chain : chains) {
-            String srv = chain.serverId;
+        for(BranchTracked branchTracked: branchesTracked) {
+            for (ChainAtServerTracked chain : branchTracked.getChains()) {
+                String srv = chain.serverId;
 
-            if (!creds.hasAccess(srv)) {
-                logger.warn("Background operations credentials does not grant access to server \"{}\"," +
-                    " build queue trigger will not work.", srv);
+                if (!creds.hasAccess(srv)) {
+                    logger.warn("Background operations credentials does not grant access to server \"{}\"," +
+                            " build queue trigger will not work.", srv);
 
-                continue;
+                    continue;
+                }
+
+                if (!chain.isTriggerBuild()) {
+                    logger.info("Build triggering disabled for server={}, suite={}, branch={}",
+                            srv, chain.getSuiteIdMandatory(), chain.getBranchForRestMandatory());
+
+                    continue;
+                }
+
+                logger.info("Checking queue for server {}.", srv);
+
+                chainsBySrv.computeIfAbsent(srv, v -> new ArrayList<>()).add(chain);
             }
-
-            if (!chain.isTriggerBuild()) {
-                logger.info("Build triggering disabled for server={}, suite={}, branch={}",
-                    srv, chain.getSuiteIdMandatory(), chain.getBranchForRestMandatory());
-
-                continue;
-            }
-
-            logger.info("Checking queue for server {}.", srv);
-
-            chainsBySrv.computeIfAbsent(srv, v -> new ArrayList<>()).add(chain);
         }
 
         return chainsBySrv;

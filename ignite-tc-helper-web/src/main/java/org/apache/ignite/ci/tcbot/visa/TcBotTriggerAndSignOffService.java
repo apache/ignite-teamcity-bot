@@ -19,6 +19,8 @@ package org.apache.ignite.ci.tcbot.visa;
 
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,6 +32,7 @@ import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
@@ -38,11 +41,16 @@ import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.web.model.VisaRequest;
+import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.SimpleResult;
+import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -83,12 +91,64 @@ public class TcBotTriggerAndSignOffService {
 
     @Inject Provider<BuildObserver> observer;
 
+    /** */
+    @Inject private VisasHistoryStorage visasHistoryStorage;
+
+    /** */
+    @Inject IStringCompactor strCompactor;
+
     /** Helper. */
     @Inject ITcHelper tcHelper;
 
     /** */
+    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    /** */
     public void startObserver() {
         buildObserverProvider.get();
+    }
+
+    /** */
+    public List<VisaStatus> getVisasStatus(String srvId, ICredentialsProv prov) {
+        List<VisaStatus> visaStatuses = new ArrayList<>();
+
+        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
+
+        for (VisaRequest visaRequest : visasHistoryStorage.getVisas()) {
+            VisaStatus visaStatus = new VisaStatus();
+
+            BuildsInfo info = visaRequest.getInfo();
+
+            Visa visa = visaRequest.getResult();
+
+            visaStatus.date = formatter.format(info.date);
+            visaStatus.branchName = info.branchForTc;
+            visaStatus.userName = info.userName;
+            visaStatus.ticket = info.ticket;
+
+            if (info.isFinished(teamcity)) {
+                if (visa.isEmpty())
+                    visaStatus.state = BuildsInfo.FINISHED_STATE + " [ waiting results ]";
+                else if (visa.isSuccess()) {
+                    visaStatus.commentUrl = "https://issues.apache.org/jira/browse/" + visaStatus.ticket +
+                        "?focusedCommentId=" + visa.getJiraCommentResponse().getId() +
+                        "&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-" +
+                        visa.getJiraCommentResponse().getId();
+
+                    visaStatus.blockers = visa.getBlockers();
+
+                    visaStatus.state = BuildsInfo.FINISHED_STATE;
+                }
+                else
+                    visaStatus.state = BuildsInfo.FINISHED_WITH_FAILURES_STATE;
+            }
+            else
+                visaStatus.state = info.getState(teamcity);
+
+            visaStatuses.add(visaStatus);
+        }
+
+        return visaStatuses;
     }
 
     /**
@@ -110,7 +170,6 @@ public class TcBotTriggerAndSignOffService {
 
         return ticketId;
     }
-
 
     @NotNull public String triggerBuildsAndObserve(
         @Nullable String srvId,
@@ -178,7 +237,7 @@ public class TcBotTriggerAndSignOffService {
             ticketFullName = ticketFullName.toUpperCase().startsWith("IGNITE-") ? ticketFullName : "IGNITE-" + ticketFullName;
         }
 
-        buildObserverProvider.get().observe(srvId, prov, ticketFullName, builds);
+        buildObserverProvider.get().observe(srvId, prov, ticketFullName, branchForTc, builds);
 
         if (!tcHelper.isServerAuthorized())
             return "Ask server administrator to authorize the Bot to enable JIRA notifications.";
@@ -228,9 +287,14 @@ public class TcBotTriggerAndSignOffService {
         }
 
         if (!Strings.isNullOrEmpty(ticketFullName)) {
-            jiraRes = jiraIntegration.notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName);
+            BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticketFullName, branchForTc);
 
-            return new SimpleResult(jiraRes);
+            Visa visa = jiraIntegration.notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName);
+
+            visasHistoryStorage.put(new VisaRequest(buildsInfo)
+                .setResult(visa));
+
+            return new SimpleResult(visa.status);
         }
         else
             return new SimpleResult("JIRA wasn't commented." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));

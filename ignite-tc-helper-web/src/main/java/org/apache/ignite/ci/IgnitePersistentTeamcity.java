@@ -101,8 +101,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private static final String TESTS_RUN_STAT = "testsRunStat";
     private static final String CALCULATED_STATISTIC = "calculatedStatistic";
     private static final String LOG_CHECK_RESULT = "logCheckResult";
-    private static final String CHANGE_INFO_FULL = "changeInfoFull";
-    private static final String CHANGES_LIST = "changesList";
     private static final String ISSUES_USAGES_LIST = "issuesUsagesList";
     @Deprecated
     private static final String TEST_FULL = "testFull";
@@ -782,7 +780,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     private void registerCriticalBuildProblemInStat(BuildRef build, ProblemOccurrences problems) {
         boolean criticalFail = problems.getProblemsNonNull().stream().anyMatch(occurrence ->
-            occurrence.isExecutionTimeout() || occurrence.isJvmCrash());
+            occurrence.isExecutionTimeout() || occurrence.isJvmCrash() || occurrence.isFailureOnMetric());
 
         String suiteId = build.suiteId();
         Integer buildId = build.getId();
@@ -873,49 +871,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             key.toString(),
             testRefsFutures,
             k -> teamcity.getTestRef(key));
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public Change getChange(String href) {
-        return loadIfAbsentV2(CHANGE_INFO_FULL, href, href1 -> {
-            try {
-                return teamcity.getChange(href1);
-            }
-            catch (Exception e) {
-                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                    System.err.println("Change history not found for href : " + href);
-
-                    return new Change();
-                }
-                if (Throwables.getRootCause(e) instanceof SAXParseException) {
-                    System.err.println("Change data seems to be invalid: " + href);
-
-                    return new Change();
-                }
-                else
-                    throw e;
-            }
-        });
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public ChangesList getChangesList(String href) {
-        return loadIfAbsentV2(CHANGES_LIST, href, href1 -> {
-            try {
-                return teamcity.getChangesList(href1);
-            }
-            catch (Exception e) {
-                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                    System.err.println("Change List not found for href : " + href);
-
-                    return new ChangesList();
-                }
-                else
-                    throw e;
-            }
-        });
     }
 
     @AutoProfiling

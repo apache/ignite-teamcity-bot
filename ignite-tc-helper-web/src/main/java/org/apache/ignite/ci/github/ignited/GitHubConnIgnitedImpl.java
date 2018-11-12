@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.github.ignited;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -119,12 +120,16 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
      * @param srvId Server id.
      * @param fullReindex Reindex all open PRs
      */
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Actualize PRs(srv, full resync)", nameExtArgsIndexes = {0, 1})
     @AutoProfiling
     protected String runActualizePrs(String srvId, boolean fullReindex) {
         AtomicReference<String> outLinkNext = new AtomicReference<>();
 
         List<PullRequest> ghData = conn.getPullRequests(null, outLinkNext);
+
+        Set<Integer> actualPrs = new HashSet<>();
+
         int cntSaved = saveChunk(ghData);
         int totalChecked = ghData.size();
         while (outLinkNext.get() != null) {
@@ -134,11 +139,35 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
             cntSaved += savedThisChunk;
             totalChecked += ghData.size();
 
+            if (fullReindex) {
+                actualPrs.addAll(ghData.stream()
+                    .map(PullRequest::getNumber)
+                    .collect(Collectors.toSet()));
+            }
+
             if (!fullReindex && savedThisChunk == 0)
                 break;
         }
 
+        if (fullReindex)
+            refreshOutdatedPrs(srvId, actualPrs);
+
         return "Entries saved " + cntSaved + " PRs checked " + totalChecked;
+    }
+
+    /** */
+    @AutoProfiling
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    @MonitoredTask(name = "Check Outdated PRs(srv)", nameExtArgsIndexes = {0})
+    protected String refreshOutdatedPrs(String srvId, Set<Integer> actualPrs) {
+        final long count = StreamSupport.stream(prCache.spliterator(), false)
+                .filter(entry -> entry.getKey() >> 32 == srvIdMaskHigh)
+                .filter(entry -> PullRequest.OPEN.equals(entry.getValue().getState()))
+                .filter(entry -> !actualPrs.contains(entry.getValue().getNumber()))
+                .peek(entry -> prCache.put(entry.getKey(), conn.getPullRequest(entry.getValue().getNumber())))
+                .count();
+
+        return "PRs updated for " + srvId + ": " + count + " from " + prCache.size();
     }
 
     private int saveChunk(List<PullRequest> ghData) {

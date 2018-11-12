@@ -17,12 +17,15 @@
 
 package org.apache.ignite.ci;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.web.model.JiraCommentResponse;
+import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -68,7 +71,11 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
     @Inject private PrChainsProcessor prChainsProcessor;
 
+    /** */
+    private final ObjectMapper objectMapper;
+
     public TcHelper() {
+        objectMapper = new ObjectMapper();
     }
 
     /** {@inheritDoc} */
@@ -132,7 +139,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @Override public String notifyJira(
+    @Override public Visa notifyJira(
         String srvId,
         ICredentialsProv prov,
         String buildTypeId,
@@ -144,15 +151,23 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchForTc);
 
         if (builds.isEmpty())
-            return "JIRA wasn't commented - no finished builds to analyze.";
+            return new Visa("JIRA wasn't commented - no finished builds to analyze.");
 
         BuildRef build = builds.get(builds.size() - 1);
-        String comment;
+
+        int blockers;
+
+        JiraCommentResponse res;
 
         try {
-            comment = generateJiraComment(buildTypeId, build.branchName, srvId, prov, build.webUrl);
+            List<SuiteCurrentStatus> suitesStatuses =  getSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
 
-            teamcity.sendJiraComment(ticket, comment);
+            String comment = generateJiraComment(suitesStatuses, build.webUrl);
+
+            blockers = suitesStatuses.stream().mapToInt(suite ->
+                suite.testFailures.size()).sum();
+
+            res = objectMapper.readValue(teamcity.sendJiraComment(ticket, comment), JiraCommentResponse.class);
         }
         catch (Exception e) {
             String errMsg = "Exception happened during commenting JIRA ticket " +
@@ -160,10 +175,96 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
             logger.error(errMsg);
 
-            return "JIRA wasn't commented - " + errMsg;
+            return new Visa("JIRA wasn't commented - " + errMsg);
         }
 
-        return JIRA_COMMENTED;
+        return new Visa(JIRA_COMMENTED, res, blockers);
+    }
+
+    /**
+     * @param buildTypeId Suite name.
+     * @param branchForTc Branch for TeamCity.
+     * @param srvId Server id.
+     * @param prov Credentials.
+     * @return List of suites with possible blockers.
+     */
+    public List<SuiteCurrentStatus> getSuitesStatuses(String buildTypeId,
+        String branchForTc,
+        String srvId,
+        ICredentialsProv prov) {
+        List<SuiteCurrentStatus> res = new ArrayList<>();
+
+        TestFailuresSummary summary = prChainsProcessor.getTestFailuresSummary(
+            prov, srvId, buildTypeId, branchForTc,
+            FullQueryParams.LATEST, null, null, false);
+
+        if (summary != null) {
+            for (ChainAtServerCurrentStatus server : summary.servers) {
+                if (!"apache".equals(server.serverName()))
+                    continue;
+
+                Map<String, List<SuiteCurrentStatus>> fails = findFailures(server);
+
+                fails.forEach((k, v) -> res.addAll(v));
+            }
+        }
+
+        return res;
+    }
+
+    /** */
+    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl) {
+        StringBuilder res = new StringBuilder();
+
+        for (SuiteCurrentStatus suite : suites) {
+            res.append("{color:#d04437}").append(suite.name).append("{color}");
+            res.append(" [[tests ").append(suite.failedTests);
+
+            if (suite.result != null && !suite.result.isEmpty())
+                res.append(' ').append(suite.result);
+
+            res.append('|').append(suite.webToBuild).append("]]\\n");
+
+            for (TestFailure failure : suite.testFailures) {
+                res.append("* ");
+
+                if (failure.suiteName != null && failure.testName != null)
+                    res.append(failure.suiteName).append(": ").append(failure.testName);
+                else
+                    res.append(failure.name);
+
+                FailureSummary recent = failure.histBaseBranch.recent;
+
+                if (recent != null) {
+                    if (recent.failureRate != null) {
+                        res.append(" - ").append(recent.failureRate).append("% fails in last ")
+                            .append(MAX_LATEST_RUNS).append(" master runs.");
+                    }
+                    else if (recent.failures != null && recent.runs != null) {
+                        res.append(" - ").append(recent.failures).append(" fails / ")
+                            .append(recent.runs).append(" runs.");
+                    }
+                }
+
+                res.append("\\n");
+            }
+
+            res.append("\\n");
+        }
+
+        if (res.length() > 0) {
+            res.insert(0, "{panel:title=Possible Blockers|" +
+                "borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}\\n")
+                .append("{panel}");
+        }
+        else {
+            res.append("{panel:title=No blockers found!|" +
+                "borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
+        }
+
+        res.append("\\n").append("[TeamCity " + buildTypeId + " Results|").append(webUrl).append(']');
+
+        return xmlEscapeText(res.toString());
     }
 
     /**
@@ -181,71 +282,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         ICredentialsProv prov,
         String webUrl
     ) {
-        StringBuilder res = new StringBuilder();
-        TestFailuresSummary summary = prChainsProcessor.getTestFailuresSummary(
-            prov, srvId, buildTypeId, branchForTc,
-            FullQueryParams.LATEST, null, null, false);
-
-        if (summary != null) {
-            for (ChainAtServerCurrentStatus server : summary.servers) {
-                if (!"apache".equals(server.serverName()))
-                    continue;
-
-                Map<String, List<SuiteCurrentStatus>> fails = findFailures(server);
-
-                for (List<SuiteCurrentStatus> suites : fails.values()) {
-                    for (SuiteCurrentStatus suite : suites) {
-                        res.append("{color:#d04437}").append(suite.name).append("{color}");
-                        res.append(" [[tests ").append(suite.failedTests);
-
-                        if (suite.result != null && !suite.result.isEmpty())
-                            res.append(' ').append(suite.result);
-
-                        res.append('|').append(suite.webToBuild).append("]]\\n");
-
-                        for (TestFailure failure : suite.testFailures) {
-                            res.append("* ");
-
-                            if (failure.suiteName != null && failure.testName != null)
-                                res.append(failure.suiteName).append(": ").append(failure.testName);
-                            else
-                                res.append(failure.name);
-
-                            FailureSummary recent = failure.histBaseBranch.recent;
-
-                            if (recent != null) {
-                                if (recent.failureRate != null) {
-                                    res.append(" - ").append(recent.failureRate).append("% fails in last ")
-                                        .append(MAX_LATEST_RUNS).append(" master runs.");
-                                }
-                                else if (recent.failures != null && recent.runs != null) {
-                                    res.append(" - ").append(recent.failures).append(" fails / ")
-                                        .append(recent.runs).append(" runs.");
-                                }
-                            }
-
-                            res.append("\\n");
-                        }
-
-                        res.append("\\n");
-                    }
-                }
-
-                if (res.length() > 0) {
-                    res.insert(0, "{panel:title=Possible Blockers|" +
-                        "borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}\\n")
-                        .append("{panel}");
-                }
-                else {
-                    res.append("{panel:title=No blockers found!|" +
-                        "borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
-                }
-            }
-        }
-
-        res.append("\\n").append("[TeamCity " + buildTypeId + " Results|").append(webUrl).append(']');
-
-        return xmlEscapeText(res.toString());
+        return generateJiraComment(getSuitesStatuses(buildTypeId, branchForTc,srvId, prov), webUrl);
     }
 
     /**
@@ -268,8 +305,14 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
             if (suiteRes.contains("exit code"))
                 failType = "exit code";
 
-            if(suiteRes.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK.toLowerCase()))
+            if (suiteRes.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK.toLowerCase()))
                 failType = "java level deadlock";
+
+            if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_MESSAGE.toLowerCase()))
+                failType = "build failure on message";
+
+            if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_METRIC.toLowerCase()))
+                failType = "build failure on metrics";
 
             if (failType == null) {
                 List<TestFailure> failures = new ArrayList<>();
