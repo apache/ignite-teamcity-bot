@@ -305,8 +305,14 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
             if (suiteRes.contains("exit code"))
                 failType = "exit code";
 
-            if(suiteRes.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK.toLowerCase()))
+            if (suiteRes.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK.toLowerCase()))
                 failType = "java level deadlock";
+
+            if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_MESSAGE.toLowerCase()))
+                failType = "build failure on message";
+
+            if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_METRIC.toLowerCase()))
+                failType = "build failure on metrics";
 
             if (failType == null) {
                 List<TestFailure> failures = new ArrayList<>();

@@ -28,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ProblemOccurrence {
     public static final String BUILD_FAILURE_ON_MESSAGE = "BuildFailureOnMessage";
+    public static final String BUILD_FAILURE_ON_METRIC = "BuildFailureOnMetric";
     public static final String TC_EXIT_CODE = "TC_EXIT_CODE";
     public static final String TC_OOME = "TC_OOME";
     public static final String TC_EXECUTION_TIMEOUT = "TC_EXECUTION_TIMEOUT";
@@ -49,6 +50,11 @@ public class ProblemOccurrence {
      * May be null for old persisted entries.
      */
     @Nullable public BuildRef buildRef;
+
+    /** */
+    public boolean isFailureOnMetric() {
+        return BUILD_FAILURE_ON_METRIC.equals(type);
+    }
 
     public boolean isExecutionTimeout() {
         return TC_EXECUTION_TIMEOUT.equals(type);
