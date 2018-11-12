@@ -15,26 +15,31 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.jira;
+package org.apache.ignite.ci.web.model;
 
-import org.apache.ignite.ci.web.model.Visa;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.observer.CompactBuildsInfo;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
  *
  */
-public interface IJiraIntegration {
-    /** Message to show user when JIRA ticket was successfully commented by the Bot. */
-    public static String JIRA_COMMENTED = "JIRA commented.";
+public class CompactVisaRequest {
+    /** */
+    public final CompactVisa compactVisa;
 
-    /**
-     * @param srvId TC Server ID to take information about token from.
-     * @param prov Credentials.
-     * @param buildTypeId Suite name.
-     * @param branchForTc Branch for TeamCity.
-     * @param ticket JIRA ticket full name. E.g. IGNITE-5555
-     * @return {@code True} if JIRA was notified.
-     */
-    public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
-        String ticket);
+    /** */
+    public final CompactBuildsInfo compactInfo;
+
+    /** */
+    public CompactVisaRequest(VisaRequest visaReq, IStringCompactor strCompactor) {
+        compactInfo = new CompactBuildsInfo(visaReq.getInfo(), strCompactor);
+
+        compactVisa = new CompactVisa(visaReq.getResult(), strCompactor);
+    }
+
+    /** */
+    public VisaRequest toVisaRequest(IStringCompactor strCompactor) {
+        return new VisaRequest(compactInfo.toBuildInfo(strCompactor)).setResult(compactVisa.toVisa(strCompactor));
+    }
+
 }

@@ -138,12 +138,6 @@ public interface ITeamcity extends ITeamcityConn {
     CompletableFuture<TestOccurrenceFull> getTestFull(String href);
 
     @Deprecated
-    Change getChange(String href);
-
-    @Deprecated
-    ChangesList getChangesList(String href);
-
-    @Deprecated
     CompletableFuture<TestRef> getTestRef(FullQueryParams key);
 
     Configurations getConfigurations(FullQueryParams key);

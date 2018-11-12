@@ -95,6 +95,10 @@ public class DbMigrations {
     /** Cache name */
     public static final String TEAMCITY_BUILD_CACHE_NAME_OLD = "teamcityBuild";
 
+
+    private static final String CHANGE_INFO_FULL = "changeInfoFull";
+    private static final String CHANGES_LIST = "changesList";
+
     public static final int SUITES_CNT = 100;
 
     private final Ignite ignite;
@@ -411,6 +415,9 @@ public class DbMigrations {
         applyDestroyIgnCacheMigration(BUILD_STATISTICS);
         applyDestroyCacheMigration(BUILD_CONDITIONS_CACHE_NAME, BUILD_CONDITIONS_CACHE_NAME);
         applyDestroyCacheMigration(TEAMCITY_BUILD_CACHE_NAME_OLD, TEAMCITY_BUILD_CACHE_NAME_OLD);
+
+        applyDestroyIgnCacheMigration(CHANGE_INFO_FULL);
+        applyDestroyIgnCacheMigration(CHANGES_LIST);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {

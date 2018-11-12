@@ -42,6 +42,7 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.TcUpdatePool;
+import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 
 /**
@@ -90,7 +91,7 @@ public class IgniteTcBotModule extends AbstractModule {
     private static class Jira implements IJiraIntegration {
         @Inject ITcHelper helper;
 
-        @Override public String notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
+        @Override public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
             String ticket) {
             return helper.notifyJira(srvId, prov, buildTypeId, branchForTc, ticket);
         }

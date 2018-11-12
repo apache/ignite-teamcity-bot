@@ -11,7 +11,7 @@ function showLongRunningTestsSummary(result) {
         res += "<span> [avg test duration: " + summary.testAvgTimePrintable + "] </span>"
 
         res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
         res += "<div class='content'>";
         res += convertLRTestsList(summary.tests);
         res += "</div>";

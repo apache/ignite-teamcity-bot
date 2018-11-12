@@ -239,9 +239,13 @@ public class BuildChainProcessor {
 
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
-    protected void createCxt(ITeamcityIgnited teamcityIgnited, Map<String, MultBuildRunCtx> buildsCtxMap,
-        FatBuildCompacted buildCompacted) {
+    protected void createCxt(ITeamcityIgnited teamcityIgnited,
+                             Map<String, MultBuildRunCtx> buildsCtxMap,
+                             FatBuildCompacted buildCompacted) {
         final BuildRef ref = buildCompacted.toBuildRef(compactor);
+
+        if (buildCompacted.isFakeStub() || ref.isFakeStub())
+            return;
 
         final MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(ref.buildTypeId,
                 k -> new MultBuildRunCtx(ref, compactor));

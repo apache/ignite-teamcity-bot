@@ -17,9 +17,6 @@
 package org.apache.ignite.ci.github.pure;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.io.File;
@@ -33,13 +30,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -98,11 +92,8 @@ class GitHubConnectionImpl implements IGitHubConnection {
         gitApiUrl = (props.getProperty(HelperConfig.GIT_API_URL));
     }
 
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public PullRequest getPullRequest(String branchForTc) {
-        Preconditions.checkState(!isNullOrEmpty(gitApiUrl), "Git API URL is not configured for this server.");
-
+    /** */
+    private Integer convertBranchToId(String branchForTc) {
         String id = null;
 
         // Get PR id from string "pull/XXXX/head"
@@ -116,6 +107,14 @@ class GitHubConnectionImpl implements IGitHubConnection {
             }
         }
 
+        return Integer.parseInt(id);
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public PullRequest getPullRequest(Integer id) {
+        Preconditions.checkState(!isNullOrEmpty(gitApiUrl), "Git API URL is not configured for this server.");
+
         String pr = gitApiUrl + "pulls/" + id;
 
         try (InputStream is = HttpUtil.sendGetToGit(gitAuthTok, pr, null)) {
@@ -126,6 +125,12 @@ class GitHubConnectionImpl implements IGitHubConnection {
         catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public PullRequest getPullRequest(String branchForTc) {
+        return getPullRequest(convertBranchToId(branchForTc));
     }
 
     /** {@inheritDoc} */

@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.web.rest.visa;
 
+import java.util.Collection;
 import java.util.List;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
@@ -27,11 +28,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.tcbot.visa.ContributionCheckStatus;
-import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.tcbot.visa.ContributionToCheck;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
+import org.apache.ignite.ci.tcbot.visa.VisaStatus;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,6 +46,17 @@ public class TcBotVisaService {
     /** Current Request. */
     @Context
     private HttpServletRequest req;
+
+    /**
+     * @param srvId Server id.
+     */
+    @GET
+    @Path("history")
+    public Collection<VisaStatus> history(@Nullable @QueryParam("serverId") String srvId) {
+        return CtxListener.getInjector(ctx)
+            .getInstance(TcBotTriggerAndSignOffService.class)
+            .getVisasStatus(srvId, ICredentialsProv.get(req));
+    }
 
     /**
      * @param srvId Server id.

@@ -135,7 +135,8 @@ function showMenu(menuData) {
         res += "<a href=\"/comparison.html\">Master Trends</a>";
         res += "<a href=\"/compare.html\">Compare builds</a>";
         res += "<a href=\"/issues.html\">Issues history</a>";
-        //uncomment when Visa history is merged: res += "<a href=\"/visas.html\">Visas history</a>";
+        //uncomment when Visa history is merged:
+        res += "<a href=\"/visas.html\">Visas history</a>";
 
 
         res += "<div class='topnav-right'>";

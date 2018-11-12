@@ -15,26 +15,32 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.jira;
+package org.apache.ignite.ci.tcbot.visa;
 
-import org.apache.ignite.ci.web.model.Visa;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.jetbrains.annotations.Nullable;
 
 /**
  *
  */
-public interface IJiraIntegration {
-    /** Message to show user when JIRA ticket was successfully commented by the Bot. */
-    public static String JIRA_COMMENTED = "JIRA commented.";
+public class VisaStatus {
+    /** */
+    @Nullable public String userName;
 
-    /**
-     * @param srvId TC Server ID to take information about token from.
-     * @param prov Credentials.
-     * @param buildTypeId Suite name.
-     * @param branchForTc Branch for TeamCity.
-     * @param ticket JIRA ticket full name. E.g. IGNITE-5555
-     * @return {@code True} if JIRA was notified.
-     */
-    public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
-        String ticket);
+    /** Branch name. */
+    @Nullable public String branchName;
+
+    /** JIRA ticket full name. */
+    @Nullable public String ticket;
+
+    /** */
+    @Nullable public String state;
+
+    /** */
+    @Nullable public String commentUrl;
+
+    /** */
+    @Nullable public String date;
+
+    /** */
+    public int blockers;
 }
