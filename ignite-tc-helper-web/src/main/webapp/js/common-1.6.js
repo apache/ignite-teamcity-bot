@@ -130,13 +130,13 @@ function showMenu(menuData) {
     } else {
         res += "<div class=\"navbar\">";
         res += "<a href=\"/\">Home</a>";
-        res += "<a href=\"/prs.html\">PR/Branch check</a>";
-        res += "<a href=\"/guard.html\">Test status</a>";
-        res += "<a href=\"/comparison.html\">Master Trends</a>";
-        res += "<a href=\"/compare.html\">Compare builds</a>";
-        res += "<a href=\"/issues.html\">Issues history</a>";
-        //uncomment when Visa history is merged:
-        res += "<a href=\"/visas.html\">Visas history</a>";
+        res += "<a href=\"/prs.html\" title='PR or branch check'>PR Check</a>";
+        res += "<a href=\"/guard.html\" title='Monitoring: Current test failures in tracked Branches'>Test Status</a>";
+        res += "<a href=\"/comparison.html\" title='Monitoring: Test failures trends and graphs'>Master Trends</a>";
+        res += "<a href=\"/longRunningTestsReport.html\" title='Monitoring: Long running tests report''>Test Durations</a>";
+        res += "<a href=\"/compare.html\" title='Compare builds tests test'>Compare builds</a>";
+        res += "<a href=\"/issues.html\" title='Detected issues list'>Issues history</a>";
+        res += "<a href=\"/visas.html\" title='Issued TC Bot Visa history'>Visas history</a>";
 
 
         res += "<div class='topnav-right'>";

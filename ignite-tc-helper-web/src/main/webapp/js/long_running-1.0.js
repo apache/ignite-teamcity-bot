@@ -1,5 +1,5 @@
 function showLongRunningTestsSummary(result) {
-    var res = "<table>"
+    var res = "<table>";
 
     for (var i = 0; i < result.suiteSummaries.length; i++) {
         var summary = result.suiteSummaries[i];
@@ -7,8 +7,8 @@ function showLongRunningTestsSummary(result) {
         res += "<tr>";
 
         res += "<td>";
-        res += "<span>" + summary.name + "</span>"
-        res += "<span> [avg test duration: " + summary.testAvgTimePrintable + "] </span>"
+        res += "<span>" + summary.name + "</span>";
+        res += "<span> [avg test duration: " + summary.testAvgTimePrintable + "] </span>";
 
         res += "<span class='container'>";
         res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
@@ -28,7 +28,7 @@ function showLongRunningTestsSummary(result) {
 }
 
 function convertLRTestsList(tests) {
-    var res = "<table>"
+    var res = "<table>";
     for (var i = 0; i < tests.length; i++) {
         res += "<tr>";
         res += "<td>" + tests[i].name;
@@ -36,7 +36,7 @@ function convertLRTestsList(tests) {
         res += tests[i].timePrintable;
         res += "</td></tr>";
     }
-    res += "</table>"
+    res += "</table>";
 
     return res;
 }

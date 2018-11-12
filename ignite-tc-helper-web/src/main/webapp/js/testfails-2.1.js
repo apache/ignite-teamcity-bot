@@ -102,9 +102,9 @@ function showChainCurrentStatusData(server, settings) {
     res += "] ";
     res += "[";
     res += "<a href='longRunningTestsReport.html'>";
-    res += "long running tests report"
+    res += "long running tests report";
     res += "</a>";
-    res += "]"
+    res += "]";
     res += "</b>";
 
     var mInfo = "";
