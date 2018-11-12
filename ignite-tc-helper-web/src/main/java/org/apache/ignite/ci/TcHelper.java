@@ -162,7 +162,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         try {
             List<SuiteCurrentStatus> suitesStatuses =  getSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
 
-            String comment = generateJiraComment(suitesStatuses, build.webUrl);
+            String comment = generateJiraComment(suitesStatuses, build.webUrl, buildTypeId);
 
             blockers = suitesStatuses.stream().mapToInt(suite ->
                 suite.testFailures.size()).sum();
@@ -213,7 +213,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     }
 
     /** */
-    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl) {
+    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl, String buildTypeId ) {
         StringBuilder res = new StringBuilder();
 
         for (SuiteCurrentStatus suite : suites) {
@@ -282,7 +282,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         ICredentialsProv prov,
         String webUrl
     ) {
-        return generateJiraComment(getSuitesStatuses(buildTypeId, branchForTc,srvId, prov), webUrl);
+        return generateJiraComment(getSuitesStatuses(buildTypeId, branchForTc,srvId, prov), webUrl, buildTypeId);
     }
 
     /**
