@@ -19,7 +19,6 @@ package org.apache.ignite.ci.observer;
 
 import java.util.ArrayList;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -27,7 +26,6 @@ import java.util.Set;
 import java.util.TimerTask;
 import javax.cache.Cache;
 import java.util.stream.Collectors;
-import javax.cache.Cache;
 import javax.inject.Inject;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
@@ -41,6 +39,7 @@ import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
+import org.apache.ignite.internal.util.typedef.X;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,6 +114,7 @@ public class ObserverTask extends TimerTask {
         int checkedBuilds = 0;
         int notFinishedBuilds = 0;
         Set<String> ticketsNotified = new HashSet<>();
+
         ObjectMapper objectMapper = new ObjectMapper();
 
         List<String> rmvdVisas = new ArrayList<>();
@@ -126,7 +126,8 @@ public class ObserverTask extends TimerTask {
 
             try {
                 queuedVisas.add(objectMapper.writeValueAsString(compactInfo));
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 return "Exception while JSON parsing";
             }
 
@@ -164,11 +165,17 @@ public class ObserverTask extends TimerTask {
 
                 try {
                    rmvdVisas.add(objectMapper.writeValueAsString(compactInfo));
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     return "Exception while JSON parsing";
                 }
 
-                compactInfos().remove(compactInfo);
+                try {
+                    compactInfos().remove(compactInfo);
+                }
+                catch (Exception e) {
+                   return X.getFullStackTrace(e);
+                }
             }
         }
 
