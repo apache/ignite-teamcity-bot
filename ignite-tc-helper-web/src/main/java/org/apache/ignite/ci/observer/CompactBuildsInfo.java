@@ -22,7 +22,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
@@ -30,25 +29,29 @@ import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
  */
 public class CompactBuildsInfo {
     /** */
-    public final int userName;
+    private int userName;
 
     /** Server id. */
-    public final int srvId;
+    private int srvId;
 
     /** Build type id. */
-    public final int buildTypeId;
+    private int buildTypeId;
 
     /** Branch name. */
-    public final int branchForTc;
+    private int branchForTc;
 
     /** JIRA ticket full name. */
-    public final int ticket;
+    private int ticket;
 
     /** */
-    public final Date date;
+    private Date date;
 
     /** Finished builds. */
     private final Map<Integer, Boolean> finishedBuilds = new HashMap<>();
+
+    public CompactBuildsInfo() {
+
+    }
 
     /** */
     public CompactBuildsInfo(BuildsInfo buildsInfo, IStringCompactor strCompactor) {
@@ -69,6 +72,62 @@ public class CompactBuildsInfo {
     /** */
     public BuildsInfo toBuildInfo(IStringCompactor compactor) {
         return new BuildsInfo(this, compactor);
+    }
+
+    /**
+     * @return Server id.
+     */
+    public int serverId() {
+        return srvId;
+    }
+
+    /**
+     * @param srvId New server id.
+     */
+    public void serverId(int srvId) {
+        this.srvId = srvId;
+    }
+
+    /**
+     * @return Build type id.
+     */
+    public int buildTypeId() {
+        return buildTypeId;
+    }
+
+    /**
+     * @param buildTypeId New build type id.
+     */
+    public void buildTypeId(int buildTypeId) {
+        this.buildTypeId = buildTypeId;
+    }
+
+    /**
+     * @return Branch name.
+     */
+    public int branchForTc() {
+        return branchForTc;
+    }
+
+    /**
+     * @param branchForTc New branch name.
+     */
+    public void branchForTc(int branchForTc) {
+        this.branchForTc = branchForTc;
+    }
+
+    /**
+     * @return JIRA ticket full name.
+     */
+    public int ticket() {
+        return ticket;
+    }
+
+    /**
+     * @param ticket New jIRA ticket full name.
+     */
+    public void ticket(int ticket) {
+        this.ticket = ticket;
     }
 
     /** {@inheritDoc} */
@@ -92,5 +151,37 @@ public class CompactBuildsInfo {
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hash(srvId, buildTypeId, branchForTc, ticket, finishedBuilds.keySet(), date);
+    }
+
+    public void userName(int val) {
+        this.userName = val;
+    }
+
+    public void date(long ts) {
+        this.date = new Date(ts);
+    }
+
+    public int userName() {
+        return userName;
+    }
+
+    public Date date() {
+        return date;
+    }
+
+    public int srvId() {
+        return srvId;
+    }
+
+    public void srvId(int srvId) {
+        this.srvId = srvId;
+    }
+
+    public void addBuild(int... arr) {
+        for (int i = 0; i < arr.length; i++) {
+            int i1 = arr[i];
+
+            finishedBuilds.put(i1, false);
+        }
     }
 }

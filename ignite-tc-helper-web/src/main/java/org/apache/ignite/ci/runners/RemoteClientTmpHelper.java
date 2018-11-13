@@ -25,6 +25,8 @@ import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.ci.observer.CompactBuildsInfo;
+import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
@@ -72,19 +74,37 @@ public class RemoteClientTmpHelper {
                 }
             }
         }
-        IgniteCache<Long, FatBuildCompacted> cache1 = ignite.cache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
+        if(false) {
+            IgniteCache<Long, FatBuildCompacted> cache1 = ignite.cache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
 
-        int apache = ITeamcityIgnited.serverIdToInt("apache");
+            int apache = ITeamcityIgnited.serverIdToInt("apache");
 
-        int id = 2200135;
-        int id1 = 2200209;
-        dumpFatBuild(cache1, apache, id);
-        dumpFatBuild(cache1, apache, id1);
+            int id = 2200135;
+            int id1 = 2200209;
+            dumpFatBuild(cache1, apache, id);
+            dumpFatBuild(cache1, apache, id1);
+
+            IgniteCache<Long, BuildRefCompacted> cache2 = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+            dumpBuildRef(cache2, apache, id);
+            dumpBuildRef(cache2, apache, id1);
+        }
+
+        IgniteCache<CompactBuildsInfo, Object> cache = ignite.cache(ObserverTask.BUILDS_CACHE_NAME);
+
+        CompactBuildsInfo cbi = new CompactBuildsInfo();
 
 
-        IgniteCache<Long, BuildRefCompacted> cache2 = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
-        dumpBuildRef(cache2, apache, id);
-        dumpBuildRef(cache2, apache, id1);
+        cbi.userName(253483);
+        cbi.srvId(245001);
+        cbi.buildTypeId(113);
+        cbi.branchForTc(231783);
+        cbi.ticket(253484);
+        cbi.date(1542027258436l);
+
+        cbi.addBuild(2300387,   2300395, 2300385, 2300393, 2300391, 2300389);
+        boolean remove = cache.remove(cbi);
+        Preconditions.checkState(remove, "can't remove " + cbi);
+        //"finishedBuilds":{"2300387":false,"2300395":false,"2300385":false,"2300393":false,"2300391":false,"2300389":false}
         ignite.close();
 
     }
