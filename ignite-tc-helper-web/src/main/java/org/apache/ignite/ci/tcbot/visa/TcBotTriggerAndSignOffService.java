@@ -41,9 +41,9 @@ import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
 import org.apache.ignite.ci.web.model.VisaRequest;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -78,7 +78,7 @@ public class TcBotTriggerAndSignOffService {
     @Inject private VisasHistoryStorage visasHistoryStorage;
 
     /** */
-    @Inject IgniteStringCompactor strCompactor;
+    @Inject IStringCompactor strCompactor;
 
     /** Helper. */
     @Inject ITcHelper tcHelper;
@@ -141,7 +141,7 @@ public class TcBotTriggerAndSignOffService {
     @NotNull public static String getTicketFullName(PullRequest pr) {
         String ticketId = "";
 
-        if (pr.getTitle().startsWith("IGNITE-")) {
+        if (pr.getTitle().toUpperCase().startsWith("IGNITE-")) {
             int beginIdx = 7;
             int endIdx = 7;
 

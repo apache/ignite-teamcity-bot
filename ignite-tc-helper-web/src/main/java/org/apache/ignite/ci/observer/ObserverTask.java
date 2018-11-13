@@ -17,12 +17,14 @@
 
 package org.apache.ignite.ci.observer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TimerTask;
+import java.util.stream.Collectors;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import org.apache.ignite.Ignite;
@@ -111,9 +113,20 @@ public class ObserverTask extends TimerTask {
         int checkedBuilds = 0;
         int notFinishedBuilds = 0;
         Set<String> ticketsNotified = new HashSet<>();
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        List<String> rmvdVisas = new ArrayList<>();
+
+        List<String> queuedVisas = new ArrayList<>();
 
         for (Cache.Entry<CompactBuildsInfo, Object> entry : compactInfos()) {
             CompactBuildsInfo compactInfo = entry.getKey();
+
+            try {
+                queuedVisas.add(objectMapper.writeValueAsString(compactInfo));
+            } catch (Exception e) {
+                return "Exception while JSON parsing";
+            }
 
             BuildsInfo info = compactInfo.toBuildInfo(strCompactor);
 
@@ -147,10 +160,18 @@ public class ObserverTask extends TimerTask {
             if (visa.isSuccess()) {
                 ticketsNotified.add(info.ticket);
 
+                try {
+                   rmvdVisas.add(objectMapper.writeValueAsString(compactInfo));
+                } catch (Exception e) {
+                    return "Exception while JSON parsing";
+                }
+
                 compactInfos().remove(compactInfo);
             }
         }
 
-        return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified;
+        return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified +
+            " Visas in queue: [" + queuedVisas.stream().collect(Collectors.joining(", ")) +
+            "] Visas to rmv: [" + rmvdVisas.stream().collect(Collectors.joining(", ")) + ']';
     }
 }
