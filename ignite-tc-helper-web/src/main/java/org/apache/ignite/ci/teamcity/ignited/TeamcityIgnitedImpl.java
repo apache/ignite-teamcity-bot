@@ -275,7 +275,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         String bracnhNameQry = branchForQuery(branchName);
 
-        return buildRefDao.findBuildsInHistory(srvIdMaskHigh, buildTypeId, bracnhNameQry);
+        return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, bracnhNameQry)
+            .stream().map(compacted -> compacted.toBuildRef(compactor))
+            .collect(Collectors.toList());
     }
 
     /** {@inheritDoc} */
@@ -288,6 +290,31 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         String bracnhNameQry = branchForQuery(branchName);
 
         return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, bracnhNameQry);
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override @NotNull public List<Integer> getLastNBuildsFromHistory(String btId, String branchForTc, int cnt) {
+        List<BuildRefCompacted> hist = getBuildHistoryCompacted(btId, branchForTc);
+
+        List<Integer> chains = hist.stream()
+            .filter(ref -> !ref.isFakeStub())
+            .filter(t -> t.isNotCancelled(compactor))
+            .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
+            .limit(cnt)
+            .map(BuildRefCompacted::id)
+            .collect(Collectors.toList());
+
+        if (chains.isEmpty()) {
+            // probably there are no not-cacelled builds at all
+            chains = hist.stream()
+                .filter(ref -> !ref.isFakeStub())
+                .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
+                .map(BuildRefCompacted::id)
+                .limit(cnt)
+                .collect(Collectors.toList());
+        }
+        return chains;
     }
 
     public String branchForQuery(@Nullable String branchName) {

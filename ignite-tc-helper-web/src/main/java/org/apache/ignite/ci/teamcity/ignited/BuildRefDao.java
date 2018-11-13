@@ -149,20 +149,6 @@ public class BuildRefDao {
     }
 
     /**
-     * @param srvId Server id mask high.
-     * @param buildTypeId Build type id.
-     * @param bracnhNameQry Bracnh name query.
-     */
-    @AutoProfiling
-    @NotNull public List<BuildRef> findBuildsInHistory(int srvId,
-        @Nullable String buildTypeId,
-        String bracnhNameQry) {
-        return findBuildsInHistoryCompacted(srvId, buildTypeId, bracnhNameQry).stream()
-            .map(compacted -> compacted.toBuildRef(compactor))
-            .collect(Collectors.toList());
-    }
-
-    /**
      * @param srvId Server id.
      */
     @AutoProfiling

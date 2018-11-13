@@ -153,7 +153,7 @@ public class BuildChainProcessor {
     /**
      * @param teamcity Teamcity.
      * @param teamcityIgnited
-     * @param entryPoints Entry points.
+     * @param entryPoints Entry point(s): Build(s) to start scan from.
      * @param includeLatestRebuild Include latest rebuild.
      * @param procLog Process logger.
      * @param includeScheduledInfo Include scheduled info.
@@ -163,7 +163,7 @@ public class BuildChainProcessor {
     public FullChainRunCtx loadFullChainContext(
         IAnalyticsEnabledTeamcity teamcity,
         ITeamcityIgnited teamcityIgnited,
-        Collection<BuildRef> entryPoints,
+        Collection<Integer> entryPoints,
         LatestRebuildMode includeLatestRebuild,
         ProcessLogsMode procLog,
         boolean includeScheduledInfo,
@@ -174,7 +174,7 @@ public class BuildChainProcessor {
 
         Map<Integer, FatBuildCompacted> builds = new ConcurrentHashMap<>();
 
-        final Stream<FatBuildCompacted> entryPointsFatBuilds = entryPoints.stream().map(BuildRef::getId)
+        final Stream<FatBuildCompacted> entryPointsFatBuilds = entryPoints.stream()
                 .filter(Objects::nonNull)
                 .filter(id -> !builds.containsKey(id)) //load and propagate only new entry points
                 .map(id -> builds.computeIfAbsent(id, teamcityIgnited::getFatBuild));
@@ -226,8 +226,8 @@ public class BuildChainProcessor {
             return runStat.getCriticalFailRate() * 3.14f + runStat.getFailRate();
         };
 
-        BuildRef someEntryPoint = entryPoints.iterator().next();
-        FatBuildCompacted build = builds.computeIfAbsent(someEntryPoint.getId(), teamcityIgnited::getFatBuild);
+        Integer someEntryPnt = entryPoints.iterator().next();
+        FatBuildCompacted build = builds.computeIfAbsent(someEntryPnt, teamcityIgnited::getFatBuild);
         FullChainRunCtx fullChainRunCtx = new FullChainRunCtx(build.toBuild(compactor));
 
         contexts.sort(Comparator.comparing(function).reversed());

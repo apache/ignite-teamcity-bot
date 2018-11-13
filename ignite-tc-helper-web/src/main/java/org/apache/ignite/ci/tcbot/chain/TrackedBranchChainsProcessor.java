@@ -29,6 +29,7 @@ import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
@@ -81,15 +82,9 @@ public class TrackedBranchChainsProcessor {
 
                 ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, creds);
 
-                final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
-                    chainTracked.getSuiteIdMandatory(),
-                    branchForTc);
+                String suiteIdMandatory = chainTracked.getSuiteIdMandatory();
 
-                List<BuildRef> chains = builds.stream()
-                    .filter(ref -> !ref.isFakeStub())
-                    .sorted(Comparator.comparing(BuildRef::getId).reversed())
-                    .limit(buildResMergeCnt)
-                    .filter(b -> b.getId() != null).collect(Collectors.toList());
+                List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc, buildResMergeCnt);
 
                 ProcessLogsMode logs;
                 if (buildResMergeCnt > 1)
@@ -102,7 +97,8 @@ public class TrackedBranchChainsProcessor {
                 boolean includeScheduled = buildResMergeCnt == 1;
 
                 final FullChainRunCtx ctx = chainProc.loadFullChainContext(teamcity,
-                    tcIgnited, chains,
+                    tcIgnited,
+                    chains,
                     rebuild,
                     logs,
                     includeScheduled,
