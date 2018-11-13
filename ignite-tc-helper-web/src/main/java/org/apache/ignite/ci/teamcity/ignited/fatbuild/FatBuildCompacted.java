@@ -16,22 +16,31 @@
  */
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-import java.util.stream.Stream;
+import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  *
@@ -39,7 +48,7 @@ import org.jetbrains.annotations.Nullable;
 @Persisted
 public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEntity {
     /** Latest version. */
-    private static final int LATEST_VERSION = 2;
+    private static final int LATEST_VERSION = 5;
 
     /** Default branch flag offset. */
     public static final int DEF_BR_F = 0;
@@ -49,6 +58,11 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     /**   flag offset. */
     public static final int FAKE_BUILD_F = 4;
+
+    /** Failed to start flag offset. */
+    public static final int FAILED_TO_START_F = 6;
+
+    public static final int[] EMPTY = new int[0];
 
     /** Entity fields version. */
     private short _ver = LATEST_VERSION;
@@ -73,6 +87,12 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     @Nullable private int snapshotDeps[];
 
     private BitSet flags = new BitSet();
+
+    @Nullable private List<ProblemCompacted> problems;
+
+    @Nullable private StatisticsCompacted statistics;
+
+    @Nullable private int changesIds[];
 
     /** {@inheritDoc} */
     @Override public int version() {
@@ -101,22 +121,38 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         finishDate = build.getFinishDate() == null ? -1L : build.getFinishDate().getTime();
         queuedDate = build.getQueuedDate() == null ? -1L : build.getQueuedDate().getTime();
 
-
         BuildType type = build.getBuildType();
         if (type != null) {
             projectId = compactor.getStringId(type.getProjectId());
             name = compactor.getStringId(type.getName());
         }
 
-        int[] arr = build.getSnapshotDependenciesNonNull().stream()
-            .filter(b -> b.getId() != null).mapToInt(BuildRef::getId).toArray();
+        AtomicBoolean failedToStart = new AtomicBoolean();
+
+        failedToStart.set(build.isFailedToStart());
+
+        int[] arr = build.getSnapshotDependenciesNonNull()
+                .stream()
+                .peek(b -> {
+                    if (failedToStart.get())
+                        return;
+
+                    if (b.hasUnknownStatus())
+                        failedToStart.set(true);
+                })
+                .filter(b -> b.getId() != null)
+                .mapToInt(BuildRef::getId)
+                .toArray();
 
         snapshotDeps = arr.length > 0 ? arr : null;
 
         setFlag(DEF_BR_F, build.defaultBranch);
         setFlag(COMPOSITE_F, build.composite);
 
-        if(build.isFakeStub())
+        if (failedToStart.get())
+            setFlag(FAILED_TO_START_F, true);
+
+        if (build.isFakeStub())
             setFlag(FAKE_BUILD_F, true);
     }
 
@@ -194,7 +230,6 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         }
     }
 
-
     /**
      * @param off Offset.
      * @param val Value.
@@ -234,10 +269,15 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         TestOccurrencesFull testOccurrences = new TestOccurrencesFull();
 
-        testOccurrences.setTests(res);
         testOccurrences.count = res.size();
+        testOccurrences.setTests(res);
 
         return testOccurrences;
+    }
+
+    /** Start date. */
+    public Date getStartDate() {
+        return new Date(startDate);
     }
 
     /** {@inheritDoc} */
@@ -257,12 +297,16 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             name == that.name &&
             Objects.equal(tests, that.tests) &&
             Objects.equal(snapshotDeps, that.snapshotDeps) &&
-            Objects.equal(flags, that.flags);
+            Objects.equal(flags, that.flags) &&
+                Objects.equal(problems, that.problems) &&
+                Objects.equal(statistics, that.statistics)
+                && Objects.equal(changesIds, that.changesIds);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests, snapshotDeps, flags);
+        return Objects.hashCode(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests,
+                snapshotDeps, flags, problems, statistics, changesIds);
     }
 
     /**
@@ -274,20 +318,49 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return flag != null && flag;
     }
 
-    public Stream<String> getFailedNotMutedTestNames(IStringCompactor compactor) {
+    /**
+     *
+     */
+    public boolean isFakeStub() {
+        Boolean flag = getFlag(FAKE_BUILD_F);
+
+        return flag != null && flag;
+    }
+
+    /**
+     *
+     */
+    public boolean isFailedToStart() {
+        Boolean flag = getFlag(FAILED_TO_START_F);
+
+        return flag != null && flag;
+    }
+
+    public Stream<TestCompacted> getFailedNotMutedTests(IStringCompactor compactor) {
         if (tests == null)
             return Stream.of();
 
         return tests.stream()
-            .filter(t -> t.isFailedButNotMuted(compactor))
-            .map(t -> t.getTestName(compactor));
+                .filter(t -> t.isFailedButNotMuted(compactor));
     }
 
-    public Stream<String> getAllTestNames(IStringCompactor compactor) {
+    public Stream<String> getFailedNotMutedTestNames(IStringCompactor compactor) {
+        return getFailedNotMutedTests(compactor).map(t -> t.testName(compactor));
+    }
+
+    public Stream<TestCompacted> getAllTests() {
         if (tests == null)
             return Stream.of();
 
-        return tests.stream().map(t -> t.getTestName(compactor));
+        return tests.stream();
+    }
+
+    public int getTestsCount() {
+        return tests != null ? tests.size() : 0;
+    }
+
+    public Stream<String> getAllTestNames(IStringCompactor compactor) {
+        return getAllTests().map(t -> t.testName(compactor));
     }
 
     public String buildTypeName(IStringCompactor compactor) {
@@ -296,5 +369,78 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     public String projectId(IStringCompactor compactor) {
         return compactor.getStringFromId(projectId);
+    }
+
+    public List<ProblemOccurrence> problems(IStringCompactor compactor) {
+        if (this.problems == null)
+             return Collections.emptyList();
+
+        return this.problems.stream()
+                .map(pc -> pc.toProblemOccurrence(compactor, id()))
+                .collect(Collectors.toList());
+    }
+
+    public List<ProblemCompacted> problems() {
+        if (this.problems == null)
+            return Collections.emptyList();
+
+        return Collections.unmodifiableList(this.problems);
+    }
+
+    public void addProblems(IStringCompactor compactor,
+                            @NotNull List<ProblemOccurrence> occurrences) {
+        if (occurrences.isEmpty())
+            return;
+
+        if (this.problems == null)
+            this.problems = new ArrayList<>();
+
+        occurrences.stream()
+                .map(p -> new ProblemCompacted(compactor, p))
+                .forEach(this.problems::add);
+    }
+
+    public Long buildDuration(IStringCompactor compactor) {
+        return statistics == null ? null : statistics.buildDuration(compactor);
+    }
+
+    public void statistics(IStringCompactor compactor, Statistics statistics) {
+        this.statistics = new StatisticsCompacted(compactor, statistics);
+    }
+
+    public void changes(int[] changes) {
+        this.changesIds = changes;
+    }
+
+    public int[] changes() {
+        if (changesIds == null)
+            return EMPTY;
+
+        return changesIds;
+    }
+
+    public int[] snapshotDependencies() {
+        if (snapshotDeps == null)
+            return EMPTY;
+
+        return snapshotDeps.clone();
+    }
+
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("_", super.toString())
+            .add("_ver", _ver)
+            .add("startDate", startDate)
+            .add("finishDate", finishDate)
+            .add("queuedDate", queuedDate)
+            .add("projectId", projectId)
+            .add("name", name)
+            .add("tests", tests)
+            .add("snapshotDeps", snapshotDeps)
+            .add("flags", flags)
+            .add("problems", problems)
+            .add("statistics", statistics)
+            .add("changesIds", changesIds)
+            .toString();
     }
 }

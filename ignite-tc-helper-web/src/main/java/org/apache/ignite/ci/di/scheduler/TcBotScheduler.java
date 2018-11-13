@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class TcBotScheduler implements IScheduler {
-    public static final int POOL_SIZE = 8;
+    public static final int POOL_SIZE = 10;
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TcBotScheduler.class);
 

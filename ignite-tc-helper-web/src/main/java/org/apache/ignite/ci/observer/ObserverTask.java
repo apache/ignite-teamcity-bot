@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.observer;
 
+import java.util.ArrayList;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TimerTask;
+import javax.cache.Cache;
 import java.util.stream.Collectors;
 import javax.cache.Cache;
 import javax.inject.Inject;
@@ -35,7 +37,7 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
@@ -65,7 +67,7 @@ public class ObserverTask extends TimerTask {
     @Inject private VisasHistoryStorage visasHistoryStorage;
 
     /** */
-    @Inject private IgniteStringCompactor strCompactor;
+    @Inject private IStringCompactor strCompactor;
 
     /**
      */

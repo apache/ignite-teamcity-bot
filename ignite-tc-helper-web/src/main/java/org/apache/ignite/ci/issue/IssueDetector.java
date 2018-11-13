@@ -35,8 +35,12 @@ import javax.inject.Provider;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
@@ -92,6 +96,11 @@ public class IssueDetector {
 
     /** Server provider. */
     @Inject private ITcServerProvider srvProvider;
+
+    /** Server provider. */
+    @Inject private ITeamcityIgnitedProvider tcProv;
+
+    @Inject private IStringCompactor compactor;
 
     /** Send notification guard. */
     private final AtomicBoolean sndNotificationGuard = new AtomicBoolean();
@@ -152,7 +161,7 @@ public class IssueDetector {
 
             List<String> addrs = new ArrayList<>();
 
-            if (slackCh != null && issue.trackedBranchName.equals(FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME))
+            if (slackCh != null && FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME.equals(issue.trackedBranchName))
                 addrs.add(SLACK + "#" + slackCh);
 
             for (TcHelperUser next : userForPossibleNotifications) {
@@ -225,6 +234,8 @@ public class IssueDetector {
 
             IAnalyticsEnabledTeamcity teamcity = srvProvider.server(next.serverId, creds);
 
+            ITeamcityIgnited tcIgnited = tcProv.server(next.serverId, creds);
+
             for (SuiteCurrentStatus suiteCurrentStatus : next.suites) {
 
                 String normalizeBranch = normalizeBranch(suiteCurrentStatus.branchName());
@@ -232,11 +243,11 @@ public class IssueDetector {
                 final String trackedBranch = res.getTrackedBranch();
 
                 for (TestFailure testFailure : suiteCurrentStatus.testFailures) {
-                    if(registerTestFailIssues(teamcity, next.serverId, normalizeBranch, testFailure, trackedBranch))
+                    if(registerTestFailIssues(tcIgnited, teamcity, next.serverId, normalizeBranch, testFailure, trackedBranch))
                         newIssues++;
                 }
 
-                if(registerSuiteFailIssues(teamcity, next.serverId, normalizeBranch, suiteCurrentStatus, trackedBranch))
+                if(registerSuiteFailIssues(tcIgnited, teamcity, next.serverId, normalizeBranch, suiteCurrentStatus, trackedBranch))
                     newIssues++;
             }
         }
@@ -244,7 +255,7 @@ public class IssueDetector {
         return "New issues found " + newIssues;
     }
 
-    private boolean registerSuiteFailIssues(IAnalyticsEnabledTeamcity teamcity,
+    private boolean registerSuiteFailIssues(ITeamcityIgnited tcIgnited, IAnalyticsEnabledTeamcity teamcity,
                                             String srvId,
                                             String normalizeBranch,
                                             SuiteCurrentStatus suiteFailure,
@@ -276,7 +287,7 @@ public class IssueDetector {
             issue.webUrl = suiteFailure.webToHist;
             issue.displayType = "New Critical Failure";
 
-            locateChanges(teamcity, firstFailedBuildId, issue);
+            locateChanges(tcIgnited, firstFailedBuildId, issue);
 
             logger.info("Register new issue for suite fail: " + issue);
 
@@ -288,26 +299,19 @@ public class IssueDetector {
         return issueFound;
     }
 
-    private void locateChanges(ITeamcity teamcity, int buildId, Issue issue) {
-        Build build = teamcity.getBuild(buildId);
+    private void locateChanges(ITeamcityIgnited teamcity, int buildId, Issue issue) {
+        final FatBuildCompacted fatBuild = teamcity.getFatBuild(buildId);
+        final int[] changes = fatBuild.changes();
+        final Collection<ChangeCompacted> allChanges = teamcity.getAllChanges(changes);
 
-        if (build.changesRef != null) {
-            ChangesList changeList = teamcity.getChangesList(build.changesRef.href);
-            // System.err.println("changes: " + changeList);
-            if (changeList.changes != null) {
-                for (ChangeRef next : changeList.changes) {
-                    if (!isNullOrEmpty(next.href)) {
-                        // just to cache this change
-                        Change change = teamcity.getChange(next.href);
-
-                        issue.addChange(change.username, change.webUrl);
-                    }
-                }
-            }
+        for (ChangeCompacted next : allChanges) {
+            issue.addChange(next.vcsUsername(compactor),
+                    teamcity.host() + "/viewModification.html?modId=" + next.id());
         }
     }
 
-    private boolean registerTestFailIssues(IAnalyticsEnabledTeamcity teamcity,
+    private boolean registerTestFailIssues(ITeamcityIgnited tcIgnited,
+                                           IAnalyticsEnabledTeamcity teamcity,
                                            String srvId,
                                            String normalizeBranch,
                                            TestFailure testFailure,
@@ -364,7 +368,7 @@ public class IssueDetector {
         issue.webUrl = testFailure.webUrl;
         issue.displayType = displayType;
 
-        locateChanges(teamcity, buildId, issue);
+        locateChanges(tcIgnited, buildId, issue);
 
         logger.info("Register new issue for test fail: " + issue);
 

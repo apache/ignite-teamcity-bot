@@ -21,13 +21,18 @@ import com.google.common.base.Throwables;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.internal.util.GridConcurrentHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ProactiveFatBuildSync {
-    public static final int FAT_BUILD_PROACTIVE_TASKS = 4;
+    public static final int FAT_BUILD_PROACTIVE_TASKS = 5;
 
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(ProactiveFatBuildSync.class);
@@ -59,12 +64,23 @@ public class ProactiveFatBuildSync {
 
     @Inject private IStringCompactor compactor;
 
+    @Inject private ChangeSync changeSync;
+
     @GuardedBy("this")
     private Map<String, SyncTask> buildToLoad = new HashMap<>();
 
+    public void doLoadBuilds(int i, String srvNme, ITeamcityConn conn, Set<Integer> paginateUntil) {
+        doLoadBuilds(i, srvNme, conn, paginateUntil, getSyncTask(conn).loadingBuilds);
+    }
+
+    /**
+     * Scope of work: builds to be loaded from a connection.
+     */
     private static class SyncTask {
         ITeamcityConn conn;
         Set<Integer> ids = new HashSet<>();
+
+        GridConcurrentHashSet<Integer> loadingBuilds = new GridConcurrentHashSet<>();
     }
 
     /**
@@ -78,10 +94,11 @@ public class ProactiveFatBuildSync {
 
 
         synchronized (this) {
-            final String serverId = conn.serverId();
-            final SyncTask syncTask = buildToLoad.computeIfAbsent(serverId, s -> new SyncTask());
-            syncTask.conn = conn;
-            syncTask.ids.addAll(buildsToAskFromTc);
+            final SyncTask syncTask = getSyncTask(conn);
+
+            buildsToAskFromTc.stream()
+                    .filter(id -> !syncTask.loadingBuilds.contains(id))
+                    .forEach(syncTask.ids::add);
         }
 
         int ldrToActivate = ThreadLocalRandom.current().nextInt(FAT_BUILD_PROACTIVE_TASKS);
@@ -91,6 +108,13 @@ public class ProactiveFatBuildSync {
 
     }
 
+    @NotNull
+    public synchronized SyncTask getSyncTask(ITeamcityConn conn) {
+        final String serverId = conn.serverId();
+        final SyncTask syncTask = buildToLoad.computeIfAbsent(serverId, s -> new SyncTask());
+        syncTask.conn = conn;
+        return syncTask;
+    }
 
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Find missing builds", nameExtArgsIndexes = {0})
@@ -99,8 +123,6 @@ public class ProactiveFatBuildSync {
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
 
         final int[] buildRefKeys = buildRefDao.getAllIds(srvIdMaskHigh);
-
-        Arrays.parallelSort(buildRefKeys);
 
         List<Integer> buildsIdsToLoad = new ArrayList<>();
         int totalAskedToLoad = 0;
@@ -128,6 +150,8 @@ public class ProactiveFatBuildSync {
     private void loadFatBuilds(int ldrNo, String serverId) {
         Set<Integer> load;
         ITeamcityConn conn;
+        final GridConcurrentHashSet<Integer> loadingBuilds;
+
         synchronized (this) {
             final SyncTask syncTask = buildToLoad.get(serverId);
             if (syncTask == null)
@@ -142,19 +166,25 @@ public class ProactiveFatBuildSync {
                 return;
 
             load = syncTask.ids;
+            //marking that builds are in progress
+
+            loadingBuilds = syncTask.loadingBuilds;
+            loadingBuilds.addAll(load);
+
             syncTask.ids = new HashSet<>();
 
             conn = syncTask.conn;
             syncTask.conn = null;
         }
 
-        doLoadBuilds(ldrNo, serverId, conn, load);
+        doLoadBuilds(ldrNo, serverId, conn, load,  loadingBuilds);
     }
 
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Proactive Builds Loading (srv,agent)", nameExtArgsIndexes = {1, 0})
     @AutoProfiling
-    protected String doLoadBuilds(int ldrNo, String srvId, ITeamcityConn conn, Set<Integer> load) {
+    public String doLoadBuilds(int ldrNo, String srvId, ITeamcityConn conn, Set<Integer> load,
+                               GridConcurrentHashSet<Integer> loadingBuilds) {
         if(load.isEmpty())
             return "Nothing to load";
 
@@ -170,10 +200,12 @@ public class ProactiveFatBuildSync {
                     try {
                         FatBuildCompacted existingBuild = builds.get(FatBuildDao.buildIdToCacheKey(srvIdMaskHigh, buildId));
 
-                        FatBuildCompacted savedVer = reloadBuild(conn, buildId, existingBuild);
+                        FatBuildCompacted savedVer = loadBuild(conn, buildId, existingBuild, false);
 
                         if (savedVer != null)
                             ld.incrementAndGet();
+
+                        loadingBuilds.remove(buildId);
                     }
                     catch (Exception e) {
                         logger.error("", e);
@@ -195,6 +227,29 @@ public class ProactiveFatBuildSync {
                 () -> findMissingBuildsFromBuildRef(srvName, conn), 360, TimeUnit.MINUTES);
     }
 
+
+    /**
+     *
+     * @param conn
+     * @param buildId
+     * @param existingBuild
+     * @param acceptQueued
+     * @return null if nothing was saved, use existing build
+     */
+    @Nullable
+    public FatBuildCompacted loadBuild(ITeamcityConn conn, int buildId,
+                                       @Nullable FatBuildCompacted existingBuild,
+                                       boolean acceptQueued) {
+        if (existingBuild != null && !existingBuild.isOutdatedEntityVersion()) {
+            boolean finished = !existingBuild.isRunning(compactor) && !existingBuild.isQueued(compactor);
+
+            if(finished || acceptQueued)
+                return null;
+        }
+
+        return reloadBuild(conn, buildId, existingBuild);
+    }
+
     /**
      *
      * @param conn
@@ -213,18 +268,39 @@ public class ProactiveFatBuildSync {
 
         Build build;
         List<TestOccurrencesFull> tests = new ArrayList<>();
+        List<ProblemOccurrence> problems = null;
+        Statistics statistics = null;
+        ChangesList changesList = null;
         try {
             build = conn.getBuild(buildId);
 
-            String nextHref = null;
-            do {
-                boolean testDtls = !build.isComposite(); // don't query test details for compoite
-                TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, testDtls);
-                nextHref = page.nextHref();
+            if(build.testOccurrences!=null) {
+                String nextHref = null;
+                do {
+                    boolean testDtls = !build.isComposite(); // don't query test details for compoite
+                    TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, testDtls);
+                    nextHref = page.nextHref();
 
-                tests.add(page);
+                    tests.add(page);
+                }
+                while (!Strings.isNullOrEmpty(nextHref));
             }
-            while (!Strings.isNullOrEmpty(nextHref));
+
+            if (build.problemOccurrences != null)
+                problems = conn.getProblems(buildId).getProblemsNonNull();
+
+            if (build.statisticsRef != null)
+                statistics = conn.getStatistics(buildId);
+
+            if (build.changesRef != null) {
+                changesList = conn.getChangesList(buildId);
+
+                for (int changeId : FatBuildDao.extractChangeIds(changesList)) {
+                    // consult change sync for provided changes data
+
+                    changeSync.change(srvIdMask, changeId, conn);
+                }
+            }
         }
         catch (Exception e) {
             if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
@@ -237,9 +313,12 @@ public class ProactiveFatBuildSync {
                         build.setCancelled();
 
                     tests = Collections.singletonList(existingBuild.getTestOcurrences(compactor));
+
+                    problems = existingBuild.problems(compactor);
                 }
-                else
+                else {
                     build = Build.createFakeStub();
+                }
             } else {
                 logger.error("Loading build [" + buildId + "] for server [" + srvNme + "] failed:" + e.getMessage(), e);
 
@@ -251,6 +330,6 @@ public class ProactiveFatBuildSync {
 
         //if we are here because of some sort of outdated version of build,
         // new save will be performed with new entity version for compacted build
-        return fatBuildDao.saveBuild(srvIdMask, buildId, build, tests, existingBuild);
+        return fatBuildDao.saveBuild(srvIdMask, buildId, build, tests, problems, statistics, changesList, existingBuild);
     }
 }

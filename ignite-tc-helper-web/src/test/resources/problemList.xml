@@ -1,0 +1,20 @@
+<!-- Syntetic list from:
+ https://ci.ignite.apache.org/app/rest/latest/problemOccurrences?locator=build:(id:2153237)&fields=problemOccurrence(id,type,identity,href,details,build(id))-->
+<problemOccurrences>
+    <problemOccurrence id="problem:(id:3481),build:(id:2136678)" type="TC_EXIT_CODE" identity="Inspection1"
+                       href="/app/rest/latest/problemOccurrences/problem:(id:3481),build:(id:2136678)">
+        <details>Process exited with code 1</details>
+        <additionalData>teamcity.process.flow.id=1200755009805251</additionalData>
+        <problem id="3481" type="TC_EXIT_CODE" identity="Inspection1" href="/app/rest/latest/problems/id:3481"/>
+        <build id="2136678" buildTypeId="IgniteTests24Java8_InspectionsAop" number="165" status="FAILURE"
+               state="finished" branchName="refs/heads/master" defaultBranch="true"
+               href="/app/rest/latest/builds/id:2136678"
+               webUrl="http://ci.ignite.apache.org/viewLog.html?buildId=2136678&amp;buildTypeId=IgniteTests24Java8_InspectionsAop"/>
+    </problemOccurrence>
+    <problemOccurrence id="problem:(id:3733),build:(id:2153237)" type="TC_FAILED_TESTS"
+                       identity="TC_FAILED_TESTS_bt1053"
+                       href="/app/rest/latest/problemOccurrences/problem:(id:3733),build:(id:2153237)">
+        <details>1 failed test detected</details>
+        <build id="2153237"/>
+    </problemOccurrence>
+</problemOccurrences>

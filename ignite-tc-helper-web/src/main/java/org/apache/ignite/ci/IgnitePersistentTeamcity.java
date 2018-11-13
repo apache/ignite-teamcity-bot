@@ -61,6 +61,7 @@ import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -100,13 +101,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private static final String TESTS_RUN_STAT = "testsRunStat";
     private static final String CALCULATED_STATISTIC = "calculatedStatistic";
     private static final String LOG_CHECK_RESULT = "logCheckResult";
-    private static final String CHANGE_INFO_FULL = "changeInfoFull";
-    private static final String CHANGES_LIST = "changesList";
     private static final String ISSUES_USAGES_LIST = "issuesUsagesList";
     @Deprecated
     private static final String TEST_FULL = "testFull";
     private static final String BUILD_PROBLEMS = "buildProblems";
-    private static final String BUILD_STATISTICS = "buildStatistics";
     private static final String BUILD_HIST_FINISHED = "buildHistFinished";
     private static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
@@ -142,12 +140,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** cached loads of queued builds for branch. */
     private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> queuedBuildsFuts = new ConcurrentHashMap<>();
 
-    /** cached running builds for branch. */
-    private ConcurrentMap<String, Expirable<List<BuildRef>>> runningBuilds = new ConcurrentHashMap<>();
-
-    /** cached loads of running builds for branch. */
-    private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> runningBuildsFuts = new ConcurrentHashMap<>();
-
     /**   */
     private ConcurrentMap<SuiteInBranch, Long> lastQueuedHistory = new ConcurrentHashMap<>();
 
@@ -171,10 +163,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 buildsFailureRunStatCache(), testRunStatCache(),
                 testFullCache(),
                 buildProblemsCache(),
-                buildStatisticsCache(),
                 buildHistCache(),
-                buildHistIncFailedCache(),
-                testRefsCache());
+                buildHistIncFailedCache());
     }
 
     @Override
@@ -255,12 +245,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return getOrCreateCacheV2(ignCacheNme(BUILD_PROBLEMS));
     }
 
-    /**
-     * @return Build {@link Statistics} instances cache, 32 parts.
-     */
-    private IgniteCache<String, Statistics> buildStatisticsCache() {
-        return getOrCreateCacheV2(ignCacheNme(BUILD_STATISTICS));
-    }
 
 
     /**
@@ -667,20 +651,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
 
-    /** {@inheritDoc} */
-    @Override public CompletableFuture<List<BuildRef>> getRunningBuilds(String branch) {
-        int defaultSecs = 60;
-        int secondsUseCached = getTriggerRelCacheValidSecs(defaultSecs);
-
-        return loadAsyncIfAbsentOrExpired(
-            runningBuilds,
-            Strings.nullToEmpty(branch),
-            runningBuildsFuts,
-            teamcity::getRunningBuilds,
-            secondsUseCached,
-            secondsUseCached == defaultSecs);
-    }
-
     public static int getTriggerRelCacheValidSecs(int defaultSecs) {
         long msSinceTrigger = System.currentTimeMillis() - lastTriggerMs;
         long secondsSinceTrigger = TimeUnit.MILLISECONDS.toSeconds(msSinceTrigger);
@@ -810,7 +780,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     private void registerCriticalBuildProblemInStat(BuildRef build, ProblemOccurrences problems) {
         boolean criticalFail = problems.getProblemsNonNull().stream().anyMatch(occurrence ->
-            occurrence.isExecutionTimeout() || occurrence.isJvmCrash());
+            occurrence.isExecutionTimeout() || occurrence.isJvmCrash() || occurrence.isFailureOnMetric());
 
         String suiteId = build.suiteId();
         Integer buildId = build.getId();
@@ -873,26 +843,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public Statistics getBuildStatistics(String href) {
-        return loadIfAbsent(buildStatisticsCache(),
-            href,
-            href1 -> {
-                try {
-                    return teamcity.getBuildStatistics(href1);
-                }
-                catch (Exception e) {
-                    if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                        e.printStackTrace();
-                        return new Statistics();// save null result, because persistence may refer to some  unexistent build on TC
-                    }
-                    else
-                        throw e;
-                }
-            });
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
     @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
         return CacheUpdateUtil.loadAsyncIfAbsent(
             testFullCache(),
@@ -921,49 +871,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             key.toString(),
             testRefsFutures,
             k -> teamcity.getTestRef(key));
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public Change getChange(String href) {
-        return loadIfAbsentV2(CHANGE_INFO_FULL, href, href1 -> {
-            try {
-                return teamcity.getChange(href1);
-            }
-            catch (Exception e) {
-                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                    System.err.println("Change history not found for href : " + href);
-
-                    return new Change();
-                }
-                if (Throwables.getRootCause(e) instanceof SAXParseException) {
-                    System.err.println("Change data seems to be invalid: " + href);
-
-                    return new Change();
-                }
-                else
-                    throw e;
-            }
-        });
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public ChangesList getChangesList(String href) {
-        return loadIfAbsentV2(CHANGES_LIST, href, href1 -> {
-            try {
-                return teamcity.getChangesList(href1);
-            }
-            catch (Exception e) {
-                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                    System.err.println("Change List not found for href : " + href);
-
-                    return new ChangesList();
-                }
-                else
-                    throw e;
-            }
-        });
     }
 
     @AutoProfiling
@@ -1000,7 +907,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return key -> key == null ? null : getRunStatForTest(key);
     }
 
+    @SuppressWarnings("WeakerAccess")
     @AutoProfiling
+    @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
     protected RunStat getRunStatForTest(TestInBranch key) {
         return testRunStatCache().get(key);
     }
@@ -1020,12 +929,14 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @Override public Function<SuiteInBranch, RunStat> getBuildFailureRunStatProvider() {
-        return key -> key == null ? null : getRunStatForTest(key);
+        return key -> key == null ? null : getRunStatForSuite(key);
     }
 
 
+    @SuppressWarnings("WeakerAccess")
     @AutoProfiling
-    protected RunStat getRunStatForTest(SuiteInBranch key) {
+    @GuavaCached(maximumSize = 500, expireAfterAccessSecs = 90, softValues = true)
+    protected RunStat getRunStatForSuite(SuiteInBranch key) {
         return buildsFailureRunStatCache().get(key);
     }
 
@@ -1142,6 +1053,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public void calculateBuildStatistic(SingleBuildRunCtx ctx) {
+        if (ctx.buildId() == null)
+            return;
+
         if (calculatedStatistic().containsKey(ctx.buildId()))
             return;
 
@@ -1191,10 +1105,30 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
+    @Override public Build triggerBuild(String buildTypeId, @NotNull String branchName, boolean cleanRebuild, boolean queueAtTop) {
         lastTriggerMs = System.currentTimeMillis();
 
         return teamcity.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
+    }
+
+    @Override
+    public ProblemOccurrences getProblems(int buildId) {
+        return teamcity.getProblems(buildId);
+    }
+
+    @Override
+    public Statistics getStatistics(int buildId) {
+        return teamcity.getStatistics(buildId);
+    }
+
+    @Override
+    public ChangesList getChangesList(int buildId) {
+        return teamcity.getChangesList(buildId);
+    }
+
+    @Override
+    public Change getChange(int changeId) {
+        return teamcity.getChange(changeId);
     }
 
     /** {@inheritDoc} */
@@ -1238,8 +1172,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> nextPage) {
-        return teamcity.getBuildRefs(fullUrl, nextPage);
+    @Override public List<BuildRef> getBuildRefsPage(String fullUrl, AtomicReference<String> nextPage) {
+        return teamcity.getBuildRefsPage(fullUrl, nextPage);
     }
 
     /** {@inheritDoc} */

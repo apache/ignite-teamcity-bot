@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.tcmodel.changes;
 
+import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -37,5 +38,9 @@ public class ChangesList extends ChangesListRef {
         return "ChangesList{" +
             "changes=" + changes +
             '}';
+    }
+
+    public List<ChangeRef> changes() {
+        return changes == null ? Collections.emptyList() : Collections.unmodifiableList(changes);
     }
 }

@@ -17,20 +17,28 @@
 
 package org.apache.ignite.ci.runners;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import java.io.FileWriter;
+import java.io.IOException;
 import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
-import org.apache.ignite.ci.user.TcHelperUser;
-import org.apache.ignite.ci.user.UserAndSessionsStorage;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.logger.slf4j.Slf4jLogger;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 
 public class RemoteClientTmpHelper {
+    private static boolean dumpDict = false;
+
     private static void setupDisco(IgniteConfiguration cfg) {
         final TcpDiscoverySpi spi = new TcpDiscoverySpi();
         final int locPort = 54433;
@@ -44,7 +52,7 @@ public class RemoteClientTmpHelper {
         cfg.setDiscoverySpi(spi);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         final IgniteConfiguration cfg = new IgniteConfiguration();
 
         setupDisco(cfg);
@@ -54,36 +62,48 @@ public class RemoteClientTmpHelper {
         cfg.setClientMode(true);
 
         final Ignite ignite = Ignition.start(cfg);
-        ignite.cluster().active(true);
 
-        IgniteCache<Object, Object> cache1 = ignite.cache(UserAndSessionsStorage.USERS);
-        for (Cache.Entry<Object, Object> next : cache1) {
-            System.out.println(next.getKey() + ": " + next.getValue());
-
-            if (next.getKey().equals("someusername")) {
-                TcHelperUser u = (TcHelperUser)next.getValue();
-
-                u.resetCredentials();
-
-                cache1.put(next.getKey(), u);
+        if(dumpDict) {
+            IgniteCache<String, Object> strings = ignite.cache(IgniteStringCompactor.STRINGS_CACHE);
+            try (FileWriter writer = new FileWriter("Dictionary.txt")) {
+                for (Cache.Entry<String, Object> next1 : strings) {
+                    writer.write(next1.getValue().toString()
+                        + "\n");
+                }
             }
         }
+        IgniteCache<Long, FatBuildCompacted> cache1 = ignite.cache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
 
-        IgniteCache<Object, Object> cache = ignite.cache(IgnitePersistentTeamcity.BOT_DETECTED_ISSUES);
-        for (Cache.Entry<Object, Object> next : cache) {
-            Object key = next.getKey();
-            Object value = next.getValue();
+        int apache = ITeamcityIgnited.serverIdToInt("apache");
 
-            if (key.toString().contains("GridCacheLifecycleAwareSelfTest.testLifecycleAware")) {
-                /*boolean remove = cache.remove(key);
+        int id = 2200135;
+        int id1 = 2200209;
+        dumpFatBuild(cache1, apache, id);
+        dumpFatBuild(cache1, apache, id1);
 
-                if (remove)
-                    System.err.println("Removed issue " + value);*/
 
-                System.err.println("Issue: " + value);
-            }
-        }
-
+        IgniteCache<Long, BuildRefCompacted> cache2 = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+        dumpBuildRef(cache2, apache, id);
+        dumpBuildRef(cache2, apache, id1);
         ignite.close();
+
+    }
+
+    public static void dumpBuildRef(IgniteCache<Long, BuildRefCompacted> cache, int apache, int id) throws IOException {
+        long l = BuildRefDao.buildIdToCacheKey(apache, id);
+        BuildRefCompacted compacted = cache.get(l);
+        Preconditions.checkNotNull(compacted, "Can't find build by ID " + id);
+        try (FileWriter writer = new FileWriter("BuildRef " + id + ".txt")) {
+            writer.write(compacted.toString());
+        }
+    }
+
+    public static void dumpFatBuild(IgniteCache<Long, FatBuildCompacted> cache, int apache, int id) throws IOException {
+        long l = FatBuildDao.buildIdToCacheKey(apache, id);
+        FatBuildCompacted compacted = cache.get(l);
+        Preconditions.checkNotNull(compacted, "Can't find build by ID " + id);
+        try (FileWriter writer = new FileWriter("Build " + id + ".txt")) {
+            writer.write(compacted.toString());
+        }
     }
 }

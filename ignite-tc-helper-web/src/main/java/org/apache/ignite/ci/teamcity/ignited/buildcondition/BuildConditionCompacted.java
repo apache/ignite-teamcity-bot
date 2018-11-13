@@ -15,11 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.condition;
+package org.apache.ignite.ci.teamcity.ignited.buildcondition;
 
 import java.util.Date;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
+//todo move to ignited package, change cache to 8 partitions
 public class BuildConditionCompacted {
     /** Build id. */
     int buildId = -1;
@@ -43,7 +44,7 @@ public class BuildConditionCompacted {
     }
 
     /**
-     * @param compactor Compacter.
+     * @param compactor Compactor.
      * @param cond Build condition.
      */
     public BuildConditionCompacted(IStringCompactor compactor, BuildCondition cond) {

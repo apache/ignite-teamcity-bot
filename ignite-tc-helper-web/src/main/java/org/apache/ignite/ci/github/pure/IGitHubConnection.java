@@ -31,6 +31,9 @@ public interface IGitHubConnection {
      */
     PullRequest getPullRequest(String branch);
 
+    /** */
+    PullRequest getPullRequest(Integer id);
+
     /**
      * Send POST request with given body.
      *

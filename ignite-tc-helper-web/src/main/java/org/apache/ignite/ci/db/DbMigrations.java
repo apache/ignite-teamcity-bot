@@ -42,7 +42,6 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
-import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.web.rest.build.GetBuildTestFailures;
 import org.apache.ignite.ci.web.rest.pr.GetPrTestFailures;
 import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
@@ -64,6 +63,11 @@ public class DbMigrations {
     public static final String TESTS = "tests";
     @Deprecated
     private static final String BUILD_RESULTS = "buildResults";
+
+    private static final String BUILD_STATISTICS = "buildStatistics";
+
+    private static final String BUILD_CONDITIONS_CACHE_NAME = "buildConditions";
+
     public static final String TESTS_COUNT_7700 = ",count:7700";
 
     //V1 caches, 1024 parts
@@ -91,6 +95,10 @@ public class DbMigrations {
     /** Cache name */
     public static final String TEAMCITY_BUILD_CACHE_NAME_OLD = "teamcityBuild";
 
+
+    private static final String CHANGE_INFO_FULL = "changeInfoFull";
+    private static final String CHANGES_LIST = "changesList";
+
     public static final int SUITES_CNT = 100;
 
     private final Ignite ignite;
@@ -108,17 +116,15 @@ public class DbMigrations {
     }
 
     public void dataMigration(
-        IgniteCache<String, TestOccurrences> testOccurrencesCache, Consumer<TestOccurrences> saveTestToStat,
-        Consumer<TestOccurrences> saveTestToLatest,
-        Cache<String, Build> buildCache, Consumer<Build> saveBuildToStat,
-        IgniteCache<SuiteInBranch, RunStat> suiteHistCache,
-        IgniteCache<TestInBranch, RunStat> testHistCache,
-        Cache<String, TestOccurrenceFull> testFullCache,
-        Cache<String, ProblemOccurrences> problemsCache,
-        Cache<String, Statistics> buildStatCache,
-        Cache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistCache,
-        Cache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistInFailedCache,
-        Cache<String, TestRef> testRefsCache) {
+            IgniteCache<String, TestOccurrences> testOccurrencesCache, Consumer<TestOccurrences> saveTestToStat,
+            Consumer<TestOccurrences> saveTestToLatest,
+            Cache<String, Build> buildCache, Consumer<Build> saveBuildToStat,
+            IgniteCache<SuiteInBranch, RunStat> suiteHistCache,
+            IgniteCache<TestInBranch, RunStat> testHistCache,
+            Cache<String, TestOccurrenceFull> testFullCache,
+            Cache<String, ProblemOccurrences> problemsCache,
+            Cache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistCache,
+            Cache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistInFailedCache) {
 
         doneMigrations = doneMigrationsCache();
 
@@ -346,7 +352,6 @@ public class DbMigrations {
             }
         });
         applyV1toV2Migration(PROBLEMS, problemsCache);
-        applyV1toV2Migration(STAT, buildStatCache);
         applyV1toV2Migration(FINISHED_BUILDS, buildHistCache);
         applyV1toV2Migration(FINISHED_BUILDS_INCLUDE_FAILED, buildHistInFailedCache);
 
@@ -405,8 +410,14 @@ public class DbMigrations {
         applyDestroyIgnCacheMigration(FINISHED_BUILDS_INCLUDE_FAILED);
         applyDestroyIgnCacheMigration(TEST_OCCURRENCE_FULL);
 
-        applyDestroyCacheMigration(TEAMCITY_BUILD_CACHE_NAME_OLD, TEAMCITY_BUILD_CACHE_NAME_OLD);
         applyDestroyIgnCacheMigration(TESTS);
+        applyDestroyIgnCacheMigration(STAT);
+        applyDestroyIgnCacheMigration(BUILD_STATISTICS);
+        applyDestroyCacheMigration(BUILD_CONDITIONS_CACHE_NAME, BUILD_CONDITIONS_CACHE_NAME);
+        applyDestroyCacheMigration(TEAMCITY_BUILD_CACHE_NAME_OLD, TEAMCITY_BUILD_CACHE_NAME_OLD);
+
+        applyDestroyIgnCacheMigration(CHANGE_INFO_FULL);
+        applyDestroyIgnCacheMigration(CHANGES_LIST);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {
@@ -414,12 +425,12 @@ public class DbMigrations {
         applyDestroyCacheMigration(cacheName, ignCacheNme);
     }
 
-    private void applyDestroyCacheMigration(String dispCacheName, String ignCacheNme) {
+    private void applyDestroyCacheMigration(String dispCacheName, String cacheNme) {
         applyMigration("destroy-" + dispCacheName, () -> {
-            IgniteCache<Object, Object> cache = ignite.cache(ignCacheNme);
+            IgniteCache<Object, Object> cache = ignite.cache(cacheNme);
 
             if (cache == null) {
-                System.err.println("cache not found");
+                System.err.println("cache [" + cacheNme + "] not found");
 
                 return;
             }

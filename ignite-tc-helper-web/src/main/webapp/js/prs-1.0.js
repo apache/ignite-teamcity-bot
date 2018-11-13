@@ -1,7 +1,8 @@
 function drawTable(srvId, suiteId, element) {
+    let tableId = "serverContributions-" + srvId;
 
-    element.append("<table id=\"serverContributions-" +
-        srvId + "\" class=\"ui-widget ui-widget-content\">\n" +
+    element.append("<div id='expandAllButton' align='right' style='margin-right:50px'></div><br>" +
+        "<table id=\"" + tableId + "\" class='ui-widget ui-widget-content'>\n" +
         "            <thead>\n" +
         "            <tr class=\"ui-widget-header \">\n" +
         "                <th>.</th>\n" +
@@ -21,13 +22,24 @@ function requestTableForServer(srvId, suiteId, element) {
     if (srvId != "apache")
         return;
 
+    // TODO multiple suites
+    if (suiteId != "IgniteTests24Java8_RunAll")
+        return;
+
+    let tableId = "serverContributions-" + srvId;
+
+    if ($("#" + tableId).length > 0)
+        return;
+
     drawTable(srvId, suiteId, element);
 
     $.ajax({
         url: "rest/visa/contributions?serverId=" + srvId,
         success:
             function (result) {
-                showContributionsTable(result, srvId, suiteId)
+                showContributionsTable(result, srvId, suiteId);
+                fillBranchAutocompleteList(result, srvId);
+                setAutocompleteFilter();
             }
     });
 }
@@ -41,6 +53,9 @@ function showContributionsTable(result, srvId, suiteId) {
     let tableForSrv = $('#' + tableId);
 
     tableForSrv.dataTable().fnDestroy();
+
+    if (isDefinedAndFilled(result) && result.length > 0)
+        $("#expandAllButton").html("<button class='more green' id='expandAll'>Expand all</button>");
 
     var table = tableForSrv.DataTable({
         order: [[1, 'desc']],
@@ -64,7 +79,8 @@ function showContributionsTable(result, srvId, suiteId) {
                 "defaultContent": "",
                 "render": function (data, type, row, meta) {
                     if (type === 'display') {
-                        return "<button>&#x2714; Inspect</button>";
+                        return "<button class='more full green' type='button' id='button_" + row.prNumber +"'>" +
+                            "<b>ᴍᴏʀᴇ</b><i class='fas fa-caret-down'></i></button>";
                     }
                 }
             },
@@ -132,6 +148,10 @@ function showContributionsTable(result, srvId, suiteId) {
         ]
     });
 
+    $('#expandAll').on('click', function () {
+        $('.details-control').click();
+    });
+
     // Add event listener for opening and closing details, enable to only btn   'td.details-control'
     $('#' + tableId + ' tbody').on('click', 'td.details-control', function () {
         var tr = $(this).closest('tr');
@@ -140,11 +160,13 @@ function showContributionsTable(result, srvId, suiteId) {
         if (row.child.isShown()) {
             // This row is already open - close it
             row.child.hide();
+            $("#button_" + row.data().prNumber).html("<b>ᴍᴏʀᴇ</b><i class='fas fa-caret-down'></i>");
             tr.removeClass('shown');
         }
         else {
             // Open this row
             row.child(formatContributionDetails(row.data(), srvId, suiteId)).show();
+            $("#button_" + row.data().prNumber).html("<b>ʟᴇss&nbsp;</b><i class='fas fa-caret-up'></i>");
             tr.addClass('shown');
         }
     });

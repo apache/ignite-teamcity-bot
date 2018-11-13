@@ -16,11 +16,14 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.jetbrains.annotations.NotNull;
+
+import static org.apache.ignite.ci.tcmodel.hist.BuildRef.*;
 
 @Persisted
 public class BuildRefCompacted {
@@ -83,11 +86,19 @@ public class BuildRefCompacted {
 
     protected void fillBuildRefFields(IStringCompactor compactor, BuildRef res) {
         res.setId(id < 0 ? null : id);
-        res.buildTypeId = compactor.getStringFromId(buildTypeId);
-        res.branchName = compactor.getStringFromId(branchName);
+        res.buildTypeId = buildTypeId(compactor);
+        res.branchName = branchName(compactor);
         res.status = compactor.getStringFromId(status);
         res.state = compactor.getStringFromId(state);
         res.href = getHrefForId(id());
+    }
+
+    public String buildTypeId(IStringCompactor compactor) {
+        return compactor.getStringFromId(buildTypeId);
+    }
+
+    public String branchName(IStringCompactor compactor) {
+        return compactor.getStringFromId(branchName);
     }
 
     @NotNull protected static String getHrefForId(int id) {
@@ -129,12 +140,47 @@ public class BuildRefCompacted {
     }
 
     /** */
-    private int status() {
+    public int status() {
         return status;
     }
 
     /** */
     public int state() {
         return state;
+    }
+
+    /** */
+    public boolean isFakeStub() {
+        return id() < 0;
+    }
+
+    public boolean isNotCancelled(IStringCompactor compactor) {
+        return !hasUnknownStatus(compactor);
+    }
+
+    private boolean hasUnknownStatus(IStringCompactor compactor) {
+        return compactor.getStringId(STATUS_UNKNOWN) == status();
+    }
+
+    public boolean isRunning(IStringCompactor compactor) {
+        return compactor.getStringId(STATE_RUNNING) == state();
+    }
+
+    public boolean isFinished(IStringCompactor compactor) {
+        return compactor.getStringId(STATE_FINISHED) == state();
+    }
+
+    public boolean isQueued(IStringCompactor compactor) {
+        return compactor.getStringId(STATE_QUEUED) == state();
+    }
+
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("id", id)
+            .add("buildTypeId", buildTypeId)
+            .add("branchName", branchName)
+            .add("status", status)
+            .add("state", state)
+            .toString();
     }
 }

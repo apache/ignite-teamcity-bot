@@ -40,18 +40,6 @@ public class FullChainRunCtx {
         fakeStub = chainResults.isFakeStub();
     }
 
-    @Deprecated
-    public int buildProblems() {
-        return (int)buildCfgsResults.stream().filter(MultBuildRunCtx::hasNontestBuildProblem).count();
-    }
-
-    public int timeoutsOomeCrashBuildProblems() {
-        return (int)buildCfgsResults.stream().filter(context ->
-            context.hasJvmCrashProblem()
-                || context.hasTimeoutProblem()
-                || context.hasOomeProblem()).count();
-    }
-
     public List<MultBuildRunCtx> suites() {
         return buildCfgsResults;
     }

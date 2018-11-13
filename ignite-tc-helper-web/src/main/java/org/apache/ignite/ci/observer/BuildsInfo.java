@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.ContributionKey;
 
@@ -64,7 +64,7 @@ public class BuildsInfo {
     private final Map<Integer, Boolean> finishedBuilds = new HashMap<>();
 
     /** */
-    public BuildsInfo(CompactBuildsInfo buildsInfo, IgniteStringCompactor strCompactor) {
+    public BuildsInfo(CompactBuildsInfo buildsInfo, IStringCompactor strCompactor) {
         this.userName = strCompactor.getStringFromId(buildsInfo.userName);
         this.date = buildsInfo.date;
         this.srvId = strCompactor.getStringFromId(buildsInfo.srvId);

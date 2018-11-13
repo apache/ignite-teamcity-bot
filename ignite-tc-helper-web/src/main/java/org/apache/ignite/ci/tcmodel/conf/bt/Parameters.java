@@ -19,6 +19,7 @@ package org.apache.ignite.ci.tcmodel.conf.bt;
 
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -41,5 +42,12 @@ public class Parameters {
         final Optional<Property> any = properties.stream().filter(property ->
             Objects.equals(property.name, key)).findAny();
         return any.map(Property::getValue).orElse(null);
+    }
+
+    public List<Property> properties() {
+        if(this.properties==null)
+            return Collections.emptyList();
+
+        return Collections.unmodifiableList(this.properties);
     }
 }

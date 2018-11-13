@@ -272,10 +272,10 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public Build triggerBuild(
-        String buildTypeId,
-        @Nonnull String branchName,
-        boolean cleanRebuild,
-        boolean queueAtTop
+            String buildTypeId,
+            @NotNull @Nonnull String branchName,
+            boolean cleanRebuild,
+            boolean queueAtTop
     ) {
         String triggeringOptions =
             " <triggeringOptions" +
@@ -317,6 +317,35 @@ public class IgniteTeamcityConnection implements ITeamcity {
         }
     }
 
+    @Override
+    @AutoProfiling
+    public ProblemOccurrences getProblems(int buildId) {
+        return getJaxbUsingHref("app/rest/latest/problemOccurrences" +
+                "?locator=build:(id:" + buildId + ")" +
+                "&fields=problemOccurrence(id,type,identity,href,details,build(id))", ProblemOccurrences.class);
+    }
+
+    @AutoProfiling
+    @Override public Statistics getStatistics(int buildId) {
+        return getJaxbUsingHref("app/rest/latest/builds/id:" + buildId + "/statistics", Statistics.class);
+    }
+
+    @AutoProfiling
+    @Override public ChangesList getChangesList(int buildId) {
+        String href = "app/rest/latest/changes" +
+                "?locator=build:(id:" + + buildId +")" +
+                "&fields=change(id)";
+
+        return getJaxbUsingHref(href, ChangesList.class);
+    }
+
+    @AutoProfiling
+    @Override public Change getChange(int changeId) {
+        String href = "app/rest/latest/changes/id:" + + changeId +"";
+
+        return getJaxbUsingHref(href, Change.class);
+    }
+
     private CompletableFuture<List<File>> unzip(CompletableFuture<File> zipFileFut) {
         return zipFileFut.thenApplyAsync(ZipUtil::unZipToSameFolder, executor);
     }
@@ -328,13 +357,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
             Preconditions.checkState(!files.isEmpty(), "ZIP file can't be empty");
             return files.get(0);
         }, executor);
-    }
-
-    /**
-     * @return Basic auth token.
-     */
-    public String basicAuthToken() {
-        return basicAuthTok;
     }
 
     /**
@@ -451,12 +473,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public Statistics getBuildStatistics(String href) {
-        return getJaxbUsingHref(href, Statistics.class);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
     @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
         return supplyAsync(() -> getJaxbUsingHref(href, TestOccurrenceFull.class), executor);
     }
@@ -485,19 +501,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return configurations.setBuild(key.getBuildId());
     }
 
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public Change getChange(String href) {
-        return getJaxbUsingHref(href, Change.class);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public ChangesList getChangesList(String href) {
-        return getJaxbUsingHref(href, ChangesList.class);
-    }
-
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public IssuesUsagesList getIssuesUsagesList(String href) { return getJaxbUsingHref(href, IssuesUsagesList.class); }
@@ -508,13 +511,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
      */
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {
         return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), elem);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuilds(String projectId, String branch) {
-
-        return getFinishedBuilds(projectId, branch, null, null, null);
     }
 
     /** {@inheritDoc} */
@@ -549,16 +545,11 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @Override
-    @AutoProfiling public CompletableFuture<List<BuildRef>> getRunningBuilds(@Nullable String branch) {
-        return supplyAsync(() -> getBuildsInState(null, branch, BuildRef.STATE_RUNNING), executor);
-    }
-
-    /** {@inheritDoc} */
-    @Override
     @AutoProfiling public CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch) {
         return supplyAsync(() -> getBuildsInState(null, branch, BuildRef.STATE_QUEUED), executor);
     }
 
+    @Deprecated
     private List<BuildRef> getBuildsInState(
             @Nullable final String projectId,
             @Nullable final String branch,
@@ -577,6 +568,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
+    @Deprecated
     protected List<BuildRef> getBuildsInState(
             @Nullable final String projectId,
             @Nullable final String branch,
@@ -655,7 +647,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<BuildRef> getBuildRefs(String fullUrl, AtomicReference<String> outNextPage) {
+    @Override public List<BuildRef> getBuildRefsPage(String fullUrl, AtomicReference<String> outNextPage) {
         String relPath = "app/rest/latest/builds?locator=defaultFilter:false";
         String relPathSelected = Strings.isNullOrEmpty(fullUrl) ? relPath : fullUrl;
         String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
@@ -678,10 +670,12 @@ public class IgniteTeamcityConnection implements ITeamcity {
      * @param buildId Build id.
      * @param testDtls request test details string
      */
-    @NotNull public String testsStartHref(int buildId, boolean testDtls) {
+    @NotNull
+    private String testsStartHref(int buildId, boolean testDtls) {
         String fieldList = "id,name," +
             (testDtls ? "details," : "") +
             "status,duration,muted,currentlyMuted,currentlyInvestigated,ignored,test(id),build(id)";
+
         return "app/rest/latest/testOccurrences?locator=build:(id:" +
             buildId + ")" +
             "&fields=testOccurrence(" + fieldList + ")";

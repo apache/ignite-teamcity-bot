@@ -24,26 +24,29 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.validation.constraints.NotNull;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.internal.util.GridIntList;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class FatBuildDao {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(FatBuildDao.class);
+
     /** Cache name */
     public static final String TEAMCITY_FAT_BUILD_CACHE_NAME = "teamcityFatBuild";
 
@@ -68,14 +71,20 @@ public class FatBuildDao {
      * @param buildId
      * @param build Build data.
      * @param tests TestOccurrences one or several pages.
+     * @param problems
+     * @param statistics
+     * @param changesList
      * @param existingBuild existing version of build in the DB.
      * @return Fat Build saved (if modifications detected), otherwise null.
      */
     public FatBuildCompacted saveBuild(long srvIdMaskHigh,
-        int buildId,
-        @NotNull Build build,
-        List<TestOccurrencesFull> tests,
-        @Nullable FatBuildCompacted existingBuild) {
+                                       int buildId,
+                                       @NotNull Build build,
+                                       @NotNull List<TestOccurrencesFull> tests,
+                                       @Nullable List<ProblemOccurrence> problems,
+                                       @Nullable Statistics statistics,
+                                       @Nullable ChangesList changesList,
+                                       @Nullable FatBuildCompacted existingBuild) {
         Preconditions.checkNotNull(buildsCache, "init() was not called");
         Preconditions.checkNotNull(build, "build can't be null");
 
@@ -84,6 +93,15 @@ public class FatBuildDao {
         for (TestOccurrencesFull next : tests)
             newBuild.addTests(compactor, next.getTests());
 
+        if (problems != null)
+            newBuild.addProblems(compactor, problems);
+
+        if (statistics != null)
+            newBuild.statistics(compactor, statistics);
+
+        if (changesList != null)
+            newBuild.changes(extractChangeIds(changesList));
+
         if (existingBuild == null || !existingBuild.equals(newBuild)) {
             buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
 
@@ -91,6 +109,19 @@ public class FatBuildDao {
         }
 
         return null;
+    }
+
+    public static int[] extractChangeIds(@NotNull ChangesList changesList) {
+        return changesList.changes().stream().mapToInt(
+                        ch -> {
+                            try {
+                                return Integer.parseInt(ch.id);
+                            } catch (Exception e) {
+                                logger.error("Unable to parse change id ", e);
+                                return -1;
+                            }
+                        }
+                ).filter(id -> id > 0).toArray();
     }
 
     /**

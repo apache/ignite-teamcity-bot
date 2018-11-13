@@ -16,11 +16,14 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.tcbot.condition.BuildCondition;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 
 /**
@@ -28,9 +31,25 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
  */
 public interface ITeamcityIgnited {
     /**
+     * @return Internal server ID as string
+     */
+    String serverId();
+
+    /**
      * @return Normalized Host address, ends with '/'.
      */
     public String host();
+
+    /**
+     * Return all builds for branch and suite, without relation to its status.
+     *
+     * @param buildTypeId Build type identifier.
+     * @param branchName Branch name.
+     * @return list of builds in history, includes all statuses: queued, running, etc
+     */
+    public List<BuildRefCompacted> getBuildHistoryCompacted(
+            @Nullable String buildTypeId,
+            @Nullable String branchName);
 
     /**
      * Retun all builds for branch and suite, without relation to its status.
@@ -42,6 +61,21 @@ public interface ITeamcityIgnited {
     public List<BuildRef> getBuildHistory(
         @Nullable String buildTypeId,
         @Nullable String branchName);
+
+    /**
+     * Return all builds for branch and suite with finish status.
+     *
+     * @param buildTypeId Build type identifier.
+     * @param branchName Branch name.
+     * @param sinceDate Since date.
+     * @param untilDate Until date.
+     * @return list of builds in history in finish status.
+     */
+    public List<BuildRefCompacted> getFinishedBuildsCompacted(
+        @Nullable String buildTypeId,
+        @Nullable String branchName,
+        @Nullable Date sinceDate,
+        @Nullable Date untilDate);
 
     /**
      * Trigger build. Enforces TC Bot to load all builds related to this triggered one.
@@ -78,5 +112,16 @@ public interface ITeamcityIgnited {
     /**
      * @param id Id.
      */
-    public FatBuildCompacted getFatBuild(int id);
+    public default FatBuildCompacted getFatBuild(int id) {
+        return getFatBuild(id, false);
+    }
+
+
+
+    /**
+     * @param id Id.
+     */
+    public FatBuildCompacted getFatBuild(int id, boolean acceptQueued);
+
+    public Collection<ChangeCompacted> getAllChanges(int[] changeIds);
 }

@@ -99,6 +99,11 @@ function showChainCurrentStatusData(server, settings) {
     res += " <a href='" + server.webToBuild + "' title='" + altTxt + "'>";
     res += "tests " + server.failedTests + " suites " + server.failedToFinish + "";
     res += " </a>";
+    res += "] ";
+    res += "[";
+    res += "<a href='longRunningTestsReport.html'>";
+    res += "long running tests report";
+    res += "</a>";
     res += "]";
     res += "</b>";
 
@@ -159,7 +164,7 @@ function showChainCurrentStatusData(server, settings) {
 
     if(!isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
         res += "<div class='content'>" + mInfo + "</div></span>";
     }
 
@@ -646,7 +651,7 @@ function showSuiteData(suite, settings) {
 
     if(!isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
         res += "<div class='content'>" + mInfo + "</div></span>";
     }
 
@@ -690,11 +695,11 @@ function showSuiteData(suite, settings) {
  * @returns {boolean} True - if test is new. False - otherwise.
  */
 function isNewFailedTest(testFail) {
-    if(!isDefinedAndFilled(testFail.histBaseBranch))
-        return true;
-
     if (isDefinedAndFilled(testFail.webIssueUrl))
         return false;
+
+    if (!isDefinedAndFilled(testFail.histBaseBranch) || !isDefinedAndFilled(testFail.histBaseBranch.latestRuns))
+        return true;
 
     var hist = testFail.histBaseBranch;
 
@@ -891,7 +896,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
     if (isDefinedAndFilled(testFail.warnings) && testFail.warnings.length > 0
         && !isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
 
         res += "<div class='content'>";
 
@@ -971,25 +976,4 @@ function drawLatestRunsBlock(state, len) {
         runColor = "black";
 
     return "<span style='background-color: " + runColor + "; width:" + (len * 1) + "px; height:10px; display: inline-block;'></span>";
-}
-
-
-function initMoreInfo() {
-    var header = $(".header");
-
-    header.unbind("click");
-    header.click(function() {
-        $header = $(this);
-        //getting the next element
-        $content = $header.next();
-        //open up the content needed - toggle the slide- if visible, slide up, if not slidedown.
-        $content.slideToggle(500, function() {
-            //execute this after slideToggle is done
-            //change text of header based on visibility of content div
-            $header.text(function() {
-                //change text based on condition
-                return $content.is(":visible") ? "Hide <<" : "More >>";
-            });
-        });
-    });
 }
