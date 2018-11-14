@@ -1116,6 +1116,16 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.getProblems(buildId);
     }
 
+    /** {@inheritDoc} */
+    @Deprecated
+    @Override public ProblemOccurrences getProblemsAndRegisterCtiticals(BuildRef build) {
+        ProblemOccurrences problems = teamcity.getProblems(build.getId());
+
+        registerCriticalBuildProblemInStat(build, problems);
+
+        return problems;
+    }
+
     @Override
     public Statistics getStatistics(int buildId) {
         return teamcity.getStatistics(buildId);
