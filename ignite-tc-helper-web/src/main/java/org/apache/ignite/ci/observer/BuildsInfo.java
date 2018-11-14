@@ -65,12 +65,12 @@ public class BuildsInfo {
 
     /** */
     public BuildsInfo(CompactBuildsInfo buildsInfo, IStringCompactor strCompactor) {
-        this.userName = strCompactor.getStringFromId(buildsInfo.userName);
-        this.date = buildsInfo.date;
-        this.srvId = strCompactor.getStringFromId(buildsInfo.srvId);
-        this.ticket = strCompactor.getStringFromId(buildsInfo.ticket);
-        this.branchForTc = strCompactor.getStringFromId(buildsInfo.branchForTc);
-        this.buildTypeId = strCompactor.getStringFromId(buildsInfo.buildTypeId);
+        this.userName = strCompactor.getStringFromId(buildsInfo.userName());
+        this.date = buildsInfo.date();
+        this.srvId = strCompactor.getStringFromId(buildsInfo.srvId());
+        this.ticket = strCompactor.getStringFromId(buildsInfo.ticket());
+        this.branchForTc = strCompactor.getStringFromId(buildsInfo.branchForTc());
+        this.buildTypeId = strCompactor.getStringFromId(buildsInfo.buildTypeId());
         this.finishedBuilds.putAll(buildsInfo.getFinishedBuilds());
     }
 

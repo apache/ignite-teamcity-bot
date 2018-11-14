@@ -76,7 +76,7 @@ public class VisasHistoryStorage {
         if (contributionVisas == null)
             contributionVisas = new HashMap<>();
 
-        contributionVisas.put(compactVisaReq.compactInfo.date, compactVisaReq);
+        contributionVisas.put(compactVisaReq.compactInfo.date(), compactVisaReq);
 
         visas().put(key, contributionVisas);
     }
