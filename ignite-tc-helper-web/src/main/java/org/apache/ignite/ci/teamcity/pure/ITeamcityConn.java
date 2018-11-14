@@ -72,4 +72,8 @@ public interface ITeamcityConn {
     ChangesList getChangesList(int buildId);
 
     Change getChange(int changeId);
+
+    /** */
+    @Deprecated
+    ProblemOccurrences getProblemsAndRegisterCtiticals(BuildRef build);
 }
