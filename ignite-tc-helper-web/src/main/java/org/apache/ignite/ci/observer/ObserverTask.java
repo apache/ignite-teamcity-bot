@@ -19,7 +19,6 @@ package org.apache.ignite.ci.observer;
 
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -56,9 +55,6 @@ public class ObserverTask extends TimerTask {
 
     /** */
     public static final String BUILDS_CACHE_NAME = "compactBuildsInfosCache";
-
-    /** */
-    private static final String OBSERV_SEQ = "observationsSequence";
 
     /** Helper. */
     @Inject private ITcHelper tcHelper;
@@ -116,16 +112,32 @@ public class ObserverTask extends TimerTask {
     }
 
     /** */
-    public boolean removeBuildInfo(String srv, String branchForTc) {
+    private void removeBuildInfo(int infoKey) {
+        try {
+            boolean rmv = compactInfos().remove(infoKey);
+
+            Preconditions.checkState(rmv, "Key not found: " + infoKey);
+        }
+        catch (Exception e) {
+            logger.error("Cache remove: " + e.getMessage(), e);
+
+            throw new RuntimeException("Observer queue: " +
+                getInfos().stream().map(bi -> "{" +
+                    "key:" + strCompactor.getStringId(bi.srvId + bi.branchForTc) +
+                    " srv: " + bi.srvId + " branch: " + bi.branchForTc + '}')
+                    .collect(Collectors.joining(", ")) +
+                " Error: " + X.getFullStackTrace(e));
+        }
+    }
+
+    /** */
+    public void removeBuildInfo(String srv, String branchForTc) {
         observationLock.lock();
 
         try {
-            Integer key = strCompactor.getStringIdIfPresent(srv + branchForTc);
+            int key = strCompactor.getStringId(srv + branchForTc);
 
-            if (Objects.isNull(key))
-                return false;
-
-            return compactInfos().remove(key);
+            removeBuildInfo(key);
         }
         finally {
             observationLock.unlock();
@@ -158,12 +170,6 @@ public class ObserverTask extends TimerTask {
             int notFinishedBuilds = 0;
             Set<String> ticketsNotified = new HashSet<>();
 
-            ObjectMapper objMapper = new ObjectMapper();
-
-            List<Integer> queuedVisas = new ArrayList<>();
-
-            List<String> errors = new ArrayList<>();
-
             for (Cache.Entry<Integer, CompactBuildsInfo> entry : compactInfos()) {
                 CompactBuildsInfo compactInfo = entry.getValue();
 
@@ -173,20 +179,14 @@ public class ObserverTask extends TimerTask {
 
                 IAnalyticsEnabledTeamcity teamcity = tcHelper.server(info.srvId, tcHelper.getServerAuthorizerCreds());
 
-                queuedVisas.add(infoKey);
-
                 checkedBuilds += info.buildsCount();
 
                 if (info.isFinishedWithFailures(teamcity)) {
+
                     try {
-                        boolean rmv = compactInfos().remove(infoKey);
-
-                        Preconditions.checkState(rmv, "Key not found: " + infoKey);
-                    }
-                    catch (Exception e) {
-                        logger.error("Cache remove: " + e.getMessage(), e);
-
-                        errors.add(X.getFullStackTrace(e));
+                        removeBuildInfo(infoKey);
+                    } catch (Exception e) {
+                        return e.getMessage();
                     }
 
                     logger.error("JIRA will not be commented." +
@@ -213,22 +213,15 @@ public class ObserverTask extends TimerTask {
                     ticketsNotified.add(info.ticket);
 
                     try {
-                        boolean rmv = compactInfos().remove(infoKey);
-
-                        Preconditions.checkState(rmv, "Key not found: " + infoKey);
+                        removeBuildInfo(infoKey);
                     }
                     catch (Exception e) {
-                        logger.error("Cache remove: " + e.getMessage(), e);
-
-                        errors.add(X.getFullStackTrace(e));
+                        return e.getMessage();
                     }
                 }
             }
 
-            return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified +
-                " Visas in queue: [" + queuedVisas.stream()
-                .map(id -> String.valueOf(id))
-                .collect(Collectors.joining(", ")) + "] Errors: [{" + String.join("}, {", errors) + "}]";
+            return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified;
         }
         finally {
             observationLock.unlock();

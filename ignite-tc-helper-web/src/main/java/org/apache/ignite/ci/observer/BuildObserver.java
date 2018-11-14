@@ -60,8 +60,8 @@ public class BuildObserver {
     }
 
     /** */
-    public boolean stopObservation(String srv, String branchForTc) {
-        return observerTask.removeBuildInfo(srv, branchForTc);
+    public void stopObservation(String srv, String branchForTc) {
+        observerTask.removeBuildInfo(srv, branchForTc);
     }
 
     /**

@@ -51,12 +51,20 @@ public class TcBotVisaService {
 
     /** */
     @GET
+    @Produces(MediaType.TEXT_PLAIN)
     @Path("cancel")
-    public boolean stopObservation(@NotNull @QueryParam("server") String srv,
+    public String stopObservation(@NotNull @QueryParam("server") String srv,
         @NotNull @QueryParam("branch") String branchForTc) {
-        return CtxListener.getInjector(ctx)
-            .getInstance(BuildObserver.class)
-            .stopObservation(srv, branchForTc);
+        try {
+            CtxListener.getInjector(ctx)
+                .getInstance(BuildObserver.class)
+                .stopObservation(srv, branchForTc);
+
+            return "Observation was stopped successfully";
+        }
+        catch (Exception e) {
+            return "Exception was aquired: " + e.getMessage();
+        }
     }
 
     /**
