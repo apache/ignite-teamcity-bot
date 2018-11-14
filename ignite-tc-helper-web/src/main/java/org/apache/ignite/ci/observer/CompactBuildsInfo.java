@@ -17,10 +17,10 @@
 
 package org.apache.ignite.ci.observer;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
@@ -46,9 +46,11 @@ public class CompactBuildsInfo {
     /** */
     private Date date;
 
-    /** Finished builds. */
-    private final Map<Integer, Boolean> finishedBuilds = new HashMap<>();
+    /** Builds. */
+    private final List<Integer> builds = new ArrayList<>();
 
+
+    /** */
     public CompactBuildsInfo() {
 
     }
@@ -61,12 +63,12 @@ public class CompactBuildsInfo {
         this.ticket = strCompactor.getStringId(buildsInfo.ticket);
         this.branchForTc = strCompactor.getStringId(buildsInfo.branchForTc);
         this.buildTypeId = strCompactor.getStringId(buildsInfo.buildTypeId);
-        this.finishedBuilds.putAll(buildsInfo.getBuilds());
+        this.builds.addAll(buildsInfo.getBuilds().keySet());
     }
 
     /** */
-    public Map<Integer, Boolean> getFinishedBuilds() {
-        return Collections.unmodifiableMap(finishedBuilds);
+    public List<Integer> getBuilds() {
+        return Collections.unmodifiableList(builds);
     }
 
     /** */
@@ -144,44 +146,48 @@ public class CompactBuildsInfo {
             Objects.equals(buildTypeId, info.buildTypeId) &&
             Objects.equals(branchForTc, info.branchForTc) &&
             Objects.equals(ticket, info.ticket) &&
-            Objects.equals(finishedBuilds.keySet(), info.finishedBuilds.keySet()) &&
+            Objects.equals(builds, info.builds) &&
             Objects.equals(date, info.date);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(srvId, buildTypeId, branchForTc, ticket, finishedBuilds.keySet(), date);
+        return Objects.hash(srvId, buildTypeId, branchForTc, ticket, builds, date);
     }
 
+    /** */
     public void userName(int val) {
         this.userName = val;
     }
 
+    /** */
     public void date(long ts) {
         this.date = new Date(ts);
     }
 
+    /** */
     public int userName() {
         return userName;
     }
 
+    /** */
     public Date date() {
         return date;
     }
 
+    /** */
     public int srvId() {
         return srvId;
     }
 
+    /** */
     public void srvId(int srvId) {
         this.srvId = srvId;
     }
 
+    /** */
     public void addBuild(int... arr) {
-        for (int i = 0; i < arr.length; i++) {
-            int i1 = arr[i];
-
-            finishedBuilds.put(i1, false);
-        }
+        for (int i = 0; i < arr.length; i++)
+            builds.add(arr[i]);
     }
 }

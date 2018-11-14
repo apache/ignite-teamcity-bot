@@ -42,7 +42,7 @@ import org.apache.ignite.ci.web.model.VisaRequest;
  */
 public class VisasHistoryStorage {
     /** */
-    private static final String VISAS_CACHE_NAME = "visasCompactCache";
+    private static final String VISAS_CACHE_NAME = "visasCompactHistoryCache";
 
     /** */
     @Inject
@@ -92,7 +92,7 @@ public class VisasHistoryStorage {
     }
 
     /** */
-    public boolean updateVisaRequestRes(ContributionKey key, Date date, Visa visa) {
+    public boolean updateVisaRequestResult(ContributionKey key, Date date, Visa visa) {
         VisaRequest req = getVisaReq(key, date);
 
         if (req == null)

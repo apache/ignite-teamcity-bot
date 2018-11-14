@@ -27,6 +27,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcbot.visa.ContributionCheckStatus;
 import org.apache.ignite.ci.tcbot.visa.ContributionToCheck;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
@@ -34,6 +35,7 @@ import org.apache.ignite.ci.tcbot.visa.VisaStatus;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Path("visa")
@@ -46,6 +48,16 @@ public class TcBotVisaService {
     /** Current Request. */
     @Context
     private HttpServletRequest req;
+
+    /** */
+    @GET
+    @Path("cancel")
+    public boolean stopObservation(@NotNull @QueryParam("server") String srv,
+        @NotNull @QueryParam("branch") String branchForTc) {
+        return CtxListener.getInjector(ctx)
+            .getInstance(BuildObserver.class)
+            .stopObservation(srv, branchForTc);
+    }
 
     /**
      * @param srvId Server id.

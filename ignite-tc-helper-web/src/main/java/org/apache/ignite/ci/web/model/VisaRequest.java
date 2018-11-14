@@ -31,6 +31,9 @@ public class VisaRequest {
     private Visa visa;
 
     /** */
+    private int observationId;
+
+    /** */
     public VisaRequest(BuildsInfo info) {
         this.info = info;
         this.visa = Visa.emptyVisa();

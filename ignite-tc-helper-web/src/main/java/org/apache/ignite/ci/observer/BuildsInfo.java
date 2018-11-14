@@ -71,7 +71,8 @@ public class BuildsInfo {
         this.ticket = strCompactor.getStringFromId(buildsInfo.ticket());
         this.branchForTc = strCompactor.getStringFromId(buildsInfo.branchForTc());
         this.buildTypeId = strCompactor.getStringFromId(buildsInfo.buildTypeId());
-        this.finishedBuilds.putAll(buildsInfo.getFinishedBuilds());
+
+        buildsInfo.getBuilds().forEach(id -> finishedBuilds.put(id, false));
     }
 
     /**

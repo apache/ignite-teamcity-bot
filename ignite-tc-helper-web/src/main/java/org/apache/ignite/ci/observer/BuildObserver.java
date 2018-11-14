@@ -17,7 +17,6 @@
 
 package org.apache.ignite.ci.observer;
 
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Timer;
 import javax.inject.Inject;
@@ -60,6 +59,11 @@ public class BuildObserver {
         timer.cancel();
     }
 
+    /** */
+    public boolean stopObservation(String srv, String branchForTc) {
+        return observerTask.removeBuildInfo(srv, branchForTc);
+    }
+
     /**
      * @param srvId Server id.
      * @param prov Credentials.
@@ -81,16 +85,13 @@ public class BuildObserver {
     public String getObservationStatus(String srvId, String branch) {
         StringBuilder sb = new StringBuilder();
 
-        Collection<BuildsInfo> builds = observerTask.getInfos();
+        BuildsInfo bi = observerTask.getInfo(srvId, branch);
 
-        for (BuildsInfo bi : builds) {
-            if (Objects.equals(bi.branchForTc, branch)
-                && Objects.equals(bi.srvId, srvId)) {
-                sb.append(bi.ticket).append(" to be commented, waiting for builds. ");
-                sb.append(bi.finishedBuildsCount());
-                sb.append(" builds done from ");
-                sb.append(bi.buildsCount());
-            }
+        if (Objects.nonNull(bi)) {
+            sb.append(bi.ticket).append(" to be commented, waiting for builds. ");
+            sb.append(bi.finishedBuildsCount());
+            sb.append(" builds done from ");
+            sb.append(bi.buildsCount());
         }
 
         return sb.toString();
