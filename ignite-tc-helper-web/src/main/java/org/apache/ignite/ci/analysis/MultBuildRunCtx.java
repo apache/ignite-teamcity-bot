@@ -95,6 +95,10 @@ public class MultBuildRunCtx implements ISuiteResults {
             .anyMatch(p -> !p.isFailedTests(compactor) && !p.isSnapshotDepProblem(compactor));
     }
 
+    public boolean onlyCancelledBuilds() {
+        return buildsStream().allMatch(bCtx -> !bCtx.isComposite() && bCtx.isCancelled());
+    }
+
     @NotNull
     private Stream<ProblemCompacted> allProblemsInAllBuilds() {
         return buildsStream().flatMap(SingleBuildRunCtx::getProblemsStream);
@@ -151,6 +155,15 @@ public class MultBuildRunCtx implements ISuiteResults {
      */
     public String getResult() {
         StringBuilder res = new StringBuilder();
+
+        long cancelledCnt = buildsStream().filter(bCtx -> !bCtx.isComposite() && bCtx.isCancelled()).count();
+
+        if (cancelledCnt > 0) {
+            res.append("CANCELLED");
+
+            if (cancelledCnt > 1)
+                res.append(" ").append(cancelledCnt);
+        }
 
         addKnownProblemCnt(res, "TIMEOUT", getExecutionTimeoutCount());
         addKnownProblemCnt(res, "JVM CRASH", getJvmCrashProblemCount());
@@ -257,7 +270,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     boolean isFailed() {
-        return failedTests() != 0 || hasAnyBuildProblemExceptTestOrSnapshot();
+        return failedTests() != 0 || hasAnyBuildProblemExceptTestOrSnapshot() || onlyCancelledBuilds();
     }
 
     public String branchName() {

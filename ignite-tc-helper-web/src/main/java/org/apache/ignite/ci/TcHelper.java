@@ -330,7 +330,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
             }
 
             if (failType != null)
-                fails.computeIfAbsent(failType, k->new ArrayList<>()).add(suite);
+                fails.computeIfAbsent(failType, k -> new ArrayList<>()).add(suite);
         }
 
         return fails;

@@ -201,4 +201,8 @@ public class SingleBuildRunCtx implements ISuiteResults {
         this.changes.clear();
         this.changes.addAll(changes);
     }
+
+    public boolean isCancelled() {
+        return buildCompacted.isCancelled(compactor);
+    }
 }

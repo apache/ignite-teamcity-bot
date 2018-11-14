@@ -97,10 +97,11 @@ public class ChainAtServerCurrentStatus {
         stream.forEach(
             suite -> {
                 final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
+
                 suiteCurStatus.initFromContext(teamcity, suite, tcAnalytics, baseBranchTc);
 
                 failedTests += suiteCurStatus.failedTests;
-                if (suite.hasAnyBuildProblemExceptTestOrSnapshot())
+                if (suite.hasAnyBuildProblemExceptTestOrSnapshot() || suite.onlyCancelledBuilds())
                     failedToFinish++;
 
                 this.suites.add(suiteCurStatus);

@@ -183,13 +183,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             }
         );
 
-        Stream<Map.Entry<String, Long>> stream = suite.getTopLogConsumers();
-
-        stream.forEach(
-            (entry) -> {
-                TestFailure failure = createOccurForLogConsumer(entry);
-                logConsumers.add(failure);
-            }
+        suite.getTopLogConsumers().forEach(
+            (entry) -> logConsumers.add(createOccurForLogConsumer(entry))
         );
 
         suite.getBuildsWithThreadDump().forEach(buildId -> {

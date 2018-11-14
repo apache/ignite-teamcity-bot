@@ -155,7 +155,11 @@ public class BuildRefCompacted {
     }
 
     public boolean isNotCancelled(IStringCompactor compactor) {
-        return !hasUnknownStatus(compactor);
+        return !isCancelled(compactor);
+    }
+
+    public boolean isCancelled(IStringCompactor compactor) {
+        return hasUnknownStatus(compactor);
     }
 
     private boolean hasUnknownStatus(IStringCompactor compactor) {
