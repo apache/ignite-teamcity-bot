@@ -317,6 +317,13 @@ public class IgniteTeamcityConnection implements ITeamcity {
         }
     }
 
+    /** {@inheritDoc} */
+    @Deprecated
+    @AutoProfiling
+    @Override public ProblemOccurrences getProblemsAndRegisterCtiticals(BuildRef build) {
+        return getProblems(build.getId());
+    }
+
     @Override
     @AutoProfiling
     public ProblemOccurrences getProblems(int buildId) {
