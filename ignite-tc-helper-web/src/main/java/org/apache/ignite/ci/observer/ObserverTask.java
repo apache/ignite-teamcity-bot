@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
-import javax.cache.Cache;
 import javax.inject.Inject;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
@@ -170,7 +169,7 @@ public class ObserverTask extends TimerTask {
             int notFinishedBuilds = 0;
             Set<String> ticketsNotified = new HashSet<>();
 
-            for (Cache.Entry<Integer, CompactBuildsInfo> entry : compactInfos()) {
+            for (IgniteCache.Entry<Integer, CompactBuildsInfo> entry : compactInfos()) {
                 CompactBuildsInfo compactInfo = entry.getValue();
 
                 Integer infoKey = entry.getKey();
