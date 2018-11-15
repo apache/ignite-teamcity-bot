@@ -141,7 +141,7 @@ public class ObserverTask extends TimerTask {
 
             if (info.isFinishedWithFailures(teamcity)) {
                 boolean rmv = compactInfos().remove(compactInfo);
-                
+
                 Preconditions.checkState(rmv, "Key not found: " + compactInfo);
 
                 logger.error("JIRA will not be commented." +
@@ -157,6 +157,27 @@ public class ObserverTask extends TimerTask {
                 continue;
             }
 
+            try {
+                rmvdVisas.add(objMapper.writeValueAsString(compactInfo));
+            }
+            catch (Exception e) {
+                logger.error("JSON string parse failed: " + e.getMessage(), e);
+
+                return "Exception while JSON parsing: " + e.getClass().getSimpleName() + ": " + e.getMessage();
+            }
+
+            try {
+                boolean rmv = compactInfos().remove(compactInfo);
+
+                if (!rmv)
+                    continue;
+            }
+            catch (Exception e) {
+                logger.error("cache remove: " + e.getMessage(), e);
+
+                return X.getFullStackTrace(e);
+            }
+
             ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
 
             Visa visa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
@@ -164,27 +185,7 @@ public class ObserverTask extends TimerTask {
 
             visasHistoryStorage.updateVisaRequestRes(info.getContributionKey(), info.date, visa);
 
-            if (visa.isSuccess()) {
-                ticketsNotified.add(info.ticket);
-
-                try {
-                    rmvdVisas.add(objMapper.writeValueAsString(compactInfo));
-                }
-                catch (Exception e) {
-                    logger.error("JSON string parse failed: " + e.getMessage(), e);
-
-                    return "Exception while JSON parsing: " + e.getClass().getSimpleName() + ": " + e.getMessage();
-                }
-
-                try {
-                    compactInfos().remove(compactInfo);
-                }
-                catch (Exception e) {
-                    logger.error("cache remove: " + e.getMessage(), e);
-
-                    return X.getFullStackTrace(e);
-                }
-            }
+            ticketsNotified.add(info.ticket);
         }
 
         return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified +
