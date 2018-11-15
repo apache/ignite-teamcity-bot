@@ -33,13 +33,16 @@ public class VisaStatus {
     @Nullable public String ticket;
 
     /** */
-    @Nullable public String state;
+    @Nullable public String status;
 
     /** */
     @Nullable public String commentUrl;
 
     /** */
     @Nullable public String date;
+
+    /** */
+    @Nullable public String cancelUrl;
 
     /** */
     public int blockers;
