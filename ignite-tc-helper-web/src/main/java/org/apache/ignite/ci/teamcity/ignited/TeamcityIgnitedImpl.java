@@ -297,9 +297,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @Override @NotNull public List<Integer> getLastNBuildsFromHistory(String btId, String branchForTc, int cnt) {
         List<BuildRefCompacted> hist = getBuildHistoryCompacted(btId, branchForTc);
 
+        //todo revise if queued buidl may be ok here
+
         List<Integer> chains = hist.stream()
             .filter(ref -> !ref.isFakeStub())
-            .filter(t -> t.isNotCancelled(compactor))
+            .filter(t -> !t.isCancelled(compactor))
             .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
             .limit(cnt)
             .map(BuildRefCompacted::id)

@@ -19,7 +19,6 @@ package org.apache.ignite.ci.tcbot.chain;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
@@ -28,8 +27,6 @@ import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
@@ -143,14 +140,11 @@ public class TrackedBranchChainsProcessor {
 
                 final String branchForTc = chainTracked.getBranchForRestMandatory();
 
-                IAnalyticsEnabledTeamcity teamcity = srvProv.server(srvId, creds);
-
                 ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, creds);
 
+                List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(chainTracked.getSuiteIdMandatory(), branchForTc, 1);
 
-                List<Integer> history = tcIgnited.getLastNBuildsFromHistory(chainTracked.getSuiteIdMandatory(), branchForTc, 1);
-
-                return chainProc.loadLongRunningTestsSummary(tcIgnited, history);
+                return chainProc.loadLongRunningTestsSummary(tcIgnited, hist);
             })
             .forEach(summary::addSuiteSummaries);
 
