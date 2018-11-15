@@ -82,7 +82,7 @@ public class BuildChainProcessor {
      */
     public List<SuiteLRTestsSummary> loadLongRunningTestsSummary(
         ITeamcityIgnited teamcityIgnited,
-        Collection<BuildRef> entryPoints
+        Collection<Integer> entryPoints
     ) {
         final List<SuiteLRTestsSummary> res = new ArrayList<>();
 
@@ -91,7 +91,7 @@ public class BuildChainProcessor {
 
         Map<Integer, FatBuildCompacted> builds = new ConcurrentHashMap<>();
 
-        final Stream<FatBuildCompacted> entryPointsFatBuilds = entryPoints.stream().map(BuildRef::getId)
+        final Stream<FatBuildCompacted> entryPointsFatBuilds = entryPoints.stream()
             .filter(Objects::nonNull)
             .filter(id -> !builds.containsKey(id)) //load and propagate only new entry points
             .map(id -> builds.computeIfAbsent(id, teamcityIgnited::getFatBuild));

@@ -60,17 +60,6 @@ public interface ITeamcity extends ITeamcityConn {
     CompletableFuture<List<BuildType>> getProjectSuites(String projectId);
 
     /**
-     * @param projectId suite ID (string without spaces).
-     * @param branch Branch name in TC identification.
-     * @param sinceDate Since date.
-     * @param untilDate Until date.
-     * @param sinceBuildId Some build ID in the past to to use as minimal build to export.
-     * @return list of builds in historical order, recent builds coming last.
-     */
-    @Deprecated
-    List<BuildRef> getFinishedBuilds(String projectId, String branch, Date sinceDate, Date untilDate, Integer sinceBuildId);
-
-    /**
      * Includes snapshot dependencies failed builds into list.
      *
      * @param projectId suite ID (string without spaces).
@@ -97,18 +86,6 @@ public interface ITeamcity extends ITeamcityConn {
     /**   */
     @Deprecated
     CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch);
-
-    /**
-     * @param projectId Suite ID (string without spaces).
-     * @param branchNameForHist Branch in TC identification.
-     * @param sinceDate Since date.
-     * @param untilDate Until date.
-     * @return List of build numbers in historical order in date interval, recent builds coming last.
-     */
-    @Deprecated
-    default int[] getBuildNumbersFromHistory(String projectId, String branchNameForHist, Date sinceDate, Date untilDate) {
-        return getFinishedBuilds(projectId, branchNameForHist, sinceDate, untilDate, null).stream().mapToInt(BuildRef::getId).toArray();
-    }
 
     @Deprecated
     Build getBuild(String href);

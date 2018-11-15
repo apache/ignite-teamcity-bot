@@ -522,24 +522,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuilds(String projectId,
-                                            String branch,
-                                            Date sinceDate,
-                                            Date untilDate,
-                                            @Nullable Integer sinceBuildId) {
-        List<BuildRef> finished = getBuildHistory(projectId,
-            UrlUtil.escape(branch),
-            true,
-            null,
-            sinceDate,
-            untilDate,
-            sinceBuildId);
-
-        return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
     @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
         return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null);
     }

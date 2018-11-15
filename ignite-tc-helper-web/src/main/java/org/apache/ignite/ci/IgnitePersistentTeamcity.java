@@ -36,12 +36,10 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
@@ -83,7 +81,6 @@ import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
-import org.xml.sax.SAXParseException;
 
 import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBranch;
 
@@ -105,7 +102,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Deprecated
     private static final String TEST_FULL = "testFull";
     private static final String BUILD_PROBLEMS = "buildProblems";
-    private static final String BUILD_HIST_FINISHED = "buildHistFinished";
+
     private static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
     public static final String TEST_REFS = "testRefs";
@@ -163,7 +160,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 buildsFailureRunStatCache(), testRunStatCache(),
                 testFullCache(),
                 buildProblemsCache(),
-                buildHistCache(),
                 buildHistIncFailedCache());
     }
 
@@ -243,15 +239,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      */
     private IgniteCache<String, ProblemOccurrences> buildProblemsCache() {
         return getOrCreateCacheV2(ignCacheNme(BUILD_PROBLEMS));
-    }
-
-
-
-    /**
-     * @return Build history: {@link BuildRef} lists cache, 32 parts, transactional.
-     */
-    private IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistCache() {
-        return getOrCreateCacheV2Tx(ignCacheNme(BUILD_HIST_FINISHED));
     }
 
     /**
@@ -409,118 +396,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         lock.lock();
 
         return lock;
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuilds(String projectId,
-                                                      String branch,
-                                                      Date sinceDate,
-                                                      Date untilDate,
-                                                      Integer ignored) {
-        final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
-
-        final List<BuildRef> buildsFromRest = new ArrayList<>();
-
-        List<BuildRef> buildRefs = loadBuildHistory(buildHistCache(), 90, suiteInBranch,
-            (key, sinceBuildId) -> {
-            List<BuildRef> reverseList = teamcity.getFinishedBuilds(projectId, branch, sinceDate, untilDate, sinceBuildId);
-
-            Collections.reverse(reverseList);
-
-            buildsFromRest.addAll(reverseList);
-
-            return buildsFromRest;
-        });
-
-        if (sinceDate != null || untilDate != null) {
-            if (!buildsFromRest.isEmpty() && sinceDate != null){
-                int firstBuildId = buildRefs.indexOf(buildsFromRest.get(0));
-
-                if (firstBuildId == 0)
-                    return buildsFromRest;
-
-                int prevFirstBuildId = firstBuildId - 1;
-
-                Build prevFirstBuild = getBuild((buildRefs.get(prevFirstBuildId).href));
-
-                if (prevFirstBuild != null
-                    && !prevFirstBuild.isFakeStub()
-                    && prevFirstBuild.getStartDate().before(sinceDate))
-                    return buildsFromRest;
-            }
-
-            int idSince = 0;
-            int idUntil = buildRefs.size() - 1;
-
-            if (sinceDate != null) {
-                idSince = binarySearchDate(buildRefs, 0, buildRefs.size(), sinceDate, true);
-                idSince = idSince == -2 ? 0 : idSince;
-            }
-
-            if (untilDate != null) {
-                idUntil = idSince < 0 ? -1 : binarySearchDate(buildRefs, idSince, buildRefs.size(), untilDate, false);
-                idUntil = idUntil == -2 ? buildRefs.size() - 1 : idUntil;
-            }
-
-            if (idSince == -3 || idUntil == -3) {
-                AtomicBoolean stopFilter = new AtomicBoolean();
-                AtomicBoolean addBuild = new AtomicBoolean();
-
-                return buildRefs.stream()
-                    .filter(b -> {
-                        if (stopFilter.get())
-                            return addBuild.get();
-
-                        Build build = getBuild(b.href);
-
-                        if (build == null || build.isFakeStub())
-                            return false;
-
-                        Date date = build.getStartDate();
-
-                        if (sinceDate != null && untilDate != null)
-                            if ((date.after(sinceDate) || date.equals(sinceDate)) &&
-                                (date.before(untilDate) || date.equals(untilDate)))
-                                return true;
-                            else {
-                                if (date.after(untilDate)) {
-                                    stopFilter.set(true);
-                                    addBuild.set(false);
-                                }
-
-                                return false;
-                            }
-                        else if (sinceDate != null) {
-                            if (date.after(sinceDate) || date.equals(sinceDate)) {
-                                stopFilter.set(true);
-                                addBuild.set(true);
-
-                                return true;
-                            }
-
-                            return false;
-                        }
-                        else {
-                            if (date.after(untilDate)) {
-                                stopFilter.set(true);
-                                addBuild.set(false);
-
-                                return false;
-                            }
-
-                            return true;
-                        }
-                    })
-                    .collect(Collectors.toList());
-            }
-            else if (idSince == -1 || idUntil == -1)
-                return Collections.emptyList();
-            else
-                return buildRefs.subList(idSince, idUntil + 1);
-        }
-
-        return buildRefs;
     }
 
     /**

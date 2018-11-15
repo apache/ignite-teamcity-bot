@@ -147,17 +147,10 @@ public class TrackedBranchChainsProcessor {
 
                 ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, creds);
 
-                final List<BuildRef> buildsList = teamcity.getFinishedBuildsIncludeSnDepFailed(
-                    chainTracked.getSuiteIdMandatory(),
-                    branchForTc);
 
-                List<BuildRef> chains = buildsList.stream()
-                    .filter(ref -> !ref.isFakeStub())
-                    .sorted(Comparator.comparing(BuildRef::getId).reversed())
-                    .limit(1)
-                    .filter(b -> b.getId() != null).collect(Collectors.toList());
+                List<Integer> history = tcIgnited.getLastNBuildsFromHistory(chainTracked.getSuiteIdMandatory(), branchForTc, 1);
 
-                return chainProc.loadLongRunningTestsSummary(tcIgnited, chains);
+                return chainProc.loadLongRunningTestsSummary(tcIgnited, history);
             })
             .forEach(summary::addSuiteSummaries);
 

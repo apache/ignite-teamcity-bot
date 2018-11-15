@@ -92,6 +92,9 @@ public class DbMigrations {
     @Deprecated
     public static final String ISSUES = "issues";
 
+    @Deprecated
+    private static final String BUILD_HIST_FINISHED = "buildHistFinished";
+
     /** Cache name */
     public static final String TEAMCITY_BUILD_CACHE_NAME_OLD = "teamcityBuild";
 
@@ -123,7 +126,6 @@ public class DbMigrations {
             IgniteCache<TestInBranch, RunStat> testHistCache,
             Cache<String, TestOccurrenceFull> testFullCache,
             Cache<String, ProblemOccurrences> problemsCache,
-            Cache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistCache,
             Cache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistInFailedCache) {
 
         doneMigrations = doneMigrationsCache();
@@ -352,7 +354,8 @@ public class DbMigrations {
             }
         });
         applyV1toV2Migration(PROBLEMS, problemsCache);
-        applyV1toV2Migration(FINISHED_BUILDS, buildHistCache);
+
+
         applyV1toV2Migration(FINISHED_BUILDS_INCLUDE_FAILED, buildHistInFailedCache);
 
         Cache<IssueKey, Issue> issuesCache = IssuesStorage.botDetectedIssuesCache(ignite);
@@ -418,6 +421,9 @@ public class DbMigrations {
 
         applyDestroyIgnCacheMigration(CHANGE_INFO_FULL);
         applyDestroyIgnCacheMigration(CHANGES_LIST);
+
+        applyDestroyIgnCacheMigration(FINISHED_BUILDS);
+        applyDestroyIgnCacheMigration(BUILD_HIST_FINISHED);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {
