@@ -17,7 +17,9 @@
 
 package org.apache.ignite.ci.observer;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -37,6 +39,7 @@ import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
+import org.apache.ignite.internal.util.typedef.X;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,8 +115,23 @@ public class ObserverTask extends TimerTask {
         int notFinishedBuilds = 0;
         Set<String> ticketsNotified = new HashSet<>();
 
+        ObjectMapper objMapper = new ObjectMapper();
+
+        List<String> rmvdVisas = new ArrayList<>();
+
+        List<String> queuedVisas = new ArrayList<>();
+
         for (Cache.Entry<CompactBuildsInfo, Object> entry : compactInfos()) {
             CompactBuildsInfo compactInfo = entry.getKey();
+
+            try {
+                queuedVisas.add(objMapper.writeValueAsString(compactInfo));
+            }
+            catch (Exception e) {
+                logger.error("JSON string parse failed: " + e.getMessage(), e);
+
+                return "Exception while JSON parsing " + e.getClass().getSimpleName() + ": " + e.getMessage();
+            }
 
             BuildsInfo info = compactInfo.toBuildInfo(strCompactor);
 
@@ -122,7 +140,9 @@ public class ObserverTask extends TimerTask {
             IAnalyticsEnabledTeamcity teamcity = tcHelper.server(info.srvId, tcHelper.getServerAuthorizerCreds());
 
             if (info.isFinishedWithFailures(teamcity)) {
-                compactInfos().remove(compactInfo);
+                boolean rmv = compactInfos().remove(compactInfo);
+                
+                Preconditions.checkState(rmv, "Key not found: " + compactInfo);
 
                 logger.error("JIRA will not be commented." +
                     " [ticket: " + info.ticket + ", branch:" + info.branchForTc + "] : " +
@@ -147,10 +167,28 @@ public class ObserverTask extends TimerTask {
             if (visa.isSuccess()) {
                 ticketsNotified.add(info.ticket);
 
-                compactInfos().remove(compactInfo);
+                try {
+                    rmvdVisas.add(objMapper.writeValueAsString(compactInfo));
+                }
+                catch (Exception e) {
+                    logger.error("JSON string parse failed: " + e.getMessage(), e);
+
+                    return "Exception while JSON parsing: " + e.getClass().getSimpleName() + ": " + e.getMessage();
+                }
+
+                try {
+                    compactInfos().remove(compactInfo);
+                }
+                catch (Exception e) {
+                    logger.error("cache remove: " + e.getMessage(), e);
+
+                    return X.getFullStackTrace(e);
+                }
             }
         }
 
-        return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified;
+        return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified +
+            " Visas in queue: [" + String.join(", ", queuedVisas) +
+            "] Visas to rmv: [" + String.join(", ", rmvdVisas) + ']';
     }
 }
