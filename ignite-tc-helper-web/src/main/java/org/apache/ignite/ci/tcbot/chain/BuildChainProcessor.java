@@ -290,7 +290,7 @@ public class BuildChainProcessor {
         final String buildTypeId = buildCompacted.buildTypeId(compactor);
         Stream<BuildRefCompacted> hist = teamcityIgnited.getBuildHistoryCompacted(buildTypeId, branch)
             .stream()
-            .filter(t -> t.isNotCancelled(compactor))
+            .filter(t -> !t.isCancelled(compactor))
             .filter(t -> t.isFinished(compactor));
 
         if (includeLatestRebuild == LatestRebuildMode.LATEST) {

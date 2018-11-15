@@ -297,11 +297,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @Override @NotNull public List<Integer> getLastNBuildsFromHistory(String btId, String branchForTc, int cnt) {
         List<BuildRefCompacted> hist = getBuildHistoryCompacted(btId, branchForTc);
 
-        //todo revise if queued buidl may be ok here
-
         List<Integer> chains = hist.stream()
             .filter(ref -> !ref.isFakeStub())
             .filter(t -> !t.isCancelled(compactor))
+            .filter(t -> t.isFinished(compactor))
             .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
             .limit(cnt)
             .map(BuildRefCompacted::id)
@@ -311,6 +310,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             // probably there are no not-cacelled builds at all
             chains = hist.stream()
                 .filter(ref -> !ref.isFakeStub())
+                .filter(t -> t.isFinished(compactor))
                 .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
                 .map(BuildRefCompacted::id)
                 .limit(cnt)
