@@ -59,30 +59,6 @@ public interface ITeamcity extends ITeamcityConn {
 
     CompletableFuture<List<BuildType>> getProjectSuites(String projectId);
 
-    /**
-     * Includes snapshot dependencies failed builds into list.
-     *
-     * @param projectId suite ID (string without spaces).
-     * @param branch branch in TC identification.
-     * @return list of builds in historical order, recent builds coming last.
-     */
-    @Deprecated
-    default List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch){
-        return getFinishedBuildsIncludeSnDepFailed(projectId, branch, null);
-    };
-
-    /**
-     * Includes 'snapshot dependencies failed' builds into list.
-     * loads build history with following parameter: defaultFilter:false,state:finished
-     *
-     * @param projectId suite ID (string without spaces).
-     * @param branch branch in TC identification.
-     * @param sinceBuildId limit builds export with some build number, not operational for Persistent connection.
-     * @return list of builds in historical order, recent builds coming last.
-     */
-    @Deprecated
-    List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId);
-
     /**   */
     @Deprecated
     CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch);

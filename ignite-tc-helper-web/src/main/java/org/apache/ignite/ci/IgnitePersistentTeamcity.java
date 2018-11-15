@@ -103,7 +103,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private static final String TEST_FULL = "testFull";
     private static final String BUILD_PROBLEMS = "buildProblems";
 
-    private static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
     public static final String TEST_REFS = "testRefs";
     public static final String CONFIGURATIONS = "configurations";
@@ -159,8 +158,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 buildsCache(), this::addBuildOccurrenceToFailuresStat,
                 buildsFailureRunStatCache(), testRunStatCache(),
                 testFullCache(),
-                buildProblemsCache(),
-                buildHistIncFailedCache());
+                buildProblemsCache());
     }
 
     @Override
@@ -239,13 +237,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      */
     private IgniteCache<String, ProblemOccurrences> buildProblemsCache() {
         return getOrCreateCacheV2(ignCacheNme(BUILD_PROBLEMS));
-    }
-
-    /**
-     * @return Build history: {@link BuildRef} lists cache, 32 parts, transactional.
-     */
-    private IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> buildHistIncFailedCache() {
-        return getOrCreateCacheV2Tx(ignCacheNme(BUILD_HIST_FINISHED_OR_FAILED));
     }
 
     /** {@inheritDoc} */
@@ -398,62 +389,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return lock;
     }
 
-    /**
-     * @param buildRefs Build refs list.
-     * @param fromIdx From index.
-     * @param toIdx To index.
-     * @param key Key.
-     * @param since {@code true} If key is sinceDate, {@code false} is untilDate.
-     *
-     * @return {@value >= 0} Build id from list with min interval between key. If since {@code true}, min interval
-     * between key and same day or later. If since {@code false}, min interval between key and same day or earlier;
-     * {@value -1} If sinceDate after last list element date or untilDate before first list element;
-     * {@value -2} If sinceDate before first list element or untilDate after last list element;
-     * {@value -3} If method get null or fake stub build.
-     */
-    private int binarySearchDate(List<BuildRef> buildRefs, int fromIdx, int toIdx, Date key, boolean since){
-        int low = fromIdx;
-        int high = toIdx - 1;
-        long minDiff = key.getTime();
-        int minDiffId = since ? low : high;
-        long temp;
-        Build highBuild = getBuild(buildRefs.get(high).href);
-        Build lowBuild = getBuild(buildRefs.get(low).href);
-
-        if (highBuild != null && !highBuild.isFakeStub()){
-            if (highBuild.getStartDate().before(key))
-                return since ? -1 : -2;
-        }
-
-        if (lowBuild != null && !lowBuild.isFakeStub()){
-            if (lowBuild.getStartDate().after(key))
-                return since ? -2 : -1;
-        }
-
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
-            Build midVal = getBuild(buildRefs.get(mid).href);
-
-            if (midVal != null && !midVal.isFakeStub()) {
-                if (midVal.getStartDate().after(key))
-                    high = mid - 1;
-                else if (midVal.getStartDate().before(key))
-                    low = mid + 1;
-                else
-                    return mid;
-
-                temp = midVal.getStartDate().getTime() - key.getTime();
-
-                if ((temp > 0 == since) && (Math.abs(temp) < minDiff)) {
-                    minDiff = Math.abs(temp);
-                    minDiffId = mid;
-                }
-            } else
-                return -3;
-        }
-        return minDiffId;
-    }
-
     @NotNull
     @AutoProfiling
     @SuppressWarnings("WeakerAccess")
@@ -468,28 +403,16 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return new ArrayList<>(merge.values());
     }
 
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId,
-                                                                        String branch,
-                                                                        Integer ignored) {
-        final SuiteInBranch suiteInBranch = new SuiteInBranch(projectId, branch);
-
-        return loadBuildHistory(buildHistIncFailedCache(), 91, suiteInBranch,
-            (key, sinceBuildId) -> teamcity.getFinishedBuildsIncludeSnDepFailed(projectId, branch, sinceBuildId));
-    }
-
-
     private <K, V> CompletableFuture<V> loadAsyncIfAbsentOrExpired(ConcurrentMap<K, Expirable<V>> cache,
                                                                    K key,
                                                                    ConcurrentMap<K, CompletableFuture<V>> cachedComputations,
                                                                    Function<K, CompletableFuture<V>> realLoadFunction,
                                                                    int maxAgeSecs,
                                                                    boolean alwaysProvidePersisted) {
-        @Nullable final Expirable<V> persistedValue = cache.get(key);
+        @Nullable final Expirable<V> persistedVal = cache.get(key);
 
-        if (persistedValue != null && persistedValue.isAgeLessThanSecs(maxAgeSecs))
-            return CompletableFuture.completedFuture(persistedValue.getData());
+        if (persistedVal != null && persistedVal.isAgeLessThanSecs(maxAgeSecs))
+            return CompletableFuture.completedFuture(persistedVal.getData());
 
         AtomicReference<CompletableFuture<V>> submitRef = new AtomicReference<>();
 
@@ -519,8 +442,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             return res;
         });
 
-        if (alwaysProvidePersisted && persistedValue != null)
-            return CompletableFuture.completedFuture(persistedValue.getData());
+        if (alwaysProvidePersisted && persistedVal != null)
+            return CompletableFuture.completedFuture(persistedVal.getData());
 
         return loadFut;
     }
