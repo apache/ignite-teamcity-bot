@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.tcbot.chain;
 
+import com.google.common.util.concurrent.Futures;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -182,16 +183,18 @@ public class BuildChainProcessor {
         final ExecutorService svc = tcUpdatePool.getService();
 
         final Stream<FatBuildCompacted> depsFirstLevel = entryPointsFatBuilds
-                .map(ref -> svc.submit(() -> dependencies(teamcityIgnited, builds, ref)))
+            .flatMap(ref -> dependencies(teamcityIgnited, builds, ref));
+              /*  .map(ref -> svc.submit(() -> dependencies(teamcityIgnited, builds, ref)))
                 .collect(Collectors.toList())
                 .stream()
-                .flatMap(fut -> FutureUtil.getResult(fut));
+                .flatMap(fut -> FutureUtil.getResult(fut));*/
 
         Stream<FatBuildCompacted> secondLevelDeps = depsFirstLevel
-                .map(ref -> svc.submit(() -> dependencies(teamcityIgnited, builds, ref)))
+            .flatMap(ref-> dependencies(teamcityIgnited, builds, ref));
+                /*.map(ref -> svc.submit(() -> dependencies(teamcityIgnited, builds, ref)))
                 .collect(Collectors.toList())
                 .stream()
-                .flatMap(fut -> FutureUtil.getResult(fut));
+                .flatMap(fut -> FutureUtil.getResult(fut))*/;
 
         // builds may became non unique because of race in filtering and acquiring deps
         final List<Future<Stream<FatBuildCompacted>>> phase3Submitted = secondLevelDeps
@@ -368,19 +371,30 @@ public class BuildChainProcessor {
             ITeamcityIgnited teamcityIgnited,
             Map<Integer, FatBuildCompacted> builds,
         FatBuildCompacted build) {
-        return Stream.concat(
-            Stream.of(build),
-            IntStream.of(build.snapshotDependencies())
-                .mapToObj(id -> {
+
+        Stream<FatBuildCompacted> stream = IntStream.of(build.snapshotDependencies())
+            .mapToObj(id -> {
+                if (builds.containsKey(id))
+                    return Futures.<FatBuildCompacted>immediateFuture(null); //load and propagate only new dependencies
+
+                return tcUpdatePool.getService().submit(() -> {
                     if (builds.containsKey(id))
-                        return null; //load and propagate only new dependencies
+                        return null;
 
                     FatBuildCompacted buildLoaded = teamcityIgnited.getFatBuild(id);
 
                     FatBuildCompacted prevVal = builds.putIfAbsent(id, buildLoaded);
 
                     return prevVal == null ? buildLoaded : null;
-                }))
+                });
+            })
+            .collect(Collectors.toList())
+            .stream()
+            .map(future -> FutureUtil.getResult(future))
             .filter(Objects::nonNull);
+
+        return Stream.concat(
+            Stream.of(build),
+            stream);
     }
 }

@@ -354,8 +354,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** {@inheritDoc} */
     @Override public FatBuildCompacted getFatBuild(int buildId, boolean acceptQueued) {
-        ensureActualizeRequested();
-        FatBuildCompacted existingBuild = fatBuildDao.getFatBuild(srvIdMaskHigh, buildId);
+        FatBuildCompacted existingBuild = getFatBuildFromIgnite(buildId);
 
         FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, acceptQueued);
 
@@ -364,6 +363,13 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(savedVer));
 
         return savedVer == null ? existingBuild : savedVer;
+    }
+
+    @AutoProfiling
+    protected FatBuildCompacted getFatBuildFromIgnite(int buildId) {
+        ensureActualizeRequested();
+
+        return fatBuildDao.getFatBuild(srvIdMaskHigh, buildId);
     }
 
     /** {@inheritDoc} */
