@@ -28,7 +28,6 @@ import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
@@ -36,11 +35,9 @@ import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 /**
  * Process pull request/untracked branch chain at particular server.
@@ -98,11 +95,7 @@ public class PrChainsProcessor {
         else
             rebuild = LatestRebuildMode.LATEST;
 
-        List<BuildRef> finishedBuilds = teamcity.getFinishedBuildsIncludeSnDepFailed(
-            suiteId,
-            branchForTc);
-
-        long buildResMergeCnt;
+        int buildResMergeCnt;
         if (rebuild == LatestRebuildMode.ALL)
             buildResMergeCnt = cnt == null ? 10 : cnt;
         else
@@ -114,16 +107,12 @@ public class PrChainsProcessor {
         else
             logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
-        final List<BuildRef> chains = finishedBuilds.stream()
-            .filter(ref -> !ref.isFakeStub())
-            .sorted(Comparator.comparing(BuildRef::getId).reversed())
-            .filter(b -> b.getId() != null)
-            .limit(buildResMergeCnt)
-            .collect(Collectors.toList());
+        List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId,
+            branchForTc, buildResMergeCnt);
 
         String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
 
-        final FullChainRunCtx val = buildChainProcessor.loadFullChainContext(teamcity, tcIgnited, chains,
+        final FullChainRunCtx val = buildChainProcessor.loadFullChainContext(teamcity, tcIgnited, hist,
             rebuild,
             logs, buildResMergeCnt == 1,
             baseBranch);

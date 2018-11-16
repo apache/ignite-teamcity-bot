@@ -42,6 +42,9 @@ import java.util.stream.Stream;
  * Includes tests and problem occurrences; if logs processing is done also contains last started test
  */
 public class MultBuildRunCtx implements ISuiteResults {
+    /** Cancelled. */
+    public static final String CANCELLED = "CANCELLED";
+
     /** First build info. */
     @Nonnull private final BuildRef firstBuildInfo;
 
@@ -93,6 +96,10 @@ public class MultBuildRunCtx implements ISuiteResults {
     public boolean hasAnyBuildProblemExceptTestOrSnapshot() {
         return allProblemsInAllBuilds()
             .anyMatch(p -> !p.isFailedTests(compactor) && !p.isSnapshotDepProblem(compactor));
+    }
+
+    public boolean onlyCancelledBuilds() {
+        return buildsStream().allMatch(bCtx -> !bCtx.isComposite() && bCtx.isCancelled());
     }
 
     @NotNull
@@ -151,6 +158,15 @@ public class MultBuildRunCtx implements ISuiteResults {
      */
     public String getResult() {
         StringBuilder res = new StringBuilder();
+
+        long cancelledCnt = buildsStream().filter(bCtx -> !bCtx.isComposite() && bCtx.isCancelled()).count();
+
+        if (cancelledCnt > 0) {
+            res.append(CANCELLED);
+
+            if (cancelledCnt > 1)
+                res.append(" ").append(cancelledCnt);
+        }
 
         addKnownProblemCnt(res, "TIMEOUT", getExecutionTimeoutCount());
         addKnownProblemCnt(res, "JVM CRASH", getJvmCrashProblemCount());
@@ -257,7 +273,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     boolean isFailed() {
-        return failedTests() != 0 || hasAnyBuildProblemExceptTestOrSnapshot();
+        return failedTests() != 0 || hasAnyBuildProblemExceptTestOrSnapshot() || onlyCancelledBuilds();
     }
 
     public String branchName() {

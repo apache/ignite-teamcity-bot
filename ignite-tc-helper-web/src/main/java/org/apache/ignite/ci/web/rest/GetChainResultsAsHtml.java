@@ -71,10 +71,6 @@ public class GetChainResultsAsHtml {
         final Injector injector = CtxListener.getInjector(ctx);
         final BuildChainProcessor buildChainProcessor = injector.getInstance(BuildChainProcessor.class);
 
-        String hrefById = ITeamcity.buildHref(buildId);
-        BuildRef build = new BuildRef();
-        build.setId(buildId);
-        build.href = hrefById;
         String failRateBranch = ITeamcity.DEFAULT;
 
         ITcServerProvider tcHelper = injector.getInstance(ITcServerProvider.class);
@@ -82,7 +78,7 @@ public class GetChainResultsAsHtml {
         IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds);
         ITeamcityIgnited teamcityIgnited = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvId, creds);
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, teamcityIgnited, Collections.singletonList(build),
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, teamcityIgnited, Collections.singletonList(buildId),
             LatestRebuildMode.NONE,
             ProcessLogsMode.SUITE_NOT_COMPLETE, false,
             failRateBranch);

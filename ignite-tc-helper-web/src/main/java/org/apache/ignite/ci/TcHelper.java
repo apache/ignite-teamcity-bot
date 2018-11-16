@@ -18,18 +18,31 @@
 package org.apache.ignite.ci;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.inject.Inject;
+import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.web.model.JiraCommentResponse;
-import org.apache.ignite.ci.web.model.Visa;
+import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
+import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
+import org.apache.ignite.ci.web.model.JiraCommentResponse;
+import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
@@ -39,10 +52,6 @@ import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.ignite.ci.analysis.RunStat.MAX_LATEST_RUNS;
 import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
@@ -70,6 +79,10 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     @Inject private UserAndSessionsStorage userAndSessionsStorage;
 
     @Inject private PrChainsProcessor prChainsProcessor;
+
+    @Inject private ITeamcityIgnitedProvider tcProv;
+
+    @Inject private IStringCompactor compactor;
 
     /** */
     private final ObjectMapper objectMapper;
@@ -148,19 +161,26 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     ) {
         IAnalyticsEnabledTeamcity teamcity = server(srvId, prov);
 
-        List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchForTc);
+        ITeamcityIgnited tcIgnited = tcProv.server(srvId, prov);
+
+        List<Integer> builds = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
         if (builds.isEmpty())
             return new Visa("JIRA wasn't commented - no finished builds to analyze.");
 
-        BuildRef build = builds.get(builds.size() - 1);
+        Integer buildId = builds.get(0);
+
+        FatBuildCompacted fatBuild = tcIgnited.getFatBuild(buildId);
+        Build build = fatBuild.toBuild(compactor);
+
+        build.webUrl = tcIgnited.host() + "viewLog.html?buildId=" + build.getId() + "&buildTypeId=" + build.buildTypeId;
 
         int blockers;
 
         JiraCommentResponse res;
 
         try {
-            List<SuiteCurrentStatus> suitesStatuses =  getSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
+            List<SuiteCurrentStatus> suitesStatuses = getSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
 
             String comment = generateJiraComment(suitesStatuses, build.webUrl, buildTypeId);
 
@@ -314,6 +334,9 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
             if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_METRIC.toLowerCase()))
                 failType = "build failure on metrics";
 
+            if (suiteRes.contains(MultBuildRunCtx.CANCELLED.toLowerCase()))
+                failType = MultBuildRunCtx.CANCELLED.toLowerCase();
+
             if (failType == null) {
                 List<TestFailure> failures = new ArrayList<>();
 
@@ -330,7 +353,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
             }
 
             if (failType != null)
-                fails.computeIfAbsent(failType, k->new ArrayList<>()).add(suite);
+                fails.computeIfAbsent(failType, k -> new ArrayList<>()).add(suite);
         }
 
         return fails;

@@ -19,7 +19,6 @@ package org.apache.ignite.ci.tcbot.chain;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
@@ -28,7 +27,6 @@ import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
@@ -81,15 +79,9 @@ public class TrackedBranchChainsProcessor {
 
                 ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, creds);
 
-                final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
-                    chainTracked.getSuiteIdMandatory(),
-                    branchForTc);
+                String suiteIdMandatory = chainTracked.getSuiteIdMandatory();
 
-                List<BuildRef> chains = builds.stream()
-                    .filter(ref -> !ref.isFakeStub())
-                    .sorted(Comparator.comparing(BuildRef::getId).reversed())
-                    .limit(buildResMergeCnt)
-                    .filter(b -> b.getId() != null).collect(Collectors.toList());
+                List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc, buildResMergeCnt);
 
                 ProcessLogsMode logs;
                 if (buildResMergeCnt > 1)
@@ -102,7 +94,8 @@ public class TrackedBranchChainsProcessor {
                 boolean includeScheduled = buildResMergeCnt == 1;
 
                 final FullChainRunCtx ctx = chainProc.loadFullChainContext(teamcity,
-                    tcIgnited, chains,
+                    tcIgnited,
+                    chains,
                     rebuild,
                     logs,
                     includeScheduled,
@@ -147,21 +140,11 @@ public class TrackedBranchChainsProcessor {
 
                 final String branchForTc = chainTracked.getBranchForRestMandatory();
 
-                IAnalyticsEnabledTeamcity teamcity = srvProv.server(srvId, creds);
-
                 ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, creds);
 
-                final List<BuildRef> buildsList = teamcity.getFinishedBuildsIncludeSnDepFailed(
-                    chainTracked.getSuiteIdMandatory(),
-                    branchForTc);
+                List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(chainTracked.getSuiteIdMandatory(), branchForTc, 1);
 
-                List<BuildRef> chains = buildsList.stream()
-                    .filter(ref -> !ref.isFakeStub())
-                    .sorted(Comparator.comparing(BuildRef::getId).reversed())
-                    .limit(1)
-                    .filter(b -> b.getId() != null).collect(Collectors.toList());
-
-                return chainProc.loadLongRunningTestsSummary(tcIgnited, chains);
+                return chainProc.loadLongRunningTestsSummary(tcIgnited, hist);
             })
             .forEach(summary::addSuiteSummaries);
 
