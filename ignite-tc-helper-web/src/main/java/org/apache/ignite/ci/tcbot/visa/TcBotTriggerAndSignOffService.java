@@ -390,12 +390,12 @@ public class TcBotTriggerAndSignOffService {
         if (!finishedOrCancelled.isEmpty()) {
             BuildRefCompacted buildRefCompacted = finishedOrCancelled.get(0);
 
-            status.finished = !buildRefCompacted.isCancelled(compactor);
+            status.suiteIsFinished = !buildRefCompacted.isCancelled(compactor);
             status.branchWithFinishedSuite = buildRefCompacted.branchName(compactor);
         }
         else {
             status.branchWithFinishedSuite = null;
-            status.finished = false;
+            status.suiteIsFinished = false;
         }
 
         if (status.branchWithFinishedSuite != null)

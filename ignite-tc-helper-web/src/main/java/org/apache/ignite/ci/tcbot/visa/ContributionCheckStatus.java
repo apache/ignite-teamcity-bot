@@ -32,7 +32,7 @@ import java.util.List;
     /** Branch with finished/cancelled suite results, null if suite is running or in case there was no run suite at all. */
     public String branchWithFinishedSuite;
 
-    /** Suite finished for brach {@link #branchWithFinishedRunAll}. Determines trigger button color. */
+    /** Suite finished for brach {@link #branchWithFinishedSuite}. Determines trigger button color. */
     public Boolean suiteIsFinished;
 
     /** Resolved suite branch: Some branch probably with finished or queued builds in in, or default pull/nnnn/head. */
