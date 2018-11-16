@@ -138,20 +138,21 @@ public class IgnitedTcInMemoryIntegrationTest {
         });
 
         ITeamcityIgnited srv = injector.getInstance(ITeamcityIgnitedProvider.class).server(APACHE, creds());
+        IStringCompactor compactor = injector.getInstance(IStringCompactor.class);
 
         String buildTypeId = "IgniteTests24Java8_RunAll";
         String branchName = "<default>";
-        List<BuildRef> hist = srv.getBuildHistory(buildTypeId, branchName);
+        List<BuildRefCompacted> hist = srv.getAllBuildsCompacted(buildTypeId, branchName);
         //todo mult branches including pull/4926/head
 
         assertTrue(!hist.isEmpty());
 
-        for (BuildRef h : hist) {
+        for (BuildRefCompacted h : hist) {
             System.out.println(h);
 
-            assertEquals(buildTypeId, h.suiteId());
+            assertEquals(buildTypeId, h.buildTypeId(compactor));
 
-            assertEquals("refs/heads/master", h.branchName());
+            assertEquals("refs/heads/master", h.branchName(compactor));
         }
 
         ignite.cache(STRINGS_CACHE).forEach(
@@ -212,7 +213,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         teamcityIgnited.fullReindex();
         String buildTypeId = "IgniteTests24Java8_RunAll";
         String branchName = "<default>";
-        List<String> statues = srv.getBuildHistory(buildTypeId, branchName).stream().map(BuildRef::state).distinct().collect(Collectors.toList());
+        List<String> statues = srv.getAllBuildsHistory(buildTypeId, branchName).stream().map(BuildRef::state).distinct().collect(Collectors.toList());
         System.out.println("Before " + statues);
 
         for (int i = queuedBuildIdx; i < tcBuilds.size(); i++)
@@ -221,7 +222,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         teamcityIgnited.actualizeRecentBuildRefs();
 
 
-        List<BuildRef> hist = srv.getBuildHistory(buildTypeId, branchName);
+        List<BuildRef> hist = srv.getAllBuildsHistory(buildTypeId, branchName);
 
         assertTrue(!hist.isEmpty());
 

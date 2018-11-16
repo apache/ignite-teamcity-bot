@@ -48,7 +48,7 @@ public interface ITeamcityIgnited {
      * @param branchName Branch name.
      * @return list of builds in history, includes all statuses: queued, running, etc
      */
-    public List<BuildRefCompacted> getBuildHistoryCompacted(
+    public List<BuildRefCompacted> getAllBuildsCompacted(
             @Nullable String buildTypeId,
             @Nullable String branchName);
 
@@ -59,7 +59,7 @@ public interface ITeamcityIgnited {
      * @param branchName Branch name.
      * @return list of builds in history, includes all statuses: queued, running, etc
      */
-    public List<BuildRef> getBuildHistory(
+    public List<BuildRef> getAllBuildsHistory(
         @Nullable String buildTypeId,
         @Nullable String branchName);
 

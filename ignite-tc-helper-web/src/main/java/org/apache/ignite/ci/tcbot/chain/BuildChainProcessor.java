@@ -288,7 +288,7 @@ public class BuildChainProcessor {
         final String branch = getBranchOrDefault(buildCompacted.branchName(compactor));
 
         final String buildTypeId = buildCompacted.buildTypeId(compactor);
-        Stream<BuildRefCompacted> hist = teamcityIgnited.getBuildHistoryCompacted(buildTypeId, branch)
+        Stream<BuildRefCompacted> hist = teamcityIgnited.getAllBuildsCompacted(buildTypeId, branch)
             .stream()
             .filter(t -> !t.isCancelled(compactor))
             .filter(t -> t.isFinished(compactor));
@@ -320,7 +320,7 @@ public class BuildChainProcessor {
     protected void fillBuildCounts(MultBuildRunCtx outCtx,
         ITeamcityIgnited teamcityIgnited, boolean includeScheduledInfo) {
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {
-            final List<BuildRefCompacted> runAllBuilds = teamcityIgnited.getBuildHistoryCompacted(outCtx.buildTypeId(), outCtx.branchName());
+            final List<BuildRefCompacted> runAllBuilds = teamcityIgnited.getAllBuildsCompacted(outCtx.buildTypeId(), outCtx.branchName());
 
             long cntRunning = runAllBuilds
                     .stream()
