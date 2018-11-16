@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -63,7 +62,7 @@ import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.Configurations;
@@ -241,7 +240,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public CompletableFuture<List<BuildType>> getProjectSuites(String projectId) {
+    @Override public CompletableFuture<List<BuildTypeRef>> getProjectSuites(String projectId) {
         return teamcity.getProjectSuites(projectId);
     }
 

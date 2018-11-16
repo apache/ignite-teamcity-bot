@@ -32,11 +32,9 @@ import javax.xml.bind.annotation.XmlTransient;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.changes.ChangesListRef;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
-
-import org.apache.ignite.ci.util.ExceptionUtil;
 import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.ci.util.ExceptionUtil.propagateException;
@@ -53,7 +51,7 @@ public class Build extends BuildRef implements IVersionedEntity {
     @XmlTransient private static ThreadLocal<SimpleDateFormat> fmtLoc
         = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyyMMdd'T'HHmmssZ"));
 
-    @XmlElement(name = "buildType") private BuildType buildType;
+    @XmlElement(name = "buildType") private BuildTypeRef buildType;
 
     @XmlElement public String queuedDate;
     @XmlElement private String startDate;
@@ -154,7 +152,7 @@ public class Build extends BuildRef implements IVersionedEntity {
         return !Strings.isNullOrEmpty(finishDate);
     }
 
-    public BuildType getBuildType() {
+    public BuildTypeRef getBuildType() {
         return buildType;
     }
 
@@ -183,7 +181,7 @@ public class Build extends BuildRef implements IVersionedEntity {
     /**
      * @param type Type.
      */
-    public void setBuildType(BuildType type) {
+    public void setBuildType(BuildTypeRef type) {
         buildType = type;
     }
 

@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -31,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "buildType")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class BuildTypeFull extends BuildType {
+public class BuildType extends BuildTypeRef {
     @XmlElement(name = "parameters")
     Parameters parameters;
 

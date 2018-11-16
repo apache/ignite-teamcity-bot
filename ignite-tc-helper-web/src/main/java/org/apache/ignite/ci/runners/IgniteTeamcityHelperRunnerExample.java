@@ -29,8 +29,8 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import org.apache.ignite.ci.IgniteTeamcityConnection;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
-import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
+import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
+import org.apache.ignite.ci.tcmodel.conf.bt.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
 import org.apache.ignite.ci.teamcity.pure.TcConnectionStaticLinker;
 
@@ -49,7 +49,7 @@ public class IgniteTeamcityHelperRunnerExample {
         int k = 0;
         if (k > 0) {
             //branch example: "pull/2335/head"
-            List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests").get();
+            List<BuildTypeRef> buildTypes = helper.getProjectSuites("Ignite20Tests").get();
 
         }
 
@@ -73,9 +73,9 @@ public class IgniteTeamcityHelperRunnerExample {
     private static void checkBuildTypes(IgniteTeamcityConnection helper) throws InterruptedException, ExecutionException {
         Map<String, Set<String>> duplicates = new TreeMap<>();
         Map<String, String> suiteToBt = new TreeMap<>();
-        List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests").get();
-        for (BuildType bt : buildTypes) {
-            final BuildTypeFull type = helper.getBuildType(bt.getId());
+        List<BuildTypeRef> buildTypes = helper.getProjectSuites("Ignite20Tests").get();
+        for (BuildTypeRef bt : buildTypes) {
+            final BuildType type = helper.getBuildType(bt.getId());
             if ("Ignite20Tests_RunAll".equals(type.getId())
                 || "IgniteTests_RunAllPds".equals(type.getId())
                 || "Ignite20Tests_RunBasicTests".equals(type.getId())) {
@@ -98,8 +98,8 @@ public class IgniteTeamcityHelperRunnerExample {
         }
     }
 
-    private static void checkSuite(Map<String, Set<String>> duplicates, Map<String, String> suiteToBt, BuildType bt,
-        BuildTypeFull type) {
+    private static void checkSuite(Map<String, Set<String>> duplicates, Map<String, String> suiteToBt, BuildTypeRef bt,
+        BuildType type) {
         final String suite = type.getParameter("TEST_SUITE");
 
         if (suite == null)
@@ -122,7 +122,7 @@ public class IgniteTeamcityHelperRunnerExample {
         }
     }
 
-    private static void checkRunAll(BuildTypeFull type) {
+    private static void checkRunAll(BuildType type) {
         System.err.println(type);
 
         final List<SnapshotDependency> dependencies = type.dependencies();

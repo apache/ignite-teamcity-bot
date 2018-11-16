@@ -22,7 +22,7 @@ import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
@@ -121,7 +121,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         finishDate = build.getFinishDate() == null ? -1L : build.getFinishDate().getTime();
         queuedDate = build.getQueuedDate() == null ? -1L : build.getQueuedDate().getTime();
 
-        BuildType type = build.getBuildType();
+        BuildTypeRef type = build.getBuildType();
         if (type != null) {
             projectId = compactor.getStringId(type.getProjectId());
             name = compactor.getStringId(type.getName());
@@ -183,10 +183,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         if (queuedDate > 0)
             res.setQueuedDateTs(queuedDate);
 
-        BuildType type = new BuildType();
-        type.id(res.buildTypeId());
-        type.name(buildTypeName(compactor));
-        type.projectId(projectId(compactor));
+        BuildTypeRef type = new BuildTypeRef();
+        type.setId(res.buildTypeId());
+        type.setName(buildTypeName(compactor));
+        type.setProjectId(projectId(compactor));
         res.setBuildType(type);
 
         if (tests != null) {

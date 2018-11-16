@@ -37,9 +37,9 @@ public class Project {
 
     @XmlElementWrapper(name="buildTypes")
     @XmlElement(name="buildType")
-    private List<BuildType> buildTypes;
+    private List<BuildTypeRef> buildTypes;
 
-    public List<BuildType> getBuildTypesNonNull() {
+    public List<BuildTypeRef> getBuildTypesNonNull() {
         return buildTypes == null ? Collections.emptyList() : buildTypes;
     }
 }

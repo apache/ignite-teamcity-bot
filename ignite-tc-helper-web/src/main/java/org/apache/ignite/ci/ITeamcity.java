@@ -19,7 +19,6 @@ package org.apache.ignite.ci;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -28,15 +27,12 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
-import org.apache.ignite.ci.tcmodel.changes.Change;
-import org.apache.ignite.ci.tcmodel.changes.ChangesList;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.Configurations;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
-import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
@@ -57,7 +53,7 @@ public interface ITeamcity extends ITeamcityConn {
     @Deprecated
     long DEFAULT_BUILDS_COUNT = 1000;
 
-    CompletableFuture<List<BuildType>> getProjectSuites(String projectId);
+    CompletableFuture<List<BuildTypeRef>> getProjectSuites(String projectId);
 
     /**   */
     @Deprecated

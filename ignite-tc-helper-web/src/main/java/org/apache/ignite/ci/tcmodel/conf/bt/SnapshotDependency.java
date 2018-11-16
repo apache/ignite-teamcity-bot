@@ -21,7 +21,7 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
 
 /**
  * Snapshot dependency.
@@ -35,7 +35,7 @@ public class SnapshotDependency {
     Parameters properties;
 
     @XmlElement(name = "source-buildType")
-    BuildType srcBt;
+    BuildTypeRef srcBt;
 
     public String getProperty(String id) {
         if (properties == null)
@@ -44,7 +44,7 @@ public class SnapshotDependency {
         return properties.getParameter(id);
     }
 
-    public BuildType bt() {
+    public BuildTypeRef bt() {
         return srcBt;
     }
 }

@@ -20,7 +20,7 @@ package org.apache.ignite.ci.runners;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import org.apache.ignite.ci.IgniteTeamcityConnection;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
 import org.apache.ignite.ci.teamcity.pure.TcConnectionStaticLinker;
 
 import java.io.*;
@@ -282,9 +282,9 @@ public class GenerateStatusHtml {
         ProjectStatus projStatus = new ProjectStatus();
         final IgniteTeamcityConnection teamcityHelper = TcConnectionStaticLinker.create(tcId);
 
-        List<BuildType> suites = teamcityHelper.getProjectSuites(projectId).get();
+        List<BuildTypeRef> suites = teamcityHelper.getProjectSuites(projectId).get();
 
-        for (BuildType buildType : suites) {
+        for (BuildTypeRef buildType : suites) {
             if (!"-> Run All".equals(buildType.getName())
                 && buildType.getName().startsWith("->"))
                 continue;
