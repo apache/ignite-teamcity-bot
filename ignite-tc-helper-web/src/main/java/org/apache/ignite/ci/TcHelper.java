@@ -37,6 +37,7 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -216,7 +217,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
         TestFailuresSummary summary = prChainsProcessor.getTestFailuresSummary(
             prov, srvId, buildTypeId, branchForTc,
-            FullQueryParams.LATEST, null, null, false);
+            FullQueryParams.LATEST, null, null, false, SyncMode.RELOAD_QUEUED);
 
         if (summary != null) {
             for (ChainAtServerCurrentStatus server : summary.servers) {

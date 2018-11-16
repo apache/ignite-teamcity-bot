@@ -29,6 +29,7 @@ import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
@@ -99,7 +100,8 @@ public class TrackedBranchChainsProcessor {
                     rebuild,
                     logs,
                     includeScheduled,
-                    baseBranchTc
+                    baseBranchTc,
+                    SyncMode.RELOAD_QUEUED
                 );
 
                 int cnt = (int)ctx.getRunningUpdates().count();

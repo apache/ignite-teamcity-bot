@@ -19,10 +19,10 @@ package org.apache.ignite.ci.web.rest.build;
 
 import com.google.common.collect.BiMap;
 import java.text.ParseException;
-import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import com.google.inject.Injector;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
@@ -31,7 +31,6 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
@@ -141,7 +140,7 @@ public class GetBuildTestFailures {
         final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, teamcityIgnited, Collections.singletonList(buildId),
                 LatestRebuildMode.NONE,
                 procLogs, false,
-            failRateBranch);
+            failRateBranch, SyncMode.RELOAD_QUEUED);
 
         final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, ctx.branchName());
 

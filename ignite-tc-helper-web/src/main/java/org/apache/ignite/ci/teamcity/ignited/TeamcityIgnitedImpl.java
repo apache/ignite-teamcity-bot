@@ -342,10 +342,17 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @Override public FatBuildCompacted getFatBuild(int buildId, boolean acceptQueued) {
+    @Override public FatBuildCompacted getFatBuild(int buildId, SyncMode mode) {
         FatBuildCompacted existingBuild = getFatBuildFromIgnite(buildId);
 
-        FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, acceptQueued);
+        if (mode == SyncMode.NONE) {
+            if (existingBuild != null)
+                return existingBuild;
+            else
+                return new FatBuildCompacted(); // providing fake builds
+        }
+
+        FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, mode);
 
         //build was modified, probably we need also to update reference accordindly
         if (savedVer != null)

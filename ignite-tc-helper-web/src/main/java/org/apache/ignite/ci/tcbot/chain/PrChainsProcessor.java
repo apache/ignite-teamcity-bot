@@ -20,6 +20,7 @@ import com.google.common.base.Strings;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -51,6 +52,8 @@ public class PrChainsProcessor {
 
     /** Tc server provider. */
     @Inject ITeamcityIgnitedProvider tcIgnitedProvider;
+
+    /** Git hub connection provider. */
     @Inject IGitHubConnectionProvider gitHubConnProvider;
 
     /**
@@ -62,6 +65,7 @@ public class PrChainsProcessor {
      * @param cnt Count.
      * @param baseBranchForTc Base branch name in TC identification.
      * @param checkAllLogs Check all logs
+     * @param mode TC Server Sync Mode
      * @return Test failures summary.
      */
     @AutoProfiling
@@ -73,7 +77,8 @@ public class PrChainsProcessor {
         String act,
         Integer cnt,
         @Nullable String baseBranchForTc,
-        @Nullable Boolean checkAllLogs) {
+        @Nullable Boolean checkAllLogs,
+        SyncMode mode) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -115,7 +120,8 @@ public class PrChainsProcessor {
         final FullChainRunCtx val = buildChainProcessor.loadFullChainContext(teamcity, tcIgnited, hist,
             rebuild,
             logs, buildResMergeCnt == 1,
-            baseBranch);
+            baseBranch,
+            mode);
 
         Optional<FullChainRunCtx> pubCtx = Optional.of(val);
 

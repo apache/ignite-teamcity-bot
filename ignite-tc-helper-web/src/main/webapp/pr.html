@@ -13,6 +13,8 @@
 </head>
 <body>
 <script>
+    var g_shownDataHashCodeHex = "";
+
 $(document).ready(function() {
     $.getScript("js/testfails-2.1.js", function(data, textStatus, jqxhr){ });
 
@@ -90,6 +92,7 @@ function loadData() {
     var curFailuresUrl = "rest/pr/results"  + parmsForRest();
 
     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait. First load of PR run-all data may require significant time.");
+    setTimeout(loadPartialData, 3000);
     $.ajax({
         url: curFailuresUrl,
         success: function(result) {
@@ -105,6 +108,23 @@ function loadData() {
         error: showErrInLoadStatus
     });
 }
+
+
+    function loadPartialData() {
+        var curFailuresUrl = "rest/pr/resultsNoSync" + parmsForRest();
+
+        if (g_shownDataHashCodeHex === "")
+            $.ajax({
+                url: curFailuresUrl,
+                success: function (result) {
+                    if (g_shownDataHashCodeHex === "") {
+                        showData(result);
+                        setTimeout(loadPartialData, 3000);
+                    }
+                },
+                error: showErrInLoadStatus
+            });
+    }
 
 function showData(result) {
     $("#divFailures").html(showChainOnServersResults(result));
