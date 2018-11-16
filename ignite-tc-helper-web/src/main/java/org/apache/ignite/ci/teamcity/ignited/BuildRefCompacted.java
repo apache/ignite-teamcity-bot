@@ -155,7 +155,11 @@ public class BuildRefCompacted {
     }
 
     public boolean isNotCancelled(IStringCompactor compactor) {
-        return !hasUnknownStatus(compactor);
+        return !isCancelled(compactor);
+    }
+
+    public boolean isCancelled(IStringCompactor compactor) {
+        return hasUnknownStatus(compactor);
     }
 
     private boolean hasUnknownStatus(IStringCompactor compactor) {
@@ -182,5 +186,9 @@ public class BuildRefCompacted {
             .add("status", status)
             .add("state", state)
             .toString();
+    }
+
+    public String state(IStringCompactor compactor) {
+        return compactor.getStringFromId(state());
     }
 }

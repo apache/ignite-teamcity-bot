@@ -25,8 +25,12 @@ import java.util.List;
 @SuppressWarnings("PublicField") public class ContributionCheckStatus {
     public int queuedBuilds;
     public int runningBuilds;
-    /** Branch with finished run all results, null if run all is running or in case there was no run alls at all. */
+
+    /** Branch with finished/cancelled run all results, null if run all is running or in case there was no run alls at all. */
     public String branchWithFinishedRunAll;
+
+    /** Run all finished for brach {@link #branchWithFinishedRunAll}. Determines trigger button color. */
+    public Boolean runAllFinished;
 
     /** Resolved run all branch: Some branch probably with finished or queued builds in in, or default pull/nnnn/head. */
     public String resolvedBranch;

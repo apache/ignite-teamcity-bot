@@ -120,7 +120,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    public List<BuildRefCompacted> getFinishedBuildsCompacted(
+    @Override public List<BuildRefCompacted> getFinishedBuildsCompacted(
         @Nullable String buildTypeId,
         @Nullable String branchName,
         @Nullable Date sinceDate,
@@ -130,7 +130,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         final int invalidVal = -3;
         final int unknownStatus = compactor.getStringId(STATUS_UNKNOWN);
 
-        List<BuildRefCompacted> buildRefs = getBuildHistoryCompacted(buildTypeId, branchName)
+        List<BuildRefCompacted> buildRefs = getAllBuildsCompacted(buildTypeId, branchName)
             .stream().filter(b -> b.status() != unknownStatus).collect(Collectors.toList());
 
         int idSince = 0;
@@ -268,19 +268,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<BuildRef> getBuildHistory(
-            @Nullable String buildTypeId,
-            @Nullable String branchName) {
-        ensureActualizeRequested();
-
-        String bracnhNameQry = branchForQuery(branchName);
-
-        return buildRefDao.findBuildsInHistory(srvIdMaskHigh, buildTypeId, bracnhNameQry);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public List<BuildRefCompacted> getBuildHistoryCompacted(
+    @Override public List<BuildRefCompacted> getAllBuildsCompacted(
             @Nullable String buildTypeId,
             @Nullable String branchName) {
         ensureActualizeRequested();
@@ -288,6 +276,34 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         String bracnhNameQry = branchForQuery(branchName);
 
         return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, bracnhNameQry);
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override @NotNull public List<Integer> getLastNBuildsFromHistory(String btId, String branchForTc, int cnt) {
+        List<BuildRefCompacted> hist = getAllBuildsCompacted(btId, branchForTc);
+
+        List<Integer> chains = hist.stream()
+            .filter(ref -> !ref.isFakeStub())
+            .filter(t -> !t.isCancelled(compactor))
+            .filter(t -> t.isFinished(compactor))
+            .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
+            .limit(cnt)
+            .map(BuildRefCompacted::id)
+            .collect(Collectors.toList());
+
+        if (chains.isEmpty()) {
+            // probably there are no not-cacelled builds at all
+            chains = hist.stream()
+                .filter(ref -> !ref.isFakeStub())
+                .filter(t -> t.isFinished(compactor))
+                .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
+                .map(BuildRefCompacted::id)
+                .limit(cnt)
+                .collect(Collectors.toList());
+        }
+
+        return chains;
     }
 
     public String branchForQuery(@Nullable String branchName) {
@@ -327,8 +343,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** {@inheritDoc} */
     @Override public FatBuildCompacted getFatBuild(int buildId, boolean acceptQueued) {
-        ensureActualizeRequested();
-        FatBuildCompacted existingBuild = fatBuildDao.getFatBuild(srvIdMaskHigh, buildId);
+        FatBuildCompacted existingBuild = getFatBuildFromIgnite(buildId);
 
         FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, acceptQueued);
 
@@ -337,6 +352,13 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(savedVer));
 
         return savedVer == null ? existingBuild : savedVer;
+    }
+
+    @AutoProfiling
+    protected FatBuildCompacted getFatBuildFromIgnite(int buildId) {
+        ensureActualizeRequested();
+
+        return fatBuildDao.getFatBuild(srvIdMaskHigh, buildId);
     }
 
     /** {@inheritDoc} */

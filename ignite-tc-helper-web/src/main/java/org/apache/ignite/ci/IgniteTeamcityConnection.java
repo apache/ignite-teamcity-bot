@@ -521,36 +521,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuilds(String projectId,
-                                            String branch,
-                                            Date sinceDate,
-                                            Date untilDate,
-                                            @Nullable Integer sinceBuildId) {
-        List<BuildRef> finished = getBuildHistory(projectId,
-            UrlUtil.escape(branch),
-            true,
-            null,
-            sinceDate,
-            untilDate,
-            sinceBuildId);
-
-        return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, sinceBuildId);
-    }
-
-    /** {@inheritDoc} */
     @Override
     @AutoProfiling public CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch) {
         return supplyAsync(() -> getBuildsInState(null, branch, BuildRef.STATE_QUEUED), executor);
