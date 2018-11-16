@@ -113,17 +113,32 @@ function loadData() {
     function loadPartialData() {
         var curFailuresUrl = "rest/pr/resultsNoSync" + parmsForRest();
 
-        if (g_shownDataHashCodeHex === "")
-            $.ajax({
-                url: curFailuresUrl,
-                success: function (result) {
-                    if (g_shownDataHashCodeHex === "") {
-                        showData(result);
-                        setTimeout(loadPartialData, 3000);
+        if (g_shownDataHashCodeHex !== "") {
+            return;
+        }
+        $.ajax({
+            url: curFailuresUrl,
+            success: function (result) {
+                if (g_shownDataHashCodeHex !== "") {
+                    return;
+                }
+
+                var validResult = true;
+                for (var i = 0; i < result.servers.length; i++) {
+                    var server = result.servers[i];
+
+                    if (isDefinedAndFilled(server.buildNotFound) && server.buildNotFound) {
+                        validResult = false;
+                        break;
                     }
-                },
-                error: showErrInLoadStatus
-            });
+                }
+                if (validResult)
+                    showData(result);
+
+                setTimeout(loadPartialData, 3000);
+            },
+            error: showErrInLoadStatus
+        });
     }
 
 function showData(result) {

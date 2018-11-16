@@ -316,9 +316,8 @@ public class ProactiveFatBuildSync {
 
                     problems = existingBuild.problems(compactor);
                 }
-                else {
+                else
                     build = Build.createFakeStub();
-                }
             } else {
                 logger.error("Loading build [" + buildId + "] for server [" + srvNme + "] failed:" + e.getMessage(), e);
 
