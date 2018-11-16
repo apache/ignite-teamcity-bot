@@ -42,6 +42,9 @@ import java.util.stream.Stream;
  * Includes tests and problem occurrences; if logs processing is done also contains last started test
  */
 public class MultBuildRunCtx implements ISuiteResults {
+    /** Cancelled. */
+    public static final String CANCELLED = "CANCELLED";
+
     /** First build info. */
     @Nonnull private final BuildRef firstBuildInfo;
 
@@ -159,7 +162,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         long cancelledCnt = buildsStream().filter(bCtx -> !bCtx.isComposite() && bCtx.isCancelled()).count();
 
         if (cancelledCnt > 0) {
-            res.append("CANCELLED");
+            res.append(CANCELLED);
 
             if (cancelledCnt > 1)
                 res.append(" ").append(cancelledCnt);

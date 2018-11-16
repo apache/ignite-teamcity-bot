@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
+import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
@@ -332,6 +333,9 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
             if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_METRIC.toLowerCase()))
                 failType = "build failure on metrics";
+
+            if (suiteRes.contains(MultBuildRunCtx.CANCELLED.toLowerCase()))
+                failType = MultBuildRunCtx.CANCELLED.toLowerCase();
 
             if (failType == null) {
                 List<TestFailure> failures = new ArrayList<>();
