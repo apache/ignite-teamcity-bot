@@ -181,7 +181,9 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         JiraCommentResponse res;
 
         try {
-            List<SuiteCurrentStatus> suitesStatuses = getSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
+            List<SuiteCurrentStatus> suitesStatuses = prChainsProcessor.getSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
+            if (suitesStatuses == null)
+                return new Visa("JIRA wasn't commented - no finished builds to analyze.");
 
             String comment = generateJiraComment(suitesStatuses, build.webUrl);
 
@@ -202,38 +204,15 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         return new Visa(JIRA_COMMENTED, res, blockers);
     }
 
+
     /**
      * @param buildTypeId Suite name.
      * @param branchForTc Branch for TeamCity.
      * @param srvId Server id.
      * @param prov Credentials.
-     * @return List of suites with possible blockers.
+     * @param webUrl Build URL.
+     * @return Comment, which should be sent to the JIRA ticket.
      */
-    public List<SuiteCurrentStatus> getSuitesStatuses(String buildTypeId,
-        String branchForTc,
-        String srvId,
-        ICredentialsProv prov) {
-        List<SuiteCurrentStatus> res = new ArrayList<>();
-
-        TestFailuresSummary summary = prChainsProcessor.getTestFailuresSummary(
-            prov, srvId, buildTypeId, branchForTc,
-            FullQueryParams.LATEST, null, null, false, SyncMode.RELOAD_QUEUED);
-
-        if (summary != null) {
-            for (ChainAtServerCurrentStatus server : summary.servers) {
-                if (!"apache".equals(server.serverName()))
-                    continue;
-
-                Map<String, List<SuiteCurrentStatus>> fails = findFailures(server);
-
-                fails.forEach((k, v) -> res.addAll(v));
-            }
-        }
-
-        return res;
-    }
-
-    /** */
     private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl) {
         StringBuilder res = new StringBuilder();
 
@@ -286,78 +265,6 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         res.append("\\n").append("[TeamCity Run All Results|").append(webUrl).append(']');
 
         return xmlEscapeText(res.toString());
-    }
-
-    /**
-     * @param buildTypeId Suite name.
-     * @param branchForTc Branch for TeamCity.
-     * @param srvId Server id.
-     * @param prov Credentials.
-     * @param webUrl Build URL.
-     * @return Comment, which should be sent to the JIRA ticket.
-     */
-    private String generateJiraComment(
-        String buildTypeId,
-        String branchForTc,
-        String srvId,
-        ICredentialsProv prov,
-        String webUrl
-    ) {
-        return generateJiraComment(getSuitesStatuses(buildTypeId, branchForTc,srvId, prov), webUrl);
-    }
-
-    /**
-     * @param srv Server.
-     * @return Failures for given server.
-     */
-    private Map<String, List<SuiteCurrentStatus>> findFailures(ChainAtServerCurrentStatus srv) {
-        Map<String, List<SuiteCurrentStatus>> fails = new LinkedHashMap<>();
-
-        for (SuiteCurrentStatus suite : srv.suites) {
-            String suiteRes = suite.result.toLowerCase();
-            String failType = null;
-
-            if (suiteRes.contains("compilation"))
-                failType = "compilation";
-
-            if (suiteRes.contains("timeout"))
-                failType = "timeout";
-
-            if (suiteRes.contains("exit code"))
-                failType = "exit code";
-
-            if (suiteRes.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK.toLowerCase()))
-                failType = "java level deadlock";
-
-            if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_MESSAGE.toLowerCase()))
-                failType = "build failure on message";
-
-            if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_METRIC.toLowerCase()))
-                failType = "build failure on metrics";
-
-            if (suiteRes.contains(MultBuildRunCtx.CANCELLED.toLowerCase()))
-                failType = MultBuildRunCtx.CANCELLED.toLowerCase();
-
-            if (failType == null) {
-                List<TestFailure> failures = new ArrayList<>();
-
-                for (TestFailure testFailure : suite.testFailures) {
-                    if (testFailure.isNewFailedTest())
-                        failures.add(testFailure);
-                }
-
-                if (!failures.isEmpty()) {
-                    suite.testFailures = failures;
-
-                    failType = "failed tests";
-                }
-            }
-
-            if (failType != null)
-                fails.computeIfAbsent(failType, k -> new ArrayList<>()).add(suite);
-        }
-
-        return fails;
     }
 
     public void close() {

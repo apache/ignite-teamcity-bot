@@ -39,15 +39,18 @@ import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
+import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.web.model.VisaRequest;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.SimpleResult;
+import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
@@ -84,7 +87,7 @@ public class TcBotTriggerAndSignOffService {
     @Inject ITcHelper tcHelper;
 
     /** */
-    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     /** */
     public void startObserver() {
@@ -399,5 +402,22 @@ public class TcBotTriggerAndSignOffService {
      */
     @NotNull public String getWebLinkToQueued(ITeamcityIgnited teamcity, BuildRefCompacted ref) {
         return teamcity.host() + "viewQueued.html?itemId=" + ref.id();
+    }
+
+    @Inject PrChainsProcessor prChainsProcessor;
+
+    public CurrentVisaStatus currentVisaStatus(String srvId, ICredentialsProv prov, String buildTypeId, String tcBranch) {
+        CurrentVisaStatus status = new CurrentVisaStatus();
+
+        List<SuiteCurrentStatus> suitesStatuses
+            = prChainsProcessor.getSuitesStatuses(buildTypeId, tcBranch, srvId, prov, SyncMode.NONE);
+
+        if(suitesStatuses==null)
+            return status;
+
+        status.blockers = suitesStatuses.stream().mapToInt(suite ->
+            suite.testFailures.size()).sum();
+
+        return status;
     }
 }
