@@ -19,9 +19,11 @@ package org.apache.ignite.ci.tcbot.visa;
 
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -39,7 +41,6 @@ import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
@@ -64,6 +65,12 @@ import static org.apache.ignite.ci.observer.BuildsInfo.RUNNING_STATUS;
  * Provides method for TC Bot Visa obtaining
  */
 public class TcBotTriggerAndSignOffService {
+    /** */
+    private static final ThreadLocal<DateFormat> THREAD_FORMATTER = new ThreadLocal<DateFormat>() {
+        @Override protected DateFormat initialValue() {
+            return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        }
+    };
 
     @Inject Provider<BuildObserver> buildObserverProvider;
 
@@ -91,9 +98,6 @@ public class TcBotTriggerAndSignOffService {
     @Inject ITcHelper tcHelper;
 
     /** */
-    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-    /** */
     public void startObserver() {
         buildObserverProvider.get();
     }
@@ -113,7 +117,7 @@ public class TcBotTriggerAndSignOffService {
 
             Visa visa = visaRequest.getResult();
 
-            visaStatus.date = formatter.format(info.date);
+            visaStatus.date = THREAD_FORMATTER.get().format(info.date);
             visaStatus.branchName = info.branchForTc;
             visaStatus.userName = info.userName;
             visaStatus.ticket = info.ticket;

@@ -206,6 +206,9 @@ public class ObserverTask extends TimerTask {
 
                 Visa visa = visasHistStorage.getVisaRequest(info.getContributionKey(), info.date).getResult();
 
+                if (Objects.isNull(visa))
+                    continue;
+
                 if (!visa.isSuccess()) {
                     ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
 
@@ -227,7 +230,8 @@ public class ObserverTask extends TimerTask {
                     removeBuildInfo(entry.getKey());
 
                     entry.setValue(true);
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                    logger.error(e.getMessage(), e);
                 }
             });

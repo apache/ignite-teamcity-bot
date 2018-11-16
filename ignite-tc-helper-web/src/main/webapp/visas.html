@@ -75,13 +75,12 @@ $(document).ready(function() {
 
 function sendCancelRequest(url) {
     $.ajax({
-            url: url,
-            success: function (result) {
-                location.reload();
-            },
-            error: showErrInLoadStatus
-        }
-    );
+        url: url,
+        success: function (result) {
+            location.reload();
+        },
+        error: showErrInLoadStatus
+    });
 }
 
 function showVisasTable(result) {
