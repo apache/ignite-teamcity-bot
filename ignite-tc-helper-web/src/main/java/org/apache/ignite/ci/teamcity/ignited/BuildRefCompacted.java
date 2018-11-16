@@ -187,4 +187,8 @@ public class BuildRefCompacted {
             .add("state", state)
             .toString();
     }
+
+    public String state(IStringCompactor compactor) {
+        return compactor.getStringFromId(state());
+    }
 }

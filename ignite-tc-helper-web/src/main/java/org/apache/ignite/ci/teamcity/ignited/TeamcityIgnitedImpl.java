@@ -268,20 +268,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public List<BuildRef> getAllBuildsHistory(
-            @Nullable String buildTypeId,
-            @Nullable String branchName) {
-        ensureActualizeRequested();
-
-        String bracnhNameQry = branchForQuery(branchName);
-
-        return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, bracnhNameQry)
-            .stream().map(compacted -> compacted.toBuildRef(compactor))
-            .collect(Collectors.toList());
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
     @Override public List<BuildRefCompacted> getAllBuildsCompacted(
             @Nullable String buildTypeId,
             @Nullable String branchName) {

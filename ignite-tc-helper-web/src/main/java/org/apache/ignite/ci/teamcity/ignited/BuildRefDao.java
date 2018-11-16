@@ -39,6 +39,9 @@ import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.internal.util.GridIntList;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ *
+ */
 public class BuildRefDao {
     /** Cache name */
     public static final String TEAMCITY_BUILD_CACHE_NAME = "teamcityBuildRef";
@@ -120,6 +123,9 @@ public class BuildRefDao {
         return (long)buildId | srvId << 32;
     }
 
+    /**
+     * @param cacheKey Cache key.
+     */
     public static int cacheKeyToBuildId(Long cacheKey) {
         long l = cacheKey << 32;
         return (int) (l>>32);
@@ -168,6 +174,10 @@ public class BuildRefDao {
             .collect(Collectors.toList());
     }
 
+    /**
+     * @param srvId Server id.
+     * @param branchName Branch name.
+     */
     @AutoProfiling
     @GuavaCached(softValues = true, maximumSize = 1000, expireAfterAccessSecs = 30)
     public List<BuildRefCompacted> getBuildsForBranch(int srvId, String branchName) {

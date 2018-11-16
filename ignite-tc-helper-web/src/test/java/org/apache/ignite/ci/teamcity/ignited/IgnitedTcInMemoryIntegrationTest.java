@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.ignite.ci.teamcity.ignited;
+
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -89,7 +90,6 @@ public class IgnitedTcInMemoryIntegrationTest {
         final TcpDiscoverySpi spi = new TcpDiscoverySpi();
         int locPort = TEST_IGNITE_PORT;
 
-
         spi.setLocalPort(locPort);
         spi.setLocalPortRange(1);
         spi.setIpFinder(new TcHelperDb.LocalOnlyTcpDiscoveryIpFinder(locPort));
@@ -162,7 +162,6 @@ public class IgnitedTcInMemoryIntegrationTest {
         );
     }
 
-
     @Test
     public void incrementalActualizationOfBuildsContainsQueued() throws IOException {
         ITeamcityHttpConnection http = Mockito.mock(ITeamcityHttpConnection.class);
@@ -208,12 +207,14 @@ public class IgnitedTcInMemoryIntegrationTest {
         });
 
         ITeamcityIgnited srv = injector.getInstance(ITeamcityIgnitedProvider.class).server(APACHE, creds());
+        IStringCompactor compactor = injector.getInstance(IStringCompactor.class);
 
         TeamcityIgnitedImpl teamcityIgnited = (TeamcityIgnitedImpl)srv;
         teamcityIgnited.fullReindex();
         String buildTypeId = "IgniteTests24Java8_RunAll";
         String branchName = "<default>";
-        List<String> statues = srv.getAllBuildsHistory(buildTypeId, branchName).stream().map(BuildRef::state).distinct().collect(Collectors.toList());
+        List<String> statues = srv.getAllBuildsCompacted(buildTypeId, branchName)
+            .stream().map((t) -> t.state(compactor)).distinct().collect(Collectors.toList());
         System.out.println("Before " + statues);
 
         for (int i = queuedBuildIdx; i < tcBuilds.size(); i++)
@@ -221,24 +222,22 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         teamcityIgnited.actualizeRecentBuildRefs();
 
-
-        List<BuildRef> hist = srv.getAllBuildsHistory(buildTypeId, branchName);
+        List<BuildRefCompacted> hist = srv.getAllBuildsCompacted(buildTypeId, branchName);
 
         assertTrue(!hist.isEmpty());
 
-        for (BuildRef h : hist) {
-            assertEquals(buildTypeId, h.suiteId());
+        for (BuildRefCompacted h : hist) {
+            assertEquals(buildTypeId, h.buildTypeId(compactor));
 
-            assertEquals("refs/heads/master", h.branchName());
+            assertEquals("refs/heads/master", h.branchName(compactor));
 
-            assertTrue("Build " + h + " is expected to be finished" , h.isFinished());
+            assertTrue("Build " + h + " is expected to be finished", h.isFinished(compactor));
         }
 
-        statues = hist.stream().map(BuildRef::state).distinct().collect(Collectors.toList());
+        statues = hist.stream().map((t) -> t.state(compactor)).distinct().collect(Collectors.toList());
 
         System.out.println("After " + statues);
     }
-
 
     /**
      *
@@ -274,7 +273,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(APACHE);
         List<TestOccurrencesFull> occurrences = Collections.singletonList(testsRef);
         FatBuildCompacted buildCompacted = stor.saveBuild(srvIdMaskHigh, refBuild.getId(), refBuild, occurrences,
-                problemsList.getProblemsNonNull(), statistics, changesList, null);
+            problemsList.getProblemsNonNull(), statistics, changesList, null);
         assertNotNull(buildCompacted);
 
         FatBuildCompacted fatBuild = stor.getFatBuild(srvIdMaskHigh, 2153237);
@@ -305,7 +304,6 @@ public class IgnitedTcInMemoryIntegrationTest {
         Set<String> testNamesAct = new TreeSet<>();
         testsAct.getTests().forEach(testOccurrence -> testNamesAct.add(testOccurrence.name));
 
-
         Set<String> testNamesRef = new TreeSet<>();
         testsRef.getTests().forEach(testOccurrence -> testNamesRef.add(testOccurrence.name));
         assertEquals(testNamesRef, testNamesAct);
@@ -319,7 +317,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         Long duration = buildCompacted.buildDuration(compactor);
         assertNotNull(duration);
-        assertTrue(duration>10000L);
+        assertTrue(duration > 10000L);
 
         int[] ch = buildCompacted.changes();
 
@@ -336,7 +334,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
     public <E> E jaxbTestXml(String ref, Class<E> cls) throws IOException, JAXBException {
         E refBuild;
-        try(InputStream stream = getClass().getResourceAsStream(ref)) {
+        try (InputStream stream = getClass().getResourceAsStream(ref)) {
             refBuild = XmlUtil.load(cls, new InputStreamReader(stream));
         }
         return refBuild;
