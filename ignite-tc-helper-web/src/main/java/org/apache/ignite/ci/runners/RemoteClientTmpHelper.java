@@ -93,19 +93,23 @@ public class RemoteClientTmpHelper {
 
         CompactBuildsInfo cbi = new CompactBuildsInfo();
 
-
-        cbi.userName(253483);
+        cbi.userName(62541);
         cbi.srvId(245001);
         cbi.buildTypeId(113);
-        cbi.branchForTc(231783);
-        cbi.ticket(253484);
-        cbi.date(1542027258436l);
+        cbi.branchForTc(2008);
+        cbi.ticket(263594);
+        cbi.date(1542263949429L);
 
-        cbi.addBuild(2300387,   2300395, 2300385, 2300393, 2300391, 2300389);
-        boolean remove = cache.remove(cbi);
-        Preconditions.checkState(remove, "can't remove " + cbi);
-        //"finishedBuilds":{"2300387":false,"2300395":false,"2300385":false,"2300393":false,"2300391":false,"2300389":false}
-        ignite.close();
+        cbi.addBuild(2322291, 2322298, 2322296, 2322294, 2322292, 2322300);
+
+        boolean rmv = cache.remove(cbi);
+
+        try {
+            Preconditions.checkState(rmv, "can't remove " + cbi);
+        }
+        finally {
+            ignite.close();
+        }
 
     }
 

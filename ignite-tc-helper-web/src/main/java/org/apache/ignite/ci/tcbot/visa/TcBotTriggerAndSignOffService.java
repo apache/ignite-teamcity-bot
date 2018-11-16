@@ -42,6 +42,7 @@ import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
@@ -84,7 +85,7 @@ public class TcBotTriggerAndSignOffService {
     @Inject private VisasHistoryStorage visasHistoryStorage;
 
     /** */
-    @Inject IStringCompactor strCompactor;
+    @Inject IStringCompactor compactor;
 
     /** Helper. */
     @Inject ITcHelper tcHelper;
@@ -327,17 +328,16 @@ public class TcBotTriggerAndSignOffService {
         }).collect(Collectors.toList());
     }
 
-    @Nonnull private List<BuildRef> findRunAllsForPr(String suiteId, String prId, ITeamcityIgnited server) {
+    @Nonnull private List<BuildRefCompacted> findRunAllsForPr(String suiteId, String prId, ITeamcityIgnited srv) {
 
         String branchName = branchForTcA(prId);
-        List<BuildRef> buildHist = server.getBuildHistory(suiteId, branchName);
+        List<BuildRefCompacted> buildHist = srv.getAllBuildsCompacted(suiteId, branchName);
 
         if (!buildHist.isEmpty())
             return buildHist;
 
-
         //todo multibranch requestst
-        buildHist = server.getBuildHistory(suiteId, branchForTcB(prId));
+        buildHist = srv.getAllBuildsCompacted(suiteId, branchForTcB(prId));
 
         if (!buildHist.isEmpty())
             return buildHist;
@@ -365,29 +365,43 @@ public class TcBotTriggerAndSignOffService {
 
         ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(srvId, prov);
 
-        List<BuildRef> allRunAlls = findRunAllsForPr(suiteId, prId, teamcity);
+        List<BuildRefCompacted> allRunAlls = findRunAllsForPr(suiteId, prId, teamcity);
 
-        boolean finishedRunAllPresent = allRunAlls.stream().filter(BuildRef::isNotCancelled).anyMatch(BuildRef::isFinished);
+        List<BuildRefCompacted> finishedOrCancelled = allRunAlls.stream()
+            .filter(t -> t.isFinished(compactor)).collect(Collectors.toList());
 
-        status.branchWithFinishedRunAll = finishedRunAllPresent ? allRunAlls.get(0).branchName : null;
+        if (!finishedOrCancelled.isEmpty()) {
+            BuildRefCompacted buildRefCompacted = finishedOrCancelled.get(0);
 
-        if (status.branchWithFinishedRunAll == null) {
-            if (!allRunAlls.isEmpty())
-                status.resolvedBranch = allRunAlls.get(0).branchName;
-            else
-                status.resolvedBranch = branchForTcA(prId);
+            status.runAllFinished = !buildRefCompacted.isCancelled(compactor);
+            status.branchWithFinishedRunAll = buildRefCompacted.branchName(compactor);
         }
-        else
-            //todo take into account running/queued
+        else {
+            status.branchWithFinishedRunAll = null;
+            status.runAllFinished = false;
+        }
+
+        if (status.branchWithFinishedRunAll != null)
             status.resolvedBranch = status.branchWithFinishedRunAll;
+            //todo take into account running/queued
+        else
+            status.resolvedBranch = !allRunAlls.isEmpty() ? allRunAlls.get(0).branchName(compactor) : branchForTcA(prId);
 
         String observationsStatus = observer.get().getObservationStatus(new ContributionKey(srvId, status.resolvedBranch));
 
         status.observationsStatus  = Strings.emptyToNull(observationsStatus);
 
-        List<BuildRef> queuedRunAlls = allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isQueued).collect(Collectors.toList());
-        List<BuildRef> runninRunAlls = allRunAlls.stream().filter(BuildRef::isNotCancelled).filter(BuildRef::isRunning).collect(Collectors.toList());
-        status.queuedBuilds = queuedRunAlls.size();//todo take into accounts not only run alls:
+        List<BuildRefCompacted> queuedRunAlls = allRunAlls.stream()
+            .filter(t -> t.isNotCancelled(compactor))
+            .filter(t -> t.isQueued(compactor))
+            .collect(Collectors.toList());
+
+        List<BuildRefCompacted> runninRunAlls = allRunAlls.stream()
+            .filter(t -> t.isNotCancelled(compactor))
+            .filter(t -> t.isRunning(compactor))
+            .collect(Collectors.toList());
+
+        status.queuedBuilds = queuedRunAlls.size(); //todo take into accounts not only run alls:
         status.runningBuilds = runninRunAlls.size();
 
         status.webLinksQueuedRunAlls = Stream.concat(queuedRunAlls.stream(), runninRunAlls.stream())
@@ -401,7 +415,7 @@ public class TcBotTriggerAndSignOffService {
      * @param teamcity Teamcity.
      * @param ref Reference.
      */
-    @NotNull public String getWebLinkToQueued(ITeamcityIgnited teamcity, BuildRef ref) {
-        return teamcity.host() + "viewQueued.html?itemId=" + ref.getId();
+    @NotNull public String getWebLinkToQueued(ITeamcityIgnited teamcity, BuildRefCompacted ref) {
+        return teamcity.host() + "viewQueued.html?itemId=" + ref.id();
     }
 }

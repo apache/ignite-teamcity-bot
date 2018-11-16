@@ -20,11 +20,11 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.jetbrains.annotations.NotNull;
 
 /**
  *
@@ -47,20 +47,9 @@ public interface ITeamcityIgnited {
      * @param branchName Branch name.
      * @return list of builds in history, includes all statuses: queued, running, etc
      */
-    public List<BuildRefCompacted> getBuildHistoryCompacted(
+    public List<BuildRefCompacted> getAllBuildsCompacted(
             @Nullable String buildTypeId,
             @Nullable String branchName);
-
-    /**
-     * Retun all builds for branch and suite, without relation to its status.
-     *
-     * @param buildTypeId Build type identifier.
-     * @param branchName Branch name.
-     * @return list of builds in history, includes all statuses: queued, running, etc
-     */
-    public List<BuildRef> getBuildHistory(
-        @Nullable String buildTypeId,
-        @Nullable String branchName);
 
     /**
      * Return all builds for branch and suite with finish status.
@@ -124,4 +113,13 @@ public interface ITeamcityIgnited {
     public FatBuildCompacted getFatBuild(int id, boolean acceptQueued);
 
     public Collection<ChangeCompacted> getAllChanges(int[] changeIds);
+
+    /**
+     * Returns IDs of N. most recent builds in build history.
+     *
+     * @param btId Bt id.
+     * @param branchForTc Branch for tc.
+     * @param cnt Count.
+     */
+    @NotNull public List<Integer> getLastNBuildsFromHistory(String btId, String branchForTc, int cnt);
 }
