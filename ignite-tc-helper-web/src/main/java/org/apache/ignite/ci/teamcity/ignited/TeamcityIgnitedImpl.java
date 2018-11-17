@@ -361,7 +361,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return savedVer == null ? existingBuild : savedVer;
     }
 
-    @AutoProfiling
     protected FatBuildCompacted getFatBuildFromIgnite(int buildId) {
         ensureActualizeRequested();
 
