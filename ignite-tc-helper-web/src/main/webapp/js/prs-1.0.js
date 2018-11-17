@@ -200,14 +200,14 @@ function showStageBlockers(stageNum, prId, blockers) {
     if (!isDefinedAndFilled(blockers) || blockers == null) {
         html = "?";
 
-        stageOneStatus.css('background', 'orange');
+        stageOneStatus.css('background', 'darkorange');
     } else if (blockers === 0) {
         html = blockers + " ";
         stageOneStatus.css('background', '#12AD5E');
     } else {
         html = blockers + " ";
 
-        stageOneStatus.css('background', 'orange');
+        stageOneStatus.css('background', 'red');
     }
     stageOneStatus.html(html);
 }
