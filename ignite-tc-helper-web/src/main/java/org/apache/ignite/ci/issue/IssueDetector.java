@@ -306,7 +306,7 @@ public class IssueDetector {
 
         for (ChangeCompacted next : allChanges) {
             issue.addChange(next.vcsUsername(compactor),
-                    teamcity.host() + "/viewModification.html?modId=" + next.id());
+                    teamcity.host() + "viewModification.html?modId=" + next.id());
         }
     }
 
