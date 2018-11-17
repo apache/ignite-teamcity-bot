@@ -29,6 +29,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.tcbot.visa.ContributionCheckStatus;
 import org.apache.ignite.ci.tcbot.visa.ContributionToCheck;
+import org.apache.ignite.ci.tcbot.visa.CurrentVisaStatus;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.tcbot.visa.VisaStatus;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -84,5 +85,19 @@ public class TcBotVisaService {
             .getInstance(TcBotTriggerAndSignOffService.class);
 
         return instance.contributionStatus(srvId, prov, suiteId, prId);
+    }
+
+    @GET
+    @Path("visaStatus")
+    public CurrentVisaStatus currentVisaStatus(@Nullable @QueryParam("serverId") String srvId,
+        @Nonnull @QueryParam("suiteId") String suiteId,
+        @QueryParam("tcBranch") String tcBranch) {
+        ICredentialsProv prov = ICredentialsProv.get(req);
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
+
+        TcBotTriggerAndSignOffService instance = CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class);
+
+        return instance.currentVisaStatus(srvId, prov, suiteId, tcBranch);
     }
 }

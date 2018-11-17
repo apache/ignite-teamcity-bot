@@ -655,6 +655,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
         return "app/rest/latest/testOccurrences?locator=build:(id:" +
             buildId + ")" +
-            "&fields=testOccurrence(" + fieldList + ")";
+            "&fields=testOccurrence(" + fieldList + ")" +
+            "&count=1000)";
     }
 }
