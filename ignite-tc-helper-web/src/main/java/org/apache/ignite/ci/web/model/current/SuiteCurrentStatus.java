@@ -103,9 +103,15 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public Integer failedTests;
 
+    /** Duration printable. */
     public String durationPrintable;
 
+    /** Tests duration printable. */
     public String testsDurationPrintable;
+
+    /** Timed out builds average time. */
+    public String lostInTimeouts;
+
 
     /**
      * Advisory mark there is problem in this suite.
@@ -344,8 +350,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             Objects.equal(criticalFails, status.criticalFails) &&
             Objects.equal(userCommits, status.userCommits) &&
             Objects.equal(failedTests, status.failedTests) &&
-            Objects.equal(durationPrintable, status.durationPrintable)&&
-            Objects.equal(testsDurationPrintable, status.testsDurationPrintable)&&
+            Objects.equal(durationPrintable, status.durationPrintable) &&
+            Objects.equal(testsDurationPrintable, status.testsDurationPrintable) &&
+            Objects.equal(lostInTimeouts, status.lostInTimeouts) &&
             Objects.equal(warnOnly, status.warnOnly);
     }
 
@@ -355,7 +362,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             topLongRunning, webUrlThreadDump, runningBuildCount, queuedBuildCount, serverId,
             suiteId, branchName, failures, runs, failureRate,
             failsAllHist, criticalFails, userCommits, failedTests, durationPrintable, testsDurationPrintable,
-            warnOnly);
+            lostInTimeouts, warnOnly);
     }
 
     /** {@inheritDoc} */

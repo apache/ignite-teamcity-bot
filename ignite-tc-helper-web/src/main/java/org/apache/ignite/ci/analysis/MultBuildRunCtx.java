@@ -310,6 +310,23 @@ public class MultBuildRunCtx implements ISuiteResults {
         return null;
     }
 
+    /**
+     * @return sum of all tests execution duration (for several builds average).
+     */
+    public long getLostInTimeouts() {
+        if (builds.isEmpty())
+            return 0;
+
+        long allTimeoutsDuration = buildsStream()
+            .filter(SingleBuildRunCtx::hasTimeoutProblem)
+            .map(SingleBuildRunCtx::getBuildDuration)
+            .filter(Objects::nonNull)
+            .mapToLong(l -> l)
+            .sum();
+
+        return allTimeoutsDuration / builds.size();
+    }
+
     @Nullable public String suiteName() {
         return buildsStream().findFirst().map(SingleBuildRunCtx::suiteName).orElse(null);
     }

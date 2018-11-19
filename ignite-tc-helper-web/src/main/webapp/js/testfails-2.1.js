@@ -135,7 +135,9 @@ function showChainCurrentStatusData(server, settings) {
         mInfo += " title='trigger builds'>on top</a><br>";
     }
 
-    mInfo += "Duration: " + server.durationPrintable + " (Tests: " + server.testsDurationPrintable + ")<br>";
+    mInfo += "Duration: " + server.durationPrintable +
+        " (Tests: " + server.testsDurationPrintable + "," +
+        " Timeouts: " + server.lostInTimeouts + ")<br>";
 
     if (isDefinedAndFilled(server.topLongRunning) && server.topLongRunning.length > 0) {
         mInfo += "Top long running:<br>";
@@ -546,7 +548,9 @@ function showSuiteData(suite, settings) {
         moreInfoTxt += "Last commits from: " + suite.userCommits + " <br>";
     }
 
-    moreInfoTxt += "Duration: " + suite.durationPrintable + " (Tests: " + suite.testsDurationPrintable + ")<br>";
+    moreInfoTxt += "Duration: " + suite.durationPrintable +
+        " (Tests: " + suite.testsDurationPrintable + "," +
+        " Timeouts: " + suite.lostInTimeouts + ")<br>";
 
     var res = "";
     res += "<tr bgcolor='#FAFAFF'><td align='right' valign='top'>";

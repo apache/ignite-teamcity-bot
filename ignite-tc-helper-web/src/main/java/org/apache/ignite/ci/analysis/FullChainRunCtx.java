@@ -113,4 +113,11 @@ public class FullChainRunCtx {
 
         return (TimeUtil.millisToDurationPrintable(tests));
     }
+
+    public String getLostInTimeoutsPrintable() {
+        long timeouts = suites().filter(ctx -> !ctx.isComposite())
+            .mapToLong(MultBuildRunCtx::getLostInTimeouts).sum();
+
+        return TimeUtil.millisToDurationPrintable(timeouts);
+    }
 }

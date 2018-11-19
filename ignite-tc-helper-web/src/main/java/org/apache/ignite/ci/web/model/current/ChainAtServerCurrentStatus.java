@@ -72,6 +72,9 @@ public class ChainAtServerCurrentStatus {
     /** Tests duration printable. */
     public String testsDurationPrintable;
 
+    /** Timed out builds average time. */
+    public String lostInTimeouts;
+
     /** top long running suites */
     public List<TestFailure> topLongRunning = new ArrayList<>();
 
@@ -112,6 +115,7 @@ public class ChainAtServerCurrentStatus {
         );
         durationPrintable = ctx.getDurationPrintable();
         testsDurationPrintable = ctx.getTestsDurationPrintable();
+        lostInTimeouts = ctx.getLostInTimeoutsPrintable();
         webToHist = buildWebLink(teamcity, ctx);
         webToBuild = buildWebLinkToBuild(teamcity, ctx);
 
@@ -189,6 +193,7 @@ public class ChainAtServerCurrentStatus {
             Objects.equal(failedToFinish, status.failedToFinish) &&
             Objects.equal(durationPrintable, status.durationPrintable) &&
             Objects.equal(testsDurationPrintable, status.testsDurationPrintable) &&
+            Objects.equal(lostInTimeouts, status.lostInTimeouts) &&
             Objects.equal(logConsumers, status.logConsumers) &&
             Objects.equal(topLongRunning, status.topLongRunning) &&
             Objects.equal(buildNotFound, status.buildNotFound);
@@ -198,7 +203,7 @@ public class ChainAtServerCurrentStatus {
     @Override public int hashCode() {
         return Objects.hashCode(chainName, serverId, branchName, webToHist, webToBuild, suites,
             failedTests, failedToFinish, durationPrintable, testsDurationPrintable,
-            logConsumers, topLongRunning, buildNotFound);
+            lostInTimeouts, logConsumers, topLongRunning, buildNotFound);
     }
 
     public void setBuildNotFound(boolean buildNotFound) {
