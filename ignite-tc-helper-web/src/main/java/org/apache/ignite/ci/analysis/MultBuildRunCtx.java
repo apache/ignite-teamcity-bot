@@ -111,6 +111,16 @@ public class MultBuildRunCtx implements ISuiteResults {
         return builds;
     }
 
+    /** {@inheritDoc} */
+    @Override public boolean hasCompilationProblem() {
+        return getCompilationProblemCount() > 0;
+    }
+
+    /** */
+    public long getCompilationProblemCount() {
+        return buildsStream().filter(ISuiteResults::hasCompilationProblem).count();
+    }
+
     public boolean hasTimeoutProblem() {
         return getExecutionTimeoutCount() > 0;
     }
@@ -172,11 +182,13 @@ public class MultBuildRunCtx implements ISuiteResults {
         addKnownProblemCnt(res, "JVM CRASH", getJvmCrashProblemCount());
         addKnownProblemCnt(res, "Out Of Memory Error", getOomeProblemCount());
         addKnownProblemCnt(res, "Exit Code", getExitCodeProblemsCount());
+        addKnownProblemCnt(res, "Compilation Error", getCompilationProblemCount());
 
         {
             Stream<ProblemCompacted> stream =
                 allProblemsInAllBuilds().filter(p ->
                     !p.isFailedTests(compactor)
+                        && !p.isCompilationError(compactor)
                         && !p.isSnapshotDepProblem(compactor)
                         && !p.isExecutionTimeout(compactor)
                         && !p.isJvmCrash(compactor)

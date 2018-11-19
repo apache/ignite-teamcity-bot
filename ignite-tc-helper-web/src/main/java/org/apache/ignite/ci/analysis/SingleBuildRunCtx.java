@@ -68,6 +68,11 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return buildCompacted.id() < 0 ? null : buildCompacted.id();
     }
 
+    /** {@inheritDoc} */
+    @Override public boolean hasCompilationProblem() {
+        return getProblemsStream().anyMatch(p -> p.isCompilationError(compactor));
+    }
+
     public boolean hasTimeoutProblem() {
         return getExecutionTimeoutCount() > 0;
     }

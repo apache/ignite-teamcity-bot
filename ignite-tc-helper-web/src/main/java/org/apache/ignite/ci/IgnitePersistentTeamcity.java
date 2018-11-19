@@ -578,7 +578,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     private void registerCriticalBuildProblemInStat(BuildRef build, ProblemOccurrences problems) {
         boolean criticalFail = problems.getProblemsNonNull().stream().anyMatch(occurrence ->
-            occurrence.isExecutionTimeout() || occurrence.isJvmCrash() || occurrence.isFailureOnMetric());
+            occurrence.isExecutionTimeout() || occurrence.isJvmCrash() || occurrence.isFailureOnMetric()
+                || occurrence.isCompilationError());
 
         String suiteId = build.suiteId();
         Integer buildId = build.getId();
