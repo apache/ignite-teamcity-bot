@@ -34,7 +34,7 @@ public class ChangeCompacted implements IVersionedEntity {
     private static final Logger logger = LoggerFactory.getLogger(FatBuildDao.class);
 
     /** Latest version. */
-    private static final int LATEST_VERSION = 3;
+    private static final int LATEST_VERSION = 4;
 
     /** Entity fields version. */
     @SuppressWarnings("FieldCanBeLocal")
@@ -56,7 +56,12 @@ public class ChangeCompacted implements IVersionedEntity {
     private long date;
 
     public ChangeCompacted(IStringCompactor compactor, Change change) {
-        id = compactor.getStringId(change.id);
+        try {
+            id = Integer.parseInt(change.id);
+        }
+        catch (NumberFormatException e) {
+            logger.error("Change ID parse failed " + change.id + ":" + e.getMessage(), e);
+        }
         vcsUsername = compactor.getStringId(change.username);
 
         if (change.user != null) {

@@ -99,6 +99,9 @@ public class DbMigrations {
     private static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
 
     @Deprecated
+    public static final String CURRENT_PR_FAILURES = "currentPrFailures";
+
+    @Deprecated
     public static final String TEAMCITY_BUILD_CACHE_NAME_OLD = "teamcityBuild";
 
 
@@ -295,7 +298,7 @@ public class DbMigrations {
 
         applyRemoveCache(GetTrackedBranchTestResults.TEST_FAILURES_SUMMARY_CACHE_NAME);
         applyRemoveCache(GetBuildTestFailures.TEST_FAILURES_SUMMARY_CACHE_NAME);
-        applyRemoveCache(GetPrTestFailures.CURRENT_PR_FAILURES);
+        applyRemoveCache(DbMigrations.CURRENT_PR_FAILURES);
 
         applyMigration(TEST_OCCURRENCE_FULL + "-to-" + testFullCache.getName() + "V2", () -> {
             String cacheNme = ignCacheNme(TEST_OCCURRENCE_FULL);
@@ -528,7 +531,10 @@ public class DbMigrations {
     private void applyRemoveCache(String cacheNme) {
         applyMigration("remove" + cacheNme, () -> {
             if (ignite.cacheNames().contains(cacheNme)) {
-                IgniteCache<String, Build> oldBuilds = ignite.getOrCreateCache(cacheNme);
+                IgniteCache<Object, Object> oldBuilds = ignite.cache(cacheNme);
+
+                if (oldBuilds == null)
+                    return;
 
                 oldBuilds.clear();
 

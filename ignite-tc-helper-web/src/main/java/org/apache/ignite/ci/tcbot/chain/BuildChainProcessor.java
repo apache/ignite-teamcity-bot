@@ -49,6 +49,7 @@ import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
@@ -86,6 +87,8 @@ public class BuildChainProcessor {
     ) {
         final List<SuiteLRTestsSummary> res = new ArrayList<>();
 
+        SyncMode mode = SyncMode.RELOAD_QUEUED;
+
         if (entryPoints.isEmpty())
             return res;
 
@@ -99,7 +102,7 @@ public class BuildChainProcessor {
         final ExecutorService svc = tcUpdatePool.getService();
 
         final Stream<FatBuildCompacted> depsFirstLevel = entryPointsFatBuilds
-            .map(ref -> svc.submit(() -> dependencies(teamcityIgnited, builds, ref)))
+            .map(ref -> svc.submit(() -> dependencies(teamcityIgnited, builds, mode, ref)))
             .collect(Collectors.toList())
             .stream()
             .flatMap(fut -> FutureUtil.getResult(fut));
@@ -159,6 +162,7 @@ public class BuildChainProcessor {
      * @param procLog Process logger.
      * @param includeScheduledInfo Include scheduled info.
      * @param failRateBranch Fail rate branch.
+     * @param mode
      */
     @AutoProfiling
     public FullChainRunCtx loadFullChainContext(
@@ -168,7 +172,8 @@ public class BuildChainProcessor {
         LatestRebuildMode includeLatestRebuild,
         ProcessLogsMode procLog,
         boolean includeScheduledInfo,
-        @Nullable String failRateBranch) {
+        @Nullable String failRateBranch,
+        SyncMode mode) {
 
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
@@ -178,20 +183,20 @@ public class BuildChainProcessor {
         final Stream<FatBuildCompacted> entryPointsFatBuilds = entryPoints.stream()
                 .filter(Objects::nonNull)
                 .filter(id -> !builds.containsKey(id)) //load and propagate only new entry points
-                .map(id -> builds.computeIfAbsent(id, teamcityIgnited::getFatBuild));
+                .map(id -> builds.computeIfAbsent(id, id0 -> teamcityIgnited.getFatBuild(id0, mode)));
 
         final ExecutorService svc = tcUpdatePool.getService();
 
         final Stream<FatBuildCompacted> depsFirstLevel = entryPointsFatBuilds
-            .flatMap(ref -> dependencies(teamcityIgnited, builds, ref));
+            .flatMap(ref -> dependencies(teamcityIgnited, builds, mode, ref));
 
         Stream<FatBuildCompacted> secondLevelDeps = depsFirstLevel
-            .flatMap(ref -> dependencies(teamcityIgnited, builds, ref));
+            .flatMap(ref -> dependencies(teamcityIgnited, builds, mode, ref));
 
         // builds may became non unique because of race in filtering and acquiring deps
         final List<Future<Stream<FatBuildCompacted>>> phase3Submitted = secondLevelDeps
                 .map((fatBuild) -> svc.submit(
-                        () -> replaceWithRecent(teamcityIgnited, includeLatestRebuild, builds, fatBuild, entryPoints.size())))
+                        () -> replaceWithRecent(teamcityIgnited, includeLatestRebuild, mode, builds, fatBuild, entryPoints.size())))
                 .collect(Collectors.toList());
 
         Map<String, MultBuildRunCtx> buildsCtxMap = new ConcurrentHashMap<>();
@@ -222,7 +227,7 @@ public class BuildChainProcessor {
         };
 
         Integer someEntryPnt = entryPoints.iterator().next();
-        FatBuildCompacted build = builds.computeIfAbsent(someEntryPnt, teamcityIgnited::getFatBuild);
+        FatBuildCompacted build = builds.computeIfAbsent(someEntryPnt, id -> teamcityIgnited.getFatBuild(id, mode));
         FullChainRunCtx fullChainRunCtx = new FullChainRunCtx(build.toBuild(compactor));
 
         contexts.sort(Comparator.comparing(function).reversed());
@@ -270,10 +275,11 @@ public class BuildChainProcessor {
     @NotNull
     @AutoProfiling
     protected Stream<FatBuildCompacted> replaceWithRecent(ITeamcityIgnited teamcityIgnited,
-                                                           LatestRebuildMode includeLatestRebuild,
-                                                           Map<Integer, FatBuildCompacted> builds,
-                                                           FatBuildCompacted buildCompacted,
-                                                           int cntLimit) {
+        LatestRebuildMode includeLatestRebuild,
+        SyncMode syncMode,
+        Map<Integer, FatBuildCompacted> builds,
+        FatBuildCompacted buildCompacted,
+        int cntLimit) {
         if (includeLatestRebuild == LatestRebuildMode.NONE)
             return Stream.of(buildCompacted);
 
@@ -290,7 +296,7 @@ public class BuildChainProcessor {
                     .orElse(buildCompacted);
 
             return Stream.of(recentRef)
-                    .map(b -> builds.computeIfAbsent(b.id(), teamcityIgnited::getFatBuild));
+                    .map(b -> builds.computeIfAbsent(b.id(), id -> teamcityIgnited.getFatBuild(id, syncMode)));
         }
 
         if (includeLatestRebuild == LatestRebuildMode.ALL) {
@@ -360,8 +366,9 @@ public class BuildChainProcessor {
 
     @NotNull
     private Stream<FatBuildCompacted> dependencies(
-            ITeamcityIgnited teamcityIgnited,
-            Map<Integer, FatBuildCompacted> builds,
+        ITeamcityIgnited teamcityIgnited,
+        Map<Integer, FatBuildCompacted> builds,
+        SyncMode mode,
         FatBuildCompacted build) {
 
         Stream<FatBuildCompacted> stream = IntStream.of(build.snapshotDependencies())
@@ -369,15 +376,14 @@ public class BuildChainProcessor {
                 if (builds.containsKey(id))
                     return Futures.<FatBuildCompacted>immediateFuture(null); //load and propagate only new dependencies
 
+                if (mode == SyncMode.NONE)
+                    return Futures.immediateFuture(loadBuild(teamcityIgnited, builds, mode, id));
+
                 return tcUpdatePool.getService().submit(() -> {
                     if (builds.containsKey(id))
                         return null;
 
-                    FatBuildCompacted buildLoaded = teamcityIgnited.getFatBuild(id);
-
-                    FatBuildCompacted prevVal = builds.putIfAbsent(id, buildLoaded);
-
-                    return prevVal == null ? buildLoaded : null;
+                    return loadBuild(teamcityIgnited, builds, mode, id);
                 });
             })
             .collect(Collectors.toList())
@@ -388,5 +394,17 @@ public class BuildChainProcessor {
         return Stream.concat(
             Stream.of(build),
             stream);
+    }
+
+    @Nullable
+    private FatBuildCompacted loadBuild(ITeamcityIgnited teamcityIgnited,
+        Map<Integer, FatBuildCompacted> builds,
+        SyncMode mode,
+        int id) {
+        FatBuildCompacted buildLoaded = teamcityIgnited.getFatBuild(id, mode);
+
+        FatBuildCompacted prevVal = builds.putIfAbsent(id, buildLoaded);
+
+        return prevVal == null ? buildLoaded : null;
     }
 }

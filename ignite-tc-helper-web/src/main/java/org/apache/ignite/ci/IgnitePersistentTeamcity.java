@@ -909,8 +909,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
     }
 
-    @Override
-    public ProblemOccurrences getProblems(int buildId) {
+    @Override public ProblemOccurrences getProblems(int buildId) {
         return teamcity.getProblems(buildId);
     }
 
@@ -924,18 +923,15 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return problems;
     }
 
-    @Override
-    public Statistics getStatistics(int buildId) {
+    @Override public Statistics getStatistics(int buildId) {
         return teamcity.getStatistics(buildId);
     }
 
-    @Override
-    public ChangesList getChangesList(int buildId) {
+    @Override public ChangesList getChangesList(int buildId) {
         return teamcity.getChangesList(buildId);
     }
 
-    @Override
-    public Change getChange(int changeId) {
+    @Override public Change getChange(int changeId) {
         return teamcity.getChange(changeId);
     }
 
