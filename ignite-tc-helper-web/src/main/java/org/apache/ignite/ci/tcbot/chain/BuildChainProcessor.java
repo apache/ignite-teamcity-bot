@@ -296,7 +296,6 @@ public class BuildChainProcessor {
                     .orElse(buildCompacted);
 
             return Stream.of(recentRef)
-                .filter(b -> !builds.containsKey(b.id()))
                 .map(b -> builds.computeIfAbsent(b.id(), id -> teamcityIgnited.getFatBuild(id, syncMode)));
         }
 
@@ -304,7 +303,7 @@ public class BuildChainProcessor {
             return hist
                 .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
                 .limit(cntLimit)
-                .filter(b -> !builds.containsKey(b.id()))
+                .filter(b -> !builds.containsKey(b.id())) // todo removing this causes incorrect count of failures (duplicated builds)
                 .map(b -> builds.computeIfAbsent(b.id(), id -> teamcityIgnited.getFatBuild(id, syncMode)));
         }
 
