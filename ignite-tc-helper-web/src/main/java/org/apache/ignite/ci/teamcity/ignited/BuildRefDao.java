@@ -138,18 +138,17 @@ public class BuildRefDao {
     @AutoProfiling
     @NotNull public List<BuildRefCompacted> findBuildsInHistoryCompacted(int srvId,
                                                        @Nullable String buildTypeId,
-                                                       String bracnhNameQry) {
+                                                       List<String> bracnhNameQry) {
 
         Integer buildTypeIdId = compactor.getStringIdIfPresent(buildTypeId);
         if (buildTypeIdId == null)
             return Collections.emptyList();
 
-        Integer bracnhNameQryId = compactor.getStringIdIfPresent(bracnhNameQry);
-        if (bracnhNameQryId == null)
+        if (bracnhNameQry.stream().map(str -> compactor.getStringIdIfPresent(str)).allMatch(Objects::isNull))
             return Collections.emptyList();
 
         return getBuildsForBranch(srvId, bracnhNameQry).stream()
-                .filter(e -> e.buildTypeId() == buildTypeIdId)
+            .filter(e -> e.buildTypeId() == buildTypeIdId)
                 .collect(Collectors.toList());
     }
 
@@ -175,18 +174,24 @@ public class BuildRefDao {
 
     /**
      * @param srvId Server id.
-     * @param branchName Branch name.
+     * @param bracnhNamesQry Branch names.
      */
     @AutoProfiling
-    @GuavaCached(softValues = true, maximumSize = 1000, expireAfterAccessSecs = 30)
-    public List<BuildRefCompacted> getBuildsForBranch(int srvId, String branchName) {
-        Integer branchNameId = compactor.getStringIdIfPresent(branchName);
-        if (branchNameId == null)
-            return Collections.emptyList();
+    @GuavaCached(softValues = true, maximumSize = 1000, expireAfterAccessSecs = 60)
+    public List<BuildRefCompacted> getBuildsForBranch(int srvId, List<String> bracnhNamesQry) {
+        Set<Integer> branchIds = bracnhNamesQry.stream().map(str -> compactor.getStringIdIfPresent(str))
+            .filter(Objects::nonNull).collect(Collectors.toSet());
 
         List<BuildRefCompacted> list = new ArrayList<>();
-        try (QueryCursor<Cache.Entry<Long, BuildRefCompacted>> qryCursor
-                 = buildRefsCache.query(
+
+        for (Integer next : branchIds)
+            fillBuilds(srvId, next, list);
+
+        return list;
+    }
+
+    public void fillBuilds(int srvId, Integer branchNameId, List<BuildRefCompacted> list) {
+        try (QueryCursor<Cache.Entry<Long, BuildRefCompacted>> qryCursor  = buildRefsCache.query(
             new SqlQuery<Long, BuildRefCompacted>(BuildRefCompacted.class, "branchName = ?")
                 .setArgs(branchNameId))) {
 
@@ -199,8 +204,6 @@ public class BuildRefDao {
                 list.add(next.getValue());
             }
         }
-
-        return list;
     }
 
     /**

@@ -305,7 +305,7 @@ public class BuildChainProcessor {
                 .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
                 .limit(cntLimit)
                 .filter(b -> !builds.containsKey(b.id()))
-                .map(b -> builds.computeIfAbsent(b.id(), teamcityIgnited::getFatBuild));
+                .map(b -> builds.computeIfAbsent(b.id(), id -> teamcityIgnited.getFatBuild(id, syncMode)));
         }
 
         throw new UnsupportedOperationException("invalid mode " + includeLatestRebuild);

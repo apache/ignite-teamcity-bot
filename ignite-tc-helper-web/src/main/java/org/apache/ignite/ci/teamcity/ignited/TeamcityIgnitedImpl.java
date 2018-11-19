@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.teamcity.ignited;
 
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.ITeamcity;
@@ -273,9 +274,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             @Nullable String branchName) {
         ensureActualizeRequested();
 
-        String bracnhNameQry = branchForQuery(branchName);
-
-        return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, bracnhNameQry);
+        return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, branchForQuery(branchName));
     }
 
     /** {@inheritDoc} */
@@ -306,13 +305,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return chains;
     }
 
-    public String branchForQuery(@Nullable String branchName) {
-        String bracnhNameQry;
+    public List<String> branchForQuery(@Nullable String branchName) {
         if (ITeamcity.DEFAULT.equals(branchName))
-            bracnhNameQry = "refs/heads/master";
+            return Lists.newArrayList(branchName, "refs/heads/master", "master");
         else
-            bracnhNameQry = branchName;
-        return bracnhNameQry;
+            return Collections.singletonList(branchName);
     }
 
     public void ensureActualizeRequested() {
