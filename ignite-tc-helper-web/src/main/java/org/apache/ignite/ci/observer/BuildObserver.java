@@ -97,8 +97,7 @@ public class BuildObserver {
     }
 
     /**
-     * @param srvId Server id.
-     * @param branch Branch.
+     * @param key {@code Contribution Key}.
      */
     public String getObservationStatus(ContributionKey key) {
         StringBuilder sb = new StringBuilder();

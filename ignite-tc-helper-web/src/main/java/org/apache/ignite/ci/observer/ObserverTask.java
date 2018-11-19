@@ -114,10 +114,20 @@ public class ObserverTask extends TimerTask {
     }
 
     /** */
+    public void removeBuildInfo(ContributionKey key) {
+        observationLock.lock();
+
+        try {
+            removeBuildInfo(new CompactContributionKey(key, strCompactor));
+        }
+        finally {
+            observationLock.unlock();
+        }
+    }
+
+    /** */
     private void removeBuildInfo(CompactContributionKey key) {
         try {
-            BuildsInfo buildsInfo = compactInfos().get(key).toBuildInfo(strCompactor);
-
             boolean rmv = compactInfos().remove(key);
 
             Preconditions.checkState(rmv, "Key not found: " + key.toContributionKey(strCompactor).toString());
@@ -129,18 +139,6 @@ public class ObserverTask extends TimerTask {
                 getInfos().stream().map(bi -> bi.getContributionKey().toString())
                     .collect(Collectors.joining(", ")) +
                 " Error: " + X.getFullStackTrace(e));
-        }
-    }
-
-    /** */
-    public void removeBuildInfo(ContributionKey key) {
-        observationLock.lock();
-
-        try {
-            removeBuildInfo(new CompactContributionKey(key, strCompactor));
-        }
-        finally {
-            observationLock.unlock();
         }
     }
 

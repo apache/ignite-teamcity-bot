@@ -41,7 +41,7 @@ public class ContributionKey {
         this.srvId = strCompactor.getStringFromId(key.srvId);
     }
 
-    /** */
+    /** {@inheritDoc} */
     @Override public String toString() {
         return "{srv: " + this.srvId + " branch: " + this.branchForTc + '}';
     }
