@@ -349,11 +349,11 @@ public class TestCompacted {
         return status;
     }
 
-    @Nullable
-    public Integer getDuration() {
+    @Nullable public Integer getDuration() {
         return duration < 0 ? null : duration;
     }
 
+    /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("idInBuild", idInBuild)

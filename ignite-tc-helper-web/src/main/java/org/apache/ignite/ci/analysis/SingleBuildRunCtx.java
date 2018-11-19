@@ -205,4 +205,18 @@ public class SingleBuildRunCtx implements ISuiteResults {
     public boolean isCancelled() {
         return buildCompacted.isCancelled(compactor);
     }
+
+    /**
+     * @return Full run time required to run tests.
+     */
+    public long testsDuration() {
+        return getAllTests()
+            .mapToLong(t -> {
+                Integer duration = t.getDuration();
+                if (duration == null)
+                    return 0;
+
+                return duration;
+            }).sum();
+    }
 }

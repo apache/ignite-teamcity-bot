@@ -281,10 +281,9 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     /**
-     * @return last build duration.
+     * @return average build duration.
      */
-    @Nullable
-    public Long getBuildDuration() {
+    @Nullable public Long getBuildDuration() {
         final OptionalDouble average = buildsStream()
                 .map(SingleBuildRunCtx::getBuildDuration)
                 .filter(Objects::nonNull)
@@ -293,6 +292,20 @@ public class MultBuildRunCtx implements ISuiteResults {
 
         if(average.isPresent())
             return (long) average.getAsDouble();
+
+        return null;
+    }
+
+    /**
+     * @return sum of all tests execution duration (for several builds average).
+     */
+    @Nullable public Long getAvgTestsDuration() {
+        final OptionalDouble average = buildsStream()
+            .mapToLong(SingleBuildRunCtx::testsDuration)
+            .average();
+
+        if (average.isPresent())
+            return (long)average.getAsDouble();
 
         return null;
     }

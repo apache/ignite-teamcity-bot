@@ -105,6 +105,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public String durationPrintable;
 
+    public String testsDurationPrintable;
+
     /**
      * Advisory mark there is problem in this suite.
      */
@@ -135,6 +137,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         hasCriticalProblem = suite.hasCriticalProblem();
         failedTests = suite.failedTests();
         durationPrintable = millisToDurationPrintable(suite.getBuildDuration());
+        testsDurationPrintable  = millisToDurationPrintable(suite.getAvgTestsDuration());
         webToHist = buildWebLink(teamcity, suite);
         webToHistBaseBranch = buildWebLink(teamcity, suite, baseBranch);
         webToBuild = buildWebLinkToBuild(teamcity, suite);
@@ -342,6 +345,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             Objects.equal(userCommits, status.userCommits) &&
             Objects.equal(failedTests, status.failedTests) &&
             Objects.equal(durationPrintable, status.durationPrintable)&&
+            Objects.equal(testsDurationPrintable, status.testsDurationPrintable)&&
             Objects.equal(warnOnly, status.warnOnly);
     }
 
@@ -350,7 +354,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         return Objects.hashCode(name, result, hasCriticalProblem, webToHist, webToHistBaseBranch, webToBuild, testFailures,
             topLongRunning, webUrlThreadDump, runningBuildCount, queuedBuildCount, serverId,
             suiteId, branchName, failures, runs, failureRate,
-            failsAllHist, criticalFails, userCommits, failedTests, durationPrintable,
+            failsAllHist, criticalFails, userCommits, failedTests, durationPrintable, testsDurationPrintable,
             warnOnly);
     }
 
