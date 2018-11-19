@@ -296,14 +296,16 @@ public class BuildChainProcessor {
                     .orElse(buildCompacted);
 
             return Stream.of(recentRef)
-                    .map(b -> builds.computeIfAbsent(b.id(), id -> teamcityIgnited.getFatBuild(id, syncMode)));
+                .filter(b -> !builds.containsKey(b.id()))
+                .map(b -> builds.computeIfAbsent(b.id(), id -> teamcityIgnited.getFatBuild(id, syncMode)));
         }
 
         if (includeLatestRebuild == LatestRebuildMode.ALL) {
             return hist
-                    .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
-                    .limit(cntLimit)
-                    .map(b -> builds.computeIfAbsent(b.id(), teamcityIgnited::getFatBuild));
+                .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
+                .limit(cntLimit)
+                .filter(b -> !builds.containsKey(b.id()))
+                .map(b -> builds.computeIfAbsent(b.id(), teamcityIgnited::getFatBuild));
         }
 
         throw new UnsupportedOperationException("invalid mode " + includeLatestRebuild);
