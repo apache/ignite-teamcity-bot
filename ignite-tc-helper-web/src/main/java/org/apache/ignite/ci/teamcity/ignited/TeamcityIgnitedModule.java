@@ -19,6 +19,8 @@ package org.apache.ignite.ci.teamcity.ignited;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.FatBuildTypeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
@@ -43,6 +45,8 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(ProactiveFatBuildSync.class).in(new SingletonScope());
         bind(ChangeSync.class).in(new SingletonScope());
         bind(ChangeDao.class).in(new SingletonScope());
+        bind(BuildTypeRefDao.class).in(new SingletonScope());
+        bind(FatBuildTypeDao.class).in(new SingletonScope());
 
         bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
 

@@ -18,15 +18,23 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 
 import com.google.common.collect.Sets;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
+import org.apache.ignite.ci.tcmodel.conf.bt.BuildType;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.FatBuildTypeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.FatBuildTypeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
@@ -48,6 +56,8 @@ import java.util.stream.Collectors;
 import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
 
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
+    public static final String DEFAULT_PROJECT_ID = "IgniteTests24Java8";
+    
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TeamcityIgnitedImpl.class);
 
@@ -86,8 +96,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Changes DAO. */
     @Inject private ChangeSync changeSync;
 
+    /** BuildType reference DAO. */
+    @Inject private BuildTypeRefDao buildTypeRefDao;
+
+    /** BuildType DAO. */
+    @Inject private FatBuildTypeDao fatBuildTypeDao;
+
     /** Changes DAO. */
     @Inject private IStringCompactor compactor;
+
+    private List<String> compositeBuildTypesIdsForDefaultProject;
 
     /** Server ID mask for cache Entries. */
     private int srvIdMaskHigh;
@@ -101,6 +119,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         buildConditionDao.init();
         fatBuildDao.init();
         changesDao.init();
+        buildTypeRefDao.init();
+        fatBuildTypeDao.init();
+
+        compositeBuildTypesIdsForDefaultProject = Collections.emptyList();
     }
 
 
@@ -306,13 +328,89 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return chains;
     }
 
+    private void actualizeCompositeBuildTypesIds(String projectId) {
+        compositeBuildTypesIdsForDefaultProject =
+            fatBuildTypeDao.compositeBuildTypesIdsSortedBySnDepCount(srvIdMaskHigh, projectId);
+    }
+
+    @Override public List<String> getCompositeBuildTypesIdsSortedBySnDepCount(String projectId) {
+        ensureActualizeBuildTypeRefsRequested();
+        ensureActualizeBuildTypesRequested();
+
+        return projectId.equals(DEFAULT_PROJECT_ID) ? compositeBuildTypesIdsForDefaultProject :
+            fatBuildTypeDao.compositeBuildTypesIdsSortedBySnDepCount(srvIdMaskHigh, projectId);
+    }
+
+    @Override public List<BuildTypeRefCompacted> getAllBuildTypesCompacted(String projectId) {
+        ensureActualizeBuildTypeRefsRequested();
+
+        return buildTypeRefDao.buildTypesCompacted(srvIdMaskHigh, projectId);
+    }
+
+    void ensureActualizeBuildTypeRefsRequested() {
+        scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs"),
+            this::reindexBuildTypeRefs, 6, TimeUnit.HOURS);
+    }
+
+    void ensureActualizeBuildTypesRequested() {
+        scheduler.sheduleNamed(taskName("actualizeAllBuildTypes"),
+            this::reindexBuildTypes, 24, TimeUnit.HOURS);
+    }
+
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    @MonitoredTask(name = "Reindex BuildTypes (projectId)", nameExtArgsIndexes = {0})
+    @AutoProfiling
+    protected String runActualizeBuildTypes(String projectId) {
+        List<String> buildTypeIds = buildTypeRefDao.buildTypeIds(srvIdMaskHigh, projectId);
+
+        int updated = 0;
+
+        for (String buildTypeId : buildTypeIds) {
+
+            BuildType buildType = conn.getBuildType(buildTypeId);
+
+            FatBuildTypeCompacted existingBuildType = fatBuildTypeDao.getFatBuildType(srvIdMaskHigh, buildTypeId);
+
+            if (fatBuildTypeDao.saveBuildType(srvIdMaskHigh, buildType, existingBuildType) != null)
+                updated++;
+        }
+
+        if (updated != 0)
+            actualizeCompositeBuildTypesIds(projectId);
+
+        return "BuildTypes updated " + updated + " from " + buildTypeIds.size() + " requested";
+    }
+
+    void reindexBuildTypeRefs() {
+        runActualizeBuildTypeRefs(DEFAULT_PROJECT_ID);
+    }
+
+    void reindexBuildTypes() {
+        runActualizeBuildTypes(DEFAULT_PROJECT_ID);
+    }
+
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    @MonitoredTask(name = "Reindex BuildTypeRefs (projectId)", nameExtArgsIndexes = {0})
+    @AutoProfiling
+    protected String runActualizeBuildTypeRefs(String projectId) {
+        List<BuildTypeRef> tcData = conn.getBuildTypes(projectId);
+
+        Set<Long> buildsUpdated = buildTypeRefDao.saveChunk(srvIdMaskHigh, tcData);
+
+        if (!buildsUpdated.isEmpty()) {
+            runActualizeBuildTypes(projectId);
+        }
+
+        return "BuildTypeRefs updated " + buildsUpdated.size() + " from " + tcData.size() + " requested";
+    }
+
     public String branchForQuery(@Nullable String branchName) {
-        String bracnhNameQry;
+        String branchNameQry;
         if (ITeamcity.DEFAULT.equals(branchName))
-            bracnhNameQry = "refs/heads/master";
+            branchNameQry = "refs/heads/master";
         else
-            bracnhNameQry = branchName;
-        return bracnhNameQry;
+            branchNameQry = branchName;
+        return branchNameQry;
     }
 
     public void ensureActualizeRequested() {

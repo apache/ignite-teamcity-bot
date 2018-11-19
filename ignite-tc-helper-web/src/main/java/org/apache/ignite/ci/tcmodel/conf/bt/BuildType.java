@@ -32,6 +32,9 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "buildType")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class BuildType extends BuildTypeRef {
+    @XmlElement(name = "settings")
+    Parameters settings;
+
     @XmlElement(name = "parameters")
     Parameters parameters;
 
@@ -54,5 +57,25 @@ public class BuildType extends BuildTypeRef {
             return Collections.emptyList();
 
         return list;
+    }
+
+    public Parameters getSettings() {
+        return settings;
+    }
+
+    public Parameters getParameters() {
+        return parameters;
+    }
+
+    public void setSettings(Parameters settings) {
+        this.settings = settings;
+    }
+
+    public void setParameters(Parameters parameters) {
+        this.parameters = parameters;
+    }
+
+    public void setSnapshotDependencies(SnapshotDependencies snapshotDependencies) {
+        this.snapshotDependencies = snapshotDependencies;
     }
 }

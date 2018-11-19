@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.tcmodel.conf.bt;
 
+import com.google.common.base.MoreObjects;
+import java.util.Objects;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -46,5 +48,63 @@ public class SnapshotDependency {
 
     public BuildTypeRef bt() {
         return srcBt;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public Parameters getProperties() {
+        return properties;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public void setProperties(Parameters properties) {
+        this.properties = properties;
+    }
+
+    public void setSrcBt(BuildTypeRef srcBt) {
+        this.srcBt = srcBt;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+
+        if (!(o instanceof SnapshotDependency))
+            return false;
+
+        SnapshotDependency that = (SnapshotDependency)o;
+
+        return Objects.equals(getId(), that.getId()) &&
+            Objects.equals(getType(), that.getType()) &&
+            Objects.equals(getProperties(), that.getProperties()) &&
+            Objects.equals(srcBt, that.srcBt);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hash(getId(), getType(), getProperties(), srcBt);
+    }
+
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("id", id)
+            .add("type", type)
+            .add("properties", properties)
+            .add("srcBt", srcBt)
+            .toString();
     }
 }

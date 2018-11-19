@@ -22,6 +22,8 @@ import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.FatBuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.jetbrains.annotations.NotNull;
@@ -122,4 +124,8 @@ public interface ITeamcityIgnited {
      * @param cnt Count.
      */
     @NotNull public List<Integer> getLastNBuildsFromHistory(String btId, String branchForTc, int cnt);
+
+    public List<String> getCompositeBuildTypesIdsSortedBySnDepCount(String projectId);
+
+    public List<BuildTypeRefCompacted> getAllBuildTypesCompacted(String projectId);
 }

@@ -17,8 +17,10 @@
 
 package org.apache.ignite.ci.tcmodel.conf.bt;
 
+import com.google.common.base.MoreObjects;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -33,4 +35,41 @@ public class SnapshotDependencies {
 
     @XmlElement(name="snapshot-dependency")
     List<SnapshotDependency> list = new ArrayList<>();
+
+    public SnapshotDependencies() {
+    }
+
+    public SnapshotDependencies(List<SnapshotDependency> list) {
+        if (list != null) {
+            this.list = list;
+            this.count = list.size();
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+
+        if (!(o instanceof SnapshotDependencies))
+            return false;
+
+        SnapshotDependencies that = (SnapshotDependencies)o;
+
+        return Objects.equals(count, that.count) &&
+            Objects.equals(list, that.list);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hash(count, list);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("count", count)
+            .add("list", list)
+            .toString();
+    }
 }
