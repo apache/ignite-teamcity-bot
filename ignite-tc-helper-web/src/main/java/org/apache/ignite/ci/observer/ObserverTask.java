@@ -107,17 +107,10 @@ public class ObserverTask extends TimerTask {
 
     /** */
     public void addInfo(BuildsInfo info) {
-        observationLock.lock();
+        visasHistStorage.put(new VisaRequest(info));
 
-        try {
-            visasHistStorage.put(new VisaRequest(info));
-
-            compactInfos().put(new CompactContributionKey(info.getContributionKey(), strCompactor),
-                new CompactBuildsInfo(info, strCompactor));
-        }
-        finally {
-            observationLock.unlock();
-        }
+        compactInfos().put(new CompactContributionKey(info.getContributionKey(), strCompactor),
+            new CompactBuildsInfo(info, strCompactor));
     }
 
     /** */

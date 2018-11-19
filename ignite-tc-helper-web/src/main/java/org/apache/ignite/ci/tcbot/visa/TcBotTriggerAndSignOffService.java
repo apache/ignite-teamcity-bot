@@ -23,7 +23,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -102,12 +101,7 @@ public class TcBotTriggerAndSignOffService {
 
 
     @Inject PrChainsProcessor prChainsProcessor;
-
-
-    /** */
-    //todo fix concurrency issue:
-    private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
+    
     /** */
     public void startObserver() {
         buildObserverProvider.get();
