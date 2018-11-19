@@ -25,8 +25,6 @@ import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
-import org.apache.ignite.ci.observer.CompactBuildsInfo;
-import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
@@ -88,29 +86,6 @@ public class RemoteClientTmpHelper {
             dumpBuildRef(cache2, apache, id);
             dumpBuildRef(cache2, apache, id1);
         }
-
-        IgniteCache<CompactBuildsInfo, Object> cache = ignite.cache(ObserverTask.BUILDS_CACHE_NAME);
-
-        CompactBuildsInfo cbi = new CompactBuildsInfo();
-
-        cbi.userName(62541);
-        cbi.srvId(245001);
-        cbi.buildTypeId(113);
-        cbi.branchForTc(2008);
-        cbi.ticket(263594);
-        cbi.date(1542263949429L);
-
-        cbi.addBuild(2322291, 2322298, 2322296, 2322294, 2322292, 2322300);
-
-        boolean rmv = cache.remove(cbi);
-
-        try {
-            Preconditions.checkState(rmv, "can't remove " + cbi);
-        }
-        finally {
-            ignite.close();
-        }
-
     }
 
     public static void dumpBuildRef(IgniteCache<Long, BuildRefCompacted> cache, int apache, int id) throws IOException {
