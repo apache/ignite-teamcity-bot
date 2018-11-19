@@ -19,6 +19,7 @@ package org.apache.ignite.ci.tcbot.visa;
 
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,6 +39,7 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
+import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -46,6 +48,7 @@ import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.VisaRequest;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -56,10 +59,20 @@ import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static org.apache.ignite.ci.observer.BuildsInfo.CANCELLED_STATUS;
+import static org.apache.ignite.ci.observer.BuildsInfo.FINISHED_STATUS;
+import static org.apache.ignite.ci.observer.BuildsInfo.RUNNING_STATUS;
+
 /**
  * Provides method for TC Bot Visa obtaining
  */
 public class TcBotTriggerAndSignOffService {
+    /** */
+    private static final ThreadLocal<DateFormat> THREAD_FORMATTER = new ThreadLocal<DateFormat>() {
+        @Override protected DateFormat initialValue() {
+            return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        }
+    };
 
     @Inject Provider<BuildObserver> buildObserverProvider;
 
@@ -88,12 +101,7 @@ public class TcBotTriggerAndSignOffService {
 
 
     @Inject PrChainsProcessor prChainsProcessor;
-
-
-    /** */
-    //todo fix concurrency issue:
-    private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
+    
     /** */
     public void startObserver() {
         buildObserverProvider.get();
@@ -105,6 +113,8 @@ public class TcBotTriggerAndSignOffService {
 
         IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
 
+        ObserverTask observerTask = buildObserverProvider.get().getObserverTask();
+
         for (VisaRequest visaRequest : visasHistoryStorage.getVisas()) {
             VisaStatus visaStatus = new VisaStatus();
 
@@ -112,15 +122,19 @@ public class TcBotTriggerAndSignOffService {
 
             Visa visa = visaRequest.getResult();
 
-            visaStatus.date = formatter.format(info.date);
+            visaStatus.date = THREAD_FORMATTER.get().format(info.date);
             visaStatus.branchName = info.branchForTc;
             visaStatus.userName = info.userName;
             visaStatus.ticket = info.ticket;
 
-            if (info.isFinished(teamcity)) {
-                if (visa.isEmpty())
-                    visaStatus.state = BuildsInfo.FINISHED_STATE + " [ waiting results ]";
-                else if (visa.isSuccess()) {
+            String buildsStatus = visaStatus.status = info.getState(teamcity);
+
+            BuildsInfo observInfo = observerTask.getInfo(info.getContributionKey());
+
+            boolean isObserving = Objects.nonNull(observInfo) && observInfo.date.equals(info.date);
+
+            if (FINISHED_STATUS.equals(buildsStatus)) {
+                if (visa.isSuccess()) {
                     visaStatus.commentUrl = "https://issues.apache.org/jira/browse/" + visaStatus.ticket +
                         "?focusedCommentId=" + visa.getJiraCommentResponse().getId() +
                         "&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-" +
@@ -128,13 +142,18 @@ public class TcBotTriggerAndSignOffService {
 
                     visaStatus.blockers = visa.getBlockers();
 
-                    visaStatus.state = BuildsInfo.FINISHED_STATE;
+                    visaStatus.status = FINISHED_STATUS;
                 }
                 else
-                    visaStatus.state = BuildsInfo.FINISHED_WITH_FAILURES_STATE;
+                    visaStatus.status = isObserving ? "waiting results" : CANCELLED_STATUS;
             }
+            else if (RUNNING_STATUS.equals(buildsStatus))
+                visaStatus.status = isObserving ? RUNNING_STATUS : CANCELLED_STATUS;
             else
-                visaStatus.state = info.getState(teamcity);
+                visaStatus.status = buildsStatus;
+
+            if (isObserving)
+                visaStatus.cancelUrl = "/rest/visa/cancel?server=" + srvId + "&branch=" + info.branchForTc;
 
             visaStatuses.add(visaStatus);
         }
@@ -377,7 +396,7 @@ public class TcBotTriggerAndSignOffService {
         else
             status.resolvedBranch = !allRunAlls.isEmpty() ? allRunAlls.get(0).branchName(compactor) : branchForTcA(prId);
 
-        String observationsStatus = observer.get().getObservationStatus(srvId, status.resolvedBranch);
+        String observationsStatus = observer.get().getObservationStatus(new ContributionKey(srvId, status.resolvedBranch));
 
         status.observationsStatus  = Strings.emptyToNull(observationsStatus);
 

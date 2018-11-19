@@ -22,7 +22,7 @@
     <br>
     <div id="loadStatus"></div>
     <br>
-    <table id="visasTable" class="cell-border" style="width:100%">
+    <table id="visasTable" class="row-border" style="width:100%">
         <thead>
             <tr class="ui-widget-header ">
                 <th>.</th>
@@ -73,6 +73,16 @@ $(document).ready(function() {
     $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 });
 
+function sendCancelRequest(url) {
+    $.ajax({
+        url: url,
+        success: function (result) {
+            location.reload();
+        },
+        error: showErrInLoadStatus
+    });
+}
+
 function showVisasTable(result) {
     let visasTable = $('#visasTable');
 
@@ -91,15 +101,28 @@ function showVisasTable(result) {
         ],
         columns: [
             {
-                "data": "state",
+                "data": "status",
                 title: "Status",
                 "render": function (data, type, row, meta) {
+                    let res = '';
+
                     if (type === 'display') {
-                        if (data ==='finished' && row.commentUrl)
-                            data = "<a href='" + row.commentUrl + "'>" + data + "</a>";
+                        res += "<table width='100%'><tr><td width='70%' style='vertical-align: middle'>";
+
+                        if (data === 'finished' && row.commentUrl)
+                            res += "<a href='" + row.commentUrl + "'>" + data + "</a>";
+                        else
+                            res += data;
+
+                        res += "</td><td width=\"30%\">";
+
+                        if (row.cancelUrl != null)
+                            res += '<button class="more white short" onclick="sendCancelRequest(\'' + row.cancelUrl + '\')">&times</button>';
+
+                        res += "</td></tr>";
                     }
 
-                    return data;
+                    return res;
                 }
             },
             {
@@ -123,14 +146,13 @@ function showVisasTable(result) {
                 title: "Blockers",
                 "render": function (data, type, row, meta) {
                     if (type === 'display') {
-                        if (row.state != 'finished')
+                        if (row.status != 'finished')
                             data = "";
                     }
 
                     return data;
                 }
             }
-
         ]
     });
 }

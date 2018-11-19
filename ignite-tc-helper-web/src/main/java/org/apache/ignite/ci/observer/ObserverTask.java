@@ -19,13 +19,16 @@ package org.apache.ignite.ci.observer;
 
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimerTask;
-import javax.cache.Cache;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
@@ -37,9 +40,13 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.CompactContributionKey;
+import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.Visa;
+import org.apache.ignite.ci.web.model.VisaRequest;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.internal.util.typedef.X;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +58,7 @@ public class ObserverTask extends TimerTask {
     private static final Logger logger = LoggerFactory.getLogger(ObserverTask.class);
 
     /** */
-    public static final String BUILDS_CACHE_NAME = "compactBuildsInfos";
+    public static final String BUILDS_CACHE_NAME = "compactBuildsInfosCache";
 
     /** Helper. */
     @Inject private ITcHelper tcHelper;
@@ -63,10 +70,13 @@ public class ObserverTask extends TimerTask {
     @Inject private Ignite ignite;
 
     /** */
-    @Inject private VisasHistoryStorage visasHistoryStorage;
+    @Inject private VisasHistoryStorage visasHistStorage;
 
     /** */
     @Inject private IStringCompactor strCompactor;
+
+    /** */
+    private ReentrantLock observationLock = new ReentrantLock();
 
     /**
      */
@@ -74,22 +84,62 @@ public class ObserverTask extends TimerTask {
     }
 
     /** */
-    private IgniteCache<CompactBuildsInfo, Object> compactInfos() {
+    private IgniteCache<CompactContributionKey, CompactBuildsInfo> compactInfos() {
         return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(BUILDS_CACHE_NAME));
     }
+
+    /** */
+    @Nullable public BuildsInfo getInfo(ContributionKey key) {
+        CompactBuildsInfo compactBuildsInfo = compactInfos().get(new CompactContributionKey(key, strCompactor));
+
+        return Objects.isNull(compactBuildsInfo) ? null : compactBuildsInfo.toBuildInfo(strCompactor);
+    }
+
 
     /** */
     public Collection<BuildsInfo> getInfos() {
         List<BuildsInfo> buildsInfos = new ArrayList<>();
 
-        compactInfos().forEach(entry -> buildsInfos.add(entry.getKey().toBuildInfo(strCompactor)));
+        compactInfos().forEach(entry -> buildsInfos.add(entry.getValue().toBuildInfo(strCompactor)));
 
         return buildsInfos;
     }
 
     /** */
     public void addInfo(BuildsInfo info) {
-        compactInfos().put(new CompactBuildsInfo(info, strCompactor), new Object());
+        visasHistStorage.put(new VisaRequest(info));
+
+        compactInfos().put(new CompactContributionKey(info.getContributionKey(), strCompactor),
+            new CompactBuildsInfo(info, strCompactor));
+    }
+
+    /** */
+    public void removeBuildInfo(ContributionKey key) {
+        observationLock.lock();
+
+        try {
+            removeBuildInfo(new CompactContributionKey(key, strCompactor));
+        }
+        finally {
+            observationLock.unlock();
+        }
+    }
+
+    /** */
+    private void removeBuildInfo(CompactContributionKey key) {
+        try {
+            boolean rmv = compactInfos().remove(key);
+
+            Preconditions.checkState(rmv, "Key not found: " + key.toContributionKey(strCompactor).toString());
+        }
+        catch (Exception e) {
+            logger.error("Cache remove: " + e.getMessage(), e);
+
+            throw new RuntimeException("Observer queue: " +
+                getInfos().stream().map(bi -> bi.getContributionKey().toString())
+                    .collect(Collectors.joining(", ")) +
+                " Error: " + X.getFullStackTrace(e));
+        }
     }
 
     /** {@inheritDoc} */
@@ -108,88 +158,80 @@ public class ObserverTask extends TimerTask {
     @AutoProfiling
     @MonitoredTask(name = "Build Observer")
     protected String runObserverTask() {
-        if (!tcHelper.isServerAuthorized())
-            return "Server authorization required.";
+        observationLock.lock();
 
-        int checkedBuilds = 0;
-        int notFinishedBuilds = 0;
-        Set<String> ticketsNotified = new HashSet<>();
+        try {
+            if (!tcHelper.isServerAuthorized())
+                return "Server authorization required.";
 
-        ObjectMapper objMapper = new ObjectMapper();
+            int checkedBuilds = 0;
+            int notFinishedBuilds = 0;
+            Set<String> ticketsNotified = new HashSet<>();
 
-        List<String> rmvdVisas = new ArrayList<>();
+            Map<CompactContributionKey, Boolean> rmv = new HashMap<>();
 
-        List<String> queuedVisas = new ArrayList<>();
+            for (IgniteCache.Entry<CompactContributionKey, CompactBuildsInfo> entry : compactInfos()) {
+                CompactBuildsInfo compactInfo = entry.getValue();
 
-        for (Cache.Entry<CompactBuildsInfo, Object> entry : compactInfos()) {
-            CompactBuildsInfo compactInfo = entry.getKey();
+                BuildsInfo info = compactInfo.toBuildInfo(strCompactor);
 
-            try {
-                queuedVisas.add(objMapper.writeValueAsString(compactInfo));
-            }
-            catch (Exception e) {
-                logger.error("JSON string parse failed: " + e.getMessage(), e);
+                IAnalyticsEnabledTeamcity teamcity = tcHelper.server(info.srvId, tcHelper.getServerAuthorizerCreds());
 
-                return "Exception while JSON parsing " + e.getClass().getSimpleName() + ": " + e.getMessage();
-            }
+                checkedBuilds += info.buildsCount();
 
-            BuildsInfo info = compactInfo.toBuildInfo(strCompactor);
+                if (info.isCancelled(teamcity)) {
+                    rmv.put(entry.getKey(), false);
 
-            checkedBuilds += info.buildsCount();
+                    logger.error("JIRA will not be commented." +
+                        " [ticket: " + info.ticket + ", branch:" + info.branchForTc + "] : " +
+                        "one or more re-runned blocker's builds finished with UNKNOWN status.");
 
-            IAnalyticsEnabledTeamcity teamcity = tcHelper.server(info.srvId, tcHelper.getServerAuthorizerCreds());
-
-            if (info.isFinishedWithFailures(teamcity)) {
-                boolean rmv = compactInfos().remove(compactInfo);
-
-                Preconditions.checkState(rmv, "Key not found: " + compactInfo);
-
-                logger.error("JIRA will not be commented." +
-                    " [ticket: " + info.ticket + ", branch:" + info.branchForTc + "] : " +
-                    "one or more re-runned blocker's builds finished with UNKNOWN status.");
-
-                continue;
-            }
-
-            if (!info.isFinished(teamcity)) {
-                notFinishedBuilds += info.buildsCount() - info.finishedBuildsCount();
-
-                continue;
-            }
-
-            try {
-                rmvdVisas.add(objMapper.writeValueAsString(compactInfo));
-            }
-            catch (Exception e) {
-                logger.error("JSON string parse failed: " + e.getMessage(), e);
-
-                return "Exception while JSON parsing: " + e.getClass().getSimpleName() + ": " + e.getMessage();
-            }
-
-            try {
-                boolean rmv = compactInfos().remove(compactInfo);
-
-                if (!rmv)
                     continue;
+                }
+
+                if (!info.isFinished(teamcity)) {
+                    notFinishedBuilds += info.buildsCount() - info.finishedBuildsCount(teamcity);
+
+                    continue;
+                }
+
+                Visa visa = visasHistStorage.getVisaRequest(info.getContributionKey(), info.date).getResult();
+
+                if (Objects.isNull(visa))
+                    continue;
+
+                if (!visa.isSuccess()) {
+                    ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
+
+                    visa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
+                        info.branchForTc, info.ticket);
+
+                    visasHistStorage.updateVisaRequestResult(info.getContributionKey(), info.date, visa);
+
+                    if (visa.isSuccess())
+                        ticketsNotified.add(info.ticket);
+                }
+
+                if (visa.isSuccess())
+                    rmv.put(entry.getKey(), false);
             }
-            catch (Exception e) {
-                logger.error("cache remove: " + e.getMessage(), e);
 
-                return X.getFullStackTrace(e);
-            }
+            rmv.entrySet().forEach(entry -> {
+                try {
+                    removeBuildInfo(entry.getKey());
 
-            ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
+                    entry.setValue(true);
+                }
+                catch (Exception e) {
+                   logger.error(e.getMessage(), e);
+                }
+            });
 
-            Visa visa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
-                info.branchForTc, info.ticket);
-
-            visasHistoryStorage.updateVisaRequestRes(info.getContributionKey(), info.date, visa);
-
-            ticketsNotified.add(info.ticket);
+            return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified +
+                " Rmv problems: " + rmv.values().stream().filter(v -> !v).count();
         }
-
-        return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified +
-            " Visas in queue: [" + String.join(", ", queuedVisas) +
-            "] Visas to rmv: [" + String.join(", ", rmvdVisas) + ']';
+        finally {
+            observationLock.unlock();
+        }
     }
 }

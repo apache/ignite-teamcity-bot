@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.web.model;
 
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+
 /**
  *
  */
@@ -25,15 +27,22 @@ public class ContributionKey {
     public final String srvId;
 
     /** */
-    public final String ticket;
-
-    /** */
     public final String branchForTc;
 
     /** */
-    public ContributionKey(String srvId, String ticket, String branchForTc) {
+    public ContributionKey(String srvId, String branchForTc) {
         this.branchForTc = branchForTc;
         this.srvId = srvId;
-        this.ticket = ticket;
+    }
+
+    /** */
+    public ContributionKey(CompactContributionKey key, IStringCompactor strCompactor) {
+        this.branchForTc = strCompactor.getStringFromId(key.branchForTc);
+        this.srvId = strCompactor.getStringFromId(key.srvId);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return "{srv: " + this.srvId + " branch: " + this.branchForTc + '}';
     }
 }

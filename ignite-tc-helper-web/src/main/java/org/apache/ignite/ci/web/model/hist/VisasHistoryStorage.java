@@ -42,7 +42,7 @@ import org.apache.ignite.ci.web.model.VisaRequest;
  */
 public class VisasHistoryStorage {
     /** */
-    private static final String VISAS_CACHE_NAME = "visasCompactCache";
+    private static final String VISAS_CACHE_NAME = "compactVisasHistoryCache";
 
     /** */
     @Inject
@@ -68,7 +68,6 @@ public class VisasHistoryStorage {
 
         CompactContributionKey key = new CompactContributionKey(new ContributionKey(
             visaReq.getInfo().srvId,
-            visaReq.getInfo().ticket,
             visaReq.getInfo().branchForTc), strCompactor);
 
         Map<Date, CompactVisaRequest> contributionVisas = visas().get(key);
@@ -82,7 +81,7 @@ public class VisasHistoryStorage {
     }
 
     /** */
-    public VisaRequest getVisaReq(ContributionKey key, Date date) {
+    public VisaRequest getVisaRequest(ContributionKey key, Date date) {
         Map<Date, CompactVisaRequest> reqs = visas().get(new CompactContributionKey(key, strCompactor));
 
         if (Objects.isNull(reqs))
@@ -92,8 +91,8 @@ public class VisasHistoryStorage {
     }
 
     /** */
-    public boolean updateVisaRequestRes(ContributionKey key, Date date, Visa visa) {
-        VisaRequest req = getVisaReq(key, date);
+    public boolean updateVisaRequestResult(ContributionKey key, Date date, Visa visa) {
+        VisaRequest req = getVisaRequest(key, date);
 
         if (req == null)
             return false;
