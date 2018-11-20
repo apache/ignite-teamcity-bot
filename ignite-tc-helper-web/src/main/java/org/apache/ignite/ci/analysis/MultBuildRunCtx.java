@@ -18,9 +18,22 @@
 package org.apache.ignite.ci.analysis;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
@@ -28,14 +41,6 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.annotation.Nonnull;
-import java.util.*;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Run configuration execution results loaded from different API URLs.
@@ -116,7 +121,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     private long getExecutionTimeoutCount() {
-        return buildsStream().filter(ISuiteResults::hasTimeoutProblem).count();
+        return buildsStream().filter(SingleBuildRunCtx::hasTimeoutProblem).count();
     }
 
     public boolean hasJvmCrashProblem() {
@@ -281,10 +286,9 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     /**
-     * @return last build duration.
+     * @return average build duration.
      */
-    @Nullable
-    public Long getBuildDuration() {
+    @Nullable public Long getBuildDuration() {
         final OptionalDouble average = buildsStream()
                 .map(SingleBuildRunCtx::getBuildDuration)
                 .filter(Objects::nonNull)
@@ -295,6 +299,37 @@ public class MultBuildRunCtx implements ISuiteResults {
             return (long) average.getAsDouble();
 
         return null;
+    }
+
+    /**
+     * @return sum of all tests execution duration (for several builds average).
+     */
+    @Nullable public Long getAvgTestsDuration() {
+        final OptionalDouble average = buildsStream()
+            .mapToLong(SingleBuildRunCtx::testsDuration)
+            .average();
+
+        if (average.isPresent())
+            return (long)average.getAsDouble();
+
+        return null;
+    }
+
+    /**
+     * @return sum of all tests execution duration (for several builds average).
+     */
+    public long getLostInTimeouts() {
+        if (builds.isEmpty())
+            return 0;
+
+        long allTimeoutsDuration = buildsStream()
+            .filter(SingleBuildRunCtx::hasTimeoutProblem)
+            .map(SingleBuildRunCtx::getBuildDuration)
+            .filter(Objects::nonNull)
+            .mapToLong(l -> l)
+            .sum();
+
+        return allTimeoutsDuration / builds.size();
     }
 
     @Nullable public String suiteName() {

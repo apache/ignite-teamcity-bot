@@ -100,7 +100,7 @@ public class TcBotTriggerAndSignOffService {
 
 
     @Inject PrChainsProcessor prChainsProcessor;
-    
+
     /** */
     public void startObserver() {
         buildObserverProvider.get();

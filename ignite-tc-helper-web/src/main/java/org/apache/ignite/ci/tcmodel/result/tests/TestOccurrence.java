@@ -84,10 +84,6 @@ public class TestOccurrence {
         return id;
     }
 
-    public long getDuration() {
-        return duration != null ? duration : 0;
-    }
-
     public TestOccurrence setId(String id) {
         this.id = id;
 

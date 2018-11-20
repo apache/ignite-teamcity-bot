@@ -81,10 +81,6 @@ function showChainCurrentStatusData(server, settings) {
     }
 
     var res = "";
-    var altTxt = "";
-
-    if (isDefinedAndFilled(server.durationPrintable))
-        altTxt += "duration: " + server.durationPrintable;
 
     res += "<table border='0px'>";
     res += "<tr bgcolor='#F5F5FF'><td colspan='3'><b><a href='" + server.webToHist + "'>";
@@ -96,7 +92,7 @@ function showChainCurrentStatusData(server, settings) {
 
     res += "</a> ";
     res += "[";
-    res += " <a href='" + server.webToBuild + "' title='" + altTxt + "'>";
+    res += " <a href='" + server.webToBuild + "' title=''>";
     res += "tests " + server.failedTests + " suites " + server.failedToFinish + "";
     res += " </a>";
     res += "] ";
@@ -139,7 +135,9 @@ function showChainCurrentStatusData(server, settings) {
         mInfo += " title='trigger builds'>on top</a><br>";
     }
 
-    mInfo += altTxt + "<br>";
+    mInfo += "Duration: " + server.durationPrintable +
+        " (Tests: " + server.testsDurationPrintable + "," +
+        " Timeouts: " + server.lostInTimeouts + ")<br>";
 
     if (isDefinedAndFilled(server.topLongRunning) && server.topLongRunning.length > 0) {
         mInfo += "Top long running:<br>";
@@ -550,10 +548,9 @@ function showSuiteData(suite, settings) {
         moreInfoTxt += "Last commits from: " + suite.userCommits + " <br>";
     }
 
-    moreInfoTxt += "Duration: " + suite.durationPrintable + " <br>";
-
-    var altTxt = "";
-    altTxt += "Duration: " + suite.durationPrintable + "; ";
+    moreInfoTxt += "Duration: " + suite.durationPrintable +
+        " (Tests: " + suite.testsDurationPrintable + "," +
+        " Timeouts: " + suite.lostInTimeouts + ")<br>";
 
     var res = "";
     res += "<tr bgcolor='#FAFAFF'><td align='right' valign='top'>";
@@ -587,7 +584,7 @@ function showSuiteData(suite, settings) {
     res += "<span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + failRateText + "'></span> ";
 
     res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
-        "[ " + "<a href='" + suite.webToBuild + "' title='" + altTxt + "'> " +
+        "[ " + "<a href='" + suite.webToBuild + "' title=''> " +
         "tests " + suite.failedTests + " " + suite.result;
 
     if (isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length > 0) {

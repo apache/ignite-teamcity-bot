@@ -296,14 +296,15 @@ public class BuildChainProcessor {
                     .orElse(buildCompacted);
 
             return Stream.of(recentRef)
-                    .map(b -> builds.computeIfAbsent(b.id(), id -> teamcityIgnited.getFatBuild(id, syncMode)));
+                .map(b -> builds.computeIfAbsent(b.id(), id -> teamcityIgnited.getFatBuild(id, syncMode)));
         }
 
         if (includeLatestRebuild == LatestRebuildMode.ALL) {
             return hist
-                    .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
-                    .limit(cntLimit)
-                    .map(b -> builds.computeIfAbsent(b.id(), teamcityIgnited::getFatBuild));
+                .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
+                .limit(cntLimit)
+                .filter(b -> !builds.containsKey(b.id())) // todo removing this causes incorrect count of failures (duplicated builds)
+                .map(b -> builds.computeIfAbsent(b.id(), id -> teamcityIgnited.getFatBuild(id, syncMode)));
         }
 
         throw new UnsupportedOperationException("invalid mode " + includeLatestRebuild);
