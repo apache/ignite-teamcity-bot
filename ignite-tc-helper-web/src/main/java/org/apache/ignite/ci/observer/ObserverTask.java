@@ -19,12 +19,12 @@ package org.apache.ignite.ci.observer;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
@@ -61,7 +61,7 @@ public class ObserverTask extends TimerTask {
     private ReentrantLock observationLock = new ReentrantLock();
 
     /** */
-    private Map<ContributionKey, BuildsInfo> infos = new HashMap<>();
+    private Map<ContributionKey, BuildsInfo> infos = new ConcurrentHashMap<>();
 
     /**
      */

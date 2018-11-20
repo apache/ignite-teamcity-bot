@@ -67,14 +67,18 @@ public class VisasHistoryStorage {
             visaReq.getInfo().srvId,
             visaReq.getInfo().branchForTc), strCompactor);
 
-        List<CompactVisaRequest> contributionVisas = visas().get(key);
+        visas().invoke(key, (entry, arguments) -> {
+            List<CompactVisaRequest> contributionVisas = entry.getValue();
 
-        if (contributionVisas == null)
-            contributionVisas = new ArrayList<>();
+            if (contributionVisas == null)
+                contributionVisas = new ArrayList<>();
 
-        contributionVisas.add(compactVisaReq);
+            contributionVisas.add(compactVisaReq);
 
-        visas().put(key, contributionVisas);
+            entry.setValue(contributionVisas);
+
+            return contributionVisas;
+        });
     }
 
     /** */
@@ -98,20 +102,24 @@ public class VisasHistoryStorage {
     public boolean updateLastVisaRequest(ContributionKey key, Consumer<VisaRequest> updater) {
         CompactContributionKey compactKey = new CompactContributionKey(key, strCompactor);
 
-        List<CompactVisaRequest> compactReqs = visas().get(compactKey);
-
-        if (Objects.isNull(compactReqs))
+        if (!visas().containsKey(compactKey))
             return false;
 
-        int lastIdx = compactReqs.size() - 1;
+        visas().invoke(compactKey, (entry, arguments) -> {
+            List<CompactVisaRequest> compactReqs = entry.getValue();
 
-        VisaRequest req = compactReqs.get(lastIdx).toVisaRequest(strCompactor);
+            int lastIdx = compactReqs.size() - 1;
 
-        updater.accept(req);
+            VisaRequest req = compactReqs.get(lastIdx).toVisaRequest(strCompactor);
 
-        compactReqs.set(lastIdx, new CompactVisaRequest(req, strCompactor));
+            updater.accept(req);
 
-        visas().put(compactKey, compactReqs);
+            compactReqs.set(lastIdx, new CompactVisaRequest(req, strCompactor));
+
+            entry.setValue(compactReqs);
+
+            return compactReqs;
+        });
 
         return true;
     }
