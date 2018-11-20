@@ -43,6 +43,7 @@ import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.Visa;
+import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 
 /**
@@ -76,6 +77,7 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(IssueDetector.class).in(new SingletonScope());
         bind(ObserverTask.class).in(new SingletonScope());
         bind(BuildObserver.class).in(new SingletonScope());
+        bind(VisasHistoryStorage.class).in(new SingletonScope());
         bind(ITcHelper.class).to(TcHelper.class).in(new SingletonScope());
 
         bind(IJiraIntegration.class).to(Jira.class).in(new SingletonScope());

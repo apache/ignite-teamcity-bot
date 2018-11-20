@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.web.model;
 
+import java.util.Objects;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
@@ -44,5 +45,24 @@ public class ContributionKey {
     /** {@inheritDoc} */
     @Override public String toString() {
         return "{srv: " + this.srvId + " branch: " + this.branchForTc + '}';
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+
+        if (!(o instanceof ContributionKey))
+            return false;
+
+        ContributionKey key = (ContributionKey)o;
+
+        return Objects.equals(srvId, key.srvId) &&
+            Objects.equals(branchForTc, key.branchForTc);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hash(srvId, branchForTc);
     }
 }

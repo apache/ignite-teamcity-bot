@@ -23,20 +23,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TimerTask;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.model.CompactContributionKey;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.VisaRequest;
@@ -59,43 +55,35 @@ public class ObserverTask extends TimerTask {
     @Inject private IJiraIntegration jiraIntegration;
 
     /** */
-    private VisasHistoryStorage visasHistStorage;
-
-    /** */
-    @Inject private IStringCompactor strCompactor;
+    @Inject private VisasHistoryStorage visasHistStorage;
 
     /** */
     private ReentrantLock observationLock = new ReentrantLock();
 
     /** */
-    private Map<CompactContributionKey, CompactBuildsInfo> compactInfos = new HashMap<>();
+    private Map<ContributionKey, BuildsInfo> infos = new HashMap<>();
 
     /**
      */
-    @Inject
-    ObserverTask(VisasHistoryStorage visasHistStorage) {
-        this.visasHistStorage = visasHistStorage;
+    ObserverTask() {
+    }
 
+    /** */
+    public void init() {
         visasHistStorage.getLastVisas().stream()
             .filter(req -> req.isObserving())
-            .forEach(req ->
-                compactInfos.put(new CompactContributionKey(req.getInfo().getContributionKey(), strCompactor),
-                    new CompactBuildsInfo(req.getInfo(), strCompactor)));
+            .forEach(req -> infos.put(req.getInfo().getContributionKey(), req.getInfo()));
     }
 
     /** */
     @Nullable public BuildsInfo getInfo(ContributionKey key) {
-        CompactBuildsInfo compactBuildsInfo = compactInfos.get(new CompactContributionKey(key, strCompactor));
-
-        return Objects.isNull(compactBuildsInfo) ? null : compactBuildsInfo.toBuildInfo(strCompactor);
+        return infos.get(key);
     }
 
 
     /** */
     public Collection<BuildsInfo> getInfos() {
-        return compactInfos.values().stream()
-            .map(compactBuildsInfo -> compactBuildsInfo.toBuildInfo(strCompactor))
-            .collect(Collectors.toList());
+        return infos.values();
     }
 
     /** */
@@ -104,8 +92,7 @@ public class ObserverTask extends TimerTask {
 
         visasHistStorage.put(new VisaRequest(info).setObservingStatus(true));
 
-        compactInfos.put(new CompactContributionKey(info.getContributionKey(), strCompactor),
-            new CompactBuildsInfo(info, strCompactor));
+        infos.put(info.getContributionKey(), info);
     }
 
     /** */
@@ -113,12 +100,10 @@ public class ObserverTask extends TimerTask {
         observationLock.lock();
 
         try {
-            CompactContributionKey compactKey = new CompactContributionKey(key, strCompactor);
-
-            if (!compactInfos.containsKey(compactKey))
+            if (!infos.containsKey(key))
                 return false;
 
-            compactInfos.remove(compactKey);
+            infos.remove(key);
 
             visasHistStorage.updateLastVisaRequest(key, req -> req.setObservingStatus(false));
 
@@ -155,19 +140,17 @@ public class ObserverTask extends TimerTask {
             int notFinishedBuilds = 0;
             Set<String> ticketsNotified = new HashSet<>();
 
-            List<CompactContributionKey> rmv = new ArrayList<>();
+            List<ContributionKey> rmv = new ArrayList<>();
 
-            for (CompactContributionKey compactKey : compactInfos.keySet()) {
-                CompactBuildsInfo compactInfo = compactInfos.get(compactKey);
-
-                BuildsInfo info = compactInfo.toBuildInfo(strCompactor);
+            for (ContributionKey key : infos.keySet()) {
+                BuildsInfo info = infos.get(key);
 
                 IAnalyticsEnabledTeamcity teamcity = tcHelper.server(info.srvId, tcHelper.getServerAuthorizerCreds());
 
                 checkedBuilds += info.buildsCount();
 
                 if (info.isCancelled(teamcity)) {
-                    rmv.add(compactKey);
+                    rmv.add(key);
 
                     logger.error("JIRA will not be commented." +
                         " [ticket: " + info.ticket + ", branch:" + info.branchForTc + "] : " +
@@ -199,13 +182,13 @@ public class ObserverTask extends TimerTask {
                 }
 
                 if (visa.isSuccess())
-                    rmv.add(compactKey);
+                    rmv.add(key);
             }
 
             rmv.forEach(key -> {
-                compactInfos.remove(key);
+                infos.remove(key);
 
-                visasHistStorage.updateLastVisaRequest(key.toContributionKey(strCompactor), req -> req.setObservingStatus(false));
+                visasHistStorage.updateLastVisaRequest(key, req -> req.setObservingStatus(false));
             });
 
             return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified;

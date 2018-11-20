@@ -39,7 +39,7 @@ import org.apache.ignite.ci.web.model.VisaRequest;
  */
 public class VisasHistoryStorage {
     /** */
-    private static final String VISAS_CACHE_NAME = "compactVisasHistoryCacheV10";
+    private static final String VISAS_CACHE_NAME = "compactVisasHistoryCacheV2";
 
     /** */
     @Inject

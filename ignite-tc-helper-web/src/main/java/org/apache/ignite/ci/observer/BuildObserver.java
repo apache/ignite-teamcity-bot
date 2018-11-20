@@ -56,6 +56,8 @@ public class BuildObserver {
         timer.schedule(observerTask, 0, PERIOD);
 
         this.observerTask = observerTask;
+
+        this.observerTask.init();
     }
 
     /**
