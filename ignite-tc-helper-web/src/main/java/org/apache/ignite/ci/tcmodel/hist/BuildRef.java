@@ -32,6 +32,8 @@ import org.apache.ignite.ci.tcmodel.result.AbstractRef;
 public class BuildRef extends AbstractRef {
     public static final String STATUS_UNKNOWN = "UNKNOWN";
     public static final String STATUS_SUCCESS = "SUCCESS";
+    public static final String STATUS_FAILURE = "FAILURE";
+
     @XmlAttribute private Integer id;
 
     @XmlAttribute public String buildTypeId;

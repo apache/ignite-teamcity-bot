@@ -54,11 +54,19 @@ public class BuildRefCompacted {
      * @param ref Reference.
      */
     public BuildRefCompacted(IStringCompactor compactor, BuildRef ref) {
-        id = ref.getId() == null ? -1 : ref.getId();
+        fillFieldsFromBuildRef(compactor, ref);
+    }
+
+    public void fillFieldsFromBuildRef(IStringCompactor compactor, BuildRef ref) {
+        setId(ref.getId());
         buildTypeId = compactor.getStringId(ref.buildTypeId());
         branchName = compactor.getStringId(ref.branchName());
         status = compactor.getStringId(ref.status());
         state = compactor.getStringId(ref.state());
+    }
+
+    public void setId(Integer buildId) {
+        this.id = buildId == null ? -1 : buildId;
     }
 
     /**

@@ -144,7 +144,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
                 .mapToInt(BuildRef::getId)
                 .toArray();
 
-        snapshotDeps = arr.length > 0 ? arr : null;
+        snapshotDependencies(arr);
 
         setFlag(DEF_BR_F, build.defaultBranch);
         setFlag(COMPOSITE_F, build.composite);
@@ -154,6 +154,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         if (build.isFakeStub())
             setFlag(FAKE_BUILD_F, true);
+    }
+
+    public void snapshotDependencies(int[] arr) {
+        snapshotDeps = arr.length > 0 ? arr : null;
     }
 
     /**
