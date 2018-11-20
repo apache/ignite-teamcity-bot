@@ -23,7 +23,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -31,30 +31,37 @@ import java.util.stream.Collectors;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.ITestFailures;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**
  * Test for chain processor
  */
 public class BuildChainProcessorTest {
+    public static final String UNIQUE_FAILED_TEST = "uniqueFailedTest";
+    public static final String TEST_FAILING_EVERY_TIME = "testFailingEveryTime";
     /** Injector. */
     private Injector injector = Guice.createInjector(new AbstractModule() {
         @Override protected void configure() {
@@ -66,45 +73,59 @@ public class BuildChainProcessorTest {
     /**
      *
      */
+    @Ignore
     @Test
     public void testAllBuildsArePresentInMergedBuilds() {
         IStringCompactor c = injector.getInstance(IStringCompactor.class);
         BuildChainProcessor bcp = injector.getInstance(BuildChainProcessor.class);
-        IAnalyticsEnabledTeamcity teamcity = Mockito.mock(IAnalyticsEnabledTeamcity.class);
-        when(teamcity.getBuildFailureRunStatProvider()).thenReturn(Mockito.mock(Function.class));
-        when(teamcity.getTestRunStatProvider()).thenReturn(Mockito.mock(Function.class));
 
         Map<Integer, FatBuildCompacted> builds = new HashMap<>();
 
         List<Integer> entry = Lists.newArrayList();
-        for (int i = 0; i < 10; i++) {
-            FatBuildCompacted root = testFatBuild(c, i, "RunAll");
-            entry.add(root.id());
+        for (int i = 0; i < 10; i++)
+            addTestBuild(c, builds, entry, i);
 
-            root.snapshotDependencies(new int[] {100 + i});
+        ITeamcityIgnited tcIgnited = tcIgnitedMock(builds);
 
-            builds.put(root.id(), root);
+        FullChainRunCtx ctx = bcp.loadFullChainContext(tcOldMock(), tcIgnited,
+            entry,
+            LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
+        List<MultBuildRunCtx> suites = ctx.failedChildSuites().collect(Collectors.toList());
 
-            FatBuildCompacted pds1 = testFatBuild(c, 100 + i, "PDS 1");
+        assertTrue(!suites.isEmpty());
 
-            TestOccurrenceFull t1 = new TestOccurrenceFull();
-            t1.name = "test" + i;
-            t1.status = TestOccurrence.STATUS_FAILURE;
-            pds1.addTests(c, Lists.newArrayList(t1));
+        for (MultBuildRunCtx suite : suites) {
+            System.out.println(suite.getFailedTestsNames().collect(Collectors.toList()));
 
-            builds.put(pds1.id(), pds1);
+            if (suite.suiteName() != null && suite.suiteName().startsWith(UNIQUE_FAILED_TEST))
+                assertTrue(suite.failedTests() >= 10);
+            else
+                assertTrue(suite.failedTests() >= 1);
+
+            List<ITestFailures> tests = suite.getFailedTests();
+            for (ITestFailures test : tests) {
+                if (test.getName().startsWith(UNIQUE_FAILED_TEST))
+                    assertEquals(1, test.failuresCount());
+                else if (test.getName().equals(TEST_FAILING_EVERY_TIME))
+                    assertEquals(10, test.failuresCount());
+            }
         }
+    }
 
-        ITeamcityIgnited tcIgnited = Mockito.mock(ITeamcityIgnited.class);
-        when(tcIgnited.getFatBuild(anyInt(), any(SyncMode.class)))
-            .thenAnswer(inv ->
-            {
-                Integer arg = inv.getArgument(0);
+    /**
+     *
+     */
+    @Test
+    public void testAllBuildsArePresentInSingleuilds() {
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+        BuildChainProcessor bcp = injector.getInstance(BuildChainProcessor.class);
 
-                return Preconditions.checkNotNull(builds.get(arg), "Can't find build in map [" + arg + "]");
-            });
+        Map<Integer, FatBuildCompacted> builds = new HashMap<>();
 
-        FullChainRunCtx ctx = bcp.loadFullChainContext(teamcity, tcIgnited,
+        List<Integer> entry = Lists.newArrayList();
+        addTestBuild(c, builds, entry, 0);
+
+        FullChainRunCtx ctx = bcp.loadFullChainContext(tcOldMock(), tcIgnitedMock(builds),
             entry,
             LatestRebuildMode.LATEST, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
         List<MultBuildRunCtx> suites = ctx.failedChildSuites().collect(Collectors.toList());
@@ -115,6 +136,92 @@ public class BuildChainProcessorTest {
         assertTrue(suiteMultCtx.failedTests() >= 1);
     }
 
+    public void addTestBuild(IStringCompactor c, Map<Integer, FatBuildCompacted> builds, List<Integer> entry, int i) {
+        FatBuildCompacted root = testFatBuild(c, i, "RunAll");
+        entry.add(root.id());
+
+        root.snapshotDependencies(new int[] {100 + i, 200 + i});
+
+        builds.put(root.id(), root);
+
+        FatBuildCompacted pds1 = testFatBuild(c, 100 + i, "Pds1");
+        pds1.buildTypeName(UNIQUE_FAILED_TEST, c);
+
+        TestOccurrenceFull t1 = new TestOccurrenceFull();
+        t1.name = UNIQUE_FAILED_TEST + i;
+        t1.status = TestOccurrence.STATUS_FAILURE;
+        pds1.addTests(c, Lists.newArrayList(t1));
+
+        builds.put(pds1.id(), pds1);
+
+        FatBuildCompacted pds2 = testFatBuild(c, 200 + i, "Pds2");
+
+        TestOccurrenceFull t2 = new TestOccurrenceFull();
+        t2.name = "testPds2" + i;
+        t2.status = TestOccurrence.STATUS_SUCCESS;
+
+        TestOccurrenceFull t3 = new TestOccurrenceFull();
+        t3.name = TEST_FAILING_EVERY_TIME;
+        t3.status = TestOccurrence.STATUS_FAILURE;
+        pds2.addTests(c, Lists.newArrayList(t2, t3));
+
+        builds.put(pds2.id(), pds2);
+    }
+
+    @NotNull public IAnalyticsEnabledTeamcity tcOldMock() {
+        IAnalyticsEnabledTeamcity teamcity = Mockito.mock(IAnalyticsEnabledTeamcity.class);
+        when(teamcity.getBuildFailureRunStatProvider()).thenReturn(Mockito.mock(Function.class));
+        when(teamcity.getTestRunStatProvider()).thenReturn(Mockito.mock(Function.class));
+        return teamcity;
+    }
+
+    @NotNull public ITeamcityIgnited tcIgnitedMock(Map<Integer, FatBuildCompacted> builds) {
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+
+        ITeamcityIgnited tcIgnited = Mockito.mock(ITeamcityIgnited.class);
+        when(tcIgnited.getFatBuild(anyInt(), any(SyncMode.class)))
+            .thenAnswer(inv ->
+            {
+                Integer arg = inv.getArgument(0);
+
+                return Preconditions.checkNotNull(builds.get(arg), "Can't find build in map [" + arg + "]");
+            });
+
+        when(tcIgnited.getAllBuildsCompacted(anyString(), anyString()))
+            .thenAnswer(inv -> {
+                String btId = inv.getArgument(0);
+
+                String branch = inv.getArgument(1);
+
+                return builds.values()
+                    .stream()
+                    .filter(fb -> btId.equals(fb.buildTypeId(c)))
+                    //  .filter(fb -> branch.equals(fb.branchName(c)))
+                    .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
+                    .collect(Collectors.toList());
+            });
+
+        when(tcIgnited.getLastNBuildsFromHistory(anyString(), anyString(), anyInt()))
+            .thenAnswer(inv -> {
+                String btId = inv.getArgument(0);
+
+                String branch = inv.getArgument(1);
+
+                Integer cnt = inv.getArgument(2);
+
+                return builds.values()
+                    .stream()
+                    .filter(fb -> btId.equals(fb.buildTypeId(c)))
+                    // .filter(fb -> branch.equals(fb.branchName(c)))
+                    .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
+                    .limit(cnt)
+                    .map(BuildRefCompacted::id)
+                    .collect(Collectors.toList());
+            });
+
+        return tcIgnited;
+    }
+
     @NotNull public FatBuildCompacted testFatBuild(IStringCompactor c, int id, String bt) {
         FatBuildCompacted root = new FatBuildCompacted();
         BuildRef ref = new BuildRef();
@@ -123,6 +230,9 @@ public class BuildChainProcessorTest {
         ref.state = BuildRef.STATE_FINISHED;
         ref.status = BuildRef.STATUS_FAILURE;
         root.fillFieldsFromBuildRef(c, ref);
+
+        assertEquals(root.buildTypeId(c), bt);
+
         return root;
     }
 }

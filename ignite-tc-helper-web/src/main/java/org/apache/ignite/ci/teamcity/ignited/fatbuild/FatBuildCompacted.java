@@ -124,7 +124,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         BuildType type = build.getBuildType();
         if (type != null) {
             projectId = compactor.getStringId(type.getProjectId());
-            name = compactor.getStringId(type.getName());
+            buildTypeName(type.getName(), compactor);
         }
 
         AtomicBoolean failedToStart = new AtomicBoolean();
@@ -154,6 +154,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         if (build.isFakeStub())
             setFlag(FAKE_BUILD_F, true);
+    }
+
+    public void buildTypeName(String btName, IStringCompactor compactor) {
+        name = compactor.getStringId(btName);
     }
 
     public void snapshotDependencies(int[] arr) {
