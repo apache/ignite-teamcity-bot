@@ -178,11 +178,13 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
             String comment = generateJiraComment(suitesStatuses, build.webUrl);
 
-            blockers = suitesStatuses.stream().mapToInt(suite -> {
-                if (suite.testFailures.isEmpty())
-                    return 1;
+            blockers = suitesStatuses.stream()
+                .mapToInt(suite -> {
+                    if (suite.testFailures.isEmpty())
+                        return 1;
 
-                return suite.testFailures.size();})
+                    return suite.testFailures.size();
+                })
                 .sum();
 
             res = objectMapper.readValue(teamcity.sendJiraComment(ticket, comment), JiraCommentResponse.class);

@@ -120,12 +120,11 @@ public class PrChainsProcessor {
         else
             logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
-        List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId,
-            branchForTc, buildResMergeCnt);
+        List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId, branchForTc, buildResMergeCnt);
 
         String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
 
-        final FullChainRunCtx val = buildChainProcessor.loadFullChainContext(teamcity,
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
             tcIgnited,
             hist,
             rebuild,
@@ -134,25 +133,21 @@ public class PrChainsProcessor {
             baseBranch,
             mode);
 
-        Optional<FullChainRunCtx> pubCtx = Optional.of(val);
-
         final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverId(), branchForTc);
 
         chainStatus.baseBranchForTc = baseBranch;
 
-        pubCtx.ifPresent(ctx -> {
-            if (ctx.isFakeStub())
-                chainStatus.setBuildNotFound(true);
-            else {
-                int cnt0 = (int)ctx.getRunningUpdates().count();
+        if (ctx.isFakeStub())
+            chainStatus.setBuildNotFound(true);
+        else {
+            int cnt0 = (int)ctx.getRunningUpdates().count();
 
-                if (cnt0 > 0)
-                    runningUpdates.addAndGet(cnt0);
+            if (cnt0 > 0)
+                runningUpdates.addAndGet(cnt0);
 
-                //fail rate reference is always default (master)
-                chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranch);
-            }
-        });
+            //fail rate reference is always default (master)
+            chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranch);
+        }
 
         res.addChainOnServer(chainStatus);
 
@@ -187,6 +182,7 @@ public class PrChainsProcessor {
             FullQueryParams.LATEST, null, null, false, queued);
 
         boolean noBuilds = summary.servers.stream().anyMatch(s -> s.buildNotFound);
+
         if(noBuilds)
             return null;
 

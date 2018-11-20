@@ -434,11 +434,17 @@ public class TcBotTriggerAndSignOffService {
         List<SuiteCurrentStatus> suitesStatuses
             = prChainsProcessor.getSuitesStatuses(buildTypeId, tcBranch, srvId, prov, SyncMode.NONE);
 
-        if(suitesStatuses==null)
+        if (suitesStatuses == null)
             return status;
 
-        status.blockers = suitesStatuses.stream().mapToInt(suite ->
-            suite.testFailures.size()).sum();
+        status.blockers = suitesStatuses.stream()
+            .mapToInt(suite -> {
+                if (suite.testFailures.isEmpty())
+                    return 1;
+
+                return suite.testFailures.size();
+            })
+            .sum();
 
         return status;
     }
