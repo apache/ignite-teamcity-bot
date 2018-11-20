@@ -57,7 +57,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Suite Run Result (filled if failed): Summary of build problems, count of tests, etc. */
     public String result;
 
-    /** Has critical problem: Timeout or JMV Crash */
+    /** Has critical problem: Timeout, JMV Crash or Compilation Error*/
     @Nullable public Boolean hasCriticalProblem;
 
     /** Web Href. to suite runs history */

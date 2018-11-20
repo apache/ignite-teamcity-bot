@@ -38,6 +38,9 @@ public class ProblemOccurrence {
     public static final String SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE = "SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE";
     public static final String SNAPSHOT_DEPENDENCY_ERROR = "SNAPSHOT_DEPENDENCY_ERROR";
 
+    /** */
+    public static final String TC_COMPILATION_ERROR = "TC_COMPILATION_ERROR";
+
     /** Java level deadlock: Detected by log processing, not by teamcity */
     public static final String JAVA_LEVEL_DEADLOCK = "JAVA_LEVEL_DEADLOCK";
 
@@ -50,6 +53,11 @@ public class ProblemOccurrence {
      * May be null for old persisted entries.
      */
     @Nullable public BuildRef buildRef;
+
+    /** */
+    public boolean isCompilationError() {
+        return TC_COMPILATION_ERROR.equals(type);
+    }
 
     /** */
     public boolean isFailureOnMetric() {

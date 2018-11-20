@@ -21,6 +21,9 @@ package org.apache.ignite.ci.analysis;
  * Results from one or several builds for specific build type.
  */
 public interface ISuiteResults {
+    /** */
+    boolean hasCompilationProblem();
+
     boolean hasTimeoutProblem();
 
     boolean hasJvmCrashProblem();
@@ -30,14 +33,15 @@ public interface ISuiteResults {
     boolean hasExitCodeProblem();
 
     default boolean hasCriticalProblem() {
-        return hasJvmCrashProblem() || hasTimeoutProblem();
+        return hasJvmCrashProblem() || hasTimeoutProblem() || hasCompilationProblem();
     }
 
     default boolean hasSuiteIncompleteFailure() {
         return hasJvmCrashProblem()
             || hasTimeoutProblem()
             || hasOomeProblem()
-            || hasExitCodeProblem();
+            || hasExitCodeProblem()
+            || hasCompilationProblem();
     }
 
     String suiteId();
