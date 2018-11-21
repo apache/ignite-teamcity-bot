@@ -141,7 +141,7 @@ public class BuildChainProcessorTest {
 
             if (suite.suiteName() != null && suite.suiteName().startsWith(UNIQUE_FAILED_TEST)) {
                 for (ITestFailures test : suite.getFailedTests())
-                    assertTrue("Failure found but should be hidden by re-run " + test, false);
+                    assertTrue("Failure found but should be hidden by re-run " + test.getName(), false);
             }
         }
     }

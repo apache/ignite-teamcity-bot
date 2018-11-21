@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -95,25 +96,9 @@ public class BuildChainProcessor {
         if (entryPoints.isEmpty())
             return res;
 
-        Map<Integer, FatBuildCompacted> builds = new ConcurrentHashMap<>();
+        Map<Integer, Future<FatBuildCompacted>> builds = loadChain(entryPoints, mode, teamcityIgnited);
 
-        final Stream<FatBuildCompacted> entryPointsFatBuilds = entryPoints.stream()
-            .filter(Objects::nonNull)
-            .filter(id -> !builds.containsKey(id)) //load and propagate only new entry points
-            .map(id -> builds.computeIfAbsent(id, teamcityIgnited::getFatBuild));
-
-        final ExecutorService svc = tcUpdatePool.getService();
-
-        final Stream<FatBuildCompacted> depsFirstLevel =
-  Stream.of(); //todo implement
-            /*entryPointsFatBuilds
-            .map(ref -> svc.submit(() -> dependencies(teamcityIgnited, builds, mode, ref)))
-            .flatMap(set->set.stream())
-            .stream()
-            .flatMap(fut -> FutureUtil.getResult(fut));
-
-*/
-        depsFirstLevel
+        builds.values().stream().map(FutureUtil::getResult)
             .filter(b -> !b.isComposite() && b.getTestsCount() > 0)
             .forEach(b ->
             {
@@ -184,41 +169,47 @@ public class BuildChainProcessor {
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
 
-        Map<Integer, Future<FatBuildCompacted>> builds = new ConcurrentHashMap<>();
+        Map<Integer, Future<FatBuildCompacted>> builds = loadChain(entryPoints, mode, tcIgn);
 
-        Stream<Future<FatBuildCompacted>> entryPointsFatBuilds = entryPoints.stream()
-            .filter(Objects::nonNull)
-            .map(id -> builds.computeIfAbsent(id, id0 -> loadBuildAsync(id0, mode, tcIgn)));
+        Map<String, List<Future<FatBuildCompacted>>> freshRebuilds = new ConcurrentHashMap<>();
 
-        Stream<Integer> dependenciesFirstLevel = entryPointsFatBuilds
-            .flatMap(ref -> dependencies(ref, mode, builds, tcIgn).stream());
+        groupByBuildType(builds).forEach(
+            (k, buildsForBt) -> {
+                List<Future<FatBuildCompacted>> futures = replaceWithRecent(buildsForBt,
+                    entryPoints.size(),
+                    includeLatestRebuild,
+                    builds,
+                    mode,
+                    tcIgn);
 
-        Stream<Integer> depsSecondLevel = dependenciesFirstLevel.map(builds::get)
-            .peek(val -> Preconditions.checkNotNull(val, "Build future should be in context"))
-            .flatMap(ref -> dependencies(ref, mode, builds, tcIgn).stream());
+                freshRebuilds.put(k, futures);
+            }
+        );
 
-        Set<Integer> collect = depsSecondLevel.collect(Collectors.toSet());
-        System.err.println("New deps of second level:" + collect);
+        List<MultBuildRunCtx> contexts = new ArrayList<>(freshRebuilds.size());
 
-        // builds may became non unique because of race in filtering and acquiring deps
-        //todo implement
-    /*    final List<Future<Stream<FatBuildCompacted>>> phase3Submitted = secondLevelDeps
-                .map((fatBuild) -> svc.submit(
-                        () -> replaceWithRecent(tcIgn, includeLatestRebuild, mode, builds, fatBuild, entryPoints.size())))
-                .collect(Collectors.toList());*/
-
-        Map<String, MultBuildRunCtx> buildsByBt = new ConcurrentHashMap<>();
-
-        builds.values().stream()
+        freshRebuilds.forEach((bt, listBuilds) -> {
+            List<FatBuildCompacted> buildsForSuite = listBuilds.stream()
                 .map(FutureUtil::getResult)
-                .forEach((fatBuild) -> createCxt(tcIgn, buildsByBt, fatBuild));
+                .filter(buildCompacted -> {
+                    return !buildCompacted.isFakeStub() && buildCompacted.getId()!=null;
+                })
+                .collect(Collectors.toList());
 
-        ArrayList<MultBuildRunCtx> contexts = new ArrayList<>(buildsByBt.values());
+            if (buildsForSuite.isEmpty())
+                return;
 
-        contexts.forEach(multiCtx -> {
-            analyzeTests(multiCtx, teamcity, procLog);
+            BuildRef ref = buildsForSuite.iterator().next().toBuildRef(compactor);
 
-            fillBuildCounts(multiCtx, tcIgn, includeScheduledInfo);
+            final MultBuildRunCtx ctx = new MultBuildRunCtx(ref, compactor);
+
+            buildsForSuite.forEach(buildCompacted -> ctx.addBuild(loadChanges(buildCompacted, tcIgn)));
+
+            analyzeTests(ctx, teamcity, procLog);
+
+            fillBuildCounts(ctx, tcIgn, includeScheduledInfo);
+
+            contexts.add(ctx);
         });
 
         Function<MultBuildRunCtx, Float> function = ctx -> {
@@ -235,7 +226,7 @@ public class BuildChainProcessor {
         };
 
         Integer someEntryPnt = entryPoints.iterator().next();
-        Future<FatBuildCompacted> build = builds.computeIfAbsent(someEntryPnt, id -> loadBuildAsync(id, mode, tcIgn));
+        Future<FatBuildCompacted> build = getOrLoadBuild(someEntryPnt, mode, builds, tcIgn);
         FullChainRunCtx fullChainRunCtx = new FullChainRunCtx(FutureUtil.getResult(build).toBuild(compactor));
 
         contexts.sort(Comparator.comparing(function).reversed());
@@ -245,21 +236,42 @@ public class BuildChainProcessor {
         return fullChainRunCtx;
     }
 
+    @NotNull
+    public Map<Integer, Future<FatBuildCompacted>> loadChain(Collection<Integer> entryPoints,
+        SyncMode mode,
+        ITeamcityIgnited tcIgn) {
+        Map<Integer, Future<FatBuildCompacted>> builds = new ConcurrentHashMap<>();
 
-    @SuppressWarnings("WeakerAccess")
-    @AutoProfiling
-    protected void createCxt(ITeamcityIgnited teamcityIgnited,
-                             Map<String, MultBuildRunCtx> buildsCtxMap,
-                             FatBuildCompacted buildCompacted) {
-        final BuildRef ref = buildCompacted.toBuildRef(compactor);
+        Stream<Future<FatBuildCompacted>> entryPointsFatBuilds = entryPoints.stream()
+            .filter(Objects::nonNull)
+            .map(id -> getOrLoadBuild(id, mode, builds, tcIgn));
 
-        if (buildCompacted.isFakeStub() || ref.isFakeStub())
-            return;
+        Stream<Integer> dependenciesFirstLevel = entryPointsFatBuilds
+            .flatMap(ref -> dependencies(ref, mode, builds, tcIgn).stream());
 
-        final MultBuildRunCtx ctx = buildsCtxMap.computeIfAbsent(ref.buildTypeId,
-                k -> new MultBuildRunCtx(ref, compactor));
+        Stream<Integer> depsSecondLevel = dependenciesFirstLevel.map(builds::get)
+            .peek(val -> Preconditions.checkNotNull(val, "Build future should be in context"))
+            .flatMap(ref -> dependencies(ref, mode, builds, tcIgn).stream());
 
-        ctx.addBuild(loadChanges(buildCompacted, teamcityIgnited));
+        Set<Integer> collect = depsSecondLevel.collect(Collectors.toSet());
+        System.err.println("New deps of second level:" + collect);
+        return builds;
+    }
+
+    @NotNull
+    public Map<String, List<FatBuildCompacted>> groupByBuildType(Map<Integer, Future<FatBuildCompacted>> builds) {
+        Map<String, List<FatBuildCompacted>> buildsByBt = new ConcurrentHashMap<>();
+        builds.values().forEach(bFut -> {
+            FatBuildCompacted b = FutureUtil.getResult(bFut);
+
+            buildsByBt.computeIfAbsent(b.buildTypeId(compactor), k -> new ArrayList<>()).add(b);
+        });
+        return buildsByBt;
+    }
+
+    public Future<FatBuildCompacted> getOrLoadBuild(Integer id, SyncMode mode,
+        Map<Integer, Future<FatBuildCompacted>> builds, ITeamcityIgnited tcIgn) {
+        return builds.computeIfAbsent(id, id0 -> loadBuildAsync(id0, mode, tcIgn));
     }
 
     /**
@@ -281,37 +293,43 @@ public class BuildChainProcessor {
     @SuppressWarnings("WeakerAccess")
     @NotNull
     @AutoProfiling
-    protected Stream<FatBuildCompacted> replaceWithRecent(ITeamcityIgnited teamcityIgnited,
+    protected List<Future<FatBuildCompacted>> replaceWithRecent(List<FatBuildCompacted> builds,
+        int cntLimit,
         LatestRebuildMode includeLatestRebuild,
+        Map<Integer, Future<FatBuildCompacted>> allBuildsMap,
         SyncMode syncMode,
-        Map<Integer, FatBuildCompacted> builds,
-        FatBuildCompacted buildCompacted,
-        int cntLimit) {
-        if (includeLatestRebuild == LatestRebuildMode.NONE)
-            return Stream.of(buildCompacted);
+        ITeamcityIgnited tcIgn) {
+        if (includeLatestRebuild == LatestRebuildMode.NONE || builds.isEmpty())
+            return completed(builds);
 
-        final String branch = getBranchOrDefault(buildCompacted.branchName(compactor));
+        Optional<FatBuildCompacted> maxIdBuildOpt = builds.stream().max(Comparator.comparing(BuildRefCompacted::id));
+        if (!maxIdBuildOpt.isPresent())
+            return completed(builds);
 
-        final String buildTypeId = buildCompacted.buildTypeId(compactor);
-        Stream<BuildRefCompacted> hist = teamcityIgnited.getAllBuildsCompacted(buildTypeId, branch)
+        FatBuildCompacted freshBuild = maxIdBuildOpt.get();
+
+        final String branch = getBranchOrDefault(freshBuild.branchName(compactor));
+
+        final String buildTypeId = freshBuild.buildTypeId(compactor);
+        Stream<BuildRefCompacted> hist = tcIgn.getAllBuildsCompacted(buildTypeId, branch)
             .stream()
-            .filter(t -> !t.isCancelled(compactor))
-            .filter(t -> t.isFinished(compactor));
+            .filter(bref -> !bref.isCancelled(compactor))
+            .filter(bref -> bref.isFinished(compactor));
 
         if (includeLatestRebuild == LatestRebuildMode.LATEST) {
             BuildRefCompacted recentRef = hist.max(Comparator.comparing(BuildRefCompacted::id))
-                    .orElse(buildCompacted);
+                .orElse(freshBuild);
 
-            return Stream.of(recentRef)
-                .map(b -> builds.computeIfAbsent(b.id(), id -> FutureUtil.getResult(loadBuildAsync(id, syncMode, teamcityIgnited))));
+            return Collections.singletonList(
+                getOrLoadBuild(recentRef.id(), syncMode, allBuildsMap, tcIgn));
         }
 
         if (includeLatestRebuild == LatestRebuildMode.ALL) {
             return hist
                 .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
                 .limit(cntLimit)
-               // .filter(b -> !builds.containsKey(b.id())) // todo removing this causes incorrect count of failures (duplicated builds)
-                .map(b -> builds.computeIfAbsent(b.id(), id -> FutureUtil.getResult(loadBuildAsync(id, syncMode, teamcityIgnited))));
+                .map(bref -> getOrLoadBuild(bref.id(), syncMode, allBuildsMap, tcIgn))
+                .collect(Collectors.toList());
         }
 
         throw new UnsupportedOperationException("invalid mode " + includeLatestRebuild);
@@ -405,4 +423,10 @@ public class BuildChainProcessor {
             return teamcityIgnited.getFatBuild(id, mode);
         });
     }
+
+
+    private List<Future<FatBuildCompacted>> completed(List<FatBuildCompacted> builds) {
+        return builds.stream().map(Futures::immediateFuture).collect(Collectors.toList());
+    }
+
 }

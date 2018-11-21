@@ -90,7 +90,7 @@ public class FullChainRunCtx {
             + (hasFullDurationInfo() ? "" : "+");
     }
 
-    public void addAllSuites(ArrayList<MultBuildRunCtx> suites) {
+    public void addAllSuites(List<MultBuildRunCtx> suites) {
         this.buildCfgsResults.addAll(suites);
     }
 
