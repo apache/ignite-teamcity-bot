@@ -45,7 +45,6 @@ import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -60,8 +59,15 @@ import static org.mockito.Mockito.when;
  * Test for chain processor
  */
 public class BuildChainProcessorTest {
+    /** Unique failed test, prefix for test name. This name will be unique each time. */
     public static final String UNIQUE_FAILED_TEST = "uniqueFailedTest";
+
+    /** Test failing every time. */
     public static final String TEST_FAILING_EVERY_TIME = "testFailingEveryTime";
+
+    /** Pds 1 build type ID. */
+    public static final String PDS_1_BT_ID = "Pds1";
+
     /** Injector. */
     private Injector injector = Guice.createInjector(new AbstractModule() {
         @Override protected void configure() {
@@ -73,7 +79,6 @@ public class BuildChainProcessorTest {
     /**
      *
      */
-    @Ignore
     @Test
     public void testAllBuildsArePresentInMergedBuilds() {
         IStringCompactor c = injector.getInstance(IStringCompactor.class);
@@ -102,12 +107,40 @@ public class BuildChainProcessorTest {
             else
                 assertTrue(suite.failedTests() >= 1);
 
-            List<ITestFailures> tests = suite.getFailedTests();
-            for (ITestFailures test : tests) {
+            for (ITestFailures test : suite.getFailedTests()) {
                 if (test.getName().startsWith(UNIQUE_FAILED_TEST))
                     assertEquals(1, test.failuresCount());
                 else if (test.getName().equals(TEST_FAILING_EVERY_TIME))
                     assertEquals(10, test.failuresCount());
+            }
+        }
+
+        //Adding successfull re-runs
+        for (int j = 0; j < 10; j++) {
+            FatBuildCompacted pds1 = testFatBuild(c, 130 + j, PDS_1_BT_ID);
+            pds1.buildTypeName(UNIQUE_FAILED_TEST, c);
+
+            TestOccurrenceFull t1 = new TestOccurrenceFull();
+            t1.name = UNIQUE_FAILED_TEST + j;
+            t1.status = TestOccurrence.STATUS_SUCCESS;
+            pds1.addTests(c, Lists.newArrayList(t1));
+
+            builds.put(pds1.id(), pds1);
+        }
+
+        FullChainRunCtx ctx2 = bcp.loadFullChainContext(tcOldMock(), tcIgnited,
+            entry,
+            LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
+        List<MultBuildRunCtx> suites2 = ctx2.failedChildSuites().collect(Collectors.toList());
+
+        assertTrue(!suites2.isEmpty());
+
+        for (MultBuildRunCtx suite : suites2) {
+            System.out.println(suite.getFailedTestsNames().collect(Collectors.toList()));
+
+            if (suite.suiteName() != null && suite.suiteName().startsWith(UNIQUE_FAILED_TEST)) {
+                for (ITestFailures test : suite.getFailedTests())
+                    assertTrue("Failure found but should be hidden by re-run " + test.getName(), false);
             }
         }
     }
@@ -144,7 +177,7 @@ public class BuildChainProcessorTest {
 
         builds.put(root.id(), root);
 
-        FatBuildCompacted pds1 = testFatBuild(c, 100 + i, "Pds1");
+        FatBuildCompacted pds1 = testFatBuild(c, 100 + i, PDS_1_BT_ID);
         pds1.buildTypeName(UNIQUE_FAILED_TEST, c);
 
         TestOccurrenceFull t1 = new TestOccurrenceFull();

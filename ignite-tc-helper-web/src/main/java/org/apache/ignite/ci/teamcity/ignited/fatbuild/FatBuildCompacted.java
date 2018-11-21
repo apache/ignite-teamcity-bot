@@ -330,6 +330,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
      *
      */
     public boolean isFakeStub() {
+        if (getId() == null)
+            return true;
+
         Boolean flag = getFlag(FAKE_BUILD_F);
 
         return flag != null && flag;
