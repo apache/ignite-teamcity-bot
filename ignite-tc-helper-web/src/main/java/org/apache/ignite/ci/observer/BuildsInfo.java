@@ -96,7 +96,7 @@ public class BuildsInfo {
     /**
      * @param teamcity Teamcity.
      */
-    public String getState(IAnalyticsEnabledTeamcity teamcity) {
+    public String getStatus(IAnalyticsEnabledTeamcity teamcity) {
         boolean isFinished = true;
 
         for (Integer id : builds) {
@@ -116,14 +116,14 @@ public class BuildsInfo {
      * @param teamcity Teamcity.
      */
     public boolean isFinished(IAnalyticsEnabledTeamcity teamcity) {
-        return FINISHED_STATUS.equals(getState(teamcity));
+        return FINISHED_STATUS.equals(getStatus(teamcity));
     }
 
     /**
      * @param teamcity Teamcity.
      */
     public boolean isCancelled(IAnalyticsEnabledTeamcity teamcity) {
-        return CANCELLED_STATUS.equals(getState(teamcity));
+        return CANCELLED_STATUS.equals(getStatus(teamcity));
     }
 
     /**

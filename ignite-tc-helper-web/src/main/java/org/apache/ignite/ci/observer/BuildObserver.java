@@ -56,6 +56,8 @@ public class BuildObserver {
         timer.schedule(observerTask, 0, PERIOD);
 
         this.observerTask = observerTask;
+
+        this.observerTask.init();
     }
 
     /**
@@ -66,16 +68,9 @@ public class BuildObserver {
     }
 
     /** */
-    public ObserverTask getObserverTask() {
-        return observerTask;
-    }
-
-    /** */
     public boolean stopObservation(ContributionKey key) {
         try {
-            observerTask.removeBuildInfo(key);
-
-            return true;
+            return observerTask.removeBuildInfo(key);
         }
         catch (Exception e) {
             logger.error("Observation stop: " + e.getMessage(), e);

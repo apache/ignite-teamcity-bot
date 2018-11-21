@@ -39,7 +39,6 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
-import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -101,7 +100,7 @@ public class TcBotTriggerAndSignOffService {
 
 
     @Inject PrChainsProcessor prChainsProcessor;
-    
+
     /** */
     public void startObserver() {
         buildObserverProvider.get();
@@ -113,8 +112,6 @@ public class TcBotTriggerAndSignOffService {
 
         IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
 
-        ObserverTask observerTask = buildObserverProvider.get().getObserverTask();
-
         for (VisaRequest visaRequest : visasHistoryStorage.getVisas()) {
             VisaStatus visaStatus = new VisaStatus();
 
@@ -122,16 +119,14 @@ public class TcBotTriggerAndSignOffService {
 
             Visa visa = visaRequest.getResult();
 
+            boolean isObserving = visaRequest.isObserving();
+
             visaStatus.date = THREAD_FORMATTER.get().format(info.date);
             visaStatus.branchName = info.branchForTc;
             visaStatus.userName = info.userName;
             visaStatus.ticket = info.ticket;
 
-            String buildsStatus = visaStatus.status = info.getState(teamcity);
-
-            BuildsInfo observInfo = observerTask.getInfo(info.getContributionKey());
-
-            boolean isObserving = Objects.nonNull(observInfo) && observInfo.date.equals(info.date);
+            String buildsStatus = visaStatus.status = info.getStatus(teamcity);
 
             if (FINISHED_STATUS.equals(buildsStatus)) {
                 if (visa.isSuccess()) {
@@ -298,6 +293,13 @@ public class TcBotTriggerAndSignOffService {
 
         if (!Strings.isNullOrEmpty(ticketFullName)) {
             BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticketFullName, branchForTc);
+
+            VisaRequest lastVisaReq = visasHistoryStorage.getLastVisaRequest(buildsInfo.getContributionKey());
+
+            if (Objects.nonNull(lastVisaReq) && lastVisaReq.isObserving())
+                return new SimpleResult("Jira wasn't commented." +
+                    " \"Re-run possible blockers & Comment JIRA\" was triggered for current branch." +
+                    " Wait for the end or cancel exsiting observing.");
 
             Visa visa = jiraIntegration.notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName);
 
