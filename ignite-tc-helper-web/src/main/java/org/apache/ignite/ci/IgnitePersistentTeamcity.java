@@ -727,7 +727,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @Deprecated
-    @Override public ProblemOccurrences getProblemsAndRegisterCtiticals(BuildRef build) {
+    @Override public ProblemOccurrences getProblemsAndRegisterCritical(BuildRef build) {
         ProblemOccurrences problems = teamcity.getProblems(build.getId());
 
         registerCriticalBuildProblemInStat(build, problems);

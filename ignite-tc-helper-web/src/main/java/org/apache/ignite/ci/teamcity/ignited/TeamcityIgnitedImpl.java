@@ -158,7 +158,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
                     if (stopFilter.get())
                         return addBuild.get();
 
-                    FatBuildCompacted build = getFatBuild(b.id());
+                    FatBuildCompacted build = getFatBuild(b.id(), SyncMode.LOAD_NEW);
 
                     if (build == null || build.isFakeStub())
                         return false;
