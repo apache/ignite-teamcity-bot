@@ -92,7 +92,6 @@ import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBran
  */
 @Deprecated
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
-
     //V2 caches, 32 parts (V1 caches were 1024 parts)
     @Deprecated
     private static final String TESTS_OCCURRENCES = "testOccurrences";
@@ -100,9 +99,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private static final String CALCULATED_STATISTIC = "calculatedStatistic";
     private static final String LOG_CHECK_RESULT = "logCheckResult";
     private static final String ISSUES_USAGES_LIST = "issuesUsagesList";
-    @Deprecated
-    private static final String TEST_FULL = "testFull";
-    private static final String BUILD_PROBLEMS = "buildProblems";
 
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
     public static final String TEST_REFS = "testRefs";
@@ -111,9 +107,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
     private static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
     public static final String BUILDS = "builds";
-
-    /** Number of builds to re-query from TC to be sure some builds in the middle are not lost. */
-    private static final int MAX_BUILDS_IN_PAST_TO_RELOAD = 5;
 
     @Inject
     private Ignite ignite;
@@ -128,10 +121,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private ITeamcity teamcity;
     private String serverId;
 
-    /**
-     * cached loads of full test occurrence.
-     */
-    private ConcurrentMap<String, CompletableFuture<TestOccurrenceFull>> testOccFullFutures = new ConcurrentHashMap<>();
 
     /** Cached loads of test refs.*/
     private ConcurrentMap<String, CompletableFuture<TestRef>> testRefsFutures = new ConcurrentHashMap<>();
@@ -142,15 +131,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** cached loads of queued builds for branch. */
     private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> queuedBuildsFuts = new ConcurrentHashMap<>();
 
-    /**   */
-    private ConcurrentMap<SuiteInBranch, Long> lastQueuedHistory = new ConcurrentHashMap<>();
-
     //todo: not good code to keep it static
     @Deprecated
     private static long lastTriggerMs = System.currentTimeMillis();
-
-    private static final boolean noLocks = true;
-
 
     @Override public void init(ITeamcity conn) {
         this.teamcity = conn;
@@ -163,8 +146,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 this::migrateOccurrencesToLatest,
                 buildsCache(), this::addBuildOccurrenceToFailuresStat,
                 buildsFailureRunStatCache(), testRunStatCache(),
-                testFullCache(),
-                buildProblemsCache(),
                 visasHistStorage.visas());
     }
 
@@ -217,13 +198,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return getOrCreateCacheV2(ignCacheNme(TESTS_OCCURRENCES));
     }
 
-    /**
-     * @return {@link TestOccurrenceFull} instances cache, 32 parts.
-     */
-    @Deprecated
-    private IgniteCache<String, TestOccurrenceFull> testFullCache() {
-        return getOrCreateCacheV2(ignCacheNme(TEST_FULL));
-    }
 
     /**
      * @return {@link Configurations} instances cache, 32 parts.
@@ -237,13 +211,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      */
     private IgniteCache<String, TestRef> testRefsCache() {
         return getOrCreateCacheV2(ignCacheNme(TEST_REFS));
-    }
-
-    /**
-     * @return Build {@link ProblemOccurrences} instances cache, 32 parts.
-     */
-    private IgniteCache<String, ProblemOccurrences> buildProblemsCache() {
-        return getOrCreateCacheV2(ignCacheNme(BUILD_PROBLEMS));
     }
 
     /** {@inheritDoc} */
@@ -284,132 +251,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     @Deprecated
-    protected List<BuildRef> loadBuildHistory(IgniteCache<SuiteInBranch, Expirable<List<BuildRef>>> cache,
-                                              int seconds,
-                                              SuiteInBranch key,
-                                              BiFunction<SuiteInBranch, Integer, List<BuildRef>> realLoad) {
-        @Nullable Expirable<List<BuildRef>> persistedBuilds = readBuildHistEntry(cache, key);
-
-        if (persistedBuilds != null
-                && (isHistoryAgeLessThanSecs(key, seconds, persistedBuilds))) {
-            ObjectInterner.internFields(persistedBuilds);
-
-            return persistedBuilds.getData();
-        }
-
-        Lock lock = lockBuildHistEntry(cache, key);
-
-        try {
-            if (!noLocks) {
-                if (persistedBuilds != null
-                        && (isHistoryAgeLessThanSecs(key, seconds, persistedBuilds))) {
-                    ObjectInterner.internFields(persistedBuilds);
-
-                    return persistedBuilds.getData();
-                }
-            }
-
-            Integer sinceBuildId;
-            if (persistedBuilds != null) {
-                List<BuildRef> prevData = persistedBuilds.getData();
-                if (prevData.size() >= MAX_BUILDS_IN_PAST_TO_RELOAD) {
-                    BuildRef buildRef = prevData.get(prevData.size() - MAX_BUILDS_IN_PAST_TO_RELOAD);
-
-                    sinceBuildId = buildRef.getId();
-                } else
-                    sinceBuildId = null;
-            } else
-                sinceBuildId = null;
-
-            List<BuildRef> dataFromRest;
-            try {
-                dataFromRest = realLoad.apply(key, sinceBuildId);
-            } catch (Exception e) {
-                Throwable rootCause = Throwables.getRootCause(e);
-                if (rootCause instanceof FileNotFoundException) {
-                    System.err.println("Build history not found for build : " + key + ": " + rootCause.getMessage());
-                    dataFromRest = Collections.emptyList();
-                } else if (rootCause instanceof BadRequestException) {
-                    //probably referenced build not found
-                    if (sinceBuildId != null)
-                        dataFromRest = realLoad.apply(key, null);
-                    else
-                        throw e;
-                } else
-                    throw e;
-            }
-            final List<BuildRef> persistedList = persistedBuilds != null ? persistedBuilds.getData() : null;
-            final List<BuildRef> buildRefs = mergeHistoryMaps(persistedList, dataFromRest);
-
-            final Expirable<List<BuildRef>> newVal = new Expirable<>(0L, buildRefs);
-
-            if (persistedList != null && persistedList.equals(buildRefs)) {
-                lastQueuedHistory.put(key, System.currentTimeMillis());
-
-                return buildRefs;
-            }
-            saveBuildHistoryEntry(cache, key, newVal);
-
-            lastQueuedHistory.put(key, System.currentTimeMillis());
-
-            return buildRefs;
-        }
-        finally {
-            if (!noLocks)
-                lock.unlock();
-        }
-    }
-
-    private boolean isHistoryAgeLessThanSecs(SuiteInBranch key, int seconds, Expirable<List<BuildRef>> persistedBuilds) {
-        Long loaded = lastQueuedHistory.get(key);
-        if (loaded == null)
-            return false;
-
-        long ageMs = System.currentTimeMillis() - loaded;
-
-        return ageMs < TimeUnit.SECONDS.toMillis(seconds);
-    }
-
-    @AutoProfiling
-    @SuppressWarnings("WeakerAccess")
-    protected <K> void saveBuildHistoryEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key, Expirable<List<BuildRef>> newVal) {
-        cache.put(key, newVal);
-    }
-
-
-    @AutoProfiling
-    @SuppressWarnings("WeakerAccess")
-    protected <K> Expirable<List<BuildRef>> readBuildHistEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key) {
-        return cache.get(key);
-    }
-
-    @AutoProfiling
-    @SuppressWarnings("WeakerAccess")
-    protected <K> Lock lockBuildHistEntry(IgniteCache<K, Expirable<List<BuildRef>>> cache, K key) {
-        if (noLocks)
-            return null;
-
-        Lock lock = cache.lock(key);
-
-        lock.lock();
-
-        return lock;
-    }
-
-    @NotNull
-    @AutoProfiling
-    @SuppressWarnings("WeakerAccess")
-    protected List<BuildRef> mergeHistoryMaps(@Nullable List<BuildRef> persistedVal, List<BuildRef> mostActualVal) {
-        final SortedMap<Integer, BuildRef> merge = new TreeMap<>();
-
-        if (persistedVal != null)
-            persistedVal.forEach(b -> merge.put(b.getId(), b));
-
-        mostActualVal.forEach(b -> merge.put(b.getId(), b)); //to overwrite data from persistence by values from REST
-
-        return new ArrayList<>(merge.values());
-    }
-
     private <K, V> CompletableFuture<V> loadAsyncIfAbsentOrExpired(ConcurrentMap<K, Expirable<V>> cache,
                                                                    K key,
                                                                    ConcurrentMap<K, CompletableFuture<V>> cachedComputations,
@@ -568,21 +409,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.host();
     }
 
-    /** {@inheritDoc}*/
-    @AutoProfiling
-    @Override public ProblemOccurrences getProblems(BuildRef buildRef) {
-        return loadIfAbsent(
-            buildProblemsCache(),
-            "/app/rest/latest/problemOccurrences?locator=build:(id:" + buildRef.getId() + ")",
-            k -> {
-                ProblemOccurrences problems = teamcity.getProblems(buildRef);
-
-                registerCriticalBuildProblemInStat(buildRef, problems);
-
-                return problems;
-            });
-    }
-
     private void registerCriticalBuildProblemInStat(BuildRef build, ProblemOccurrences problems) {
         boolean criticalFail = problems.getProblemsNonNull().stream().anyMatch(occurrence ->
             occurrence.isExecutionTimeout() || occurrence.isJvmCrash() || occurrence.isFailureOnMetric()
@@ -645,28 +471,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private void addTestOccurrencesToStat(TestOccurrences val) {
         for (TestOccurrence next : val.getTests())
             addTestOccurrenceToStat(next, ITeamcity.DEFAULT, null);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
-        return CacheUpdateUtil.loadAsyncIfAbsent(
-            testFullCache(),
-            href,
-            testOccFullFutures,
-            href1 -> {
-                try {
-                    return teamcity.getTestFull(href1);
-                }
-                catch (Exception e) {
-                    if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                        System.err.println("TestOccurrenceFull not found for href : " + href);
-
-                        return CompletableFuture.completedFuture(new TestOccurrenceFull());
-                    }
-                    throw e;
-                }
-            });
     }
 
     /** {@inheritDoc} */

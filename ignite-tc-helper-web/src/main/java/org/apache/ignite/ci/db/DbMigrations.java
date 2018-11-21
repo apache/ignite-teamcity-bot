@@ -19,7 +19,6 @@ package org.apache.ignite.ci.db;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,9 +41,7 @@ import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.observer.CompactBuildsInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.web.model.CompactContributionKey;
 import org.apache.ignite.ci.web.model.CompactVisa;
@@ -106,17 +103,19 @@ public class DbMigrations {
     private static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
 
     @Deprecated
-    public static final String CURRENT_PR_FAILURES = "currentPrFailures";
-
-    @Deprecated
     public static final String TEAMCITY_BUILD_CACHE_NAME_OLD = "teamcityBuild";
 
     /** */
     @Deprecated
     public static final String COMPACT_VISAS_HISTORY_CACHE_NAME = "compactVisasHistoryCache";
 
-    private static final String CHANGE_INFO_FULL = "changeInfoFull";
-    private static final String CHANGES_LIST = "changesList";
+    interface Old {
+        String TEST_FULL = "testFull";
+        String BUILD_PROBLEMS = "buildProblems";
+        String CHANGES_LIST = "changesList";
+        String CHANGE_INFO_FULL = "changeInfoFull";
+        String CURRENT_PR_FAILURES = "currentPrFailures";
+    }
 
     public static final int SUITES_CNT = 100;
 
@@ -140,8 +139,6 @@ public class DbMigrations {
             Cache<String, Build> buildCache, Consumer<Build> saveBuildToStat,
             IgniteCache<SuiteInBranch, RunStat> suiteHistCache,
             IgniteCache<TestInBranch, RunStat> testHistCache,
-            Cache<String, TestOccurrenceFull> testFullCache,
-            Cache<String, ProblemOccurrences> problemsCache,
             Cache<CompactContributionKey, List<CompactVisaRequest>> visasCache) {
 
         doneMigrations = doneMigrationsCache();
@@ -360,58 +357,14 @@ public class DbMigrations {
 
         applyRemoveCache(GetTrackedBranchTestResults.TEST_FAILURES_SUMMARY_CACHE_NAME);
         applyRemoveCache(GetBuildTestFailures.TEST_FAILURES_SUMMARY_CACHE_NAME);
-        applyRemoveCache(DbMigrations.CURRENT_PR_FAILURES);
+        applyRemoveCache(Old.CURRENT_PR_FAILURES);
 
-        applyMigration(TEST_OCCURRENCE_FULL + "-to-" + testFullCache.getName() + "V2", () -> {
-            String cacheNme = ignCacheNme(TEST_OCCURRENCE_FULL);
-            IgniteCache<String, TestOccurrenceFull> oldTestCache = ignite.cache(cacheNme);
-
-            if (oldTestCache == null) {
-                System.err.println("cache not found");
-
-                return;
-            }
-
+        applyDestroyIgnCacheMigration(TEST_OCCURRENCE_FULL);
+        /*
             int size = oldTestCache.size();
             if (size > 0) {
                 ignite.cluster().disableWal(testFullCache.getName());
-
                 try {
-                    int i = 0;
-
-                    Map<String, TestOccurrenceFull> batch = new HashMap<>();
-                    int maxFoundBuildId = 0;
-
-                    IgniteDataStreamer<String, TestOccurrenceFull> streamer = ignite.dataStreamer(testFullCache.getName());
-
-                    for (Cache.Entry<String, TestOccurrenceFull> entry : oldTestCache) {
-                        String key = entry.getKey();
-
-                        Integer buildId = RunStat.extractIdPrefixed(key, ",build:(id:", ")");
-
-                        if (buildId != null) {
-                            if (buildId > maxFoundBuildId)
-                                maxFoundBuildId = buildId;
-
-                            if (buildId < maxFoundBuildId - (RunStat.MAX_LATEST_RUNS * SUITES_CNT * 15))
-                                logger.info(serverId + " - Skipping entry " + i + " from " + size + ": " + key);
-                            else
-                                batch.put(entry.getKey(), entry.getValue());
-                        }
-
-
-                        i++;
-
-                        if (batch.size() >= 300)
-                            saveOneBatch(cacheNme, size, i, batch, streamer);
-                    }
-
-                    if (!batch.isEmpty())
-                        saveOneBatch(cacheNme, size, i, batch, streamer);
-
-                    streamer.flush();
-
-                    System.err.println("Removing data from old cache " + oldTestCache.getName());
 
                     oldTestCache.destroy();
                 }
@@ -419,8 +372,8 @@ public class DbMigrations {
                     ignite.cluster().enableWal(testFullCache.getName());
                 }
             }
-        });
-        applyV1toV2Migration(PROBLEMS, problemsCache);
+        });*/
+        applyDestroyIgnCacheMigration(PROBLEMS);
 
         applyDestroyIgnCacheMigration(FINISHED_BUILDS_INCLUDE_FAILED);
 
@@ -485,14 +438,17 @@ public class DbMigrations {
         applyDestroyCacheMigration(BUILD_CONDITIONS_CACHE_NAME, BUILD_CONDITIONS_CACHE_NAME);
         applyDestroyCacheMigration(TEAMCITY_BUILD_CACHE_NAME_OLD, TEAMCITY_BUILD_CACHE_NAME_OLD);
 
-        applyDestroyIgnCacheMigration(CHANGE_INFO_FULL);
-        applyDestroyIgnCacheMigration(CHANGES_LIST);
+        applyDestroyIgnCacheMigration(Old.CHANGE_INFO_FULL);
+        applyDestroyIgnCacheMigration(Old.CHANGES_LIST);
 
         applyDestroyIgnCacheMigration(FINISHED_BUILDS);
         applyDestroyIgnCacheMigration(BUILD_HIST_FINISHED);
         applyDestroyIgnCacheMigration(BUILD_HIST_FINISHED_OR_FAILED);
 
         applyDestroyCacheMigration(COMPACT_VISAS_HISTORY_CACHE_NAME, COMPACT_VISAS_HISTORY_CACHE_NAME);
+
+        applyDestroyIgnCacheMigration(Old.BUILD_PROBLEMS);
+        applyDestroyIgnCacheMigration(Old.TEST_FULL);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {

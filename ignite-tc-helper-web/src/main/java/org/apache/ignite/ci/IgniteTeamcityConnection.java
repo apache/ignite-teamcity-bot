@@ -324,19 +324,21 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getProblems(build.getId());
     }
 
-    @Override
+    /** {@inheritDoc} */
     @AutoProfiling
-    public ProblemOccurrences getProblems(int buildId) {
+    @Override public ProblemOccurrences getProblems(int buildId) {
         return getJaxbUsingHref("app/rest/latest/problemOccurrences" +
                 "?locator=build:(id:" + buildId + ")" +
                 "&fields=problemOccurrence(id,type,identity,href,details,build(id))", ProblemOccurrences.class);
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override public Statistics getStatistics(int buildId) {
         return getJaxbUsingHref("app/rest/latest/builds/id:" + buildId + "/statistics", Statistics.class);
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override public ChangesList getChangesList(int buildId) {
         String href = "app/rest/latest/changes" +
@@ -462,26 +464,11 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getJaxbUsingHref(href, Build.class);
     }
 
-    @AutoProfiling
-    @Override public ProblemOccurrences getProblems(BuildRef buildRef) {
-        ProblemOccurrences coll = getJaxbUsingHref("app/rest/latest/problemOccurrences?" +
-            "locator=build:(id:" + buildRef.getId() + ")", ProblemOccurrences.class);
-
-        coll.getProblemsNonNull().forEach(p -> p.buildRef = buildRef);
-
-        return coll;
-    }
 
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public TestOccurrences getTests(String fullUrl) {
         return getJaxbUsingHref(fullUrl, TestOccurrences.class);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
-        return supplyAsync(() -> getJaxbUsingHref(href, TestOccurrenceFull.class), executor);
     }
 
     /** {@inheritDoc} */
