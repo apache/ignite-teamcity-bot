@@ -39,7 +39,7 @@ import org.apache.ignite.ci.web.model.VisaRequest;
  */
 public class VisasHistoryStorage {
     /** */
-    private static final String VISAS_CACHE_NAME = "compactVisasHistoryCacheV2";
+    public static final String VISAS_CACHE_NAME = "compactVisasHistoryCacheV2";
 
     /** */
     @Inject
@@ -55,8 +55,8 @@ public class VisasHistoryStorage {
     }
 
     /** */
-    private Cache<CompactContributionKey, List<CompactVisaRequest>> visas() {
-        return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(VISAS_CACHE_NAME));
+    public Cache<CompactContributionKey, List<CompactVisaRequest>> visas() {
+        return ignite.getOrCreateCache(TcHelperDb.getCacheV3TxConfig(VISAS_CACHE_NAME));
     }
 
     /** */

@@ -79,6 +79,7 @@ import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.util.CacheUpdateUtil;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
+import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 
@@ -116,6 +117,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     @Inject
     private Ignite ignite;
+
+    /** */
+    @Inject
+    private VisasHistoryStorage visasHistStorage;
+
     /**
      * Teamcity
      */
@@ -158,7 +164,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 buildsCache(), this::addBuildOccurrenceToFailuresStat,
                 buildsFailureRunStatCache(), testRunStatCache(),
                 testFullCache(),
-                buildProblemsCache());
+                buildProblemsCache(),
+                visasHistStorage.visas());
     }
 
     @Override

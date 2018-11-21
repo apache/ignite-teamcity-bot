@@ -34,6 +34,13 @@ public class CompactVisaRequest {
     public final boolean isObserving;
 
     /** */
+    public CompactVisaRequest(CompactVisa compactVisa, CompactBuildsInfo compactInfo, boolean isObserving) {
+        this.compactVisa = compactVisa;
+        this.isObserving = isObserving;
+        this.compactInfo = compactInfo;
+    }
+
+    /** */
     public CompactVisaRequest(VisaRequest visaReq, IStringCompactor strCompactor) {
         compactInfo = new CompactBuildsInfo(visaReq.getInfo(), strCompactor);
 

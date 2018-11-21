@@ -93,6 +93,23 @@ public class TcHelperDb {
         Ignition.stop(ignite.name(), false);
     }
 
+    /** */
+    @NotNull
+    public static <K, V> CacheConfiguration<K, V> getCacheV3Config(String name) {
+        CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
+
+        ccfg.setAffinity(new RendezvousAffinityFunction(false, 8));
+
+        return ccfg;
+    }
+
+    /** */
+    public static <K, V> CacheConfiguration<K, V> getCacheV3TxConfig(String name) {
+        return TcHelperDb.<K, V>getCacheV3Config(name).setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
+
+    }
+
+
     @NotNull
     public static <K, V> CacheConfiguration<K, V> getCacheV2Config(String name) {
         CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
