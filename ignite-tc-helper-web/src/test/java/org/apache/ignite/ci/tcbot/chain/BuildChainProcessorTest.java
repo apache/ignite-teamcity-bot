@@ -136,7 +136,7 @@ public class BuildChainProcessorTest {
 
         assertTrue(!suites2.isEmpty());
 
-        for (MultBuildRunCtx suite : suites) {
+        for (MultBuildRunCtx suite : suites2) {
             System.out.println(suite.getFailedTestsNames().collect(Collectors.toList()));
 
             if (suite.suiteName() != null && suite.suiteName().startsWith(UNIQUE_FAILED_TEST)) {

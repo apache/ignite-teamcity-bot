@@ -30,7 +30,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -96,7 +95,7 @@ public class BuildChainProcessor {
         if (entryPoints.isEmpty())
             return res;
 
-        Map<Integer, Future<FatBuildCompacted>> builds = loadChain(entryPoints, mode, teamcityIgnited);
+        Map<Integer, Future<FatBuildCompacted>> builds = loadAllBuildsInChains(entryPoints, mode, teamcityIgnited);
 
         builds.values().stream().map(FutureUtil::getResult)
             .filter(b -> !b.isComposite() && b.getTestsCount() > 0)
@@ -169,7 +168,7 @@ public class BuildChainProcessor {
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
 
-        Map<Integer, Future<FatBuildCompacted>> builds = loadChain(entryPoints, mode, tcIgn);
+        Map<Integer, Future<FatBuildCompacted>> builds = loadAllBuildsInChains(entryPoints, mode, tcIgn);
 
         Map<String, List<Future<FatBuildCompacted>>> freshRebuilds = new ConcurrentHashMap<>();
 
@@ -237,7 +236,7 @@ public class BuildChainProcessor {
     }
 
     @NotNull
-    public Map<Integer, Future<FatBuildCompacted>> loadChain(Collection<Integer> entryPoints,
+    public Map<Integer, Future<FatBuildCompacted>> loadAllBuildsInChains(Collection<Integer> entryPoints,
         SyncMode mode,
         ITeamcityIgnited tcIgn) {
         Map<Integer, Future<FatBuildCompacted>> builds = new ConcurrentHashMap<>();
@@ -246,15 +245,24 @@ public class BuildChainProcessor {
             .filter(Objects::nonNull)
             .map(id -> getOrLoadBuild(id, mode, builds, tcIgn));
 
-        Stream<Integer> dependenciesFirstLevel = entryPointsFatBuilds
-            .flatMap(ref -> dependencies(ref, mode, builds, tcIgn).stream());
+        Set<Integer> remainedUnloadedDeps = entryPointsFatBuilds
+            .flatMap(ref -> dependencies(ref, mode, builds, tcIgn).stream()).collect(Collectors.toSet());
 
-        Stream<Integer> depsSecondLevel = dependenciesFirstLevel.map(builds::get)
-            .peek(val -> Preconditions.checkNotNull(val, "Build future should be in context"))
-            .flatMap(ref -> dependencies(ref, mode, builds, tcIgn).stream());
+        for (int level = 1; level < 5; level++) {
+            if (remainedUnloadedDeps.isEmpty())
+                break;
 
-        Set<Integer> collect = depsSecondLevel.collect(Collectors.toSet());
-        System.err.println("New deps of second level:" + collect);
+            Set<Integer> depsNextLevel = remainedUnloadedDeps
+                .stream()
+                .map(builds::get)
+                .peek(val -> Preconditions.checkNotNull(val, "Build future should be in context"))
+                .flatMap(ref -> dependencies(ref, mode, builds, tcIgn).stream()).collect(Collectors.toSet());
+
+            logger.info("Level [" + level + "] dependencies:" + depsNextLevel);
+
+            remainedUnloadedDeps = depsNextLevel;
+        }
+
         return builds;
     }
 
@@ -264,7 +272,11 @@ public class BuildChainProcessor {
         builds.values().forEach(bFut -> {
             FatBuildCompacted b = FutureUtil.getResult(bFut);
 
-            buildsByBt.computeIfAbsent(b.buildTypeId(compactor), k -> new ArrayList<>()).add(b);
+            String buildTypeId = b.buildTypeId(compactor);
+            if (buildTypeId == null)
+                logger.error("Invalid build type ID for build " + b.getId());
+            else
+                buildsByBt.computeIfAbsent(buildTypeId, k -> new ArrayList<>()).add(b);
         });
         return buildsByBt;
     }
