@@ -106,9 +106,7 @@ public class TcHelperDb {
     /** */
     public static <K, V> CacheConfiguration<K, V> getCacheV3TxConfig(String name) {
         return TcHelperDb.<K, V>getCacheV3Config(name).setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
-
     }
-
 
     @NotNull
     public static <K, V> CacheConfiguration<K, V> getCacheV2Config(String name) {

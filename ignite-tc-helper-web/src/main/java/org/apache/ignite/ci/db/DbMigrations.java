@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import javax.cache.Cache;
 import org.apache.ignite.Ignite;
@@ -145,6 +146,12 @@ public class DbMigrations {
 
         applyMigration(COMPACT_VISAS_HISTORY_CACHE_NAME + "-to-" + VisasHistoryStorage.VISAS_CACHE_NAME, () -> {
             IgniteCache<Object, Object> oldVisasCache = ignite.cache(COMPACT_VISAS_HISTORY_CACHE_NAME).withKeepBinary();
+
+            if (Objects.isNull(oldVisasCache)) {
+                System.out.println("Old cache [" + COMPACT_VISAS_HISTORY_CACHE_NAME + "] not found");
+
+                return;
+            }
 
             int size = oldVisasCache.size();
 

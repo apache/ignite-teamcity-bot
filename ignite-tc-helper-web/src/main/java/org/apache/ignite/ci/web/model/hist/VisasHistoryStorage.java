@@ -83,7 +83,12 @@ public class VisasHistoryStorage {
 
     /** */
     public List<VisaRequest> getVisaRequests(ContributionKey key) {
-        return visas().get(new CompactContributionKey(key, strCompactor)).stream()
+        List<CompactVisaRequest> reqs = visas().get(new CompactContributionKey(key, strCompactor));
+
+        if (Objects.isNull(reqs))
+            return null;
+
+        return reqs.stream()
             .map(compactVisaReq -> compactVisaReq.toVisaRequest(strCompactor))
             .collect(Collectors.toList());
     }

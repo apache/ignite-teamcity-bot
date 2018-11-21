@@ -297,7 +297,8 @@ public class TcBotTriggerAndSignOffService {
             VisaRequest lastVisaReq = visasHistoryStorage.getLastVisaRequest(buildsInfo.getContributionKey());
 
             if (Objects.nonNull(lastVisaReq) && lastVisaReq.isObserving())
-                return new SimpleResult("Jira wasn't commented. \"Re-run possible blockers & Comment JIRA\" was triggered for current branch." +
+                return new SimpleResult("Jira wasn't commented." +
+                    " \"Re-run possible blockers & Comment JIRA\" was triggered for current branch." +
                     " Wait for the end or cancel exsiting observing.");
 
             Visa visa = jiraIntegration.notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName);
