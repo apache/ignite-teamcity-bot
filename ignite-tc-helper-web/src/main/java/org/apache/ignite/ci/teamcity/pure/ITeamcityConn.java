@@ -75,8 +75,18 @@ public interface ITeamcityConn {
 
     Change getChange(int changeId);
 
+    /**
+     * List of project suites.
+     *
+     * @param projectId Project id.
+     * @return List of buildType's references.
+     */
     List<BuildTypeRef> getBuildTypes(String projectId);
 
+    /**
+     * @param buildTypeId BuildType id.
+     * @return BuildType.
+     */
     BuildType getBuildType(String buildTypeId);
 
     /** */

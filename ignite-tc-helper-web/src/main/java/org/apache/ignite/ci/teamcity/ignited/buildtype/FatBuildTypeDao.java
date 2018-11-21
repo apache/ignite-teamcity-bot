@@ -50,13 +50,19 @@ public class FatBuildTypeDao {
     @Inject private IStringCompactor compactor;
 
     /**
-     * Initialize
+     * Initialize.
      */
     public void init () {
         Ignite ignite = igniteProvider.get();
         buildTypesCache = ignite.getOrCreateCache(getCache8PartsConfig(TEAMCITY_FAT_BUILD_TYPES_CACHE_NAME));
     }
 
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param buildType BuildType.
+     * @param existingBuildType Existing version of buildType in the DB.
+     * @return Fat BuildType saved (if modifications detected), otherwise null.
+     */
     public FatBuildTypeCompacted saveBuildType(long srvIdMaskHigh,
         @NotNull BuildType buildType,
         @Nullable FatBuildTypeCompacted existingBuildType) {
@@ -74,18 +80,33 @@ public class FatBuildTypeDao {
         return null;
     }
 
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param buildTypeId BuildType id.
+     * @return Saved fat buildType.
+     */
     public FatBuildTypeCompacted getFatBuildType(long srvIdMaskHigh, @NotNull String buildTypeId) {
         Preconditions.checkNotNull(buildTypesCache, "init() was not called");
 
         return buildTypesCache.get(buildTypeIdToCacheKey(srvIdMaskHigh, buildTypeId));
     }
 
-    public List<FatBuildTypeCompacted> buildTypesCompacted(int srvId, @Nullable String projectId) {
-        return buildTypesCompactedStream(srvId, projectId).collect(Collectors.toList());
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param projectId Project id.
+     * @return List of saved fat buildTypes.
+     */
+    public List<FatBuildTypeCompacted> buildTypesCompacted(int srvIdMaskHigh, @Nullable String projectId) {
+        return buildTypesCompactedStream(srvIdMaskHigh, projectId).collect(Collectors.toList());
     }
 
-    protected Stream<FatBuildTypeCompacted> buildTypesCompactedStream(int srvId, @Nullable String projectId) {
-        Stream<FatBuildTypeCompacted> stream = compactedFatBuildTypesStreamForServer(srvId);
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param projectId Project id.
+     * @return Stream of saved fat buildTypes.
+     */
+    protected Stream<FatBuildTypeCompacted> buildTypesCompactedStream(int srvIdMaskHigh, @Nullable String projectId) {
+        Stream<FatBuildTypeCompacted> stream = compactedFatBuildTypesStreamForServer(srvIdMaskHigh);
 
         if (Strings.isNullOrEmpty(projectId))
             return stream;
@@ -95,17 +116,27 @@ public class FatBuildTypeDao {
         return stream.filter(bt -> bt.projectId() == stringIdForProjectId);
     }
 
-    public List<FatBuildTypeCompacted> compositeBuildTypesCompacted(int srvId, @Nullable String projectId) {
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param projectId Project id.
+     * @return List of saved composite fat buildTypes.
+     */
+    public List<FatBuildTypeCompacted> compositeBuildTypesCompacted(int srvIdMaskHigh, @Nullable String projectId) {
         final int nameId = compactor.getStringId("buildConfigurationType");
         final int valueId = compactor.getStringId("COMPOSITE");
 
-        return buildTypesCompactedStream(srvId, projectId)
+        return buildTypesCompactedStream(srvIdMaskHigh, projectId)
             .filter(bt -> bt.getSettings().findPropertyStringId(nameId) == valueId)
             .collect(Collectors.toList());
     }
 
-    private List<FatBuildTypeCompacted> compositeBuildTypesCompactedSortedBySnDepCount(int srvId, @Nullable String projectId) {
-        List<FatBuildTypeCompacted> res = compositeBuildTypesCompacted(srvId, projectId);
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param projectId Project id.
+     * @return List of saved composite fat buildTypes.
+     */
+    private List<FatBuildTypeCompacted> compositeBuildTypesCompactedSortedBySnDepCount(int srvIdMaskHigh, @Nullable String projectId) {
+        List<FatBuildTypeCompacted> res = compositeBuildTypesCompacted(srvIdMaskHigh, projectId);
 
         Comparator<FatBuildTypeCompacted> comparator = Comparator.comparingInt(t -> t.getSnapshotDependencies().size());
 
@@ -116,28 +147,35 @@ public class FatBuildTypeDao {
         return res;
     }
 
-    public List<String> compositeBuildTypesIdsSortedBySnDepCount(int srvId, @Nullable String projectId) {
-        return compositeBuildTypesCompactedSortedBySnDepCount(srvId, projectId).stream()
+    /**
+     * Return list of composite suite ids sorted by number of snapshot dependency.
+     *
+     * @param srvIdMaskHigh Server id mask high.
+     * @param projectId Project id.
+     * @return List of buildTypes ids.
+     */
+    public List<String> compositeBuildTypesIdsSortedBySnDepCount(int srvIdMaskHigh, @Nullable String projectId) {
+        return compositeBuildTypesCompactedSortedBySnDepCount(srvIdMaskHigh, projectId).stream()
             .map(bt -> compactor.getStringFromId(bt.id()))
             .collect(Collectors.toList());
     }
 
     /**
-     * @param srvId Server id.
-     * @return all buildTypes for a server, full scan.
+     * @param srvIdMaskHigh Server id mask high.
+     * @return All buildTypes for a server, full scan.
      */
-    @NotNull protected Stream<FatBuildTypeCompacted> compactedFatBuildTypesStreamForServer(int srvId) {
+    @NotNull protected Stream<FatBuildTypeCompacted> compactedFatBuildTypesStreamForServer(int srvIdMaskHigh) {
         return StreamSupport.stream(buildTypesCache.spliterator(), false)
-            .filter(entry -> isKeyForServer(entry.getKey(), srvId))
+            .filter(entry -> isKeyForServer(entry.getKey(), srvIdMaskHigh))
             .map(javax.cache.Cache.Entry::getValue);
     }
 
     /**
      * @param key Key.
-     * @param srvId Server id.
+     * @param srvIdMaskHigh Server id mask high.
      */
-    private boolean isKeyForServer(Long key, int srvId) {
-        return key!=null && key >> 32 == srvId;
+    private boolean isKeyForServer(Long key, int srvIdMaskHigh) {
+        return key!=null && key >> 32 == srvIdMaskHigh;
     }
 
     private long buildTypeIdToCacheKey(long srvId, String buildTypeId) {
@@ -147,13 +185,17 @@ public class FatBuildTypeDao {
     }
 
     /**
-     * @param srvId Server id mask high.
+     * @param srvIdMaskHigh Server id mask high.
      * @param buildTypeStringId BuildType stringId.
      */
-    public static long buildTypeStringIdToCacheKey(long srvId, int buildTypeStringId) {
-        return (long)buildTypeStringId | srvId << 32;
+    public static long buildTypeStringIdToCacheKey(long srvIdMaskHigh, int buildTypeStringId) {
+        return (long)buildTypeStringId | srvIdMaskHigh << 32;
     }
 
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param buildTypeStringId BuildType stringId.
+     */
     public boolean containsKey(int srvIdMaskHigh, int buildTypeStringId) {
         return buildTypesCache.containsKey(buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStringId));
     }

@@ -125,7 +125,19 @@ public interface ITeamcityIgnited {
      */
     @NotNull public List<Integer> getLastNBuildsFromHistory(String btId, String branchForTc, int cnt);
 
+    /**
+     * Return list of composite suite ids sorted by number of snapshot dependency.
+     *
+     * @param projectId Project id.
+     * @return List of composite buildType ids.
+     */
     public List<String> getCompositeBuildTypesIdsSortedBySnDepCount(String projectId);
 
+    /**
+     * Return list of compacted references to project suites.
+     *
+     * @param projectId Project id.
+     * @return List of compacted references to buildTypes.
+     */
     public List<BuildTypeRefCompacted> getAllBuildTypesCompacted(String projectId);
 }

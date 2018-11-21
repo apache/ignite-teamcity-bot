@@ -18,10 +18,8 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 
 import com.google.common.collect.Sets;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
@@ -56,6 +54,7 @@ import java.util.stream.Collectors;
 import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
 
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
+    /** Default project id. */
     public static final String DEFAULT_PROJECT_ID = "IgniteTests24Java8";
     
     /** Logger. */
@@ -105,6 +104,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Changes DAO. */
     @Inject private IStringCompactor compactor;
 
+    /** Saved list of composite suites for "IgniteTests24Java8" project. */
     private List<String> compositeBuildTypesIdsForDefaultProject;
 
     /** Server ID mask for cache Entries. */
@@ -328,11 +328,19 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return chains;
     }
 
-    private void actualizeCompositeBuildTypesIds(String projectId) {
-        compositeBuildTypesIdsForDefaultProject =
-            fatBuildTypeDao.compositeBuildTypesIdsSortedBySnDepCount(srvIdMaskHigh, projectId);
+    /**
+     * Actualize saved list of composite suites for project.
+     *
+     * @param projectId Project id.
+     */
+    private void actualizeSavedCompositeBuildTypesIds(String projectId) {
+        if (projectId.equals(DEFAULT_PROJECT_ID)) {
+            compositeBuildTypesIdsForDefaultProject =
+                fatBuildTypeDao.compositeBuildTypesIdsSortedBySnDepCount(srvIdMaskHigh, projectId);
+        }
     }
 
+    /** {@inheritDoc} */
     @Override public List<String> getCompositeBuildTypesIdsSortedBySnDepCount(String projectId) {
         ensureActualizeBuildTypeRefsRequested();
         ensureActualizeBuildTypesRequested();
@@ -341,22 +349,49 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             fatBuildTypeDao.compositeBuildTypesIdsSortedBySnDepCount(srvIdMaskHigh, projectId);
     }
 
+    /** {@inheritDoc} */
     @Override public List<BuildTypeRefCompacted> getAllBuildTypesCompacted(String projectId) {
         ensureActualizeBuildTypeRefsRequested();
 
         return buildTypeRefDao.buildTypesCompacted(srvIdMaskHigh, projectId);
     }
 
-    void ensureActualizeBuildTypeRefsRequested() {
+    /**
+     * Ensure actualize BuildTypeRefs requested. Add this task to scheduler.
+     */
+    private void ensureActualizeBuildTypeRefsRequested() {
         scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs"),
             this::reindexBuildTypeRefs, 6, TimeUnit.HOURS);
     }
 
-    void ensureActualizeBuildTypesRequested() {
+    /**
+     *Ensure actualize BuildTypes requested. Add this task to scheduler.
+     */
+    private void ensureActualizeBuildTypesRequested() {
         scheduler.sheduleNamed(taskName("actualizeAllBuildTypes"),
             this::reindexBuildTypes, 24, TimeUnit.HOURS);
     }
 
+    /**
+     * Re-index all references to "IgniteTests24Java8" suites.
+     */
+    private void reindexBuildTypeRefs() {
+        runActualizeBuildTypeRefs(DEFAULT_PROJECT_ID);
+    }
+
+    /**
+     * Re-index all "IgniteTests24Java8" suites.
+     */
+    private void reindexBuildTypes() {
+        runActualizeBuildTypes(DEFAULT_PROJECT_ID);
+    }
+
+    /**
+     * Re-index all project suites.
+     *
+     * @param projectId Project id.
+     * @return Statistics with the number of updated and requested buildTypes.
+     */
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Reindex BuildTypes (projectId)", nameExtArgsIndexes = {0})
     @AutoProfiling
@@ -376,19 +411,17 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         }
 
         if (updated != 0)
-            actualizeCompositeBuildTypesIds(projectId);
+            actualizeSavedCompositeBuildTypesIds(projectId);
 
         return "BuildTypes updated " + updated + " from " + buildTypeIds.size() + " requested";
     }
 
-    void reindexBuildTypeRefs() {
-        runActualizeBuildTypeRefs(DEFAULT_PROJECT_ID);
-    }
-
-    void reindexBuildTypes() {
-        runActualizeBuildTypes(DEFAULT_PROJECT_ID);
-    }
-
+    /**
+     * Re-index all references to project suites.
+     *
+     * @param projectId Project id.
+     * @return Statistics with the number of updated and requested buildTypeRefs.
+     */
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Reindex BuildTypeRefs (projectId)", nameExtArgsIndexes = {0})
     @AutoProfiling

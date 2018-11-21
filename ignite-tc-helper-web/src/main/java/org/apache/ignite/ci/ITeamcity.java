@@ -54,7 +54,8 @@ public interface ITeamcity extends ITeamcityConn {
     @Deprecated
     long DEFAULT_BUILDS_COUNT = 1000;
 
-    default List<BuildTypeRef> getBuildTypes(String projectId) {
+    /** {@inheritDoc} */
+    @Override default List<BuildTypeRef> getBuildTypes(String projectId) {
         return FutureUtil.getResult(getProjectSuites(projectId));
     }
 

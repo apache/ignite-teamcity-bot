@@ -23,13 +23,28 @@ import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 public class SnapshotDependencyCompacted {
-    int id = -1;
-    int type = -1;
+    /** Id. */
+    private int id = -1;
 
-    BuildTypeRefCompacted buildTypeRefCompacted;
+    /** Type. */
+    private int type = -1;
 
-    ParametersCompacted properties;
+    /** Reference to source-buildType. */
+    private BuildTypeRefCompacted buildTypeRefCompacted;
 
+    /** Properties. */
+    private ParametersCompacted properties;
+
+    /**
+     * Default constructor.
+     */
+    public SnapshotDependencyCompacted(){
+    }
+
+    /**
+     * @param compactor Compactor.
+     * @param ref Reference.
+     */
     public SnapshotDependencyCompacted(IStringCompactor compactor, SnapshotDependency ref) {
         id = compactor.getStringId(ref.getId());
         type = compactor.getStringId(ref.getType());
@@ -37,6 +52,9 @@ public class SnapshotDependencyCompacted {
         properties = new ParametersCompacted(compactor, ref.getProperties().properties());
     }
 
+    /**
+     * @param compactor Compacter.
+     */
     public SnapshotDependency toSnapshotDependency(IStringCompactor compactor) {
         SnapshotDependency ref = new SnapshotDependency();
 
@@ -45,6 +63,10 @@ public class SnapshotDependencyCompacted {
         return ref;
     }
 
+    /**
+     * @param compactor Compacter.
+     * @param res Response.
+     */
     protected void fillSnapshotDependencyCompacted(IStringCompactor compactor, SnapshotDependency res) {
         res.setId(compactor.getStringFromId(id));
         res.setType(compactor.getStringFromId(type));

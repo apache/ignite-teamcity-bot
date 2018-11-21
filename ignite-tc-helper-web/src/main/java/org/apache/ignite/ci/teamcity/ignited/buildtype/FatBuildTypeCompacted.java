@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
+import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.bt.Parameters;
@@ -31,6 +32,7 @@ import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.jetbrains.annotations.Nullable;
 
+@Persisted
 public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVersionedEntity {
     /** Latest version. */
     private static final int LATEST_VERSION = 0;
@@ -38,12 +40,19 @@ public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVer
     /** Entity fields version. */
     private short _ver = LATEST_VERSION;
 
+    /** Settings. */
     @Nullable private ParametersCompacted settings;
 
+    /** Properties. */
     @Nullable private ParametersCompacted parameters;
 
+    /** Snapshot-dependencies. */
     @Nullable private List<SnapshotDependencyCompacted> snapshotDependencies;
 
+    /**
+     * @param compactor Compactor.
+     * @param buildType BuildType.
+     */
     public FatBuildTypeCompacted(IStringCompactor compactor, BuildType buildType) {
         super(compactor, buildType);
 

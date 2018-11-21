@@ -31,14 +31,21 @@ public class ParametersCompacted {
     private GridIntList keys;
     private GridIntList values;
 
+    /**
+     * Default constructor.
+     */
     public ParametersCompacted() {
     }
 
-    public ParametersCompacted(IStringCompactor compactor, List<Property> properties) {
-        final int size = properties.size();
+    /**
+     * @param compactor Compactor.
+     * @param ref Reference.
+     */
+    public ParametersCompacted(IStringCompactor compactor, List<Property> ref) {
+        final int size = ref.size();
         keys = new GridIntList(size);
         values = new GridIntList(size);
-        for (Property next : properties) {
+        for (Property next : ref) {
             final String name = next.name();
             if (Strings.isNullOrEmpty(name))
                 continue;
