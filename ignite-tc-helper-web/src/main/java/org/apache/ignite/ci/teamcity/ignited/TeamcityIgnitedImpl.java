@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
@@ -230,8 +231,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         int minDiffId = since ? low : high;
         long temp;
 
-        FatBuildCompacted highBuild = getFatBuild(buildRefs.get(high).id());
-        FatBuildCompacted lowBuild = getFatBuild(buildRefs.get(low).id());
+        FatBuildCompacted highBuild = getFatBuild(buildRefs.get(high).id(), SyncMode.LOAD_NEW);
+        FatBuildCompacted lowBuild = getFatBuild(buildRefs.get(low).id(), SyncMode.LOAD_NEW);
 
         if (highBuild != null && !highBuild.isFakeStub()){
             if (highBuild.getStartDate().before(key))
@@ -245,7 +246,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         while (low <= high) {
             int mid = (low + high) >>> 1;
-            FatBuildCompacted midVal = getFatBuild(buildRefs.get(mid).id());
+            FatBuildCompacted midVal = getFatBuild(buildRefs.get(mid).id(), SyncMode.LOAD_NEW);
 
             if (midVal != null && !midVal.isFakeStub()) {
                 if (midVal.getStartDate().after(key))
@@ -339,6 +340,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
+    @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
     @Override public FatBuildCompacted getFatBuild(int buildId, SyncMode mode) {
         FatBuildCompacted existingBuild = getFatBuildFromIgnite(buildId);
 

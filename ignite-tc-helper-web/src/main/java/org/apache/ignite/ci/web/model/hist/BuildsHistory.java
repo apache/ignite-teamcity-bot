@@ -19,19 +19,8 @@ package org.apache.ignite.ci.web.model.hist;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.UncheckedIOException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import javax.servlet.ServletContext;
-import org.apache.ignite.ci.ITcHelper;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -41,12 +30,23 @@ import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.UncheckedIOException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -87,16 +87,15 @@ public class BuildsHistory {
     /** */
     private static final Logger logger = LoggerFactory.getLogger(BuildsHistory.class);
 
+    @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
+
+    @Inject private ITcServerProvider tcServerProvider;
+
+    @Inject private IStringCompactor compactor;
+
     /** */
-    public void initialize(ICredentialsProv prov, ServletContext ctx) {
-       final IStringCompactor compactor = CtxListener.getInjector(ctx).getInstance(IStringCompactor.class);
-
-        ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
-
-        ITeamcity teamcity = tcHelper.server(srvId, prov);
-
-        ITeamcityIgnitedProvider tcIgnitedProv = CtxListener.getInjector(ctx)
-            .getInstance(ITeamcityIgnitedProvider.class);
+    public void initialize(ICredentialsProv prov) {
+        ITeamcity teamcity = tcServerProvider.server(srvId, prov);
 
         ITeamcityIgnited ignitedTeamcity = tcIgnitedProv.server(srvId, prov);
 
@@ -144,24 +143,22 @@ public class BuildsHistory {
             buildStaticsFutures.add(buildFut);
         }
 
-        buildStaticsFutures.forEach(new Consumer <Future<BuildStatisticsSummary>>() {
-            @Override public void accept(Future<BuildStatisticsSummary> v) {
-                try {
-                    BuildStatisticsSummary buildsStatistic = v.get();
+        buildStaticsFutures.forEach(fut -> {
+            try {
+                BuildStatisticsSummary buildsStatistic = fut.get();
 
-                    if (buildsStatistic != null && !buildsStatistic.isFakeStub)
-                        buildsStatistics.add(buildsStatistic);
-                }
-                catch (ExecutionException e) {
-                    if (e.getCause() instanceof UncheckedIOException)
-                        logger.error(Arrays.toString(e.getStackTrace()));
+                if (buildsStatistic != null && !buildsStatistic.isFakeStub)
+                    buildsStatistics.add(buildsStatistic);
+            }
+            catch (ExecutionException e) {
+                if (e.getCause() instanceof UncheckedIOException)
+                    logger.error(Arrays.toString(e.getStackTrace()));
 
-                    else
-                        throw new RuntimeException(e);
-                }
-                catch (InterruptedException e) {
+                else
                     throw new RuntimeException(e);
-                }
+            }
+            catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         });
     }
@@ -248,8 +245,7 @@ public class BuildsHistory {
         });
     }
 
-    /** */
-    public BuildsHistory(Builder builder) {
+    private BuildsHistory withParameters(Builder builder) {
         this.skipTests = builder.skipTests;
         this.srvId = builder.srvId;
         this.buildTypeId = builder.buildTypeId;
@@ -257,6 +253,7 @@ public class BuildsHistory {
         this.sinceDateFilter = builder.sinceDate;
         this.untilDateFilter = builder.untilDate;
         this.projectId = builder.projectId;
+        return this;
     }
 
     /** */
@@ -341,9 +338,12 @@ public class BuildsHistory {
         }
 
 
-        /** */
-        public BuildsHistory build() {
-            return new BuildsHistory(this);
+        /**
+         * @param injector */
+        public BuildsHistory build(Injector injector) {
+            final BuildsHistory instance = injector.getInstance(BuildsHistory.class);
+
+            return instance.withParameters(this);
         }
     }
 }

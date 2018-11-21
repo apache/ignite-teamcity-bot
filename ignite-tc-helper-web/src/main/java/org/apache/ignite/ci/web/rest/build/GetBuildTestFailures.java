@@ -247,6 +247,9 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("sinceDate") String sinceDate,
         @Nullable @QueryParam("untilDate") String untilDate,
         @Nullable @QueryParam("skipTests") String skipTests)  throws ParseException {
+
+        final Injector injector = CtxListener.getInjector(ctx);
+
         BuildsHistory.Builder builder = new BuildsHistory.Builder()
             .branch(branch)
             .server(srvId)
@@ -257,14 +260,14 @@ public class GetBuildTestFailures {
         if (Boolean.valueOf(skipTests))
             builder.skipTests();
 
-        BuildsHistory buildsHist = builder.build();
+        BuildsHistory buildsHist = builder.build(injector);
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
         if (!prov.hasAccess(srvId))
             throw ServiceUnauthorizedException.noCreds(srvId);
 
-        buildsHist.initialize(prov, ctx);
+        buildsHist.initialize(prov);
 
         return buildsHist;
     }
