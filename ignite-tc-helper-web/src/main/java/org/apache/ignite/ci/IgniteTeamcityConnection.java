@@ -465,18 +465,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public TestOccurrences getTests(String fullUrl) {
-        return getJaxbUsingHref(fullUrl, TestOccurrences.class);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public TestOccurrences getFailedTests(String href, int count, String normalizedBranch) {
-        return getTests(href + ",muted:false,status:FAILURE,count:" + count + "&fields=testOccurrence(id,name)");
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
     @Override public CompletableFuture<TestRef> getTestRef(FullQueryParams key) {
         return supplyAsync(() -> {
             return getJaxbUsingHref("app/rest/latest/tests/name:" + key.getTestName(), TestRef.class);

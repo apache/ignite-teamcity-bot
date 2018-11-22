@@ -77,11 +77,7 @@ public interface ITeamcity extends ITeamcityConn {
     @NotNull static String buildHref(int id) {
         return "app/rest/latest/builds/id:" + id;
     }
-    @Deprecated
-    public TestOccurrences getTests(String fullUrl);
 
-    @Deprecated
-    TestOccurrences getFailedTests(String href, int cnt, String normalizedBranch);
 
     @Deprecated
     CompletableFuture<TestRef> getTestRef(FullQueryParams key);

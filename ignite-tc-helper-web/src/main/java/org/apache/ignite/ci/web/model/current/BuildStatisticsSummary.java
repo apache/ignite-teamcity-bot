@@ -83,7 +83,7 @@ public class BuildStatisticsSummary {
     /** Is fake stub. */
     public boolean isFakeStub;
 
-    /** Failed tests: Map from build type string ID -> Map of test name (full) string ID to count of failure. */
+    /** Failed tests: Map from build type string ID -> Map of test name (full) string ID -> to count of failure. */
     public Map<Integer, Map<Integer, Integer>> failedTests = new HashMap<>();
 
     /** Is valid. */

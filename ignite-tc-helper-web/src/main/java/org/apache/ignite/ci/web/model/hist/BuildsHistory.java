@@ -176,15 +176,16 @@ public class BuildsHistory {
             if(!Boolean.TRUE.equals(valid))
                 continue;
 
-            buildStat.failedTests.forEach((btId,v)->{
+            buildStat.failedTests.forEach((btId, map) -> {
                 String configurationName = compactor.getStringFromId(btId);
                 Map<String, Float> tests = mergedTestsBySuites.computeIfAbsent(configurationName,
                     k -> new HashMap<>());
 
-                v.forEach((t, c) -> {
-                    String testName = compactor.getStringFromId(t);
+                map.forEach((tn, cnt) -> {
+                    String testName = compactor.getStringFromId(tn);
+                    float i = cnt != null ? cnt : 1F;
 
-                    tests.merge(testName, 1F / buildIds.size(), (a, b) -> a + b);
+                    tests.merge(testName, i / buildIds.size(), (a, b) -> a + b);
                 });
             });
         }
