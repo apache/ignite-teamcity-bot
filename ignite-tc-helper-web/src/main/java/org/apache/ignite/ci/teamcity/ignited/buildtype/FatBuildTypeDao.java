@@ -63,7 +63,7 @@ public class FatBuildTypeDao {
      * @param existingBuildType Existing version of buildType in the DB.
      * @return Fat BuildType saved (if modifications detected), otherwise null.
      */
-    public FatBuildTypeCompacted saveBuildType(long srvIdMaskHigh,
+    public FatBuildTypeCompacted saveBuildType(int srvIdMaskHigh,
         @NotNull BuildType buildType,
         @Nullable FatBuildTypeCompacted existingBuildType) {
         Preconditions.checkNotNull(buildTypesCache, "init() was not called");
@@ -89,7 +89,7 @@ public class FatBuildTypeDao {
      * @param buildTypeId BuildType id.
      * @return Saved fat buildType.
      */
-    public FatBuildTypeCompacted getFatBuildType(long srvIdMaskHigh, @NotNull String buildTypeId) {
+    public FatBuildTypeCompacted getFatBuildType(int srvIdMaskHigh, @NotNull String buildTypeId) {
         Preconditions.checkNotNull(buildTypesCache, "init() was not called");
 
         return buildTypesCache.get(buildTypeIdToCacheKey(srvIdMaskHigh, buildTypeId));
@@ -185,17 +185,17 @@ public class FatBuildTypeDao {
         return key!=null && key >> 32 == srvIdMaskHigh;
     }
 
-    private long buildTypeIdToCacheKey(long srvId, String buildTypeId) {
+    private long buildTypeIdToCacheKey(int srvIdMaskHigh, String buildTypeId) {
         int buildTypeStringId = compactor.getStringId(buildTypeId);
 
-        return buildTypeStringIdToCacheKey(srvId, buildTypeStringId);
+        return buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStringId);
     }
 
     /**
      * @param srvIdMaskHigh Server id mask high.
      * @param buildTypeStringId BuildType stringId.
      */
-    public static long buildTypeStringIdToCacheKey(long srvIdMaskHigh, int buildTypeStringId) {
+    public static long buildTypeStringIdToCacheKey(int srvIdMaskHigh, int buildTypeStringId) {
         return (long)buildTypeStringId | srvIdMaskHigh << 32;
     }
 

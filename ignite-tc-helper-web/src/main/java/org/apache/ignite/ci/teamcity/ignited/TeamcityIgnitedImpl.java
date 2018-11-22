@@ -430,11 +430,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         Set<Long> buildsUpdated = buildTypeRefDao.saveChunk(srvIdMaskHigh, tcData);
 
-        if (!buildsUpdated.isEmpty()) {
+        Set<String> removedBuildTypes = buildTypeRefDao.markMissingBuildsAsRemoved(srvIdMaskHigh,
+            tcData.stream().map(BuildTypeRef::getId).collect(Collectors.toList()), projectId);
+
+        if (!(buildsUpdated.isEmpty() && removedBuildTypes.isEmpty())) {
             runActualizeBuildTypes(projectId);
         }
 
-        return "BuildTypeRefs updated " + buildsUpdated.size() + " from " + tcData.size() + " requested";
+        return "BuildTypeRefs updated " + buildsUpdated.size() +
+            (removedBuildTypes.isEmpty() ? " " : " and mark as removed " + removedBuildTypes.size()) +
+            "from " + tcData.size() + " requested";
     }
 
     public String branchForQuery(@Nullable String branchName) {

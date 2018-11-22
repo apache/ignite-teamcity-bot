@@ -24,9 +24,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.validation.constraints.NotNull;
@@ -66,7 +68,7 @@ public class BuildTypeRefDao {
      * @param existingBuildTypeRef Existing version of buildType reference in the DB.
      * @return BuildTypes references saved (if modifications detected), otherwise null.
      */
-    public BuildTypeRefCompacted saveBuildTypeRef(long srvIdMaskHigh,
+    public BuildTypeRefCompacted saveBuildTypeRef(int srvIdMaskHigh,
         @NotNull BuildTypeRef buildTypeRef,
         @Nullable BuildTypeRefCompacted existingBuildTypeRef) {
         Preconditions.checkNotNull(buildTypesCache, "init() was not called");
@@ -88,10 +90,10 @@ public class BuildTypeRefDao {
      * @param ghData Data for saving.
      * @return List of added entries' keys.
      */
-    public Set<Long> saveChunk(long srvIdMaskHigh, List<BuildTypeRef> ghData) {
+    public Set<Long> saveChunk(int srvIdMaskHigh, List<BuildTypeRef> ghData) {
         Set<Long> ids = ghData.stream().map(BuildTypeRef::getId)
             .filter(Objects::nonNull)
-            .map(buildId -> buildTypeIdToCacheKey(srvIdMaskHigh, buildId))
+            .map(id -> buildTypeIdToCacheKey(srvIdMaskHigh, id))
             .collect(Collectors.toSet());
 
         Map<Long, BuildTypeRefCompacted> existingEntries = buildTypesCache.getAll(ids);
@@ -117,11 +119,46 @@ public class BuildTypeRefDao {
     }
 
     /**
+     * Method compares the received list with the list on cache and marks missing ids as removed.
+     *
+     * @param srvIdMaskHigh Server id mask high.
+     * @param currentListOfBuildTypeIdsOnTeamcity Current list of suite ids on Teamcity.
+     * @param projectId Project id.
+     * @return List of marked as removed buildType ids.
+     */
+    public Set<String> markMissingBuildsAsRemoved(int srvIdMaskHigh,
+        List<String> currentListOfBuildTypeIdsOnTeamcity, String projectId) {
+        Map<Long, String> ids = currentListOfBuildTypeIdsOnTeamcity.stream()
+            .collect(Collectors.toMap(id -> buildTypeIdToCacheKey(srvIdMaskHigh, id), id -> id));
+
+        int projectStringId = compactor.getStringId(projectId);
+
+        Set<String> removedBuildTypes = new TreeSet<>();
+
+        Map<Long, BuildTypeRefCompacted> removedEntries = StreamSupport.stream(buildTypesCache.spliterator(), false)
+            .filter(entry -> isKeyForServer(entry.getKey(), srvIdMaskHigh))
+            .filter(entry -> entry.getValue().projectId() == projectStringId)
+            .filter(entry -> !ids.containsKey(entry.getKey()))
+            .collect(Collectors.toMap(Cache.Entry::getKey, entry -> {
+                BuildTypeRefCompacted buildTypeRef = entry.getValue();
+                buildTypeRef.markAsremoved();
+
+                removedBuildTypes.add(ids.get(entry.getKey()));
+
+                return buildTypeRef;
+            }));
+
+        buildTypesCache.putAll(removedEntries);
+
+        return removedBuildTypes;
+    }
+
+    /**
      * @param srvIdMaskHigh Server id mask high.
      * @param buildTypeId BuildType id.
      * @return Saved reference to buildType.
      */
-    public BuildTypeRefCompacted getBuildTypeRef(long srvIdMaskHigh, @NotNull String buildTypeId) {
+    public BuildTypeRefCompacted getBuildTypeRef(int srvIdMaskHigh, @NotNull String buildTypeId) {
         return buildTypesCache.get(buildTypeIdToCacheKey(srvIdMaskHigh, buildTypeId));
     }
 
@@ -186,7 +223,7 @@ public class BuildTypeRefDao {
      * @param buildTypeId BuildType id.
      * @return BuildType stringId.
      */
-    private long buildTypeIdToCacheKey(long srvIdMaskHigh, String buildTypeId) {
+    private long buildTypeIdToCacheKey(int srvIdMaskHigh, String buildTypeId) {
         int buildTypeStringId = compactor.getStringId(buildTypeId);
 
         return buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStringId);
