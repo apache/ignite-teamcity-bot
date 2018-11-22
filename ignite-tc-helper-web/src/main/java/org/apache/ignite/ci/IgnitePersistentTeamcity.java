@@ -90,7 +90,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private static final String ISSUES_USAGES_LIST = "issuesUsagesList";
 
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
-    public static final String TEST_REFS = "testRefs";
 
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
     private static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
@@ -175,13 +174,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      */
     private IgniteCache<String, Build> buildsCache() {
         return getOrCreateCacheV2(ignCacheNme(BUILDS));
-    }
-
-    /**
-     * @return {@link TestRef} instances cache, 32 parts.
-     */
-    private IgniteCache<String, TestRef> testRefsCache() {
-        return getOrCreateCacheV2(ignCacheNme(TEST_REFS));
     }
 
     /** {@inheritDoc} */
@@ -411,16 +403,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 return null;
             }, buildId);
         }
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public CompletableFuture<TestRef> getTestRef(FullQueryParams key) {
-        return CacheUpdateUtil.loadAsyncIfAbsent(
-            testRefsCache(),
-            key.toString(),
-            testRefsFutures,
-            k -> teamcity.getTestRef(key));
     }
 
     @AutoProfiling

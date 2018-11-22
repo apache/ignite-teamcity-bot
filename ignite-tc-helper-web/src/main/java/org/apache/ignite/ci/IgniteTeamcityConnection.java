@@ -462,15 +462,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getJaxbUsingHref(href, Build.class);
     }
 
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public CompletableFuture<TestRef> getTestRef(FullQueryParams key) {
-        return supplyAsync(() -> {
-            return getJaxbUsingHref("app/rest/latest/tests/name:" + key.getTestName(), TestRef.class);
-        }, executor);
-    }
-
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public IssuesUsagesList getIssuesUsagesList(String href) { return getJaxbUsingHref(href, IssuesUsagesList.class); }

@@ -59,7 +59,9 @@ public class MasterTrendsService {
     @AutoProfiling
     public BuildStatisticsSummary getBuildSummary(ITeamcityIgnited ignited, int buildId) {
         String msg = "Loading build [" + buildId + "] summary";
-        System.out.println(msg);
+
+        if (DEBUG)
+            System.out.println(msg);
 
         BuildStatisticsSummary buildsStatistic = new BuildStatisticsSummary(buildId);
         initialize(buildsStatistic, ignited);

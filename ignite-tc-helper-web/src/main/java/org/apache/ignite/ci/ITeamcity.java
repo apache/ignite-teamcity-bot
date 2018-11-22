@@ -78,10 +78,6 @@ public interface ITeamcity extends ITeamcityConn {
         return "app/rest/latest/builds/id:" + id;
     }
 
-
-    @Deprecated
-    CompletableFuture<TestRef> getTestRef(FullQueryParams key);
-
     /**
      * List of build's related issues.
      *

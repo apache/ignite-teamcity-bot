@@ -163,44 +163,6 @@ public class GetBuildTestFailures {
         return res;
     }
 
-    @GET
-    @Produces(MediaType.TEXT_PLAIN)
-    @Path("testRef")
-    @Deprecated
-    public String getTestRef(
-        @NotNull @QueryParam("testName") String name,
-        @NotNull @QueryParam("suiteName") String suiteName,
-        @Nullable @QueryParam("server") String srv,
-        @Nullable @QueryParam("projectId") String projectId)
-        throws InterruptedException, ExecutionException, ServiceUnauthorizedException {
-        final ITcHelper helper = CtxListener.getTcHelper(ctx);
-
-        final ICredentialsProv prov = ICredentialsProv.get(req);
-
-        String project = projectId == null ? "IgniteTests24Java8" : projectId;
-
-        String srvId = srv == null ? "apache" : srv;
-
-        if (!prov.hasAccess(srvId))
-            throw ServiceUnauthorizedException.noCreds(srvId);
-
-        IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, prov);
-
-        FullQueryParams key = new FullQueryParams();
-
-        key.setTestName(name);
-        key.setProjectId(project);
-        key.setServerId(srvId);
-        key.setSuiteId(suiteName);
-
-        CompletableFuture<TestRef> ref = teamcity.getTestRef(key);
-
-        return ref.isDone() && !ref.isCompletedExceptionally() ? teamcity.host() + "project.html?"
-            + "projectId=" + project
-            + "&testNameId=" + ref.get().id
-            + "&tab=testDetails" : null;
-    }
-
     /**
      * Mark builds as "valid" or "invalid".
      *
