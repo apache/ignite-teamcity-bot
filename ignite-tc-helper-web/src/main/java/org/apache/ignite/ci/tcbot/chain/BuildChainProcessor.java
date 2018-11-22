@@ -188,8 +188,7 @@ public class BuildChainProcessor {
         List<MultBuildRunCtx> contexts = new ArrayList<>(freshRebuilds.size());
 
         freshRebuilds.forEach((bt, listBuilds) -> {
-            List<FatBuildCompacted> buildsForSuite = listBuilds.stream()
-                .map(FutureUtil::getResult)
+            List<FatBuildCompacted> buildsForSuite = FutureUtil.getResults(listBuilds)
                 .filter(buildCompacted -> !buildCompacted.isFakeStub())
                 .collect(Collectors.toList());
 

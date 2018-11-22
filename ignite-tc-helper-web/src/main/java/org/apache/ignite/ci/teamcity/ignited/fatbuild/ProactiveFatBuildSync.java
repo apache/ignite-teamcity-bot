@@ -274,11 +274,10 @@ public class ProactiveFatBuildSync {
         try {
             build = conn.getBuild(buildId);
 
-            if(build.testOccurrences!=null) {
+            if(build.testOccurrences != null && !build.isComposite()) { // don't query tests for compoite
                 String nextHref = null;
                 do {
-                    boolean testDtls = !build.isComposite(); // don't query test details for compoite
-                    TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, testDtls);
+                    TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, true);
                     nextHref = page.nextHref();
 
                     tests.add(page);

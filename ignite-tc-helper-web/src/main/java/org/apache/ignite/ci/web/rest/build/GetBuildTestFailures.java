@@ -22,6 +22,7 @@ import java.text.ParseException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import com.google.inject.Injector;
+import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
@@ -268,6 +269,9 @@ public class GetBuildTestFailures {
             throw ServiceUnauthorizedException.noCreds(srvId);
 
         buildsHist.initialize(prov);
+
+        if (MasterTrendsService.DEBUG)
+            System.out.println("MasterTrendsService: Responding");
 
         return buildsHist;
     }

@@ -23,11 +23,11 @@ import com.google.inject.Inject;
 import com.google.inject.Injector;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
+import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
@@ -91,7 +91,7 @@ public class BuildsHistory {
 
     @Inject private ITcServerProvider tcServerProvider;
 
-    @Inject private IStringCompactor compactor;
+    @Inject private MasterTrendsService masterTrendsService;
 
     /** */
     public void initialize(ICredentialsProv prov) {
@@ -107,7 +107,7 @@ public class BuildsHistory {
         Map<Integer, Boolean> buildIdsWithConditions = finishedBuildsIds.stream()
             .collect(Collectors.toMap(v -> v, ignitedTeamcity::buildIsValid,  (e1, e2) -> e1, LinkedHashMap::new));
 
-        initStatistics(compactor, teamcity, ignitedTeamcity, buildIdsWithConditions);
+        initStatistics(ignitedTeamcity, buildIdsWithConditions);
 
         List<Integer> validBuilds = buildIdsWithConditions.keySet()
             .stream()
@@ -116,6 +116,9 @@ public class BuildsHistory {
 
         if (!skipTests)
             initFailedTests(teamcity, validBuilds);
+
+        if (MasterTrendsService.DEBUG)
+            System.out.println("Preparing response");
 
         ObjectMapper objMapper = new ObjectMapper();
 
@@ -127,21 +130,23 @@ public class BuildsHistory {
     }
 
     /** */
-    private void initStatistics(IStringCompactor compactor, ITeamcity teamcity, ITeamcityIgnited ignited,
+    private void initStatistics(ITeamcityIgnited ignited,
         Map<Integer, Boolean> buildIdsWithConditions) {
         List<Future<BuildStatisticsSummary>> buildStaticsFutures = new ArrayList<>();
 
         for (int buildId : buildIdsWithConditions.keySet()) {
             Future<BuildStatisticsSummary> buildFut = CompletableFuture.supplyAsync(() -> {
-                BuildStatisticsSummary buildsStatistic = new BuildStatisticsSummary(buildId);
+                BuildStatisticsSummary buildsStatistic = masterTrendsService.getBuildSummary(ignited, buildId);
                 buildsStatistic.isValid = buildIdsWithConditions.get(buildId);
-                buildsStatistic.initialize(compactor, ignited);
 
                 return buildsStatistic;
-            }, teamcity.getExecutor());
+            });
 
             buildStaticsFutures.add(buildFut);
         }
+
+        if (MasterTrendsService.DEBUG)
+            System.out.println("Waiting for stat to collect");
 
         buildStaticsFutures.forEach(fut -> {
             try {

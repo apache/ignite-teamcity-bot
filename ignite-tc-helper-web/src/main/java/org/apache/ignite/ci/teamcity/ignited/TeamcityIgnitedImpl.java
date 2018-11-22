@@ -25,6 +25,7 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
@@ -347,7 +348,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @GuavaCached(maximumSize = 2000, cacheNullRval = false)
     @AutoProfiling
     @Nullable public Date getBuildStartDate(int buildId) {
-        logger.info("Loading build [" + buildId + "] start date");
+        String msg = "Loading build [" + buildId + "] start date";
+
+        if (MasterTrendsService.DEBUG)
+            System.out.println(msg);
+
+        logger.info(msg);
 
         FatBuildCompacted highBuild = getFatBuild(buildId, SyncMode.LOAD_NEW);
         if (highBuild == null || highBuild.isFakeStub())
@@ -357,7 +363,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
+    @GuavaCached(maximumSize = 500, expireAfterAccessSecs = 30, softValues = true)
     @Override public FatBuildCompacted getFatBuild(int buildId, SyncMode mode) {
         FatBuildCompacted existingBuild = getFatBuildFromIgnite(buildId);
 
