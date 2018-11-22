@@ -340,7 +340,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return buildConditionDao.setBuildCondition(srvIdMaskHigh, cond);
     }
 
+    /**
+     * @param buildId Build id.
+     * @return build start date or null if build is fake stub or start date is not specified.
+     */
     @GuavaCached(maximumSize = 2000, cacheNullRval = false)
+    @AutoProfiling
     @Nullable public Date getBuildStartDate(int buildId) {
         System.out.println("Loading build [" + buildId + "] start date");
 
