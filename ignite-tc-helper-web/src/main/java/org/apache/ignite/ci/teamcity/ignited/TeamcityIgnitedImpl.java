@@ -347,7 +347,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @GuavaCached(maximumSize = 2000, cacheNullRval = false)
     @AutoProfiling
     @Nullable public Date getBuildStartDate(int buildId) {
-        System.out.println("Loading build [" + buildId + "] start date");
+        logger.info("Loading build [" + buildId + "] start date");
 
         FatBuildCompacted highBuild = getFatBuild(buildId, SyncMode.LOAD_NEW);
         if (highBuild == null || highBuild.isFakeStub())
@@ -441,7 +441,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         runActualizeBuildRefs(srvNme, false, paginateUntil);
 
-        if(!paginateUntil.isEmpty()) {
+        if (!paginateUntil.isEmpty()) {
             //some builds may stuck in the queued or running, enforce loading now
             buildSync.doLoadBuilds(-1, srvNme, conn, paginateUntil);
         }
