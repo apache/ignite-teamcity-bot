@@ -21,6 +21,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -32,6 +33,8 @@ import javax.inject.Inject;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
@@ -40,12 +43,6 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.jetbrains.annotations.NotNull;
-
-import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_SUCCESS;
-import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.TC_EXECUTION_TIMEOUT;
-import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.TC_EXIT_CODE;
-import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.TC_JVM_CRASH;
-import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.TC_OOME;
 
 /**
  *
@@ -70,13 +67,7 @@ public class MasterTrendsService {
 
     /** Initialize build statistics. */
     public void initialize(BuildStatisticsSummary s, @Nonnull final ITeamcityIgnited tcIgn) {
-        if (s.strIds.isEmpty()) {
-            s.strIds.put(STATUS_SUCCESS, compactor.getStringId(STATUS_SUCCESS));
-            s.strIds.put(TC_EXIT_CODE, compactor.getStringId(TC_EXIT_CODE));
-            s.strIds.put(TC_OOME, compactor.getStringId(TC_OOME));
-            s.strIds.put(TC_JVM_CRASH, compactor.getStringId(TC_JVM_CRASH));
-            s.strIds.put(TC_EXECUTION_TIMEOUT, compactor.getStringId(TC_EXECUTION_TIMEOUT));
-        }
+        BuildStatisticsSummary.initStrings(compactor);
 
         FatBuildCompacted build = tcIgn.getFatBuild(s.buildId);
 
@@ -106,14 +97,21 @@ public class MasterTrendsService {
         chainBuilds.stream().filter(b -> !b.isComposite())
             .forEach(b -> {
                 b.getAllTests().forEach(t -> {
-                    if (t.getIgnoredFlag())
+                    if (t.isIgnoredTest())
                         arr[0]++;
-                    else if (t.getMutedFlag())
+                    else if (t.isMutedTest())
                         arr[1]++;
-                    else if (t.status() != s.strIds.get(STATUS_SUCCESS))
+                    else if (t.status() != BuildStatisticsSummary.getStringId(TestOccurrence.STATUS_SUCCESS))
                         arr[2]++;
 
                     arr[3]++;
+
+                    if (t.status() == BuildStatisticsSummary.getStringId(TestOccurrence.STATUS_FAILURE)
+                        && !t.isIgnoredTest() && !t.isMutedTest()) {
+                        Map<Integer, Integer> btTests = s.failedTests.computeIfAbsent(b.buildTypeId(), k -> new HashMap<>());
+
+                        btTests.merge(t.testName(), 1, (x, y) -> (x == null ? 0 : x) + (y == null ? 0 : y));
+                    }
                 });
             });
 
@@ -127,7 +125,7 @@ public class MasterTrendsService {
         Stream<FatBuildCompacted> snapshotDependenciesWithProblems
             = chainBuilds.stream()
             .filter(b -> !b.isComposite())
-            .filter(b -> b.status() != BuildStatisticsSummary.strIds.get(STATUS_SUCCESS));
+            .filter(b -> b.status() != BuildStatisticsSummary.getStringId(BuildRef.STATUS_SUCCESS));
 
         s.duration = chainBuilds.stream()
             .filter(b -> !b.isComposite())
@@ -139,6 +137,5 @@ public class MasterTrendsService {
 
         s.totalProblems = s.getBuildTypeProblemsCount(problems);
     }
-
 
 }

@@ -86,8 +86,6 @@ public interface ITeamcity extends ITeamcityConn {
     @Deprecated
     CompletableFuture<TestRef> getTestRef(FullQueryParams key);
 
-    Configurations getConfigurations(FullQueryParams key);
-
     /**
      * List of build's related issues.
      *

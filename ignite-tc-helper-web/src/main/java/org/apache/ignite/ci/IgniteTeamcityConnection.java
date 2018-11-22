@@ -126,8 +126,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** Build logger processing running. */
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
-    private static int MAX_CFG_CNT = 500;
-
     public Executor getExecutor() {
         return executor;
     }
@@ -483,16 +481,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return supplyAsync(() -> {
             return getJaxbUsingHref("app/rest/latest/tests/name:" + key.getTestName(), TestRef.class);
         }, executor);
-    }
-
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public Configurations getConfigurations(FullQueryParams key) {
-        Configurations configurations = getJaxbUsingHref("app/rest/latest/builds?locator=snapshotDependency:(to:(id:" + key.getBuildId()
-            + "),includeInitial:true),defaultFilter:false,count:" + MAX_CFG_CNT, Configurations.class);
-
-        return configurations.setBuild(key.getBuildId());
     }
 
     /** {@inheritDoc} */

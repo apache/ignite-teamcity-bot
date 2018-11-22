@@ -115,6 +115,7 @@ public class DbMigrations {
         String CHANGES_LIST = "changesList";
         String CHANGE_INFO_FULL = "changeInfoFull";
         String CURRENT_PR_FAILURES = "currentPrFailures";
+        String CONFIGURATIONS = "configurations";
     }
 
     public static final int SUITES_CNT = 100;
@@ -449,6 +450,8 @@ public class DbMigrations {
 
         applyDestroyIgnCacheMigration(Old.BUILD_PROBLEMS);
         applyDestroyIgnCacheMigration(Old.TEST_FULL);
+
+        applyDestroyIgnCacheMigration(Old.CONFIGURATIONS);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {

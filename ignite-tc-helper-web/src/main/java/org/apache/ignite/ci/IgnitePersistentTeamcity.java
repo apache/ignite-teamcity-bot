@@ -102,7 +102,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
     public static final String TEST_REFS = "testRefs";
-    public static final String CONFIGURATIONS = "configurations";
 
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
     private static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
@@ -196,14 +195,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Deprecated
     private IgniteCache<String, TestOccurrences> testOccurrencesCache() {
         return getOrCreateCacheV2(ignCacheNme(TESTS_OCCURRENCES));
-    }
-
-
-    /**
-     * @return {@link Configurations} instances cache, 32 parts.
-     */
-    private IgniteCache<String, Configurations> configurationsCache() {
-        return getOrCreateCacheV2(ignCacheNme(CONFIGURATIONS));
     }
 
     /**
@@ -458,14 +449,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Deprecated
     @Override public TestOccurrences getFailedTests(String href, int cnt, String normalizedBranch) {
         return getTests(href + ",muted:false,status:FAILURE,count:" + cnt + "&fields=testOccurrence(id,name)");
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public Configurations getConfigurations(FullQueryParams key) {
-        return loadIfAbsent(configurationsCache(),
-            key.toString(),
-            k -> teamcity.getConfigurations(key));
     }
 
     private void addTestOccurrencesToStat(TestOccurrences val) {

@@ -22,12 +22,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
-import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
@@ -93,6 +90,8 @@ public class BuildsHistory {
 
     @Inject private MasterTrendsService masterTrendsService;
 
+    @Inject private IStringCompactor compactor;
+
     /** */
     public void initialize(ICredentialsProv prov) {
         ITeamcity teamcity = tcServerProvider.server(srvId, prov);
@@ -115,7 +114,7 @@ public class BuildsHistory {
             .collect(Collectors.toList());
 
         if (!skipTests)
-            initFailedTests(teamcity, validBuilds);
+            initFailedTests(validBuilds, buildIdsWithConditions);
 
         if (MasterTrendsService.DEBUG)
             System.out.println("Preparing response");
@@ -169,85 +168,26 @@ public class BuildsHistory {
     }
 
     /** */
-    private Map<Integer, String> getConfigurations(ITeamcity teamcity, int buildId) {
-        Map<Integer, String> configurations = new HashMap<>();
+    private void initFailedTests(List<Integer> buildIds,
+        Map<Integer, Boolean> buildIdsWithConditions) {
 
-        FullQueryParams key = new FullQueryParams();
+        for (BuildStatisticsSummary buildStat : buildsStatistics) {
+            Boolean valid = buildIdsWithConditions.get(buildStat.buildId);
+            if(!Boolean.TRUE.equals(valid))
+                continue;
 
-        key.setServerId(teamcity.serverId());
-        key.setBuildId(buildId);
+            buildStat.failedTests.forEach((btId,v)->{
+                String configurationName = compactor.getStringFromId(btId);
+                Map<String, Float> tests = mergedTestsBySuites.computeIfAbsent(configurationName,
+                    k -> new HashMap<>());
 
-        teamcity.getConfigurations(key).getBuilds().forEach(buildRef -> {
-            Integer id = buildRef.getId();
+                v.forEach((t, c) -> {
+                    String testName = compactor.getStringFromId(t);
 
-            String configurationName = buildRef.buildTypeId;
-
-            if (id != null && configurationName != null)
-                configurations.put(id, configurationName);
-        });
-
-        return configurations;
-    }
-
-    /** */
-    private void initFailedTests(ITeamcity teamcity, List<Integer> buildIds) {
-        List<Future<Void>> buildProcessorFutures = new ArrayList<>();
-
-        for (int buildId : buildIds) {
-            Future<Void> buildFut = CompletableFuture.supplyAsync(() -> {
-                Map<Integer, String> configurations = getConfigurations(teamcity, buildId);
-
-                Build build = teamcity.getBuild(teamcity.getBuildHrefById(buildId));
-
-                TestOccurrences testOccurrences = teamcity.getFailedTests(build.testOccurrences.href,
-                    build.testOccurrences.failed, BuildChainProcessor.normalizeBranch(build.branchName));
-
-                for (TestOccurrence testOccurrence : testOccurrences.getTests()) {
-                    String configurationName = configurations.get(testOccurrence.getBuildId());
-
-                    if(configurationName == null)
-                        continue;
-
-                    Map<String, Float> tests = mergedTestsBySuites.computeIfAbsent(configurationName,
-                        k -> new HashMap<>());
-
-                    String testName = testOccurrence.getName();
-
-                    if (!tests.containsKey(testName)) {
-                        tests.put(testName, 0F);
-
-                        FullQueryParams key = new FullQueryParams();
-
-                        key.setServerId(srvId);
-                        key.setProjectId(projectId);
-                        key.setTestName(testOccurrence.getName());
-                        key.setSuiteId(configurationName);
-
-                        teamcity.getTestRef(key);
-                    }
-
-                    tests.put(testName, tests.get(testName) + 1F / buildIds.size());
-                }
-
-                return null;
-            }, teamcity.getExecutor());
-
-            buildProcessorFutures.add(buildFut);
+                    tests.merge(testName, 1F / buildIds.size(), (a, b) -> a + b);
+                });
+            });
         }
-
-        buildProcessorFutures.forEach(v -> {
-            try {
-                v.get();
-            } catch (ExecutionException e) {
-                if (e.getCause() instanceof  UncheckedIOException)
-                    logger.error(Arrays.toString(e.getStackTrace()));
-
-                else
-                    throw new RuntimeException(e);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        });
     }
 
     private BuildsHistory withParameters(Builder builder) {

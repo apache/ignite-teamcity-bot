@@ -315,13 +315,13 @@ public class TestCompacted {
         return isFailedTest(compactor) && !(isMutedTest() || isIgnoredTest());
     }
 
-    private boolean isIgnoredTest() {
+    public boolean isIgnoredTest() {
         Boolean flag = getIgnoredFlag();
 
         return flag != null && flag;
     }
 
-    private boolean isMutedTest() {
+    public boolean isMutedTest() {
         Boolean flag = getMutedFlag();
 
         return flag != null && flag;
