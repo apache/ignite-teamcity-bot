@@ -153,7 +153,11 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             setFlag(FAILED_TO_START_F, true);
 
         if (build.isFakeStub())
-            setFlag(FAKE_BUILD_F, true);
+            setFakeStub(true);
+    }
+
+    public void setFakeStub(boolean val) {
+        setFlag(FAKE_BUILD_F, val);
     }
 
     public void buildTypeName(String btName, IStringCompactor compactor) {
@@ -284,8 +288,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     }
 
     /** Start date. */
-    public Date getStartDate() {
-        return new Date(startDate);
+    @Nullable public Date getStartDate() {
+        return startDate > 0 ? new Date(startDate) : null;
     }
 
     /** {@inheritDoc} */
