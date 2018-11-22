@@ -116,22 +116,40 @@ public class BuildTypeRefDao {
         return entriesToPut.keySet();
     }
 
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param buildTypeId BuildType id.
+     * @return Saved reference to buildType.
+     */
     public BuildTypeRefCompacted getBuildTypeRef(long srvIdMaskHigh, @NotNull String buildTypeId) {
-        Preconditions.checkNotNull(buildTypesCache, "init() was not called");
-
         return buildTypesCache.get(buildTypeIdToCacheKey(srvIdMaskHigh, buildTypeId));
     }
 
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param projectId Project id.
+     * @return List of saved current Teamcity's buildTypes.
+     */
     public List<BuildTypeRefCompacted> buildTypesCompacted(int srvIdMaskHigh, @Nullable String projectId) {
         return buildTypesCompactedStream(srvIdMaskHigh, projectId).collect(Collectors.toList());
     }
 
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param projectId Project id.
+     * @return List of saved current Teamcity's buildTypes ids.
+     */
     public List<String> buildTypeIds(int srvIdMaskHigh, @Nullable String projectId) {
         return buildTypesCompactedStream(srvIdMaskHigh, projectId)
             .map(bt -> bt.id(compactor)).collect(Collectors.toList());
 
     }
 
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param projectId Project id.
+     * @return Stream of saved references to current Teamcity's buildTypes.
+     */
     protected Stream<BuildTypeRefCompacted> buildTypesCompactedStream(int srvIdMaskHigh, @Nullable String projectId) {
         Stream<BuildTypeRefCompacted> stream = compactedBuildTypeRefsStreamForServer(srvIdMaskHigh);
 
@@ -140,7 +158,9 @@ public class BuildTypeRefDao {
 
         final int stringIdForProjectId = compactor.getStringId(projectId);
 
-        return stream.filter(bt -> bt.projectId() == stringIdForProjectId);
+        return stream
+            .filter(bt -> bt.projectId() == stringIdForProjectId)
+            .filter(bt -> !bt.removed());
     }
 
     /**

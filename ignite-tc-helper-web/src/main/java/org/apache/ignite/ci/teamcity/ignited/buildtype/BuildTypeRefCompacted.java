@@ -36,6 +36,9 @@ public class BuildTypeRefCompacted {
     /** Compacter identifier for string 'Project name'. */
     private int projectName = -1;
 
+    /** Marker for suites deleted from teamcity. */
+    private boolean removed = false;
+
     public String name(IStringCompactor compactor) {
         return compactor.getStringFromId(name);
     }
@@ -61,6 +64,20 @@ public class BuildTypeRefCompacted {
     }
 
     /**
+     * @return BuildType removed from Teamcity.
+     */
+    public boolean removed() {
+        return removed;
+    }
+
+    /**
+     * Mark buildType as removed from Teamcity.
+     */
+    public void markAsremoved() {
+        this.removed = true;
+    }
+
+    /**
      * Default constructor.
      */
     public BuildTypeRefCompacted() {
@@ -71,10 +88,20 @@ public class BuildTypeRefCompacted {
      * @param ref Reference.
      */
     public BuildTypeRefCompacted(IStringCompactor compactor, BuildTypeRef ref) {
+        this(compactor, ref, false);
+    }
+
+    /**
+     * @param compactor Compactor.
+     * @param ref Reference.
+     * @param removed BuildType is actual (not removed from Teamcity).
+     */
+    public BuildTypeRefCompacted(IStringCompactor compactor, BuildTypeRef ref, boolean removed) {
         id = compactor.getStringId(ref.getId());
         name = compactor.getStringId(ref.getName());
         projectId = compactor.getStringId(ref.getProjectId());
         projectName = compactor.getStringId(ref.getProjectName());
+        this.removed = removed;
     }
 
     /**
@@ -85,6 +112,7 @@ public class BuildTypeRefCompacted {
         name = refCompacted.name();
         projectId = refCompacted.projectId();
         projectName = refCompacted.projectName();
+        removed = refCompacted.removed;
     }
 
     /**
@@ -108,12 +136,20 @@ public class BuildTypeRefCompacted {
         res.setWebUrl(getWebUrlForId(id));
     }
 
-    @NotNull protected static String getHrefForId(String id) {
-        return "/app/rest/latest/builds/id:" + id;
+    /**
+     * @param buildTypeId BuildType id.
+     * @return URL for GET request to Teamcity REST API.
+     */
+    @NotNull protected static String getHrefForId(String buildTypeId) {
+        return "/app/rest/latest/builds/id:" + buildTypeId;
     }
 
-    @NotNull protected static String getWebUrlForId(String id) {
-        return "http://ci.ignite.apache.org/viewType.html?buildTypeId=" + id;
+    /**
+     * @param buildTypeId BuildType id.
+     * @return URL to BuildType on Teamcity.
+     */
+    @NotNull protected static String getWebUrlForId(String buildTypeId) {
+        return "http://ci.ignite.apache.org/viewType.html?buildTypeId=" + buildTypeId;
     }
 
     /** {@inheritDoc} */
@@ -129,12 +165,13 @@ public class BuildTypeRefCompacted {
         return id == compacted.id &&
             name == compacted.name &&
             projectId == compacted.projectId &&
-            projectName == compacted.projectName;
+            projectName == compacted.projectName &&
+            removed == compacted.removed;
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(id, name, projectId, projectName);
+        return Objects.hash(id, name, projectId, projectName, removed);
     }
 
     /** {@inheritDoc} */
@@ -144,6 +181,7 @@ public class BuildTypeRefCompacted {
             .add("name", name)
             .add("projectId", projectId)
             .add("projectName", projectName)
+            .add("removed", removed)
             .toString();
     }
 }

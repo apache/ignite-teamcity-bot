@@ -60,6 +60,14 @@ public class Parameters {
         return Collections.unmodifiableList(this.properties);
     }
 
+    public boolean setParameter(String key, String value) {
+        if (properties == null)
+            return false;
+
+        return properties.stream().filter(property ->
+            Objects.equals(property.name, key)).map(property -> property.value = value).count() != 0;
+    }
+
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)

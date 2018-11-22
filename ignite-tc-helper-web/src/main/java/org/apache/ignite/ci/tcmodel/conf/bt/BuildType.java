@@ -48,6 +48,13 @@ public class BuildType extends BuildTypeRef {
         return parameters.getParameter(key);
     }
 
+    public boolean setSetting(String key, String value) {
+        if (settings == null)
+            return false;
+
+        return settings.setParameter(key, value);
+    }
+
     public List<SnapshotDependency> dependencies() {
         if (snapshotDependencies == null)
             return Collections.emptyList();

@@ -30,15 +30,22 @@ import org.apache.ignite.ci.tcmodel.conf.bt.Parameters;
 import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependencies;
 import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.util.NumberUtil;
 import org.jetbrains.annotations.Nullable;
 
 @Persisted
 public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVersionedEntity {
+    /** Build number counter. */
+    private static String BUILD_NUMBER_COUNTER = "buildNumberCounter";
+
     /** Latest version. */
     private static final int LATEST_VERSION = 0;
 
     /** Entity fields version. */
     private short _ver = LATEST_VERSION;
+
+    /** Build number counter. */
+    private int buildNumberCounter;
 
     /** Settings. */
     @Nullable private ParametersCompacted settings;
@@ -56,7 +63,13 @@ public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVer
     public FatBuildTypeCompacted(IStringCompactor compactor, BuildType buildType) {
         super(compactor, buildType);
 
-        settings = new ParametersCompacted(compactor, buildType.getSettings().properties());
+        buildNumberCounter = NumberUtil.parseInt(buildType.getSettings().getParameter(BUILD_NUMBER_COUNTER), 0);
+
+        Parameters src = new Parameters(buildType.getSettings().properties());
+
+        src.setParameter(BUILD_NUMBER_COUNTER, "");
+
+        settings = new ParametersCompacted(compactor, src.properties());
 
         parameters = new ParametersCompacted(compactor, buildType.getParameters().properties());
 
@@ -64,6 +77,14 @@ public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVer
 
         for (SnapshotDependency snDp : buildType.dependencies())
             snapshotDependencies.add(new SnapshotDependencyCompacted(compactor, snDp));
+    }
+
+    public int buildNumberCounter() {
+        return buildNumberCounter;
+    }
+
+    public void buildNumberCounter(int buildNumberCounter) {
+        this.buildNumberCounter = buildNumberCounter;
     }
 
     public BuildType toBuildType(IStringCompactor compactor) {
@@ -79,6 +100,7 @@ public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVer
     protected void fillBuildTypeFields(IStringCompactor compactor, BuildType res) {
         res.setParameters(parameters == null ? new Parameters() : parameters.toParameters(compactor));
         res.setSettings(settings == null ? new Parameters() : settings.toParameters(compactor));
+        res.setSetting(BUILD_NUMBER_COUNTER, Integer.toString(buildNumberCounter));
 
         List<SnapshotDependency> snDpList = null;
 
@@ -110,8 +132,8 @@ public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVer
         this.settings = settings;
     }
 
-    @Nullable public ParametersCompacted getParameters() {
-        return parameters;
+    public ParametersCompacted getParameters() {
+        return parameters != null ? parameters : new ParametersCompacted();
     }
 
     public void setParameters(@Nullable ParametersCompacted parameters) {
@@ -151,6 +173,7 @@ public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVer
         FatBuildTypeCompacted that = (FatBuildTypeCompacted)o;
 
         return _ver == that._ver &&
+            buildNumberCounter == that.buildNumberCounter &&
             Objects.equals(getSettings(), that.getSettings()) &&
             Objects.equals(getParameters(), that.getParameters()) &&
             Objects.equals(getSnapshotDependencies(), that.getSnapshotDependencies());
@@ -158,13 +181,14 @@ public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVer
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(super.hashCode(), _ver, getSettings(), getParameters(), getSnapshotDependencies());
+        return Objects.hash(super.hashCode(), _ver, buildNumberCounter, getSettings(), getParameters(), getSnapshotDependencies());
     }
 
     /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("_ver", _ver)
+            .add("buildNumberCounter", buildNumberCounter)
             .add("settings", settings)
             .add("parameters", parameters)
             .add("snapshotDependencies", snapshotDependencies)

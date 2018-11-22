@@ -71,6 +71,10 @@ public class FatBuildTypeDao {
 
         FatBuildTypeCompacted newBuildType = new FatBuildTypeCompacted(compactor, buildType);
 
+        if (existingBuildType != null)
+            existingBuildType.buildNumberCounter(newBuildType.buildNumberCounter());
+
+
         if (existingBuildType == null || !existingBuildType.equals(newBuildType)) {
             buildTypesCache.put(buildTypeIdToCacheKey(srvIdMaskHigh, buildType.getId()), newBuildType);
 
@@ -103,7 +107,7 @@ public class FatBuildTypeDao {
     /**
      * @param srvIdMaskHigh Server id mask high.
      * @param projectId Project id.
-     * @return Stream of saved fat buildTypes.
+     * @return Stream of saved to current fat Teamcity's buildTypes.
      */
     protected Stream<FatBuildTypeCompacted> buildTypesCompactedStream(int srvIdMaskHigh, @Nullable String projectId) {
         Stream<FatBuildTypeCompacted> stream = compactedFatBuildTypesStreamForServer(srvIdMaskHigh);
@@ -113,7 +117,9 @@ public class FatBuildTypeDao {
 
         final int stringIdForProjectId = compactor.getStringId(projectId);
 
-        return stream.filter(bt -> bt.projectId() == stringIdForProjectId);
+        return stream
+            .filter(bt -> bt.projectId() == stringIdForProjectId)
+            .filter(bt -> !bt.removed());
     }
 
     /**
@@ -135,10 +141,11 @@ public class FatBuildTypeDao {
      * @param projectId Project id.
      * @return List of saved composite fat buildTypes.
      */
-    private List<FatBuildTypeCompacted> compositeBuildTypesCompactedSortedBySnDepCount(int srvIdMaskHigh, @Nullable String projectId) {
+    private List<FatBuildTypeCompacted> compositeBuildTypesCompactedSortedByBuildNumberCounter(int srvIdMaskHigh, @Nullable String projectId) {
         List<FatBuildTypeCompacted> res = compositeBuildTypesCompacted(srvIdMaskHigh, projectId);
 
-        Comparator<FatBuildTypeCompacted> comparator = Comparator.comparingInt(t -> t.getSnapshotDependencies().size());
+        Comparator<FatBuildTypeCompacted> comparator = Comparator
+            .comparingInt(FatBuildTypeCompacted::buildNumberCounter);
 
         res.sort(comparator);
 
@@ -154,8 +161,8 @@ public class FatBuildTypeDao {
      * @param projectId Project id.
      * @return List of buildTypes ids.
      */
-    public List<String> compositeBuildTypesIdsSortedBySnDepCount(int srvIdMaskHigh, @Nullable String projectId) {
-        return compositeBuildTypesCompactedSortedBySnDepCount(srvIdMaskHigh, projectId).stream()
+    public List<String> compositeBuildTypesIdsSortedByBuildNumberCounter(int srvIdMaskHigh, @Nullable String projectId) {
+        return compositeBuildTypesCompactedSortedByBuildNumberCounter(srvIdMaskHigh, projectId).stream()
             .map(bt -> compactor.getStringFromId(bt.id()))
             .collect(Collectors.toList());
     }

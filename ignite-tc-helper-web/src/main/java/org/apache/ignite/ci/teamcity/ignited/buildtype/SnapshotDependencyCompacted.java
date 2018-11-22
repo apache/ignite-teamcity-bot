@@ -74,27 +74,27 @@ public class SnapshotDependencyCompacted {
         res.setProperties(properties.toParameters(compactor));
     }
 
-    public int getId() {
+    public int id() {
         return id;
     }
 
-    public void setId(int id) {
+    public void id(int id) {
         this.id = id;
     }
 
-    public int getType() {
+    public int type() {
         return type;
     }
 
-    public void setType(int type) {
+    public void type(int type) {
         this.type = type;
     }
 
-    public ParametersCompacted getProperties() {
+    public ParametersCompacted properties() {
         return properties;
     }
 
-    public void setProperties(ParametersCompacted properties) {
+    public void properties(ParametersCompacted properties) {
         this.properties = properties;
     }
 
@@ -108,15 +108,15 @@ public class SnapshotDependencyCompacted {
 
         SnapshotDependencyCompacted compacted = (SnapshotDependencyCompacted)o;
 
-        return getId() == compacted.getId() &&
-            getType() == compacted.getType() &&
+        return id == compacted.id &&
+            type == compacted.type &&
             Objects.equals(buildTypeRefCompacted, compacted.buildTypeRefCompacted) &&
-            Objects.equals(getProperties(), compacted.getProperties());
+            Objects.equals(properties, compacted.properties);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(getId(), getType(), buildTypeRefCompacted, getProperties());
+        return Objects.hash(id, type, buildTypeRefCompacted, properties);
     }
 
     /** {@inheritDoc} */

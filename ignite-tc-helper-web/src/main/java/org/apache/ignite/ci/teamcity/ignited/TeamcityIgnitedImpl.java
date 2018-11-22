@@ -336,7 +336,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     private void actualizeSavedCompositeBuildTypesIds(String projectId) {
         if (projectId.equals(DEFAULT_PROJECT_ID)) {
             compositeBuildTypesIdsForDefaultProject =
-                fatBuildTypeDao.compositeBuildTypesIdsSortedBySnDepCount(srvIdMaskHigh, projectId);
+                fatBuildTypeDao.compositeBuildTypesIdsSortedByBuildNumberCounter(srvIdMaskHigh, projectId);
         }
     }
 
@@ -346,7 +346,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         ensureActualizeBuildTypesRequested();
 
         return projectId.equals(DEFAULT_PROJECT_ID) ? compositeBuildTypesIdsForDefaultProject :
-            fatBuildTypeDao.compositeBuildTypesIdsSortedBySnDepCount(srvIdMaskHigh, projectId);
+            fatBuildTypeDao.compositeBuildTypesIdsSortedByBuildNumberCounter(srvIdMaskHigh, projectId);
     }
 
     /** {@inheritDoc} */
@@ -361,7 +361,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     private void ensureActualizeBuildTypeRefsRequested() {
         scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs"),
-            this::reindexBuildTypeRefs, 6, TimeUnit.HOURS);
+            this::reindexBuildTypeRefs, 4, TimeUnit.HOURS);
     }
 
     /**
