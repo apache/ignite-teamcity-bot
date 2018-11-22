@@ -161,12 +161,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
                     if (stopFilter.get())
                         return addBuild.get();
 
-                    FatBuildCompacted build = getFatBuild(b.id(), SyncMode.LOAD_NEW);
+                    Date date = getBuildStartDate(b.id());
 
-                    if (build == null || build.isFakeStub())
+                    if (date == null)
                         return false;
-
-                    Date date = build.getStartDate();
 
                     if (sinceDate != null && untilDate != null)
                         if ((date.after(sinceDate) || date.equals(sinceDate)) &&
@@ -344,6 +342,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     @GuavaCached(maximumSize = 2000, cacheNullRval = false)
     @Nullable public Date getBuildStartDate(int buildId) {
+        System.out.println("Loading build [" + buildId + "] start date");
+
         FatBuildCompacted highBuild = getFatBuild(buildId, SyncMode.LOAD_NEW);
         if (highBuild == null || highBuild.isFakeStub())
             return null;
