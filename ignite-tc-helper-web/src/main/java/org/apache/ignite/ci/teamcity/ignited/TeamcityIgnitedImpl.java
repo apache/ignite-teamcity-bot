@@ -133,7 +133,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         final int unknownStatus = compactor.getStringId(STATUS_UNKNOWN);
 
         List<BuildRefCompacted> buildRefs = getAllBuildsCompacted(buildTypeId, branchName)
-            .stream().filter(b -> b.status() != unknownStatus).collect(Collectors.toList());
+            .stream()
+            .filter(b -> b.isFinished(compactor))
+            .filter(b -> b.status() != unknownStatus)
+            .collect(Collectors.toList());
 
         int idSince = 0;
         int idUntil = buildRefs.size() - 1;
@@ -231,32 +234,32 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         int minDiffId = since ? low : high;
         long temp;
 
-        FatBuildCompacted highBuild = getFatBuild(buildRefs.get(high).id(), SyncMode.LOAD_NEW);
-        FatBuildCompacted lowBuild = getFatBuild(buildRefs.get(low).id(), SyncMode.LOAD_NEW);
+        Date highBuildStartDate = getBuildStartDate(buildRefs.get(high).id());
+        Date lowBuildStartDate = getBuildStartDate(buildRefs.get(low).id());
 
-        if (highBuild != null && !highBuild.isFakeStub()){
-            if (highBuild.getStartDate().before(key))
+        if (highBuildStartDate != null) {
+            if (highBuildStartDate.before(key))
                 return since ? allDatesOutOfBounds : someDatesOutOfBounds;
         }
 
-        if (lowBuild != null && !lowBuild.isFakeStub()){
-            if (lowBuild.getStartDate().after(key))
+        if (lowBuildStartDate != null) {
+            if (lowBuildStartDate.after(key))
                 return since ? someDatesOutOfBounds : allDatesOutOfBounds;
         }
 
         while (low <= high) {
             int mid = (low + high) >>> 1;
-            FatBuildCompacted midVal = getFatBuild(buildRefs.get(mid).id(), SyncMode.LOAD_NEW);
+            Date midValStartDate = getBuildStartDate(buildRefs.get(mid).id());
 
-            if (midVal != null && !midVal.isFakeStub()) {
-                if (midVal.getStartDate().after(key))
+            if (midValStartDate != null) {
+                if (midValStartDate.after(key))
                     high = mid - 1;
-                else if (midVal.getStartDate().before(key))
+                else if (midValStartDate.before(key))
                     low = mid + 1;
                 else
                     return mid;
 
-                temp = midVal.getStartDate().getTime() - key.getTime();
+                temp = midValStartDate.getTime() - key.getTime();
 
                 if ((temp > 0 == since) && (Math.abs(temp) < minDiff)) {
                     minDiff = Math.abs(temp);
@@ -339,6 +342,15 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return buildConditionDao.setBuildCondition(srvIdMaskHigh, cond);
     }
 
+    @GuavaCached(maximumSize = 2000, cacheNullRval = false)
+    @Nullable public Date getBuildStartDate(int buildId) {
+        FatBuildCompacted highBuild = getFatBuild(buildId, SyncMode.LOAD_NEW);
+        if (highBuild == null || highBuild.isFakeStub())
+            return null;
+
+        return highBuild.getStartDate();
+    }
+
     /** {@inheritDoc} */
     @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
     @Override public FatBuildCompacted getFatBuild(int buildId, SyncMode mode) {
@@ -347,8 +359,13 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (mode == SyncMode.NONE) {
             if (existingBuild != null)
                 return existingBuild;
-            else
-                return new FatBuildCompacted(); // providing fake builds
+            else {
+                FatBuildCompacted buildCompacted = new FatBuildCompacted();
+
+                buildCompacted.setFakeStub(true);
+
+                return buildCompacted; // providing fake builds
+            }
         }
 
         FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, mode);
