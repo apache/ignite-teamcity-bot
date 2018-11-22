@@ -366,4 +366,11 @@ public class TestCompacted {
             .add("details", details)
             .toString() + "\n";
     }
+
+    public Long getTestId() {
+        if (testId != 0)
+            return testId;
+
+        return null;
+    }
 }

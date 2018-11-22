@@ -36,6 +36,7 @@ import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
+import org.apache.ignite.internal.util.typedef.T2;
 
 import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.*;
 
@@ -83,8 +84,9 @@ public class BuildStatisticsSummary {
     /** Is fake stub. */
     public boolean isFakeStub;
 
-    /** Failed tests: Map from build type string ID -> Map of test name (full) string ID -> to count of failure. */
-    public Map<Integer, Map<Integer, Integer>> failedTests = new HashMap<>();
+    /** Failed tests: Map from build type string ID ->
+     *           Map of test name (full) string ID -> (test refrenence, to count of failures). */
+    private Map<Integer, Map<Integer, T2<Long, Integer>>> failedTests = new HashMap<>();
 
     /** Is valid. */
     public boolean isValid = true;
@@ -222,5 +224,9 @@ public class BuildStatisticsSummary {
     @Override public int hashCode() {
         return Objects.hash(buildId, startDate, testOccurrences,
             duration, totalProblems, isFakeStub);
+    }
+
+    public Map<Integer, Map<Integer, T2<Long, Integer>>> failedTests() {
+        return failedTests;
     }
 }

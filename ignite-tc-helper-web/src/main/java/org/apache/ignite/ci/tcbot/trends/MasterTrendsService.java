@@ -42,6 +42,7 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
+import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -108,9 +109,12 @@ public class MasterTrendsService {
 
                     if (t.status() == BuildStatisticsSummary.getStringId(TestOccurrence.STATUS_FAILURE)
                         && !t.isIgnoredTest() && !t.isMutedTest()) {
-                        Map<Integer, Integer> btTests = s.failedTests.computeIfAbsent(b.buildTypeId(), k -> new HashMap<>());
+                        Map<Integer, T2<Long, Integer>> btTests = s.failedTests().computeIfAbsent(b.buildTypeId(), k -> new HashMap<>());
 
-                        btTests.merge(t.testName(), 1, (x, y) -> (x == null ? 0 : x) + (y == null ? 0 : y));
+                        btTests.merge(t.testName(), new T2<>(t.getTestId(), 1), (v, x) -> {
+                            int cnt = (x == null ? 0 : x.get2()) + (v == null ? 0 : v.get2());
+                            return new T2<>(t.getTestId(), cnt);
+                        });
                     }
                 });
             });

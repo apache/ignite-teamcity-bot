@@ -19,6 +19,7 @@ package org.apache.ignite.ci.web.model.hist;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import org.apache.ignite.ci.ITeamcity;
@@ -55,7 +56,9 @@ public class BuildsHistory {
     private String srvId;
 
     /** */
-    private String projectId;
+    public String projectId;
+
+    public String tcHost;
 
     /** */
     private String buildTypeId;
@@ -69,8 +72,8 @@ public class BuildsHistory {
     /** */
     private Date untilDateFilter;
 
-    /** */
-    private Map<String, Map<String, Float>> mergedTestsBySuites = new ConcurrentHashMap<>();
+    /** Suite name -> map of test name -> [test Name ID: String to avoid JS overflow, fail rate: float] */
+    public Map<String, Map<String, List<Object>>> mergedTestsBySuites = new ConcurrentHashMap<>();
 
     /** */
     private boolean skipTests;
@@ -79,24 +82,20 @@ public class BuildsHistory {
     public List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
 
     /** */
-    public String mergedTestsJson;
-
-    /** */
     private static final Logger logger = LoggerFactory.getLogger(BuildsHistory.class);
 
     @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
-
-    @Inject private ITcServerProvider tcServerProvider;
 
     @Inject private MasterTrendsService masterTrendsService;
 
     @Inject private IStringCompactor compactor;
 
+
     /** */
     public void initialize(ICredentialsProv prov) {
-        ITeamcity teamcity = tcServerProvider.server(srvId, prov);
-
         ITeamcityIgnited ignitedTeamcity = tcIgnitedProv.server(srvId, prov);
+
+        tcHost = ignitedTeamcity.host();
 
         List<Integer> finishedBuildsIds = ignitedTeamcity
             .getFinishedBuildsCompacted(buildTypeId, branchName, sinceDateFilter, untilDateFilter)
@@ -118,14 +117,6 @@ public class BuildsHistory {
 
         if (MasterTrendsService.DEBUG)
             System.out.println("Preparing response");
-
-        ObjectMapper objMapper = new ObjectMapper();
-
-        try {
-            mergedTestsJson = objMapper.writeValueAsString(mergedTestsBySuites);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     /** */
@@ -176,16 +167,24 @@ public class BuildsHistory {
             if(!Boolean.TRUE.equals(valid))
                 continue;
 
-            buildStat.failedTests.forEach((btId, map) -> {
+            buildStat.failedTests().forEach((btId, map) -> {
                 String configurationName = compactor.getStringFromId(btId);
-                Map<String, Float> tests = mergedTestsBySuites.computeIfAbsent(configurationName,
+                Map<String, List<Object>> tests = mergedTestsBySuites.computeIfAbsent(configurationName,
                     k -> new HashMap<>());
 
-                map.forEach((tn, cnt) -> {
+                map.forEach((tn, pair) -> {
                     String testName = compactor.getStringFromId(tn);
+                    Integer cnt = pair.get2();
                     float i = cnt != null ? cnt : 1F;
 
-                    tests.merge(testName, i / buildIds.size(), (a, b) -> a + b);
+                    float addForFailRate = i / buildIds.size();
+
+                    tests.merge(testName, Lists.newArrayList(Long.toString(pair.get1()), addForFailRate),
+                        (a, b) -> {
+                            if (a == null)
+                                return b;
+                            return Lists.newArrayList(a.get(0), (Float)a.get(1) + (Float)b.get(1));
+                        });
                 });
             });
         }
