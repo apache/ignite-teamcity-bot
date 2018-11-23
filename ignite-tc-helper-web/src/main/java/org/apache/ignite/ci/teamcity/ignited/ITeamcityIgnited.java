@@ -131,7 +131,7 @@ public interface ITeamcityIgnited {
      * @param projectId Project id.
      * @return List of composite buildType ids.
      */
-    public List<String> getCompositeBuildTypesIdsSortedBySnDepCount(String projectId);
+    public List<String> getCompositeBuildTypesIdsSortedByBuildNumberCounter(String projectId);
 
     /**
      * Return list of compacted references to project suites.

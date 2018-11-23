@@ -341,7 +341,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @Override public List<String> getCompositeBuildTypesIdsSortedBySnDepCount(String projectId) {
+    @Override public List<String> getCompositeBuildTypesIdsSortedByBuildNumberCounter(String projectId) {
         ensureActualizeBuildTypeRefsRequested();
         ensureActualizeBuildTypesRequested();
 

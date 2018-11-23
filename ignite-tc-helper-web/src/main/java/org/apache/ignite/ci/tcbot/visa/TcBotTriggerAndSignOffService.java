@@ -351,7 +351,7 @@ public class TcBotTriggerAndSignOffService {
         //todo public final projectId
 
         List<String> compositeBuildTypes = teamcity
-            .getCompositeBuildTypesIdsSortedBySnDepCount(DEFAULT_PROJECT_ID);
+            .getCompositeBuildTypesIdsSortedByBuildNumberCounter(DEFAULT_PROJECT_ID);
 
         List<BuildRefCompacted> forTests;
 
