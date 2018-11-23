@@ -22,13 +22,8 @@ import com.google.common.base.Throwables;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -36,8 +31,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -45,7 +38,6 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.cache.Cache;
 import javax.inject.Inject;
-import javax.ws.rs.BadRequestException;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
@@ -66,21 +58,17 @@ import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.Configurations;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
-import org.apache.ignite.ci.util.CacheUpdateUtil;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBranch;
@@ -94,15 +82,12 @@ import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBran
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
     //V2 caches, 32 parts (V1 caches were 1024 parts)
     @Deprecated
-    private static final String TESTS_OCCURRENCES = "testOccurrences";
     private static final String TESTS_RUN_STAT = "testsRunStat";
     private static final String CALCULATED_STATISTIC = "calculatedStatistic";
     private static final String LOG_CHECK_RESULT = "logCheckResult";
     private static final String ISSUES_USAGES_LIST = "issuesUsagesList";
 
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
-    public static final String TEST_REFS = "testRefs";
-    public static final String CONFIGURATIONS = "configurations";
 
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
     private static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
@@ -142,8 +127,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         DbMigrations migrations = new DbMigrations(ignite, conn.serverId());
 
         migrations.dataMigration(
-                testOccurrencesCache(), this::addTestOccurrencesToStat,
-                this::migrateOccurrencesToLatest,
+            this::migrateOccurrencesToLatest,
                 buildsCache(), this::addBuildOccurrenceToFailuresStat,
                 buildsFailureRunStatCache(), testRunStatCache(),
                 visasHistStorage.visas());
@@ -188,29 +172,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      */
     private IgniteCache<String, Build> buildsCache() {
         return getOrCreateCacheV2(ignCacheNme(BUILDS));
-    }
-
-    /**
-     * @return {@link TestOccurrences} instances cache, 32 parts.
-     */
-    @Deprecated
-    private IgniteCache<String, TestOccurrences> testOccurrencesCache() {
-        return getOrCreateCacheV2(ignCacheNme(TESTS_OCCURRENCES));
-    }
-
-
-    /**
-     * @return {@link Configurations} instances cache, 32 parts.
-     */
-    private IgniteCache<String, Configurations> configurationsCache() {
-        return getOrCreateCacheV2(ignCacheNme(CONFIGURATIONS));
-    }
-
-    /**
-     * @return {@link TestRef} instances cache, 32 parts.
-     */
-    private IgniteCache<String, TestRef> testRefsCache() {
-        return getOrCreateCacheV2(ignCacheNme(TEST_REFS));
     }
 
     /** {@inheritDoc} */
@@ -440,47 +401,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 return null;
             }, buildId);
         }
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Deprecated
-    @Override public TestOccurrences getTests(String fullUrl) {
-        String hrefForDb = DbMigrations.removeCountFromRef(fullUrl);
-
-        return loadIfAbsent(testOccurrencesCache(),
-            hrefForDb,  //hack to avoid test reloading from store in case of href filter replaced
-            hrefIgnored -> teamcity.getTests(fullUrl));
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Deprecated
-    @Override public TestOccurrences getFailedTests(String href, int cnt, String normalizedBranch) {
-        return getTests(href + ",muted:false,status:FAILURE,count:" + cnt + "&fields=testOccurrence(id,name)");
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public Configurations getConfigurations(FullQueryParams key) {
-        return loadIfAbsent(configurationsCache(),
-            key.toString(),
-            k -> teamcity.getConfigurations(key));
-    }
-
-    private void addTestOccurrencesToStat(TestOccurrences val) {
-        for (TestOccurrence next : val.getTests())
-            addTestOccurrenceToStat(next, ITeamcity.DEFAULT, null);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public CompletableFuture<TestRef> getTestRef(FullQueryParams key) {
-        return CacheUpdateUtil.loadAsyncIfAbsent(
-            testRefsCache(),
-            key.toString(),
-            testRefsFutures,
-            k -> teamcity.getTestRef(key));
     }
 
     @AutoProfiling

@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.web.model.current;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.ArrayList;
@@ -24,15 +25,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
+import org.apache.ignite.internal.util.typedef.T2;
 
-import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_SUCCESS;
 import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.*;
 
 /**
@@ -40,7 +45,7 @@ import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.*;
  */
 public class BuildStatisticsSummary {
     /** String ids. */
-    public static HashMap<String, Integer> strIds = new HashMap<>();
+    private static final Map<String, Integer> strIds = new ConcurrentHashMap<>();
 
     /** Short problem names. */
     public static final String TOTAL = "TOTAL";
@@ -79,6 +84,10 @@ public class BuildStatisticsSummary {
     /** Is fake stub. */
     public boolean isFakeStub;
 
+    /** Failed tests: Map from build type string ID ->
+     *           Map of test name (full) string ID -> (test refrenence, to count of failures). */
+    private Map<Integer, Map<Integer, T2<Long, Integer>>> failedTests = new HashMap<>();
+
     /** Is valid. */
     public boolean isValid = true;
 
@@ -89,6 +98,32 @@ public class BuildStatisticsSummary {
         this.buildId = buildId;
     }
 
+    /**
+     * @param compactor Compactor.
+     */
+    public static void initStrings(IStringCompactor compactor) {
+        if (strIds.isEmpty()) {
+            synchronized (BuildStatisticsSummary.class) {
+                if (strIds.isEmpty()) {
+                    strIds.put(TestOccurrence.STATUS_SUCCESS, compactor.getStringId(TestOccurrence.STATUS_SUCCESS));
+                    strIds.put(TestOccurrence.STATUS_FAILURE, compactor.getStringId(TestOccurrence.STATUS_FAILURE));
+                    strIds.put(TC_EXIT_CODE, compactor.getStringId(TC_EXIT_CODE));
+                    strIds.put(TC_OOME, compactor.getStringId(TC_OOME));
+                    strIds.put(TC_JVM_CRASH, compactor.getStringId(TC_JVM_CRASH));
+                    strIds.put(TC_EXECUTION_TIMEOUT, compactor.getStringId(TC_EXECUTION_TIMEOUT));
+                    //key is the same with tests. strIds.put(BuildRef.STATUS_SUCCESS, compactor.getStringId(BuildRef.STATUS_SUCCESS));
+                }
+            }
+        }
+    }
+
+    public static int getStringId(String failure) {
+        Preconditions.checkState(!strIds.isEmpty());
+
+        Integer integer = strIds.get(failure);
+
+        return Preconditions.checkNotNull(integer, "No data for [" + failure + "]");
+    }
 
     /**
      * @param problemName Problem name.
@@ -146,7 +181,7 @@ public class BuildStatisticsSummary {
      */
     private List<FatBuildCompacted> getBuildsWithProblems(List<FatBuildCompacted> builds) {
         return builds.stream()
-            .filter(b -> b.status() != strIds.get(STATUS_SUCCESS))
+            .filter(b -> b.status() != strIds.get(BuildRef.STATUS_SUCCESS))
             .collect(Collectors.toList());
     }
 
@@ -189,5 +224,9 @@ public class BuildStatisticsSummary {
     @Override public int hashCode() {
         return Objects.hash(buildId, startDate, testOccurrences,
             duration, totalProblems, isFakeStub);
+    }
+
+    public Map<Integer, Map<Integer, T2<Long, Integer>>> failedTests() {
+        return failedTests;
     }
 }
