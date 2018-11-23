@@ -114,6 +114,7 @@ public class DbMigrations {
         String TESTS_OCCURRENCES = "testOccurrences";
         String TESTS = "tests";
         String TEST_REFS = "testRefs";
+        String ISSUES_USAGES_LIST = "issuesUsagesList";
     }
 
     private final Ignite ignite;
@@ -393,6 +394,8 @@ public class DbMigrations {
         applyDestroyIgnCacheMigration(Old.CONFIGURATIONS);
         applyDestroyIgnCacheMigration(Old.TESTS_OCCURRENCES);
         applyDestroyIgnCacheMigration(Old.TEST_REFS);
+
+        applyDestroyIgnCacheMigration(Old.ISSUES_USAGES_LIST);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {

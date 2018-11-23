@@ -19,35 +19,9 @@ package org.apache.ignite.ci;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-import javax.annotation.Nullable;
-import javax.cache.Cache;
-import javax.inject.Inject;
-
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.analysis.Expirable;
-import org.apache.ignite.ci.analysis.IVersionedEntity;
-import org.apache.ignite.ci.analysis.LogCheckResult;
-import org.apache.ignite.ci.analysis.RunStat;
-import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
-import org.apache.ignite.ci.analysis.SuiteInBranch;
-import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.analysis.*;
 import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -58,18 +32,30 @@ import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
-import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
+import javax.cache.Cache;
+import javax.inject.Inject;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBranch;
 
@@ -85,9 +71,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     private static final String TESTS_RUN_STAT = "testsRunStat";
     private static final String CALCULATED_STATISTIC = "calculatedStatistic";
     private static final String LOG_CHECK_RESULT = "logCheckResult";
-    private static final String ISSUES_USAGES_LIST = "issuesUsagesList";
-
-    public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
 
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
     private static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
@@ -105,10 +88,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      */
     private ITeamcity teamcity;
     private String serverId;
-
-
-    /** Cached loads of test refs.*/
-    private ConcurrentMap<String, CompletableFuture<TestRef>> testRefsFutures = new ConcurrentHashMap<>();
 
     /** cached running builds for branch. */
     private ConcurrentMap<String, Expirable<List<BuildRef>>> queuedBuilds = new ConcurrentHashMap<>();
@@ -400,25 +379,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 return null;
             }, buildId);
         }
-    }
-
-    @AutoProfiling
-    @Override public IssuesUsagesList getIssuesUsagesList(String href) {
-        IssuesUsagesList issuesUsages =  loadIfAbsentV2(ISSUES_USAGES_LIST, href, href1 -> {
-            try {
-                return teamcity.getIssuesUsagesList(href1);
-            }
-            catch (Exception e) {
-                if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                    System.err.println("Issues Usage List not found for href : " + href);
-
-                    return new IssuesUsagesList();
-                }
-                else
-                    throw e;
-            }
-        });
-        return issuesUsages;
     }
 
     /** {@inheritDoc} */
