@@ -25,12 +25,11 @@ import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,7 +47,6 @@ import javax.ws.rs.core.MediaType;
 @Produces(MediaType.APPLICATION_JSON)
 public class GetPrTestFailures {
     public static final String PR = "pr";
-    public static final String CURRENT_PR_FAILURES = "currentPrFailures";
 
     /** Servlet Context. */
     @Context
@@ -69,12 +67,12 @@ public class GetPrTestFailures {
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
-        return new UpdateInfo().copyFrom(getPrFailures(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc, checkAllLogs));
+        return new UpdateInfo().copyFrom(getPrFailuresResultsNoSync(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc, checkAllLogs));
     }
 
     @GET
-    @Path("results")
-    public TestFailuresSummary getPrFailures(
+    @Path("resultsNoSync")
+    public TestFailuresSummary getPrFailuresResultsNoSync(
         @Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @Nonnull @QueryParam("branchForTc") String branchForTc,
@@ -83,15 +81,25 @@ public class GetPrTestFailures {
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
-        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(ctx);
+        return getPrFailsWithSyncMode(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc, checkAllLogs, SyncMode.NONE);
+    }
 
-        final FullQueryParams key = new FullQueryParams(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc);
-        key.setCheckAllLogs(checkAllLogs);
-        final ICredentialsProv prov = ICredentialsProv.get(req);
+    public TestFailuresSummary getPrFailsWithSyncMode(
+        @QueryParam("serverId") @Nullable String srvId,
+        @QueryParam("suiteId") @Nonnull String suiteId,
+        @QueryParam("branchForTc") @Nonnull String branchForTc,
+        @QueryParam("action") @Nonnull String act,
+        @QueryParam("count") @Nullable Integer cnt,
+        @QueryParam("baseBranchForTc") @Nullable String baseBranchForTc,
+        @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
+        SyncMode mode) {
+        final ICredentialsProv creds = ICredentialsProv.get(req);
+        final Injector injector = CtxListener.getInjector(ctx);
+        final PrChainsProcessor prChainsProcessor = injector.getInstance(PrChainsProcessor.class);
 
-        return updater.get(CURRENT_PR_FAILURES, prov, key,
-                (k) -> getPrFailuresNoCache(k.getServerId(), k.getSuiteId(), k.getBranchForTc(), k.getAction(), k.getCount(), baseBranchForTc, k.getCheckAllLogs()),
-                true);
+        return prChainsProcessor.getTestFailuresSummary(creds, srvId, suiteId, branchForTc, act, cnt, baseBranchForTc,
+            checkAllLogs,
+            mode);
     }
 
     /**
@@ -103,8 +111,8 @@ public class GetPrTestFailures {
      * @param baseBranchForTc Base branch name in TC identification.
      */
     @GET
-    @Path("resultsNoCache")
-    @NotNull public TestFailuresSummary getPrFailuresNoCache(
+    @Path("results")
+    @NotNull public TestFailuresSummary getPrFailures (
         @Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @Nonnull @QueryParam("branchForTc") String branchForTc,
@@ -113,12 +121,7 @@ public class GetPrTestFailures {
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
-        final ICredentialsProv creds = ICredentialsProv.get(req);
-        final Injector injector = CtxListener.getInjector(ctx);
-        final PrChainsProcessor prChainsProcessor = injector.getInstance(PrChainsProcessor.class);
-
-        return prChainsProcessor.getTestFailuresSummary(creds, srvId, suiteId, branchForTc, act, cnt, baseBranchForTc,
-            checkAllLogs);
+        return getPrFailsWithSyncMode(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc, checkAllLogs, SyncMode.RELOAD_QUEUED);
     }
 
     @POST

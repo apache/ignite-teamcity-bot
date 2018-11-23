@@ -91,5 +91,5 @@ public interface ITeamcityConn {
 
     /** */
     @Deprecated
-    ProblemOccurrences getProblemsAndRegisterCtiticals(BuildRef build);
+    ProblemOccurrences getProblemsAndRegisterCritical(BuildRef build);
 }

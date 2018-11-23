@@ -76,7 +76,6 @@ public class Visa {
         return EMPTY_VISA_STATUS.equals(status);
     }
 
-
     /** */
     @Override public String toString() {
         return status;

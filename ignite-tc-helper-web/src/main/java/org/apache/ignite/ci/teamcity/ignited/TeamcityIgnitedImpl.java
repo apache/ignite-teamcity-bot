@@ -17,12 +17,15 @@
 package org.apache.ignite.ci.teamcity.ignited;
 
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildType;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
@@ -56,7 +59,7 @@ import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Default project id. */
     public static final String DEFAULT_PROJECT_ID = "IgniteTests24Java8";
-    
+
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TeamcityIgnitedImpl.class);
 
@@ -153,7 +156,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         final int unknownStatus = compactor.getStringId(STATUS_UNKNOWN);
 
         List<BuildRefCompacted> buildRefs = getAllBuildsCompacted(buildTypeId, branchName)
-            .stream().filter(b -> b.status() != unknownStatus).collect(Collectors.toList());
+            .stream()
+            .filter(b -> b.isFinished(compactor))
+            .filter(b -> b.status() != unknownStatus)
+            .collect(Collectors.toList());
 
         int idSince = 0;
         int idUntil = buildRefs.size() - 1;
@@ -178,12 +184,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
                     if (stopFilter.get())
                         return addBuild.get();
 
-                    FatBuildCompacted build = getFatBuild(b.id());
+                    Date date = getBuildStartDate(b.id());
 
-                    if (build == null || build.isFakeStub())
+                    if (date == null)
                         return false;
-
-                    Date date = build.getStartDate();
 
                     if (sinceDate != null && untilDate != null)
                         if ((date.after(sinceDate) || date.equals(sinceDate)) &&
@@ -251,32 +255,32 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         int minDiffId = since ? low : high;
         long temp;
 
-        FatBuildCompacted highBuild = getFatBuild(buildRefs.get(high).id());
-        FatBuildCompacted lowBuild = getFatBuild(buildRefs.get(low).id());
+        Date highBuildStartDate = getBuildStartDate(buildRefs.get(high).id());
+        Date lowBuildStartDate = getBuildStartDate(buildRefs.get(low).id());
 
-        if (highBuild != null && !highBuild.isFakeStub()){
-            if (highBuild.getStartDate().before(key))
+        if (highBuildStartDate != null) {
+            if (highBuildStartDate.before(key))
                 return since ? allDatesOutOfBounds : someDatesOutOfBounds;
         }
 
-        if (lowBuild != null && !lowBuild.isFakeStub()){
-            if (lowBuild.getStartDate().after(key))
+        if (lowBuildStartDate != null) {
+            if (lowBuildStartDate.after(key))
                 return since ? someDatesOutOfBounds : allDatesOutOfBounds;
         }
 
         while (low <= high) {
             int mid = (low + high) >>> 1;
-            FatBuildCompacted midVal = getFatBuild(buildRefs.get(mid).id());
+            Date midValStartDate = getBuildStartDate(buildRefs.get(mid).id());
 
-            if (midVal != null && !midVal.isFakeStub()) {
-                if (midVal.getStartDate().after(key))
+            if (midValStartDate != null) {
+                if (midValStartDate.after(key))
                     high = mid - 1;
-                else if (midVal.getStartDate().before(key))
+                else if (midValStartDate.before(key))
                     low = mid + 1;
                 else
                     return mid;
 
-                temp = midVal.getStartDate().getTime() - key.getTime();
+                temp = midValStartDate.getTime() - key.getTime();
 
                 if ((temp > 0 == since) && (Math.abs(temp) < minDiff)) {
                     minDiff = Math.abs(temp);
@@ -295,9 +299,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             @Nullable String branchName) {
         ensureActualizeRequested();
 
-        String bracnhNameQry = branchForQuery(branchName);
-
-        return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, bracnhNameQry);
+        return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, branchForQuery(branchName));
     }
 
     /** {@inheritDoc} */
@@ -442,13 +444,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             "from " + tcData.size() + " requested";
     }
 
-    public String branchForQuery(@Nullable String branchName) {
-        String branchNameQry;
+    public List<String> branchForQuery(@Nullable String branchName) {
         if (ITeamcity.DEFAULT.equals(branchName))
-            branchNameQry = "refs/heads/master";
+            return Lists.newArrayList(branchName, "refs/heads/master", "master");
         else
-            branchNameQry = branchName;
-        return branchNameQry;
+            return Collections.singletonList(branchName);
     }
 
     public void ensureActualizeRequested() {
@@ -477,11 +477,45 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return buildConditionDao.setBuildCondition(srvIdMaskHigh, cond);
     }
 
+    /**
+     * @param buildId Build id.
+     * @return build start date or null if build is fake stub or start date is not specified.
+     */
+    @GuavaCached(maximumSize = 2000, cacheNullRval = false)
+    @AutoProfiling
+    @Nullable public Date getBuildStartDate(int buildId) {
+        String msg = "Loading build [" + buildId + "] start date";
+
+        if (MasterTrendsService.DEBUG)
+            System.out.println(msg);
+
+        logger.info(msg);
+
+        FatBuildCompacted highBuild = getFatBuild(buildId, SyncMode.LOAD_NEW);
+        if (highBuild == null || highBuild.isFakeStub())
+            return null;
+
+        return highBuild.getStartDate();
+    }
+
     /** {@inheritDoc} */
-    @Override public FatBuildCompacted getFatBuild(int buildId, boolean acceptQueued) {
+    @GuavaCached(maximumSize = 500, expireAfterAccessSecs = 30, softValues = true)
+    @Override public FatBuildCompacted getFatBuild(int buildId, SyncMode mode) {
         FatBuildCompacted existingBuild = getFatBuildFromIgnite(buildId);
 
-        FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, acceptQueued);
+        if (mode == SyncMode.NONE) {
+            if (existingBuild != null)
+                return existingBuild;
+            else {
+                FatBuildCompacted buildCompacted = new FatBuildCompacted();
+
+                buildCompacted.setFakeStub(true);
+
+                return buildCompacted; // providing fake builds
+            }
+        }
+
+        FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, mode);
 
         //build was modified, probably we need also to update reference accordindly
         if (savedVer != null)
@@ -490,7 +524,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return savedVer == null ? existingBuild : savedVer;
     }
 
-    @AutoProfiling
     protected FatBuildCompacted getFatBuildFromIgnite(int buildId) {
         ensureActualizeRequested();
 
@@ -550,7 +583,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         runActualizeBuildRefs(srvNme, false, paginateUntil);
 
-        if(!paginateUntil.isEmpty()) {
+        if (!paginateUntil.isEmpty()) {
             //some builds may stuck in the queued or running, enforce loading now
             buildSync.doLoadBuilds(-1, srvNme, conn, paginateUntil);
         }

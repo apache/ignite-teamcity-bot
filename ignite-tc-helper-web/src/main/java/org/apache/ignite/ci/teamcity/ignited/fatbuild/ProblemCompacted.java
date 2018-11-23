@@ -119,6 +119,11 @@ public class ProblemCompacted {
         return Objects.hashCode(id, type, identity, actualBuildId);
     }
 
+    /** */
+    public boolean isCompilationError(IStringCompactor compactor) {
+        return compactor.getStringId(ProblemOccurrence.TC_COMPILATION_ERROR) == type;
+    }
+
     public boolean isExecutionTimeout(IStringCompactor compactor) {
         return compactor.getStringId(ProblemOccurrence.TC_EXECUTION_TIMEOUT) == type;
     }

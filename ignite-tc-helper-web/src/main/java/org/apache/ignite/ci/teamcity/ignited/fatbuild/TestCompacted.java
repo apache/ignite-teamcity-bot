@@ -315,13 +315,13 @@ public class TestCompacted {
         return isFailedTest(compactor) && !(isMutedTest() || isIgnoredTest());
     }
 
-    private boolean isIgnoredTest() {
+    public boolean isIgnoredTest() {
         Boolean flag = getIgnoredFlag();
 
         return flag != null && flag;
     }
 
-    private boolean isMutedTest() {
+    public boolean isMutedTest() {
         Boolean flag = getMutedFlag();
 
         return flag != null && flag;
@@ -349,11 +349,11 @@ public class TestCompacted {
         return status;
     }
 
-    @Nullable
-    public Integer getDuration() {
+    @Nullable public Integer getDuration() {
         return duration < 0 ? null : duration;
     }
 
+    /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("idInBuild", idInBuild)
@@ -365,5 +365,12 @@ public class TestCompacted {
             .add("actualBuildId", actualBuildId)
             .add("details", details)
             .toString() + "\n";
+    }
+
+    public Long getTestId() {
+        if (testId != 0)
+            return testId;
+
+        return null;
     }
 }

@@ -22,6 +22,7 @@ import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.ci.tcmodel.hist.BuildRef.*;
 
@@ -54,11 +55,19 @@ public class BuildRefCompacted {
      * @param ref Reference.
      */
     public BuildRefCompacted(IStringCompactor compactor, BuildRef ref) {
-        id = ref.getId() == null ? -1 : ref.getId();
+        fillFieldsFromBuildRef(compactor, ref);
+    }
+
+    public void fillFieldsFromBuildRef(IStringCompactor compactor, BuildRef ref) {
+        setId(ref.getId());
         buildTypeId = compactor.getStringId(ref.buildTypeId());
         branchName = compactor.getStringId(ref.branchName());
         status = compactor.getStringId(ref.status());
         state = compactor.getStringId(ref.state());
+    }
+
+    public void setId(Integer buildId) {
+        this.id = buildId == null ? -1 : buildId;
     }
 
     /**
@@ -85,12 +94,16 @@ public class BuildRefCompacted {
     }
 
     protected void fillBuildRefFields(IStringCompactor compactor, BuildRef res) {
-        res.setId(id < 0 ? null : id);
+        res.setId(getId());
         res.buildTypeId = buildTypeId(compactor);
         res.branchName = branchName(compactor);
         res.status = compactor.getStringFromId(status);
         res.state = compactor.getStringFromId(state);
         res.href = getHrefForId(id());
+    }
+
+    @Nullable public Integer getId() {
+        return id < 0 ? null : id;
     }
 
     public String buildTypeId(IStringCompactor compactor) {

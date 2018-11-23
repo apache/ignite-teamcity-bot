@@ -104,15 +104,16 @@ public interface ITeamcityIgnited {
      * @param id Id.
      */
     public default FatBuildCompacted getFatBuild(int id) {
-        return getFatBuild(id, false);
+        return getFatBuild(id, SyncMode.RELOAD_QUEUED);
     }
 
 
 
     /**
      * @param id Id.
+     * @param mode Refresh mode.
      */
-    public FatBuildCompacted getFatBuild(int id, boolean acceptQueued);
+    public FatBuildCompacted getFatBuild(int id, SyncMode mode);
 
     public Collection<ChangeCompacted> getAllChanges(int[] changeIds);
 

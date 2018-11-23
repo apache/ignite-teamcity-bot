@@ -31,6 +31,9 @@ public class VisaRequest {
     private Visa visa;
 
     /** */
+    private boolean isObserving;
+
+    /** */
     public VisaRequest(BuildsInfo info) {
         this.info = info;
         this.visa = Visa.emptyVisa();
@@ -51,5 +54,17 @@ public class VisaRequest {
         this.visa = res;
 
         return this;
+    }
+
+    /** */
+    public VisaRequest setObservingStatus(boolean status) {
+        isObserving = status;
+
+        return this;
+    }
+
+    /** */
+    public boolean isObserving() {
+        return isObserving;
     }
 }

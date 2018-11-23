@@ -31,15 +31,29 @@ public class CompactVisaRequest {
     public final CompactBuildsInfo compactInfo;
 
     /** */
+    public final boolean isObserving;
+
+    /** */
+    public CompactVisaRequest(CompactVisa compactVisa, CompactBuildsInfo compactInfo, boolean isObserving) {
+        this.compactVisa = compactVisa;
+        this.isObserving = isObserving;
+        this.compactInfo = compactInfo;
+    }
+
+    /** */
     public CompactVisaRequest(VisaRequest visaReq, IStringCompactor strCompactor) {
         compactInfo = new CompactBuildsInfo(visaReq.getInfo(), strCompactor);
 
         compactVisa = new CompactVisa(visaReq.getResult(), strCompactor);
+
+        isObserving = visaReq.isObserving();
     }
 
     /** */
     public VisaRequest toVisaRequest(IStringCompactor strCompactor) {
-        return new VisaRequest(compactInfo.toBuildInfo(strCompactor)).setResult(compactVisa.toVisa(strCompactor));
+        return new VisaRequest(compactInfo.toBuildInfo(strCompactor))
+            .setResult(compactVisa.toVisa(strCompactor))
+            .setObservingStatus(isObserving);
     }
 
 }

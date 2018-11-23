@@ -29,16 +29,15 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
 import com.google.inject.Injector;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.FutureUtil;
@@ -78,10 +77,14 @@ public class GetChainResultsAsHtml {
         IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds);
         ITeamcityIgnited teamcityIgnited = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvId, creds);
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, teamcityIgnited, Collections.singletonList(buildId),
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
+            teamcityIgnited,
+            Collections.singletonList(buildId),
             LatestRebuildMode.NONE,
-            ProcessLogsMode.SUITE_NOT_COMPLETE, false,
-            failRateBranch);
+            ProcessLogsMode.SUITE_NOT_COMPLETE,
+            false,
+            failRateBranch,
+            SyncMode.RELOAD_QUEUED);
 
         ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
 

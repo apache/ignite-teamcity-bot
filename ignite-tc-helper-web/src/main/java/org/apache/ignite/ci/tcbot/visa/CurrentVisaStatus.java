@@ -14,14 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.tcbot.visa;
 
-package org.apache.ignite.ci.analysis.mode;
-
-public enum LatestRebuildMode {
-    /** None rebuilds are applied. */
-    NONE,
-    /** replace builds with Latest rebuild. */
-    LATEST,
-    /** Collect history of builds. Rebuilds are applied, but have higher priority. */
-    ALL
+public class CurrentVisaStatus {
+    public Integer blockers;
 }

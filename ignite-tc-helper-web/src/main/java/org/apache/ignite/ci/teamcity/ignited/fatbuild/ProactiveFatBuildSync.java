@@ -29,6 +29,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.util.ExceptionUtil;
@@ -200,7 +201,7 @@ public class ProactiveFatBuildSync {
                     try {
                         FatBuildCompacted existingBuild = builds.get(FatBuildDao.buildIdToCacheKey(srvIdMaskHigh, buildId));
 
-                        FatBuildCompacted savedVer = loadBuild(conn, buildId, existingBuild, false);
+                        FatBuildCompacted savedVer = loadBuild(conn, buildId, existingBuild, SyncMode.RELOAD_QUEUED);
 
                         if (savedVer != null)
                             ld.incrementAndGet();
@@ -233,17 +234,16 @@ public class ProactiveFatBuildSync {
      * @param conn
      * @param buildId
      * @param existingBuild
-     * @param acceptQueued
      * @return null if nothing was saved, use existing build
      */
     @Nullable
     public FatBuildCompacted loadBuild(ITeamcityConn conn, int buildId,
                                        @Nullable FatBuildCompacted existingBuild,
-                                       boolean acceptQueued) {
+                                       SyncMode mode) {
         if (existingBuild != null && !existingBuild.isOutdatedEntityVersion()) {
             boolean finished = !existingBuild.isRunning(compactor) && !existingBuild.isQueued(compactor);
 
-            if(finished || acceptQueued)
+            if (finished || mode != SyncMode.RELOAD_QUEUED)
                 return null;
         }
 
@@ -274,11 +274,10 @@ public class ProactiveFatBuildSync {
         try {
             build = conn.getBuild(buildId);
 
-            if(build.testOccurrences!=null) {
+            if(build.testOccurrences != null && !build.isComposite()) { // don't query tests for compoite
                 String nextHref = null;
                 do {
-                    boolean testDtls = !build.isComposite(); // don't query test details for compoite
-                    TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, testDtls);
+                    TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, true);
                     nextHref = page.nextHref();
 
                     tests.add(page);
@@ -287,7 +286,7 @@ public class ProactiveFatBuildSync {
             }
 
             if (build.problemOccurrences != null)
-                problems = conn.getProblemsAndRegisterCtiticals(build).getProblemsNonNull();
+                problems = conn.getProblemsAndRegisterCritical(build).getProblemsNonNull();
 
             if (build.statisticsRef != null)
                 statistics = conn.getStatistics(buildId);
@@ -316,9 +315,8 @@ public class ProactiveFatBuildSync {
 
                     problems = existingBuild.problems(compactor);
                 }
-                else {
+                else
                     build = Build.createFakeStub();
-                }
             } else {
                 logger.error("Loading build [" + buildId + "] for server [" + srvNme + "] failed:" + e.getMessage(), e);
 

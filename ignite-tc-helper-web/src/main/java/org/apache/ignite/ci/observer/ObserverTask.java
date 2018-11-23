@@ -17,29 +17,27 @@
 
 package org.apache.ignite.ci.observer;
 
-import com.google.common.base.Preconditions;
 import java.util.ArrayList;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimerTask;
-import javax.cache.Cache;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Inject;
-import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.Visa;
+import org.apache.ignite.ci.web.model.VisaRequest;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
-import org.apache.ignite.internal.util.typedef.X;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,23 +48,20 @@ public class ObserverTask extends TimerTask {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(ObserverTask.class);
 
-    /** */
-    public static final String BUILDS_CACHE_NAME = "compactBuildsInfos";
-
     /** Helper. */
     @Inject private ITcHelper tcHelper;
 
     /** Helper. */
     @Inject private IJiraIntegration jiraIntegration;
 
-    /** Ignite. */
-    @Inject private Ignite ignite;
+    /** */
+    @Inject private VisasHistoryStorage visasHistStorage;
 
     /** */
-    @Inject private VisasHistoryStorage visasHistoryStorage;
+    private ReentrantLock observationLock = new ReentrantLock();
 
     /** */
-    @Inject private IStringCompactor strCompactor;
+    private Map<ContributionKey, BuildsInfo> infos = new ConcurrentHashMap<>();
 
     /**
      */
@@ -74,22 +69,49 @@ public class ObserverTask extends TimerTask {
     }
 
     /** */
-    private IgniteCache<CompactBuildsInfo, Object> compactInfos() {
-        return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(BUILDS_CACHE_NAME));
+    public void init() {
+        visasHistStorage.getLastVisas().stream()
+            .filter(req -> req.isObserving())
+            .forEach(req -> infos.put(req.getInfo().getContributionKey(), req.getInfo()));
     }
 
     /** */
+    @Nullable public BuildsInfo getInfo(ContributionKey key) {
+        return infos.get(key);
+    }
+
+
+    /** */
     public Collection<BuildsInfo> getInfos() {
-        List<BuildsInfo> buildsInfos = new ArrayList<>();
-
-        compactInfos().forEach(entry -> buildsInfos.add(entry.getKey().toBuildInfo(strCompactor)));
-
-        return buildsInfos;
+        return infos.values();
     }
 
     /** */
     public void addInfo(BuildsInfo info) {
-        compactInfos().put(new CompactBuildsInfo(info, strCompactor), new Object());
+        visasHistStorage.updateLastVisaRequest(info.getContributionKey(), req -> req.setObservingStatus(false));
+
+        visasHistStorage.put(new VisaRequest(info).setObservingStatus(true));
+
+        infos.put(info.getContributionKey(), info);
+    }
+
+    /** */
+    public boolean removeBuildInfo(ContributionKey key) {
+        observationLock.lock();
+
+        try {
+            if (!infos.containsKey(key))
+                return false;
+
+            infos.remove(key);
+
+            visasHistStorage.updateLastVisaRequest(key, req -> req.setObservingStatus(false));
+
+            return true;
+        }
+        finally {
+            observationLock.unlock();
+        }
     }
 
     /** {@inheritDoc} */
@@ -108,88 +130,71 @@ public class ObserverTask extends TimerTask {
     @AutoProfiling
     @MonitoredTask(name = "Build Observer")
     protected String runObserverTask() {
-        if (!tcHelper.isServerAuthorized())
-            return "Server authorization required.";
+        observationLock.lock();
 
-        int checkedBuilds = 0;
-        int notFinishedBuilds = 0;
-        Set<String> ticketsNotified = new HashSet<>();
+        try {
+            if (!tcHelper.isServerAuthorized())
+                return "Server authorization required.";
 
-        ObjectMapper objMapper = new ObjectMapper();
+            int checkedBuilds = 0;
+            int notFinishedBuilds = 0;
+            Set<String> ticketsNotified = new HashSet<>();
 
-        List<String> rmvdVisas = new ArrayList<>();
+            List<ContributionKey> rmv = new ArrayList<>();
 
-        List<String> queuedVisas = new ArrayList<>();
+            for (ContributionKey key : infos.keySet()) {
+                BuildsInfo info = infos.get(key);
 
-        for (Cache.Entry<CompactBuildsInfo, Object> entry : compactInfos()) {
-            CompactBuildsInfo compactInfo = entry.getKey();
+                IAnalyticsEnabledTeamcity teamcity = tcHelper.server(info.srvId, tcHelper.getServerAuthorizerCreds());
 
-            try {
-                queuedVisas.add(objMapper.writeValueAsString(compactInfo));
-            }
-            catch (Exception e) {
-                logger.error("JSON string parse failed: " + e.getMessage(), e);
+                checkedBuilds += info.buildsCount();
 
-                return "Exception while JSON parsing " + e.getClass().getSimpleName() + ": " + e.getMessage();
-            }
+                if (info.isCancelled(teamcity)) {
+                    rmv.add(key);
 
-            BuildsInfo info = compactInfo.toBuildInfo(strCompactor);
+                    logger.error("JIRA will not be commented." +
+                        " [ticket: " + info.ticket + ", branch:" + info.branchForTc + "] : " +
+                        "one or more re-runned blocker's builds finished with UNKNOWN status.");
 
-            checkedBuilds += info.buildsCount();
-
-            IAnalyticsEnabledTeamcity teamcity = tcHelper.server(info.srvId, tcHelper.getServerAuthorizerCreds());
-
-            if (info.isFinishedWithFailures(teamcity)) {
-                boolean rmv = compactInfos().remove(compactInfo);
-
-                Preconditions.checkState(rmv, "Key not found: " + compactInfo);
-
-                logger.error("JIRA will not be commented." +
-                    " [ticket: " + info.ticket + ", branch:" + info.branchForTc + "] : " +
-                    "one or more re-runned blocker's builds finished with UNKNOWN status.");
-
-                continue;
-            }
-
-            if (!info.isFinished(teamcity)) {
-                notFinishedBuilds += info.buildsCount() - info.finishedBuildsCount();
-
-                continue;
-            }
-
-            try {
-                rmvdVisas.add(objMapper.writeValueAsString(compactInfo));
-            }
-            catch (Exception e) {
-                logger.error("JSON string parse failed: " + e.getMessage(), e);
-
-                return "Exception while JSON parsing: " + e.getClass().getSimpleName() + ": " + e.getMessage();
-            }
-
-            try {
-                boolean rmv = compactInfos().remove(compactInfo);
-
-                if (!rmv)
                     continue;
+                }
+
+                if (!info.isFinished(teamcity)) {
+                    notFinishedBuilds += info.buildsCount() - info.finishedBuildsCount(teamcity);
+
+                    continue;
+                }
+
+                Visa visa = visasHistStorage.getLastVisaRequest(info.getContributionKey()).getResult();
+
+                if (!visa.isSuccess()) {
+                    ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
+
+                    Visa updatedVisa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
+                        info.branchForTc, info.ticket);
+
+                    visasHistStorage.updateLastVisaRequest(info.getContributionKey(), (req -> req.setResult(updatedVisa)));
+
+                    if (updatedVisa.isSuccess())
+                        ticketsNotified.add(info.ticket);
+
+                    visa = updatedVisa;
+                }
+
+                if (visa.isSuccess())
+                    rmv.add(key);
             }
-            catch (Exception e) {
-                logger.error("cache remove: " + e.getMessage(), e);
 
-                return X.getFullStackTrace(e);
-            }
+            rmv.forEach(key -> {
+                infos.remove(key);
 
-            ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
+                visasHistStorage.updateLastVisaRequest(key, req -> req.setObservingStatus(false));
+            });
 
-            Visa visa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
-                info.branchForTc, info.ticket);
-
-            visasHistoryStorage.updateVisaRequestRes(info.getContributionKey(), info.date, visa);
-
-            ticketsNotified.add(info.ticket);
+            return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified;
         }
-
-        return "Checked " + checkedBuilds + " not finished " + notFinishedBuilds + " notified: " + ticketsNotified +
-            " Visas in queue: [" + String.join(", ", queuedVisas) +
-            "] Visas to rmv: [" + String.join(", ", rmvdVisas) + ']';
+        finally {
+            observationLock.unlock();
+        }
     }
 }

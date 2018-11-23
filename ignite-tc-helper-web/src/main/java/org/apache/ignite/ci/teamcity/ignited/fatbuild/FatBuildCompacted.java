@@ -124,7 +124,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         BuildTypeRef type = build.getBuildType();
         if (type != null) {
             projectId = compactor.getStringId(type.getProjectId());
-            name = compactor.getStringId(type.getName());
+            buildTypeName(type.getName(), compactor);
         }
 
         AtomicBoolean failedToStart = new AtomicBoolean();
@@ -144,7 +144,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
                 .mapToInt(BuildRef::getId)
                 .toArray();
 
-        snapshotDeps = arr.length > 0 ? arr : null;
+        snapshotDependencies(arr);
 
         setFlag(DEF_BR_F, build.defaultBranch);
         setFlag(COMPOSITE_F, build.composite);
@@ -153,7 +153,19 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             setFlag(FAILED_TO_START_F, true);
 
         if (build.isFakeStub())
-            setFlag(FAKE_BUILD_F, true);
+            setFakeStub(true);
+    }
+
+    public void setFakeStub(boolean val) {
+        setFlag(FAKE_BUILD_F, val);
+    }
+
+    public void buildTypeName(String btName, IStringCompactor compactor) {
+        name = compactor.getStringId(btName);
+    }
+
+    public void snapshotDependencies(int[] arr) {
+        snapshotDeps = arr.length > 0 ? arr : null;
     }
 
     /**
@@ -276,8 +288,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     }
 
     /** Start date. */
-    public Date getStartDate() {
-        return new Date(startDate);
+    @Nullable public Date getStartDate() {
+        return startDate > 0 ? new Date(startDate) : null;
     }
 
     /** {@inheritDoc} */
@@ -322,6 +334,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
      *
      */
     public boolean isFakeStub() {
+        if (getId() == null)
+            return true;
+
         Boolean flag = getFlag(FAKE_BUILD_F);
 
         return flag != null && flag;

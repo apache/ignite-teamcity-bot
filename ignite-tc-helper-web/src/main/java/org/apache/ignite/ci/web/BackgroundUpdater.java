@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Component for storing catchable results into guava in mem-caches and get updates
  */
+@Deprecated
 public class BackgroundUpdater {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(BackgroundUpdater.class);

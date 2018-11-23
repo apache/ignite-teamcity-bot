@@ -18,7 +18,6 @@
 package org.apache.ignite.ci.web.model;
 
 import java.util.Objects;
-
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
@@ -29,16 +28,17 @@ public class CompactContributionKey {
     public final int srvId;
 
     /** */
-    public final int ticket;
-
-    /** */
     public final int branchForTc;
 
     /** */
     public CompactContributionKey(ContributionKey key, IStringCompactor strCompactor) {
         this.branchForTc = strCompactor.getStringId(key.branchForTc);
         this.srvId = strCompactor.getStringId(key.srvId);
-        this.ticket = strCompactor.getStringId(key.ticket);
+    }
+
+    /** */
+    public ContributionKey toContributionKey(IStringCompactor strCompactor) {
+        return new ContributionKey(this, strCompactor);
     }
 
     /** {@inheritDoc} */
@@ -52,12 +52,11 @@ public class CompactContributionKey {
         CompactContributionKey key = (CompactContributionKey)o;
 
         return Objects.equals(srvId, key.srvId) &&
-            Objects.equals(ticket, key.ticket) &&
             Objects.equals(branchForTc, key.branchForTc);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(srvId, branchForTc, ticket);
+        return Objects.hash(srvId, branchForTc);
     }
 }

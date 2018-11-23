@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.teamcity.ignited;
 
-package org.apache.ignite.ci.analysis.mode;
+public enum SyncMode {
+    /** All: Entity version updated, queued builds re-check, absent entry. */
+    RELOAD_QUEUED,
 
-public enum LatestRebuildMode {
-    /** None rebuilds are applied. */
-    NONE,
-    /** replace builds with Latest rebuild. */
-    LATEST,
-    /** Collect history of builds. Rebuilds are applied, but have higher priority. */
-    ALL
+    /** Load only builds absent in DB, queued and running builds returned as is. */
+    LOAD_NEW,
+
+    /** None: Return only DB version, in case entity is absent fake is returned. */
+    NONE
 }

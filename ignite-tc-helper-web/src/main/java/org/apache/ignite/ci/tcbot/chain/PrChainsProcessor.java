@@ -17,9 +17,15 @@
 package org.apache.ignite.ci.tcbot.chain;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -30,8 +36,11 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
+import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
+import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
@@ -51,6 +60,8 @@ public class PrChainsProcessor {
 
     /** Tc server provider. */
     @Inject ITeamcityIgnitedProvider tcIgnitedProvider;
+
+    /** Git hub connection provider. */
     @Inject IGitHubConnectionProvider gitHubConnProvider;
 
     /**
@@ -62,6 +73,7 @@ public class PrChainsProcessor {
      * @param cnt Count.
      * @param baseBranchForTc Base branch name in TC identification.
      * @param checkAllLogs Check all logs
+     * @param mode TC Server Sync Mode
      * @return Test failures summary.
      */
     @AutoProfiling
@@ -73,7 +85,8 @@ public class PrChainsProcessor {
         String act,
         Integer cnt,
         @Nullable String baseBranchForTc,
-        @Nullable Boolean checkAllLogs) {
+        @Nullable Boolean checkAllLogs,
+        SyncMode mode) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -107,40 +120,137 @@ public class PrChainsProcessor {
         else
             logs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
-        List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId,
-            branchForTc, buildResMergeCnt);
+        List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId, branchForTc, buildResMergeCnt);
 
         String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
 
-        final FullChainRunCtx val = buildChainProcessor.loadFullChainContext(teamcity, tcIgnited, hist,
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
+            tcIgnited,
+            hist,
             rebuild,
-            logs, buildResMergeCnt == 1,
-            baseBranch);
-
-        Optional<FullChainRunCtx> pubCtx = Optional.of(val);
+            logs,
+            buildResMergeCnt == 1,
+            baseBranch,
+            mode);
 
         final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverId(), branchForTc);
 
         chainStatus.baseBranchForTc = baseBranch;
 
-        pubCtx.ifPresent(ctx -> {
-            if (ctx.isFakeStub())
-                chainStatus.setBuildNotFound(true);
-            else {
-                int cnt0 = (int)ctx.getRunningUpdates().count();
+        if (ctx.isFakeStub())
+            chainStatus.setBuildNotFound(true);
+        else {
+            int cnt0 = (int)ctx.getRunningUpdates().count();
 
-                if (cnt0 > 0)
-                    runningUpdates.addAndGet(cnt0);
+            if (cnt0 > 0)
+                runningUpdates.addAndGet(cnt0);
 
-                //fail rate reference is always default (master)
-                chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranch);
-            }
-        });
+            //fail rate reference is always default (master)
+            chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranch);
+        }
 
         res.addChainOnServer(chainStatus);
 
         res.postProcess(runningUpdates.get());
 
         return res;
+    }
+
+    /**
+     * @param buildTypeId Suite name.
+     * @param branchForTc Branch for TeamCity.
+     * @param srvId Server id.
+     * @param prov Credentials.
+     * @return List of suites with possible blockers.
+     */
+    @Nullable public List<SuiteCurrentStatus> getSuitesStatuses(String buildTypeId,
+        String branchForTc,
+        String srvId,
+        ICredentialsProv prov) {
+        SyncMode queued = SyncMode.RELOAD_QUEUED;
+
+        return getSuitesStatuses(buildTypeId, branchForTc, srvId, prov, queued);
+    }
+
+
+    @Nullable public List<SuiteCurrentStatus> getSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
+        ICredentialsProv prov, SyncMode queued) {
+        List<SuiteCurrentStatus> res = new ArrayList<>();
+
+        TestFailuresSummary summary = getTestFailuresSummary(
+            prov, srvId, buildTypeId, branchForTc,
+            FullQueryParams.LATEST, null, null, false, queued);
+
+        boolean noBuilds = summary.servers.stream().anyMatch(s -> s.buildNotFound);
+
+        if(noBuilds)
+            return null;
+
+        if (summary != null) {
+            for (ChainAtServerCurrentStatus server : summary.servers) {
+                if (!srvId.equals(server.serverName()))
+                    continue;
+
+                Map<String, List<SuiteCurrentStatus>> fails = findFailures(server);
+
+                fails.forEach((k, v) -> res.addAll(v));
+            }
+        }
+
+        return res;
+    }
+
+    /**
+     * @param srv Server.
+     * @return Failures for given server.
+     */
+    private Map<String, List<SuiteCurrentStatus>> findFailures(ChainAtServerCurrentStatus srv) {
+        Map<String, List<SuiteCurrentStatus>> fails = new LinkedHashMap<>();
+
+        for (SuiteCurrentStatus suite : srv.suites) {
+            String suiteRes = suite.result.toLowerCase();
+            String failType = null;
+
+            if (suiteRes.contains("compilation"))
+                failType = "compilation";
+
+            if (suiteRes.contains("timeout"))
+                failType = "timeout";
+
+            if (suiteRes.contains("exit code"))
+                failType = "exit code";
+
+            if (suiteRes.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK.toLowerCase()))
+                failType = "java level deadlock";
+
+            if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_MESSAGE.toLowerCase()))
+                failType = "build failure on message";
+
+            if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_METRIC.toLowerCase()))
+                failType = "build failure on metrics";
+
+            if (suiteRes.contains(MultBuildRunCtx.CANCELLED.toLowerCase()))
+                failType = MultBuildRunCtx.CANCELLED.toLowerCase();
+
+            if (failType == null) {
+                List<TestFailure> failures = new ArrayList<>();
+
+                for (TestFailure testFailure : suite.testFailures) {
+                    if (testFailure.isNewFailedTest())
+                        failures.add(testFailure);
+                }
+
+                if (!failures.isEmpty()) {
+                    suite.testFailures = failures;
+
+                    failType = "failed tests";
+                }
+            }
+
+            if (failType != null)
+                fails.computeIfAbsent(failType, k -> new ArrayList<>()).add(suite);
+        }
+
+        return fails;
     }
 }

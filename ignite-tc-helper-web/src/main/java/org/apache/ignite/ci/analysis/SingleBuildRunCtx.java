@@ -68,6 +68,11 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return buildCompacted.id() < 0 ? null : buildCompacted.id();
     }
 
+    /** {@inheritDoc} */
+    @Override public boolean hasCompilationProblem() {
+        return getProblemsStream().anyMatch(p -> p.isCompilationError(compactor));
+    }
+
     public boolean hasTimeoutProblem() {
         return getExecutionTimeoutCount() > 0;
     }
@@ -204,5 +209,19 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     public boolean isCancelled() {
         return buildCompacted.isCancelled(compactor);
+    }
+
+    /**
+     * @return Full run time required to run tests.
+     */
+    public long testsDuration() {
+        return getAllTests()
+            .mapToLong(t -> {
+                Integer duration = t.getDuration();
+                if (duration == null)
+                    return 0;
+
+                return duration;
+            }).sum();
     }
 }

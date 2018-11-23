@@ -17,19 +17,24 @@
 
 package org.apache.ignite.ci.observer;
 
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Timer;
 import javax.inject.Inject;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.model.VisaRequest;
-import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
+import org.apache.ignite.ci.web.model.ContributionKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class BuildObserver {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(BuildObserver.class);
+
     /** Time between observing actions in milliseconds. */
     private static final long PERIOD = 10 * 60 * 1_000;
 
@@ -39,8 +44,8 @@ public class BuildObserver {
     /** Task, which should be done periodically. */
     private ObserverTask observerTask;
 
-    /** Visas History Storage. */
-    @Inject private VisasHistoryStorage visasStorage;
+    /** Helper. */
+    @Inject private ITcHelper tcHelper;
 
     /**
      */
@@ -51,6 +56,8 @@ public class BuildObserver {
         timer.schedule(observerTask, 0, PERIOD);
 
         this.observerTask = observerTask;
+
+        this.observerTask.init();
     }
 
     /**
@@ -58,6 +65,18 @@ public class BuildObserver {
      */
     public void stop() {
         timer.cancel();
+    }
+
+    /** */
+    public boolean stopObservation(ContributionKey key) {
+        try {
+            return observerTask.removeBuildInfo(key);
+        }
+        catch (Exception e) {
+            logger.error("Observation stop: " + e.getMessage(), e);
+
+            return false;
+        }
     }
 
     /**
@@ -69,28 +88,26 @@ public class BuildObserver {
     public void observe(String srvId, ICredentialsProv prov, String ticket, String branchForTc, Build... builds) {
         BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, branchForTc, builds);
 
-        visasStorage.put(new VisaRequest(buildsInfo));
-
         observerTask.addInfo(buildsInfo);
     }
 
     /**
-     * @param srvId Server id.
-     * @param branch Branch.
+     * @param key {@code Contribution Key}.
      */
-    public String getObservationStatus(String srvId, String branch) {
+    public String getObservationStatus(ContributionKey key) {
         StringBuilder sb = new StringBuilder();
 
-        Collection<BuildsInfo> builds = observerTask.getInfos();
+        BuildsInfo buildsInfo = observerTask.getInfo(key);
 
-        for (BuildsInfo bi : builds) {
-            if (Objects.equals(bi.branchForTc, branch)
-                && Objects.equals(bi.srvId, srvId)) {
-                sb.append(bi.ticket).append(" to be commented, waiting for builds. ");
-                sb.append(bi.finishedBuildsCount());
-                sb.append(" builds done from ");
-                sb.append(bi.buildsCount());
-            }
+        ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
+
+        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(key.srvId, creds);
+
+        if (Objects.nonNull(buildsInfo)) {
+            sb.append(buildsInfo.ticket).append(" to be commented, waiting for builds. ");
+            sb.append(buildsInfo.finishedBuildsCount(teamcity));
+            sb.append(" builds done from ");
+            sb.append(buildsInfo.buildsCount());
         }
 
         return sb.toString();

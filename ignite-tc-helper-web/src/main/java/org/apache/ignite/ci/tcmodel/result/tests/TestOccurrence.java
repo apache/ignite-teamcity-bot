@@ -27,7 +27,12 @@ import org.apache.ignite.ci.analysis.RunStat;
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class TestOccurrence {
+    /** Status success. */
     public static final String STATUS_SUCCESS = "SUCCESS";
+
+    /** Status failure. */
+    public static final String STATUS_FAILURE = "FAILURE";
+
     @XmlAttribute
     private String id;
 
@@ -82,10 +87,6 @@ public class TestOccurrence {
      */
     public String getId() {
         return id;
-    }
-
-    public long getDuration() {
-        return duration != null ? duration : 0;
     }
 
     public TestOccurrence setId(String id) {

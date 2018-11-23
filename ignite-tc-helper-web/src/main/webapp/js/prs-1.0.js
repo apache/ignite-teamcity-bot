@@ -194,6 +194,25 @@ function showStageResult(stageNum, prId, passed, failed) {
 }
 
 
+function showStageBlockers(stageNum, prId, blockers) {
+    let stageOneStatus = $('#visaStage_' + stageNum + '_' + prId);
+    let html;
+    if (!isDefinedAndFilled(blockers) || blockers == null) {
+        html = "?";
+
+        stageOneStatus.css('background', 'darkorange');
+    } else if (blockers === 0) {
+        html = blockers + " ";
+        stageOneStatus.css('background', '#12AD5E');
+    } else {
+        html = blockers + " ";
+
+        stageOneStatus.css('background', 'red');
+    }
+    stageOneStatus.html(html);
+}
+
+
 /* Formatting function for row details - modify as you need */
 function formatContributionDetails(row, srvId, suiteId) {
     //  row  is the original data object for the row
@@ -318,6 +337,8 @@ function repaint(srvId, suiteId) {
             }
         }
     }
+
+    datatable.draw();
 }
 
 function repaintLater(srvId, suiteId) {
@@ -326,9 +347,9 @@ function repaintLater(srvId, suiteId) {
     }, 3000);
 }
 
-function showContributionStatus(status, prId, row, srvId, suiteId, buildIsCompleted) {
-    let finishedBranch = status.branchWithFinishedSuite;
+function showContributionStatus(status, prId, row, srvId, suiteId) {
     let tdForPr = $('#showResultFor' + prId);
+    let buildIsCompleted = isDefinedAndFilled(status.branchWithFinishedSuite);
     let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
@@ -346,6 +367,8 @@ function showContributionStatus(status, prId, row, srvId, suiteId, buildIsComple
     $('#viewQueuedBuildsFor' + prId).html(linksToRunningBuilds);
 
     if (buildIsCompleted) {
+        let finishedBranch = status.branchWithFinishedRunAll;
+
         tdForPr.html("<a id='showReportlink_" + prId + "' href='" + prShowHref(srvId, suiteId, finishedBranch) + "'>" +
             "<button id='show_" + prId + "'>Show " + finishedBranch + " report</button></a>");
 
@@ -373,6 +396,8 @@ function showContributionStatus(status, prId, row, srvId, suiteId, buildIsComple
 
 
     showStageResult(1, prId, hasJiraIssue, !hasJiraIssue);
+
+    let buildFinished = isDefinedAndFilled(status.suiteFinished) && status.suiteFinished;
     let noNeedToTrigger = hasQueued || buildIsCompleted;
     showStageResult(2, prId, noNeedToTrigger, false);
     showStageResult(3, prId, buildIsCompleted, false);
@@ -433,4 +458,17 @@ function showContributionStatus(status, prId, row, srvId, suiteId, buildIsComple
 
 
     $('#testDraw').html(testDraw);
+
+    if(isDefinedAndFilled(status.branchWithFinishedRunAll)) {
+        $.ajax({
+            url: "rest/visa/visaStatus" +
+                "?serverId=" + srvId +
+                "&suiteId=" + suiteId +
+                "&tcBranch=" + status.branchWithFinishedRunAll,
+            success:
+                function (result) {
+                    showStageBlockers(3, prId, result.blockers);
+                }
+        });
+    }
 }

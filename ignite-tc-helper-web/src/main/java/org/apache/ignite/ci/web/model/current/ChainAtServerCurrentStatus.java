@@ -70,6 +70,12 @@ public class ChainAtServerCurrentStatus {
     /** Duration printable. */
     public String durationPrintable;
 
+    /** Tests duration printable. */
+    public String testsDurationPrintable;
+
+    /** Timed out builds average time. */
+    public String lostInTimeouts;
+
     /** top long running suites */
     public List<TestFailure> topLongRunning = new ArrayList<>();
 
@@ -109,10 +115,12 @@ public class ChainAtServerCurrentStatus {
             }
         );
         durationPrintable = ctx.getDurationPrintable();
+        testsDurationPrintable = ctx.getTestsDurationPrintable();
+        lostInTimeouts = ctx.getLostInTimeoutsPrintable();
         webToHist = buildWebLink(teamcity, ctx);
         webToBuild = buildWebLinkToBuild(teamcity, ctx);
 
-        Stream<T2<MultBuildRunCtx, ITestFailures>> allLongRunning = ctx.suites().stream().flatMap(
+        Stream<T2<MultBuildRunCtx, ITestFailures>> allLongRunning = ctx.suites().flatMap(
             suite -> suite.getTopLongRunning().map(t -> new T2<>(suite, t))
         );
         Comparator<T2<MultBuildRunCtx, ITestFailures>> durationComp
@@ -131,7 +139,7 @@ public class ChainAtServerCurrentStatus {
             }
         );
 
-        Stream<T2<MultBuildRunCtx, Map.Entry<String, Long>>> allLogConsumers = ctx.suites().stream().flatMap(
+        Stream<T2<MultBuildRunCtx, Map.Entry<String, Long>>> allLogConsumers = ctx.suites().flatMap(
             suite -> suite.getTopLogConsumers().map(t -> new T2<>(suite, t))
         );
         Comparator<T2<MultBuildRunCtx, Map.Entry<String, Long>>> longConsumingComp
@@ -185,6 +193,8 @@ public class ChainAtServerCurrentStatus {
             Objects.equal(failedTests, status.failedTests) &&
             Objects.equal(failedToFinish, status.failedToFinish) &&
             Objects.equal(durationPrintable, status.durationPrintable) &&
+            Objects.equal(testsDurationPrintable, status.testsDurationPrintable) &&
+            Objects.equal(lostInTimeouts, status.lostInTimeouts) &&
             Objects.equal(logConsumers, status.logConsumers) &&
             Objects.equal(topLongRunning, status.topLongRunning) &&
             Objects.equal(buildNotFound, status.buildNotFound);
@@ -193,8 +203,8 @@ public class ChainAtServerCurrentStatus {
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(chainName, serverId, branchName, webToHist, webToBuild, suites,
-            failedTests, failedToFinish, durationPrintable,
-            logConsumers, topLongRunning, buildNotFound);
+            failedTests, failedToFinish, durationPrintable, testsDurationPrintable,
+            lostInTimeouts, logConsumers, topLongRunning, buildNotFound);
     }
 
     public void setBuildNotFound(boolean buildNotFound) {

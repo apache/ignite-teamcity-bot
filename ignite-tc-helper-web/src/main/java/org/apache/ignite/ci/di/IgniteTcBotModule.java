@@ -37,12 +37,14 @@ import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
+import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedModule;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.Visa;
+import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 
 /**
@@ -76,11 +78,13 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(IssueDetector.class).in(new SingletonScope());
         bind(ObserverTask.class).in(new SingletonScope());
         bind(BuildObserver.class).in(new SingletonScope());
+        bind(VisasHistoryStorage.class).in(new SingletonScope());
         bind(ITcHelper.class).to(TcHelper.class).in(new SingletonScope());
 
         bind(IJiraIntegration.class).to(Jira.class).in(new SingletonScope());
 
         bind(BackgroundUpdater.class).in(new SingletonScope());
+        bind(MasterTrendsService.class).in(new SingletonScope());
 
         install(new TeamcityIgnitedModule());
         install(new GitHubIgnitedModule());
