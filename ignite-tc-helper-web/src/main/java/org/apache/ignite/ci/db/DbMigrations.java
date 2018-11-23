@@ -42,7 +42,6 @@ import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.observer.CompactBuildsInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.web.model.CompactContributionKey;
 import org.apache.ignite.ci.web.model.CompactVisa;
 import org.apache.ignite.ci.web.model.CompactVisaRequest;
@@ -127,7 +126,6 @@ public class DbMigrations {
     }
 
     public void dataMigration(
-        Consumer<TestOccurrences> saveTestToLatest,
         Cache<String, Build> buildCache, Consumer<Build> saveBuildToStat,
         IgniteCache<SuiteInBranch, RunStat> suiteHistCache,
         IgniteCache<TestInBranch, RunStat> testHistCache,

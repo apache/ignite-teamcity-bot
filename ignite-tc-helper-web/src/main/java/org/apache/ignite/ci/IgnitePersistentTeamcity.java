@@ -127,8 +127,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         DbMigrations migrations = new DbMigrations(ignite, conn.serverId());
 
         migrations.dataMigration(
-            this::migrateOccurrencesToLatest,
-                buildsCache(), this::addBuildOccurrenceToFailuresStat,
+            buildsCache(), this::addBuildOccurrenceToFailuresStat,
                 buildsFailureRunStatCache(), testRunStatCache(),
                 visasHistStorage.visas());
     }
@@ -512,40 +511,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         }, next);
     }
 
-    private void migrateOccurrencesToLatest(TestOccurrences val) {
-        for (TestOccurrence next : val.getTests())
-            migrateTestOneOcurrToAddToLatest(next);
-    }
-
-    private void migrateTestOneOcurrToAddToLatest(TestOccurrence next) {
-        String name = next.getName();
-        if (Strings.isNullOrEmpty(name))
-            return;
-
-        if (next.isMutedTest() || next.isIgnoredTest())
-            return;
-
-        TestInBranch k = new TestInBranch(name, ITeamcity.DEFAULT);
-
-        testRunStatCache().invoke(k, (entry, arguments) -> {
-            TestInBranch key = entry.getKey();
-            TestOccurrence testOccurrence = (TestOccurrence)arguments[0];
-
-            RunStat val = entry.getValue();
-            if (val == null)
-                val = new RunStat(key.name);
-
-            val.addTestRunToLatest(testOccurrence, RunStat.ChangesState.UNKNOWN);
-
-            entry.setValue(val);
-
-            return null;
-        }, next);
-    }
-
     /** {@inheritDoc} */
-    @Override
-    public List<RunStat> topFailingSuite(int cnt) {
+    @Override public List<RunStat> topFailingSuite(int cnt) {
         return CollectionUtil.top(buildsFailureAnalysis(), cnt, Comparator.comparing(RunStat::getFailRate));
     }
 
