@@ -19,10 +19,12 @@ package org.apache.ignite.ci.teamcity.ignited.buildtype;
 
 import com.google.common.base.MoreObjects;
 import java.util.Objects;
+import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.jetbrains.annotations.NotNull;
 
+@Persisted
 public class BuildTypeRefCompacted {
     /** Compacter identifier for string 'Id'. */
     private int id = -1;
@@ -36,7 +38,7 @@ public class BuildTypeRefCompacted {
     /** Compacter identifier for string 'Project name'. */
     private int projectName = -1;
 
-    /** Marker for suites deleted from teamcity. */
+    /** Marker for suites removed from teamcity. */
     private boolean removed = false;
 
     public String name(IStringCompactor compactor) {
@@ -73,7 +75,7 @@ public class BuildTypeRefCompacted {
     /**
      * Mark buildType as removed from Teamcity.
      */
-    public void markAsremoved() {
+    public void markRemoved() {
         this.removed = true;
     }
 

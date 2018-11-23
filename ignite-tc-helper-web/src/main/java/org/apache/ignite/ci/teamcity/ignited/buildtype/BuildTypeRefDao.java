@@ -141,7 +141,7 @@ public class BuildTypeRefDao {
             .filter(entry -> !ids.containsKey(entry.getKey()))
             .collect(Collectors.toMap(Cache.Entry::getKey, entry -> {
                 BuildTypeRefCompacted buildTypeRef = entry.getValue();
-                buildTypeRef.markAsremoved();
+                buildTypeRef.markRemoved();
 
                 removedBuildTypes.add(ids.get(entry.getKey()));
 

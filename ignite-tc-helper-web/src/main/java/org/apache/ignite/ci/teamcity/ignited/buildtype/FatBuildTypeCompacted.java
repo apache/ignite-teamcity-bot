@@ -124,27 +124,27 @@ public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVer
         res.setWebUrl(getWebUrlForId(id));
     }
 
-    public ParametersCompacted getSettings() {
+    public ParametersCompacted settings() {
         return settings == null ? new ParametersCompacted() : settings;
     }
 
-    public void setSettings(@Nullable ParametersCompacted settings) {
+    public void settings(@Nullable ParametersCompacted settings) {
         this.settings = settings;
     }
 
-    public ParametersCompacted getParameters() {
+    public ParametersCompacted parameters() {
         return parameters != null ? parameters : new ParametersCompacted();
     }
 
-    public void setParameters(@Nullable ParametersCompacted parameters) {
+    public void parameters(@Nullable ParametersCompacted parameters) {
         this.parameters = parameters;
     }
 
-    public List<SnapshotDependencyCompacted> getSnapshotDependencies() {
+    public List<SnapshotDependencyCompacted> snapshotDependencies() {
         return snapshotDependencies == null ? Collections.emptyList() : Collections.unmodifiableList(snapshotDependencies);
     }
 
-    public void setSnapshotDependencies(
+    public void snapshotDependencies(
         @Nullable List<SnapshotDependencyCompacted> snapshotDependencies) {
         this.snapshotDependencies = snapshotDependencies;
     }
@@ -174,14 +174,14 @@ public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVer
 
         return _ver == that._ver &&
             buildNumberCounter == that.buildNumberCounter &&
-            Objects.equals(getSettings(), that.getSettings()) &&
-            Objects.equals(getParameters(), that.getParameters()) &&
-            Objects.equals(getSnapshotDependencies(), that.getSnapshotDependencies());
+            Objects.equals(settings(), that.settings()) &&
+            Objects.equals(parameters(), that.parameters()) &&
+            Objects.equals(snapshotDependencies(), that.snapshotDependencies());
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(super.hashCode(), _ver, buildNumberCounter, getSettings(), getParameters(), getSnapshotDependencies());
+        return Objects.hash(super.hashCode(), _ver, buildNumberCounter, settings(), parameters(), snapshotDependencies());
     }
 
     /** {@inheritDoc} */

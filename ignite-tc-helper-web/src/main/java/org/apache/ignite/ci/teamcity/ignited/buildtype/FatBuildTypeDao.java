@@ -132,7 +132,7 @@ public class FatBuildTypeDao {
         final int valueId = compactor.getStringId("COMPOSITE");
 
         return buildTypesCompactedStream(srvIdMaskHigh, projectId)
-            .filter(bt -> bt.getSettings().findPropertyStringId(nameId) == valueId)
+            .filter(bt -> bt.settings().findPropertyStringId(nameId) == valueId)
             .collect(Collectors.toList());
     }
 
