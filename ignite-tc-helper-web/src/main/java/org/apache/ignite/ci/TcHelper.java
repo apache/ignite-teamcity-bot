@@ -207,7 +207,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
      * @param webUrl Build URL.
      * @return Comment, which should be sent to the JIRA ticket.
      */
-    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl) {
+    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl, String buildTypeId) {
         StringBuilder res = new StringBuilder();
 
         for (SuiteCurrentStatus suite : suites) {

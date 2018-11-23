@@ -347,7 +347,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         ensureActualizeBuildTypeRefsRequested();
         ensureActualizeBuildTypesRequested();
 
-        return projectId.equals(DEFAULT_PROJECT_ID) ? compositeBuildTypesIdsForDefaultProject :
+        return (projectId.equals(DEFAULT_PROJECT_ID) && !compositeBuildTypesIdsForDefaultProject.isEmpty()) ?
+            compositeBuildTypesIdsForDefaultProject :
             fatBuildTypeDao.compositeBuildTypesIdsSortedByBuildNumberCounter(srvIdMaskHigh, projectId);
     }
 
