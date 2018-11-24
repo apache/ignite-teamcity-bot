@@ -22,11 +22,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
-
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
@@ -43,8 +38,12 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import static junit.framework.TestCase.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
@@ -59,6 +58,7 @@ public class BuildChainProcessorTest {
 
     /** Pds 1 build type ID. */
     public static final String PDS_1_BT_ID = "Pds1";
+    public static final String BRANCH = "master";
 
     /** Injector. */
     private Injector injector = Guice.createInjector(new AbstractModule() {
@@ -212,6 +212,7 @@ public class BuildChainProcessorTest {
         ref.buildTypeId = bt;
         ref.state = BuildRef.STATE_FINISHED;
         ref.status = BuildRef.STATUS_FAILURE;
+        ref.branchName = BRANCH;
         root.fillFieldsFromBuildRef(c, ref);
 
         assertEquals(root.buildTypeId(c), bt);
