@@ -28,9 +28,9 @@ import java.util.List;
 
 import org.apache.ignite.ci.db.TcHelperDb;
 
-import static org.apache.ignite.ci.IgnitePersistentTeamcity.BOT_DETECTED_ISSUES;
-
 public class IssuesStorage {
+    public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
+
     @Inject
     private Provider<Ignite> igniteProvider;
 

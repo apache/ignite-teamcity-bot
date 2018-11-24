@@ -21,31 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.MoreExecutors;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.io.UncheckedIOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.analysis.ISuiteResults;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.LogCheckTask;
@@ -62,26 +37,32 @@ import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.hist.Builds;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.Configurations;
-import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
-import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
-import org.apache.ignite.ci.util.ExceptionUtil;
-import org.apache.ignite.ci.util.HttpUtil;
-import org.apache.ignite.ci.util.UrlUtil;
-import org.apache.ignite.ci.util.XmlUtil;
-import org.apache.ignite.ci.util.ZipUtil;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.apache.ignite.ci.util.*;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.xml.bind.JAXBException;
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
@@ -461,10 +442,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
     public Build getBuild(String href) {
         return getJaxbUsingHref(href, Build.class);
     }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public IssuesUsagesList getIssuesUsagesList(String href) { return getJaxbUsingHref(href, IssuesUsagesList.class); }
 
     /**
      * @param href Href.
