@@ -324,7 +324,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertEquals(6, ch.length);
     }
 
-    public void saveTmpFile(Object obj, String name) throws IOException, JAXBException {
+    private void saveTmpFile(Object obj, String name) throws IOException, JAXBException {
         ensureDirExist(new File(name).getParentFile());
 
         try (FileWriter writer = new FileWriter(name)) {
@@ -332,7 +332,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         }
     }
 
-    public <E> E jaxbTestXml(String ref, Class<E> cls) throws IOException, JAXBException {
+    private <E> E jaxbTestXml(String ref, Class<E> cls) throws IOException, JAXBException {
         E refBuild;
         try (InputStream stream = getClass().getResourceAsStream(ref)) {
             refBuild = XmlUtil.load(cls, new InputStreamReader(stream));

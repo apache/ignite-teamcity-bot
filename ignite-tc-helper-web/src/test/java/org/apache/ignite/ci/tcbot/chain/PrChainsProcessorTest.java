@@ -110,8 +110,8 @@ public class PrChainsProcessorTest {
                 s -> s.testFailures.stream().anyMatch(testFailure -> "testWithoutHistory".equals(testFailure.name))
         ));
 
-        assertTrue(suitesStatuses.stream().anyMatch(s -> "Build".equals(s.name)));
-        assertTrue(suitesStatuses.stream().anyMatch(s -> "CancelledBuild".equals(s.name)));
+        assertTrue(suitesStatuses.stream().anyMatch(s -> "Build".equals(s.suiteId)));
+        assertTrue(suitesStatuses.stream().anyMatch(s -> "CancelledBuild".equals(s.suiteId)));
     }
 
     private void initBuildChain(IStringCompactor c, String btId, String branch) {
