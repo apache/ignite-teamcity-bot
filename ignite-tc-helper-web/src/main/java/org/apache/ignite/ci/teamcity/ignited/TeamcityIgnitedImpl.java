@@ -345,6 +345,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      * @param buildId Build id.
      * @return build start date or null if build is fake stub or start date is not specified.
      */
+    @SuppressWarnings("WeakerAccess")
     @GuavaCached(maximumSize = 2000, cacheNullRval = false)
     @AutoProfiling
     @Nullable public Date getBuildStartDate(int buildId) {

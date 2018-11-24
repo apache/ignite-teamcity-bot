@@ -200,4 +200,9 @@ public class BuildRef extends AbstractRef {
     public boolean isUnknown() {
         return STATUS_UNKNOWN.equals(status());
     }
+
+    /** */
+    public void setBranchName(String branch) {
+        this.branchName = branch;
+    }
 }
