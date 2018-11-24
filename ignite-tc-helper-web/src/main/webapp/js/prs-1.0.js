@@ -277,7 +277,6 @@ function formatContributionDetails(row, srvId, suiteId) {
         success:
             function (result) {
                 let selectHtml = "<select id='selectChain_" + prId + "' style='width: 350px'>";
-                console.log(JSON.stringify(result));
 
                 let isCompleted = [],
                     isIncompleted = [],
@@ -367,7 +366,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
     $('#viewQueuedBuildsFor' + prId).html(linksToRunningBuilds);
 
     if (buildIsCompleted) {
-        let finishedBranch = status.branchWithFinishedRunAll;
+        let finishedBranch = status.branchWithFinishedSuite;
 
         tdForPr.html("<a id='showReportlink_" + prId + "' href='" + prShowHref(srvId, suiteId, finishedBranch) + "'>" +
             "<button id='show_" + prId + "'>Show " + finishedBranch + " report</button></a>");
@@ -459,12 +458,12 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
 
     $('#testDraw').html(testDraw);
 
-    if(isDefinedAndFilled(status.branchWithFinishedRunAll)) {
+    if(isDefinedAndFilled(status.branchWithFinishedSuite)) {
         $.ajax({
             url: "rest/visa/visaStatus" +
                 "?serverId=" + srvId +
                 "&suiteId=" + suiteId +
-                "&tcBranch=" + status.branchWithFinishedRunAll,
+                "&tcBranch=" + status.branchWithFinishedSuite,
             success:
                 function (result) {
                     showStageBlockers(3, prId, result.blockers);

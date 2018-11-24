@@ -377,8 +377,6 @@ public class TcBotTriggerAndSignOffService {
 
         ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(srvId, prov);
 
-        //todo public final projectId
-
         List<String> compositeBuildTypes = teamcity
             .getCompositeBuildTypesIdsSortedByBuildNumberCounter(DEFAULT_PROJECT_ID);
 

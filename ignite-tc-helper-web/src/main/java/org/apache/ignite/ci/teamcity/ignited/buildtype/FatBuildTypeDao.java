@@ -115,10 +115,10 @@ public class FatBuildTypeDao {
         if (Strings.isNullOrEmpty(projectId))
             return stream;
 
-        final int stringIdForProjectId = compactor.getStringId(projectId);
+        final int strIdForProjectId = compactor.getStringId(projectId);
 
         return stream
-            .filter(bt -> bt.projectId() == stringIdForProjectId)
+            .filter(bt -> bt.projectId() == strIdForProjectId)
             .filter(bt -> !bt.removed());
     }
 
@@ -144,10 +144,10 @@ public class FatBuildTypeDao {
     private List<FatBuildTypeCompacted> compositeBuildTypesCompactedSortedByBuildNumberCounter(int srvIdMaskHigh, @Nullable String projectId) {
         List<FatBuildTypeCompacted> res = compositeBuildTypesCompacted(srvIdMaskHigh, projectId);
 
-        Comparator<FatBuildTypeCompacted> comparator = Comparator
+        Comparator<FatBuildTypeCompacted> comp = Comparator
             .comparingInt(FatBuildTypeCompacted::buildNumberCounter);
 
-        res.sort(comparator);
+        res.sort(comp);
 
         Collections.reverse(res);
 
@@ -185,25 +185,29 @@ public class FatBuildTypeDao {
         return key!=null && key >> 32 == srvIdMaskHigh;
     }
 
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param buildTypeId Build type id.
+     */
     private long buildTypeIdToCacheKey(int srvIdMaskHigh, String buildTypeId) {
-        int buildTypeStringId = compactor.getStringId(buildTypeId);
+        int buildTypeStrId = compactor.getStringId(buildTypeId);
 
-        return buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStringId);
+        return buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStrId);
     }
 
     /**
      * @param srvIdMaskHigh Server id mask high.
-     * @param buildTypeStringId BuildType stringId.
+     * @param buildTypeStrId BuildType stringId.
      */
-    public static long buildTypeStringIdToCacheKey(int srvIdMaskHigh, int buildTypeStringId) {
-        return (long)buildTypeStringId | srvIdMaskHigh << 32;
+    public static long buildTypeStringIdToCacheKey(int srvIdMaskHigh, int buildTypeStrId) {
+        return (long)buildTypeStrId | (long)srvIdMaskHigh << 32;
     }
 
     /**
      * @param srvIdMaskHigh Server id mask high.
-     * @param buildTypeStringId BuildType stringId.
+     * @param buildTypeStrId BuildType stringId.
      */
-    public boolean containsKey(int srvIdMaskHigh, int buildTypeStringId) {
-        return buildTypesCache.containsKey(buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStringId));
+    public boolean containsKey(int srvIdMaskHigh, int buildTypeStrId) {
+        return buildTypesCache.containsKey(buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStrId));
     }
 }

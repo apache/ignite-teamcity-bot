@@ -284,8 +284,15 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @AutoProfiling
     @Override public Build getBuild(String href) {
         final IgniteCache<String, Build> cache = buildsCache();
+        Build build = null;
+        try {
+            build = cache.get(href);
+        } catch (Throwable e) {
+            System.out.println("Errrror");
+            e.printStackTrace();
+        }
 
-        @Nullable final Build persistedBuild = cache.get(href);
+        @Nullable final Build persistedBuild = build;
 
         int fields = ObjectInterner.internFields(persistedBuild);
 

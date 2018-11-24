@@ -364,7 +364,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     private void ensureActualizeBuildTypeRefsRequested() {
         scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs"),
-            this::reindexBuildTypeRefs, 4, TimeUnit.HOURS);
+            this::reindexBuildTypeRefs, 2, TimeUnit.MINUTES);
     }
 
     /**
@@ -372,7 +372,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     private void ensureActualizeBuildTypesRequested() {
         scheduler.sheduleNamed(taskName("actualizeAllBuildTypes"),
-            this::reindexBuildTypes, 24, TimeUnit.HOURS);
+            this::reindexBuildTypes, 5, TimeUnit.MINUTES);
     }
 
     /**
@@ -431,17 +431,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     protected String runActualizeBuildTypeRefs(String projectId) {
         List<BuildTypeRef> tcData = conn.getBuildTypes(projectId);
 
-        Set<Long> buildsUpdated = buildTypeRefDao.saveChunk(srvIdMaskHigh, tcData);
+        Set<Long> buildsUpdated = buildTypeRefDao.saveChunk(srvIdMaskHigh, Collections.unmodifiableList(tcData));
 
-        Set<String> removedBuildTypes = buildTypeRefDao.markMissingBuildsAsRemoved(srvIdMaskHigh,
+        Set<String> rmvBuildTypes = buildTypeRefDao.markMissingBuildsAsRemoved(srvIdMaskHigh,
             tcData.stream().map(BuildTypeRef::getId).collect(Collectors.toList()), projectId);
 
-        if (!(buildsUpdated.isEmpty() && removedBuildTypes.isEmpty())) {
+        if (!(buildsUpdated.isEmpty() && rmvBuildTypes.isEmpty()))
             runActualizeBuildTypes(projectId);
-        }
 
         return "BuildTypeRefs updated " + buildsUpdated.size() +
-            (removedBuildTypes.isEmpty() ? " " : " and mark as removed " + removedBuildTypes.size()) +
+            (rmvBuildTypes.isEmpty() ? " " : " and mark as removed " + rmvBuildTypes.size()) +
             "from " + tcData.size() + " requested";
     }
 

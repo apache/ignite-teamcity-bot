@@ -122,35 +122,36 @@ public class BuildTypeRefDao {
      * Method compares the received list with the list on cache and marks missing ids as removed.
      *
      * @param srvIdMaskHigh Server id mask high.
-     * @param currentListOfBuildTypeIdsOnTeamcity Current list of suite ids on Teamcity.
+     * @param currListOfBuildTypeIdsOnTeamcity Current list of suite ids on Teamcity.
      * @param projectId Project id.
      * @return List of marked as removed buildType ids.
      */
     public Set<String> markMissingBuildsAsRemoved(int srvIdMaskHigh,
-        List<String> currentListOfBuildTypeIdsOnTeamcity, String projectId) {
-        Map<Long, String> ids = currentListOfBuildTypeIdsOnTeamcity.stream()
-            .collect(Collectors.toMap(id -> buildTypeIdToCacheKey(srvIdMaskHigh, id), id -> id));
+        List<String> currListOfBuildTypeIdsOnTeamcity, String projectId) {
 
-        int projectStringId = compactor.getStringId(projectId);
+        Map<Long, String> ids = currListOfBuildTypeIdsOnTeamcity.stream()
+                .collect(Collectors.toMap(id -> buildTypeIdToCacheKey(srvIdMaskHigh, id), id -> id));
 
-        Set<String> removedBuildTypes = new TreeSet<>();
+        int projectStrId = compactor.getStringId(projectId);
 
-        Map<Long, BuildTypeRefCompacted> removedEntries = StreamSupport.stream(buildTypesCache.spliterator(), false)
+        Set<String> rmvBuildTypes = new TreeSet<>();
+
+        Map<Long, BuildTypeRefCompacted> rmvEntries = StreamSupport.stream(buildTypesCache.spliterator(), false)
             .filter(entry -> isKeyForServer(entry.getKey(), srvIdMaskHigh))
-            .filter(entry -> entry.getValue().projectId() == projectStringId)
+            .filter(entry -> entry.getValue().projectId() == projectStrId)
             .filter(entry -> !ids.containsKey(entry.getKey()))
             .collect(Collectors.toMap(Cache.Entry::getKey, entry -> {
                 BuildTypeRefCompacted buildTypeRef = entry.getValue();
                 buildTypeRef.markRemoved();
 
-                removedBuildTypes.add(ids.get(entry.getKey()));
+                rmvBuildTypes.add(ids.get(entry.getKey()));
 
                 return buildTypeRef;
             }));
 
-        buildTypesCache.putAll(removedEntries);
+        buildTypesCache.putAll(rmvEntries);
 
-        return removedBuildTypes;
+        return rmvBuildTypes;
     }
 
     /**
@@ -193,10 +194,10 @@ public class BuildTypeRefDao {
         if (Strings.isNullOrEmpty(projectId))
             return stream;
 
-        final int stringIdForProjectId = compactor.getStringId(projectId);
+        final int strIdForProjectId = compactor.getStringId(projectId);
 
         return stream
-            .filter(bt -> bt.projectId() == stringIdForProjectId)
+            .filter(bt -> bt.projectId() == strIdForProjectId)
             .filter(bt -> !bt.removed());
     }
 
@@ -224,16 +225,16 @@ public class BuildTypeRefDao {
      * @return BuildType stringId.
      */
     private long buildTypeIdToCacheKey(int srvIdMaskHigh, String buildTypeId) {
-        int buildTypeStringId = compactor.getStringId(buildTypeId);
+        int buildTypeStrId = compactor.getStringId(buildTypeId);
 
-        return buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStringId);
+        return buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStrId);
     }
 
     /**
      * @param srvIdMaskHigh Server id mask high.
-     * @param buildTypeStringId BuildType stringId.
+     * @param buildTypeStrId BuildType stringId.
      */
-    public boolean containsKey(int srvIdMaskHigh, int buildTypeStringId) {
-        return buildTypesCache.containsKey(buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStringId));
+    public boolean containsKey(int srvIdMaskHigh, int buildTypeStrId) {
+        return buildTypesCache.containsKey(buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStrId));
     }
 }
