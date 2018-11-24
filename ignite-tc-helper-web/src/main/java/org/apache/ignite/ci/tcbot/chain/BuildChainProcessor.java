@@ -311,13 +311,15 @@ public class BuildChainProcessor {
         if (includeLatestRebuild == LatestRebuildMode.NONE || builds.isEmpty())
             return completed(builds);
 
-        Optional<FatBuildCompacted> maxIdBuildOpt = builds.stream().max(Comparator.comparing(BuildRefCompacted::id));
+        Optional<FatBuildCompacted> maxIdBuildOpt = builds.stream()
+                .filter(b -> b.branchName() >= 0)
+                .max(Comparator.comparing(BuildRefCompacted::id));
         if (!maxIdBuildOpt.isPresent())
             return completed(builds);
 
         FatBuildCompacted freshBuild = maxIdBuildOpt.get();
 
-        final String branch = getBranchOrDefault(freshBuild.branchName(compactor));
+        final String branch = freshBuild.branchName(compactor);
 
         final String buildTypeId = freshBuild.buildTypeId(compactor);
         Stream<BuildRefCompacted> hist = tcIgn.getAllBuildsCompacted(buildTypeId, branch)
