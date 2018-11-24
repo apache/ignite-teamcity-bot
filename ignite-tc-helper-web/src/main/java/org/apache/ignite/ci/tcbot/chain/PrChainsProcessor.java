@@ -187,9 +187,6 @@ public class PrChainsProcessor {
             return null;
 
         for (ChainAtServerCurrentStatus server : summary.servers) {
-            if (!srvId.equals(server.serverName()))
-                continue;
-
             Map<String, List<SuiteCurrentStatus>> fails = findFailures(server);
 
             fails.forEach((k, v) -> res.addAll(v));

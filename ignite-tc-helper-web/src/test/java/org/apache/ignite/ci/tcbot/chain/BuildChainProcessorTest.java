@@ -193,7 +193,7 @@ public class BuildChainProcessorTest {
         builds.put(pds2.id(), pds2);
     }
 
-    @NotNull public IAnalyticsEnabledTeamcity tcOldMock() {
+    @NotNull public static IAnalyticsEnabledTeamcity tcOldMock() {
         IAnalyticsEnabledTeamcity teamcity = Mockito.mock(IAnalyticsEnabledTeamcity.class);
         when(teamcity.getBuildFailureRunStatProvider()).thenReturn(Mockito.mock(Function.class));
         when(teamcity.getTestRunStatProvider()).thenReturn(Mockito.mock(Function.class));
@@ -205,7 +205,7 @@ public class BuildChainProcessorTest {
                 injector.getInstance(IStringCompactor.class));
     }
 
-    @NotNull public FatBuildCompacted testFatBuild(IStringCompactor c, int id, String bt) {
+    @NotNull public static FatBuildCompacted testFatBuild(IStringCompactor c, int id, String bt) {
         FatBuildCompacted root = new FatBuildCompacted();
         BuildRef ref = new BuildRef();
         ref.setId(id);

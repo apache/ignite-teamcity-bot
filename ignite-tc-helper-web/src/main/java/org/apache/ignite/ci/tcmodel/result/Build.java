@@ -190,4 +190,5 @@ public class Build extends BuildRef implements IVersionedEntity {
     public void snapshotDependencies(List<BuildRef> dependencies) {
         snapshotDependencies = dependencies;
     }
+
 }

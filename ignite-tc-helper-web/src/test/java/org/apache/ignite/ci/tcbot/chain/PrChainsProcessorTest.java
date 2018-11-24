@@ -24,6 +24,11 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.teamcity.ignited.*;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
@@ -33,6 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -65,8 +71,9 @@ public class PrChainsProcessorTest {
 
             final ITcServerProvider tcSrvOldProv = Mockito.mock(ITcServerProvider.class);
 
-            when(tcSrvOldProv.server(anyString(), any(ICredentialsProv.class)))
-                    .thenReturn(Mockito.mock(IAnalyticsEnabledTeamcity.class));
+            final IAnalyticsEnabledTeamcity tcOld = BuildChainProcessorTest.tcOldMock();
+            when(tcSrvOldProv.server(anyString(), any(ICredentialsProv.class))).thenReturn(tcOld);
+
 
             bind(ITcServerProvider.class).toInstance(tcSrvOldProv);
 
@@ -82,12 +89,33 @@ public class PrChainsProcessorTest {
 
     @Test
     public void testTestFailureWithoutStatReportedAsBlocker() {
-
-
         IStringCompactor c = injector.getInstance(IStringCompactor.class);
+
+        final String btId = "RunAll";
+        final String branch = "ignite-9542";
+
+        final Build build = new Build();
+        build.buildTypeId = btId;
+        build.setId(1000);
+        build.setStartDateTs(System.currentTimeMillis() - 100000);
+        build.setBranchName(branch);
+        build.status = BuildRef.STATUS_FAILURE;
+
+        final FatBuildCompacted fatBuildCompacted = new FatBuildCompacted(c, build);
+
+        TestOccurrenceFull tf = new TestOccurrenceFull();
+        tf.test = new TestRef();
+        tf.test.id = 1L;
+        tf.name = "testWithoutHistory";
+        tf.status = TestOccurrence.STATUS_FAILURE;
+
+        fatBuildCompacted.addTests(c, Collections.singletonList(tf));
+
+        apacheBuilds.put(fatBuildCompacted.id(), fatBuildCompacted);
+
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
-        final List<SuiteCurrentStatus> suitesStatuses = prcp.getSuitesStatuses("RunAll",
-                "ignite-9542", SRV_ID, mock(ICredentialsProv.class));
+        final List<SuiteCurrentStatus> suitesStatuses = prcp.getSuitesStatuses(btId,
+                branch, SRV_ID, mock(ICredentialsProv.class));
 
         assertNotNull(suitesStatuses);
         assertFalse(suitesStatuses.isEmpty());

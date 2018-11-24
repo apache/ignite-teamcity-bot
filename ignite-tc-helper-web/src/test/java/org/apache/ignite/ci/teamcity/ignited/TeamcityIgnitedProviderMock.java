@@ -30,7 +30,7 @@ public class TeamcityIgnitedProviderMock implements ITeamcityIgnitedProvider {
     Map<String,Map<Integer, FatBuildCompacted>> tcBuildsData = new ConcurrentHashMap<>();
 
     public void addServer(String srvId, Map<Integer, FatBuildCompacted> apacheBuilds) {
-        tcBuildsData.computeIfAbsent(srvId, k -> new ConcurrentHashMap<>()).putAll(apacheBuilds);
+        tcBuildsData.put(srvId, apacheBuilds);
     }
 
     @Override
