@@ -17,13 +17,12 @@
 package org.apache.ignite.ci.tcbot.chain;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
-import java.util.Comparator;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -38,21 +37,14 @@ import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.ci.teamcity.ignited.*;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
+import static junit.framework.TestCase.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**
@@ -140,7 +132,7 @@ public class BuildChainProcessorTest {
 
             if (suite.suiteName() != null && suite.suiteName().startsWith(UNIQUE_FAILED_TEST)) {
                 for (ITestFailures test : suite.getFailedTests())
-                    assertTrue("Failure found but should be hidden by re-run " + test.getName(), false);
+                    fail("Failure found but should be hidden by re-run " + test.getName());
             }
         }
     }
@@ -209,50 +201,8 @@ public class BuildChainProcessorTest {
     }
 
     @NotNull public ITeamcityIgnited tcIgnitedMock(Map<Integer, FatBuildCompacted> builds) {
-        IStringCompactor c = injector.getInstance(IStringCompactor.class);
-
-        ITeamcityIgnited tcIgnited = Mockito.mock(ITeamcityIgnited.class);
-        when(tcIgnited.getFatBuild(anyInt(), any(SyncMode.class)))
-            .thenAnswer(inv ->
-            {
-                Integer arg = inv.getArgument(0);
-
-                return Preconditions.checkNotNull(builds.get(arg), "Can't find build in map [" + arg + "]");
-            });
-
-        when(tcIgnited.getAllBuildsCompacted(anyString(), anyString()))
-            .thenAnswer(inv -> {
-                String btId = inv.getArgument(0);
-
-                String branch = inv.getArgument(1);
-
-                return builds.values()
-                    .stream()
-                    .filter(fb -> btId.equals(fb.buildTypeId(c)))
-                    //  .filter(fb -> branch.equals(fb.branchName(c)))
-                    .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
-                    .collect(Collectors.toList());
-            });
-
-        when(tcIgnited.getLastNBuildsFromHistory(anyString(), anyString(), anyInt()))
-            .thenAnswer(inv -> {
-                String btId = inv.getArgument(0);
-
-                String branch = inv.getArgument(1);
-
-                Integer cnt = inv.getArgument(2);
-
-                return builds.values()
-                    .stream()
-                    .filter(fb -> btId.equals(fb.buildTypeId(c)))
-                    // .filter(fb -> branch.equals(fb.branchName(c)))
-                    .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
-                    .limit(cnt)
-                    .map(BuildRefCompacted::id)
-                    .collect(Collectors.toList());
-            });
-
-        return tcIgnited;
+        return TeamcityIgnitedMock.getMutableMapTeamcityIgnited(builds,
+                injector.getInstance(IStringCompactor.class));
     }
 
     @NotNull public FatBuildCompacted testFatBuild(IStringCompactor c, int id, String bt) {

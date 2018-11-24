@@ -93,7 +93,7 @@ public class ChainAtServerCurrentStatus {
 
     public void initFromContext(ITeamcity teamcity,
         FullChainRunCtx ctx,
-        @Nullable ITcAnalytics tcAnalytics,
+        ITcAnalytics tcAnalytics,
         @Nullable String baseBranchTc) {
         failedTests = 0;
         failedToFinish = 0;
