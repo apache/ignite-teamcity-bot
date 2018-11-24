@@ -210,9 +210,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         if (snapshotDeps != null) {
             List<BuildRef> snapshotDependencies = new ArrayList<>();
-            for (int i = 0; i < snapshotDeps.length; i++) {
-                int depId = snapshotDeps[i];
 
+            for (int depId : snapshotDeps) {
                 BuildRef ref = new BuildRef();
                 ref.setId(depId);
                 ref.href = getHrefForId(depId);
@@ -231,7 +230,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
      * @param compactor Compactor.
      * @param page Page.
      */
-    public void addTests(IStringCompactor compactor, List<TestOccurrenceFull> page) {
+    public FatBuildCompacted addTests(IStringCompactor compactor, List<TestOccurrenceFull> page) {
         for (TestOccurrenceFull next : page) {
             TestCompacted compacted = new TestCompacted(compactor, next);
 
@@ -240,6 +239,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
             tests.add(compacted);
         }
+
+        return this;
     }
 
     /**
@@ -289,7 +290,11 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     /** Start date. */
     @Nullable public Date getStartDate() {
-        return startDate > 0 ? new Date(startDate) : null;
+        return getStartDateTs() > 0 ? new Date(getStartDateTs()) : null;
+    }
+
+    public long getStartDateTs() {
+        return startDate;
     }
 
     /** {@inheritDoc} */

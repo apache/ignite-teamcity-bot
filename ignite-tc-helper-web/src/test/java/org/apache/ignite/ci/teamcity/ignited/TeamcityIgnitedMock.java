@@ -59,7 +59,7 @@ public class TeamcityIgnitedMock {
                 return builds.values()
                     .stream()
                     .filter(fb -> btId.equals(fb.buildTypeId(c)))
-                    //  .filter(fb -> branch.equals(fb.branchName(c)))
+                        .filter(fb -> branch.equals(fb.branchName(c)))
                     .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
                     .collect(Collectors.toList());
             });
@@ -88,16 +88,22 @@ public class TeamcityIgnitedMock {
                     final String name = t.name;
                     final String branch = t.branch;
 
-                    if(histCache.isEmpty()) {
-                        initHistory(histCache, builds, srvId);
+                   // System.out.println("Search history " + name + " in " + branch + ": " );
+
+                    if (histCache.isEmpty()) {
+                        synchronized (histCache) {
+                            if (histCache.isEmpty()) {
+                                initHistory(c, histCache, builds, srvId);
+                            }
+                        }
                     }
 
                     final Integer tstName = c.getStringIdIfPresent(name);
-                    if(tstName==null)
+                    if (tstName == null)
                         return null;
 
                     final Integer branchId = c.getStringIdIfPresent(branch);
-                    if(branchId==null)
+                    if (branchId == null)
                         return null;
 
                     final RunHistKey key = new RunHistKey(srvId, tstName, branchId);
@@ -105,21 +111,29 @@ public class TeamcityIgnitedMock {
                     final RunHistCompacted runHistCompacted = histCache.get(key);
 
                     System.out.println("Test history " + name + " in " + branch + " => " + runHistCompacted);
+
                     return runHistCompacted;
                 });
 
         return tcIgnited;
     }
 
-    private static void initHistory(Map<RunHistKey, RunHistCompacted> histCache, Map<Integer, FatBuildCompacted> builds, int srvId) {
-        for (FatBuildCompacted next : builds.values()) {
-            next.getAllTests().forEach(t->{
-                RunHistKey histKey = new RunHistKey(srvId, t.testName(), next.branchName() );
+    private static void initHistory(IStringCompactor c, Map<RunHistKey, RunHistCompacted> resHistCache, Map<Integer, FatBuildCompacted> builds, int srvId) {
+        Map<RunHistKey, RunHistCompacted> histCache = new ConcurrentHashMap<>();
+
+        for (FatBuildCompacted build : builds.values()) {
+            if(!build.isFinished(c))
+                continue;
+
+            build.getAllTests().forEach(t -> {
+                RunHistKey histKey = new RunHistKey(srvId, t.testName(), build.branchName());
 
                 final RunHistCompacted hist = histCache.computeIfAbsent(histKey, RunHistCompacted::new);
 
-
+                hist.addTestRun(c, t, build.id(), build.getStartDateTs());
             });
         }
+
+        resHistCache.putAll(histCache);
     }
 }

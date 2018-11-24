@@ -17,12 +17,16 @@
 
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.Lists;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 
 import javax.annotation.Nullable;
+import java.util.Date;
 import java.util.List;
 
 public class RunHistCompacted implements IVersionedEntity, IRunHistory {
@@ -39,16 +43,7 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "tstAndSrv", order = 1)})
     private int srvId;
 
-    /**
-     * Runs registered all the times.
-     */
-    private int allHistRuns;
-
-    /**
-     * Failures registered all the times.
-     */
-    private int allHistFailures;
-
+    private InvocationData data = new InvocationData();
 
     public RunHistCompacted() {}
 
@@ -69,22 +64,22 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
 
     @Override
     public int getRunsCount() {
-        return 10; //todo implement
+        return data.notMutedRunsCount();
     }
 
     @Override
     public int getFailuresCount() {
-        return 10; //todo implement
+        return data.failuresCount();
     }
 
     @Override
     public int getFailuresAllHist() {
-        return allHistFailures;
+        return data.allHistFailures();
     }
 
     @Override
     public int getRunsAllHist() {
-        return allHistRuns;
+        return data.allHistRuns();
     }
 
     @Nullable
@@ -96,5 +91,19 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     @Override
     public String getFlakyComments() {
         return null;
+    }
+
+    public void addTestRun(IStringCompactor c, TestCompacted testCompacted, int build, long startDate) {
+        data.add(c, testCompacted, build, startDate);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                .add("nameId", testNameOrSuite)
+                .add("srvId", srvId)
+                .add("failRate", getFailPercentPrintable())
+                .add("data", data)
+                .toString();
     }
 }

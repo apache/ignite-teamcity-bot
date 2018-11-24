@@ -248,6 +248,8 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         boolean lowFailureRate = recent != null && recent.failureRate != null &&
             Float.valueOf(recent.failureRate.replace(',', '.')) < 4.;
 
+        System.out.println(name + " " + recent.failureRate);
+
         return lowFailureRate && histBaseBranch.flakyComments == null;
     }
 

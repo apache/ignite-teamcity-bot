@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.tcbot.chain;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -46,6 +47,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -58,6 +60,8 @@ import static org.mockito.Mockito.when;
 public class PrChainsProcessorTest {
     public static final String SRV_ID = "apache";
     public static final String TEST_WITH_HISTORY_FAILING_IN_MASTER = "testWithHistoryFailingInMaster";
+    public static final String TEST_WITH_HISTORY_PASSING_IN_MASTER = "testWithHistoryPassingInMaster";
+    public static final String TEST_WITHOUT_HISTORY = "testWithoutHistory";
 
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
 
@@ -109,83 +113,109 @@ public class PrChainsProcessorTest {
         assertNotNull(suitesStatuses);
         assertFalse(suitesStatuses.isEmpty());
 
-        assertTrue(suitesStatuses.stream().anyMatch(
-                s -> s.testFailures.stream().anyMatch(testFailure -> "testWithoutHistory".equals(testFailure.name))
-        ));
+        assertTrue(suitesStatuses.stream().anyMatch(containsTestFail("testWithoutHistory")));
 
         assertTrue(suitesStatuses.stream().anyMatch(s -> "Build".equals(s.suiteId)));
         assertTrue(suitesStatuses.stream().anyMatch(s -> "CancelledBuild".equals(s.suiteId)));
 
-        assertFalse(suitesStatuses.stream().anyMatch(
-                s -> s.testFailures.stream().anyMatch(testFailure -> TEST_WITH_HISTORY_FAILING_IN_MASTER.equals(testFailure.name))
-        ));
+        assertFalse(suitesStatuses.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_FAILING_IN_MASTER)));
+        assertTrue(suitesStatuses.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_PASSING_IN_MASTER)));
+    }
+
+    @NotNull
+    private Predicate<SuiteCurrentStatus> containsTestFail(String name) {
+        return s -> s.testFailures.stream().anyMatch(testFailure -> {
+            return name.equals(testFailure.name);
+        });
     }
 
     private void initBuildChain(IStringCompactor c, String btId, String branch) {
-        final int id = 1000;
-
-        final FatBuildCompacted chain = createFailedBuild(c, btId, branch, id, 100000);
-
-        final FatBuildCompacted childBuild = createFailedBuild(c, "Cache1", branch, 1001, 100020);
-
-        TestOccurrenceFull tf = createFailedTest(1L, "testWithoutHistory");
-
-        TestOccurrenceFull tf2 = createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER);
-
-        childBuild.addTests(c, Lists.newArrayList(tf, tf2));
 
         final FatBuildCompacted buildBuild = createFailedBuild(c, "Build", branch, 1002, 100020);
         final ProblemOccurrence compile = new ProblemOccurrence();
         compile.setType(ProblemOccurrence.TC_COMPILATION_ERROR);
         buildBuild.addProblems(c, Collections.singletonList(compile));
+
+        final FatBuildCompacted childBuild =
+                createFailedBuild(c, "Cache1", branch, 1001, 100020)
+                        .addTests(c,
+                                Lists.newArrayList(
+                                        createFailedTest(1L, TEST_WITHOUT_HISTORY),
+                                        createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
+                                        createFailedTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER)));
+
         childBuild.snapshotDependencies(new int[]{buildBuild.id()});
 
-        final Build build = createBuild("CancelledBuild", branch, 1003, 100020);
+        final Build build = createPassedBuild("CancelledBuild", branch, 1003, 100020);
+
         build.status = BuildRef.STATUS_UNKNOWN;
         build.state = BuildRef.STATE_FINISHED;
 
         final FatBuildCompacted cancelledBuild = new FatBuildCompacted(c, build);
 
+        cancelledBuild.snapshotDependencies(new int[]{buildBuild.id()});
+
+        final int id = 1000;
+
+        final FatBuildCompacted chain = createFailedBuild(c, btId, branch, id, 100000);
+
         chain.snapshotDependencies(new int[]{childBuild.id(), cancelledBuild.id()});
 
-        apacheBuilds.put(chain.id(), chain);
-        apacheBuilds.put(childBuild.id(), childBuild);
-        apacheBuilds.put(buildBuild.id(), buildBuild);
-        apacheBuilds.put(cancelledBuild.id(), cancelledBuild);
+        addBuilds(chain);
+        addBuilds(childBuild);
+        addBuilds(buildBuild);
+        addBuilds(cancelledBuild);
 
         for (int i = 0; i < 10; i++) {
-            final FatBuildCompacted masterBuild = createFailedBuild(c, "Cache1",
-                    ITeamcity.DEFAULT, 5000+i, 100000+(i*10000));
+            addBuilds(createFailedBuild(c, "Cache1",
+                    ITeamcity.DEFAULT, 5000 + i, 100000 + (i * 10000))
+                    .addTests(c, Lists.newArrayList(
+                            createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
+                            createPassingTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER))));
+        }
+    }
 
-            final TestOccurrenceFull testInMaster = createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER);
+    private void addBuilds(FatBuildCompacted... builds) {
+        for (FatBuildCompacted build : builds) {
+            final FatBuildCompacted oldB = apacheBuilds.put(build.id(), build);
 
-            masterBuild.addTests(c, Lists.newArrayList(testInMaster));
-
-            apacheBuilds.put(masterBuild.id(), masterBuild);
+            Preconditions.checkState(oldB==null);
         }
     }
 
     @NotNull
-    private TestOccurrenceFull createFailedTest(long id1, String name) {
+    private TestOccurrenceFull createFailedTest(long id, String name) {
+        TestOccurrenceFull tf = createPassingTest(id, name);
+
+        tf.status = TestOccurrence.STATUS_FAILURE;
+
+        return tf;
+    }
+
+    @NotNull
+    private TestOccurrenceFull createPassingTest(long id, String name) {
         TestOccurrenceFull tf = new TestOccurrenceFull();
+
         tf.test = new TestRef();
 
-        tf.test.id = id1;
+        tf.test.id = id;
         tf.name = name;
-        tf.status = TestOccurrence.STATUS_FAILURE;
+        tf.status = TestOccurrence.STATUS_SUCCESS;
+
         return tf;
     }
 
     @NotNull
     public FatBuildCompacted createFailedBuild(IStringCompactor c, String btId, String branch, int id, int ageMs) {
-        final Build build = createBuild(btId, branch, id, ageMs);
+        final Build build = createPassedBuild(btId, branch, id, ageMs);
+
         build.status = BuildRef.STATUS_FAILURE;
 
         return new FatBuildCompacted(c, build);
     }
 
     @NotNull
-    public Build createBuild(String btId, String branch, int id, int ageMs) {
+    private Build createPassedBuild(String btId, String branch, int id, int ageMs) {
         final Build build = new Build();
         build.buildTypeId = btId;
         final BuildType type = new BuildType();
@@ -195,6 +225,9 @@ public class PrChainsProcessorTest {
         build.setId(id);
         build.setStartDateTs(System.currentTimeMillis() - ageMs);
         build.setBranchName(branch);
+        build.state = Build.STATE_FINISHED;
+        build.status = Build.STATUS_SUCCESS;
+
         return build;
     }
 }
