@@ -15,12 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity.ignited.buildstat;
+package org.apache.ignite.ci.teamcity.ignited.runhist;
 
+import com.google.common.collect.Lists;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 
-public class RunHistCompacted implements IVersionedEntity {
+import javax.annotation.Nullable;
+import java.util.List;
+
+public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     /** Latest version. */
     private static final int LATEST_VERSION = 1;
 
@@ -37,13 +42,20 @@ public class RunHistCompacted implements IVersionedEntity {
     /**
      * Runs registered all the times.
      */
-    private int runs;
+    private int allHistRuns;
 
     /**
      * Failures registered all the times.
      */
-    private int failures;
+    private int allHistFailures;
 
+
+    public RunHistCompacted() {}
+
+    public RunHistCompacted(RunHistKey k) {
+        testNameOrSuite = k.testNameOrSuite();
+        srvId = k.srvId();
+    }
 
     /** {@inheritDoc} */
     @Override public int version() {
@@ -53,5 +65,36 @@ public class RunHistCompacted implements IVersionedEntity {
     /** {@inheritDoc} */
     @Override public int latestVersion() {
         return LATEST_VERSION;
+    }
+
+    @Override
+    public int getRunsCount() {
+        return 10; //todo implement
+    }
+
+    @Override
+    public int getFailuresCount() {
+        return 10; //todo implement
+    }
+
+    @Override
+    public int getFailuresAllHist() {
+        return allHistFailures;
+    }
+
+    @Override
+    public int getRunsAllHist() {
+        return allHistRuns;
+    }
+
+    @Nullable
+    @Override
+    public List<Integer> getLatestRunResults() {
+        return Lists.newArrayList();
+    }
+
+    @Override
+    public String getFlakyComments() {
+        return null;
     }
 }

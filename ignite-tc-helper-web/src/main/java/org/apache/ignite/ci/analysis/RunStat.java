@@ -29,6 +29,7 @@ import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.issue.EventTemplate;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.ci.analysis.RunStat.RunStatus.RES_CRITICAL_FAILURE;
@@ -40,7 +41,7 @@ import static org.apache.ignite.ci.analysis.RunStat.RunStatus.RES_OK;
  * Test or Build run statistics.
  */
 @Persisted
-public class RunStat {
+public class RunStat implements IRunHistory {
     public static final int MAX_LATEST_RUNS = 100;
 
     /**
@@ -174,39 +175,17 @@ public class RunStat {
         return name;
     }
 
-    public float getFailRateAllHist() {
-        if (runs == 0)
-            return 1.0f;
 
-        return 1.0f * failures / runs;
-    }
 
-    public int getFailuresAllHist() {
+   @Override public int getFailuresAllHist() {
         return failures;
     }
 
-    public int getRunsAllHist() {
+   @Override public int getRunsAllHist() {
         return runs;
     }
 
-    /**
-     * @return
-     */
-    public String getFailPercentAllHistPrintable() {
-        return getPercentPrintable(getFailRateAllHist() * 100.0f);
-    }
 
-    /**
-     * @return float representing fail rate
-     */
-    public float getFailRate() {
-        int runs = getRunsCount();
-
-        if (runs == 0)
-            return 1.0f;
-
-        return 1.0f * getFailuresCount() / runs;
-    }
 
     /**
      * @return float representing fail rate
@@ -220,7 +199,7 @@ public class RunStat {
         return 1.0f * getCriticalFailuresCount() / runs;
     }
 
-    public int getFailuresCount() {
+    @Override public int getFailuresCount() {
         if (latestRuns == null)
             return 0;
 
@@ -234,21 +213,16 @@ public class RunStat {
         return (int)latestRuns.values().stream().filter(res -> res.status == RES_CRITICAL_FAILURE).count();
     }
 
-    public int getRunsCount() {
+    @Override public int getRunsCount() {
         return latestRuns == null ? 0 : latestRuns.size();
     }
 
-    public String getFailPercentPrintable() {
-        return getPercentPrintable(getFailRate() * 100.0f);
-    }
 
     public String getCriticalFailPercentPrintable() {
-        return getPercentPrintable(getCriticalFailRate() * 100.0f);
+        return IRunHistory.getPercentPrintable(getCriticalFailRate() * 100.0f);
     }
 
-    private static String getPercentPrintable(float percent) {
-        return String.format("%.1f", percent).replace(".", ",");
-    }
+
 
     public long getAverageDurationMs() {
         if (runsWithDuration == 0)
@@ -301,14 +275,14 @@ public class RunStat {
      * @return
      */
     @Nullable
-    public List<Integer> getLatestRunResults() {
+    @Override public List<Integer> getLatestRunResults() {
         if (latestRuns == null)
             return Collections.emptyList();
 
         return latestRuns.values().stream().map(info -> info.status.code).collect(Collectors.toList());
     }
 
-    private int[] concatArr(int[] arr1, int[] arr2) {
+    private static int[] concatArr(int[] arr1, int[] arr2) {
         int[] arr1and2 = new int[arr1.length + arr2.length];
         System.arraycopy(arr1, 0, arr1and2, 0, arr1.length);
         System.arraycopy(arr2, 0, arr1and2, arr1.length, arr2.length);
@@ -354,7 +328,7 @@ public class RunStat {
     }
 
     @Nullable
-    private TestId checkTemplateAtPos(int[] template, int centralEvtBuild, List<Map.Entry<TestId, RunInfo>> histAsArr,
+    private static TestId checkTemplateAtPos(int[] template, int centralEvtBuild, List<Map.Entry<TestId, RunInfo>> histAsArr,
         int idx) {
         for (int tIdx = 0; tIdx < template.length; tIdx++) {
             RunInfo curStatus = histAsArr.get(idx + tIdx).getValue();
@@ -381,7 +355,7 @@ public class RunStat {
     }
 
     @Nullable
-    public String getFlakyComments() {
+    @Override public String getFlakyComments() {
         if (latestRuns == null)
             return null;
 

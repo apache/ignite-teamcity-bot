@@ -15,14 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity.ignited.buildstat;
+package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
 import org.apache.ignite.configuration.CacheConfiguration;
 
 import javax.inject.Inject;

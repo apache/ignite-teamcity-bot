@@ -255,8 +255,8 @@ public class MultBuildRunCtx implements ISuiteResults {
         return CollectionUtil.top(logSizeBytes.entrySet().stream(), 3 ,comparing).stream();
     }
 
-    public Stream<? extends ITestFailures> getTopLongRunning() {
-        Comparator<ITestFailures> comparing = Comparator.comparing(ITestFailures::getAvgDurationMs);
+    public Stream<? extends IMultTestOccurrence> getTopLongRunning() {
+        Comparator<IMultTestOccurrence> comparing = Comparator.comparing(IMultTestOccurrence::getAvgDurationMs);
 
         Map<Integer, TestCompactedMult> res = new HashMap<>();
 
@@ -267,7 +267,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return CollectionUtil.top(res.values().stream(), 3, comparing).stream();
     }
 
-    public List<ITestFailures> getFailedTests() {
+    public List<IMultTestOccurrence> getFailedTests() {
         Map<Integer, TestCompactedMult> res = new HashMap<>();
 
         builds.forEach(singleBuildRunCtx -> {

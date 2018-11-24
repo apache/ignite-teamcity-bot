@@ -15,22 +15,33 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.analysis;
+package org.apache.ignite.ci.teamcity.ignited.runhist;
 
-import java.util.stream.Stream;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
+import org.apache.ignite.internal.util.GridConcurrentHashSet;
+
+import javax.annotation.concurrent.GuardedBy;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * Multiple test ocurrence
+ *
  */
-public interface ITestFailures {
-    String getName();
+public class RunHistSync {
+    /**
+     * Scope of work: builds to be loaded from a connection.
+     */
+    private static class SyncTask {
+        ITeamcityConn conn;
+        Set<Integer> ids = new HashSet<>();
 
-    boolean isInvestigated();
+        GridConcurrentHashSet<Integer> loadingBuilds = new GridConcurrentHashSet<>();
+    }
 
-    public int failuresCount();
+    @GuardedBy("this")
+    private Map<String, SyncTask> buildToLoad = new HashMap<>();
 
-    public long getAvgDurationMs();
 
-    Iterable<TestOccurrenceFull> getOccurrences();
 }

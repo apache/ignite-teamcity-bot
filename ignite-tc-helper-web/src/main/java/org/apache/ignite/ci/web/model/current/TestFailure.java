@@ -27,12 +27,13 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.analysis.ITestFailures;
+import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
 import org.apache.ignite.ci.logs.LogMsgToWarn;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.model.hist.TestHistory;
 import org.jetbrains.annotations.NotNull;
@@ -97,7 +98,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
      * @param branchName
      * @param baseBranchName base branch name (e.g. master).
      */
-    public void initFromOccurrence(@Nonnull final ITestFailures failure,
+    public void initFromOccurrence(@Nonnull final IMultTestOccurrence failure,
         @Nonnull final ITeamcity teamcity,
         @Nullable final String projectId,
         @Nullable final String branchName,
@@ -190,7 +191,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
      * @param failRateNormalizedBranch Base branch: Fail rate and flakyness detection normalized branch.
      * @param curBranchNormalized Cur branch normalized.
      */
-    public void initStat(@Nullable final Function<TestInBranch, RunStat> runStatSupplier,
+    public void initStat(@Nullable final Function<TestInBranch, ? extends IRunHistory> runStatSupplier,
         String failRateNormalizedBranch,
         String curBranchNormalized) {
         if (runStatSupplier == null)
@@ -198,11 +199,11 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 
         TestInBranch testInBranch = new TestInBranch(name, failRateNormalizedBranch);
 
-        final RunStat stat = runStatSupplier.apply(testInBranch);
+        final IRunHistory stat = runStatSupplier.apply(testInBranch);
 
         histBaseBranch.init(stat);
 
-        RunStat statForProblemsDetection = null;
+        IRunHistory statForProblemsDetection = null;
 
         if (!curBranchNormalized.equals(failRateNormalizedBranch)) {
             TestInBranch testInBranchS = new TestInBranch(name, curBranchNormalized);
@@ -217,13 +218,14 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         } else
             statForProblemsDetection = stat;
 
-        if (statForProblemsDetection != null) {
-            RunStat.TestId testId = statForProblemsDetection.detectTemplate(EventTemplates.newFailure);
+        if (statForProblemsDetection != null && statForProblemsDetection instanceof RunStat) {
+            final RunStat forProblemsDetection = (RunStat) statForProblemsDetection;
+            RunStat.TestId testId = forProblemsDetection.detectTemplate(EventTemplates.newFailure);
 
             if (testId != null)
                 problemRef = new ProblemRef("New Failure");
 
-            RunStat.TestId recentContributedTestId = statForProblemsDetection.detectTemplate(EventTemplates.newContributedTestFailure);
+            RunStat.TestId recentContributedTestId = forProblemsDetection.detectTemplate(EventTemplates.newContributedTestFailure);
 
             if (recentContributedTestId != null)
                 problemRef = new ProblemRef("Recently contributed test failure");

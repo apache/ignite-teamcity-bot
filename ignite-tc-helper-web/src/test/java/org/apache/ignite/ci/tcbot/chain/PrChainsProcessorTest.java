@@ -16,11 +16,13 @@
  */
 package org.apache.ignite.ci.tcbot.chain;
 
+import com.google.common.collect.Lists;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -55,6 +57,8 @@ import static org.mockito.Mockito.when;
 
 public class PrChainsProcessorTest {
     public static final String SRV_ID = "apache";
+    public static final String TEST_WITH_HISTORY_FAILING_IN_MASTER = "testWithHistoryFailingInMaster";
+
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
 
 
@@ -76,7 +80,6 @@ public class PrChainsProcessorTest {
 
             final IAnalyticsEnabledTeamcity tcOld = BuildChainProcessorTest.tcOldMock();
             when(tcSrvOldProv.server(anyString(), any(ICredentialsProv.class))).thenReturn(tcOld);
-
 
             bind(ITcServerProvider.class).toInstance(tcSrvOldProv);
 
@@ -112,6 +115,10 @@ public class PrChainsProcessorTest {
 
         assertTrue(suitesStatuses.stream().anyMatch(s -> "Build".equals(s.suiteId)));
         assertTrue(suitesStatuses.stream().anyMatch(s -> "CancelledBuild".equals(s.suiteId)));
+
+        assertFalse(suitesStatuses.stream().anyMatch(
+                s -> s.testFailures.stream().anyMatch(testFailure -> TEST_WITH_HISTORY_FAILING_IN_MASTER.equals(testFailure.name))
+        ));
     }
 
     private void initBuildChain(IStringCompactor c, String btId, String branch) {
@@ -120,14 +127,12 @@ public class PrChainsProcessorTest {
         final FatBuildCompacted chain = createFailedBuild(c, btId, branch, id, 100000);
 
         final FatBuildCompacted childBuild = createFailedBuild(c, "Cache1", branch, 1001, 100020);
-        TestOccurrenceFull tf = new TestOccurrenceFull();
-        tf.test = new TestRef();
-        tf.test.id = 1L;
-        tf.name = "testWithoutHistory";
-        tf.status = TestOccurrence.STATUS_FAILURE;
 
-        childBuild.addTests(c, Collections.singletonList(tf));
+        TestOccurrenceFull tf = createFailedTest(1L, "testWithoutHistory");
 
+        TestOccurrenceFull tf2 = createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER);
+
+        childBuild.addTests(c, Lists.newArrayList(tf, tf2));
 
         final FatBuildCompacted buildBuild = createFailedBuild(c, "Build", branch, 1002, 100020);
         final ProblemOccurrence compile = new ProblemOccurrence();
@@ -141,13 +146,34 @@ public class PrChainsProcessorTest {
 
         final FatBuildCompacted cancelledBuild = new FatBuildCompacted(c, build);
 
-
         chain.snapshotDependencies(new int[]{childBuild.id(), cancelledBuild.id()});
 
         apacheBuilds.put(chain.id(), chain);
         apacheBuilds.put(childBuild.id(), childBuild);
         apacheBuilds.put(buildBuild.id(), buildBuild);
         apacheBuilds.put(cancelledBuild.id(), cancelledBuild);
+
+        for (int i = 0; i < 10; i++) {
+            final FatBuildCompacted masterBuild = createFailedBuild(c, "Cache1",
+                    ITeamcity.DEFAULT, 5000+i, 100000+(i*10000));
+
+            final TestOccurrenceFull testInMaster = createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER);
+
+            masterBuild.addTests(c, Lists.newArrayList(testInMaster));
+
+            apacheBuilds.put(masterBuild.id(), masterBuild);
+        }
+    }
+
+    @NotNull
+    private TestOccurrenceFull createFailedTest(long id1, String name) {
+        TestOccurrenceFull tf = new TestOccurrenceFull();
+        tf.test = new TestRef();
+
+        tf.test.id = id1;
+        tf.name = name;
+        tf.status = TestOccurrence.STATUS_FAILURE;
+        return tf;
     }
 
     @NotNull

@@ -40,12 +40,10 @@ import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -146,7 +144,7 @@ public class PrChainsProcessor {
                 runningUpdates.addAndGet(cnt0);
 
             //fail rate reference is always default (master)
-            chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranch);
+            chainStatus.initFromContext(tcIgnited, teamcity, ctx, teamcity, baseBranch);
         }
 
         res.addChainOnServer(chainStatus);

@@ -25,7 +25,7 @@ import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.ITestFailures;
+import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
@@ -99,7 +99,7 @@ public class BuildChainProcessorTest {
             else
                 assertTrue(suite.failedTests() >= 1);
 
-            for (ITestFailures test : suite.getFailedTests()) {
+            for (IMultTestOccurrence test : suite.getFailedTests()) {
                 if (test.getName().startsWith(UNIQUE_FAILED_TEST))
                     assertEquals(1, test.failuresCount());
                 else if (test.getName().equals(TEST_FAILING_EVERY_TIME))
@@ -131,7 +131,7 @@ public class BuildChainProcessorTest {
             System.out.println(suite.getFailedTestsNames().collect(Collectors.toList()));
 
             if (suite.suiteName() != null && suite.suiteName().startsWith(UNIQUE_FAILED_TEST)) {
-                for (ITestFailures test : suite.getFailedTests())
+                for (IMultTestOccurrence test : suite.getFailedTests())
                     fail("Failure found but should be hidden by re-run " + test.getName());
             }
         }

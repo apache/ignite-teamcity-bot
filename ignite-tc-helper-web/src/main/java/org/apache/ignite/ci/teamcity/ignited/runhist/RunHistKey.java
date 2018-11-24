@@ -15,10 +15,41 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity.ignited.buildstat;
+package org.apache.ignite.ci.teamcity.ignited.runhist;
+
+import com.google.common.base.Objects;
 
 public class RunHistKey {
     private int srvId;
     private int testNameOrSuite;
     private int branch;
+
+    public RunHistKey(int srvId, int testName, int branchName) {
+        this.srvId = srvId;
+        this.testNameOrSuite = testName;
+        this.branch = branchName;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        RunHistKey histKey = (RunHistKey) o;
+        return srvId == histKey.srvId &&
+                testNameOrSuite == histKey.testNameOrSuite &&
+                branch == histKey.branch;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(srvId, testNameOrSuite, branch);
+    }
+
+    public int testNameOrSuite() {
+        return testNameOrSuite;
+    }
+
+    public int srvId() {
+        return srvId;
+    }
 }

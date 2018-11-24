@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TeamcityIgnitedProviderMock implements ITeamcityIgnitedProvider {
     @Inject IStringCompactor compactor;
 
-    Map<String,Map<Integer, FatBuildCompacted>> tcBuildsData = new ConcurrentHashMap<>();
+    private Map<String, Map<Integer, FatBuildCompacted>> tcBuildsData = new ConcurrentHashMap<>();
 
     public void addServer(String srvId, Map<Integer, FatBuildCompacted> apacheBuilds) {
         tcBuildsData.put(srvId, apacheBuilds);
@@ -36,6 +36,7 @@ public class TeamcityIgnitedProviderMock implements ITeamcityIgnitedProvider {
     @Override
     public ITeamcityIgnited server(String srvId, ICredentialsProv prov) {
         final Map<Integer, FatBuildCompacted> integerFatBuildCompactedMap = tcBuildsData.get(srvId);
+
         return TeamcityIgnitedMock.getMutableMapTeamcityIgnited(integerFatBuildCompactedMap, compactor);
     }
 }

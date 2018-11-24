@@ -21,6 +21,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
@@ -306,6 +307,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         }
 
         return chains;
+    }
+
+    @Override
+    public IRunHistory getTestRunHist(TestInBranch testInBranch) {
+        //todo implement loading test data
+        return null;
     }
 
     public List<String> branchForQuery(@Nullable String branchName) {
