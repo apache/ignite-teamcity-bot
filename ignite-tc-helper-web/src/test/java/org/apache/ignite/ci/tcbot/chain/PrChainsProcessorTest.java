@@ -21,11 +21,12 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
@@ -34,6 +35,7 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -45,6 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -94,24 +97,7 @@ public class PrChainsProcessorTest {
         final String btId = "RunAll";
         final String branch = "ignite-9542";
 
-        final Build build = new Build();
-        build.buildTypeId = btId;
-        build.setId(1000);
-        build.setStartDateTs(System.currentTimeMillis() - 100000);
-        build.setBranchName(branch);
-        build.status = BuildRef.STATUS_FAILURE;
-
-        final FatBuildCompacted fatBuildCompacted = new FatBuildCompacted(c, build);
-
-        TestOccurrenceFull tf = new TestOccurrenceFull();
-        tf.test = new TestRef();
-        tf.test.id = 1L;
-        tf.name = "testWithoutHistory";
-        tf.status = TestOccurrence.STATUS_FAILURE;
-
-        fatBuildCompacted.addTests(c, Collections.singletonList(tf));
-
-        apacheBuilds.put(fatBuildCompacted.id(), fatBuildCompacted);
+        initBuildChain(c, btId, branch);
 
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
         final List<SuiteCurrentStatus> suitesStatuses = prcp.getSuitesStatuses(btId,
@@ -119,5 +105,70 @@ public class PrChainsProcessorTest {
 
         assertNotNull(suitesStatuses);
         assertFalse(suitesStatuses.isEmpty());
+
+        assertTrue(suitesStatuses.stream().anyMatch(
+                s -> s.testFailures.stream().anyMatch(testFailure -> "testWithoutHistory".equals(testFailure.name))
+        ));
+
+        assertTrue(suitesStatuses.stream().anyMatch(s -> "Build".equals(s.name)));
+        assertTrue(suitesStatuses.stream().anyMatch(s -> "CancelledBuild".equals(s.name)));
+    }
+
+    private void initBuildChain(IStringCompactor c, String btId, String branch) {
+        final int id = 1000;
+
+        final FatBuildCompacted chain = createFailedBuild(c, btId, branch, id, 100000);
+
+        final FatBuildCompacted childBuild = createFailedBuild(c, "Cache1", branch, 1001, 100020);
+        TestOccurrenceFull tf = new TestOccurrenceFull();
+        tf.test = new TestRef();
+        tf.test.id = 1L;
+        tf.name = "testWithoutHistory";
+        tf.status = TestOccurrence.STATUS_FAILURE;
+
+        childBuild.addTests(c, Collections.singletonList(tf));
+
+
+        final FatBuildCompacted buildBuild = createFailedBuild(c, "Build", branch, 1002, 100020);
+        final ProblemOccurrence compile = new ProblemOccurrence();
+        compile.setType(ProblemOccurrence.TC_COMPILATION_ERROR);
+        buildBuild.addProblems(c, Collections.singletonList(compile));
+        childBuild.snapshotDependencies(new int[]{buildBuild.id()});
+
+        final Build build = createBuild("CancelledBuild", branch, 1003, 100020);
+        build.status = BuildRef.STATUS_UNKNOWN;
+        build.state = BuildRef.STATE_FINISHED;
+
+        final FatBuildCompacted cancelledBuild = new FatBuildCompacted(c, build);
+
+
+        chain.snapshotDependencies(new int[]{childBuild.id(), cancelledBuild.id()});
+
+        apacheBuilds.put(chain.id(), chain);
+        apacheBuilds.put(childBuild.id(), childBuild);
+        apacheBuilds.put(buildBuild.id(), buildBuild);
+        apacheBuilds.put(cancelledBuild.id(), cancelledBuild);
+    }
+
+    @NotNull
+    public FatBuildCompacted createFailedBuild(IStringCompactor c, String btId, String branch, int id, int ageMs) {
+        final Build build = createBuild(btId, branch, id, ageMs);
+        build.status = BuildRef.STATUS_FAILURE;
+
+        return new FatBuildCompacted(c, build);
+    }
+
+    @NotNull
+    public Build createBuild(String btId, String branch, int id, int ageMs) {
+        final Build build = new Build();
+        build.buildTypeId = btId;
+        final BuildType type = new BuildType();
+        type.id(btId);
+        type.name(btId);
+        build.setBuildType(type);
+        build.setId(id);
+        build.setStartDateTs(System.currentTimeMillis() - ageMs);
+        build.setBranchName(branch);
+        return build;
     }
 }

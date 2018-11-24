@@ -99,4 +99,8 @@ public class ProblemOccurrence {
     public void id(String fullStrId) {
         this.id = fullStrId;
     }
+
+    public void setType(String type) {
+        this.type = type;
+    }
 }
