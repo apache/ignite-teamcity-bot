@@ -22,8 +22,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
-import java.util.ArrayList;
-import java.util.Optional;
+
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
@@ -50,9 +50,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
@@ -145,6 +142,11 @@ public class PrChainsProcessorTest {
         assertEquals(etalon, testOpt.get().histBaseBranch.latestRuns);
 
         assertTrue(blockers.stream().anyMatch(containsTestFail(TEST_WAS_FIXED_IN_MASTER)));
+        if(SuiteCurrentStatus.NEW_RUN_STAT)
+            assertFalse(blockers.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_FAILING_IN_MASTER)));
+        // otherwise this non-blocker will not be filtered out
+
+        assertTrue(blockers.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_PASSING_IN_MASTER)));
     }
 
     @NotNull
