@@ -22,8 +22,12 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
+import java.util.ArrayList;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -35,9 +39,12 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.teamcity.ignited.*;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
+import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,6 +56,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -61,7 +69,10 @@ public class PrChainsProcessorTest {
     public static final String SRV_ID = "apache";
     public static final String TEST_WITH_HISTORY_FAILING_IN_MASTER = "testWithHistoryFailingInMaster";
     public static final String TEST_WITH_HISTORY_PASSING_IN_MASTER = "testWithHistoryPassingInMaster";
+    public static final String TEST_FLAKY_IN_MASTER = "testFlaky50";
     public static final String TEST_WITHOUT_HISTORY = "testWithoutHistory";
+    public static final String TEST_WAS_FIXED_IN_MASTER = "testFailingButFixedInMaster";
+    public static final int NUM_OF_TESTS_IN_MASTER = 10;
 
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
 
@@ -107,19 +118,33 @@ public class PrChainsProcessorTest {
         initBuildChain(c, btId, branch);
 
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
-        final List<SuiteCurrentStatus> suitesStatuses = prcp.getSuitesStatuses(btId,
+        final List<SuiteCurrentStatus> blockers = prcp.getBlockersSuitesStatuses(btId,
                 branch, SRV_ID, mock(ICredentialsProv.class));
 
-        assertNotNull(suitesStatuses);
-        assertFalse(suitesStatuses.isEmpty());
+        assertNotNull(blockers);
+        assertFalse(blockers.isEmpty());
 
-        assertTrue(suitesStatuses.stream().anyMatch(containsTestFail("testWithoutHistory")));
+        assertTrue(blockers.stream().anyMatch(containsTestFail("testWithoutHistory")));
 
-        assertTrue(suitesStatuses.stream().anyMatch(s -> "Build".equals(s.suiteId)));
-        assertTrue(suitesStatuses.stream().anyMatch(s -> "CancelledBuild".equals(s.suiteId)));
+        assertTrue(blockers.stream().anyMatch(s -> "Build".equals(s.suiteId)));
+        assertTrue(blockers.stream().anyMatch(s -> "CancelledBuild".equals(s.suiteId)));
 
-        assertFalse(suitesStatuses.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_FAILING_IN_MASTER)));
-        assertTrue(suitesStatuses.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_PASSING_IN_MASTER)));
+        assertFalse(blockers.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_FAILING_IN_MASTER)));
+        assertTrue(blockers.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_PASSING_IN_MASTER)));
+        assertFalse(blockers.stream().anyMatch(containsTestFail(TEST_FLAKY_IN_MASTER)));
+
+        Optional<SuiteCurrentStatus> suiteOpt = blockers.stream().filter(containsTestFail(TEST_WITH_HISTORY_PASSING_IN_MASTER)).findAny();
+        assertTrue(suiteOpt.isPresent());
+        Optional<TestFailure> testOpt = suiteOpt.get().testFailures.stream().filter(tf -> TEST_WITH_HISTORY_PASSING_IN_MASTER.equals(tf.name)).findAny();
+        assertTrue(testOpt.isPresent());
+
+        List<Integer> etalon = new ArrayList<>();
+        for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++)
+            etalon.add(RunStat.RunStatus.RES_OK.getCode());
+
+        assertEquals(etalon, testOpt.get().histBaseBranch.latestRuns);
+
+        assertTrue(blockers.stream().anyMatch(containsTestFail(TEST_WAS_FIXED_IN_MASTER)));
     }
 
     @NotNull
@@ -130,21 +155,22 @@ public class PrChainsProcessorTest {
     }
 
     private void initBuildChain(IStringCompactor c, String btId, String branch) {
-
         final FatBuildCompacted buildBuild = createFailedBuild(c, "Build", branch, 1002, 100020);
         final ProblemOccurrence compile = new ProblemOccurrence();
         compile.setType(ProblemOccurrence.TC_COMPILATION_ERROR);
         buildBuild.addProblems(c, Collections.singletonList(compile));
 
         final FatBuildCompacted childBuild =
-                createFailedBuild(c, "Cache1", branch, 1001, 100020)
-                        .addTests(c,
-                                Lists.newArrayList(
-                                        createFailedTest(1L, TEST_WITHOUT_HISTORY),
-                                        createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
-                                        createFailedTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER)));
+            createFailedBuild(c, "Cache1", branch, 1001, 100020)
+                .addTests(c,
+                    Lists.newArrayList(
+                        createFailedTest(1L, TEST_WITHOUT_HISTORY),
+                        createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
+                        createFailedTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
+                        createFailedTest(50L, TEST_FLAKY_IN_MASTER),
+                        createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER)));
 
-        childBuild.snapshotDependencies(new int[]{buildBuild.id()});
+        childBuild.snapshotDependencies(new int[] {buildBuild.id()});
 
         final Build build = createPassedBuild("CancelledBuild", branch, 1003, 100020);
 
@@ -166,12 +192,23 @@ public class PrChainsProcessorTest {
         addBuilds(buildBuild);
         addBuilds(cancelledBuild);
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++) {
             addBuilds(createFailedBuild(c, "Cache1",
-                    ITeamcity.DEFAULT, 5000 + i, 100000 + (i * 10000))
-                    .addTests(c, Lists.newArrayList(
-                            createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
-                            createPassingTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER))));
+                ITeamcity.DEFAULT, 500 + i, 100000 + (i * 10000))
+                .addTests(c, Lists.newArrayList(
+                    createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
+                    createPassingTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
+                    createTest(50L, TEST_FLAKY_IN_MASTER, i % 2 == 0),
+                    createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER))));
+        }
+
+        long ageMs = TimeUnit.DAYS.toMillis(InvocationData.MAX_DAYS);
+
+        for (int i = 0; i < 134; i++) {
+            addBuilds(createFailedBuild(c, "Cache1",
+                ITeamcity.DEFAULT, i, ageMs + (i * 10000))
+                .addTests(c, Lists.newArrayList(
+                    createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER))));
         }
     }
 
@@ -185,28 +222,27 @@ public class PrChainsProcessorTest {
 
     @NotNull
     private TestOccurrenceFull createFailedTest(long id, String name) {
-        TestOccurrenceFull tf = createPassingTest(id, name);
-
-        tf.status = TestOccurrence.STATUS_FAILURE;
-
-        return tf;
+        return createTest(id, name, false);
     }
 
     @NotNull
     private TestOccurrenceFull createPassingTest(long id, String name) {
+        return createTest(id, name, true);
+    }
+
+    @NotNull private TestOccurrenceFull createTest(long id, String name, boolean passed) {
         TestOccurrenceFull tf = new TestOccurrenceFull();
 
         tf.test = new TestRef();
 
         tf.test.id = id;
         tf.name = name;
-        tf.status = TestOccurrence.STATUS_SUCCESS;
-
+        tf.status = passed ? TestOccurrence.STATUS_SUCCESS : TestOccurrence.STATUS_FAILURE;
         return tf;
     }
 
     @NotNull
-    public FatBuildCompacted createFailedBuild(IStringCompactor c, String btId, String branch, int id, int ageMs) {
+    public FatBuildCompacted createFailedBuild(IStringCompactor c, String btId, String branch, int id, long ageMs) {
         final Build build = createPassedBuild(btId, branch, id, ageMs);
 
         build.status = BuildRef.STATUS_FAILURE;
@@ -215,7 +251,7 @@ public class PrChainsProcessorTest {
     }
 
     @NotNull
-    private Build createPassedBuild(String btId, String branch, int id, int ageMs) {
+    private Build createPassedBuild(String btId, String branch, int id, long ageMs) {
         final Build build = new Build();
         build.buildTypeId = btId;
         final BuildType type = new BuildType();

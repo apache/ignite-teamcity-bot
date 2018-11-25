@@ -161,17 +161,15 @@ public class PrChainsProcessor {
      * @param prov Credentials.
      * @return List of suites with possible blockers.
      */
-    @Nullable public List<SuiteCurrentStatus> getSuitesStatuses(String buildTypeId,
+    @Nullable public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId,
         String branchForTc,
         String srvId,
         ICredentialsProv prov) {
-        SyncMode queued = SyncMode.RELOAD_QUEUED;
-
-        return getSuitesStatuses(buildTypeId, branchForTc, srvId, prov, queued);
+        return getBlockersSuitesStatuses(buildTypeId, branchForTc, srvId, prov, SyncMode.RELOAD_QUEUED);
     }
 
 
-    @Nullable public List<SuiteCurrentStatus> getSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
+    @Nullable public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
         ICredentialsProv prov, SyncMode queued) {
         List<SuiteCurrentStatus> res = new ArrayList<>();
 
@@ -185,7 +183,7 @@ public class PrChainsProcessor {
             return null;
 
         for (ChainAtServerCurrentStatus server : summary.servers) {
-            Map<String, List<SuiteCurrentStatus>> fails = findFailures(server);
+            Map<String, List<SuiteCurrentStatus>> fails = findBlockerFailures(server);
 
             fails.forEach((k, v) -> res.addAll(v));
         }
@@ -197,7 +195,7 @@ public class PrChainsProcessor {
      * @param srv Server.
      * @return Failures for given server.
      */
-    private Map<String, List<SuiteCurrentStatus>> findFailures(ChainAtServerCurrentStatus srv) {
+    private Map<String, List<SuiteCurrentStatus>> findBlockerFailures(ChainAtServerCurrentStatus srv) {
         Map<String, List<SuiteCurrentStatus>> fails = new LinkedHashMap<>();
 
         for (SuiteCurrentStatus suite : srv.suites) {

@@ -22,6 +22,7 @@ import com.google.common.base.MoreObjects;
 public class Invocation {
     int buildId;
     byte status;
+    byte changePresent;
 
     public Invocation(Integer buildId) {
         this.buildId = buildId;
@@ -30,8 +31,9 @@ public class Invocation {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("buildId", buildId)
-                .add("status", status)
-                .toString();
+            .add("buildId", buildId)
+            .add("status", status)
+            .add("changePresent", changePresent)
+            .toString();
     }
 }

@@ -62,34 +62,33 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
         return LATEST_VERSION;
     }
 
-    @Override
-    public int getRunsCount() {
+    /** {@inheritDoc} */
+    @Override public int getRunsCount() {
         return data.notMutedRunsCount();
     }
 
-    @Override
-    public int getFailuresCount() {
+    /** {@inheritDoc} */
+    @Override public int getFailuresCount() {
         return data.failuresCount();
     }
 
-    @Override
-    public int getFailuresAllHist() {
+    /** {@inheritDoc} */
+    @Override public int getFailuresAllHist() {
         return data.allHistFailures();
     }
 
-    @Override
-    public int getRunsAllHist() {
+    /** {@inheritDoc} */
+    @Override public int getRunsAllHist() {
         return data.allHistRuns();
     }
 
+    /** {@inheritDoc} */
     @Nullable
-    @Override
-    public List<Integer> getLatestRunResults() {
-        return Lists.newArrayList();
+    @Override public List<Integer> getLatestRunResults() {
+        return data.getLatestRuns();
     }
 
-    @Override
-    public String getFlakyComments() {
+    @Override public String getFlakyComments() {
         return null;
     }
 
@@ -97,8 +96,8 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
         data.add(c, testCompacted, build, startDate);
     }
 
-    @Override
-    public String toString() {
+    /** {@inheritDoc} */
+    @Override public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("nameId", testNameOrSuite)
                 .add("srvId", srvId)
