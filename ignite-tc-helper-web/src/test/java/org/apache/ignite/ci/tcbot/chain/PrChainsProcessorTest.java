@@ -117,6 +117,7 @@ public class PrChainsProcessorTest {
         final List<SuiteCurrentStatus> blockers = prcp.getBlockersSuitesStatuses(btId,
                 branch, SRV_ID, mock(ICredentialsProv.class));
 
+        System.out.println(blockers);
         assertNotNull(blockers);
         assertFalse(blockers.isEmpty());
 

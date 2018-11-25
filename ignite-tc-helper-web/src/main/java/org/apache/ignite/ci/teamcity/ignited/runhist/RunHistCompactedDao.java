@@ -98,13 +98,18 @@ public class RunHistCompactedDao {
                         if (hist == null)
                             hist = new RunHistCompacted(entry.getKey());
 
-                        hist.addTestRun(testSuccessCode, t, buildId, buildStartDateTs);
+                        hist.addTestRun(
+                                (Integer) parms[0],
+                                (TestCompacted) parms[1],
+                                (Integer) parms[2],
+                                (Long) parms[3]);
 
                         entry.setValue(hist);
 
                         return null;
                     }
-                }
+                },
+                testSuccessCode, t, buildId, buildStartDateTs
         );
 
     }

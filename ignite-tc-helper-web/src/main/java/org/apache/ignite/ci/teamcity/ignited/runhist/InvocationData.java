@@ -57,7 +57,7 @@ public class InvocationData {
     }
 
     public void add(int testSuccess, TestCompacted testCompacted, int build, long startDate) {
-        final boolean failedTest = testCompacted.status()==testSuccess;
+        final boolean failedTest = testCompacted.status()!=testSuccess;
 
         if (invocationMap.containsKey(build))
             return;
