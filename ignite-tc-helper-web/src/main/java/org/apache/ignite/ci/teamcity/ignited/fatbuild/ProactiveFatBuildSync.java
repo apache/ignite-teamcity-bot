@@ -231,10 +231,11 @@ public class ProactiveFatBuildSync {
 
     /**
      *
-     * @param conn
-     * @param buildId
-     * @param existingBuild
-     * @return null if nothing was saved, use existing build
+     * @param conn TC connection to load data
+     * @param buildId build ID (TC identification).
+     * @param existingBuild build from DB.
+     * @return null if nothing was saved, use existing build. Non null value indicates that
+     * new build if it was updated.
      */
     @Nullable
     public FatBuildCompacted loadBuild(ITeamcityConn conn, int buildId,
@@ -317,6 +318,7 @@ public class ProactiveFatBuildSync {
                 }
                 else
                     build = Build.createFakeStub();
+                //todo here can be situation we have build ref, but don't have a build
             } else {
                 logger.error("Loading build [" + buildId + "] for server [" + srvNme + "] failed:" + e.getMessage(), e);
 

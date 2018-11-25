@@ -19,19 +19,24 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.configuration.CacheConfiguration;
 
+import javax.cache.processor.EntryProcessorException;
+import javax.cache.processor.MutableEntry;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import java.util.Collections;
 
 public class RunHistCompactedDao {
     /** Cache name*/
-    public static final String TEST_HIST_CACHE_NAME = "testRunHist";
+    public static final String TEST_HIST_CACHE_NAME = "testRunHistV0";
 
     /** Ignite provider. */
     @Inject
@@ -73,5 +78,34 @@ public class RunHistCompactedDao {
             return null;
 
         return testHistCache.get(new RunHistKey(srvIdMaskHigh, testName, branchId));
+    }
+
+    public void addInvocation(final int srvId,
+                              final TestCompacted t,
+                              final int buildId,
+                              final long buildStartDateTs,
+                              final int branchName) {
+        RunHistKey histKey = new RunHistKey(srvId, t.testName(), branchName);
+
+        final int testSuccessCode = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
+
+        testHistCache.invoke(histKey,
+                new CacheEntryProcessor<RunHistKey, RunHistCompacted, Object>() {
+                    @Override
+                    public Object process(MutableEntry<RunHistKey, RunHistCompacted> entry, Object... parms) throws EntryProcessorException {
+                        RunHistCompacted hist = entry.getValue();
+
+                        if (hist == null)
+                            hist = new RunHistCompacted(entry.getKey());
+
+                        hist.addTestRun(testSuccessCode, t, buildId, buildStartDateTs);
+
+                        entry.setValue(hist);
+
+                        return null;
+                    }
+                }
+        );
+
     }
 }

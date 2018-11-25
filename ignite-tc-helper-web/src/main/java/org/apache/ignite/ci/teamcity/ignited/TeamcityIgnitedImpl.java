@@ -38,6 +38,7 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -93,6 +94,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** Run history DAO. */
     @Inject private RunHistCompactedDao runHistCompactedDao;
+
+    @Inject private RunHistSync runHistSync;
 
     /** Strings compactor. */
     @Inject private IStringCompactor compactor;
@@ -393,9 +396,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, mode);
 
-        //build was modified, probably we need also to update reference accordindly
+        //build was modified, probably we need also to update reference accordingly
         if (savedVer != null)
             buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(savedVer));
+
+        if (savedVer != null)
+            runHistSync.syncLater(srvIdMaskHigh, buildId, savedVer);
 
         return savedVer == null ? existingBuild : savedVer;
     }

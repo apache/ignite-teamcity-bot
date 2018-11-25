@@ -17,10 +17,14 @@
 
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
+import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.internal.util.GridConcurrentHashSet;
 
 import javax.annotation.concurrent.GuardedBy;
+import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -30,6 +34,22 @@ import java.util.Set;
  *
  */
 public class RunHistSync {
+    @Inject
+    IStringCompactor compactor;
+
+    @Inject IScheduler scheduler;
+
+    @Inject RunHistCompactedDao dao;
+
+    public void syncLater(int srvId, int buildId, FatBuildCompacted build) {
+        if(!build.isFinished(compactor))
+            return;
+
+        build.getAllTests().forEach(t -> {
+            dao.addInvocation(srvId, t, build.id(), build.getStartDateTs(), build.branchName());
+        });
+    }
+
     /**
      * Scope of work: builds to be loaded from a connection.
      */
@@ -42,6 +62,4 @@ public class RunHistSync {
 
     @GuardedBy("this")
     private Map<String, SyncTask> buildToLoad = new HashMap<>();
-
-
 }

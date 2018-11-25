@@ -53,6 +53,7 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -379,7 +380,12 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         System.out.println(resMap);
 
-        resMap.forEach(dao::save);
+       // resMap.forEach(dao::save);
+
+        final RunHistSync histSync = injector.getInstance(RunHistSync.class);
+        buildsMap.forEach((id, build) -> {
+            histSync.syncLater(U.safeAbs(srvId.hashCode()), id, build);
+        });
 
         final ITeamcityIgnitedProvider inst = injector.getInstance(ITeamcityIgnitedProvider.class);
         final ITeamcityIgnited server = inst.server(srvId, Mockito.mock(ICredentialsProv.class));

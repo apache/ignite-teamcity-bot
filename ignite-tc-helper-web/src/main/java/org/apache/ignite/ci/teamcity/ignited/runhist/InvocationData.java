@@ -56,8 +56,8 @@ public class InvocationData {
         return allHistRuns;
     }
 
-    public void add(IStringCompactor c, TestCompacted testCompacted, int build, long startDate) {
-        final boolean failedTest = testCompacted.isFailedTest(c);
+    public void add(int testSuccess, TestCompacted testCompacted, int build, long startDate) {
+        final boolean failedTest = testCompacted.status()==testSuccess;
 
         if (invocationMap.containsKey(build))
             return;
