@@ -23,13 +23,14 @@ public class Invocation {
     int buildId;
     byte status;
     byte changePresent;
+    long startDate;
 
     public Invocation(Integer buildId) {
         this.buildId = buildId;
     }
 
-    @Override
-    public String toString() {
+    /** {@inheritDoc} */
+    @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("buildId", buildId)
             .add("status", status)

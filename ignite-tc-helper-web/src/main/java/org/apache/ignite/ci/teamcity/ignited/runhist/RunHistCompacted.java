@@ -92,6 +92,12 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
         return null;
     }
 
+    /**
+     * @param c Compactor.
+     * @param testCompacted Test compacted.
+     * @param build Build.
+     * @param startDate Start date.
+     */
     public void addTestRun(IStringCompactor c, TestCompacted testCompacted, int build, long startDate) {
         data.add(c, testCompacted, build, startDate);
     }

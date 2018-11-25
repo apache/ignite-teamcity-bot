@@ -21,17 +21,15 @@ import com.google.common.base.MoreObjects;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import org.apache.ignite.internal.util.typedef.internal.U;
+import org.jetbrains.annotations.NotNull;
 
 public class InvocationData {
     public static final int MAX_DAYS = 30;
@@ -59,9 +57,6 @@ public class InvocationData {
     }
 
     public void add(IStringCompactor c, TestCompacted testCompacted, int build, long startDate) {
-        if ((System.currentTimeMillis() - startDate) > Duration.ofDays(MAX_DAYS).toMillis())
-            return;
-
         final boolean failedTest = testCompacted.isFailedTest(c);
 
         final Invocation invocation = invocationMap.computeIfAbsent(build, Invocation::new);
@@ -72,11 +67,22 @@ public class InvocationData {
                         : FAILURE
                 : OK;
 
-        invocation.status = (byte) failCode;
+        invocation.status = (byte)failCode;
+        invocation.startDate = startDate;
 
         allHistRuns++;
         if (failedTest)
             allHistFailures++;
+
+        removeEldiest();
+    }
+
+    void removeEldiest() {
+        invocationMap.entrySet().removeIf(entries -> isExpired(entries.getValue().startDate));
+    }
+
+    public boolean isExpired(long startDate) {
+        return (U.currentTimeMillis() - startDate) > Duration.ofDays(MAX_DAYS).toMillis();
     }
 
     public int allHistFailures() {
@@ -85,16 +91,24 @@ public class InvocationData {
 
     public int notMutedRunsCount() {
         return (int)
-                invocationMap.values()
-                        .stream()
+                invocations()
                         .filter(invocation -> invocation.status != MUTED)
                         .count();
     }
 
+    @NotNull public Stream<Invocation> invocations() {
+        return invocationMap.values()
+            .stream()
+            .filter(this::isActual);
+    }
+
+    private boolean isActual(Invocation invocation) {
+        return !isExpired(invocation.startDate);
+    }
+
     public int failuresCount() {
         return (int)
-                invocationMap.values()
-                        .stream()
+                invocations()
                         .filter(invocation -> invocation.status == FAILURE)
                         .count();
     }
@@ -107,9 +121,11 @@ public class InvocationData {
                 .toString();
     }
 
+    /**
+     *
+     */
     public List<Integer> getLatestRuns() {
-        return invocationMap.values()
-            .stream()
+        return invocations()
             .map(i->(int)i.status)
             .collect(Collectors.toList());
     }
