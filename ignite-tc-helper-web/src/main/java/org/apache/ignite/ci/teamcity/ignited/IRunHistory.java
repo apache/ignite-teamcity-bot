@@ -40,7 +40,7 @@ public interface IRunHistory {
 
     default public float getFailRateAllHist() {
         if (getRunsAllHist() == 0)
-            return 1.0f;
+            return 0.0f;
 
         return 1.0f * getFailuresAllHist() / getRunsAllHist();
     }
@@ -56,7 +56,7 @@ public interface IRunHistory {
         int runs = getRunsCount();
 
         if (runs == 0)
-            return 1.0f;
+            return 0.0f;
 
         return 1.0f * getFailuresCount() / runs;
     }

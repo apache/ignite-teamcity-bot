@@ -25,19 +25,21 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 import javax.xml.bind.JAXBException;
+
+import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitSheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.di.scheduler.NoOpSheduler;
+import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
+import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
@@ -48,16 +50,21 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.configuration.IgniteConfiguration;
+import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import static junit.framework.TestCase.assertEquals;
@@ -263,7 +270,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         Injector injector = Guice.createInjector(new AbstractModule() {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
-                bind(IStringCompactor.class).to(IgniteStringCompactor.class);
+                bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
             }
         });
 
@@ -340,4 +347,45 @@ public class IgnitedTcInMemoryIntegrationTest {
         return refBuild;
     }
 
+    @Test
+    public void testRunHistSaveLoad() {
+        final String srvId = "apache";
+
+        TeamcityIgnitedModule module = new TeamcityIgnitedModule();
+        Injector injector = Guice.createInjector(module, new AbstractModule() {
+            @Override
+            protected void configure() {
+                bind(Ignite.class).toInstance(ignite);
+                bind(IScheduler.class).to(DirectExecNoWaitSheduler.class).in(new SingletonScope());
+            }
+        });
+
+        final IStringCompactor c = injector.getInstance(IStringCompactor.class);
+
+        final RunHistCompactedDao dao = injector.getInstance(RunHistCompactedDao.class);
+        dao.init();
+
+        final String btId = "RunAll";
+        final String branch = ITeamcity.DEFAULT;
+
+        final PrChainsProcessorTest tst = new PrChainsProcessorTest();
+        tst.initBuildChain(c, btId, branch);
+
+        final Map<Integer, FatBuildCompacted> buildsMap = tst.apacheBuilds();
+
+        Map<RunHistKey, RunHistCompacted> resMap = new HashMap<>();
+
+        TeamcityIgnitedMock.initHistory(c, resMap, buildsMap, U.safeAbs(srvId.hashCode()));
+
+        System.out.println(resMap);
+
+        resMap.forEach(dao::save);
+
+        final ITeamcityIgnitedProvider inst = injector.getInstance(ITeamcityIgnitedProvider.class);
+        final ITeamcityIgnited server = inst.server(srvId, Mockito.mock(ICredentialsProv.class));
+        final IRunHistory testRunHist = server.getTestRunHist(new TestInBranch(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER, branch));
+
+        assertNotNull(testRunHist);
+        assertEquals(0.5, testRunHist.getFailRate(), 0.1);
+    }
 }

@@ -21,6 +21,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.configuration.CacheConfiguration;
 
@@ -56,5 +57,21 @@ public class RunHistCompactedDao {
         cfg.setQueryEntities(Collections.singletonList(new QueryEntity(RunHistKey.class, RunHistCompacted.class)));
 
         testHistCache = ignite.getOrCreateCache(cfg);
+    }
+
+    public void save(RunHistKey k, RunHistCompacted v) {
+        testHistCache.put(k, v);
+    }
+
+    public IRunHistory getTestRunHist(int srvIdMaskHigh, String name, String branch) {
+        final Integer testName = compactor.getStringIdIfPresent(name);
+        if (testName == null)
+            return null;
+
+        final Integer branchId = compactor.getStringIdIfPresent(branch);
+        if (branchId == null)
+            return null;
+
+        return testHistCache.get(new RunHistKey(srvIdMaskHigh, testName, branchId));
     }
 }

@@ -118,7 +118,7 @@ public class TeamcityIgnitedMock {
         return tcIgnited;
     }
 
-    private static void initHistory(IStringCompactor c, Map<RunHistKey, RunHistCompacted> resHistCache, Map<Integer, FatBuildCompacted> builds, int srvId) {
+    public static void initHistory(IStringCompactor c, Map<RunHistKey, RunHistCompacted> resHistCache, Map<Integer, FatBuildCompacted> builds, int srvId) {
         Map<RunHistKey, RunHistCompacted> histCache = new ConcurrentHashMap<>();
 
         for (FatBuildCompacted build : builds.values()) {

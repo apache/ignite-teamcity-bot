@@ -40,7 +40,6 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.teamcity.ignited.*;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
-import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
@@ -156,7 +155,7 @@ public class PrChainsProcessorTest {
         });
     }
 
-    private void initBuildChain(IStringCompactor c, String btId, String branch) {
+    public void initBuildChain(IStringCompactor c, String btId, String branch) {
         final FatBuildCompacted buildBuild = createFailedBuild(c, "Build", branch, 1002, 100020);
         final ProblemOccurrence compile = new ProblemOccurrence();
         compile.setType(ProblemOccurrence.TC_COMPILATION_ERROR);
@@ -267,5 +266,9 @@ public class PrChainsProcessorTest {
         build.status = Build.STATUS_SUCCESS;
 
         return build;
+    }
+
+    public Map<Integer, FatBuildCompacted> apacheBuilds() {
+        return apacheBuilds;
     }
 }

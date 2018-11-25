@@ -37,6 +37,7 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -87,10 +88,13 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Changes DAO. */
     @Inject private ChangeDao changesDao;
 
-    /** Changes DAO. */
+    /** Changes sync class. */
     @Inject private ChangeSync changeSync;
 
-    /** Changes DAO. */
+    /** Run history DAO. */
+    @Inject private RunHistCompactedDao runHistCompactedDao;
+
+    /** Strings compactor. */
     @Inject private IStringCompactor compactor;
 
     /** Server ID mask for cache Entries. */
@@ -105,6 +109,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         buildConditionDao.init();
         fatBuildDao.init();
         changesDao.init();
+        runHistCompactedDao.init();
     }
 
 
@@ -311,8 +316,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     @Override
     public IRunHistory getTestRunHist(TestInBranch testInBranch) {
-        //todo implement loading test data
-        return null;
+         return runHistCompactedDao.getTestRunHist(srvIdMaskHigh, testInBranch.name, testInBranch.branch);
     }
 
     public List<String> branchForQuery(@Nullable String branchName) {
