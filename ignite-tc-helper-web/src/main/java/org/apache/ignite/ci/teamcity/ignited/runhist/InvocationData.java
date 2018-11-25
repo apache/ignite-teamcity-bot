@@ -59,20 +59,26 @@ public class InvocationData {
     public void add(IStringCompactor c, TestCompacted testCompacted, int build, long startDate) {
         final boolean failedTest = testCompacted.isFailedTest(c);
 
-        final Invocation invocation = invocationMap.computeIfAbsent(build, Invocation::new);
+        if (invocationMap.containsKey(build))
+            return;
+
+        final Invocation invocation = new Invocation(build);
+        Invocation prevVal = invocationMap.putIfAbsent(build, invocation);
 
         final int failCode = failedTest
-                ? (testCompacted.isIgnoredTest() || testCompacted.isMutedTest())
-                        ? MUTED
-                        : FAILURE
-                : OK;
+            ? (testCompacted.isIgnoredTest() || testCompacted.isMutedTest())
+            ? MUTED
+            : FAILURE
+            : OK;
 
         invocation.status = (byte)failCode;
         invocation.startDate = startDate;
 
-        allHistRuns++;
-        if (failedTest)
-            allHistFailures++;
+        if (prevVal == null) {
+            allHistRuns++;
+            if (failedTest)
+                allHistFailures++;
+        }
 
         removeEldiest();
     }
