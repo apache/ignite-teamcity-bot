@@ -89,25 +89,21 @@ public class RunHistCompactedDao {
 
         final int testSuccessCode = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
-        testHistCache.invoke(histKey,
-                new CacheEntryProcessor<RunHistKey, RunHistCompacted, Object>() {
-                    @Override
-                    public Object process(MutableEntry<RunHistKey, RunHistCompacted> entry, Object... parms) throws EntryProcessorException {
-                        RunHistCompacted hist = entry.getValue();
+        testHistCache.invoke(histKey, (entry, parms) -> {
+                    RunHistCompacted hist = entry.getValue();
 
-                        if (hist == null)
-                            hist = new RunHistCompacted(entry.getKey());
+                    if (hist == null)
+                        hist = new RunHistCompacted(entry.getKey());
 
-                        hist.addTestRun(
-                                (Integer) parms[0],
-                                (TestCompacted) parms[1],
-                                (Integer) parms[2],
-                                (Long) parms[3]);
+                    hist.addTestRun(
+                            (Integer) parms[0],
+                            (TestCompacted) parms[1],
+                            (Integer) parms[2],
+                            (Long) parms[3]);
 
-                        entry.setValue(hist);
+                    entry.setValue(hist);
 
-                        return null;
-                    }
+                    return null;
                 },
                 testSuccessCode, t, buildId, buildStartDateTs
         );
