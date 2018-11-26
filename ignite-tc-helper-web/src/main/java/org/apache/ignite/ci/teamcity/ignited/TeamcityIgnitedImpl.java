@@ -401,7 +401,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(savedVer));
 
         if (savedVer != null)
-            runHistSync.syncLater(srvIdMaskHigh, buildId, savedVer);
+            runHistSync.saveToHistoryLater(srvIdMaskHigh, buildId, savedVer);
 
         return savedVer == null ? existingBuild : savedVer;
     }

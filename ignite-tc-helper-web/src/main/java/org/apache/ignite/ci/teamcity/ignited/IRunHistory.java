@@ -30,7 +30,7 @@ public interface IRunHistory {
         return String.format("%.1f", percent).replace(".", ",");
     }
 
-    default public String getFailPercentPrintable() {
+    public default String getFailPercentPrintable() {
         return getPercentPrintable(getFailRate() * 100.0f);
     }
 
@@ -38,21 +38,21 @@ public interface IRunHistory {
 
     public int getRunsAllHist();
 
-    default public float getFailRateAllHist() {
+    public default float getFailRateAllHist() {
         if (getRunsAllHist() == 0)
             return 0.0f;
 
         return 1.0f * getFailuresAllHist() / getRunsAllHist();
     }
 
-    default public String getFailPercentAllHistPrintable() {
-        return IRunHistory.getPercentPrintable(getFailRateAllHist() * 100.0f);
+    public default String getFailPercentAllHistPrintable() {
+        return getPercentPrintable(getFailRateAllHist() * 100.0f);
     }
 
     /**
-     * @return float representing fail rate
+     * @return fail rate as float.
      */
-     default public float getFailRate() {
+    public default float getFailRate() {
         int runs = getRunsCount();
 
         if (runs == 0)

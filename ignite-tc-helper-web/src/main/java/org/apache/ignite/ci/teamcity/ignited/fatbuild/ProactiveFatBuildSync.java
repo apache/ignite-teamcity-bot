@@ -111,9 +111,10 @@ public class ProactiveFatBuildSync {
 
     @NotNull
     public synchronized SyncTask getSyncTask(ITeamcityConn conn) {
-        final String serverId = conn.serverId();
-        final SyncTask syncTask = buildToLoad.computeIfAbsent(serverId, s -> new SyncTask());
+        final SyncTask syncTask = buildToLoad.computeIfAbsent(conn.serverId(), s -> new SyncTask());
+
         syncTask.conn = conn;
+
         return syncTask;
     }
 
@@ -148,13 +149,13 @@ public class ProactiveFatBuildSync {
     }
 
     /** */
-    private void loadFatBuilds(int ldrNo, String serverId) {
+    private void loadFatBuilds(int ldrNo, String srvId) {
         Set<Integer> load;
         ITeamcityConn conn;
         final GridConcurrentHashSet<Integer> loadingBuilds;
 
         synchronized (this) {
-            final SyncTask syncTask = buildToLoad.get(serverId);
+            final SyncTask syncTask = buildToLoad.get(srvId);
             if (syncTask == null)
                 return;
 
@@ -178,7 +179,7 @@ public class ProactiveFatBuildSync {
             syncTask.conn = null;
         }
 
-        doLoadBuilds(ldrNo, serverId, conn, load,  loadingBuilds);
+        doLoadBuilds(ldrNo, srvId, conn, load,  loadingBuilds);
     }
 
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})

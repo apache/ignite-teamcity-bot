@@ -50,6 +50,7 @@ public class InvocationData {
      */
     private int allHistFailures;
 
+    /** Invocations map from build ID to invocation data. */
     private Map<Integer, Invocation> invocationMap = new TreeMap<>();
 
     public int allHistRuns() {

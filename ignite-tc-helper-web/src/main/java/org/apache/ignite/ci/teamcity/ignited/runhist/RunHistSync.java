@@ -17,9 +17,15 @@
 
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
+import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.internal.util.GridConcurrentHashSet;
 
@@ -34,32 +40,78 @@ import java.util.Set;
  *
  */
 public class RunHistSync {
-    @Inject
-    IStringCompactor compactor;
+    /** Compactor. */
+    @Inject private IStringCompactor compactor;
 
-    @Inject IScheduler scheduler;
+    @Inject private IScheduler scheduler;
 
-    @Inject RunHistCompactedDao dao;
+    @Inject private RunHistCompactedDao dao;
 
-    public void syncLater(int srvId, int buildId, FatBuildCompacted build) {
-        if(!build.isFinished(compactor))
+    /** Build to save to history. */
+    @GuardedBy("this")
+    private final Map<Integer, SyncTask> buildToSave = new HashMap<>();
+
+    /**
+     * @param srvId Server id.
+     * @param buildId Build id.
+     * @param build Build.
+     */
+    public void saveToHistoryLater(int srvId, int buildId, FatBuildCompacted build) {
+        if (!build.isFinished(compactor))
             return;
 
-        build.getAllTests().forEach(t -> {
-            dao.addInvocation(srvId, t, build.id(), build.getStartDateTs(), build.branchName());
-        });
+        if (build.isCancelled(compactor))
+            return;
+
+        synchronized (this) {
+            final SyncTask syncTask = buildToSave.computeIfAbsent(srvId, s -> new SyncTask());
+
+            syncTask.buildsToSave.putIfAbsent(build.id(), build);
+        }
+
+        scheduler.sheduleNamed(RunHistSync.class.getSimpleName() + ".saveBuildToHistory",
+            () -> saveBuildToHistory(srvId), 2, TimeUnit.MINUTES);
+    }
+
+    @AutoProfiling
+    @MonitoredTask(name="Save Builds To History")
+    @SuppressWarnings("WeakerAccess")
+    protected String saveBuildToHistory(int srvId) {
+        Map<Integer, FatBuildCompacted> saveThisRun;
+
+        synchronized (this) {
+            final SyncTask syncTask = buildToSave.get(srvId);
+            if (syncTask == null)
+                return "Nothing to sync";
+
+            saveThisRun = syncTask.buildsToSave;
+
+            syncTask.buildsToSave = new HashMap<>();
+        }
+
+        AtomicInteger builds = new AtomicInteger();
+        AtomicInteger invocations = new AtomicInteger();
+        saveThisRun.values().forEach(
+            build -> {
+                builds.incrementAndGet();
+
+                build.getAllTests().forEach(t -> {
+                    invocations.incrementAndGet();
+
+                    dao.addInvocation(srvId, t, build.id(), build.getStartDateTs(), build.branchName());
+                });
+            }
+        );
+
+        return "Builds: " + builds.get() + " processed " + invocations.get() + " invocations saved to DB";
     }
 
     /**
      * Scope of work: builds to be loaded from a connection.
      */
     private static class SyncTask {
-        ITeamcityConn conn;
-        Set<Integer> ids = new HashSet<>();
+        Map<Integer, FatBuildCompacted> buildsToSave = new HashMap<>();
 
         GridConcurrentHashSet<Integer> loadingBuilds = new GridConcurrentHashSet<>();
     }
-
-    @GuardedBy("this")
-    private Map<String, SyncTask> buildToLoad = new HashMap<>();
 }

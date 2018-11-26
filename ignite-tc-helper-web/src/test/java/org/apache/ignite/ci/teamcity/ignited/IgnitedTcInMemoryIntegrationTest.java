@@ -38,7 +38,6 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitSheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.di.scheduler.NoOpSheduler;
-import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -65,7 +64,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import static junit.framework.TestCase.assertEquals;
@@ -384,12 +382,12 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         final RunHistSync histSync = injector.getInstance(RunHistSync.class);
         buildsMap.forEach((id, build) -> {
-            histSync.syncLater(U.safeAbs(srvId.hashCode()), id, build);
+            histSync.saveToHistoryLater(U.safeAbs(srvId.hashCode()), id, build);
         });
 
         final ITeamcityIgnitedProvider inst = injector.getInstance(ITeamcityIgnitedProvider.class);
-        final ITeamcityIgnited server = inst.server(srvId, Mockito.mock(ICredentialsProv.class));
-        final IRunHistory testRunHist = server.getTestRunHist(new TestInBranch(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER, branch));
+        final ITeamcityIgnited srv = inst.server(srvId, Mockito.mock(ICredentialsProv.class));
+        final IRunHistory testRunHist = srv.getTestRunHist(new TestInBranch(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER, branch));
 
         assertNotNull(testRunHist);
         assertEquals(0.5, testRunHist.getFailRate(), 0.1);
