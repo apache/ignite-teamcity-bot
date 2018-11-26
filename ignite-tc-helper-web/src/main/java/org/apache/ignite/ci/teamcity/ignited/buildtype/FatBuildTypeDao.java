@@ -29,7 +29,7 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.tcmodel.conf.bt.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import javax.validation.constraints.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -64,7 +64,7 @@ public class FatBuildTypeDao {
      * @return Fat BuildType saved (if modifications detected), otherwise null.
      */
     public FatBuildTypeCompacted saveBuildType(int srvIdMaskHigh,
-        @NotNull BuildType buildType,
+        @NotNull BuildTypeFull buildType,
         @Nullable FatBuildTypeCompacted existingBuildType) {
         Preconditions.checkNotNull(buildTypesCache, "init() was not called");
         Preconditions.checkNotNull(buildType, "buildType can't be null");

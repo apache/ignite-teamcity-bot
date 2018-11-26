@@ -26,8 +26,8 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
-import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
-import org.apache.ignite.ci.tcmodel.conf.bt.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
@@ -369,7 +369,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     private void ensureActualizeBuildTypeRefsRequested() {
         scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs"),
-            this::reindexBuildTypeRefs, 2, TimeUnit.MINUTES);
+            this::reindexBuildTypeRefs, 4, TimeUnit.HOURS);
     }
 
     /**
@@ -377,7 +377,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     private void ensureActualizeBuildTypesRequested() {
         scheduler.sheduleNamed(taskName("actualizeAllBuildTypes"),
-            this::reindexBuildTypes, 5, TimeUnit.MINUTES);
+            this::reindexBuildTypes, 24, TimeUnit.HOURS);
     }
 
     /**
@@ -410,7 +410,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         for (String buildTypeId : buildTypeIds) {
 
-            BuildType buildType = conn.getBuildType(buildTypeId);
+            BuildTypeFull buildType = conn.getBuildType(buildTypeId);
 
             FatBuildTypeCompacted existingBuildType = fatBuildTypeDao.getFatBuildType(srvIdMaskHigh, buildTypeId);
 
@@ -434,12 +434,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @MonitoredTask(name = "Reindex BuildTypeRefs (projectId)", nameExtArgsIndexes = {0})
     @AutoProfiling
     protected String runActualizeBuildTypeRefs(String projectId) {
-        List<BuildTypeRef> tcData = conn.getBuildTypes(projectId);
+        List<BuildType> tcData = conn.getBuildTypes(projectId);
 
         Set<Long> buildsUpdated = buildTypeRefDao.saveChunk(srvIdMaskHigh, Collections.unmodifiableList(tcData));
 
         Set<String> rmvBuildTypes = buildTypeRefDao.markMissingBuildsAsRemoved(srvIdMaskHigh,
-            tcData.stream().map(BuildTypeRef::getId).collect(Collectors.toList()), projectId);
+            tcData.stream().map(BuildType::getId).collect(Collectors.toList()), projectId);
 
         if (!(buildsUpdated.isEmpty() && rmvBuildTypes.isEmpty()))
             runActualizeBuildTypes(projectId);

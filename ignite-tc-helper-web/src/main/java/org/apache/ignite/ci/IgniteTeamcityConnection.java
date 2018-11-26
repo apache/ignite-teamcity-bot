@@ -56,19 +56,16 @@ import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.agent.AgentsRef;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
-import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.Project;
-import org.apache.ignite.ci.tcmodel.conf.bt.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.hist.Builds;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
-import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
@@ -77,7 +74,6 @@ import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.UrlUtil;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -373,11 +369,11 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override public CompletableFuture<List<BuildTypeRef>> getProjectSuites(String projectId) {
+    @Override public CompletableFuture<List<BuildType>> getProjectSuites(String projectId) {
         return supplyAsync(() -> getProjectSuitesSync(projectId), executor);
     }
 
-    private List<BuildTypeRef> getProjectSuitesSync(String projectId) {
+    private List<BuildType> getProjectSuitesSync(String projectId) {
         return sendGetXmlParseJaxb(host + "app/rest/latest/projects/" + projectId, Project.class)
             .getBuildTypesNonNull();
     }
@@ -451,9 +447,9 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public BuildType getBuildType(String buildTypeId) {
+    @Override public BuildTypeFull getBuildType(String buildTypeId) {
         return sendGetXmlParseJaxb(host + "app/rest/latest/buildTypes/id:" +
-            buildTypeId, BuildType.class);
+            buildTypeId, BuildTypeFull.class);
     }
 
     @Override

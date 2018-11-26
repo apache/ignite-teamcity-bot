@@ -24,8 +24,8 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
-import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
-import org.apache.ignite.ci.tcmodel.conf.bt.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.conf.bt.Parameters;
 import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependencies;
 import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
@@ -60,7 +60,7 @@ public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVer
      * @param compactor Compactor.
      * @param buildType BuildType.
      */
-    public FatBuildTypeCompacted(IStringCompactor compactor, BuildType buildType) {
+    public FatBuildTypeCompacted(IStringCompactor compactor, BuildTypeFull buildType) {
         super(compactor, buildType);
 
         buildNumberCounter = NumberUtil.parseInt(buildType.getSettings().getParameter(BUILD_NUMBER_COUNTER), 0);
@@ -87,8 +87,8 @@ public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVer
         this.buildNumberCounter = buildNumberCounter;
     }
 
-    public BuildType toBuildType(IStringCompactor compactor) {
-        BuildType res = new BuildType();
+    public BuildTypeFull toBuildType(IStringCompactor compactor) {
+        BuildTypeFull res = new BuildTypeFull();
 
         fillBuildTypeRefFields(compactor, res);
 
@@ -97,7 +97,7 @@ public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVer
         return res;
     }
 
-    protected void fillBuildTypeFields(IStringCompactor compactor, BuildType res) {
+    protected void fillBuildTypeFields(IStringCompactor compactor, BuildTypeFull res) {
         res.setParameters(parameters == null ? new Parameters() : parameters.toParameters(compactor));
         res.setSettings(settings == null ? new Parameters() : settings.toParameters(compactor));
         res.setSetting(BUILD_NUMBER_COUNTER, Integer.toString(buildNumberCounter));
@@ -114,7 +114,7 @@ public class FatBuildTypeCompacted extends BuildTypeRefCompacted implements IVer
         res.setSnapshotDependencies(new SnapshotDependencies(snDpList));
     }
 
-    protected void fillBuildTypeRefFields(IStringCompactor compactor, BuildTypeRef res) {
+    protected void fillBuildTypeRefFields(IStringCompactor compactor, BuildType res) {
         String id = id(compactor);
         res.setId(id);
         res.setName(compactor.getStringFromId(super.name()));

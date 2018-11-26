@@ -55,8 +55,8 @@ import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
-import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
-import org.apache.ignite.ci.tcmodel.conf.bt.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
@@ -177,7 +177,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public CompletableFuture<List<BuildTypeRef>> getProjectSuites(String projectId) {
+    @Override public CompletableFuture<List<BuildType>> getProjectSuites(String projectId) {
         return teamcity.getProjectSuites(projectId);
     }
 
@@ -676,7 +676,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public BuildType getBuildType(String buildTypeId) {
+    @Override public BuildTypeFull getBuildType(String buildTypeId) {
         return teamcity.getBuildType(buildTypeId);
     }
 

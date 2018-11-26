@@ -68,10 +68,8 @@ public class ParametersCompacted {
             properties = new ArrayList<>();
 
             final int size = keys.size();
-            for (int i = 0; i < size; i++) {
-                if (i >= values.size())
-                    break;
 
+            for (int i = 0; i < size && i < values.size(); i++) {
                 final int nameid = keys.get(i);
                 String name = compactor.getStringFromId(nameid);
                 String value = compactor.getStringFromId(values.get(i));

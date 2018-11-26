@@ -22,7 +22,7 @@ import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
-import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
@@ -121,7 +121,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         finishDate = build.getFinishDate() == null ? -1L : build.getFinishDate().getTime();
         queuedDate = build.getQueuedDate() == null ? -1L : build.getQueuedDate().getTime();
 
-        BuildTypeRef type = build.getBuildType();
+        BuildType type = build.getBuildType();
         if (type != null) {
             projectId = compactor.getStringId(type.getProjectId());
             buildTypeName(type.getName(), compactor);
@@ -195,7 +195,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         if (queuedDate > 0)
             res.setQueuedDateTs(queuedDate);
 
-        BuildTypeRef type = new BuildTypeRef();
+        BuildType type = new BuildType();
         type.setId(res.buildTypeId());
         type.setName(buildTypeName(compactor));
         type.setProjectId(projectId(compactor));

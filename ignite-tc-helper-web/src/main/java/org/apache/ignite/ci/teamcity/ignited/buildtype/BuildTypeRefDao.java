@@ -34,7 +34,7 @@ import javax.inject.Provider;
 import javax.validation.constraints.NotNull;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.jetbrains.annotations.Nullable;
 
@@ -69,7 +69,7 @@ public class BuildTypeRefDao {
      * @return BuildTypes references saved (if modifications detected), otherwise null.
      */
     public BuildTypeRefCompacted saveBuildTypeRef(int srvIdMaskHigh,
-        @NotNull BuildTypeRef buildTypeRef,
+        @NotNull BuildType buildTypeRef,
         @Nullable BuildTypeRefCompacted existingBuildTypeRef) {
         Preconditions.checkNotNull(buildTypesCache, "init() was not called");
         Preconditions.checkNotNull(buildTypeRef, "buildType can't be null");
@@ -90,8 +90,8 @@ public class BuildTypeRefDao {
      * @param ghData Data for saving.
      * @return List of added entries' keys.
      */
-    public Set<Long> saveChunk(int srvIdMaskHigh, List<BuildTypeRef> ghData) {
-        Set<Long> ids = ghData.stream().map(BuildTypeRef::getId)
+    public Set<Long> saveChunk(int srvIdMaskHigh, List<BuildType> ghData) {
+        Set<Long> ids = ghData.stream().map(BuildType::getId)
             .filter(Objects::nonNull)
             .map(id -> buildTypeIdToCacheKey(srvIdMaskHigh, id))
             .collect(Collectors.toSet());

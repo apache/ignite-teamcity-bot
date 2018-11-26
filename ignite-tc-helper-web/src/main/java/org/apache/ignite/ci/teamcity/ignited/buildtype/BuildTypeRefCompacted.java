@@ -20,7 +20,7 @@ package org.apache.ignite.ci.teamcity.ignited.buildtype;
 import com.google.common.base.MoreObjects;
 import java.util.Objects;
 import org.apache.ignite.ci.db.Persisted;
-import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.jetbrains.annotations.NotNull;
 
@@ -89,7 +89,7 @@ public class BuildTypeRefCompacted {
      * @param compactor Compactor.
      * @param ref Reference.
      */
-    public BuildTypeRefCompacted(IStringCompactor compactor, BuildTypeRef ref) {
+    public BuildTypeRefCompacted(IStringCompactor compactor, BuildType ref) {
         this(compactor, ref, false);
     }
 
@@ -98,7 +98,7 @@ public class BuildTypeRefCompacted {
      * @param ref Reference.
      * @param removed BuildType is actual (not removed from Teamcity).
      */
-    public BuildTypeRefCompacted(IStringCompactor compactor, BuildTypeRef ref, boolean removed) {
+    public BuildTypeRefCompacted(IStringCompactor compactor, BuildType ref, boolean removed) {
         id = compactor.getStringId(ref.getId());
         name = compactor.getStringId(ref.getName());
         projectId = compactor.getStringId(ref.getProjectId());
@@ -120,15 +120,15 @@ public class BuildTypeRefCompacted {
     /**
      * @param compactor Compacter.
      */
-    public BuildTypeRef toBuildTypeRef(IStringCompactor compactor) {
-        BuildTypeRef res = new BuildTypeRef();
+    public BuildType toBuildTypeRef(IStringCompactor compactor) {
+        BuildType res = new BuildType();
 
         fillBuildTypeRefFields(compactor, res);
 
         return res;
     }
 
-    protected void fillBuildTypeRefFields(IStringCompactor compactor, BuildTypeRef res) {
+    protected void fillBuildTypeRefFields(IStringCompactor compactor, BuildType res) {
         String id = id(compactor);
         res.setId(id);
         res.setName(compactor.getStringFromId(name));

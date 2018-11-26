@@ -27,7 +27,7 @@ import org.apache.ignite.ci.tcmodel.result.AbstractRef;
  * Build type reference
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-public class BuildTypeRef extends AbstractRef {
+public class BuildType extends AbstractRef {
     @XmlAttribute private String id;
 
     @XmlAttribute private String name;
@@ -82,10 +82,10 @@ public class BuildTypeRef extends AbstractRef {
         if (this == o)
             return true;
 
-        if (!(o instanceof BuildTypeRef))
+        if (!(o instanceof BuildType))
             return false;
 
-        BuildTypeRef ref = (BuildTypeRef)o;
+        BuildType ref = (BuildType)o;
 
         return Objects.equals(getId(), ref.getId()) &&
             Objects.equals(getName(), ref.getName()) &&
