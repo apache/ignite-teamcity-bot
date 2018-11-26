@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.analysis.RunStat;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -57,31 +55,23 @@ public class InvocationData {
         return allHistRuns;
     }
 
-    public void add(int testSuccess, TestCompacted testCompacted, int build, long startDate) {
-        final boolean failedTest = testCompacted.status()!=testSuccess;
-
+    public boolean add(int build, Invocation inv) {
         if (invocationMap.containsKey(build))
-            return;
+            return false;
 
-        final Invocation invocation = new Invocation(build);
-        Invocation prevVal = invocationMap.putIfAbsent(build, invocation);
+        Invocation prevVal = invocationMap.putIfAbsent(build, inv);
 
-        final int failCode = failedTest
-            ? (testCompacted.isIgnoredTest() || testCompacted.isMutedTest())
-            ? MUTED
-            : FAILURE
-            : OK;
+        final boolean newValue = prevVal == null;
 
-        invocation.status = (byte)failCode;
-        invocation.startDate = startDate;
-
-        if (prevVal == null) {
+        if (newValue) {
             allHistRuns++;
-            if (failedTest)
+            if (inv.isFailure())
                 allHistFailures++;
         }
 
         removeEldiest();
+
+        return newValue;
     }
 
     void removeEldiest() {

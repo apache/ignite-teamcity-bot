@@ -21,7 +21,6 @@ import com.google.common.base.MoreObjects;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -90,13 +89,11 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     }
 
     /**
-     * @param testSuccess Test success reference string code.
-     * @param testCompacted Test compacted.
      * @param build Build.
-     * @param startDate Start date.
+     * @param inv Invocation.
      */
-    public void addTestRun(int testSuccess, TestCompacted testCompacted, int build, long startDate) {
-        data.add(testSuccess, testCompacted, build, startDate);
+    public boolean addTestRun(int build, Invocation inv) {
+        return data.add(build, inv);
     }
 
     /** {@inheritDoc} */

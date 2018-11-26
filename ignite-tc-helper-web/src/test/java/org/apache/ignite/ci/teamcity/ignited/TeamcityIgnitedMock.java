@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.jetbrains.annotations.NotNull;
@@ -131,8 +132,9 @@ public class TeamcityIgnitedMock {
 
                 final RunHistCompacted hist = histCache.computeIfAbsent(histKey, RunHistCompacted::new);
 
-                final int successCode = c.getStringId(TestOccurrence.STATUS_SUCCESS);
-                hist.addTestRun(successCode, t, build.id(), build.getStartDateTs());
+                Invocation inv = t.toInvocation(c, build);
+
+                hist.addTestRun(build.id(), inv);
             });
         }
 

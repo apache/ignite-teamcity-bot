@@ -18,11 +18,12 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 
 public class Invocation {
-    int buildId;
+    private int buildId;
     byte status;
-    byte changePresent;
+    private byte changePresent;
     long startDate;
 
     public Invocation(Integer buildId) {
@@ -36,5 +37,23 @@ public class Invocation {
             .add("status", status)
             .add("changePresent", changePresent)
             .toString();
+    }
+
+    public void status(int failCode) {
+        Preconditions.checkState(failCode < 128);
+        this.status = (byte) failCode;
+    }
+
+    public void startDate(long startDateTs) {
+        this.startDate = startDateTs;
+    }
+
+    public void changesPresent(int changesPresent) {
+        Preconditions.checkState(changesPresent < 128);
+        this.changePresent = (byte) changesPresent;
+    }
+
+    public boolean isFailure() {
+        return status == InvocationData.FAILURE || status == InvocationData.MUTED;
     }
 }

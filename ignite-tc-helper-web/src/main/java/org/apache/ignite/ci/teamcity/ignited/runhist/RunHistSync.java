@@ -19,22 +19,18 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
+
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
-import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.internal.util.GridConcurrentHashSet;
 
 import javax.annotation.concurrent.GuardedBy;
 import javax.inject.Inject;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 /**
  *
@@ -91,19 +87,26 @@ public class RunHistSync {
 
         AtomicInteger builds = new AtomicInteger();
         AtomicInteger invocations = new AtomicInteger();
+        AtomicInteger duplicates = new AtomicInteger();
         saveThisRun.values().forEach(
             build -> {
                 builds.incrementAndGet();
 
                 build.getAllTests().forEach(t -> {
-                    invocations.incrementAndGet();
+                    Invocation inv = t.toInvocation(compactor, build);
 
-                    dao.addInvocation(srvId, t, build.id(), build.getStartDateTs(), build.branchName());
+                    final Boolean res = dao.addInvocation(srvId, t, build.id(), build.branchName(), inv);
+
+                    if(Boolean.FALSE.equals(res))
+                        duplicates.incrementAndGet();
+                    else
+                        invocations.incrementAndGet();
                 });
             }
         );
 
-        return "Builds: " + builds.get() + " processed " + invocations.get() + " invocations saved to DB";
+        return "Builds: " + builds.get() + " processed " + invocations.get()
+                + " invocations saved to DB " + duplicates.get() + " duplicates";
     }
 
     /**

@@ -19,17 +19,13 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.configuration.CacheConfiguration;
 
-import javax.cache.processor.EntryProcessorException;
-import javax.cache.processor.MutableEntry;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import java.util.Collections;
@@ -80,32 +76,29 @@ public class RunHistCompactedDao {
         return testHistCache.get(new RunHistKey(srvIdMaskHigh, testName, branchId));
     }
 
-    public void addInvocation(final int srvId,
-                              final TestCompacted t,
-                              final int buildId,
-                              final long buildStartDateTs,
-                              final int branchName) {
+    public Boolean addInvocation(final int srvId,
+                                 final TestCompacted t,
+                                 final int buildId,
+                                 final int branchName,
+                                 Invocation inv) {
         RunHistKey histKey = new RunHistKey(srvId, t.testName(), branchName);
 
-        final int testSuccessCode = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
-
-        testHistCache.invoke(histKey, (entry, parms) -> {
+        return testHistCache.invoke(histKey, (entry, parms) -> {
+            boolean newValue = false;
                     RunHistCompacted hist = entry.getValue();
 
                     if (hist == null)
                         hist = new RunHistCompacted(entry.getKey());
 
-                    hist.addTestRun(
+                    newValue= hist.addTestRun(
                             (Integer) parms[0],
-                            (TestCompacted) parms[1],
-                            (Integer) parms[2],
-                            (Long) parms[3]);
+                            (Invocation) parms[1]);
 
                     entry.setValue(hist);
 
-                    return null;
+                    return newValue;
                 },
-                testSuccessCode, t, buildId, buildStartDateTs
+                buildId, inv
         );
 
     }
