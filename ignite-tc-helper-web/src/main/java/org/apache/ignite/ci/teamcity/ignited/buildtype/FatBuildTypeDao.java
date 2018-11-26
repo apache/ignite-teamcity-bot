@@ -26,9 +26,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.inject.Inject;
-import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import javax.validation.constraints.NotNull;
@@ -40,21 +40,17 @@ public class FatBuildTypeDao {
     /** Cache name*/
     public static final String TEAMCITY_FAT_BUILD_TYPES_CACHE_NAME = "teamcityFatBuildType";
 
-    /** Ignite provider. */
-    @Inject private Provider<Ignite> igniteProvider;
-
-    /** BuildTypes cache. */
-    private IgniteCache<Long, FatBuildTypeCompacted> buildTypesCache;
+    /** Ignite. */
+    @Inject private Ignite ignite;
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
 
     /**
-     * Initialize.
+     * BuildTypes cache.
      */
-    public void init () {
-        Ignite ignite = igniteProvider.get();
-        buildTypesCache = ignite.getOrCreateCache(getCache8PartsConfig(TEAMCITY_FAT_BUILD_TYPES_CACHE_NAME));
+    private IgniteCache<Long, FatBuildTypeCompacted> buildTypesCache() {
+        return ignite.getOrCreateCache(getCache8PartsConfig(TEAMCITY_FAT_BUILD_TYPES_CACHE_NAME));
     }
 
     /**
@@ -66,7 +62,6 @@ public class FatBuildTypeDao {
     public FatBuildTypeCompacted saveBuildType(int srvIdMaskHigh,
         @NotNull BuildTypeFull buildType,
         @Nullable FatBuildTypeCompacted existingBuildType) {
-        Preconditions.checkNotNull(buildTypesCache, "init() was not called");
         Preconditions.checkNotNull(buildType, "buildType can't be null");
 
         FatBuildTypeCompacted newBuildType = new FatBuildTypeCompacted(compactor, buildType);
@@ -76,7 +71,7 @@ public class FatBuildTypeDao {
 
 
         if (existingBuildType == null || !existingBuildType.equals(newBuildType)) {
-            buildTypesCache.put(buildTypeIdToCacheKey(srvIdMaskHigh, buildType.getId()), newBuildType);
+            buildTypesCache().put(buildTypeIdToCacheKey(srvIdMaskHigh, buildType.getId()), newBuildType);
 
             return newBuildType;
         }
@@ -85,14 +80,33 @@ public class FatBuildTypeDao {
     }
 
     /**
+     * @param srvIdMaskHigh  Server id mask high.
+     * @param refCompacted Reference compacted.
+     */
+    @AutoProfiling
+    public boolean save(int srvIdMaskHigh, FatBuildTypeCompacted refCompacted) {
+        long cacheKey = buildTypeStringIdToCacheKey(srvIdMaskHigh, refCompacted.id());
+
+        FatBuildTypeCompacted buildTypePersisted = buildTypesCache().get(cacheKey);
+
+        if (buildTypePersisted == null || !buildTypePersisted.equals(refCompacted)) {
+            buildTypesCache().put(cacheKey, refCompacted);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * @param srvIdMaskHigh Server id mask high.
      * @param buildTypeId BuildType id.
      * @return Saved fat buildType.
      */
     public FatBuildTypeCompacted getFatBuildType(int srvIdMaskHigh, @NotNull String buildTypeId) {
-        Preconditions.checkNotNull(buildTypesCache, "init() was not called");
+        Preconditions.checkNotNull(buildTypesCache(), "init() was not called");
 
-        return buildTypesCache.get(buildTypeIdToCacheKey(srvIdMaskHigh, buildTypeId));
+        return buildTypesCache().get(buildTypeIdToCacheKey(srvIdMaskHigh, buildTypeId));
     }
 
     /**
@@ -172,7 +186,7 @@ public class FatBuildTypeDao {
      * @return All buildTypes for a server, full scan.
      */
     @NotNull protected Stream<FatBuildTypeCompacted> compactedFatBuildTypesStreamForServer(int srvIdMaskHigh) {
-        return StreamSupport.stream(buildTypesCache.spliterator(), false)
+        return StreamSupport.stream(buildTypesCache().spliterator(), false)
             .filter(entry -> isKeyForServer(entry.getKey(), srvIdMaskHigh))
             .map(javax.cache.Cache.Entry::getValue);
     }
@@ -208,6 +222,6 @@ public class FatBuildTypeDao {
      * @param buildTypeStrId BuildType stringId.
      */
     public boolean containsKey(int srvIdMaskHigh, int buildTypeStrId) {
-        return buildTypesCache.containsKey(buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStrId));
+        return buildTypesCache().containsKey(buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStrId));
     }
 }

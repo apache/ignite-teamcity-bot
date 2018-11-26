@@ -30,7 +30,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.cache.Cache;
 import javax.inject.Inject;
-import javax.inject.Provider;
 import javax.validation.constraints.NotNull;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
@@ -45,21 +44,17 @@ public class BuildTypeRefDao {
     /** Cache name*/
     public static final String TEAMCITY_BUILD_TYPES_CACHE_NAME = "teamcityBuildTypeRef";
 
-    /** Ignite provider. */
-    @Inject private Provider<Ignite> igniteProvider;
-
-    /** BuildTypes cache. */
-    private IgniteCache<Long, BuildTypeRefCompacted> buildTypesCache;
+    /** Ignite. */
+    @Inject private Ignite ignite;
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
 
     /**
-     * Initialize.
+     * References to BuildTypes cache.
      */
-    public void init () {
-        Ignite ignite = igniteProvider.get();
-        buildTypesCache = ignite.getOrCreateCache(getCache8PartsConfig(TEAMCITY_BUILD_TYPES_CACHE_NAME));
+    private IgniteCache<Long, BuildTypeRefCompacted> buildTypesCache() {
+        return ignite.getOrCreateCache(getCache8PartsConfig(TEAMCITY_BUILD_TYPES_CACHE_NAME));
     }
 
     /**
@@ -71,13 +66,12 @@ public class BuildTypeRefDao {
     public BuildTypeRefCompacted saveBuildTypeRef(int srvIdMaskHigh,
         @NotNull BuildType buildTypeRef,
         @Nullable BuildTypeRefCompacted existingBuildTypeRef) {
-        Preconditions.checkNotNull(buildTypesCache, "init() was not called");
         Preconditions.checkNotNull(buildTypeRef, "buildType can't be null");
 
         BuildTypeRefCompacted newBuildType = new BuildTypeRefCompacted(compactor, buildTypeRef);
 
         if (existingBuildTypeRef == null || !existingBuildTypeRef.equals(newBuildType)) {
-            buildTypesCache.put(buildTypeIdToCacheKey(srvIdMaskHigh, buildTypeRef.getId()), newBuildType);
+            buildTypesCache().put(buildTypeIdToCacheKey(srvIdMaskHigh, buildTypeRef.getId()), newBuildType);
 
             return newBuildType;
         }
@@ -96,7 +90,7 @@ public class BuildTypeRefDao {
             .map(id -> buildTypeIdToCacheKey(srvIdMaskHigh, id))
             .collect(Collectors.toSet());
 
-        Map<Long, BuildTypeRefCompacted> existingEntries = buildTypesCache.getAll(ids);
+        Map<Long, BuildTypeRefCompacted> existingEntries = buildTypesCache().getAll(ids);
         Map<Long, BuildTypeRefCompacted> entriesToPut = new TreeMap<>();
 
         List<BuildTypeRefCompacted> collect = ghData.stream()
@@ -113,7 +107,7 @@ public class BuildTypeRefDao {
 
         int size = entriesToPut.size();
         if (size != 0)
-            buildTypesCache.putAll(entriesToPut);
+            buildTypesCache().putAll(entriesToPut);
 
         return entriesToPut.keySet();
     }
@@ -136,7 +130,7 @@ public class BuildTypeRefDao {
 
         Set<String> rmvBuildTypes = new TreeSet<>();
 
-        Map<Long, BuildTypeRefCompacted> rmvEntries = StreamSupport.stream(buildTypesCache.spliterator(), false)
+        Map<Long, BuildTypeRefCompacted> rmvEntries = StreamSupport.stream(buildTypesCache().spliterator(), false)
             .filter(entry -> isKeyForServer(entry.getKey(), srvIdMaskHigh))
             .filter(entry -> entry.getValue().projectId() == projectStrId)
             .filter(entry -> !ids.containsKey(entry.getKey()))
@@ -144,12 +138,12 @@ public class BuildTypeRefDao {
                 BuildTypeRefCompacted buildTypeRef = entry.getValue();
                 buildTypeRef.markRemoved();
 
-                rmvBuildTypes.add(ids.get(entry.getKey()));
+                rmvBuildTypes.add(entry.getValue().id(compactor));
 
                 return buildTypeRef;
             }));
 
-        buildTypesCache.putAll(rmvEntries);
+        buildTypesCache().putAll(rmvEntries);
 
         return rmvBuildTypes;
     }
@@ -160,7 +154,7 @@ public class BuildTypeRefDao {
      * @return Saved reference to buildType.
      */
     public BuildTypeRefCompacted getBuildTypeRef(int srvIdMaskHigh, @NotNull String buildTypeId) {
-        return buildTypesCache.get(buildTypeIdToCacheKey(srvIdMaskHigh, buildTypeId));
+        return buildTypesCache().get(buildTypeIdToCacheKey(srvIdMaskHigh, buildTypeId));
     }
 
     /**
@@ -180,7 +174,16 @@ public class BuildTypeRefDao {
     public List<String> buildTypeIds(int srvIdMaskHigh, @Nullable String projectId) {
         return buildTypesCompactedStream(srvIdMaskHigh, projectId)
             .map(bt -> bt.id(compactor)).collect(Collectors.toList());
+    }
 
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param projectId Project id.
+     * @return Map of saved buildTypes ids with 'removed' flag.
+     */
+    public Map<String, Boolean> allBuildTypeIds(int srvIdMaskHigh, @Nullable String projectId) {
+        return allBuildTypesCompactedStream(srvIdMaskHigh, projectId)
+            .collect(Collectors.toMap(bt -> bt.id(compactor), BuildTypeRefCompacted::removed));
     }
 
     /**
@@ -189,6 +192,15 @@ public class BuildTypeRefDao {
      * @return Stream of saved references to current Teamcity's buildTypes.
      */
     protected Stream<BuildTypeRefCompacted> buildTypesCompactedStream(int srvIdMaskHigh, @Nullable String projectId) {
+        return allBuildTypesCompactedStream(srvIdMaskHigh, projectId).filter(bt -> !bt.removed());
+    }
+
+    /**
+     * @param srvIdMaskHigh Server id mask high.
+     * @param projectId Project id.
+     * @return Stream of saved references to all buildTypes (including deleted).
+     */
+    protected Stream<BuildTypeRefCompacted> allBuildTypesCompactedStream(int srvIdMaskHigh, @Nullable String projectId) {
         Stream<BuildTypeRefCompacted> stream = compactedBuildTypeRefsStreamForServer(srvIdMaskHigh);
 
         if (Strings.isNullOrEmpty(projectId))
@@ -197,8 +209,7 @@ public class BuildTypeRefDao {
         final int strIdForProjectId = compactor.getStringId(projectId);
 
         return stream
-            .filter(bt -> bt.projectId() == strIdForProjectId)
-            .filter(bt -> !bt.removed());
+            .filter(bt -> bt.projectId() == strIdForProjectId);
     }
 
     /**
@@ -206,7 +217,7 @@ public class BuildTypeRefDao {
      * @return all buildTypes for a server, full scan.
      */
     @NotNull protected Stream<BuildTypeRefCompacted> compactedBuildTypeRefsStreamForServer(int srvIdMaskHigh) {
-        return StreamSupport.stream(buildTypesCache.spliterator(), false)
+        return StreamSupport.stream(buildTypesCache().spliterator(), false)
             .filter(entry -> isKeyForServer(entry.getKey(), srvIdMaskHigh))
             .map(javax.cache.Cache.Entry::getValue);
     }
@@ -235,6 +246,6 @@ public class BuildTypeRefDao {
      * @param buildTypeStrId BuildType stringId.
      */
     public boolean containsKey(int srvIdMaskHigh, int buildTypeStrId) {
-        return buildTypesCache.containsKey(buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStrId));
+        return buildTypesCache().containsKey(buildTypeStringIdToCacheKey(srvIdMaskHigh, buildTypeStrId));
     }
 }

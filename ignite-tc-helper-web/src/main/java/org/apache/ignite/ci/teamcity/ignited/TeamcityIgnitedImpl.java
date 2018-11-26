@@ -122,8 +122,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         buildConditionDao.init();
         fatBuildDao.init();
         changesDao.init();
-        buildTypeRefDao.init();
-        fatBuildTypeDao.init();
 
         compositeBuildTypesIdsForDefaultProject = Collections.emptyList();
     }
@@ -369,7 +367,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     private void ensureActualizeBuildTypeRefsRequested() {
         scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs"),
-            this::reindexBuildTypeRefs, 4, TimeUnit.HOURS);
+            this::reindexBuildTypes, 4, TimeUnit.HOURS);
     }
 
     /**
@@ -404,24 +402,38 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @MonitoredTask(name = "Reindex BuildTypes (projectId)", nameExtArgsIndexes = {0})
     @AutoProfiling
     protected String runActualizeBuildTypes(String projectId) {
-        List<String> buildTypeIds = buildTypeRefDao.buildTypeIds(srvIdMaskHigh, projectId);
+        Map<String, Boolean> buildTypeIds = buildTypeRefDao.allBuildTypeIds(srvIdMaskHigh, projectId);
 
         int updated = 0;
+        int removed = 0;
 
-        for (String buildTypeId : buildTypeIds) {
+        for (Map.Entry<String, Boolean> entry : buildTypeIds.entrySet()) {
+            String id = entry.getKey();
+            boolean rmv = entry.getValue();
 
-            BuildTypeFull buildType = conn.getBuildType(buildTypeId);
+            FatBuildTypeCompacted existingBuildType = fatBuildTypeDao.getFatBuildType(srvIdMaskHigh, id);
 
-            FatBuildTypeCompacted existingBuildType = fatBuildTypeDao.getFatBuildType(srvIdMaskHigh, buildTypeId);
+            if (rmv) {
+                if (existingBuildType != null) {
+                    existingBuildType.markRemoved();
 
-            if (fatBuildTypeDao.saveBuildType(srvIdMaskHigh, buildType, existingBuildType) != null)
-                updated++;
+                    if (fatBuildTypeDao.save(srvIdMaskHigh, existingBuildType))
+                        removed++;
+                }
+            } else {
+                BuildTypeFull buildType = conn.getBuildType(id);
+
+                if (fatBuildTypeDao.saveBuildType(srvIdMaskHigh, buildType, existingBuildType) != null)
+                    updated++;
+            }
         }
 
-        if (updated != 0)
+        if (updated != 0 || removed != 0)
             actualizeSavedCompositeBuildTypesIds(projectId);
 
-        return "BuildTypes updated " + updated + " from " + buildTypeIds.size() + " requested";
+        return "BuildTypes updated " + updated +
+            (removed == 0 ? "" : " and mark as removed " + removed) +
+            " from " + buildTypeIds.size() + " requested";
     }
 
     /**
@@ -441,12 +453,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         Set<String> rmvBuildTypes = buildTypeRefDao.markMissingBuildsAsRemoved(srvIdMaskHigh,
             tcData.stream().map(BuildType::getId).collect(Collectors.toList()), projectId);
 
-        if (!(buildsUpdated.isEmpty() && rmvBuildTypes.isEmpty()))
+        if (!(buildsUpdated.isEmpty() && rmvBuildTypes.isEmpty())) {
+            if (!rmvBuildTypes.isEmpty())
+                actualizeSavedCompositeBuildTypesIds(projectId);
+
             runActualizeBuildTypes(projectId);
+        }
 
         return "BuildTypeRefs updated " + buildsUpdated.size() +
-            (rmvBuildTypes.isEmpty() ? " " : " and mark as removed " + rmvBuildTypes.size()) +
-            "from " + tcData.size() + " requested";
+            (rmvBuildTypes.isEmpty() ? "" : " and mark as removed " + rmvBuildTypes.size()) +
+            " from " + tcData.size() + " requested";
     }
 
     public List<String> branchForQuery(@Nullable String branchName) {
@@ -486,6 +502,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      * @param buildId Build id.
      * @return build start date or null if build is fake stub or start date is not specified.
      */
+    @SuppressWarnings("WeakerAccess")
     @GuavaCached(maximumSize = 2000, cacheNullRval = false)
     @AutoProfiling
     @Nullable public Date getBuildStartDate(int buildId) {

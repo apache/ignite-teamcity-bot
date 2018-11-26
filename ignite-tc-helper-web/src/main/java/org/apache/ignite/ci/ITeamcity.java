@@ -17,25 +17,25 @@
 
 package org.apache.ignite.ci;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 /**
  * API for calling methods from REST service:
@@ -78,13 +78,6 @@ public interface ITeamcity extends ITeamcityConn {
     @NotNull static String buildHref(int id) {
         return "app/rest/latest/builds/id:" + id;
     }
-
-    /**
-     * List of build's related issues.
-     *
-     * @param href IssuesUsagesList href.
-     */
-    IssuesUsagesList getIssuesUsagesList(String href);
 
     CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut);
 
