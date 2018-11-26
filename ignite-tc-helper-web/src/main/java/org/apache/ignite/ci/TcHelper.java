@@ -32,6 +32,7 @@ import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -176,7 +177,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
             if (suitesStatuses == null)
                 return new Visa("JIRA wasn't commented - no finished builds to analyze.");
 
-            String comment = generateJiraComment(suitesStatuses, build.webUrl, buildTypeId);
+            String comment = generateJiraComment(suitesStatuses, build.webUrl, buildTypeId, tcIgnited);
 
             blockers = suitesStatuses.stream()
                 .mapToInt(suite -> {
@@ -207,7 +208,11 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
      * @param webUrl Build URL.
      * @return Comment, which should be sent to the JIRA ticket.
      */
-    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl, String buildTypeId) {
+    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl, String buildTypeId, ITeamcityIgnited tcIgnited) {
+        BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
+
+        String suiteName = (bt != null ? bt.name(compactor) : buildTypeId);
+
         StringBuilder res = new StringBuilder();
 
         for (SuiteCurrentStatus suite : suites) {
@@ -247,16 +252,16 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
         }
 
         if (res.length() > 0) {
-            res.insert(0, "{panel:title=Possible Blockers|" +
+            res.insert(0, "{panel:title=" + suiteName + ": Possible Blockers|" +
                 "borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}\\n")
                 .append("{panel}");
         }
         else {
-            res.append("{panel:title=No blockers found!|" +
-                "borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
+            res.append("{panel:title=").append(suiteName).append(": No blockers found!|")
+                .append("borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
         }
 
-        res.append("\\n").append("[TeamCity " + buildTypeId + " Results|").append(webUrl).append(']');
+        res.append("\\n").append("[TeamCity *").append(suiteName).append("* Results|").append(webUrl).append(']');
 
         return xmlEscapeText(res.toString());
     }

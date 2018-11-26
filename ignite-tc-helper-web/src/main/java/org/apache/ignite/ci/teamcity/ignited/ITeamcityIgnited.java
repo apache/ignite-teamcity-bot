@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import javax.annotation.Nullable;
+import org.apache.ignite.ci.tcmodel.conf.BuildTypeRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
@@ -141,4 +142,11 @@ public interface ITeamcityIgnited {
      * @return List of compacted references to buildTypes.
      */
     public List<BuildTypeRefCompacted> getAllBuildTypesCompacted(String projectId);
+
+
+    /**
+     * @param buildTypeId BuildType id.
+     * @return Compacted reference to BuildType.
+     */
+    public BuildTypeRefCompacted getBuildTypeRef(String buildTypeId);
 }

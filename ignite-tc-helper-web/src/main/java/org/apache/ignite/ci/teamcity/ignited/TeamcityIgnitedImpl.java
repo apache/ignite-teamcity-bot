@@ -359,6 +359,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return buildTypeRefDao.buildTypesCompacted(srvIdMaskHigh, projectId);
     }
 
+    /** {@inheritDoc} */
+    @Override public BuildTypeRefCompacted getBuildTypeRef(String buildTypeId) {
+        return buildTypeRefDao.getBuildTypeRef(srvIdMaskHigh, buildTypeId);
+    }
+
     /**
      * Ensure actualize BuildTypeRefs requested. Add this task to scheduler.
      */

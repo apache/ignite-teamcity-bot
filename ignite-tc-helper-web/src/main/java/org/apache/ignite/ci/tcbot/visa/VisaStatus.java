@@ -45,5 +45,11 @@ public class VisaStatus {
     @Nullable public String cancelUrl;
 
     /** */
+    @Nullable public String buildTypeId;
+
+    /** */
+    @Nullable public String buildTypeName;
+
+    /** */
     public int blockers;
 }

@@ -49,6 +49,7 @@ import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.VisaRequest;
 import org.apache.ignite.ci.web.model.Visa;
@@ -114,6 +115,7 @@ public class TcBotTriggerAndSignOffService {
         List<VisaStatus> visaStatuses = new ArrayList<>();
 
         IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
+        ITeamcityIgnited ignited = tcIgnitedProv.server(srvId, prov);
 
         for (VisaRequest visaRequest : visasHistoryStorage.getVisas()) {
             VisaStatus visaStatus = new VisaStatus();
@@ -128,6 +130,10 @@ public class TcBotTriggerAndSignOffService {
             visaStatus.branchName = info.branchForTc;
             visaStatus.userName = info.userName;
             visaStatus.ticket = info.ticket;
+            visaStatus.buildTypeId = info.buildTypeId;
+
+            BuildTypeRefCompacted bt = ignited.getBuildTypeRef(info.buildTypeId);
+            visaStatus.buildTypeName = (bt != null ? bt.name(compactor) : visaStatus.buildTypeId);
 
             String buildsStatus = visaStatus.status = info.getStatus(teamcity);
 
@@ -297,6 +303,8 @@ public class TcBotTriggerAndSignOffService {
         if (!Strings.isNullOrEmpty(ticketFullName)) {
             BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticketFullName, branchForTc);
 
+            buildsInfo.buildTypeId = suiteId;
+
             VisaRequest lastVisaReq = visasHistoryStorage.getLastVisaRequest(buildsInfo.getContributionKey());
 
             if (Objects.nonNull(lastVisaReq) && lastVisaReq.isObserving())
@@ -394,7 +402,8 @@ public class TcBotTriggerAndSignOffService {
 
     /**
      * @param srvId Server id.
-     * @param prId Pr id.
+     * @param suiteId Suite id.
+     * @param builds Build references.
      */
     public ContributionCheckStatus contributionStatus(String srvId, String suiteId, List<BuildRefCompacted> builds,
         ITeamcityIgnited teamcity, String prId) {
