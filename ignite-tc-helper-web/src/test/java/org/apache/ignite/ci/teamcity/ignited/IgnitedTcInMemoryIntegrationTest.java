@@ -348,10 +348,8 @@ public class IgnitedTcInMemoryIntegrationTest {
 
     @Test
     public void testRunHistSaveLoad() {
-        final String srvId = "apache";
 
-        TeamcityIgnitedModule module = new TeamcityIgnitedModule();
-        Injector injector = Guice.createInjector(module, new AbstractModule() {
+        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new AbstractModule() {
             @Override
             protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
@@ -359,11 +357,10 @@ public class IgnitedTcInMemoryIntegrationTest {
             }
         });
 
+        injector.getInstance(RunHistCompactedDao.class).init();
         final IStringCompactor c = injector.getInstance(IStringCompactor.class);
 
-        final RunHistCompactedDao dao = injector.getInstance(RunHistCompactedDao.class);
-        dao.init();
-
+        final String srvId = "apache";
         final String btId = "RunAll";
         final String branch = ITeamcity.DEFAULT;
 
@@ -372,21 +369,61 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         final Map<Integer, FatBuildCompacted> buildsMap = tst.apacheBuilds();
 
-        Map<RunHistKey, RunHistCompacted> resMap = new HashMap<>();
-
-        TeamcityIgnitedMock.initHistory(c, resMap, buildsMap, U.safeAbs(srvId.hashCode()));
-
-        System.out.println(resMap);
-
-       // resMap.forEach(dao::save);
-
         final RunHistSync histSync = injector.getInstance(RunHistSync.class);
-        buildsMap.forEach((id, build) -> {
-            histSync.saveToHistoryLater(U.safeAbs(srvId.hashCode()), id, build);
-        });
+        buildsMap.forEach((id, build) -> histSync.saveToHistoryLater(ITeamcityIgnited.serverIdToInt(srvId), id, build));
 
         final ITeamcityIgnitedProvider inst = injector.getInstance(ITeamcityIgnitedProvider.class);
         final ITeamcityIgnited srv = inst.server(srvId, Mockito.mock(ICredentialsProv.class));
+        final IRunHistory testRunHist = srv.getTestRunHist(new TestInBranch(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER, branch));
+
+        assertNotNull(testRunHist);
+        assertEquals(0.5, testRunHist.getFailRate(), 0.1);
+    }
+
+
+
+    @Test
+    public void testHistoryBackgroundUpdateWorks() {
+        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new AbstractModule() {
+            @Override
+            protected void configure() {
+                bind(Ignite.class).toInstance(ignite);
+                bind(IScheduler.class).to(DirectExecNoWaitSheduler.class).in(new SingletonScope());
+            }
+        });
+
+        injector.getInstance(RunHistCompactedDao.class).init();
+
+        final String srvId = "apache";
+        final String btId = "RunAll";
+        final String branch = ITeamcity.DEFAULT;
+
+        final ITeamcityIgnitedProvider inst = injector.getInstance(ITeamcityIgnitedProvider.class);
+        final ITeamcityIgnited srv = inst.server(srvId, Mockito.mock(ICredentialsProv.class));
+
+        FatBuildDao fatBuildDao = injector.getInstance(FatBuildDao.class);
+        fatBuildDao.init();
+
+        BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class);
+        buildRefDao.init();
+
+        final IStringCompactor c = injector.getInstance(IStringCompactor.class);
+
+
+        final PrChainsProcessorTest tst = new PrChainsProcessorTest();
+        tst.initBuildChain(c, btId, branch);
+
+        final Map<Integer, FatBuildCompacted> buildsMap = tst.apacheBuilds();
+
+        buildsMap.forEach((id, build) -> {
+            int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
+            fatBuildDao.putFatBuild(srvIdMaskHigh, id, build);
+            buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(build));
+        });
+
+        final RunHistSync histSync = injector.getInstance(RunHistSync.class);
+        histSync.invokeLaterFindMissingHistory(srvId);
+
         final IRunHistory testRunHist = srv.getTestRunHist(new TestInBranch(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER, branch));
 
         assertNotNull(testRunHist);

@@ -95,6 +95,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Run history DAO. */
     @Inject private RunHistCompactedDao runHistCompactedDao;
 
+    /** Run history sync. */
     @Inject private RunHistSync runHistSync;
 
     /** Strings compactor. */
@@ -331,6 +332,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     public void ensureActualizeRequested() {
         scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), this::actualizeRecentBuildRefs, 2, TimeUnit.MINUTES);
+
+        // schedule find missing later
+        buildSync.invokeLaterFindMissingByBuildRef(srvNme, conn);
+
+        runHistSync.invokeLaterFindMissingHistory(srvNme);
     }
 
     /** {@inheritDoc} */
@@ -397,13 +403,13 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, mode);
 
         //build was modified, probably we need also to update reference accordingly
-        if (savedVer != null)
-            buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(savedVer));
+        if (savedVer == null)
+            return existingBuild;
 
-        if (savedVer != null)
-            runHistSync.saveToHistoryLater(srvIdMaskHigh, buildId, savedVer);
+        buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(savedVer));
+        runHistSync.saveToHistoryLater(srvIdMaskHigh, buildId, savedVer);
 
-        return savedVer == null ? existingBuild : savedVer;
+        return savedVer;
     }
 
     protected FatBuildCompacted getFatBuildFromIgnite(int buildId) {
@@ -442,9 +448,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      *
      */
     void actualizeRecentBuildRefs() {
-        // schedule find missing later
-        buildSync.invokeLaterFindMissingByBuildRef(srvNme, conn);
-
         List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdMaskHigh);
 
         Set<Integer> paginateUntil = new HashSet<>();

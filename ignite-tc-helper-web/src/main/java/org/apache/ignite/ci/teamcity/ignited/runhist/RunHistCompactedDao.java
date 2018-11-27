@@ -60,10 +60,6 @@ public class RunHistCompactedDao {
         testHistCache = ignite.getOrCreateCache(cfg);
     }
 
-    public void save(RunHistKey k, RunHistCompacted v) {
-        testHistCache.put(k, v);
-    }
-
     public IRunHistory getTestRunHist(int srvIdMaskHigh, String name, String branch) {
         final Integer testName = compactor.getStringIdIfPresent(name);
         if (testName == null)

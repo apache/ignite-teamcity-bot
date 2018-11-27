@@ -229,7 +229,6 @@ public class ProactiveFatBuildSync {
                 () -> findMissingBuildsFromBuildRef(srvName, conn), 360, TimeUnit.MINUTES);
     }
 
-
     /**
      *
      * @param conn TC connection to load data

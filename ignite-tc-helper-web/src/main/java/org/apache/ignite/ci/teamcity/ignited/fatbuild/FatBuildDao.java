@@ -113,7 +113,7 @@ public class FatBuildDao {
     }
 
     @AutoProfiling
-    protected void putFatBuild(long srvIdMaskHigh, int buildId, FatBuildCompacted newBuild) {
+    public void putFatBuild(long srvIdMaskHigh, int buildId, FatBuildCompacted newBuild) {
         buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
     }
 

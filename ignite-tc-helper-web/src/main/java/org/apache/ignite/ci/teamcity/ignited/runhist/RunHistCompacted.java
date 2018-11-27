@@ -20,11 +20,16 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 import com.google.common.base.MoreObjects;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
+import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
+/**
+ *
+ */
+@Persisted
 public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     /** Latest version. */
     private static final int LATEST_VERSION = 1;
