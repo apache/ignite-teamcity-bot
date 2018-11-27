@@ -156,16 +156,16 @@ public class RunHistSync {
         List<Integer> buildsIdsToLoad = new ArrayList<>();
         int totalAskedToLoad = 0;
 
-        for (int buildRefKey : buildRefKeys) {
-            if (!fatBuildDao.containsKey(srvIdMaskHigh, buildRefKey))
-                continue; // FAT Build not yet avaiable, skipping hist loading
+        for (int buildId : buildRefKeys) {
+            if (histDao.buildWasProcessed(srvIdMaskHigh, buildId))
+                continue;
 
             if (buildsIdsToLoad.size() >= 100) {
                 totalAskedToLoad += buildsIdsToLoad.size();
                 scheduleHistLoad(srvId,  buildsIdsToLoad);
                 buildsIdsToLoad.clear();
             }
-            buildsIdsToLoad.add(buildRefKey);
+            buildsIdsToLoad.add(buildId);
         }
 
         if (!buildsIdsToLoad.isEmpty()) {

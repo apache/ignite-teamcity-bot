@@ -39,6 +39,7 @@ public interface ITcAnalytics {
     /**
      * @return map from test full name (suite: suite.test) and its branch to its run statistics
      */
+    @Deprecated
     Function<TestInBranch, RunStat> getTestRunStatProvider();
 
     List<RunStat> topFailingSuite(int cnt);

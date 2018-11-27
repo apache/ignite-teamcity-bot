@@ -126,20 +126,25 @@ public class PrChainsProcessorTest {
         assertTrue(blockers.stream().anyMatch(s -> "Build".equals(s.suiteId)));
         assertTrue(blockers.stream().anyMatch(s -> "CancelledBuild".equals(s.suiteId)));
 
-        assertFalse(blockers.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_FAILING_IN_MASTER)));
         assertTrue(blockers.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_PASSING_IN_MASTER)));
-        assertFalse(blockers.stream().anyMatch(containsTestFail(TEST_FLAKY_IN_MASTER)));
+
+        if (SuiteCurrentStatus.NEW_RUN_STAT) {
+            assertFalse(blockers.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_FAILING_IN_MASTER)));
+            assertFalse(blockers.stream().anyMatch(containsTestFail(TEST_FLAKY_IN_MASTER)));
+        }
 
         Optional<SuiteCurrentStatus> suiteOpt = blockers.stream().filter(containsTestFail(TEST_WITH_HISTORY_PASSING_IN_MASTER)).findAny();
         assertTrue(suiteOpt.isPresent());
         Optional<TestFailure> testOpt = suiteOpt.get().testFailures.stream().filter(tf -> TEST_WITH_HISTORY_PASSING_IN_MASTER.equals(tf.name)).findAny();
         assertTrue(testOpt.isPresent());
 
-        List<Integer> etalon = new ArrayList<>();
-        for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++)
-            etalon.add(RunStat.RunStatus.RES_OK.getCode());
+        if (SuiteCurrentStatus.NEW_RUN_STAT) {
+            List<Integer> etalon = new ArrayList<>();
+            for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++)
+                etalon.add(RunStat.RunStatus.RES_OK.getCode());
 
-        assertEquals(etalon, testOpt.get().histBaseBranch.latestRuns);
+            assertEquals(etalon, testOpt.get().histBaseBranch.latestRuns);
+        }
 
         assertTrue(blockers.stream().anyMatch(containsTestFail(TEST_WAS_FIXED_IN_MASTER)));
         if(SuiteCurrentStatus.NEW_RUN_STAT)
