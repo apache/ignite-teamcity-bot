@@ -187,7 +187,8 @@ public class RunHistSync {
             if (validForStatistics(fatBuild))
                 saveToHistoryLater(srvNme, fatBuild.id(), fatBuild);
             else
-                logger.info("Build is not valid for stat: " + fatBuild.toString());
+                logger.info("Build is not valid for stat: " +
+                    (fatBuild != null ? fatBuild.getId() : null));
         });
     }
 
