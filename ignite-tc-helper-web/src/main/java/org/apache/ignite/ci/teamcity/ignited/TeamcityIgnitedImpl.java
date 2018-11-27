@@ -367,7 +367,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     private void ensureActualizeBuildTypeRefsRequested() {
         scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs"),
-            this::reindexBuildTypes, 4, TimeUnit.HOURS);
+            this::reindexBuildTypeRefs, 4, TimeUnit.HOURS);
     }
 
     /**

@@ -384,8 +384,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
         }
     }
 
-
-
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
     protected <T> T loadXml(Class<T> rootElem, InputStreamReader reader) throws JAXBException {
