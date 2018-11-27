@@ -49,16 +49,13 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
-import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
-import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
@@ -348,14 +345,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
     @Test
     public void testRunHistSaveLoad() {
-
-        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new AbstractModule() {
-            @Override
-            protected void configure() {
-                bind(Ignite.class).toInstance(ignite);
-                bind(IScheduler.class).to(DirectExecNoWaitSheduler.class).in(new SingletonScope());
-            }
-        });
+        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new IgniteAndShedulerTestModule());
 
         injector.getInstance(RunHistCompactedDao.class).init();
         final IStringCompactor c = injector.getInstance(IStringCompactor.class);
@@ -370,7 +360,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         final Map<Integer, FatBuildCompacted> buildsMap = tst.apacheBuilds();
 
         final RunHistSync histSync = injector.getInstance(RunHistSync.class);
-        buildsMap.forEach((id, build) -> histSync.saveToHistoryLater(ITeamcityIgnited.serverIdToInt(srvId), id, build));
+        buildsMap.forEach((id, build) -> histSync.saveToHistoryLater(srvId, id, build));
 
         final ITeamcityIgnitedProvider inst = injector.getInstance(ITeamcityIgnitedProvider.class);
         final ITeamcityIgnited srv = inst.server(srvId, Mockito.mock(ICredentialsProv.class));
@@ -381,16 +371,9 @@ public class IgnitedTcInMemoryIntegrationTest {
     }
 
 
-
     @Test
     public void testHistoryBackgroundUpdateWorks() {
-        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new AbstractModule() {
-            @Override
-            protected void configure() {
-                bind(Ignite.class).toInstance(ignite);
-                bind(IScheduler.class).to(DirectExecNoWaitSheduler.class).in(new SingletonScope());
-            }
-        });
+        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new IgniteAndShedulerTestModule());
 
         injector.getInstance(RunHistCompactedDao.class).init();
 
@@ -428,5 +411,16 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         assertNotNull(testRunHist);
         assertEquals(0.5, testRunHist.getFailRate(), 0.1);
+    }
+
+    /**
+     *
+     */
+    private static class IgniteAndShedulerTestModule extends AbstractModule {
+        /** {@inheritDoc} */
+        @Override protected void configure() {
+            bind(Ignite.class).toInstance(ignite);
+            bind(IScheduler.class).to(DirectExecNoWaitSheduler.class).in(new SingletonScope());
+        }
     }
 }

@@ -18,10 +18,13 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import javax.annotation.concurrent.GuardedBy;
+import javax.inject.Inject;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
@@ -31,22 +34,24 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.internal.util.GridConcurrentHashSet;
-
-import javax.annotation.concurrent.GuardedBy;
-import javax.inject.Inject;
-import java.util.HashMap;
-import java.util.Map;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class RunHistSync {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(RunHistSync.class);
+
     /** Compactor. */
     @Inject private IStringCompactor compactor;
 
+    /** Scheduler. */
     @Inject private IScheduler scheduler;
 
+    /** Run History DAO. */
     @Inject private RunHistCompactedDao histDao;
 
     /** Build reference DAO. */
@@ -55,38 +60,42 @@ public class RunHistSync {
     /** Build DAO. */
     @Inject private FatBuildDao fatBuildDao;
 
-
     /** Build to save to history. */
     @GuardedBy("this")
-    private final Map<Integer, SyncTask> buildToSave = new HashMap<>();
+    private final Map<String, SyncTask> buildToSave = new HashMap<>();
 
     /**
-     * @param srvId Server id.
+     * @param srvVame Server id.
      * @param buildId Build id.
      * @param build Build.
      */
-    public void saveToHistoryLater(int srvId, int buildId, FatBuildCompacted build) {
+    public void saveToHistoryLater(String srvVame, int buildId, FatBuildCompacted build) {
         if (!validForStatistics(build))
             return;
 
+        int srvId = ITeamcityIgnited.serverIdToInt(srvVame);
+        if (histDao.buildWasProcessed(srvId, buildId))
+            return;
+
         synchronized (this) {
-            final SyncTask syncTask = buildToSave.computeIfAbsent(srvId, s -> new SyncTask());
+            final SyncTask syncTask = buildToSave.computeIfAbsent(srvVame, s -> new SyncTask());
 
             syncTask.buildsToSave.putIfAbsent(build.id(), build);
         }
 
-        scheduler.sheduleNamed(RunHistSync.class.getSimpleName() + ".saveBuildToHistory",
-            () -> saveBuildToHistory(srvId), 2, TimeUnit.MINUTES);
+        scheduler.sheduleNamed(taskName("saveBuildToHistory", srvVame),
+            () -> saveBuildToHistory(srvVame), 2, TimeUnit.MINUTES);
     }
 
     @AutoProfiling
-    @MonitoredTask(name="Save Builds To History")
+    @MonitoredTask(name="Save Builds To History", nameExtArgIndex = 0)
     @SuppressWarnings("WeakerAccess")
-    protected String saveBuildToHistory(int srvId) {
+    protected String saveBuildToHistory(String srvName) {
+        int srvMask = ITeamcityIgnited.serverIdToInt(srvName);
         Map<Integer, FatBuildCompacted> saveThisRun;
 
         synchronized (this) {
-            final SyncTask syncTask = buildToSave.get(srvId);
+            final SyncTask syncTask = buildToSave.get(srvName);
             if (syncTask == null)
                 return "Nothing to sync";
 
@@ -98,16 +107,23 @@ public class RunHistSync {
         AtomicInteger builds = new AtomicInteger();
         AtomicInteger invocations = new AtomicInteger();
         AtomicInteger duplicates = new AtomicInteger();
+
         saveThisRun.values().forEach(
             build -> {
                 builds.incrementAndGet();
 
+                if (!histDao.setBuildProcessed(srvMask, build.id(), build.getStartDateTs())) {
+                    duplicates.incrementAndGet();
+
+                    return;
+                }
+
                 build.getAllTests().forEach(t -> {
                     Invocation inv = t.toInvocation(compactor, build);
 
-                    final Boolean res = histDao.addInvocation(srvId, t, build.id(), build.branchName(), inv);
+                    final Boolean res = histDao.addInvocation(srvMask, t, build.id(), build.branchName(), inv);
 
-                    if(Boolean.FALSE.equals(res))
+                    if (Boolean.FALSE.equals(res))
                         duplicates.incrementAndGet();
                     else
                         invocations.incrementAndGet();
@@ -120,8 +136,8 @@ public class RunHistSync {
     }
 
     public void invokeLaterFindMissingHistory(String srvName) {
-            scheduler.sheduleNamed(taskName("findMissingHistFromBuildRef", srvName),
-                () -> findMissingHistFromBuildRef(srvName), 360, TimeUnit.MINUTES);
+        scheduler.sheduleNamed(taskName("findMissingHistFromBuildRef", srvName),
+            () -> findMissingHistFromBuildRef(srvName), 360, TimeUnit.MINUTES);
     }
 
     @NotNull
@@ -130,9 +146,9 @@ public class RunHistSync {
     }
 
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
-    @MonitoredTask(name = "Find missing Build History", nameExtArgsIndexes = {0})
+    @MonitoredTask(name = "Find Missing Build History", nameExtArgsIndexes = {0})
     @AutoProfiling
-    protected String findMissingHistFromBuildRef(String srvId ) {
+    protected String findMissingHistFromBuildRef(String srvId) {
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
 
         final int[] buildRefKeys = buildRefDao.getAllIds(srvIdMaskHigh);
@@ -146,7 +162,7 @@ public class RunHistSync {
 
             if (buildsIdsToLoad.size() >= 100) {
                 totalAskedToLoad += buildsIdsToLoad.size();
-                scheduleHistLoad(srvIdMaskHigh,  buildsIdsToLoad);
+                scheduleHistLoad(srvId,  buildsIdsToLoad);
                 buildsIdsToLoad.clear();
             }
             buildsIdsToLoad.add(buildRefKey);
@@ -154,29 +170,31 @@ public class RunHistSync {
 
         if (!buildsIdsToLoad.isEmpty()) {
             totalAskedToLoad += buildsIdsToLoad.size();
-            scheduleHistLoad(srvIdMaskHigh, buildsIdsToLoad);
+            scheduleHistLoad(srvId, buildsIdsToLoad);
         }
 
         return "Invoked later load for " + totalAskedToLoad + " builds from " + srvId;
     }
 
-    private void scheduleHistLoad(int srvIdMaskHigh, List<Integer> load) {
-        //todo implement
-        System.err.println("scheduleHistLoad: " + load.toString());
-
+    /**
+     * @param srvNme Server  name;
+     * @param load Build IDs to be loaded into history cache later.
+     */
+    private void scheduleHistLoad(String srvNme, List<Integer> load) {
         load.forEach(id -> {
-            FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvIdMaskHigh, id);
+            FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(ITeamcityIgnited.serverIdToInt(srvNme), id);
 
             if (validForStatistics(fatBuild))
-                saveToHistoryLater(srvIdMaskHigh, fatBuild.id(), fatBuild);
+                saveToHistoryLater(srvNme, fatBuild.id(), fatBuild);
             else
-                System.err.println("Build is not valid for stat: " + fatBuild.toString());
+                logger.info("Build is not valid for stat: " + fatBuild.toString());
         });
     }
 
     private boolean validForStatistics(FatBuildCompacted fatBuild) {
         return fatBuild != null
             && !fatBuild.isFakeStub()
+            && !fatBuild.isOutdatedEntityVersion()
             && !fatBuild.isCancelled(compactor)
             && fatBuild.isFinished(compactor);
     }

@@ -31,8 +31,11 @@ import javax.inject.Provider;
 import java.util.Collections;
 
 public class RunHistCompactedDao {
-    /** Cache name*/
+    /** Cache name.*/
     public static final String TEST_HIST_CACHE_NAME = "testRunHistV0";
+
+    /** Build Start time Cache name. */
+    public static final String BUILD_START_TIME_CACHE_NAME = "buildStartTimeV0";
 
     /** Ignite provider. */
     @Inject
@@ -42,7 +45,7 @@ public class RunHistCompactedDao {
     private IgniteCache<RunHistKey, RunHistCompacted> testHistCache;
 
     /** Build start time. */
-    private IgniteCache<Integer, Long> buildStartTime;
+    private IgniteCache<Long, Long> buildStartTime;
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
@@ -58,6 +61,8 @@ public class RunHistCompactedDao {
         cfg.setQueryEntities(Collections.singletonList(new QueryEntity(RunHistKey.class, RunHistCompacted.class)));
 
         testHistCache = ignite.getOrCreateCache(cfg);
+
+        buildStartTime = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(BUILD_START_TIME_CACHE_NAME));
     }
 
     public IRunHistory getTestRunHist(int srvIdMaskHigh, String name, String branch) {
@@ -97,5 +102,22 @@ public class RunHistCompactedDao {
                 buildId, inv
         );
 
+    }
+
+    /**
+     * @param srvId Server id mask high.
+     * @param buildId Build id.
+     */
+    public static long buildIdToCacheKey(long srvId, int buildId) {
+        return (long)buildId | srvId << 32;
+    }
+
+
+    public boolean buildWasProcessed(int srvId, int buildId) {
+        return buildStartTime.containsKey(buildIdToCacheKey(srvId, buildId));
+    }
+
+    public boolean setBuildProcessed(int srvId, int buildId, long ts) {
+        return buildStartTime.putIfAbsent(buildIdToCacheKey(srvId, buildId), ts);
     }
 }

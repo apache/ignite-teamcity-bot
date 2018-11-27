@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.di.scheduler;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class TcBotScheduler implements IScheduler {
-    public static final int POOL_SIZE = 10;
+    public static final int POOL_SIZE = 16;
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TcBotScheduler.class);
 
@@ -50,22 +51,20 @@ class TcBotScheduler implements IScheduler {
         task.sheduleWithQuitePeriod(cmd, queitPeriod, unit);
 
         if (tickGuard.compareAndSet(false, true)) {
-            for (int i = 0; i < POOL_SIZE; i++) {
-                int threadNo = i;
-
+            for (int threadId = 0; threadId < POOL_SIZE; threadId++) {
+                String threadNme = ", runner" + Strings.padStart(Integer.toString(threadId), 2, '0');
                 int period = 15000 + ThreadLocalRandom.current().nextInt(10000);
-                service().scheduleAtFixedRate(() -> checkNamedTasks(threadNo), 0, period, TimeUnit.MILLISECONDS);
+                service().scheduleAtFixedRate(() -> checkNamedTasks(threadNme), 0, period, TimeUnit.MILLISECONDS);
             }
         }
     }
 
     /**
-     *
-     * @param threadNo
+     * @param threadNme
      */
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
-    @MonitoredTask(name = "Scheduled, runner", nameExtArgIndex = 0)
-    protected String checkNamedTasks(int threadNo) {
+    @MonitoredTask(name = "Scheduled", nameExtArgIndex = 0)
+    protected String checkNamedTasks(String threadNme) {
         AtomicInteger run = new AtomicInteger();
         List<Throwable> problems = new ArrayList<>();
         namedTasks.forEach((s, task) -> {

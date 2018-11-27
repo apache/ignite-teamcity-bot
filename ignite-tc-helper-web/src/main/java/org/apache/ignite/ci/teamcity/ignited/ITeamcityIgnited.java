@@ -107,8 +107,6 @@ public interface ITeamcityIgnited {
         return getFatBuild(id, SyncMode.RELOAD_QUEUED);
     }
 
-
-
     /**
      * @param id Id.
      * @param mode Refresh mode.
