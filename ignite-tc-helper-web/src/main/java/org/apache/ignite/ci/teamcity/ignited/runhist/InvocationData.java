@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -55,30 +56,44 @@ public class InvocationData {
         return allHistRuns;
     }
 
-    public boolean add(int build, Invocation inv) {
+    public boolean add(Invocation inv) {
+        try {
+            return innerAdd(inv);
+        }
+        finally {
+            removeEldiest();
+        }
+    }
+
+    public boolean innerAdd(Invocation inv) {
+        int build = inv.buildId();
+        if (build < 0)
+            return false;
+
         if (invocationMap.containsKey(build))
+            return false;
+
+        if (isExpired(inv.startDate))
             return false;
 
         Invocation prevVal = invocationMap.putIfAbsent(build, inv);
 
-        final boolean newValue = prevVal == null;
+        final boolean newVal = prevVal == null;
 
-        if (newValue) {
+        if (newVal) {
             allHistRuns++;
             if (inv.isFailure())
                 allHistFailures++;
         }
 
-        removeEldiest();
-
-        return newValue;
+        return newVal;
     }
 
     void removeEldiest() {
         invocationMap.entrySet().removeIf(entries -> isExpired(entries.getValue().startDate));
     }
 
-    public boolean isExpired(long startDate) {
+    public static boolean isExpired(long startDate) {
         return (U.currentTimeMillis() - startDate) > Duration.ofDays(MAX_DAYS).toMillis();
     }
 
@@ -110,12 +125,30 @@ public class InvocationData {
                         .count();
     }
 
+    /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("allHistRuns", allHistRuns)
                 .add("allHistFailures", allHistFailures)
                 .add("invocationMap", invocationMap)
                 .toString();
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        InvocationData data = (InvocationData)o;
+        return allHistRuns == data.allHistRuns &&
+            allHistFailures == data.allHistFailures &&
+            Objects.equal(invocationMap, data.invocationMap);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hashCode(allHistRuns, allHistFailures, invocationMap);
     }
 
     /**

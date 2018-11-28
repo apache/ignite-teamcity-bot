@@ -52,7 +52,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
  * Represent Suite result
  */
 @SuppressWarnings("WeakerAccess") public class SuiteCurrentStatus extends FailureSummary {
-    public static final boolean NEW_RUN_STAT = false;
+    public static final boolean NEW_RUN_STAT = true;
 
     /** Suite Name */
     public String name;

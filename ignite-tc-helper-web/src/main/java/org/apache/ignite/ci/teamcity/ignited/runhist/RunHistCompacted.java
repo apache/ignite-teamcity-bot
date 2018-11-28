@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
@@ -96,9 +97,10 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     /**
      * @param build Build.
      * @param inv Invocation.
+     * @return if test run is new and is not expired.
      */
     public boolean addTestRun(int build, Invocation inv) {
-        return data.add(build, inv);
+        return data.add(inv);
     }
 
     /** {@inheritDoc} */
@@ -109,5 +111,21 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
                 .add("failRate", getFailPercentPrintable())
                 .add("data", data)
                 .toString();
+    }
+
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        RunHistCompacted compacted = (RunHistCompacted)o;
+        return _ver == compacted._ver &&
+            testNameOrSuite == compacted.testNameOrSuite &&
+            srvId == compacted.srvId &&
+            Objects.equal(data, compacted.data);
+    }
+
+    @Override public int hashCode() {
+        return Objects.hashCode(_ver, testNameOrSuite, srvId, data);
     }
 }

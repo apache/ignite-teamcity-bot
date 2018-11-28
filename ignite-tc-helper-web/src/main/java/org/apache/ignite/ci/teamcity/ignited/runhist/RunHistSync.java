@@ -23,11 +23,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import javax.inject.Inject;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -38,7 +36,6 @@ import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
-import org.apache.ignite.internal.util.GridConcurrentHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +46,8 @@ import org.slf4j.LoggerFactory;
 public class RunHistSync {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(RunHistSync.class);
+    public static final int MAX_TESTS_QUEUE = 100000;
+    public static final int HIST_LDR_TASKS = 4;
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
@@ -97,7 +96,7 @@ public class RunHistSync {
         synchronized (this) {
             final SyncTask syncTask = buildToSave.computeIfAbsent(srvVame, s -> new SyncTask());
 
-            if (syncTask.sheduled() + cnt <= 100000)
+            if (syncTask.sheduled() + cnt <= MAX_TESTS_QUEUE)
                 syncTask.tests.putAll(data);
             else
                 saveNow = true;
@@ -106,14 +105,16 @@ public class RunHistSync {
         if(saveNow)
             saveInvocationsMap(data);
         else {
-            scheduler.sheduleNamed(taskName("saveBuildToHistory", srvVame),
-                () -> saveBuildToHistory(srvVame), 2, TimeUnit.MINUTES);
+            int ldrToActivate = ThreadLocalRandom.current().nextInt(HIST_LDR_TASKS) + 1;
+
+            scheduler.sheduleNamed(taskName("saveBuildToHistory." + ldrToActivate, srvVame),
+                () -> saveBuildToHistory(srvVame, ldrToActivate), 2, TimeUnit.MINUTES);
         }
     }
 
-    @MonitoredTask(name="Save Builds To History", nameExtArgIndex = 0)
+    @MonitoredTask(name="Save Builds To History(srv, runner)", nameExtArgsIndexes = {0,1})
     @SuppressWarnings("WeakerAccess")
-    protected String saveBuildToHistory(String srvName) {
+    protected String saveBuildToHistory(String srvName, int ldrToActivate) {
         Map<RunHistKey, List<Invocation>> saveThisRun;
 
         synchronized (this) {
@@ -134,20 +135,20 @@ public class RunHistSync {
         Set<Integer> confirmedNewBuild = new HashSet<>();
         Set<Integer> confirmedDuplicate = new HashSet<>();
         AtomicInteger invocations = new AtomicInteger();
-        AtomicInteger duplicates = new AtomicInteger();
+        AtomicInteger duplicateOrExpired = new AtomicInteger();
 
         saveThisRun.forEach(
             (histKey, invocationList) -> {
                 saveInvocationList(confirmedNewBuild,
                     confirmedDuplicate,
                     invocations,
-                    duplicates,
+                    duplicateOrExpired,
                     histKey, invocationList);
             }
         );
 
         String res = "History entries: " + saveThisRun.size() + " processed " + invocations.get()
-            + " invocations saved to DB " + duplicates.get() + " duplicates";
+            + " invocations saved to DB " + duplicateOrExpired.get() + " duplicates/expired";
 
         System.out.println(Thread.currentThread().getName() + ":" + res);
 
@@ -157,16 +158,17 @@ public class RunHistSync {
     private void saveInvocationList(Set<Integer> confirmedNewBuild,
         Set<Integer> confirmedDuplicate,
         AtomicInteger invocations,
-        AtomicInteger duplicates,
+        AtomicInteger duplicateOrExpired,
         RunHistKey histKey,
         List<Invocation> invocationList) {
-        List<Invocation> newInvocations = new ArrayList<>();
+        List<Invocation> invocationsToSave = new ArrayList<>();
         invocationList.forEach(
             inv -> {
                 int buildId = inv.buildId();
 
                 if (confirmedNewBuild.contains(buildId)) {
-                    newInvocations.add(inv);
+                    if (!InvocationData.isExpired(inv.startDate()))
+                        invocationsToSave.add(inv);
 
                     return;
                 }
@@ -177,17 +179,18 @@ public class RunHistSync {
                 if (histDao.setBuildProcessed(histKey.srvId(), buildId, inv.startDate())) {
                     confirmedNewBuild.add(buildId);
 
-                    newInvocations.add(inv);
+                    if (!InvocationData.isExpired(inv.startDate()))
+                        invocationsToSave.add(inv);
                 }
                 else
                     confirmedDuplicate.add(buildId);
             }
         );
 
-        Integer cntAdded = histDao.addInvocations(histKey, newInvocations);
+        Integer cntAdded = histDao.addInvocations(histKey, invocationsToSave);
 
         invocations.addAndGet(cntAdded);
-        duplicates.addAndGet(invocationList.size() - cntAdded);
+        duplicateOrExpired.addAndGet(invocationList.size() - cntAdded);
     }
 
     public void invokeLaterFindMissingHistory(String srvName) {

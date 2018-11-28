@@ -100,15 +100,18 @@ public class RunHistCompactedDao {
 
     @AutoProfiling
     public Integer addInvocations(RunHistKey histKey, List<Invocation> list) {
-        if(list.isEmpty())
+        if (list.isEmpty())
             return 0;
 
         return testHistCache.invoke(histKey, (entry, parms) -> {
                 int cnt = 0;
+
                 RunHistCompacted hist = entry.getValue();
 
                 if (hist == null)
                     hist = new RunHistCompacted(entry.getKey());
+
+                int initHashCode = hist.hashCode();
 
                 List<Invocation> invocationList = (List<Invocation>)parms[0];
 
@@ -116,12 +119,13 @@ public class RunHistCompactedDao {
                     boolean added = hist.addTestRun(
                         invocation.buildId(),
                         invocation);
+
                     if (added)
                         cnt++;
-
                 }
 
-                entry.setValue(hist);
+                if (cnt > 0 || hist.hashCode() != initHashCode)
+                    entry.setValue(hist);
 
                 return cnt;
             },

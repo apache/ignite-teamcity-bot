@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
 public class Invocation {
@@ -63,5 +64,23 @@ public class Invocation {
 
     public long startDate() {
         return startDate;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        Invocation that = (Invocation)o;
+        return buildId == that.buildId &&
+            status == that.status &&
+            changePresent == that.changePresent &&
+            startDate == that.startDate;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hashCode(buildId, status, changePresent, startDate);
     }
 }
