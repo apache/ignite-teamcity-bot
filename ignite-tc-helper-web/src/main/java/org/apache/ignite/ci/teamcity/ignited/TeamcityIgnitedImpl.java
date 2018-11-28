@@ -318,14 +318,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return chains;
     }
 
-    @Override
-    public IRunHistory getTestRunHist(TestInBranch testInBranch) {
+    @Nullable
+    @Override public IRunHistory getTestRunHist(TestInBranch testInBranch) {
          return runHistCompactedDao.getTestRunHist(srvIdMaskHigh, testInBranch.name, testInBranch.branch);
     }
 
     public List<String> branchForQuery(@Nullable String branchName) {
         if (ITeamcity.DEFAULT.equals(branchName))
-            return Lists.newArrayList(branchName, "refs/heads/master", "master");
+            return Lists.newArrayList(branchName, ITeamcity.REFS_HEADS_MASTER, "master");
         else
             return Collections.singletonList(branchName);
     }

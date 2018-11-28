@@ -124,5 +124,6 @@ public interface ITeamcityIgnited {
      */
     @NotNull public List<Integer> getLastNBuildsFromHistory(String btId, String branchForTc, int cnt);
 
-    @Nullable IRunHistory getTestRunHist(TestInBranch testInBranch);
+    @Nullable
+    IRunHistory getTestRunHist(TestInBranch testInBranch);
 }

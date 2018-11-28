@@ -50,10 +50,6 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
-import org.apache.ignite.ci.tcmodel.changes.Change;
-import org.apache.ignite.ci.tcmodel.changes.ChangeRef;
-import org.apache.ignite.ci.tcmodel.changes.ChangesList;
-import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -65,8 +61,7 @@ import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBranch;
+import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normalizeBranch;
 
 /**
  *

@@ -26,7 +26,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.TestInBranch;
@@ -34,6 +33,7 @@ import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
 import org.apache.ignite.ci.logs.LogMsgToWarn;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.model.hist.TestHistory;
 import org.jetbrains.annotations.NotNull;
@@ -93,13 +93,13 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 
     /**
      * @param failure
-     * @param teamcity
+     * @param tcIgn
      * @param projectId
      * @param branchName
      * @param baseBranchName base branch name (e.g. master).
      */
     public void initFromOccurrence(@Nonnull final IMultTestOccurrence failure,
-        @Nonnull final ITeamcity teamcity,
+        @Nonnull final ITeamcityIgnited tcIgn,
         @Nullable final String projectId,
         @Nullable final String branchName,
         @Nullable final String baseBranchName) {
@@ -138,11 +138,11 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
             }
             if (webUrl == null)
                 if (full.test != null && full.test.id != null)
-                    webUrl = buildWebLink(teamcity, full.test.id, projectId, branchName);
+                    webUrl = buildWebLink(tcIgn, full.test.id, projectId, branchName);
 
             if (webUrlBaseBranch == null)
                 if (full.test != null && full.test.id != null)
-                    webUrlBaseBranch = buildWebLink(teamcity, full.test.id, projectId, baseBranchName);
+                    webUrlBaseBranch = buildWebLink(tcIgn, full.test.id, projectId, baseBranchName);
         });
 
     }
@@ -174,12 +174,12 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         }
     }
 
-    private static String buildWebLink(ITeamcity teamcity, Long id,
+    private static String buildWebLink(ITeamcityIgnited tcIgn, Long id,
         @Nullable String projectId, @Nullable String branchName) {
         if (projectId == null)
             return null;
         final String branch = branchForLink(branchName);
-        return teamcity.host() + "project.html"
+        return tcIgn.host() + "project.html"
             + "?projectId=" + projectId
             + "&testNameId=" + id
             + "&branch=" + escape(branch)

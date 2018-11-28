@@ -44,7 +44,7 @@ import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBranch;
+import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normalizeBranch;
 import static org.apache.ignite.ci.util.TimeUtil.millisToDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 
@@ -132,8 +132,12 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         name = suite.suiteName();
 
-        String failRateNormalizedBranch = normalizeBranch(baseBranch);
-        String curBranchNormalized = normalizeBranch(suite.branchName());
+        String failRateNormalizedBranch = NEW_RUN_STAT ? baseBranch : normalizeBranch(baseBranch);
+        String curBranchNormalized = NEW_RUN_STAT ? suite.branchName() : normalizeBranch(suite.branchName());
+
+        Function<TestInBranch, ? extends IRunHistory> testStatProv = NEW_RUN_STAT
+            ? tcIgnited::getTestRunHist
+            : tcAnalytics.getTestRunStatProvider();
 
         String suiteId = suite.suiteId();
         initSuiteStat(tcAnalytics, failRateNormalizedBranch, curBranchNormalized, suiteId);
@@ -152,11 +156,12 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         webToHistBaseBranch = buildWebLink(teamcity, suite, baseBranch);
         webToBuild = buildWebLinkToBuild(teamcity, suite);
 
+
         List<IMultTestOccurrence> tests = suite.getFailedTests();
         Function<IMultTestOccurrence, Float> function = foccur -> {
             TestInBranch testInBranch = new TestInBranch(foccur.getName(), failRateNormalizedBranch);
 
-            IRunHistory apply = tcIgnited.getTestRunHist(testInBranch);
+            IRunHistory apply = testStatProv.apply(testInBranch);
 
             return apply == null ? 0f : apply.getFailRate();
         };
@@ -165,17 +170,15 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         tests.forEach(occurrence -> {
             final TestFailure failure = new TestFailure();
-            failure.initFromOccurrence(occurrence, teamcity, suite.projectId(), suite.branchName(), baseBranch);
-            failure.initStat(
-                    NEW_RUN_STAT
-                            ? tcIgnited::getTestRunHist
-                            : tcAnalytics.getTestRunStatProvider(), failRateNormalizedBranch, curBranchNormalized);
+            failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(), baseBranch);
+            failure.initStat(testStatProv, failRateNormalizedBranch, curBranchNormalized);
 
             testFailures.add(failure);
         });
 
         suite.getTopLongRunning().forEach(occurrence -> {
-            final TestFailure failure = createOrrucForLongRun(tcIgnited, teamcity, suite, tcAnalytics, occurrence, baseBranch);
+            final TestFailure failure = createOrrucForLongRun(tcIgnited, suite, tcAnalytics,
+                occurrence, baseBranch, testStatProv);
 
             topLongRunning.add(failure);
         });
@@ -275,19 +278,17 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     }
 
     @NotNull public static TestFailure createOrrucForLongRun(ITeamcityIgnited tcIgnited,
-                                                             @Nonnull ITeamcity teamcity,
-                                                             @Nonnull MultBuildRunCtx suite,
-                                                             @Nullable final ITcAnalytics tcAnalytics,
-                                                             final IMultTestOccurrence occurrence,
-                                                             @Nullable final String failRateBranch) {
+        @Nonnull MultBuildRunCtx suite,
+        @Nullable final ITcAnalytics tcAnalytics,
+        final IMultTestOccurrence occurrence,
+        @Nullable final String failRateBranch,
+        Function<TestInBranch, ? extends IRunHistory> supplier) {
         final TestFailure failure = new TestFailure();
 
-        failure.initFromOccurrence(occurrence, teamcity, suite.projectId(), suite.branchName(), failRateBranch);
+        failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(), failRateBranch);
 
         if (tcAnalytics != null) {
-            failure.initStat(NEW_RUN_STAT
-                            ? tcIgnited::getTestRunHist
-                            : tcAnalytics.getTestRunStatProvider(),
+            failure.initStat(supplier,
                 normalizeBranch(failRateBranch),
                 normalizeBranch(suite.branchName()));
         }

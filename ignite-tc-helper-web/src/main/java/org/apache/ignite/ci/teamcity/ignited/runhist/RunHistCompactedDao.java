@@ -17,7 +17,6 @@
 
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
-import java.util.Iterator;
 import java.util.List;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
@@ -26,12 +25,13 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.configuration.CacheConfiguration;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
 import java.util.Collections;
+
+import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normalizeBranch;
 
 public class RunHistCompactedDao {
     /** Cache name.*/
@@ -73,7 +73,9 @@ public class RunHistCompactedDao {
         if (testName == null)
             return null;
 
-        final Integer branchId = compactor.getStringIdIfPresent(branch);
+        String normalizeBranch = normalizeBranch(branch);
+
+        final Integer branchId = compactor.getStringIdIfPresent(normalizeBranch);
         if (branchId == null)
             return null;
 

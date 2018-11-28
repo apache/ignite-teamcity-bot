@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITcAnalytics;
@@ -29,6 +30,8 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
@@ -132,7 +135,13 @@ public class ChainAtServerCurrentStatus {
                 MultBuildRunCtx suite = pairCtxAndOccur.get1();
                 IMultTestOccurrence longRunningOccur = pairCtxAndOccur.get2();
 
-                TestFailure failure = createOrrucForLongRun(tcIgnited, teamcity, suite, tcAnalytics, longRunningOccur, baseBranchTc);
+                Function<TestInBranch, ? extends IRunHistory> function = SuiteCurrentStatus.NEW_RUN_STAT
+                    ? tcIgnited::getTestRunHist
+                    : tcAnalytics.getTestRunStatProvider();
+
+                TestFailure failure = createOrrucForLongRun(tcIgnited, suite, tcAnalytics, longRunningOccur,
+                    baseBranchTc,
+                    function);
 
                 failure.testName = "[" + suite.suiteName() + "] " + failure.testName; //may be separate field
 

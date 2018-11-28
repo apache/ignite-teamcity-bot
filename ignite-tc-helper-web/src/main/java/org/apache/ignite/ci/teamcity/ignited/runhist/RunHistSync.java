@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.concurrent.GuardedBy;
 import javax.inject.Inject;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
@@ -37,6 +38,7 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +70,18 @@ public class RunHistSync {
     @GuardedBy("this")
     private final Map<String, SyncTask> buildToSave = new HashMap<>();
 
+    @NotNull public static String normalizeBranch(@Nullable String branchName) {
+        String branch = branchName == null ? ITeamcity.DEFAULT : branchName;
+
+        if (ITeamcity.REFS_HEADS_MASTER.equals(branch))
+            return ITeamcity.DEFAULT;
+
+        if ("master".equals(branch))
+            return ITeamcity.DEFAULT;
+
+        return branch;
+    }
+
     /**
      * @param srvVame Server id.
      * @param buildId Build id.
@@ -85,7 +99,9 @@ public class RunHistSync {
 
         Map<RunHistKey, List<Invocation>> data = new HashMap<>();
         build.getAllTests().forEach(t -> {
-            RunHistKey histKey = new RunHistKey(srvId, t.testName(), build.branchName());
+            int branchNameNormalized = compactor.getStringId(normalizeBranch(build.branchName(compactor)));
+
+            RunHistKey histKey = new RunHistKey(srvId, t.testName(), branchNameNormalized);
             List<Invocation> list = data.computeIfAbsent(histKey, k -> new ArrayList<>());
             Invocation inv = t.toInvocation(compactor, build);
             list.add(inv);
