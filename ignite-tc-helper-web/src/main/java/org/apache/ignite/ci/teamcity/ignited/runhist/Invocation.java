@@ -56,4 +56,12 @@ public class Invocation {
     public boolean isFailure() {
         return status == InvocationData.FAILURE || status == InvocationData.MUTED;
     }
+
+    public int buildId() {
+        return buildId;
+    }
+
+    public long startDate() {
+        return startDate;
+    }
 }

@@ -17,10 +17,13 @@
 
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
+import java.util.Iterator;
+import java.util.List;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
@@ -77,6 +80,7 @@ public class RunHistCompactedDao {
         return testHistCache.get(new RunHistKey(srvIdMaskHigh, testName, branchId));
     }
 
+    @AutoProfiling
     public Boolean addInvocation(final int srvId,
                                  final TestCompacted t,
                                  final int buildId,
@@ -119,5 +123,35 @@ public class RunHistCompactedDao {
 
     public boolean setBuildProcessed(int srvId, int buildId, long ts) {
         return buildStartTime.putIfAbsent(buildIdToCacheKey(srvId, buildId), ts);
+    }
+
+    public Integer addInvocations(RunHistKey histKey, List<Invocation> list) {
+        if(list.isEmpty())
+            return 0;
+
+        return testHistCache.invoke(histKey, (entry, parms) -> {
+                int cnt = 0;
+                RunHistCompacted hist = entry.getValue();
+
+                if (hist == null)
+                    hist = new RunHistCompacted(entry.getKey());
+
+                List<Invocation> invocationList = (List<Invocation>)parms[0];
+
+                for (Invocation invocation : invocationList) {
+                    boolean added = hist.addTestRun(
+                        invocation.buildId(),
+                        invocation);
+                    if (added)
+                        cnt++;
+
+                }
+
+                entry.setValue(hist);
+
+                return cnt;
+            },
+            list
+        );
     }
 }

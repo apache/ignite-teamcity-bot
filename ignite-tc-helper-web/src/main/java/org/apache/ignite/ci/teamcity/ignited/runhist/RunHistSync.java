@@ -19,10 +19,15 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import javax.inject.Inject;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -77,62 +82,138 @@ public class RunHistSync {
         if (histDao.buildWasProcessed(srvId, buildId))
             return;
 
+        boolean saveNow = false;
+
+        Map<RunHistKey, List<Invocation>> data = new HashMap<>();
+        build.getAllTests().forEach(t -> {
+            RunHistKey histKey = new RunHistKey(srvId, t.testName(), build.branchName());
+            List<Invocation> list = data.computeIfAbsent(histKey, k -> new ArrayList<>());
+            Invocation inv = t.toInvocation(compactor, build);
+            list.add(inv);
+        });
+
+        int cnt = containedTestsCnt(data);
+
         synchronized (this) {
             final SyncTask syncTask = buildToSave.computeIfAbsent(srvVame, s -> new SyncTask());
 
-            syncTask.buildsToSave.putIfAbsent(build.id(), build);
+            if (syncTask.sheduled() + cnt <= 100000)
+                syncTask.tests.putAll(data);
+            else
+                saveNow = true;
         }
 
-        scheduler.sheduleNamed(taskName("saveBuildToHistory", srvVame),
-            () -> saveBuildToHistory(srvVame), 2, TimeUnit.MINUTES);
+        if(saveNow)
+            saveInvocationsMap(data);
+        else {
+            scheduler.sheduleNamed(taskName("saveBuildToHistory", srvVame),
+                () -> saveBuildToHistory(srvVame), 2, TimeUnit.MINUTES);
+        }
     }
 
-    @AutoProfiling
     @MonitoredTask(name="Save Builds To History", nameExtArgIndex = 0)
     @SuppressWarnings("WeakerAccess")
     protected String saveBuildToHistory(String srvName) {
-        int srvMask = ITeamcityIgnited.serverIdToInt(srvName);
-        Map<Integer, FatBuildCompacted> saveThisRun;
+        Map<RunHistKey, List<Invocation>> saveThisRun;
 
         synchronized (this) {
             final SyncTask syncTask = buildToSave.get(srvName);
             if (syncTask == null)
                 return "Nothing to sync";
 
-            saveThisRun = syncTask.buildsToSave;
+            saveThisRun = syncTask.tests;
 
-            syncTask.buildsToSave = new HashMap<>();
+            syncTask.tests = new HashMap<>();
         }
 
-        AtomicInteger builds = new AtomicInteger();
+        return saveInvocationsMap(saveThisRun);
+    }
+
+    @AutoProfiling
+    @NotNull private String saveInvocationsMap(Map<RunHistKey, List<Invocation>> saveThisRun) {
+        Set<Integer> confirmedNewBuild = new HashSet<>();
+        Set<Integer> confirmedDuplicate = new HashSet<>();
         AtomicInteger invocations = new AtomicInteger();
         AtomicInteger duplicates = new AtomicInteger();
 
-        saveThisRun.values().forEach(
-            build -> {
-                builds.incrementAndGet();
+        saveThisRun.forEach(
+            (histKey, invocationList) -> {
+                saveInvocationList(confirmedNewBuild,
+                    confirmedDuplicate,
+                    invocations,
+                    duplicates,
+                    histKey, invocationList);
+            }
+        );
 
-                if (!histDao.setBuildProcessed(srvMask, build.id(), build.getStartDateTs())) {
-                    duplicates.incrementAndGet();
+        String res = "History entries: " + saveThisRun.size() + " processed " + invocations.get()
+            + " invocations saved to DB " + duplicates.get() + " duplicates";
+
+        System.out.println(Thread.currentThread().getName() + ":" + res);
+
+        return res;
+    }
+
+    private void saveInvocationList(Set<Integer> confirmedNewBuild,
+        Set<Integer> confirmedDuplicate,
+        AtomicInteger invocations,
+        AtomicInteger duplicates,
+        RunHistKey histKey,
+        List<Invocation> invocationList) {
+        List<Invocation> newInvocations = new ArrayList<>();
+        invocationList.forEach(
+            inv -> {
+                int buildId = inv.buildId();
+
+                if (confirmedNewBuild.contains(buildId)) {
+                    newInvocations.add(inv);
 
                     return;
                 }
 
-                build.getAllTests().forEach(t -> {
-                    Invocation inv = t.toInvocation(compactor, build);
+                if (confirmedDuplicate.contains(buildId))
+                    return;
 
-                    final Boolean res = histDao.addInvocation(srvMask, t, build.id(), build.branchName(), inv);
+                if (histDao.setBuildProcessed(histKey.srvId(), buildId, inv.startDate())) {
+                    confirmedNewBuild.add(buildId);
 
-                    if (Boolean.FALSE.equals(res))
-                        duplicates.incrementAndGet();
-                    else
-                        invocations.incrementAndGet();
-                });
+                    newInvocations.add(inv);
+                }
+                else
+                    confirmedDuplicate.add(buildId);
             }
         );
 
-        return "Builds: " + builds.get() + " processed " + invocations.get()
-                + " invocations saved to DB " + duplicates.get() + " duplicates";
+        Integer cntAdded = histDao.addInvocations(histKey, newInvocations);
+
+        invocations.addAndGet(cntAdded);
+        duplicates.addAndGet(invocationList.size() - cntAdded);
+    }
+
+    @AutoProfiling
+    protected void saveInvocationsForBuild(int srvMask,
+        @Nullable AtomicInteger invocations,
+        @Nullable AtomicInteger duplicates,
+        FatBuildCompacted build) {
+        if (!histDao.setBuildProcessed(srvMask, build.id(), build.getStartDateTs())) {
+            if (duplicates != null)
+                duplicates.incrementAndGet();
+
+            return;
+        }
+
+        build.getAllTests().forEach(t -> {
+            Invocation inv = t.toInvocation(compactor, build);
+
+            final Boolean res = histDao.addInvocation(srvMask, t, build.id(), build.branchName(), inv);
+
+            if (Boolean.FALSE.equals(res)) {
+                if (duplicates != null)
+                    duplicates.incrementAndGet();
+            }
+            else if (invocations != null)
+                invocations.incrementAndGet();
+        });
     }
 
     public void invokeLaterFindMissingHistory(String srvName) {
@@ -197,6 +278,7 @@ public class RunHistSync {
             && !fatBuild.isFakeStub()
             && !fatBuild.isOutdatedEntityVersion()
             && !fatBuild.isCancelled(compactor)
+            //todo support not finished build reloading
             && fatBuild.isFinished(compactor);
     }
 
@@ -204,8 +286,15 @@ public class RunHistSync {
      * Scope of work: builds to be loaded from a connection.
      */
     private static class SyncTask {
-        Map<Integer, FatBuildCompacted> buildsToSave = new HashMap<>();
+        Map<RunHistKey, List<Invocation>> tests = new HashMap<>();
+        Set<Integer> forBuilds = new HashSet<>();
 
-        GridConcurrentHashSet<Integer> loadingBuilds = new GridConcurrentHashSet<>();
+        public int sheduled() {
+            return containedTestsCnt(this.tests);
+        }
+    }
+
+    public static int containedTestsCnt(Map<RunHistKey, List<Invocation>> tests) {
+        return tests.values().stream().mapToInt(List::size).sum();
     }
 }
