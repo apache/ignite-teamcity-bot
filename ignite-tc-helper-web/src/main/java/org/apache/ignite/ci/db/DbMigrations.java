@@ -115,6 +115,15 @@ public class DbMigrations {
         String TESTS = "tests";
         String TEST_REFS = "testRefs";
         String ISSUES_USAGES_LIST = "issuesUsagesList";
+
+        /** Cache name.*/
+        public static final String TEST_HIST_CACHE_NAME = "testRunHistV0";
+
+        /** Build Start time Cache name. */
+        public static final String BUILD_START_TIME_CACHE_NAME = "buildStartTimeV0";
+
+        /** Cache name.*/
+        public static final String SUITE_HIST_CACHE_NAME = "teamcitySuiteRunHistV0";
     }
 
     private final Ignite ignite;
@@ -396,6 +405,10 @@ public class DbMigrations {
         applyDestroyIgnCacheMigration(Old.TEST_REFS);
 
         applyDestroyIgnCacheMigration(Old.ISSUES_USAGES_LIST);
+
+        applyDestroyCacheMigration(Old.SUITE_HIST_CACHE_NAME, Old.SUITE_HIST_CACHE_NAME);
+        applyDestroyCacheMigration(Old.BUILD_START_TIME_CACHE_NAME, Old.BUILD_START_TIME_CACHE_NAME);
+        applyDestroyCacheMigration(Old.TEST_HIST_CACHE_NAME, Old.TEST_HIST_CACHE_NAME);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {

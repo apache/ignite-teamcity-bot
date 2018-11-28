@@ -33,6 +33,7 @@ import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitSheduler;
@@ -360,7 +361,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         final Map<Integer, FatBuildCompacted> buildsMap = tst.apacheBuilds();
 
         final RunHistSync histSync = injector.getInstance(RunHistSync.class);
-        buildsMap.forEach((id, build) -> histSync.saveToHistoryLater(srvId, id, build));
+        buildsMap.forEach((id, build) -> histSync.saveToHistoryLater(srvId, build));
 
         final ITeamcityIgnitedProvider inst = injector.getInstance(ITeamcityIgnitedProvider.class);
         final ITeamcityIgnited srv = inst.server(srvId, Mockito.mock(ICredentialsProv.class));
@@ -368,6 +369,11 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         assertNotNull(testRunHist);
         assertEquals(0.5, testRunHist.getFailRate(), 0.1);
+
+        final IRunHistory cache1Hist = srv.getSuiteRunHist(new SuiteInBranch(PrChainsProcessorTest.CACHE_1, branch));
+
+        assertNotNull(cache1Hist);
+        assertEquals(1.0, cache1Hist.getFailRate(), 0.1);
     }
 
 

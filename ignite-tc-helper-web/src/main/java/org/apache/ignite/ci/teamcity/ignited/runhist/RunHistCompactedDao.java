@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import java.util.List;
+import javax.cache.processor.MutableEntry;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.QueryEntity;
@@ -30,19 +31,23 @@ import org.apache.ignite.configuration.CacheConfiguration;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import java.util.Collections;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normalizeBranch;
 
+/**
+ *
+ */
 public class RunHistCompactedDao {
-    /** Cache name.*/
-    public static final String TEST_HIST_CACHE_NAME = "testRunHistV0";
+    /** Cache name. */
+    public static final String TEST_HIST_CACHE_NAME = "teamcityTestRunHistV0";
 
     /** Build Start time Cache name. */
-    public static final String BUILD_START_TIME_CACHE_NAME = "buildStartTimeV0";
+    public static final String BUILD_START_TIME_CACHE_NAME = "teamcityBuildStartTimeV0";
 
-    /** Cache name.*/
-    public static final String SUITE_HIST_CACHE_NAME = "teamcitySuiteRunHistV0";
+    /** Suites history Cache name.*/
+    public static final String SUITE_HIST_CACHE_NAME = "teamcitySuiteRunHist";
 
 
     /** Ignite provider. */
@@ -75,7 +80,7 @@ public class RunHistCompactedDao {
 
         buildStartTime = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(BUILD_START_TIME_CACHE_NAME));
 
-        final CacheConfiguration<RunHistKey, RunHistCompacted> cfg2 = TcHelperDb.getCacheV2Config(SUITE_HIST_CACHE_NAME);
+        final CacheConfiguration<RunHistKey, RunHistCompacted> cfg2 = TcHelperDb.getCache8PartsConfig(SUITE_HIST_CACHE_NAME);
 
         cfg2.setQueryEntities(Collections.singletonList(new QueryEntity(RunHistKey.class, RunHistCompacted.class)));
 
@@ -123,38 +128,47 @@ public class RunHistCompactedDao {
     }
 
     @AutoProfiling
-    public Integer addInvocations(RunHistKey histKey, List<Invocation> list) {
+    public Integer addTestInvocations(RunHistKey histKey, List<Invocation> list) {
         if (list.isEmpty())
             return 0;
 
-        return testHistCache.invoke(histKey, (entry, parms) -> {
-                int cnt = 0;
+        return testHistCache.invoke(histKey, RunHistCompactedDao::processEntry, list);
+    }
 
-                RunHistCompacted hist = entry.getValue();
 
-                if (hist == null)
-                    hist = new RunHistCompacted(entry.getKey());
+    @AutoProfiling
+    public Integer addSuiteInvocations(RunHistKey histKey, List<Invocation> list) {
+        if (list.isEmpty())
+            return 0;
 
-                int initHashCode = hist.hashCode();
+        return suiteHistCacheName.invoke(histKey, RunHistCompactedDao::processEntry, list);
+    }
 
-                List<Invocation> invocationList = (List<Invocation>)parms[0];
+    @NotNull public static Integer processEntry(MutableEntry<RunHistKey, RunHistCompacted> entry, Object[] parms) {
+        int cnt = 0;
 
-                for (Invocation invocation : invocationList) {
-                    boolean added = hist.addTestRun(
-                        invocation.buildId(),
-                        invocation);
+        RunHistCompacted hist = entry.getValue();
 
-                    if (added)
-                        cnt++;
-                }
+        if (hist == null)
+            hist = new RunHistCompacted(entry.getKey());
 
-                if (cnt > 0 || hist.hashCode() != initHashCode)
-                    entry.setValue(hist);
+        int initHashCode = hist.hashCode();
 
-                return cnt;
-            },
-            list
-        );
+        List<Invocation> invocationList = (List<Invocation>)parms[0];
+
+        for (Invocation invocation : invocationList) {
+            boolean added = hist.addTestRun(
+                invocation.buildId(),
+                invocation);
+
+            if (added)
+                cnt++;
+        }
+
+        if (cnt > 0 || hist.hashCode() != initHashCode)
+            entry.setValue(hist);
+
+        return cnt;
     }
 
     /**

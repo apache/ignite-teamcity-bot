@@ -69,6 +69,7 @@ public class PrChainsProcessorTest {
     public static final String TEST_WITHOUT_HISTORY = "testWithoutHistory";
     public static final String TEST_WAS_FIXED_IN_MASTER = "testFailingButFixedInMaster";
     public static final int NUM_OF_TESTS_IN_MASTER = 10;
+    public static final String CACHE_1 = "Cache1";
 
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
 
@@ -168,7 +169,7 @@ public class PrChainsProcessorTest {
         buildBuild.addProblems(c, Collections.singletonList(compile));
 
         final FatBuildCompacted childBuild =
-            createFailedBuild(c, "Cache1", branch, 1001, 100020)
+            createFailedBuild(c, CACHE_1, branch, 1001, 100020)
                 .addTests(c,
                     Lists.newArrayList(
                         createFailedTest(1L, TEST_WITHOUT_HISTORY),
@@ -200,7 +201,7 @@ public class PrChainsProcessorTest {
         addBuilds(cancelledBuild);
 
         for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++) {
-            addBuilds(createFailedBuild(c, "Cache1",
+            addBuilds(createFailedBuild(c, CACHE_1,
                 ITeamcity.DEFAULT, 500 + i, 100000 + (i * 10000))
                 .addTests(c, Lists.newArrayList(
                     createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
@@ -212,7 +213,7 @@ public class PrChainsProcessorTest {
         long ageMs = TimeUnit.DAYS.toMillis(InvocationData.MAX_DAYS);
 
         for (int i = 0; i < 134; i++) {
-            addBuilds(createFailedBuild(c, "Cache1",
+            addBuilds(createFailedBuild(c, CACHE_1,
                 ITeamcity.DEFAULT, i, ageMs + (i * 10000))
                 .addTests(c, Lists.newArrayList(
                     createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER))));

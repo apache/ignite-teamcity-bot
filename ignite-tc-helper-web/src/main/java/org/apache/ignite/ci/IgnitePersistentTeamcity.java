@@ -349,9 +349,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.host();
     }
 
+    @Deprecated
     private void registerCriticalBuildProblemInStat(BuildRef build, ProblemOccurrences problems) {
         boolean criticalFail = problems.getProblemsNonNull().stream().anyMatch(occurrence ->
-            occurrence.isExecutionTimeout() || occurrence.isJvmCrash() || occurrence.isFailureOnMetric()
+            occurrence.isExecutionTimeout()
+                || occurrence.isJvmCrash()
+                || occurrence.isFailureOnMetric()
                 || occurrence.isCompilationError());
 
         String suiteId = build.suiteId();

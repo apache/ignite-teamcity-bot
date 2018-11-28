@@ -32,6 +32,8 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
+import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -462,5 +464,26 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             .add("statistics", statistics)
             .add("changesIds", changesIds)
             .toString();
+    }
+
+    public Invocation toInvocation(IStringCompactor compactor) {
+        boolean success = isSuccess(compactor);
+
+        final Invocation invocation = new Invocation(getId());
+
+        final int failCode ;
+
+        if(success)
+            failCode = InvocationData.OK;
+        else {
+            failCode = InvocationData.FAILURE;
+
+
+        }
+
+        invocation.status((byte) failCode);
+        invocation.startDate(getStartDateTs());
+        invocation.changesPresent(changes().length > 0 ? 1 : 0);
+        return invocation;
     }
 }

@@ -191,6 +191,10 @@ public class BuildRefCompacted {
         return compactor.getStringId(STATE_QUEUED) == state();
     }
 
+    public boolean isSuccess(IStringCompactor compactor) {
+        return compactor.getStringId(STATUS_SUCCESS) == status();
+    }
+
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("id", id)

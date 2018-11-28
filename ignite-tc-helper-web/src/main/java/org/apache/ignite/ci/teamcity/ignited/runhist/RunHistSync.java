@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.GuardedBy;
 import javax.inject.Inject;
 import org.apache.ignite.ci.ITeamcity;
@@ -87,15 +89,14 @@ public class RunHistSync {
 
     /**
      * @param srvVame Server id.
-     * @param buildId Build id.
      * @param build Build.
      */
-    public void saveToHistoryLater(String srvVame, int buildId, FatBuildCompacted build) {
+    public void saveToHistoryLater(String srvVame, FatBuildCompacted build) {
         if (!validForStatistics(build))
             return;
 
         int srvId = ITeamcityIgnited.serverIdToInt(srvVame);
-        if (histDao.buildWasProcessed(srvId, buildId))
+        if (histDao.buildWasProcessed(srvId, build.id()))
             return;
 
         boolean saveNow = false;
@@ -110,19 +111,26 @@ public class RunHistSync {
             list.add(inv);
         });
 
+        RunHistKey buildInvKey = new RunHistKey(srvId, build.buildTypeId(), branchNameNormalized);
+        Invocation buildInv = build.toInvocation(compactor);
+
         int cnt = containedTestsCnt(testInvMap);
 
         synchronized (this) {
             final SyncTask syncTask = buildToSave.computeIfAbsent(srvVame, s -> new SyncTask());
 
             if (syncTask.sheduled() + cnt <= MAX_TESTS_QUEUE)
-                syncTask.tests.putAll(testInvMap);
+                syncTask.addLater(testInvMap, buildInvKey, buildInv);
             else
                 saveNow = true;
         }
 
-        if(saveNow)
-            saveInvocationsMap(testInvMap);
+        if (saveNow) {
+            Map<RunHistKey, List<Invocation>> suiteAsMap =
+                Collections.singletonMap(buildInvKey,
+                    Collections.singletonList(buildInv));
+            saveInvocationsMap(suiteAsMap, testInvMap);
+        }
         else {
             int ldrToActivate = ThreadLocalRandom.current().nextInt(HIST_LDR_TASKS) + 1;
 
@@ -135,6 +143,7 @@ public class RunHistSync {
     @SuppressWarnings("WeakerAccess")
     protected String saveBuildToHistory(String srvName, int ldrToActivate) {
         Map<RunHistKey, List<Invocation>> saveThisRun;
+        Map<RunHistKey, List<Invocation>> buildsSaveThisRun;
 
         synchronized (this) {
             final SyncTask syncTask = buildToSave.get(srvName);
@@ -142,31 +151,47 @@ public class RunHistSync {
                 return "Nothing to sync";
 
             saveThisRun = syncTask.tests;
+            buildsSaveThisRun = syncTask.suites;
 
             syncTask.tests = new HashMap<>();
         }
 
-        return saveInvocationsMap(saveThisRun);
+        return saveInvocationsMap(buildsSaveThisRun, saveThisRun);
     }
 
     @AutoProfiling
-    @NotNull protected String saveInvocationsMap(Map<RunHistKey, List<Invocation>> saveThisRun) {
+    @NotNull protected String saveInvocationsMap(
+        Map<RunHistKey, List<Invocation>> buildsSaveThisRun,
+        Map<RunHistKey, List<Invocation>> saveThisRun) {
         Set<Integer> confirmedNewBuild = new HashSet<>();
         Set<Integer> confirmedDuplicate = new HashSet<>();
-        AtomicInteger invocations = new AtomicInteger();
+
+        AtomicInteger cntTestInvocations = new AtomicInteger();
         AtomicInteger duplicateOrExpired = new AtomicInteger();
+        AtomicInteger cntSuiteInvocations = new AtomicInteger();
 
         saveThisRun.forEach(
             (histKey, invocationList) -> {
                 saveInvocationList(confirmedNewBuild,
                     confirmedDuplicate,
-                    invocations,
+                    cntTestInvocations,
                     duplicateOrExpired,
                     histKey, invocationList);
             }
         );
 
-        String res = "History entries: " + saveThisRun.size() + " processed " + invocations.get()
+        buildsSaveThisRun.forEach(
+            (histKey,suiteList)->{
+                List<Invocation> invocationsToSave = suiteList.stream()
+                    .filter(invocation -> confirmedNewBuild.contains(invocation.buildId()))
+                    .collect(Collectors.toList());
+
+                Integer cntAdded = histDao.addSuiteInvocations(histKey, invocationsToSave);
+                cntSuiteInvocations.addAndGet(cntAdded);
+            }
+        );
+
+        String res = "History test entries: " + saveThisRun.size() + " processed " + cntTestInvocations.get()
             + " invocations saved to DB " + duplicateOrExpired.get() + " duplicates/expired";
 
         System.out.println(Thread.currentThread().getName() + ":" + res);
@@ -206,7 +231,7 @@ public class RunHistSync {
             }
         );
 
-        Integer cntAdded = histDao.addInvocations(histKey, invocationsToSave);
+        Integer cntAdded = histDao.addTestInvocations(histKey, invocationsToSave);
 
         invocations.addAndGet(cntAdded);
         duplicateOrExpired.addAndGet(invocationList.size() - cntAdded);
@@ -262,7 +287,7 @@ public class RunHistSync {
             FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(ITeamcityIgnited.serverIdToInt(srvNme), id);
 
             if (validForStatistics(fatBuild))
-                saveToHistoryLater(srvNme, fatBuild.id(), fatBuild);
+                saveToHistoryLater(srvNme, fatBuild);
             else
                 logger.info("Build is not valid for stat: " +
                     (fatBuild != null ? fatBuild.getId() : null));
@@ -282,11 +307,20 @@ public class RunHistSync {
      * Scope of work: builds to be loaded from a connection.
      */
     private static class SyncTask {
+        Map<RunHistKey, List<Invocation>> suites = new HashMap<>();
         Map<RunHistKey, List<Invocation>> tests = new HashMap<>();
-        Set<Integer> forBuilds = new HashSet<>();
 
         public int sheduled() {
             return containedTestsCnt(this.tests);
+        }
+
+        public void addLater(Map<RunHistKey, List<Invocation>> testInvMap,
+            RunHistKey buildInvKey,
+            Invocation buildInv) {
+            suites
+                .computeIfAbsent(buildInvKey, k -> new ArrayList<>())
+                .add(buildInv);
+            tests.putAll(testInvMap);
         }
     }
 
