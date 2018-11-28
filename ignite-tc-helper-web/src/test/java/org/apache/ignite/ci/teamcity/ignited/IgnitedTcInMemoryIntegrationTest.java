@@ -374,6 +374,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         assertNotNull(cache1Hist);
         assertEquals(1.0, cache1Hist.getFailRate(), 0.1);
+        assertEquals(0.18, cache1Hist.getCriticalFailRate(), 0.05);
     }
 
 

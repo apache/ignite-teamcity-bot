@@ -201,13 +201,21 @@ public class PrChainsProcessorTest {
         addBuilds(cancelledBuild);
 
         for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++) {
-            addBuilds(createFailedBuild(c, CACHE_1,
+            FatBuildCompacted cache1InMaster = createFailedBuild(c, CACHE_1,
                 ITeamcity.DEFAULT, 500 + i, 100000 + (i * 10000))
                 .addTests(c, Lists.newArrayList(
                     createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
                     createPassingTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
                     createTest(50L, TEST_FLAKY_IN_MASTER, i % 2 == 0),
-                    createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER))));
+                    createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)));
+
+            if (i % 7 == 1) {
+                ProblemOccurrence timeout = new ProblemOccurrence();
+                timeout.setType(ProblemOccurrence.TC_EXECUTION_TIMEOUT);
+                cache1InMaster.addProblems(c, Collections.singletonList(timeout));
+            }
+
+            addBuilds(cache1InMaster);
         }
 
         long ageMs = TimeUnit.DAYS.toMillis(InvocationData.MAX_DAYS);

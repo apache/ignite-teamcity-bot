@@ -473,15 +473,22 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         final int failCode ;
 
-        if(success)
+        if (success)
             failCode = InvocationData.OK;
         else {
-            failCode = InvocationData.FAILURE;
-
+            if (problems()
+                .stream().anyMatch(occurrence ->
+                    occurrence.isExecutionTimeout(compactor)
+                        || occurrence.isJvmCrash(compactor)
+                        || occurrence.isBuildFailureOnMetric(compactor)
+                        || occurrence.isCompilationError(compactor)))
+                failCode = InvocationData.CRITICAL_FAILURE;
+            else
+                failCode = InvocationData.FAILURE;
 
         }
 
-        invocation.status((byte) failCode);
+        invocation.status((byte)failCode);
         invocation.startDate(getStartDateTs());
         invocation.changesPresent(changes().length > 0 ? 1 : 0);
         return invocation;

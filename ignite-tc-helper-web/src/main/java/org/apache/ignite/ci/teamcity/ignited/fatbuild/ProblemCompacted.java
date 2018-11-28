@@ -124,6 +124,15 @@ public class ProblemCompacted {
         return compactor.getStringId(ProblemOccurrence.TC_COMPILATION_ERROR) == type;
     }
 
+
+    /** */
+    public boolean isBuildFailureOnMetric(IStringCompactor compactor) {
+        return compactor.getStringId(ProblemOccurrence.BUILD_FAILURE_ON_METRIC) == type;
+    }
+
+    /**
+     * @param compactor Compactor.
+     */
     public boolean isExecutionTimeout(IStringCompactor compactor) {
         return compactor.getStringId(ProblemOccurrence.TC_EXECUTION_TIMEOUT) == type;
     }

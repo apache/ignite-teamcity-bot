@@ -139,7 +139,7 @@ public class InvocationData {
      *
      */
     public int failuresCount() {
-        return (int)invocations().filter(inv -> inv.status == FAILURE).count();
+        return (int)invocations().filter(inv -> inv.status == FAILURE || inv.status == CRITICAL_FAILURE).count();
     }
 
     /** {@inheritDoc} */
