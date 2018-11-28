@@ -58,7 +58,20 @@ function showChainResultsWithSettings(result, settings) {
         res += "]";
     } else
         res += " is absent";
-    res += " | Suite: <b>" + findGetParameter("suiteId") + "</b>";
+
+    let suiteId;
+
+    if (isDefinedAndFilled(findGetParameter("suiteId"))) {
+        suiteId = findGetParameter("suiteId");
+    } else if (isDefinedAndFilled(result.servers[0])) {
+        let url = new URL(result.servers[0].webToHist);
+
+        suiteId = url.searchParams.get("buildTypeId");
+    }
+
+    if (isDefinedAndFilled(suiteId))
+        res += " | Suite: <b>" + suiteId + "</b>";
+
     res += "</td></tr>";
     res += "</table>";
 
