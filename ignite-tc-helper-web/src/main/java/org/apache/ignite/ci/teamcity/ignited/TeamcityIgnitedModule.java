@@ -20,6 +20,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeSync;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.FatBuildTypeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
@@ -47,7 +48,7 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(ChangeDao.class).in(new SingletonScope());
         bind(BuildTypeRefDao.class).in(new SingletonScope());
         bind(FatBuildTypeDao.class).in(new SingletonScope());
-
+        bind(BuildTypeSync.class).in(new SingletonScope());
         bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
 
         TcRestCachedModule module = new TcRestCachedModule();

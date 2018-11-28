@@ -26,16 +26,13 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
-import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.FatBuildTypeCompacted;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.FatBuildTypeDao;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeSync;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
@@ -102,13 +99,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @Inject private BuildTypeRefDao buildTypeRefDao;
 
     /** BuildType DAO. */
-    @Inject private FatBuildTypeDao fatBuildTypeDao;
+    @Inject private BuildTypeSync buildTypeSync;
 
     /** Changes DAO. */
     @Inject private IStringCompactor compactor;
-
-    /** Saved list of composite suites for "IgniteTests24Java8" project. */
-    private List<String> compositeBuildTypesIdsForDefaultProject;
 
     /** Server ID mask for cache Entries. */
     private int srvIdMaskHigh;
@@ -122,10 +116,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         buildConditionDao.init();
         fatBuildDao.init();
         changesDao.init();
-
-        compositeBuildTypesIdsForDefaultProject = Collections.emptyList();
     }
-
 
     @NotNull
     private String taskName(String taskName) {
@@ -328,33 +319,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return chains;
     }
 
-    /**
-     * Actualize saved list of composite suites for project.
-     *
-     * @param projectId Project id.
-     */
-    private void actualizeSavedCompositeBuildTypesIds(String projectId) {
-        if (projectId.equals(DEFAULT_PROJECT_ID)) {
-            compositeBuildTypesIdsForDefaultProject =
-                fatBuildTypeDao.compositeBuildTypesIdsSortedByBuildNumberCounter(srvIdMaskHigh, projectId);
-        }
-    }
-
     /** {@inheritDoc} */
     @Override public List<String> getCompositeBuildTypesIdsSortedByBuildNumberCounter(String projectId) {
-        ensureActualizeBuildTypeRefsRequested();
-        ensureActualizeBuildTypesRequested();
-
-        return (projectId.equals(DEFAULT_PROJECT_ID) && !compositeBuildTypesIdsForDefaultProject.isEmpty()) ?
-            compositeBuildTypesIdsForDefaultProject :
-            fatBuildTypeDao.compositeBuildTypesIdsSortedByBuildNumberCounter(srvIdMaskHigh, projectId);
+        return buildTypeSync.getCompositeBuildTypesIdsSortedByBuildNumberCounter(srvIdMaskHigh, projectId, conn);
     }
 
     /** {@inheritDoc} */
     @Override public List<BuildTypeRefCompacted> getAllBuildTypesCompacted(String projectId) {
-        ensureActualizeBuildTypeRefsRequested();
-
-        return buildTypeRefDao.buildTypesCompacted(srvIdMaskHigh, projectId);
+        return buildTypeSync.getAllBuildTypesCompacted(srvIdMaskHigh, projectId, conn);
     }
 
     /** {@inheritDoc} */
@@ -362,108 +334,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return buildTypeRefDao.getBuildTypeRef(srvIdMaskHigh, buildTypeId);
     }
 
-    /**
-     * Ensure actualize BuildTypeRefs requested. Add this task to scheduler.
-     */
-    private void ensureActualizeBuildTypeRefsRequested() {
-        scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs"),
-            this::reindexBuildTypeRefs, 4, TimeUnit.HOURS);
-    }
-
-    /**
-     *Ensure actualize BuildTypes requested. Add this task to scheduler.
-     */
-    private void ensureActualizeBuildTypesRequested() {
-        scheduler.sheduleNamed(taskName("actualizeAllBuildTypes"),
-            this::reindexBuildTypes, 24, TimeUnit.HOURS);
-    }
-
-    /**
-     * Re-index all references to "IgniteTests24Java8" suites.
-     */
-    private void reindexBuildTypeRefs() {
-        runActualizeBuildTypeRefs(DEFAULT_PROJECT_ID);
-    }
-
-    /**
-     * Re-index all "IgniteTests24Java8" suites.
-     */
-    private void reindexBuildTypes() {
-        runActualizeBuildTypes(DEFAULT_PROJECT_ID);
-    }
-
-    /**
-     * Re-index all project suites.
-     *
-     * @param projectId Project id.
-     * @return Statistics with the number of updated and requested buildTypes.
-     */
-    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
-    @MonitoredTask(name = "Reindex BuildTypes (projectId)", nameExtArgsIndexes = {0})
-    @AutoProfiling
-    protected String runActualizeBuildTypes(String projectId) {
-        Map<String, Boolean> buildTypeIds = buildTypeRefDao.allBuildTypeIds(srvIdMaskHigh, projectId);
-
-        int updated = 0;
-        int removed = 0;
-
-        for (Map.Entry<String, Boolean> entry : buildTypeIds.entrySet()) {
-            String id = entry.getKey();
-            boolean rmv = entry.getValue();
-
-            FatBuildTypeCompacted existingBuildType = fatBuildTypeDao.getFatBuildType(srvIdMaskHigh, id);
-
-            if (rmv) {
-                if (existingBuildType != null) {
-                    existingBuildType.markRemoved();
-
-                    if (fatBuildTypeDao.save(srvIdMaskHigh, existingBuildType))
-                        removed++;
-                }
-            } else {
-                BuildTypeFull buildType = conn.getBuildType(id);
-
-                if (fatBuildTypeDao.saveBuildType(srvIdMaskHigh, buildType, existingBuildType) != null)
-                    updated++;
-            }
-        }
-
-        if (updated != 0 || removed != 0)
-            actualizeSavedCompositeBuildTypesIds(projectId);
-
-        return "BuildTypes updated " + updated +
-            (removed == 0 ? "" : " and mark as removed " + removed) +
-            " from " + buildTypeIds.size() + " requested";
-    }
-
-    /**
-     * Re-index all references to project suites.
-     *
-     * @param projectId Project id.
-     * @return Statistics with the number of updated and requested buildTypeRefs.
-     */
-    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
-    @MonitoredTask(name = "Reindex BuildTypeRefs (projectId)", nameExtArgsIndexes = {0})
-    @AutoProfiling
-    protected String runActualizeBuildTypeRefs(String projectId) {
-        List<BuildType> tcData = conn.getBuildTypes(projectId);
-
-        Set<Long> buildsUpdated = buildTypeRefDao.saveChunk(srvIdMaskHigh, Collections.unmodifiableList(tcData));
-
-        Set<String> rmvBuildTypes = buildTypeRefDao.markMissingBuildsAsRemoved(srvIdMaskHigh,
-            tcData.stream().map(BuildType::getId).collect(Collectors.toList()), projectId);
-
-        if (!(buildsUpdated.isEmpty() && rmvBuildTypes.isEmpty())) {
-            if (!rmvBuildTypes.isEmpty())
-                actualizeSavedCompositeBuildTypesIds(projectId);
-
-            runActualizeBuildTypes(projectId);
-        }
-
-        return "BuildTypeRefs updated " + buildsUpdated.size() +
-            (rmvBuildTypes.isEmpty() ? "" : " and mark as removed " + rmvBuildTypes.size()) +
-            " from " + tcData.size() + " requested";
-    }
 
     public List<String> branchForQuery(@Nullable String branchName) {
         if (ITeamcity.DEFAULT.equals(branchName))
