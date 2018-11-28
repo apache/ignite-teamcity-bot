@@ -40,7 +40,7 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     private short _ver = LATEST_VERSION;
 
     @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "tstAndSrv", order = 0)})
-    private int testNameOrSuite;
+    private int testOrSuiteName;
 
     @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "tstAndSrv", order = 1)})
     private int srvId;
@@ -50,7 +50,7 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     public RunHistCompacted() {}
 
     public RunHistCompacted(RunHistKey k) {
-        testNameOrSuite = k.testNameOrSuite();
+        testOrSuiteName = k.testNameOrSuite();
         srvId = k.srvId();
     }
 
@@ -94,6 +94,10 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
         return null;
     }
 
+    @Override public int getCriticalFailuresCount() {
+        return data.criticalFailuresCount();
+    }
+
     /**
      * @param build Build.
      * @param inv Invocation.
@@ -106,13 +110,14 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("nameId", testNameOrSuite)
+                .add("nameId", testOrSuiteName)
                 .add("srvId", srvId)
                 .add("failRate", getFailPercentPrintable())
                 .add("data", data)
                 .toString();
     }
 
+    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
@@ -120,12 +125,13 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
             return false;
         RunHistCompacted compacted = (RunHistCompacted)o;
         return _ver == compacted._ver &&
-            testNameOrSuite == compacted.testNameOrSuite &&
+            testOrSuiteName == compacted.testOrSuiteName &&
             srvId == compacted.srvId &&
             Objects.equal(data, compacted.data);
     }
 
+    /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(_ver, testNameOrSuite, srvId, data);
+        return Objects.hashCode(_ver, testOrSuiteName, srvId, data);
     }
 }

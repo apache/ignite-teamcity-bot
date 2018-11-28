@@ -65,4 +65,23 @@ public interface IRunHistory {
     List<Integer> getLatestRunResults();
 
     String getFlakyComments();
+
+    public default String getCriticalFailPercentPrintable() {
+        return IRunHistory.getPercentPrintable(getCriticalFailRate() * 100.0f);
+    }
+
+    /**
+     * @return float representing fail rate
+     */
+    public default float getCriticalFailRate() {
+        int runs = getRunsCount();
+
+        if (runs == 0)
+            return 1.0f;
+
+        return 1.0f * getCriticalFailuresCount() / runs;
+    }
+
+
+    public int getCriticalFailuresCount();
 }

@@ -49,12 +49,15 @@ class TcBotScheduler implements IScheduler {
     /** Submit named task checker guard. */
     private AtomicBoolean tickGuard = new AtomicBoolean();
 
+    /** Named tasks. */
     private final ConcurrentMap<String, NamedTask> namedTasks = new ConcurrentHashMap<>();
 
+    /** {@inheritDoc} */
     @Override public void invokeLater(Runnable cmd, long delay, TimeUnit unit) {
         service().schedule(cmd, delay, unit);
     }
 
+    /** {@inheritDoc} */
     @Override public void sheduleNamed(String fullName, Runnable cmd, long queitPeriod, TimeUnit unit) {
         NamedTask task = namedTasks.computeIfAbsent(fullName, NamedTask::new);
 
@@ -62,7 +65,7 @@ class TcBotScheduler implements IScheduler {
 
         if (tickGuard.compareAndSet(false, true)) {
             for (int threadId = 0; threadId < POOL_SIZE; threadId++) {
-                String threadNme = ", runner" + Strings.padStart(Integer.toString(threadId), 2, '0');
+                String threadNme = "Runner " + Strings.padStart(Integer.toString(threadId), 2, '0');
                 int period = 15000 + ThreadLocalRandom.current().nextInt(10000);
                 service().scheduleAtFixedRate(() -> checkNamedTasks(threadNme), 0, period, TimeUnit.MILLISECONDS);
             }
@@ -70,7 +73,7 @@ class TcBotScheduler implements IScheduler {
     }
 
     /**
-     * @param threadNme
+     * @param threadNme Runner name to be used in display.
      */
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
     @MonitoredTask(name = "Scheduled", nameExtArgIndex = 0)

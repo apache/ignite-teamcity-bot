@@ -21,6 +21,8 @@ import java.util.Date;
 import java.util.List;
 import javax.annotation.Nullable;
 
+import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
@@ -126,4 +128,7 @@ public interface ITeamcityIgnited {
 
     @Nullable
     IRunHistory getTestRunHist(TestInBranch testInBranch);
+
+    @Nullable
+    IRunHistory getSuiteRunHist(SuiteInBranch branch);
 }

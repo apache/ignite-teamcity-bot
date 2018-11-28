@@ -21,6 +21,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
@@ -318,9 +319,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return chains;
     }
 
+    /** {@inheritDoc} */
     @Nullable
     @Override public IRunHistory getTestRunHist(TestInBranch testInBranch) {
-         return runHistCompactedDao.getTestRunHist(srvIdMaskHigh, testInBranch.name, testInBranch.branch);
+        return runHistCompactedDao.getTestRunHist(srvIdMaskHigh, testInBranch.name, testInBranch.branch);
+    }
+
+    /** {@inheritDoc} */
+    @Nullable
+    @Override public IRunHistory getSuiteRunHist(SuiteInBranch suiteInBranch) {
+        return runHistCompactedDao.getSuiteRunHist(srvIdMaskHigh, suiteInBranch.getSuiteId(), suiteInBranch.branch);
     }
 
     public List<String> branchForQuery(@Nullable String branchName) {

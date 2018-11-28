@@ -70,6 +70,9 @@ public class RunHistSync {
     @GuardedBy("this")
     private final Map<String, SyncTask> buildToSave = new HashMap<>();
 
+    /**
+     * @param branchName Branch name.
+     */
     @NotNull public static String normalizeBranch(@Nullable String branchName) {
         String branch = branchName == null ? ITeamcity.DEFAULT : branchName;
 
@@ -97,29 +100,29 @@ public class RunHistSync {
 
         boolean saveNow = false;
 
-        Map<RunHistKey, List<Invocation>> data = new HashMap<>();
-        build.getAllTests().forEach(t -> {
-            int branchNameNormalized = compactor.getStringId(normalizeBranch(build.branchName(compactor)));
+        int branchNameNormalized = compactor.getStringId(normalizeBranch(build.branchName(compactor)));
 
+        Map<RunHistKey, List<Invocation>> testInvMap = new HashMap<>();
+        build.getAllTests().forEach(t -> {
             RunHistKey histKey = new RunHistKey(srvId, t.testName(), branchNameNormalized);
-            List<Invocation> list = data.computeIfAbsent(histKey, k -> new ArrayList<>());
+            List<Invocation> list = testInvMap.computeIfAbsent(histKey, k -> new ArrayList<>());
             Invocation inv = t.toInvocation(compactor, build);
             list.add(inv);
         });
 
-        int cnt = containedTestsCnt(data);
+        int cnt = containedTestsCnt(testInvMap);
 
         synchronized (this) {
             final SyncTask syncTask = buildToSave.computeIfAbsent(srvVame, s -> new SyncTask());
 
             if (syncTask.sheduled() + cnt <= MAX_TESTS_QUEUE)
-                syncTask.tests.putAll(data);
+                syncTask.tests.putAll(testInvMap);
             else
                 saveNow = true;
         }
 
         if(saveNow)
-            saveInvocationsMap(data);
+            saveInvocationsMap(testInvMap);
         else {
             int ldrToActivate = ThreadLocalRandom.current().nextInt(HIST_LDR_TASKS) + 1;
 
@@ -247,7 +250,7 @@ public class RunHistSync {
             scheduleHistLoad(srvId, buildsIdsToLoad);
         }
 
-        return "Invoked later load for " + totalAskedToLoad + " builds from " + srvId;
+        return "Invoked later load for history for " + totalAskedToLoad + " builds from " + srvId;
     }
 
     /**
@@ -271,7 +274,7 @@ public class RunHistSync {
             && !fatBuild.isFakeStub()
             && !fatBuild.isOutdatedEntityVersion()
             && !fatBuild.isCancelled(compactor)
-            //todo support not finished build reloading
+            //todo support not finished build reloading usign fat build sync or similar.
             && fatBuild.isFinished(compactor);
     }
 
@@ -287,6 +290,10 @@ public class RunHistSync {
         }
     }
 
+    /**
+     * @param tests Tests.
+     * @return count of invocations.
+     */
     public static int containedTestsCnt(Map<RunHistKey, List<Invocation>> tests) {
         return tests.values().stream().mapToInt(List::size).sum();
     }

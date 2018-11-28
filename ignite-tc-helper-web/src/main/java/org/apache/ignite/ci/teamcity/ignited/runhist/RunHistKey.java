@@ -19,14 +19,25 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.Objects;
 
+/**
+ *
+ */
 public class RunHistKey {
+    /** Server id. */
     private int srvId;
-    private int testNameOrSuite;
+    /** Test name or suite. */
+    private int testOrSuiteName;
+    /** Branch. */
     private int branch;
 
+    /**
+     * @param srvId Server id.
+     * @param testName Test or suite name.
+     * @param branchName Branch name.
+     */
     public RunHistKey(int srvId, int testName, int branchName) {
         this.srvId = srvId;
-        this.testNameOrSuite = testName;
+        this.testOrSuiteName = testName;
         this.branch = branchName;
     }
 
@@ -36,17 +47,17 @@ public class RunHistKey {
         if (o == null || getClass() != o.getClass()) return false;
         RunHistKey histKey = (RunHistKey) o;
         return srvId == histKey.srvId &&
-                testNameOrSuite == histKey.testNameOrSuite &&
+                testOrSuiteName == histKey.testOrSuiteName &&
                 branch == histKey.branch;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(srvId, testNameOrSuite, branch);
+        return Objects.hashCode(srvId, testOrSuiteName, branch);
     }
 
     public int testNameOrSuite() {
-        return testNameOrSuite;
+        return testOrSuiteName;
     }
 
     public int srvId() {

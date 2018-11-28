@@ -140,7 +140,13 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             : tcAnalytics.getTestRunStatProvider();
 
         String suiteId = suite.suiteId();
-        initSuiteStat(tcAnalytics, failRateNormalizedBranch, curBranchNormalized, suiteId);
+
+        Function<SuiteInBranch, ? extends IRunHistory> provider   =
+            NEW_RUN_STAT
+                ? tcIgnited::getSuiteRunHist
+                : tcAnalytics.getBuildFailureRunStatProvider();
+
+        initSuiteStat(provider, failRateNormalizedBranch, curBranchNormalized, suiteId);
 
         Set<String> collect = suite.lastChangeUsers().collect(Collectors.toSet());
 
@@ -221,13 +227,16 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         // todo implement this logic in suite possibleBlocker = suite.hasPossibleBlocker();
     }
 
-    private void initSuiteStat(@Nullable ITcAnalytics tcAnalytics, String failRateNormalizedBranch, String curBranchNormalized, String suiteId) {
-        if (Strings.isNullOrEmpty(suiteId) || tcAnalytics == null)
+    private void initSuiteStat(Function<SuiteInBranch, ? extends IRunHistory> suiteFailProv,
+        String failRateNormalizedBranch,
+        String curBranchNormalized,
+        String suiteId) {
+        if (Strings.isNullOrEmpty(suiteId)  )
             return;
 
         SuiteInBranch key = new SuiteInBranch(suiteId, failRateNormalizedBranch);
 
-        final RunStat stat = tcAnalytics.getBuildFailureRunStatProvider().apply(key);
+        final IRunHistory stat = suiteFailProv.apply(key);
 
         if (stat != null) {
             failures = stat.getFailuresCount();
@@ -245,24 +254,25 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             latestRuns = stat.getLatestRunResults();
         }
 
-        RunStat latestRunsSrc = null;
+        IRunHistory latestRunsSrc = null;
         if (!failRateNormalizedBranch.equals(curBranchNormalized)) {
             SuiteInBranch keyForStripe = new SuiteInBranch(suiteId, curBranchNormalized);
 
-            final RunStat statForStripe = tcAnalytics.getBuildFailureRunStatProvider().apply(keyForStripe);
+            final IRunHistory statForStripe = suiteFailProv.apply(keyForStripe);
 
             latestRunsSrc = statForStripe;
             latestRuns = statForStripe != null ? statForStripe.getLatestRunResults() : null;
         } else
             latestRunsSrc = stat;
 
-        if (latestRunsSrc != null) {
-            RunStat.TestId testId = latestRunsSrc.detectTemplate(EventTemplates.newFailureForFlakyTest); //extended runs required for suite
+        if (latestRunsSrc instanceof RunStat) {
+            RunStat latestRunsSrcV1 = (RunStat)latestRunsSrc;
+            RunStat.TestId testId = latestRunsSrcV1.detectTemplate(EventTemplates.newFailureForFlakyTest); //extended runs required for suite
 
             if (testId != null)
                 problemRef = new ProblemRef("New Failure");
 
-            RunStat.TestId buildIdCritical = latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailure);
+            RunStat.TestId buildIdCritical = latestRunsSrcV1.detectTemplate(EventTemplates.newCriticalFailure);
 
             if (buildIdCritical != null)
                 problemRef = new ProblemRef("New Critical Failure");

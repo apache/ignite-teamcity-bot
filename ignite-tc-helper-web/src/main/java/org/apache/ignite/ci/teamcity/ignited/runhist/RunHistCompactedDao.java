@@ -30,6 +30,7 @@ import org.apache.ignite.configuration.CacheConfiguration;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import java.util.Collections;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normalizeBranch;
 
@@ -40,12 +41,19 @@ public class RunHistCompactedDao {
     /** Build Start time Cache name. */
     public static final String BUILD_START_TIME_CACHE_NAME = "buildStartTimeV0";
 
+    /** Cache name.*/
+    public static final String SUITE_HIST_CACHE_NAME = "teamcitySuiteRunHistV0";
+
+
     /** Ignite provider. */
     @Inject
     private Provider<Ignite> igniteProvider;
 
     /** Test history cache. */
     private IgniteCache<RunHistKey, RunHistCompacted> testHistCache;
+
+    /** Suite history cache. */
+    private IgniteCache<RunHistKey, RunHistCompacted> suiteHistCacheName;
 
     /** Build start time. */
     private IgniteCache<Long, Long> buildStartTime;
@@ -66,20 +74,34 @@ public class RunHistCompactedDao {
         testHistCache = ignite.getOrCreateCache(cfg);
 
         buildStartTime = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(BUILD_START_TIME_CACHE_NAME));
+
+        final CacheConfiguration<RunHistKey, RunHistCompacted> cfg2 = TcHelperDb.getCacheV2Config(SUITE_HIST_CACHE_NAME);
+
+        cfg2.setQueryEntities(Collections.singletonList(new QueryEntity(RunHistKey.class, RunHistCompacted.class)));
+
+        suiteHistCacheName = ignite.getOrCreateCache(cfg2);
+
+        buildStartTime = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(BUILD_START_TIME_CACHE_NAME));
     }
 
-    public IRunHistory getTestRunHist(int srvIdMaskHigh, String name, String branch) {
-        final Integer testName = compactor.getStringIdIfPresent(name);
+    public IRunHistory getTestRunHist(int srvIdMaskHigh, String name, @Nullable String branch) {
+        RunHistKey key = getKey(srvIdMaskHigh, name, branch);
+        if (key == null)
+            return null;
+
+        return testHistCache.get(key);
+    }
+
+    @Nullable public RunHistKey getKey(int srvIdMaskHigh, String testOrSuiteName, @Nullable String branch) {
+        final Integer testName = compactor.getStringIdIfPresent(testOrSuiteName);
         if (testName == null)
             return null;
 
-        String normalizeBranch = normalizeBranch(branch);
-
-        final Integer branchId = compactor.getStringIdIfPresent(normalizeBranch);
+        final Integer branchId = compactor.getStringIdIfPresent(normalizeBranch(branch));
         if (branchId == null)
             return null;
 
-        return testHistCache.get(new RunHistKey(srvIdMaskHigh, testName, branchId));
+        return new RunHistKey(srvIdMaskHigh, testName, branchId);
     }
 
     /**
@@ -133,5 +155,18 @@ public class RunHistCompactedDao {
             },
             list
         );
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param suiteId Suite id.
+     * @param branch Branch.
+     */
+    public IRunHistory getSuiteRunHist(int srvId, String suiteId, @Nullable String branch) {
+        RunHistKey key = getKey(srvId, suiteId, branch);
+        if (key == null)
+            return null;
+
+        return suiteHistCacheName.get(key);
     }
 }

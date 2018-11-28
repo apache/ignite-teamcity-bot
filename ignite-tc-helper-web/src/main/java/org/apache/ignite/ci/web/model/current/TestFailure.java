@@ -218,7 +218,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         } else
             statForProblemsDetection = stat;
 
-        if (statForProblemsDetection != null && statForProblemsDetection instanceof RunStat) {
+        if (statForProblemsDetection instanceof RunStat) {
             final RunStat forProblemsDetection = (RunStat) statForProblemsDetection;
             RunStat.TestId testId = forProblemsDetection.detectTemplate(EventTemplates.newFailure);
 

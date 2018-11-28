@@ -187,17 +187,6 @@ public class RunStat implements IRunHistory {
 
 
 
-    /**
-     * @return float representing fail rate
-     */
-    public float getCriticalFailRate() {
-        int runs = getRunsCount();
-
-        if (runs == 0)
-            return 1.0f;
-
-        return 1.0f * getCriticalFailuresCount() / runs;
-    }
 
     @Override public int getFailuresCount() {
         if (latestRuns == null)
@@ -206,7 +195,7 @@ public class RunStat implements IRunHistory {
         return (int)latestRuns.values().stream().filter(res -> res.status != RES_OK).count();
     }
 
-    public int getCriticalFailuresCount() {
+    @Override public int getCriticalFailuresCount() {
         if (latestRuns == null)
             return 0;
 
@@ -216,13 +205,6 @@ public class RunStat implements IRunHistory {
     @Override public int getRunsCount() {
         return latestRuns == null ? 0 : latestRuns.size();
     }
-
-
-    public String getCriticalFailPercentPrintable() {
-        return IRunHistory.getPercentPrintable(getCriticalFailRate() * 100.0f);
-    }
-
-
 
     public long getAverageDurationMs() {
         if (runsWithDuration == 0)

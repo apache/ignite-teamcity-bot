@@ -38,6 +38,8 @@ public class InvocationData {
     public static final int FAILURE = RunStat.RunStatus.RES_FAILURE.getCode();
     /** Ok. */
     public static final int OK = RunStat.RunStatus.RES_OK.getCode();
+    /** Ok. */
+    public static final int CRITICAL_FAILURE = RunStat.RunStatus.RES_CRITICAL_FAILURE.getCode();
 
     /**
      * Runs registered all the times.
@@ -93,14 +95,23 @@ public class InvocationData {
         invocationMap.entrySet().removeIf(entries -> isExpired(entries.getValue().startDate));
     }
 
+    /**
+     * @param startDate Start date.
+     */
     public static boolean isExpired(long startDate) {
         return (U.currentTimeMillis() - startDate) > Duration.ofDays(MAX_DAYS).toMillis();
     }
 
+    /**
+     *
+     */
     public int allHistFailures() {
         return allHistFailures;
     }
 
+    /**
+     *
+     */
     public int notMutedRunsCount() {
         return (int)
                 invocations()
@@ -108,21 +119,27 @@ public class InvocationData {
                         .count();
     }
 
+    /**
+     *
+     */
     @NotNull public Stream<Invocation> invocations() {
         return invocationMap.values()
             .stream()
             .filter(this::isActual);
     }
 
+    /**
+     * @param invocation Invocation.
+     */
     private boolean isActual(Invocation invocation) {
         return !isExpired(invocation.startDate);
     }
 
+    /**
+     *
+     */
     public int failuresCount() {
-        return (int)
-                invocations()
-                        .filter(invocation -> invocation.status == FAILURE)
-                        .count();
+        return (int)invocations().filter(inv -> inv.status == FAILURE).count();
     }
 
     /** {@inheritDoc} */
@@ -158,5 +175,12 @@ public class InvocationData {
         return invocations()
             .map(i->(int)i.status)
             .collect(Collectors.toList());
+    }
+
+    /**
+     *
+     */
+    public int criticalFailuresCount() {
+        return (int)invocations().filter(inv -> inv.status == CRITICAL_FAILURE).count();
     }
 }
