@@ -80,34 +80,6 @@ public class RunHistCompactedDao {
         return testHistCache.get(new RunHistKey(srvIdMaskHigh, testName, branchId));
     }
 
-    @AutoProfiling
-    public Boolean addInvocation(final int srvId,
-                                 final TestCompacted t,
-                                 final int buildId,
-                                 final int branchName,
-                                 Invocation inv) {
-        RunHistKey histKey = new RunHistKey(srvId, t.testName(), branchName);
-
-        return testHistCache.invoke(histKey, (entry, parms) -> {
-            boolean newValue = false;
-                    RunHistCompacted hist = entry.getValue();
-
-                    if (hist == null)
-                        hist = new RunHistCompacted(entry.getKey());
-
-                    newValue= hist.addTestRun(
-                            (Integer) parms[0],
-                            (Invocation) parms[1]);
-
-                    entry.setValue(hist);
-
-                    return newValue;
-                },
-                buildId, inv
-        );
-
-    }
-
     /**
      * @param srvId Server id mask high.
      * @param buildId Build id.
@@ -116,15 +88,17 @@ public class RunHistCompactedDao {
         return (long)buildId | srvId << 32;
     }
 
-
+    @AutoProfiling
     public boolean buildWasProcessed(int srvId, int buildId) {
         return buildStartTime.containsKey(buildIdToCacheKey(srvId, buildId));
     }
 
+    @AutoProfiling
     public boolean setBuildProcessed(int srvId, int buildId, long ts) {
         return buildStartTime.putIfAbsent(buildIdToCacheKey(srvId, buildId), ts);
     }
 
+    @AutoProfiling
     public Integer addInvocations(RunHistKey histKey, List<Invocation> list) {
         if(list.isEmpty())
             return 0;

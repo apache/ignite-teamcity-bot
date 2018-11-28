@@ -33,8 +33,18 @@ class TcBotScheduler implements IScheduler {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TcBotScheduler.class);
 
+    private ThreadFactory threadFactory = Executors.defaultThreadFactory();
+
+    private final ThreadFactory threadFactory1 = r -> {
+        Thread thread = threadFactory.newThread(r);
+
+        thread.setName("tc-scheduler-" + thread.getName());
+
+        return thread;
+    };
+
     /** Executor service. */
-    private volatile ScheduledExecutorService executorSvc = Executors.newScheduledThreadPool(POOL_SIZE);
+    private volatile ScheduledExecutorService executorSvc = Executors.newScheduledThreadPool(POOL_SIZE, threadFactory1);
 
     /** Submit named task checker guard. */
     private AtomicBoolean tickGuard = new AtomicBoolean();

@@ -130,7 +130,7 @@ public class RunHistSync {
     }
 
     @AutoProfiling
-    @NotNull private String saveInvocationsMap(Map<RunHistKey, List<Invocation>> saveThisRun) {
+    @NotNull protected String saveInvocationsMap(Map<RunHistKey, List<Invocation>> saveThisRun) {
         Set<Integer> confirmedNewBuild = new HashSet<>();
         Set<Integer> confirmedDuplicate = new HashSet<>();
         AtomicInteger invocations = new AtomicInteger();
@@ -188,32 +188,6 @@ public class RunHistSync {
 
         invocations.addAndGet(cntAdded);
         duplicates.addAndGet(invocationList.size() - cntAdded);
-    }
-
-    @AutoProfiling
-    protected void saveInvocationsForBuild(int srvMask,
-        @Nullable AtomicInteger invocations,
-        @Nullable AtomicInteger duplicates,
-        FatBuildCompacted build) {
-        if (!histDao.setBuildProcessed(srvMask, build.id(), build.getStartDateTs())) {
-            if (duplicates != null)
-                duplicates.incrementAndGet();
-
-            return;
-        }
-
-        build.getAllTests().forEach(t -> {
-            Invocation inv = t.toInvocation(compactor, build);
-
-            final Boolean res = histDao.addInvocation(srvMask, t, build.id(), build.branchName(), inv);
-
-            if (Boolean.FALSE.equals(res)) {
-                if (duplicates != null)
-                    duplicates.incrementAndGet();
-            }
-            else if (invocations != null)
-                invocations.incrementAndGet();
-        });
     }
 
     public void invokeLaterFindMissingHistory(String srvName) {
