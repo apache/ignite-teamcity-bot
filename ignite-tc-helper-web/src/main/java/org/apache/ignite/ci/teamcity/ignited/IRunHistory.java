@@ -22,20 +22,8 @@ import java.util.List;
 /**
  * Test or Build run statistics.
  */
-public interface IRunHistory {
-    public int getRunsCount();
-    public int getFailuresCount();
-
-    public static String getPercentPrintable(float percent) {
-        return String.format("%.1f", percent).replace(".", ",");
-    }
-
-    public default String getFailPercentPrintable() {
-        return getPercentPrintable(getFailRate() * 100.0f);
-    }
-
+public interface IRunHistory extends IRunStat {
     public int getFailuresAllHist();
-
     public int getRunsAllHist();
 
     public default float getFailRateAllHist() {
@@ -46,20 +34,9 @@ public interface IRunHistory {
     }
 
     public default String getFailPercentAllHistPrintable() {
-        return getPercentPrintable(getFailRateAllHist() * 100.0f);
+        return IRunStat.getPercentPrintable(getFailRateAllHist() * 100.0f);
     }
 
-    /**
-     * @return fail rate as float.
-     */
-    public default float getFailRate() {
-        int runs = getRunsCount();
-
-        if (runs == 0)
-            return 0.0f;
-
-        return 1.0f * getFailuresCount() / runs;
-    }
 
     @Nullable
     List<Integer> getLatestRunResults();
@@ -67,7 +44,7 @@ public interface IRunHistory {
     String getFlakyComments();
 
     public default String getCriticalFailPercentPrintable() {
-        return IRunHistory.getPercentPrintable(getCriticalFailRate() * 100.0f);
+        return IRunStat.getPercentPrintable(getCriticalFailRate() * 100.0f);
     }
 
     /**

@@ -18,16 +18,21 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.Objects;
+import org.apache.ignite.cache.query.annotations.QuerySqlField;
 
 /**
  *
  */
 public class RunHistKey {
-    /** Server id. */
+    /** Server ID. */
+    @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "tstAndSrv", order = 1)})
     private int srvId;
-    /** Test name or suite. */
+
+    /** Test name or suite build type ID. */
+    @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "tstAndSrv", order = 0)})
     private int testOrSuiteName;
-    /** Branch. */
+
+    /** Branch name. */
     private int branch;
 
     /**
@@ -41,8 +46,8 @@ public class RunHistKey {
         this.branch = branchName;
     }
 
-    @Override
-    public boolean equals(Object o) {
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         RunHistKey histKey = (RunHistKey) o;
@@ -51,15 +56,21 @@ public class RunHistKey {
                 branch == histKey.branch;
     }
 
-    @Override
-    public int hashCode() {
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
         return Objects.hashCode(srvId, testOrSuiteName, branch);
     }
 
+    /**
+     *
+     */
     public int testNameOrSuite() {
         return testOrSuiteName;
     }
 
+    /**
+     *
+     */
     public int srvId() {
         return srvId;
     }

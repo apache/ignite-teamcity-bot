@@ -56,6 +56,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -180,7 +181,7 @@ public class PrChainsProcessorTest {
 
         childBuild.snapshotDependencies(new int[] {buildBuild.id()});
 
-        final Build build = createPassedBuild("CancelledBuild", branch, 1003, 100020);
+        final Build build = createJaxbBuild("CancelledBuild", branch, 1003, 100020, true);
 
         build.status = BuildRef.STATUS_UNKNOWN;
         build.state = BuildRef.STATE_FINISHED;
@@ -226,6 +227,20 @@ public class PrChainsProcessorTest {
                 .addTests(c, Lists.newArrayList(
                     createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER))));
         }
+
+        for (int i = 0; i < 10; i++) {
+            final FatBuildCompacted successfull =
+                createFatBuild(c, CACHE_1, "some-exotic-branch", i+7777, 100020, true)
+                    .addTests(c,
+                        Lists.newArrayList(
+                            createPassingTest(1L, TEST_WITHOUT_HISTORY),
+                            createPassingTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
+                            createPassingTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
+                            createPassingTest(50L, TEST_FLAKY_IN_MASTER),
+                            createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)));
+
+            addBuilds(successfull);
+        }
     }
 
     private void addBuilds(FatBuildCompacted... builds) {
@@ -259,15 +274,18 @@ public class PrChainsProcessorTest {
 
     @NotNull
     public FatBuildCompacted createFailedBuild(IStringCompactor c, String btId, String branch, int id, long ageMs) {
-        final Build build = createPassedBuild(btId, branch, id, ageMs);
+        return createFatBuild(c, btId, branch, id, ageMs, false);
+    }
 
-        build.status = BuildRef.STATUS_FAILURE;
+    @NotNull public FatBuildCompacted createFatBuild(IStringCompactor c, String btId, String branch, int id, long ageMs,
+        boolean passed) {
+        final Build build = createJaxbBuild(btId, branch, id, ageMs, passed);
 
         return new FatBuildCompacted(c, build);
     }
 
     @NotNull
-    private Build createPassedBuild(String btId, String branch, int id, long ageMs) {
+    private Build createJaxbBuild(String btId, String branch, int id, long ageMs, boolean passed) {
         final Build build = new Build();
         build.buildTypeId = btId;
         final BuildType type = new BuildType();
@@ -278,7 +296,7 @@ public class PrChainsProcessorTest {
         build.setStartDateTs(System.currentTimeMillis() - ageMs);
         build.setBranchName(branch);
         build.state = Build.STATE_FINISHED;
-        build.status = Build.STATUS_SUCCESS;
+        build.status = passed ? Build.STATUS_SUCCESS : BuildRef.STATUS_FAILURE;
 
         return build;
     }

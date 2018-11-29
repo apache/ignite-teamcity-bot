@@ -126,9 +126,13 @@ public interface ITeamcityIgnited {
      */
     @NotNull public List<Integer> getLastNBuildsFromHistory(String btId, String branchForTc, int cnt);
 
-    @Nullable
-    IRunHistory getTestRunHist(TestInBranch testInBranch);
+    @Nullable public IRunHistory getTestRunHist(TestInBranch testInBranch);
 
-    @Nullable
-    IRunHistory getSuiteRunHist(SuiteInBranch branch);
+    @Nullable public IRunHistory getSuiteRunHist(SuiteInBranch branch);
+
+    /**
+     * @param suiteBuildTypeId Suite id.
+     * @return run statistics of recent runls on all branches.
+     */
+    @Nullable public IRunStat getSuiteRunStatAllBranches(String suiteBuildTypeId);
 }

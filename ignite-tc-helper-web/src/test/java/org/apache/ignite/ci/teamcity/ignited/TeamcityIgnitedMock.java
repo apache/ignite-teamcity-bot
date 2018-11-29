@@ -19,7 +19,6 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.common.base.Preconditions;
 import org.apache.ignite.ci.analysis.TestInBranch;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
@@ -134,7 +133,7 @@ public class TeamcityIgnitedMock {
 
                 Invocation inv = t.toInvocation(c, build);
 
-                hist.addTestRun(build.id(), inv);
+                hist.addInvocation(inv);
             });
         }
 

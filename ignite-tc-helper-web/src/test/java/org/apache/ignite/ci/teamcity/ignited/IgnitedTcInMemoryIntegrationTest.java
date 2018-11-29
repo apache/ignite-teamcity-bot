@@ -375,6 +375,15 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertNotNull(cache1Hist);
         assertEquals(1.0, cache1Hist.getFailRate(), 0.1);
         assertEquals(0.18, cache1Hist.getCriticalFailRate(), 0.05);
+
+        final IRunStat cache1HistAllBranch = srv.getSuiteRunStatAllBranches(PrChainsProcessorTest.CACHE_1);
+
+        assertNotNull(cache1HistAllBranch);
+
+        String printable = cache1HistAllBranch.getFailPercentPrintable();
+        System.err.println(printable);
+        // should be several builds in a separate branch
+        assertEquals(0.5, cache1HistAllBranch.getFailRate(), 0.05);
     }
 
 

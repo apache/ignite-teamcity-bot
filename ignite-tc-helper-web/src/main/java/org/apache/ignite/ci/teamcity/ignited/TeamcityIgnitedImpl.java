@@ -331,6 +331,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return runHistCompactedDao.getSuiteRunHist(srvIdMaskHigh, suiteInBranch.getSuiteId(), suiteInBranch.branch);
     }
 
+    /** {@inheritDoc} */
+    @Nullable @Override public IRunStat getSuiteRunStatAllBranches(String suiteBuildTypeId) {
+        return runHistCompactedDao.getSuiteRunStatAllBranches(srvIdMaskHigh, suiteBuildTypeId);
+    }
+
+    /**
+     * @param branchName Branch name.
+     */
     public List<String> branchForQuery(@Nullable String branchName) {
         if (ITeamcity.DEFAULT.equals(branchName))
             return Lists.newArrayList(branchName, ITeamcity.REFS_HEADS_MASTER, "master");

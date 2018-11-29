@@ -18,13 +18,18 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.cache.Cache;
 import javax.cache.processor.MutableEntry;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.QueryEntity;
+import org.apache.ignite.cache.query.QueryCursor;
+import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
+import org.apache.ignite.ci.teamcity.ignited.IRunStat;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.configuration.CacheConfiguration;
 
@@ -157,11 +162,7 @@ public class RunHistCompactedDao {
         List<Invocation> invocationList = (List<Invocation>)parms[0];
 
         for (Invocation invocation : invocationList) {
-            boolean added = hist.addTestRun(
-                invocation.buildId(),
-                invocation);
-
-            if (added)
+            if (hist.addInvocation(invocation))
                 cnt++;
         }
 
@@ -182,5 +183,35 @@ public class RunHistCompactedDao {
             return null;
 
         return suiteHistCacheName.get(key);
+    }
+
+    public IRunStat getSuiteRunStatAllBranches(int srvIdMaskHigh, String btId) {
+        final Integer testName = compactor.getStringIdIfPresent(btId);
+        if (testName == null)
+            return null;
+
+        AtomicInteger runs = new AtomicInteger();
+        AtomicInteger failures = new AtomicInteger();
+        try (QueryCursor<Cache.Entry<RunHistKey, RunHistCompacted>> qryCursor = suiteHistCacheName.query(
+            new SqlQuery<RunHistKey, RunHistCompacted>(RunHistCompacted.class, "testOrSuiteName = ? and srvId=?")
+                .setArgs(testName, srvIdMaskHigh))) {
+
+            for (Cache.Entry<RunHistKey, RunHistCompacted> next : qryCursor) {
+                RunHistCompacted val = next.getValue();
+
+                runs.addAndGet(val.getRunsCount());
+                failures.addAndGet(val.getFailuresCount());
+            }
+        }
+
+        return new IRunStat() {
+            @Override public int getRunsCount() {
+                return runs.get();
+            }
+
+            @Override public int getFailuresCount() {
+                return failures.get();
+            }
+        };
     }
 }

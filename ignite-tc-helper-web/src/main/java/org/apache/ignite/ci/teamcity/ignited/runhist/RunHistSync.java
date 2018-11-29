@@ -181,9 +181,10 @@ public class RunHistSync {
         );
 
         buildsSaveThisRun.forEach(
-            (histKey,suiteList)->{
+            (histKey, suiteList) -> {
                 List<Invocation> invocationsToSave = suiteList.stream()
-                    .filter(invocation -> confirmedNewBuild.contains(invocation.buildId()))
+                    .filter(inv -> confirmedNewBuild.contains(inv.buildId()))
+                    .filter(inv -> !InvocationData.isExpired(inv.startDate()))
                     .collect(Collectors.toList());
 
                 Integer cntAdded = histDao.addSuiteInvocations(histKey, invocationsToSave);

@@ -58,7 +58,7 @@ public class InvocationData {
         return allHistRuns;
     }
 
-    public boolean add(Invocation inv) {
+    public boolean addInvocation(Invocation inv) {
         try {
             return innerAdd(inv);
         }

@@ -39,19 +39,12 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     @SuppressWarnings("FieldCanBeLocal")
     private short _ver = LATEST_VERSION;
 
-    @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "tstAndSrv", order = 0)})
-    private int testOrSuiteName;
-
-    @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "tstAndSrv", order = 1)})
-    private int srvId;
-
     private InvocationData data = new InvocationData();
 
     public RunHistCompacted() {}
 
-    public RunHistCompacted(RunHistKey k) {
-        testOrSuiteName = k.testNameOrSuite();
-        srvId = k.srvId();
+    public RunHistCompacted(RunHistKey ignored) {
+
     }
 
     /** {@inheritDoc} */
@@ -99,19 +92,16 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     }
 
     /**
-     * @param build Build.
      * @param inv Invocation.
      * @return if test run is new and is not expired.
      */
-    public boolean addTestRun(int build, Invocation inv) {
-        return data.add(inv);
+    public boolean addInvocation(Invocation inv) {
+        return data.addInvocation(inv);
     }
 
     /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("nameId", testOrSuiteName)
-                .add("srvId", srvId)
                 .add("failRate", getFailPercentPrintable())
                 .add("data", data)
                 .toString();
@@ -125,13 +115,11 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
             return false;
         RunHistCompacted compacted = (RunHistCompacted)o;
         return _ver == compacted._ver &&
-            testOrSuiteName == compacted.testOrSuiteName &&
-            srvId == compacted.srvId &&
             Objects.equal(data, compacted.data);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(_ver, testOrSuiteName, srvId, data);
+        return Objects.hashCode(_ver, data);
     }
 }
