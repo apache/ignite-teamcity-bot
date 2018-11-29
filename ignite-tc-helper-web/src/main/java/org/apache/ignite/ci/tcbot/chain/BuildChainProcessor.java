@@ -38,7 +38,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.RunStat;
@@ -54,6 +53,7 @@ import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.long_running.LRTest;
@@ -209,7 +209,7 @@ public class BuildChainProcessor {
         });
 
         Function<MultBuildRunCtx, Float> function = ctx -> {
-            SuiteInBranch key = new SuiteInBranch(ctx.suiteId(), normalizeBranch(failRateBranch));
+            SuiteInBranch key = new SuiteInBranch(ctx.suiteId(), RunHistSync.normalizeBranch(failRateBranch));
 
             //todo place RunStat into suite context to compare
             RunStat runStat = teamcity.getBuildFailureRunStatProvider().apply(key);
@@ -346,10 +346,6 @@ public class BuildChainProcessor {
         throw new UnsupportedOperationException("invalid mode " + includeLatestRebuild);
     }
 
-    @NotNull private static String getBranchOrDefault(@Nullable String branchName) {
-        return branchName == null ? ITeamcity.DEFAULT : branchName;
-    }
-
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
     protected void fillBuildCounts(MultBuildRunCtx outCtx,
@@ -388,17 +384,9 @@ public class BuildChainProcessor {
         }
     }
 
+    @Deprecated
     @NotNull public static String normalizeBranch(@NotNull final BuildRef build) {
-        return normalizeBranch(build.branchName);
-    }
-
-    @NotNull public static String normalizeBranch(@Nullable String branchName) {
-        String branch = getBranchOrDefault(branchName);
-
-        if ("refs/heads/master".equals(branch))
-            return ITeamcity.DEFAULT;
-
-        return branch;
+        return RunHistSync.normalizeBranch(build.branchName);
     }
 
     /**

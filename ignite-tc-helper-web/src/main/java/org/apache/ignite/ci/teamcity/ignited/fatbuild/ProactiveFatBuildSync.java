@@ -111,9 +111,10 @@ public class ProactiveFatBuildSync {
 
     @NotNull
     public synchronized SyncTask getSyncTask(ITeamcityConn conn) {
-        final String serverId = conn.serverId();
-        final SyncTask syncTask = buildToLoad.computeIfAbsent(serverId, s -> new SyncTask());
+        final SyncTask syncTask = buildToLoad.computeIfAbsent(conn.serverId(), s -> new SyncTask());
+
         syncTask.conn = conn;
+
         return syncTask;
     }
 
@@ -148,13 +149,13 @@ public class ProactiveFatBuildSync {
     }
 
     /** */
-    private void loadFatBuilds(int ldrNo, String serverId) {
+    private void loadFatBuilds(int ldrNo, String srvId) {
         Set<Integer> load;
         ITeamcityConn conn;
         final GridConcurrentHashSet<Integer> loadingBuilds;
 
         synchronized (this) {
-            final SyncTask syncTask = buildToLoad.get(serverId);
+            final SyncTask syncTask = buildToLoad.get(srvId);
             if (syncTask == null)
                 return;
 
@@ -178,7 +179,7 @@ public class ProactiveFatBuildSync {
             syncTask.conn = null;
         }
 
-        doLoadBuilds(ldrNo, serverId, conn, load,  loadingBuilds);
+        doLoadBuilds(ldrNo, srvId, conn, load,  loadingBuilds);
     }
 
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
@@ -228,13 +229,13 @@ public class ProactiveFatBuildSync {
                 () -> findMissingBuildsFromBuildRef(srvName, conn), 360, TimeUnit.MINUTES);
     }
 
-
     /**
      *
-     * @param conn
-     * @param buildId
-     * @param existingBuild
-     * @return null if nothing was saved, use existing build
+     * @param conn TC connection to load data
+     * @param buildId build ID (TC identification).
+     * @param existingBuild build from DB.
+     * @return null if nothing was saved, use existing build. Non null value indicates that
+     * new build if it was updated.
      */
     @Nullable
     public FatBuildCompacted loadBuild(ITeamcityConn conn, int buildId,
@@ -317,6 +318,7 @@ public class ProactiveFatBuildSync {
                 }
                 else
                     build = Build.createFakeStub();
+                //todo here can be situation we have build ref, but don't have a build
             } else {
                 logger.error("Loading build [" + buildId + "] for server [" + srvNme + "] failed:" + e.getMessage(), e);
 

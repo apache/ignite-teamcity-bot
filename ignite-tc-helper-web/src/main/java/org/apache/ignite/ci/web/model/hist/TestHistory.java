@@ -20,18 +20,17 @@ package org.apache.ignite.ci.web.model.hist;
 import com.google.common.base.Objects;
 import java.util.List;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.analysis.RunStat;
-import org.jetbrains.annotations.NotNull;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 
 /**
  * Summary of failures - all history and recent runs for suite or for suite.
  */
 public class TestHistory {
     /** 'All the time' runs history statistic. */
-    @Nullable public FailureSummary allTime = new FailureSummary();
+    public FailureSummary allTime = new FailureSummary();
 
     /** Latest runs history statistic. */
-    @Nullable public FailureSummary recent = new FailureSummary();
+    public FailureSummary recent = new FailureSummary();
 
     /** Latest runs, 0,1,2 values for each run. */
     @Nullable public List<Integer> latestRuns;
@@ -39,7 +38,7 @@ public class TestHistory {
     /** Non null flaky comments means there is flakiness detected in the the branch. */
     @Nullable public String flakyComments;
 
-    public void init(@Nullable RunStat stat) {
+    public void init(@Nullable IRunHistory stat) {
         if (stat == null)
             return;
 

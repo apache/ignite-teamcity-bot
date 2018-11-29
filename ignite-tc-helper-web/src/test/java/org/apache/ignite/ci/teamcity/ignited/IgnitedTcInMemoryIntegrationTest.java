@@ -25,20 +25,22 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javax.xml.bind.JAXBException;
+
+import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitSheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.di.scheduler.NoOpSheduler;
+import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.Project;
@@ -52,6 +54,8 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -369,7 +373,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         Injector injector = Guice.createInjector(new AbstractModule() {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
-                bind(IStringCompactor.class).to(IgniteStringCompactor.class);
+                bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
             }
         });
 
@@ -446,4 +450,99 @@ public class IgnitedTcInMemoryIntegrationTest {
         return refBuild;
     }
 
+    @Test
+    public void testRunHistSaveLoad() {
+        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new IgniteAndShedulerTestModule());
+
+        injector.getInstance(RunHistCompactedDao.class).init();
+        final IStringCompactor c = injector.getInstance(IStringCompactor.class);
+
+        final String srvId = "apache";
+        final String btId = "RunAll";
+        final String branch = ITeamcity.DEFAULT;
+
+        final PrChainsProcessorTest tst = new PrChainsProcessorTest();
+        tst.initBuildChain(c, btId, branch);
+
+        final Map<Integer, FatBuildCompacted> buildsMap = tst.apacheBuilds();
+
+        final RunHistSync histSync = injector.getInstance(RunHistSync.class);
+        buildsMap.forEach((id, build) -> histSync.saveToHistoryLater(srvId, build));
+
+        final ITeamcityIgnitedProvider inst = injector.getInstance(ITeamcityIgnitedProvider.class);
+        final ITeamcityIgnited srv = inst.server(srvId, Mockito.mock(ICredentialsProv.class));
+        final IRunHistory testRunHist = srv.getTestRunHist(new TestInBranch(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER, branch));
+
+        assertNotNull(testRunHist);
+        assertEquals(0.5, testRunHist.getFailRate(), 0.1);
+
+        final IRunHistory cache1Hist = srv.getSuiteRunHist(new SuiteInBranch(PrChainsProcessorTest.CACHE_1, branch));
+
+        assertNotNull(cache1Hist);
+        assertEquals(1.0, cache1Hist.getFailRate(), 0.1);
+        assertEquals(0.18, cache1Hist.getCriticalFailRate(), 0.05);
+
+        final IRunStat cache1HistAllBranch = srv.getSuiteRunStatAllBranches(PrChainsProcessorTest.CACHE_1);
+
+        assertNotNull(cache1HistAllBranch);
+
+        String printable = cache1HistAllBranch.getFailPercentPrintable();
+        System.err.println(printable);
+        // should be several builds in a separate branch
+        assertEquals(0.5, cache1HistAllBranch.getFailRate(), 0.05);
+    }
+
+
+    @Test
+    public void testHistoryBackgroundUpdateWorks() {
+        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new IgniteAndShedulerTestModule());
+
+        injector.getInstance(RunHistCompactedDao.class).init();
+
+        final String srvId = "apache";
+        final String btId = "RunAll";
+        final String branch = ITeamcity.DEFAULT;
+
+        final ITeamcityIgnitedProvider inst = injector.getInstance(ITeamcityIgnitedProvider.class);
+        final ITeamcityIgnited srv = inst.server(srvId, Mockito.mock(ICredentialsProv.class));
+
+        FatBuildDao fatBuildDao = injector.getInstance(FatBuildDao.class);
+        fatBuildDao.init();
+
+        BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class);
+        buildRefDao.init();
+
+        final IStringCompactor c = injector.getInstance(IStringCompactor.class);
+
+
+        final PrChainsProcessorTest tst = new PrChainsProcessorTest();
+        tst.initBuildChain(c, btId, branch);
+
+        final Map<Integer, FatBuildCompacted> buildsMap = tst.apacheBuilds();
+
+        buildsMap.forEach((id, build) -> {
+            int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
+            fatBuildDao.putFatBuild(srvIdMaskHigh, id, build);
+            buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(build));
+        });
+
+        final RunHistSync histSync = injector.getInstance(RunHistSync.class);
+        histSync.invokeLaterFindMissingHistory(srvId);
+
+        final IRunHistory testRunHist = srv.getTestRunHist(new TestInBranch(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER, branch));
+
+        assertNotNull(testRunHist);
+        assertEquals(0.5, testRunHist.getFailRate(), 0.1);
+    }
+
+    /**
+     *
+     */
+    private static class IgniteAndShedulerTestModule extends AbstractModule {
+        /** {@inheritDoc} */
+        @Override protected void configure() {
+            bind(Ignite.class).toInstance(ignite);
+            bind(IScheduler.class).to(DirectExecNoWaitSheduler.class).in(new SingletonScope());
+        }
+    }
 }

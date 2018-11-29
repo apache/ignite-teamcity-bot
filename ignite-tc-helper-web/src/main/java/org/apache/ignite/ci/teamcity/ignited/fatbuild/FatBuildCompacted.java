@@ -32,6 +32,8 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
+import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -210,9 +212,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         if (snapshotDeps != null) {
             List<BuildRef> snapshotDependencies = new ArrayList<>();
-            for (int i = 0; i < snapshotDeps.length; i++) {
-                int depId = snapshotDeps[i];
 
+            for (int depId : snapshotDeps) {
                 BuildRef ref = new BuildRef();
                 ref.setId(depId);
                 ref.href = getHrefForId(depId);
@@ -231,7 +232,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
      * @param compactor Compactor.
      * @param page Page.
      */
-    public void addTests(IStringCompactor compactor, List<TestOccurrenceFull> page) {
+    public FatBuildCompacted addTests(IStringCompactor compactor, List<TestOccurrenceFull> page) {
         for (TestOccurrenceFull next : page) {
             TestCompacted compacted = new TestCompacted(compactor, next);
 
@@ -240,6 +241,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
             tests.add(compacted);
         }
+
+        return this;
     }
 
     /**
@@ -289,7 +292,11 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     /** Start date. */
     @Nullable public Date getStartDate() {
-        return startDate > 0 ? new Date(startDate) : null;
+        return getStartDateTs() > 0 ? new Date(getStartDateTs()) : null;
+    }
+
+    public long getStartDateTs() {
+        return startDate;
     }
 
     /** {@inheritDoc} */
@@ -457,5 +464,33 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             .add("statistics", statistics)
             .add("changesIds", changesIds)
             .toString();
+    }
+
+    public Invocation toInvocation(IStringCompactor compactor) {
+        boolean success = isSuccess(compactor);
+
+        final Invocation invocation = new Invocation(getId());
+
+        final int failCode ;
+
+        if (success)
+            failCode = InvocationData.OK;
+        else {
+            if (problems()
+                .stream().anyMatch(occurrence ->
+                    occurrence.isExecutionTimeout(compactor)
+                        || occurrence.isJvmCrash(compactor)
+                        || occurrence.isBuildFailureOnMetric(compactor)
+                        || occurrence.isCompilationError(compactor)))
+                failCode = InvocationData.CRITICAL_FAILURE;
+            else
+                failCode = InvocationData.FAILURE;
+
+        }
+
+        invocation.status((byte)failCode);
+        invocation.startDate(getStartDateTs());
+        invocation.changesPresent(changes().length > 0 ? 1 : 0);
+        return invocation;
     }
 }

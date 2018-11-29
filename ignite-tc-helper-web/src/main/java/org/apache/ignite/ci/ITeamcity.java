@@ -44,6 +44,7 @@ import java.util.concurrent.ExecutorService;
 public interface ITeamcity extends ITeamcityConn {
 
     String DEFAULT = "<default>";
+    String REFS_HEADS_MASTER = "refs/heads/master";
 
     @Deprecated
     long DEFAULT_BUILDS_COUNT = 1000;

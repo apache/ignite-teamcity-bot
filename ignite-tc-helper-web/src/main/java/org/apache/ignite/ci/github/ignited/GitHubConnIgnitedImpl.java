@@ -29,14 +29,12 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
+import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.configuration.CacheConfiguration;
-import org.jetbrains.annotations.NotNull;
 
 /**
  *
@@ -69,16 +67,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
         srvIdMaskHigh = Math.abs(srvId.hashCode());
 
-        prCache = igniteProvider.get().getOrCreateCache(getCache8PartsConfig(GIT_HUB_PR));
-    }
-
-    @NotNull
-    public static <K, V> CacheConfiguration<K, V> getCache8PartsConfig(String name) {
-        CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
-
-        ccfg.setAffinity(new RendezvousAffinityFunction(false, 8));
-
-        return ccfg;
+        prCache = igniteProvider.get().getOrCreateCache(TcHelperDb.getCache8PartsConfig(GIT_HUB_PR));
     }
 
     /** {@inheritDoc} */

@@ -115,6 +115,18 @@ public class DbMigrations {
         String TESTS = "tests";
         String TEST_REFS = "testRefs";
         String ISSUES_USAGES_LIST = "issuesUsagesList";
+
+        /** Cache name.*/
+        public static final String TEST_HIST_CACHE_NAME = "testRunHistV0";
+        public static final String TEST_HIST_CACHE_NAME2 ="teamcityTestRunHistV0";
+
+        /** Build Start time Cache name. */
+        public static final String BUILD_START_TIME_CACHE_NAME = "buildStartTimeV0";
+        public static final String BUILD_START_TIME_CACHE_NAME2 = "teamcityBuildStartTimeV0";
+
+        /** Cache name.*/
+        public static final String SUITE_HIST_CACHE_NAME = "teamcitySuiteRunHistV0";
+
     }
 
     private final Ignite ignite;
@@ -396,11 +408,22 @@ public class DbMigrations {
         applyDestroyIgnCacheMigration(Old.TEST_REFS);
 
         applyDestroyIgnCacheMigration(Old.ISSUES_USAGES_LIST);
+
+        applyDestroyCacheMigration(Old.SUITE_HIST_CACHE_NAME);
+        applyDestroyCacheMigration(Old.BUILD_START_TIME_CACHE_NAME);
+        applyDestroyCacheMigration(Old.TEST_HIST_CACHE_NAME);
+        applyDestroyCacheMigration(Old.TEST_HIST_CACHE_NAME2);
+        applyDestroyCacheMigration(Old.BUILD_START_TIME_CACHE_NAME);
+        applyDestroyCacheMigration(Old.BUILD_START_TIME_CACHE_NAME2);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {
         String ignCacheNme = ignCacheNme(cacheName);
         applyDestroyCacheMigration(cacheName, ignCacheNme);
+    }
+
+    private void applyDestroyCacheMigration(String cacheNme) {
+        applyDestroyCacheMigration(cacheNme, cacheNme);
     }
 
     private void applyDestroyCacheMigration(String dispCacheName, String cacheNme) {

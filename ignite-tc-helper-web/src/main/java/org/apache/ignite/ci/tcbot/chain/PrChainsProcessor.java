@@ -42,12 +42,10 @@ import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -170,17 +168,15 @@ public class PrChainsProcessor {
      * @param prov Credentials.
      * @return List of suites with possible blockers.
      */
-    @Nullable public List<SuiteCurrentStatus> getSuitesStatuses(String buildTypeId,
+    @Nullable public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId,
         String branchForTc,
         String srvId,
         ICredentialsProv prov) {
-        SyncMode queued = SyncMode.RELOAD_QUEUED;
-
-        return getSuitesStatuses(buildTypeId, branchForTc, srvId, prov, queued);
+        return getBlockersSuitesStatuses(buildTypeId, branchForTc, srvId, prov, SyncMode.RELOAD_QUEUED);
     }
 
 
-    @Nullable public List<SuiteCurrentStatus> getSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
+    @Nullable public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
         ICredentialsProv prov, SyncMode queued) {
         List<SuiteCurrentStatus> res = new ArrayList<>();
 
@@ -194,7 +190,7 @@ public class PrChainsProcessor {
             return null;
 
         for (ChainAtServerCurrentStatus server : summary.servers) {
-            Map<String, List<SuiteCurrentStatus>> fails = findFailures(server);
+            Map<String, List<SuiteCurrentStatus>> fails = findBlockerFailures(server);
 
             fails.forEach((k, v) -> res.addAll(v));
         }
@@ -206,7 +202,7 @@ public class PrChainsProcessor {
      * @param srv Server.
      * @return Failures for given server.
      */
-    private Map<String, List<SuiteCurrentStatus>> findFailures(ChainAtServerCurrentStatus srv) {
+    private Map<String, List<SuiteCurrentStatus>> findBlockerFailures(ChainAtServerCurrentStatus srv) {
         Map<String, List<SuiteCurrentStatus>> fails = new LinkedHashMap<>();
 
         for (SuiteCurrentStatus suite : srv.suites) {

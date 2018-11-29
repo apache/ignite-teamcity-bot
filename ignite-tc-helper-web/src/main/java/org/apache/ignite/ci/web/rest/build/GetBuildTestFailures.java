@@ -19,22 +19,19 @@ package org.apache.ignite.ci.web.rest.build;
 
 import com.google.common.collect.BiMap;
 import java.text.ParseException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+
 import com.google.inject.Injector;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
@@ -132,14 +129,14 @@ public class GetBuildTestFailures {
             throw ServiceUnauthorizedException.noCreds(srvId);
 
         IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, prov);
-        ITeamcityIgnited teamcityIgnited = tcIgnitedProv.server(srvId, prov);
+        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, prov);
 
         String failRateBranch = ITeamcity.DEFAULT;
 
         ProcessLogsMode procLogs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
         final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
-            teamcityIgnited,
+            tcIgnited,
             Collections.singletonList(buildId),
             LatestRebuildMode.NONE,
             procLogs,
@@ -153,7 +150,7 @@ public class GetBuildTestFailures {
         if (cnt > 0)
             runningUpdates.addAndGet(cnt);
 
-        chainStatus.initFromContext(teamcity, ctx, teamcity, failRateBranch);
+        chainStatus.initFromContext(tcIgnited, teamcity, ctx, teamcity, failRateBranch);
 
         res.addChainOnServer(chainStatus);
 

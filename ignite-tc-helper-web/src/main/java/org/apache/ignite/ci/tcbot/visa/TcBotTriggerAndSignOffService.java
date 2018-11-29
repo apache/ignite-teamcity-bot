@@ -474,7 +474,7 @@ public class TcBotTriggerAndSignOffService {
         CurrentVisaStatus status = new CurrentVisaStatus();
 
         List<SuiteCurrentStatus> suitesStatuses
-            = prChainsProcessor.getSuitesStatuses(buildTypeId, tcBranch, srvId, prov, SyncMode.NONE);
+            = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, tcBranch, srvId, prov, SyncMode.NONE);
 
         if (suitesStatuses == null)
             return status;

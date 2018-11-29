@@ -33,6 +33,8 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
+import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -372,5 +374,23 @@ public class TestCompacted {
             return testId;
 
         return null;
+    }
+
+    public Invocation toInvocation(IStringCompactor compactor, FatBuildCompacted build) {
+        final boolean failedTest = isFailedTest(compactor);
+
+        final Invocation invocation = new Invocation(build.getId());
+
+        final int failCode = failedTest
+                ? (isIgnoredTest() || isMutedTest())
+                ? InvocationData.MUTED
+                : InvocationData.FAILURE
+                : InvocationData.OK;
+
+        invocation.status((byte) failCode);
+        invocation.startDate(build.getStartDateTs());
+        invocation.changesPresent(build.changes().length > 0 ? 1 : 0);
+
+        return invocation;
     }
 }
