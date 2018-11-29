@@ -38,6 +38,7 @@ import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
@@ -83,7 +84,8 @@ public class TcBotTriggerAndSignOffService {
 
     @Inject ITeamcityIgnitedProvider tcIgnitedProv;
 
-    @Inject IJiraIntegration jiraIntegration;
+    /** */
+    @Inject IJiraIntegrationProvider jiraIntegrationProvider;
 
     @Inject ITeamcityIgnitedProvider teamcityIgnitedProvider;
 
@@ -112,6 +114,8 @@ public class TcBotTriggerAndSignOffService {
 
         IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
 
+        IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(srvId);
+
         for (VisaRequest visaRequest : visasHistoryStorage.getVisas()) {
             VisaStatus visaStatus = new VisaStatus();
 
@@ -130,10 +134,8 @@ public class TcBotTriggerAndSignOffService {
 
             if (FINISHED_STATUS.equals(buildsStatus)) {
                 if (visa.isSuccess()) {
-                    visaStatus.commentUrl = "https://issues.apache.org/jira/browse/" + visaStatus.ticket +
-                        "?focusedCommentId=" + visa.getJiraCommentResponse().getId() +
-                        "&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-" +
-                        visa.getJiraCommentResponse().getId();
+                    visaStatus.commentUrl = jiraIntegration.generateCommentUrl(
+                        visaStatus.ticket, visa.getJiraCommentResponse().getId());
 
                     visaStatus.blockers = visa.getBlockers();
 
@@ -301,6 +303,8 @@ public class TcBotTriggerAndSignOffService {
                     " \"Re-run possible blockers & Comment JIRA\" was triggered for current branch." +
                     " Wait for the end or cancel exsiting observing.");
 
+            IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(srvId);
+
             Visa visa = jiraIntegration.notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName);
 
             visasHistoryStorage.put(new VisaRequest(buildsInfo)
@@ -316,6 +320,8 @@ public class TcBotTriggerAndSignOffService {
      * @param srvId Server id.
      */
     public List<ContributionToCheck> getContributionsToCheck(String srvId) {
+        IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(srvId);
+
         List<PullRequest> requests = gitHubConnIgnitedProvider.server(srvId).getPullRequests();
         if (requests == null)
             return null;
@@ -334,6 +340,9 @@ public class TcBotTriggerAndSignOffService {
             }
 
             check.jiraIssueId = Strings.emptyToNull(getTicketFullName(pr));
+
+            if (!Strings.isNullOrEmpty(check.jiraIssueId))
+                check.jiraIssueUrl = jiraIntegration.generateTicketUrl(check.jiraIssueId);
 
             return check;
         }).collect(Collectors.toList());

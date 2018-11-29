@@ -21,8 +21,11 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
+import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -67,8 +70,24 @@ public class PrChainsProcessorTest {
             bind(IStringCompactor.class).to(InMemoryStringCompactor.class).in(new SingletonScope());
 
             final IGitHubConnectionProvider ghProv = Mockito.mock(IGitHubConnectionProvider.class);
+
             bind(IGitHubConnectionProvider.class).toInstance(ghProv);
-            when(ghProv.server(anyString())).thenReturn(Mockito.mock(IGitHubConnection.class));
+
+            IGitHubConnection gitHubConnection = Mockito.mock(IGitHubConnection.class);
+
+            PullRequest pullRequest = Mockito.mock(PullRequest.class);
+
+            when(pullRequest.getTitle()).thenReturn("");
+
+            when(gitHubConnection.getPullRequest(anyString())).thenReturn(pullRequest);
+
+            when(ghProv.server(anyString())).thenReturn(gitHubConnection);
+
+            final IJiraIntegrationProvider jiraProv = Mockito.mock(IJiraIntegrationProvider.class);
+
+            bind(IJiraIntegrationProvider.class).toInstance(jiraProv);
+
+            when(jiraProv.server(anyString())).thenReturn(Mockito.mock(IJiraIntegration.class));
 
             bind(ITeamcityIgnitedProvider.class).to(TeamcityIgnitedProviderMock.class).in(new SingletonScope());
 

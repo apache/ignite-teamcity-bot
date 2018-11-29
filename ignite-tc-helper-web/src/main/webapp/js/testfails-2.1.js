@@ -45,20 +45,6 @@ class Settings {
 //@param settings - Settings (JS class)
 function showChainResultsWithSettings(result, settings) {
     var res = "";
-    res += "<table border='0px'><tr><td colspan='4'>Chain results";
-
-    if(isDefinedAndFilled(result.trackedBranch)) {
-        res+=" for [" + result.trackedBranch + "]";
-    }
-
-    if (isDefinedAndFilled(result.failedTests) &&
-        isDefinedAndFilled(result.failedToFinish)) {
-        res += " [";
-        res += "tests " + result.failedTests + " suites " + result.failedToFinish + "";
-        res += "]";
-    }
-    res += "</td></tr>";
-    res += "</table>";
 
     for (var i = 0; i < result.servers.length; i++) {
         var server = result.servers[i];
@@ -82,26 +68,38 @@ function showChainCurrentStatusData(server, settings) {
 
     var res = "";
 
-    res += "<table border='0px'>";
-    res += "<tr bgcolor='#F5F5FF'><td colspan='3'><b><a href='" + server.webToHist + "'>";
+    res += "<table style='width: 100%;' border='0px'>";
+    res += "<tr bgcolor='#F5F5FF'><td colspan='3' width='75%'>";
+    res += "<table style='width: 40%'>";
+    res += "<tr><td><b> Server: </b></td><td>[" + server.serverId + "]</td></tr>";
+
+    if (isDefinedAndFilled(server.webToTicket) && isDefinedAndFilled(server.ticketFullName)) {
+        res += "<tr><td><b> Ticket: </b></td><td>";
+        res += "<a href='" + server.webToTicket + "'>[" + server.ticketFullName + "]</a>";
+        res += "</td></tr>";
+    }
+
+    res += "<tr><td><b> PR: </b></td><td>";
+
+    if (isDefinedAndFilled(server.webToPr))
+        res += "<a href='" + server.webToPr + "'>[" + server.branchName + "]</a>";
+    else
+        res += "[" + server.branchName + "]";
+
+    res += " <a href='" + server.webToHist + "'>[Run-All history]</a>";
+    res += "</td></tr>";
+    res += "</table>";
+    res += "</br>";
 
     if (isDefinedAndFilled(server.chainName)) {
         res += server.chainName + " ";
     }
-    res += server.serverId;
 
-    res += "</a> ";
-    res += "[";
-    res += " <a href='" + server.webToBuild + "' title=''>";
-    res += "tests " + server.failedTests + " suites " + server.failedToFinish + "";
-    res += " </a>";
-    res += "] ";
-    res += "[";
+    res += "<b>Chain result: </b>" + server.failedToFinish + " suites and " + server.failedTests + " tests failed";
+    res += "</br>";
     res += "<a href='longRunningTestsReport.html'>";
     res += "long running tests report";
     res += "</a>";
-    res += "]";
-    res += "</b>";
 
     var mInfo = "";
 

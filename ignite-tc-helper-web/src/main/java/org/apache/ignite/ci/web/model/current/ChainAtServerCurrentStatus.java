@@ -18,6 +18,8 @@
 package org.apache.ignite.ci.web.model.current;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Strings;
+import com.google.inject.Inject;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -29,6 +31,10 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.ITestFailures;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 
@@ -58,6 +64,15 @@ public class ChainAtServerCurrentStatus {
 
     /** Web Href. to suite particular run */
     public String webToBuild = "";
+
+    /** */
+    public String webToTicket;
+
+    /** */
+    public String webToPr;
+
+    /** */
+    public String ticketFullName;
 
     /** Suites involved in chain. */
     public List<SuiteCurrentStatus> suites = new ArrayList<>();
@@ -89,6 +104,27 @@ public class ChainAtServerCurrentStatus {
     public ChainAtServerCurrentStatus(String srvId, String branchTc) {
         this.serverId = srvId;
         this.branchName = branchTc;
+    }
+
+    /** */
+    public void initFromContext(ITeamcity teamcity,
+        FullChainRunCtx ctx,
+        ITcAnalytics tcAnalytics,
+        @Nullable String baseBranchTc,
+        IGitHubConnection gitHubConn,
+        IJiraIntegration jiraIntegration) {
+        initFromContext(teamcity, ctx, tcAnalytics, baseBranchTc);
+
+        if (!Strings.isNullOrEmpty(branchName)) {
+            PullRequest pr = gitHubConn.getPullRequest(branchName);
+
+            ticketFullName = TcBotTriggerAndSignOffService.getTicketFullName(pr);
+
+            webToPr = pr.htmlUrl();
+        }
+
+        if (!Strings.isNullOrEmpty(ticketFullName))
+            webToTicket = jiraIntegration.generateTicketUrl(ticketFullName);
     }
 
     public void initFromContext(ITeamcity teamcity,

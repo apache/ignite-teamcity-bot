@@ -1,0 +1,72 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.ignite.ci.jira;
+
+import java.io.File;
+import java.util.Properties;
+import javax.inject.Inject;
+import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.Visa;
+
+/**
+ *
+ */
+public class Jira implements IJiraIntegration {
+    /** */
+    @Inject ITcHelper helper;
+
+    /** */
+    private String jiraUrl;
+
+    /** {@inheritDoc} */
+    @Override public void init(String srvId) {
+        final File workDir = HelperConfig.resolveWorkDir();
+
+        final String cfgName = HelperConfig.prepareConfigName(srvId);
+
+        final Properties props = HelperConfig.loadAuthProperties(workDir, cfgName);
+
+        jiraUrl = props.getProperty(HelperConfig.JIRA_URL);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String jiraUrl() {
+        return jiraUrl;
+    }
+
+    /** {@inheritDoc} */
+    @Override public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
+        String ticket) {
+        return helper.notifyJira(srvId, prov, buildTypeId, branchForTc, ticket);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String generateTicketUrl(String ticketFullName) {
+        return jiraUrl + "browse/" + ticketFullName;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String generateCommentUrl(String ticketFullName, int commentId) {
+        return generateTicketUrl(ticketFullName) +
+            "?focusedCommentId=" + commentId +
+            "&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-" +
+            commentId;
+    }
+}

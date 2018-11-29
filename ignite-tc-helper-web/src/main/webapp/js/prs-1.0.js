@@ -128,7 +128,15 @@ function showContributionsTable(result, srvId, suiteId) {
             },
             {
                 "data": "jiraIssueId",
-                title: "JIRA Issue"
+                title: "JIRA Issue",
+                "render": function (data, type, row, meta) {
+                    if (type === 'display') {
+                        if (data != null && row.jiraIssueUrl != null)
+                            data = "<a href='" + row.jiraIssueUrl + "'>" + data + "</a>";
+                    }
+
+                    return data;
+                }
             },
             {
                 "data": "tcBranchName",

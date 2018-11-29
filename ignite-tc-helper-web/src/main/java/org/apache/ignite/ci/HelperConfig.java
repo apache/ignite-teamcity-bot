@@ -60,6 +60,9 @@ public class HelperConfig {
     /** JIRA authorization token property name. */
     public static final String JIRA_API_URL = "jira.api_url";
 
+    /** */
+    public static final String JIRA_URL = "jira.url";
+
     /** Slack authorization token property name. */
     public static final String SLACK_AUTH_TOKEN = "slack.auth_token";
     public static final String SLACK_CHANNEL = "slack.channel";
