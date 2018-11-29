@@ -34,6 +34,7 @@ public interface ITcAnalytics {
      *
      * @return map from suite ID to its run statistics
      */
+    @Deprecated
     Function<SuiteInBranch, RunStat> getBuildFailureRunStatProvider();
 
     /**

@@ -133,8 +133,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         name = suite.suiteName();
 
-        String failRateNormalizedBranch = NEW_RUN_STAT ? baseBranch : normalizeBranch(baseBranch);
-        String curBranchNormalized = NEW_RUN_STAT ? suite.branchName() : normalizeBranch(suite.branchName());
+        String failRateNormalizedBranch = normalizeBranch(baseBranch);
+        String curBranchNormalized = normalizeBranch(suite.branchName());
 
         Function<TestInBranch, ? extends IRunHistory> testStatProv = NEW_RUN_STAT
             ? tcIgnited::getTestRunHist
