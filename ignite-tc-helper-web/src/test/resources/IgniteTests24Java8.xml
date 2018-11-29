@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)" parentProjectId="_Root" description="Project for Ignite 2.4+ testing with Java 8 as default JDK" href="/app/rest/projects/id:IgniteTests24Java8" webUrl="http://ci.ignite.apache.org/project.html?projectId=IgniteTests24Java8">
+	<parentProject id="_Root" name="&lt;Root project&gt;" description="Contains all other projects" href="/app/rest/projects/id:_Root" webUrl="http://ci.ignite.apache.org/project.html?projectId=_Root"/>
+	<buildTypes count="2">
+		<buildType id="IgniteTests24Java8_RunAll" name="--&gt; Run :: All" description="Dummy build for run all build in project by one click" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_RunAll" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_RunAll"/>
+		<buildType id="IgniteTests24Java8_ActivateDeactivateCluster" name="Activate | Deactivate Cluster" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ActivateDeactivateCluster" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ActivateDeactivateCluster"/>
+	</buildTypes>
+	<templates count="9">
+		<buildType id="IgniteTests24Java8_C" name="C++" templateFlag="true" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_C"/>
+		<buildType id="IgniteTests24Java8_PostBuild" name="Post-build" templateFlag="true" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PostBuild"/>
+		<buildType id="IgniteTests24Java8_PreBuild" name="Pre-build" templateFlag="true" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PreBuild"/>
+		<buildType id="IgniteTests24Java8_RunIntelliJIdeaInspectionsTemplate" name="Run IntelliJ IDEA Inspections" templateFlag="true" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_RunIntelliJIdeaInspectionsTemplate"/>
+		<buildType id="IgniteTests24Java8_RunTestSuitesNet" name="Run test suites (.NET)" templateFlag="true" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_RunTestSuitesNet"/>
+		<buildType id="IgniteTests24Java8_RunTestSuites" name="Run test suites (Java)" templateFlag="true" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_RunTestSuites"/>
+		<buildType id="IgniteTests24Java8_ThinClientStartIgnite" name="Thin Client: Start Ignite" templateFlag="true" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ThinClientStartIgnite"/>
+		<buildType id="IgniteTests24Java8_ThinClientStopIgnite" name="Thin Client: Stop Ignite" templateFlag="true" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ThinClientStopIgnite"/>
+		<buildType id="IgniteTests24Java8_RunTestSuites_Obsolete" name="~[Obsolete] Run test suites" templateFlag="true" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_RunTestSuites_Obsolete"/>
+	</templates>
+	<parameters count="1" href="/app/rest/projects/id:IgniteTests24Java8/parameters">
+		<property name="system.IGNITE_DUMP_THREADS_ON_FAILURE" value="false" inherited="true">
+			<type rawValue="text display='hidden' validationMode='any'"/>
+		</property>
+	</parameters>
+	<vcsRoots count="0" href="/app/rest/vcs-roots?locator=project:(id:IgniteTests24Java8)"/>
+	<projectFeatures count="0" href="/app/rest/projects/id:IgniteTests24Java8/projectFeatures"/>
+	<projects count="0"/>
+</project>

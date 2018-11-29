@@ -17,15 +17,17 @@
 
 package org.apache.ignite.ci.tcmodel.conf;
 
+import java.util.Objects;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
+import org.apache.ignite.ci.tcmodel.result.AbstractRef;
 
 /**
  * Build type reference
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-public class BuildType {
+public class BuildType extends AbstractRef {
     @XmlAttribute private String id;
 
     @XmlAttribute private String name;
@@ -34,39 +36,75 @@ public class BuildType {
 
     @XmlAttribute private String projectName;
 
-    @XmlAttribute
-    private String href;
+    @XmlAttribute private String webUrl;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getName() {
         return name;
     }
 
-    public String getId() {
-        return id;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getProjectId() {
         return projectId;
     }
 
-    /**
-     * @param id New id.
-     */
-    public void id(String id) {
-        this.id = id;
-    }
-
-    /**
-     * @param name Name.
-     */
-    public void name(String name) {
-        this.name = name;
-    }
-
-    /**
-     * @param projectId Project id.
-     */
-    public void projectId(String projectId) {
+    public void setProjectId(String projectId) {
         this.projectId = projectId;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+
+    public String getWebUrl() {
+        return webUrl;
+    }
+
+    public void setWebUrl(String webUrl) {
+        this.webUrl = webUrl;
+    }
+
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+
+        if (!(o instanceof BuildType))
+            return false;
+
+        BuildType ref = (BuildType)o;
+
+        return Objects.equals(getId(), ref.getId()) &&
+            Objects.equals(getName(), ref.getName()) &&
+            Objects.equals(getProjectId(), ref.getProjectId()) &&
+            Objects.equals(getProjectName(), ref.getProjectName()) &&
+            Objects.equals(getWebUrl(), ref.getWebUrl());
+    }
+
+    @Override public int hashCode() {
+        return Objects.hash(getId(), getName(), getProjectId(), getProjectName(), getWebUrl());
+    }
+
+    @Override public String toString() {
+        return "BuildTypeRef{" +
+            "id='" + id + '\'' +
+            ", name='" + name + '\'' +
+            ", projectId='" + projectId + '\'' +
+            ", projectName='" + projectName + '\'' +
+            ", webUrl='" + webUrl + '\'' +
+            '}';
     }
 }

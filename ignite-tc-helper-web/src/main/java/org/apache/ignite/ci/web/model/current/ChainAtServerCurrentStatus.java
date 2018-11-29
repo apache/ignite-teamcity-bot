@@ -35,6 +35,7 @@ import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 
@@ -50,7 +51,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOr
  */
 @SuppressWarnings({"WeakerAccess", "PublicField"})
 public class ChainAtServerCurrentStatus {
-    /** {@link org.apache.ignite.ci.tcmodel.conf.BuildType#name} */
+    /** {@link BuildType#name} */
     public String chainName;
 
     /** Server ID. */

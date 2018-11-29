@@ -49,7 +49,7 @@ public class BuildsInfo {
     public final String srvId;
 
     /** Build type id. */
-    public final String buildTypeId;
+    public String buildTypeId;
 
     /** Branch name. */
     public final String branchForTc;

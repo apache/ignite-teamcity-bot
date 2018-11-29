@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
@@ -40,12 +41,15 @@ import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.di.scheduler.NoOpSheduler;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.Project;
+import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
@@ -160,6 +164,108 @@ public class IgnitedTcInMemoryIntegrationTest {
                 System.out.println(e.getValue());
             }
         );
+    }
+
+    @Test
+    public void saveAndLoadBuildTypes() throws IOException, JAXBException {
+        final String projectId = "IgniteTests24Java8";
+        final String runAll = projectId + "_RunAll";
+        final String cluster = projectId + "_ActivateDeactivateCluster";
+        final AtomicBoolean buildTypeRmv = new AtomicBoolean();
+        final AtomicBoolean runAllRmv = new AtomicBoolean();
+        final AtomicBoolean clusterRmv = new AtomicBoolean();
+
+        ITeamcityHttpConnection http = Mockito.mock(ITeamcityHttpConnection.class);
+
+        when(http.sendGet(anyString(), anyString())).thenAnswer(
+            (invocationOnMock) -> {
+                String url = invocationOnMock.getArgument(1);
+                if (url.contains("/app/rest/latest/builds?locator=defaultFilter:false,count:1000,start:1000"))
+                    return getClass().getResourceAsStream("/buildHistoryMasterPage2.xml");
+
+                if (url.contains("/app/rest/latest/builds?locator=defaultFilter:false"))
+                    return getClass().getResourceAsStream("/buildHistoryMaster.xml");
+
+                if (url.contains("app/rest/latest/projects/" + projectId))
+                    return getClass().getResourceAsStream("/" + projectId +
+                            (buildTypeRmv.get() ? "_v2" : "") + ".xml");
+
+                if ((url.contains("app/rest/latest/buildTypes/id:" + runAll)) && !runAllRmv.get())
+                    return getClass().getResourceAsStream("/" + runAll + ".xml");
+
+                if ((url.contains("app/rest/latest/buildTypes/id:" + cluster)) && !clusterRmv.get())
+                    return getClass().getResourceAsStream("/" + cluster + ".xml");
+
+                throw new FileNotFoundException(url);
+            }
+        );
+
+        TeamcityIgnitedModule module = new TeamcityIgnitedModule();
+
+        module.overrideHttp(http);
+
+        Injector injector = Guice.createInjector(module, new AbstractModule() {
+            @Override protected void configure() {
+                bind(Ignite.class).toInstance(ignite);
+                bind(IScheduler.class).to(DirectExecNoWaitSheduler.class);
+            }
+        });
+
+        ITeamcityIgnited srv = injector.getInstance(ITeamcityIgnitedProvider.class).server(APACHE, creds());
+        IStringCompactor compactor = injector.getInstance(IStringCompactor.class);
+
+        TeamcityIgnitedImpl teamcityIgnited = (TeamcityIgnitedImpl)srv;
+        teamcityIgnited.fullReindex();
+
+        List<String> buildTypes = srv.getCompositeBuildTypesIdsSortedByBuildNumberCounter(projectId);
+
+        assertEquals(buildTypes.size(),1);
+
+        assertEquals(buildTypes.get(0), runAll);
+
+        List<BuildTypeRefCompacted> allBuildTypes = srv.getAllBuildTypesCompacted(projectId);
+
+        assertEquals(allBuildTypes.size(), 2);
+
+        buildTypeRmv.set(true);
+
+        buildTypes = srv.getCompositeBuildTypesIdsSortedByBuildNumberCounter(projectId);
+
+        assertTrue(buildTypes.isEmpty());
+
+        assertTrue(srv.getBuildTypeRef(runAll).removed());
+
+        clusterRmv.set(true);
+
+        srv.getAllBuildTypesCompacted(projectId);
+
+        assertTrue(srv.getBuildType(cluster).removed());
+
+        runAllRmv.set(false);
+        clusterRmv.set(false);
+        buildTypeRmv.set(false);
+
+        allBuildTypes = srv.getAllBuildTypesCompacted(projectId);
+
+        assertEquals(allBuildTypes
+            .stream()
+            .filter(bt -> !srv.getBuildType(bt.id(compactor)).removed()).count(), 2);
+
+        BuildType runAllRef = jaxbTestXml("/" + projectId + ".xml", Project.class).getBuildTypesNonNull()
+            .stream()
+            .filter(bt -> bt.getId().equals(runAll))
+            .findFirst()
+            .orElse(null);
+
+        BuildType runAllRefFromCache = srv.getBuildTypeRef(runAll).toBuildTypeRef(compactor);
+
+        assertEquals(runAllRef, runAllRefFromCache);
+
+        BuildTypeFull runAllFull = jaxbTestXml("/" + runAll + ".xml", BuildTypeFull.class);
+
+        BuildTypeFull runAllFullFromCache = srv.getBuildType(runAll).toBuildType(compactor);
+
+        assertEquals(runAllFull, runAllFullFromCache);
     }
 
     @Test
