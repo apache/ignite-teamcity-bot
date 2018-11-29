@@ -33,6 +33,8 @@ import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeSync;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.FatBuildTypeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.FatBuildTypeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
@@ -97,6 +99,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** BuildType reference DAO. */
     @Inject private BuildTypeRefDao buildTypeRefDao;
+
+    /** BuildType DAO. */
+    @Inject private FatBuildTypeDao fatBuildTypeDao;
 
     /** BuildType DAO. */
     @Inject private BuildTypeSync buildTypeSync;
@@ -334,6 +339,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return buildTypeRefDao.getBuildTypeRef(srvIdMaskHigh, buildTypeId);
     }
 
+    /** {@inheritDoc} */
+    @Override public FatBuildTypeCompacted getBuildType(String buildTypeId) {
+        return fatBuildTypeDao.getFatBuildType(srvIdMaskHigh, buildTypeId);
+    }
 
     public List<String> branchForQuery(@Nullable String branchName) {
         if (ITeamcity.DEFAULT.equals(branchName))

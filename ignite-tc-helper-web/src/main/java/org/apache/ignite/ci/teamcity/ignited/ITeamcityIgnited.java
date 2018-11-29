@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.FatBuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.jetbrains.annotations.NotNull;
@@ -147,4 +148,10 @@ public interface ITeamcityIgnited {
      * @return Compacted reference to BuildType.
      */
     public BuildTypeRefCompacted getBuildTypeRef(String buildTypeId);
+
+    /**
+     * @param buildTypeId BuildType id.
+     * @return BuildType compacted.
+     */
+    public FatBuildTypeCompacted getBuildType(String buildTypeId);
 }
