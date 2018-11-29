@@ -59,21 +59,8 @@ function showChainResultsWithSettings(result, settings) {
     } else
         res += " is absent";
 
-    let suiteId;
-
-    if (isDefinedAndFilled(findGetParameter("suiteId"))) {
-        suiteId = findGetParameter("suiteId");
-    } else if (isDefinedAndFilled(result.servers[0])) {
-        let url = new URL(result.servers[0].webToHist);
-
-        suiteId = url.searchParams.get("buildTypeId");
-    }
-
-    if (isDefinedAndFilled(suiteId))
-        res += " | Suite: <b>" + suiteId + "</b>";
-
     res += "</td></tr>";
-    res += "</table>";
+    res += "</table></br>";
 
     for (var i = 0; i < result.servers.length; i++) {
         var server = result.servers[i];
@@ -104,6 +91,20 @@ function showChainCurrentStatusData(server, settings) {
     res += "<table style='width: 40%'>";
     res += "<tr><td><b> Server: </b></td><td>[" + server.serverId + "]</td></tr>";
 
+    let suiteName;
+
+    if (isDefinedAndFilled(findGetParameter("suiteId"))) {
+        suiteName = findGetParameter("suiteId");
+    } else if (isDefinedAndFilled(server)) {
+        let url = new URL(server.webToHist);
+
+        suiteName = url.searchParams.get("buildTypeId");
+    }
+
+    if (isDefinedAndFilled(suiteName))
+        res += "<tr><td><b> Suite: </b></td><td>[" + suiteName + "]</td></tr>";
+
+
     if (isDefinedAndFilled(server.webToTicket) && isDefinedAndFilled(server.ticketFullName)) {
         res += "<tr><td><b> Ticket: </b></td><td>";
         res += "<a href='" + server.webToTicket + "'>[" + server.ticketFullName + "]</a>";
@@ -126,10 +127,16 @@ function showChainCurrentStatusData(server, settings) {
         res += server.chainName + " ";
     }
 
-    res += "<b>Chain result: </b>" + server.failedToFinish + " suites and " + server.failedTests + " tests failed";
+    res += "<b>Chain result: </b>";
+
+    if (isDefinedAndFilled(server.failedToFinish) && isDefinedAndFilled(server.failedTests))
+        res += server.failedToFinish + " suites and " + server.failedTests + " tests failed";
+    else
+        res += "is empty";
+
     res += "</br>";
     res += "<a href='longRunningTestsReport.html'>";
-    res += "long running tests report";
+    res += "Long running tests report";
     res += "</a>";
 
     var mInfo = "";
