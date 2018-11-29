@@ -154,6 +154,7 @@ public class RunHistSync {
             buildsSaveThisRun = syncTask.suites;
 
             syncTask.tests = new HashMap<>();
+            syncTask.suites = new HashMap<>();
         }
 
         return saveInvocationsMap(buildsSaveThisRun, saveThisRun);
