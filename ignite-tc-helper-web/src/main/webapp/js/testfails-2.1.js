@@ -775,8 +775,12 @@ function showTestFailData(testFail, isFailureShown, settings) {
     }
 
     // has both base and current, draw current latest runs here.
-    var comparePage = isDefinedAndFilled(testFail.histCurBranch) && isDefinedAndFilled(testFail.histCurBranch.latestRuns)
-        && isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns);
+    var comparePage =
+        findGetParameter('action') != null
+        || (
+            isDefinedAndFilled(testFail.histCurBranch) && isDefinedAndFilled(testFail.histCurBranch.latestRuns)
+            && isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns)
+        );
 
     var baseBranchMarks = "";
 
@@ -810,9 +814,10 @@ function showTestFailData(testFail, isFailureShown, settings) {
     if (haveWeb)
         res += "<a href='" + testFail.webUrl + "'>";
 
-    if(comparePage)
-        res += drawLatestRuns(testFail.histCurBranch.latestRuns);
-    else if(isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns))
+    if(comparePage) {
+        if (isDefinedAndFilled(testFail.histCurBranch))
+            res += drawLatestRuns(testFail.histCurBranch.latestRuns);
+    } else if(isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns))
         res += drawLatestRuns(testFail.histBaseBranch.latestRuns); // has only base branch
 
     if (haveWeb)
@@ -872,7 +877,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
         histContent += "</span>";
 
-        if(comparePage)  {
+        if(comparePage && isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns))  {
              histContent += " " + drawLatestRuns(testFail.histBaseBranch.latestRuns); // has both base and current, draw current base runs here.
         }
     } else if (haveWeb) {
