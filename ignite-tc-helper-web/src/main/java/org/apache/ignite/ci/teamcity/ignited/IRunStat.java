@@ -14,23 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.ignite.ci.analysis;
-
-import java.util.stream.Stream;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+package org.apache.ignite.ci.teamcity.ignited;
 
 /**
- * Multiple test ocurrence
+ * Abstract runs statistics,
  */
-public interface ITestFailures {
-    String getName();
+public interface IRunStat {
+    public int getRunsCount();
+    public int getFailuresCount();
 
-    boolean isInvestigated();
+    /**
+     * @return fail rate as float.
+     */
+    public default float getFailRate() {
+        int runs = getRunsCount();
 
-    public int failuresCount();
+        if (runs == 0)
+            return 0.0f;
 
-    public long getAvgDurationMs();
+        return 1.0f * getFailuresCount() / runs;
+    }
 
-    Iterable<TestOccurrenceFull> getOccurrences();
+    public default String getFailPercentPrintable() {
+        return getPercentPrintable(getFailRate() * 100.0f);
+    }
+
+
+    public static String getPercentPrintable(float percent) {
+        return String.format("%.1f", percent).replace(".", ",");
+    }
 }

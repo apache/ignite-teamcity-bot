@@ -75,10 +75,10 @@ public class GetChainResultsAsHtml {
         ITcServerProvider tcHelper = injector.getInstance(ITcServerProvider.class);
         final ICredentialsProv creds = ICredentialsProv.get(req);
         IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds);
-        ITeamcityIgnited teamcityIgnited = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvId, creds);
+        ITeamcityIgnited tcIgn = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvId, creds);
 
         final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
-            teamcityIgnited,
+            tcIgn,
             Collections.singletonList(buildId),
             LatestRebuildMode.NONE,
             ProcessLogsMode.SUITE_NOT_COMPLETE,
@@ -92,7 +92,7 @@ public class GetChainResultsAsHtml {
 
         status.chainName = ctx.suiteName();
 
-        status.initFromContext(teamcity, ctx, teamcity, failRateBranch);
+        status.initFromContext(tcIgn, teamcity, ctx, teamcity, failRateBranch);
 
         res.append(showChainAtServerData(status));
 

@@ -25,7 +25,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 
-public class TestCompactedMult implements ITestFailures {
+public class TestCompactedMult implements IMultTestOccurrence {
     private final List<TestCompacted> occurrences = new ArrayList<>();
     private IStringCompactor compactor;
     private long avgDuration = -1;

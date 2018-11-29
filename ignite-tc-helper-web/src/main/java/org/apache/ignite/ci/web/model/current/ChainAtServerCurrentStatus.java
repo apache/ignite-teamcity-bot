@@ -22,14 +22,18 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.ITestFailures;
+import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 
@@ -92,10 +96,11 @@ public class ChainAtServerCurrentStatus {
         this.branchName = branchTc;
     }
 
-    public void initFromContext(ITeamcity teamcity,
-        FullChainRunCtx ctx,
-        ITcAnalytics tcAnalytics,
-        @Nullable String baseBranchTc) {
+    public void initFromContext(ITeamcityIgnited tcIgnited,
+                                @Deprecated ITeamcity teamcity,
+                                FullChainRunCtx ctx,
+                                @Deprecated ITcAnalytics tcAnalytics,
+                                @Nullable String baseBranchTc) {
         failedTests = 0;
         failedToFinish = 0;
         //todo mode with not failed
@@ -105,7 +110,7 @@ public class ChainAtServerCurrentStatus {
             suite -> {
                 final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
 
-                suiteCurStatus.initFromContext(teamcity, suite, tcAnalytics, baseBranchTc);
+                suiteCurStatus.initFromContext(tcIgnited, teamcity, suite, tcAnalytics, baseBranchTc);
 
                 failedTests += suiteCurStatus.failedTests;
                 if (suite.hasAnyBuildProblemExceptTestOrSnapshot() || suite.onlyCancelledBuilds())
@@ -120,18 +125,24 @@ public class ChainAtServerCurrentStatus {
         webToHist = buildWebLink(teamcity, ctx);
         webToBuild = buildWebLinkToBuild(teamcity, ctx);
 
-        Stream<T2<MultBuildRunCtx, ITestFailures>> allLongRunning = ctx.suites().flatMap(
+        Stream<T2<MultBuildRunCtx, IMultTestOccurrence>> allLongRunning = ctx.suites().flatMap(
             suite -> suite.getTopLongRunning().map(t -> new T2<>(suite, t))
         );
-        Comparator<T2<MultBuildRunCtx, ITestFailures>> durationComp
+        Comparator<T2<MultBuildRunCtx, IMultTestOccurrence>> durationComp
             = Comparator.comparing((pair) -> pair.get2().getAvgDurationMs());
 
         CollectionUtil.top(allLongRunning, 3, durationComp).forEach(
             pairCtxAndOccur -> {
                 MultBuildRunCtx suite = pairCtxAndOccur.get1();
-                ITestFailures longRunningOccur = pairCtxAndOccur.get2();
+                IMultTestOccurrence longRunningOccur = pairCtxAndOccur.get2();
 
-                TestFailure failure = createOrrucForLongRun(teamcity, suite, tcAnalytics, longRunningOccur, baseBranchTc);
+                Function<TestInBranch, ? extends IRunHistory> function = SuiteCurrentStatus.NEW_RUN_STAT
+                    ? tcIgnited::getTestRunHist
+                    : tcAnalytics.getTestRunStatProvider();
+
+                TestFailure failure = createOrrucForLongRun(tcIgnited, suite, tcAnalytics, longRunningOccur,
+                    baseBranchTc,
+                    function);
 
                 failure.testName = "[" + suite.suiteName() + "] " + failure.testName; //may be separate field
 

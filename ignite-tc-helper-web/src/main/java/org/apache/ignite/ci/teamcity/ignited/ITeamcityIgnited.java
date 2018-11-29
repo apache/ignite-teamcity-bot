@@ -20,10 +20,12 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import javax.annotation.Nullable;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.jetbrains.annotations.NotNull;
@@ -107,8 +109,6 @@ public interface ITeamcityIgnited {
         return getFatBuild(id, SyncMode.RELOAD_QUEUED);
     }
 
-
-
     /**
      * @param id Id.
      * @param mode Refresh mode.
@@ -154,4 +154,14 @@ public interface ITeamcityIgnited {
      * @return BuildType compacted.
      */
     public BuildTypeCompacted getBuildType(String buildTypeId);
+
+    @Nullable public IRunHistory getTestRunHist(TestInBranch testInBranch);
+
+    @Nullable public IRunHistory getSuiteRunHist(SuiteInBranch branch);
+
+    /**
+     * @param suiteBuildTypeId Suite id.
+     * @return run statistics of recent runls on all branches.
+     */
+    @Nullable public IRunStat getSuiteRunStatAllBranches(String suiteBuildTypeId);
 }

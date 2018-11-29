@@ -58,7 +58,7 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static org.apache.ignite.ci.tcbot.chain.BuildChainProcessor.normalizeBranch;
+import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normalizeBranch;
 
 /**
  * Apache Ignite based cache over teamcity responses (REST caches).
@@ -70,6 +70,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     //V2 caches, 32 parts (V1 caches were 1024 parts)
     @Deprecated
     private static final String TESTS_RUN_STAT = "testsRunStat";
+    @Deprecated
     private static final String CALCULATED_STATISTIC = "calculatedStatistic";
     private static final String LOG_CHECK_RESULT = "logCheckResult";
 
@@ -319,7 +320,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     @NotNull private SuiteInBranch keyForBuild(Build loaded) {
-        return new SuiteInBranch(loaded.suiteId(), normalizeBranch(loaded));
+        return new SuiteInBranch(loaded.suiteId(), normalizeBranch(loaded.branchName));
     }
 
     private Build realLoadBuild(String href1) {
@@ -349,9 +350,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.host();
     }
 
+    @Deprecated
     private void registerCriticalBuildProblemInStat(BuildRef build, ProblemOccurrences problems) {
         boolean criticalFail = problems.getProblemsNonNull().stream().anyMatch(occurrence ->
-            occurrence.isExecutionTimeout() || occurrence.isJvmCrash() || occurrence.isFailureOnMetric()
+            occurrence.isExecutionTimeout()
+                || occurrence.isJvmCrash()
+                || occurrence.isFailureOnMetric()
                 || occurrence.isCompilationError());
 
         String suiteId = build.suiteId();
@@ -361,7 +365,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             return;
 
         if (buildId != null && !Strings.isNullOrEmpty(suiteId)) {
-            SuiteInBranch key = new SuiteInBranch(suiteId, normalizeBranch(build));
+            SuiteInBranch key = new SuiteInBranch(suiteId, normalizeBranch(build.branchName));
 
             buildsFailureRunStatCache().invoke(key, (entry, arguments) -> {
                 SuiteInBranch suiteInBranch = entry.getKey();
@@ -409,10 +413,12 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
             .map(Cache.Entry::getValue);
     }
 
+    @Deprecated
     private IgniteCache<TestInBranch, RunStat> testRunStatCache() {
         return getOrCreateCacheV2(ignCacheNme(TESTS_RUN_STAT));
     }
 
+    @Deprecated
     private IgniteCache<Integer, Boolean> calculatedStatistic() {
         return getOrCreateCacheV2(ignCacheNme(CALCULATED_STATISTIC));
     }
@@ -446,6 +452,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return getOrCreateCacheV2(ignCacheNme(LOG_CHECK_RESULT));
     }
 
+    @Deprecated
     private void addTestOccurrenceToStat(TestOccurrence next, String normalizedBranch, Boolean changesExist) {
         String name = next.getName();
         if (Strings.isNullOrEmpty(name))
@@ -517,8 +524,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         if (calculatedStatistic().containsKey(ctx.buildId()))
             return;
 
-        for (TestOccurrence testOccurrence : ctx.getTests())
-            addTestOccurrenceToStat(testOccurrence, normalizeBranch(ctx.getBranch()), !ctx.getChanges().isEmpty());
+        for (TestOccurrence testOccurrence : ctx.getTests()) {
+            String branch = normalizeBranch(ctx.getBranch());
+
+            addTestOccurrenceToStat(testOccurrence, branch, !ctx.getChanges().isEmpty());
+        }
 
         calculatedStatistic().put(ctx.buildId(), true);
     }

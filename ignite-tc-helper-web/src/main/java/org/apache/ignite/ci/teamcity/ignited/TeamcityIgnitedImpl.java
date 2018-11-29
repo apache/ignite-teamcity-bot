@@ -21,6 +21,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
@@ -41,6 +43,8 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -94,7 +98,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Changes DAO. */
     @Inject private ChangeDao changesDao;
 
-    /** Changes DAO. */
+    /** Changes sync class. */
     @Inject private ChangeSync changeSync;
 
     /** BuildType reference DAO. */
@@ -106,7 +110,13 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** BuildType DAO. */
     @Inject private BuildTypeSync buildTypeSync;
 
-    /** Changes DAO. */
+    /** Run history DAO. */
+    @Inject private RunHistCompactedDao runHistCompactedDao;
+
+    /** Run history sync. */
+    @Inject private RunHistSync runHistSync;
+
+    /** Strings compactor. */
     @Inject private IStringCompactor compactor;
 
     /** Server ID mask for cache Entries. */
@@ -121,6 +131,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         buildConditionDao.init();
         fatBuildDao.init();
         changesDao.init();
+        runHistCompactedDao.init();
     }
 
     @NotNull
@@ -325,6 +336,26 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
+    @Nullable
+    @Override public IRunHistory getTestRunHist(TestInBranch testInBranch) {
+        return runHistCompactedDao.getTestRunHist(srvIdMaskHigh, testInBranch.name, testInBranch.branch);
+    }
+
+    /** {@inheritDoc} */
+    @Nullable
+    @Override public IRunHistory getSuiteRunHist(SuiteInBranch suiteInBranch) {
+        return runHistCompactedDao.getSuiteRunHist(srvIdMaskHigh, suiteInBranch.getSuiteId(), suiteInBranch.branch);
+    }
+
+    /** {@inheritDoc} */
+    @Nullable @Override public IRunStat getSuiteRunStatAllBranches(String suiteBuildTypeId) {
+        return runHistCompactedDao.getSuiteRunStatAllBranches(srvIdMaskHigh, suiteBuildTypeId);
+    }
+
+    /**
+     * @param branchName Branch name.
+     */
+    /** {@inheritDoc} */
     @Override public List<String> getCompositeBuildTypesIdsSortedByBuildNumberCounter(String projectId) {
         return buildTypeSync.getCompositeBuildTypesIdsSortedByBuildNumberCounter(srvIdMaskHigh, projectId, conn);
     }
@@ -346,13 +377,18 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     public List<String> branchForQuery(@Nullable String branchName) {
         if (ITeamcity.DEFAULT.equals(branchName))
-            return Lists.newArrayList(branchName, "refs/heads/master", "master");
+            return Lists.newArrayList(branchName, ITeamcity.REFS_HEADS_MASTER, "master");
         else
             return Collections.singletonList(branchName);
     }
 
     public void ensureActualizeRequested() {
         scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), this::actualizeRecentBuildRefs, 2, TimeUnit.MINUTES);
+
+        // schedule find missing later
+        buildSync.invokeLaterFindMissingByBuildRef(srvNme, conn);
+
+        runHistSync.invokeLaterFindMissingHistory(srvNme);
     }
 
     /** {@inheritDoc} */
@@ -418,11 +454,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, mode);
 
-        //build was modified, probably we need also to update reference accordindly
-        if (savedVer != null)
-            buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(savedVer));
+        //build was modified, probably we need also to update reference accordingly
+        if (savedVer == null)
+            return existingBuild;
 
-        return savedVer == null ? existingBuild : savedVer;
+        buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(savedVer));
+        runHistSync.saveToHistoryLater(srvNme, savedVer);
+
+        return savedVer;
     }
 
     protected FatBuildCompacted getFatBuildFromIgnite(int buildId) {
@@ -461,9 +500,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      *
      */
     void actualizeRecentBuildRefs() {
-        // schedule find missing later
-        buildSync.invokeLaterFindMissingByBuildRef(srvNme, conn);
-
         List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdMaskHigh);
 
         Set<Integer> paginateUntil = new HashSet<>();
