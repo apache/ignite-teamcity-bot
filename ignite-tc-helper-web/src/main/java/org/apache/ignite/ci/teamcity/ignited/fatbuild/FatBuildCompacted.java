@@ -196,9 +196,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             res.setQueuedDateTs(queuedDate);
 
         BuildType type = new BuildType();
-        type.id(res.buildTypeId());
-        type.name(buildTypeName(compactor));
-        type.projectId(projectId(compactor));
+        type.setId(res.buildTypeId());
+        type.setName(buildTypeName(compactor));
+        type.setProjectId(projectId(compactor));
         res.setBuildType(type);
 
         if (tests != null) {

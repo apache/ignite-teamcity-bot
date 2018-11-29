@@ -23,7 +23,6 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -31,7 +30,10 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlRootElement(name = "buildType")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class BuildTypeFull extends BuildType {
+public class BuildTypeFull extends org.apache.ignite.ci.tcmodel.conf.BuildType {
+    @XmlElement(name = "settings")
+    Parameters settings;
+
     @XmlElement(name = "parameters")
     Parameters parameters;
 
@@ -45,6 +47,13 @@ public class BuildTypeFull extends BuildType {
         return parameters.getParameter(key);
     }
 
+    public boolean setSetting(String key, String value) {
+        if (settings == null)
+            return false;
+
+        return settings.setParameter(key, value);
+    }
+
     public List<SnapshotDependency> dependencies() {
         if (snapshotDependencies == null)
             return Collections.emptyList();
@@ -54,5 +63,25 @@ public class BuildTypeFull extends BuildType {
             return Collections.emptyList();
 
         return list;
+    }
+
+    public Parameters getSettings() {
+        return settings;
+    }
+
+    public Parameters getParameters() {
+        return parameters;
+    }
+
+    public void setSettings(Parameters settings) {
+        this.settings = settings;
+    }
+
+    public void setParameters(Parameters parameters) {
+        this.parameters = parameters;
+    }
+
+    public void setSnapshotDependencies(SnapshotDependencies snapshotDependencies) {
+        this.snapshotDependencies = snapshotDependencies;
     }
 }

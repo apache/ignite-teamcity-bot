@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<buildType id="IgniteTests24Java8_ActivateDeactivateCluster" name="Activate | Deactivate Cluster" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ActivateDeactivateCluster" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ActivateDeactivateCluster">
+    <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)" parentProjectId="_Root" description="Project for Ignite 2.4+ testing with Java 8 as default JDK" href="/app/rest/projects/id:IgniteTests24Java8" webUrl="http://ci.ignite.apache.org/project.html?projectId=IgniteTests24Java8"/>
+    <templates count="1">
+        <buildType id="IgniteTests24Java8_RunTestSuites_Obsolete" name="~[Obsolete] Run test suites" templateFlag="true" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_RunTestSuites_Obsolete"/>
+    </templates>
+    <vcs-root-entries count="1">
+        <vcs-root-entry id="GitHubApacheIgnite" inherited="true">
+            <vcs-root id="GitHubApacheIgnite" name="(proxy) GitHub [apache/ignite]" href="/app/rest/vcs-roots/id:GitHubApacheIgnite"/>
+            <checkout-rules></checkout-rules>
+        </vcs-root-entry>
+    </vcs-root-entries>
+    <settings count="4">
+        <property name="artifactRules" value="work/log =&gt; logs.zip&#xA;**/hs_err*.log =&gt; crashdumps.zip&#xA;**/core =&gt; crashdumps.zip&#xA;./**/target/rat.txt =&gt; rat.zip&#xA;/home/teamcity/ignite-startNodes/*.log =&gt; ignite-startNodes.zip&#xA;./dev-tools/IGNITE-*-*.patch =&gt; patch" inherited="true"/>
+        <property name="buildNumberCounter" value="6082"/>
+        <property name="cleanBuild" value="true" inherited="true"/>
+        <property name="executionTimeoutMin" value="120"/>
+    </settings>
+    <parameters count="13" href="/app/rest/buildTypes/id:IgniteTests24Java8_ActivateDeactivateCluster/parameters">
+        <property name="ACTUAL_VERSION" value="%dep.IgniteTests24Java8_BuildApacheIgnite.ACTUAL_VERSION%" inherited="true">
+            <type rawValue="text display='hidden' validationMode='any'"/>
+        </property>
+        <property name="env.JAVA_HOME" value="%reverse.dep.*.env.JAVA_HOME%" inherited="true">
+            <type rawValue="text validationMode='any' display='hidden'"/>
+        </property>
+        <property name="JVM_ARGS" value="-DIGNITE_MARSHAL_BUFFERS_RECHECK=1000">
+            <type rawValue="text display='hidden' validationMode='any'"/>
+        </property>
+        <property name="JVM_EXTRA_ARGS" value="%dep.IgniteTests24Java8_BuildApacheIgnite.JVM_EXTRA_ARGS%" inherited="true">
+            <type rawValue="text display='hidden' validationMode='any'"/>
+        </property>
+        <property name="MAVEN_GOALS" value="surefire:test" inherited="true">
+            <type rawValue="text validationMode='any' display='hidden'"/>
+        </property>
+        <property name="MAVEN_MODULES" value=":ignite-core">
+            <type rawValue="text display='hidden' validationMode='any'"/>
+        </property>
+        <property name="MAVEN_OPTS" value="" inherited="true">
+            <type rawValue="text display='hidden' validationMode='any'"/>
+        </property>
+        <property name="reverse.dep.*.env.JAVA_HOME" value="%env.JDK_ORA_18%" inherited="true">
+            <type rawValue="select data_5='%env.JDK_ORA_10%' label_5='JDK 10' label_3='JDK 9' data_7='%env.JDK_OPEN_11%' display='normal' label_7='JDK 11' description='Select JDK version for all tests' label='JDK version' data_1='%env.JDK_ORA_18%' label_1='JDK 1.8' data_3='%env.JDK_ORA_9%'"/>
+        </property>
+        <property name="system.IGNITE_DUMP_THREADS_ON_FAILURE" value="false" inherited="true">
+            <type rawValue="text display='hidden' validationMode='any'"/>
+        </property>
+        <property name="TEST_SCALE_FACTOR" value="1.0" inherited="true"/>
+        <property name="TEST_SUITE" value="IgniteStandByClusterSuite">
+            <type rawValue="text display='hidden' validationMode='any'"/>
+        </property>
+        <property name="XMS" value="2g" inherited="true">
+            <type rawValue="text display='hidden' validationMode='any'"/>
+        </property>
+        <property name="XMX" value="2g" inherited="true">
+            <type rawValue="text display='hidden' validationMode='any'"/>
+        </property>
+    </parameters>
+    <steps count="5">
+        <step id="RUNNER_264" name="Pre-build cleanup" type="simpleRunner" inherited="true">
+            <properties count="3">
+                <property name="script.content" value=":&lt;&lt;BATCH&#xA;&#xA;&#xA;:: === CMD ===&#xA;@echo on&#xA;exit /b&#xA;BATCH&#xA;&#xA;&#xA;# === SH ===&#xA;set -x&#xA;&#xA;# Pre-clean info&#xA;echo &quot;User: $(whoami)&quot;&#xA;echo &quot;JPS (before): &quot;&#xA;for process in $(%env.JAVA_HOME%/bin/jps)&#xA;do&#xA;    echo &quot;    ${process}&quot;&#xA;done&#xA;echo&#xA;&#xA;# Kill processes&#xA;echo &quot;Killing processes starters&quot;&#xA;for processName in GridHadoopExternalProcessStarter HadoopExternalProcessStarter MainWithArgsInFile&#xA;do&#xA;    for PID in $(%env.JAVA_HOME%/bin/jps | grep ${processName} | awk '{ print $1 }')&#xA;    do&#xA;        echo -n &quot;    Killing ${processName} process with PID ${PID}... &quot;&#xA;        processInfo=&quot;$(ps aux -p $PID)&quot;&#xA;        kill -9 ${PID} &amp;&amp; echo &quot;[OK]&quot; || {&#xA;            echo &quot;[ERROR] Unable to kill process ${PID}&quot; &amp;&amp; exit 1&#xA;        }&#xA;        echo &quot;        Killed process info: ${processInfo}&quot;&#xA;    done&#xA;done&#xA;echo&#xA;echo &quot;Killing IgniteNodeRunner processes (before tests)&quot;&#xA;for PID in $(%env.JAVA_HOME%/bin/jps | grep IgniteNodeRunner | awk '{ print $1 }')&#xA;do&#xA;    echo -n &quot;    Killing process with PID ${PID}... &quot;&#xA;    kill -9 ${PID} &amp;&amp; echo &quot;[OK]&quot; || {&#xA;        echo &quot;[ERROR] Unable to kill process ${PID}&quot; &amp;&amp; exit 1&#xA;    }&#xA;done&#xA;echo&#xA;&#xA;# Post-clean info&#xA;echo &quot;JPS (after): &quot;&#xA;for process in $(%env.JAVA_HOME%/bin/jps)&#xA;do&#xA;    echo &quot;    ${process}&quot;&#xA;done&#xA;echo&#xA;&#xA;# ULimit&#xA;ulimit -n 65535 &amp;&amp; echo &quot;Max number of OPEN FILE DESCRIPTORS:           $(ulimit -n)&quot;&#xA;ulimit -u 65535 &amp;&amp; echo &quot;Max number of SINGLE USER AVAILABLE PROCESSES: $(ulimit -u)&quot;&#xA;echo&#xA;&#xA;# Finalize IPC cleaning&#xA;echo &quot;Cleaning IPC resources&quot;&#xA;for param in m s&#xA;do&#xA;    for ipcs in $(ipcs -${param} | grep 'teamcity' | awk '{ print $2 }')&#xA;    do&#xA;        ipcrm -${param} ${ipcs} || {&#xA;            echo &quot;[ERROR] Unable to remove ${param}/${ipcs}&quot; &amp;&amp; exit 1&#xA;        }&#xA;    done&#xA;done"/>
+                <property name="teamcity.step.mode" value="default"/>
+                <property name="use.custom.script" value="true"/>
+            </properties>
+        </step>
+        <step id="RUNNER_287" name="Install built artifacts to local maven repository" type="simpleRunner" inherited="true">
+            <properties count="3">
+                <property name="script.content" value=":&lt;&lt;BATCH&#xA;&#xA;&#xA;:: === CMD ===&#xA;@echo on&#xA;del /s /f /q C:\.m2\repository\org\apache\ignite&#xA;md C:\.m2\repository\org\apache\ignite\&#xA;xcopy repository\* C:\.m2\repository\org\apache\ignite\ /s&#xA;exit /b&#xA;BATCH&#xA;&#xA;&#xA;# === SH ===&#xA;set -x&#xA;rm -rfv ~/.m2/repository/org/apache/ignite&#xA;mkdir -pv ~/.m2/repository/org/apache/ignite&#xA;cp -rfv repository/* ~/.m2/repository/org/apache/ignite/"/>
+                <property name="teamcity.step.mode" value="default"/>
+                <property name="use.custom.script" value="true"/>
+            </properties>
+        </step>
+        <step id="RUNNER_225" name="Add JDK9+ libraries to local Maven repository (~/.m2/repository)" type="Maven2" inherited="true">
+            <properties count="10">
+                <property name="goals" value="org.apache.maven.plugins:maven-dependency-plugin:2.8:get"/>
+                <property name="maven.path" value="%teamcity.tool.maven.DEFAULT%"/>
+                <property name="pomLocation" value="pom.xml"/>
+                <property name="runnerArgs" value="-Dartifact=javax.transaction:javax.transaction-api:1.3"/>
+                <property name="teamcity.coverage.emma.include.source" value="true"/>
+                <property name="teamcity.coverage.emma.instr.parameters" value="-ix -*Test*"/>
+                <property name="teamcity.coverage.idea.includePatterns" value="*"/>
+                <property name="teamcity.coverage.jacoco.patterns" value="+:*"/>
+                <property name="teamcity.step.mode" value="default"/>
+                <property name="userSettingsSelection" value="userSettingsSelection:default"/>
+            </properties>
+        </step>
+        <step id="RUNNER_265" name="Run test suite" type="Maven2" inherited="true">
+            <properties count="12">
+                <property name="goals" value="%MAVEN_GOALS%"/>
+                <property name="jvmArgs" value="-ea&#xA;-server&#xA;-Xms%XMS%&#xA;-Xmx%XMX%&#xA;-XX:+HeapDumpOnOutOfMemoryError&#xA;-XX:+AggressiveOpts&#xA;-DIGNITE_TEST_HOME=&quot;%teamcity.build.workingDir%&quot;&#xA;-DIGNITE_UPDATE_NOTIFIER=false&#xA;-DIGNITE_NO_DISCO_ORDER=true&#xA;-DIGNITE_PERFORMANCE_SUGGESTIONS_DISABLED=true&#xA;-DIGNITE_QUIET=false&#xA;-Djava.net.preferIPv4Stack=true&#xA;-DTEST_SCALE_FACTOR=%TEST_SCALE_FACTOR%&#xA;%JVM_ARGS% %JVM_EXTRA_ARGS%"/>
+                <property name="maven.path" value="%teamcity.tool.maven.3.5.3%"/>
+                <property name="pomLocation" value="pom.xml"/>
+                <property name="runnerArgs" value="-P all-java,scala-2.10,tensorflow,scala,scala-test&#xA;-pl %MAVEN_MODULES% -am&#xA;-Dmaven.test.failure.ignore=true&#xA;-DfailIfNoTests=false&#xA;-Dtest=%TEST_SUITE%&#xA;-Dmaven.javadoc.skip=true&#xA;%MAVEN_OPTS%"/>
+                <property name="teamcity.coverage.emma.include.source" value="true"/>
+                <property name="teamcity.coverage.emma.instr.parameters" value="-ix -*Test*"/>
+                <property name="teamcity.coverage.idea.includePatterns" value="*"/>
+                <property name="teamcity.coverage.jacoco.patterns" value="+:*"/>
+                <property name="teamcity.step.mode" value="default"/>
+                <property name="userSettingsPath" value="settings.xml"/>
+                <property name="userSettingsSelection" value="userSettingsSelection:default"/>
+            </properties>
+        </step>
+        <step id="RUNNER_266" name="Post-build cleanup" type="simpleRunner" inherited="true">
+            <properties count="3">
+                <property name="script.content" value=":&lt;&lt;BATCH&#xA;&#xA;&#xA;:: === CMD ===&#xA;@echo on&#xA;exit /b&#xA;BATCH&#xA;&#xA;&#xA;# === SH ===&#xA;set -x&#xA;&#xA;# Kill remaining nodes&#xA;echo &quot;Killing CommandLineStartup processes&quot;&#xA;for PID in $(%env.JAVA_HOME%/bin/jps | grep CommandLineStartup | awk '{ print $1 }')&#xA;do&#xA;    echo -n &quot;    Killing remaining node process with PID ${PID}... &quot;&#xA;    kill -9 ${PID} &amp;&amp; echo &quot;[OK]&quot; || {&#xA;        echo &quot;[ERROR] Unable to kill process ${PID}&quot; &amp;&amp; exit 1&#xA;    }&#xA;done&#xA;echo&#xA;&#xA;# Finalize IPC cleaning&#xA;echo &quot;Cleaning IPC resources&quot;&#xA;for param in m s&#xA;do&#xA;    for ipcs in $(ipcs -${param} | grep 'teamcity' | awk '{ print $2 }')&#xA;    do&#xA;        ipcrm -${param} ${ipcs} || {&#xA;            echo &quot;[ERROR] Unable to remove ${param}/${ipcs}&quot; &amp;&amp; exit 1&#xA;        }&#xA;    done&#xA;done&#xA;echo&#xA;&#xA;# Fail build if some IPC still remains&#xA;if [ $(ipcs | grep teamcity | wc -l) -ne 0 ]&#xA;then&#xA;    echo &quot;[ERROR] Failing build because of remaining IPC resources&quot; &gt;&amp;2&#xA;    exit 1&#xA;fi&#xA;&#xA;# Kill IgniteNodeRunner&#xA;echo &quot;Killing IgniteNodeRunner processes (after tests)&quot;&#xA;for PID in $(%env.JAVA_HOME%/bin/jps | grep IgniteNodeRunner | awk '{ print $1 }')&#xA;do&#xA;    echo -n &quot;    Killing process with PID ${PID}... &quot;&#xA;    kill -9 ${PID} &amp;&amp; echo &quot;[OK]&quot; || {&#xA;        echo &quot;[ERROR] Unable to kill process ${PID}&quot; &amp;&amp; exit 1&#xA;    }&#xA;done"/>
+                <property name="teamcity.step.mode" value="execute_always"/>
+                <property name="use.custom.script" value="true"/>
+            </properties>
+        </step>
+    </steps>
+    <features count="1">
+        <feature id="swabra" type="swabra" inherited="true">
+            <properties count="4">
+                <property name="swabra.enabled" value="swabra.after.build"/>
+                <property name="swabra.processes" value="kill"/>
+                <property name="swabra.strict" value="true"/>
+                <property name="swabra.verbose" value="true"/>
+            </properties>
+        </feature>
+    </features>
+    <triggers count="0"/>
+    <snapshot-dependencies count="1">
+        <snapshot-dependency id="IgniteTests24Java8_BuildApacheIgnite" type="snapshot_dependency" inherited="true">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_BuildApacheIgnite" name="~Build Apache Ignite~" description="Build and prepare project for testing" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_BuildApacheIgnite" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_BuildApacheIgnite"/>
+        </snapshot-dependency>
+    </snapshot-dependencies>
+    <artifact-dependencies count="1">
+        <artifact-dependency id="ARTIFACT_DEPENDENCY_103" type="artifact_dependency" inherited="true">
+            <properties count="4">
+                <property name="cleanDestinationDirectory" value="true"/>
+                <property name="pathRules" value="ignite.zip!** =&gt; ./"/>
+                <property name="revisionName" value="sameChainOrLastFinished"/>
+                <property name="revisionValue" value="latest.sameChainOrLastFinished"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_BuildApacheIgnite" name="~Build Apache Ignite~" description="Build and prepare project for testing" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_BuildApacheIgnite" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_BuildApacheIgnite"/>
+        </artifact-dependency>
+    </artifact-dependencies>
+    <agent-requirements count="1">
+        <agent-requirement id="RQ_72" type="does-not-match">
+            <properties count="2">
+                <property name="property-name" value="teamcity.agent.name"/>
+                <property name="property-value" value="(^publicagent05.*$)"/>
+            </properties>
+        </agent-requirement>
+    </agent-requirements>
+    <builds href="/app/rest/buildTypes/id:IgniteTests24Java8_ActivateDeactivateCluster/builds/"/>
+    <investigations href="/app/rest/investigations?locator=buildType:(id:IgniteTests24Java8_ActivateDeactivateCluster)"/>
+    <compatibleAgents href="/app/rest/agents?locator=compatible:(buildType:(id:IgniteTests24Java8_ActivateDeactivateCluster))"/>
+</buildType>

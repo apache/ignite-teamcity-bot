@@ -35,8 +35,6 @@ import org.apache.ignite.ci.tcmodel.changes.ChangesListRef;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 
-
-import org.apache.ignite.ci.util.ExceptionUtil;
 import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.ci.util.ExceptionUtil.propagateException;

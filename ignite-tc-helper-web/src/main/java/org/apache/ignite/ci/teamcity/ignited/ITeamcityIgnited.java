@@ -22,6 +22,8 @@ import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.jetbrains.annotations.NotNull;
@@ -123,4 +125,33 @@ public interface ITeamcityIgnited {
      * @param cnt Count.
      */
     @NotNull public List<Integer> getLastNBuildsFromHistory(String btId, String branchForTc, int cnt);
+
+    /**
+     * Return list of composite suite ids sorted by number of snapshot dependency.
+     *
+     * @param projectId Project id.
+     * @return List of composite buildType ids.
+     */
+    public List<String> getCompositeBuildTypesIdsSortedByBuildNumberCounter(String projectId);
+
+    /**
+     * Return list of compacted references to project suites.
+     *
+     * @param projectId Project id.
+     * @return List of compacted references to buildTypes.
+     */
+    public List<BuildTypeRefCompacted> getAllBuildTypesCompacted(String projectId);
+
+
+    /**
+     * @param buildTypeId BuildType id.
+     * @return Compacted reference to BuildType.
+     */
+    public BuildTypeRefCompacted getBuildTypeRef(String buildTypeId);
+
+    /**
+     * @param buildTypeId BuildType id.
+     * @return BuildType compacted.
+     */
+    public BuildTypeCompacted getBuildType(String buildTypeId);
 }

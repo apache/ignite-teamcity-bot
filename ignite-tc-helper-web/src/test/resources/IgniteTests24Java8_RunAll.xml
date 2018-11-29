@@ -1,0 +1,1035 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<buildType id="IgniteTests24Java8_RunAll" name="--&gt; Run :: All" description="Dummy build for run all build in project by one click" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_RunAll" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_RunAll">
+    <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)" parentProjectId="_Root" description="Project for Ignite 2.4+ testing with Java 8 as default JDK" href="/app/rest/projects/id:IgniteTests24Java8" webUrl="http://ci.ignite.apache.org/project.html?projectId=IgniteTests24Java8"/>
+    <templates count="0"/>
+    <vcs-root-entries count="1">
+        <vcs-root-entry id="GitHubApacheIgnite">
+            <vcs-root id="GitHubApacheIgnite" name="(proxy) GitHub [apache/ignite]" href="/app/rest/vcs-roots/id:GitHubApacheIgnite"/>
+            <checkout-rules>-:.</checkout-rules>
+        </vcs-root-entry>
+    </vcs-root-entries>
+    <settings count="6">
+        <property name="artifactRules" value="report.html"/>
+        <property name="buildConfigurationType" value="COMPOSITE"/>
+        <property name="buildNumberCounter" value="7008"/>
+        <property name="checkoutMode" value="ON_SERVER"/>
+        <property name="excludeDefaultBranchChanges" value="true"/>
+        <property name="showDependenciesChanges" value="true"/>
+    </settings>
+    <parameters count="3" href="/app/rest/buildTypes/id:IgniteTests24Java8_RunAll/parameters">
+        <property name="reverse.dep.*.env.JAVA_HOME" value="%env.JDK_ORA_18%">
+            <type rawValue="select data_5='%env.JDK_ORA_10%' label_5='JDK 10' label_3='JDK 9' data_7='%env.JDK_OPEN_11%' display='normal' label_7='JDK 11' description='Select JDK version for all tests' label='JDK version' data_1='%env.JDK_ORA_18%' label_1='JDK 1.8' data_3='%env.JDK_ORA_9%'"/>
+        </property>
+        <property name="reverse.dep.*.TEST_SCALE_FACTOR" value="0.1">
+            <type rawValue="text display='normal' label='Test scale factor' validationMode='any'"/>
+        </property>
+        <property name="system.IGNITE_DUMP_THREADS_ON_FAILURE" value="false" inherited="true">
+            <type rawValue="text display='hidden' validationMode='any'"/>
+        </property>
+    </parameters>
+    <steps count="1">
+        <step id="RUNNER_184" name="" type="simpleRunner">
+            <properties count="3">
+                <property name="script.content" value="#!/usr/bin/env bash&#xA;set -x&#xA;&#xA;curl &quot;http://172.25.5.21:8080/rest/chainResults/html?serverId=public&amp;buildId=%teamcity.build.id%&quot; &gt; report.html"/>
+                <property name="teamcity.step.mode" value="default"/>
+                <property name="use.custom.script" value="true"/>
+            </properties>
+        </step>
+    </steps>
+    <features count="0"/>
+    <triggers count="0"/>
+    <snapshot-dependencies count="98">
+        <snapshot-dependency id="IgniteTests24Java8_Aop" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Aop" name="AOP" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Aop" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Aop"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Aws" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Aws" name="AWS" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Aws" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Aws"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Basic2" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Basic2" name="Basic 2" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Basic2" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Basic2"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_BinaryObjects" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_BinaryObjects" name="Binary Objects" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_BinaryObjects" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_BinaryObjects"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ActivateDeactivateCluster" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ActivateDeactivateCluster" name="Activate | Deactivate Cluster" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ActivateDeactivateCluster" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ActivateDeactivateCluster"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ClientNodes" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ClientNodes" name="Client Nodes" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ClientNodes" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ClientNodes"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Cloud" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Cloud" name="Cloud" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Cloud" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Cloud"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ComputeAffinityRun" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ComputeAffinityRun" name="Compute (Affinity Run)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ComputeAffinityRun" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ComputeAffinityRun"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ComputeGrid" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ComputeGrid" name="Compute (Grid)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ComputeGrid" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ComputeGrid"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ContinuousQueryConfigVariations" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ContinuousQueryConfigVariations" name="Continuous Query (Config Variations)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ContinuousQueryConfigVariations" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ContinuousQueryConfigVariations"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ContinuousQuery1" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ContinuousQuery1" name="Continuous Query 1" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ContinuousQuery1" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ContinuousQuery1"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ContinuousQuery2" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ContinuousQuery2" name="Continuous Query 2" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ContinuousQuery2" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ContinuousQuery2"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Examples" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Examples" name="Examples" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Examples" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Examples"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Gce" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Gce" name="GCE" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Gce" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Gce"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_GeospatialIndexing" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_GeospatialIndexing" name="Geospatial Indexing" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_GeospatialIndexing" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_GeospatialIndexing"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Hibernate1" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Hibernate1" name="Hibernate 1" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Hibernate1" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Hibernate1"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Hibernate2" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Hibernate2" name="Hibernate 2" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Hibernate2" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Hibernate2"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Jta" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Jta" name="JTA" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Jta" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Jta"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Kubernetes" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Kubernetes" name="Kubernetes" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Kubernetes" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Kubernetes"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_JavaClient" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_JavaClient" name="Java Client" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_JavaClient" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_JavaClient"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_InterceptorCacheFullApiConfigVariationsBasic" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_InterceptorCacheFullApiConfigVariationsBasic" name="Interceptor Cache (Full API Config Variations / Basic)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_InterceptorCacheFullApiConfigVariationsBasic" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_InterceptorCacheFullApiConfigVariationsBasic"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Logging" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Logging" name="Logging" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Logging" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Logging"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_JavaThinClient" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_JavaThinClient" name="Thin Client: Java" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_JavaThinClient" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_JavaThinClient"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_JdbcDriver" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_JdbcDriver" name="JDBC Driver" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_JdbcDriver" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_JdbcDriver"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_QueriesConfigVariations" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_QueriesConfigVariations" name="Queries (Config Variations)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_QueriesConfigVariations" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_QueriesConfigVariations"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Rdd" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Rdd" name="RDD*" description="Requires 'test' maven goal for correct passing" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Rdd" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Rdd"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Queries2" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Queries2" name="Queries 2" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Queries2" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Queries2"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Spring" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Spring" name="Spring" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Spring" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Spring"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_SpringData" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_SpringData" name="Spring (Data)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_SpringData" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_SpringData"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Streamers" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Streamers" name="Streamers" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Streamers" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Streamers"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_StartNodes" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_StartNodes" name="Start Nodes" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_StartNodes" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_StartNodes"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Spi" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Spi" name="SPI" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Spi" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Spi"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_SpiUriDeploy" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_SpiUriDeploy" name="SPI (URI Deploy)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_SpiUriDeploy" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_SpiUriDeploy"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_WebSessions" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_WebSessions" name="Web Sessions" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_WebSessions" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_WebSessions"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Yarn" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Yarn" name="Yarn" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Yarn" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Yarn"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ZooKeeper" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ZooKeeper" name="ZooKeeper" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ZooKeeper" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ZooKeeper"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ScalaExamples" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ScalaExamples" name="Scala (Examples)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ScalaExamples" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ScalaExamples"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ScalaVisorConsole" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ScalaVisorConsole" name="Scala (Visor Console)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ScalaVisorConsole" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ScalaVisorConsole"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ZooKeeperDiscovery1" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ZooKeeperDiscovery1" name="ZooKeeper (Discovery) 1" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ZooKeeperDiscovery1" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ZooKeeperDiscovery1"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ZooKeeperDiscovery2" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ZooKeeperDiscovery2" name="ZooKeeper (Discovery) 2" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ZooKeeperDiscovery2" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ZooKeeperDiscovery2"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PlatformCLinux" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PlatformCLinux" name="Platform C++ (Linux)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PlatformCLinux" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PlatformCLinux"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PlatformCWindowsX64" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PlatformCWindowsX64" name="Platform C++ (Windows x64)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PlatformCWindowsX64" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PlatformCWindowsX64"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ThinClientNodeJs" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ThinClientNodeJs" name="Thin client: Node.js" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ThinClientNodeJs" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ThinClientNodeJs"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ContinuousQueryConfigVariations5Nodes1Backup" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ContinuousQueryConfigVariations5Nodes1Backup" name="Continuous Query (Config Variations 5 Nodes 1 Backup)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ContinuousQueryConfigVariations5Nodes1Backup" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ContinuousQueryConfigVariations5Nodes1Backup"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Basic1" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Basic1" name="Basic 1" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Basic1" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Basic1"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_BasicTestsWithPersistence" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_BasicTestsWithPersistence" name="Basic 3" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_BasicTestsWithPersistence" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_BasicTestsWithPersistence"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_JCacheTck11" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_JCacheTck11" name="JCache TCK 1.1" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_JCacheTck11" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_JCacheTck11"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PlatformCPPLinuxClang" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PlatformCPPLinuxClang" name="Platform C++ (Linux Clang)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PlatformCPPLinuxClang" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PlatformCPPLinuxClang"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_MvccCache_2" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_MvccCache_2" name="MVCC Cache" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_MvccCache_2" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_MvccCache_2"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_MvccCache" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_MvccCache" name="MVCC JDBC" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_MvccCache" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_MvccCache"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_MvccQueries" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_MvccQueries" name="MVCC Queries" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_MvccQueries" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_MvccQueries"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ThinClientPhp" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ThinClientPhp" name="Thin client: PHP" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ThinClientPhp" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ThinClientPhp"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Javadoc" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Javadoc" name="_Javadoc_" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Javadoc" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Javadoc"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_LicensesHeaders" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_LicensesHeaders" name="_Licenses Headers_" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_LicensesHeaders" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_LicensesHeaders"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_CacheDeadlockDetection" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_CacheDeadlockDetection" name="Cache (Deadlock Detection)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_CacheDeadlockDetection" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_CacheDeadlockDetection"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_CacheExpiryPolicy" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_CacheExpiryPolicy" name="Cache (Expiry Policy)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_CacheExpiryPolicy" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_CacheExpiryPolicy"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_CacheFailoverSsl" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_CacheFailoverSsl" name="Cache (Failover SSL)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_CacheFailoverSsl" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_CacheFailoverSsl"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_CacheFailover1" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_CacheFailover1" name="Cache (Failover) 1" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_CacheFailover1" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_CacheFailover1"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_CacheFailover2" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_CacheFailover2" name="Cache (Failover) 2" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_CacheFailover2" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_CacheFailover2"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_CacheFailover3" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_CacheFailover3" name="Cache (Failover) 3" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_CacheFailover3" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_CacheFailover3"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_CacheFullApiMultiJvm" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_CacheFullApiMultiJvm" name="Cache (Full API Multi JVM)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_CacheFullApiMultiJvm" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_CacheFullApiMultiJvm"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_CacheFullApi" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_CacheFullApi" name="Cache (Full API)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_CacheFullApi" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_CacheFullApi"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_CacheRestarts1" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_CacheRestarts1" name="Cache (Restarts) 1" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_CacheRestarts1" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_CacheRestarts1"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_CacheRestarts2" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_CacheRestarts2" name="Cache (Restarts) 2" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_CacheRestarts2" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_CacheRestarts2"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_CacheTxRecovery" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_CacheTxRecovery" name="Cache (Tx Recovery)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_CacheTxRecovery" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_CacheTxRecovery"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Cache1" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Cache1" name="Cache 1" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Cache1" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Cache1"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Cache2" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Cache2" name="Cache 2" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Cache2" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Cache2"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Cache3" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Cache3" name="Cache 3" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Cache3" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Cache3"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Cache4" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Cache4" name="Cache 4" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Cache4" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Cache4"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Cache5" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Cache5" name="Cache 5" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Cache5" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Cache5"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Cache6" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Cache6" name="Cache 6" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Cache6" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Cache6"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Cache7" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Cache7" name="Cache 7" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Cache7" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Cache7"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Cache8" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Cache8" name="Cache 8" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Cache8" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Cache8"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Cache9" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Cache9" name="Cache 9" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Cache9" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Cache9"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PageEvictions" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PageEvictions" name="Cache Evictions" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PageEvictions" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PageEvictions"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ContinuousQuery3" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ContinuousQuery3" name="Continuous Query 3" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ContinuousQuery3" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ContinuousQuery3"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ContinuousQuery4" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ContinuousQuery4" name="Continuous Query 4" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ContinuousQuery4" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ContinuousQuery4"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_DataStructures" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_DataStructures" name="Data Structures" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_DataStructures" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_DataStructures"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_OSGi" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_OSGi" name="OSGi" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_OSGi" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_OSGi"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PdsCompatibility" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PdsCompatibility" name="PDS (Compatibility)*" description="Requires 'test' maven goal for correct passing" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PdsCompatibility" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PdsCompatibility"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PdsIndexingWalRecovery" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PdsIndexingWalRecovery" name="PDS (Indexing / WAL &amp; Recovery)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PdsIndexingWalRecovery" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PdsIndexingWalRecovery"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PdsIndexing" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PdsIndexing" name="PDS (Indexing)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PdsIndexing" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PdsIndexing"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PdsUnitTests" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PdsUnitTests" name="PDS (Unit Tests)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PdsUnitTests" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PdsUnitTests"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Pds1" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Pds1" name="PDS 1" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Pds1" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Pds1"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Pds2" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Pds2" name="PDS 2" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Pds2" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Pds2"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Pds3" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Pds3" name="PDS 3" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Pds3" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Pds3"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Pds4" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Pds4" name="PDS 4" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Pds4" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Pds4"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PlatformNet" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PlatformNet" name="Platform .NET" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PlatformNet" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PlatformNet"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PlatformNetCoreLinux" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PlatformNetCoreLinux" name="Platform .NET (Core Linux)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PlatformNetCoreLinux" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PlatformNetCoreLinux"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PlatformNetInspections" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PlatformNetInspections" name="Platform .NET (Inspections)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PlatformNetInspections" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PlatformNetInspections"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PlatformNetIntegrations" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PlatformNetIntegrations" name="Platform .NET (Integrations)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PlatformNetIntegrations" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PlatformNetIntegrations"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PlatformNetLongRunning" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PlatformNetLongRunning" name="Platform .NET (Long Running)" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PlatformNetLongRunning" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PlatformNetLongRunning"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_PlatformNetNuGet" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_PlatformNetNuGet" name="Platform .NET (NuGet)*" description="Disabled dependency" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_PlatformNetNuGet" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_PlatformNetNuGet"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_Queries1" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_Queries1" name="Queries 1" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_Queries1" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_Queries1"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ThinClientPython" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ThinClientPython" name="Thin client: Python" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ThinClientPython" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ThinClientPython"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_RunIntelliJIdeaInspections" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_RunIntelliJIdeaInspections" name="-&gt; Run :: IntelliJ IDEA Inspections" description="Composite build for all IntelliJ IDEA Inspections build configurations" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_RunIntelliJIdeaInspections" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_RunIntelliJIdeaInspections"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ZooKeeperDiscovery3" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ZooKeeperDiscovery3" name="ZooKeeper (Discovery) 3" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ZooKeeperDiscovery3" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ZooKeeperDiscovery3"/>
+        </snapshot-dependency>
+        <snapshot-dependency id="IgniteTests24Java8_ZooKeeperDiscovery4" type="snapshot_dependency">
+            <properties count="5">
+                <property name="run-build-if-dependency-failed" value="RUN_ADD_PROBLEM"/>
+                <property name="run-build-if-dependency-failed-to-start" value="MAKE_FAILED_TO_START"/>
+                <property name="run-build-on-the-same-agent" value="false"/>
+                <property name="take-started-build-with-same-revisions" value="true"/>
+                <property name="take-successful-builds-only" value="true"/>
+            </properties>
+            <source-buildType id="IgniteTests24Java8_ZooKeeperDiscovery4" name="ZooKeeper (Discovery) 4" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_ZooKeeperDiscovery4" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_ZooKeeperDiscovery4"/>
+        </snapshot-dependency>
+    </snapshot-dependencies>
+    <artifact-dependencies count="0"/>
+    <agent-requirements count="1">
+        <agent-requirement id="RQ_29" type="equals">
+            <properties count="2">
+                <property name="property-name" value="teamcity.agent.jvm.os.name"/>
+                <property name="property-value" value="Linux"/>
+            </properties>
+        </agent-requirement>
+    </agent-requirements>
+    <builds href="/app/rest/buildTypes/id:IgniteTests24Java8_RunAll/builds/"/>
+    <investigations href="/app/rest/investigations?locator=buildType:(id:IgniteTests24Java8_RunAll)"/>
+    <compatibleAgents href="/app/rest/agents?locator=compatible:(buildType:(id:IgniteTests24Java8_RunAll))"/>
+</buildType>

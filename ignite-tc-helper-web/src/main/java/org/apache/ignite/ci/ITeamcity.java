@@ -26,6 +26,7 @@ import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.util.Base64Util;
+import org.apache.ignite.ci.util.FutureUtil;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -47,6 +48,16 @@ public interface ITeamcity extends ITeamcityConn {
     @Deprecated
     long DEFAULT_BUILDS_COUNT = 1000;
 
+    /** {@inheritDoc} */
+    @Override default List<BuildType> getBuildTypes(String projectId) {
+        return FutureUtil.getResult(getProjectSuites(projectId));
+    }
+
+    /**
+     * List of project suites.
+     *
+     * @param projectId Project id.
+     */
     CompletableFuture<List<BuildType>> getProjectSuites(String projectId);
 
     /**   */

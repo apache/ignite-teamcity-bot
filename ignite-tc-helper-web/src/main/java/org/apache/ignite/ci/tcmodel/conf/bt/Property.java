@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.tcmodel.conf.bt;
 
+import com.google.common.base.MoreObjects;
+import java.util.Objects;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -31,6 +33,20 @@ public class Property {
     @XmlAttribute String value;
     @XmlAttribute Boolean inherited;
 
+    public Property() {
+    }
+
+    public Property(String name, String value) {
+        this.name = name;
+        this.value = value;
+        this.inherited = null;
+    }
+
+    public Property(String name, String value, Boolean inherited) {
+        this.name = name;
+        this.value = value;
+        this.inherited = inherited;
+    }
 
     @Nullable
     public String getValue() {
@@ -39,5 +55,34 @@ public class Property {
 
     public String name() {
         return name;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+
+        if (!(o instanceof Property))
+            return false;
+
+        Property property = (Property)o;
+
+        return Objects.equals(name, property.name) &&
+            Objects.equals(getValue(), property.getValue()) &&
+            Objects.equals(inherited, property.inherited);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hash(name, getValue(), inherited);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("name", name)
+            .add("value", value)
+            .add("inherited", inherited)
+            .toString();
     }
 }

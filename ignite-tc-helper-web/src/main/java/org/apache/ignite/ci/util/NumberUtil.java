@@ -15,41 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.visa;
+package org.apache.ignite.ci.util;
 
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nullable;
 
-/**
- *
- */
-public class VisaStatus {
-    /** */
-    @Nullable public String userName;
-
-    /** Branch name. */
-    @Nullable public String branchName;
-
-    /** JIRA ticket full name. */
-    @Nullable public String ticket;
-
-    /** */
-    @Nullable public String status;
-
-    /** */
-    @Nullable public String commentUrl;
-
-    /** */
-    @Nullable public String date;
-
-    /** */
-    @Nullable public String cancelUrl;
-
-    /** */
-    @Nullable public String buildTypeId;
-
-    /** */
-    @Nullable public String buildTypeName;
-
-    /** */
-    public int blockers;
+public class NumberUtil {
+    /**
+     * @param val Value.
+     * @param defaultValue Default value.
+     * @return Return parsed integer from string value. If value is null or is not integer, return default value.
+     */
+    public static int parseInt(@Nullable String val, int defaultValue) {
+        if (val == null)
+            return defaultValue;
+        try {
+            return Integer.parseInt(val);
+        } catch (NumberFormatException nfe) {
+            return defaultValue;
+        }
+    }
 }

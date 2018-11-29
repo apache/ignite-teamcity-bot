@@ -26,17 +26,28 @@ import java.util.List;
     public int queuedBuilds;
     public int runningBuilds;
 
-    /** Branch with finished/cancelled run all results, null if run all is running or in case there was no run alls at all. */
-    public String branchWithFinishedRunAll;
+    /** Suite id. */
+    public String suiteId;
 
-    /** Run all finished for brach {@link #branchWithFinishedRunAll}. Determines trigger button color. */
-    public Boolean runAllFinished;
+    /** Branch with finished/cancelled suite results, null if suite is running or in case there was no run suite at all. */
+    public String branchWithFinishedSuite;
 
-    /** Resolved run all branch: Some branch probably with finished or queued builds in in, or default pull/nnnn/head. */
+    /** Suite finished for brach {@link #branchWithFinishedSuite}. Determines trigger button color. */
+    public Boolean suiteIsFinished;
+
+    /** Resolved suite branch: Some branch probably with finished or queued builds in in, or default pull/nnnn/head. */
     public String resolvedBranch;
 
     /** Observations status: Filled if build observer has something sheduled related to {@link #resolvedBranch} */
     public String observationsStatus;
 
-    public List<String> webLinksQueuedRunAlls = new LinkedList<>();
+    public List<String> webLinksQueuedSuites = new LinkedList<>();
+
+    public ContributionCheckStatus() {
+    }
+
+    public ContributionCheckStatus(String suiteId, String resolvedBranch) {
+        this.suiteId = suiteId;
+        this.resolvedBranch = resolvedBranch;
+    }
 }
