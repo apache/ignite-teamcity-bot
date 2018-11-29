@@ -46,10 +46,10 @@ import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normaliz
  */
 public class RunHistCompactedDao {
     /** Cache name. */
-    public static final String TEST_HIST_CACHE_NAME = "teamcityTestRunHistV0";
+    public static final String TEST_HIST_CACHE_NAME = "teamcityTestRunHist";
 
     /** Build Start time Cache name. */
-    public static final String BUILD_START_TIME_CACHE_NAME = "teamcityBuildStartTimeV0";
+    public static final String BUILD_START_TIME_CACHE_NAME = "teamcityBuildStartTime";
 
     /** Suites history Cache name.*/
     public static final String SUITE_HIST_CACHE_NAME = "teamcitySuiteRunHist";

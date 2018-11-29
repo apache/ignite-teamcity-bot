@@ -263,7 +263,7 @@ public class RunHistSync {
             if (histDao.buildWasProcessed(srvIdMaskHigh, buildId))
                 continue;
 
-            if (buildsIdsToLoad.size() >= 100) {
+            if (buildsIdsToLoad.size() >= 50) {
                 totalAskedToLoad += buildsIdsToLoad.size();
                 scheduleHistLoad(srvId,  buildsIdsToLoad);
                 buildsIdsToLoad.clear();
