@@ -30,6 +30,7 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
@@ -48,7 +49,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOr
  */
 @SuppressWarnings({"WeakerAccess", "PublicField"})
 public class ChainAtServerCurrentStatus {
-    /** {@link org.apache.ignite.ci.tcmodel.conf.BuildType#name} */
+    /** {@link BuildType#name} */
     public String chainName;
 
     /** Server ID. */

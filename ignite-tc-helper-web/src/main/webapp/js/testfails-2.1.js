@@ -56,7 +56,22 @@ function showChainResultsWithSettings(result, settings) {
         res += " [";
         res += "tests " + result.failedTests + " suites " + result.failedToFinish + "";
         res += "]";
+    } else
+        res += " is absent";
+
+    let suiteId;
+
+    if (isDefinedAndFilled(findGetParameter("suiteId"))) {
+        suiteId = findGetParameter("suiteId");
+    } else if (isDefinedAndFilled(result.servers[0])) {
+        let url = new URL(result.servers[0].webToHist);
+
+        suiteId = url.searchParams.get("buildTypeId");
     }
+
+    if (isDefinedAndFilled(suiteId))
+        res += " | Suite: <b>" + suiteId + "</b>";
+
     res += "</td></tr>";
     res += "</table>";
 
@@ -77,7 +92,9 @@ function showChainCurrentStatusData(server, settings) {
         return;
 
     if(isDefinedAndFilled(server.buildNotFound) && server.buildNotFound ) {
-        return "<tr><td><b>Error: Build not found for branch [" + server.branchName + "]</b></td></tr>";
+        return "<tr><td><b>Error: Build not found for branch [" + server.branchName + "]</b>" +
+            "<br><br><span style='color:grey; font-size:12px;'>Perhaps, more than 2 weeks have passed since the last build " +
+            "run. <br>There is no data on the TC server</span></td></tr>";
     }
 
     var res = "";
@@ -173,8 +190,10 @@ function showChainCurrentStatusData(server, settings) {
     //     res += "<button onclick='notifyGit()'>Update PR status</button>";
     // }
 
+    var suiteId = findGetParameter("suiteId");
+
     if (settings.isJiraAvailable()) {
-        res += "<button onclick='commentJira(\"" + server.serverId + "\", \"IgniteTests24Java8_RunAll\", \""
+        res += "<button onclick='commentJira(\"" + server.serverId + "\", \"" + suiteId + "\", \""
             + server.branchName + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
 
         var blockersList = "";

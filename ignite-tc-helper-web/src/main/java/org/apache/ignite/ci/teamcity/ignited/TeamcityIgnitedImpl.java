@@ -32,6 +32,11 @@ import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeSync;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
@@ -55,6 +60,9 @@ import java.util.stream.Collectors;
 import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
 
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
+    /** Default project id. */
+    public static final String DEFAULT_PROJECT_ID = "IgniteTests24Java8";
+
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TeamcityIgnitedImpl.class);
 
@@ -93,6 +101,15 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Changes sync class. */
     @Inject private ChangeSync changeSync;
 
+    /** BuildType reference DAO. */
+    @Inject private BuildTypeRefDao buildTypeRefDao;
+
+    /** BuildType DAO. */
+    @Inject private BuildTypeDao buildTypeDao;
+
+    /** BuildType DAO. */
+    @Inject private BuildTypeSync buildTypeSync;
+
     /** Run history DAO. */
     @Inject private RunHistCompactedDao runHistCompactedDao;
 
@@ -116,7 +133,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         changesDao.init();
         runHistCompactedDao.init();
     }
-
 
     @NotNull
     private String taskName(String taskName) {
@@ -339,6 +355,26 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /**
      * @param branchName Branch name.
      */
+    /** {@inheritDoc} */
+    @Override public List<String> getCompositeBuildTypesIdsSortedByBuildNumberCounter(String projectId) {
+        return buildTypeSync.getCompositeBuildTypesIdsSortedByBuildNumberCounter(srvIdMaskHigh, projectId, conn);
+    }
+
+    /** {@inheritDoc} */
+    @Override public List<BuildTypeRefCompacted> getAllBuildTypesCompacted(String projectId) {
+        return buildTypeSync.getAllBuildTypesCompacted(srvIdMaskHigh, projectId, conn);
+    }
+
+    /** {@inheritDoc} */
+    @Override public BuildTypeRefCompacted getBuildTypeRef(String buildTypeId) {
+        return buildTypeRefDao.getBuildTypeRef(srvIdMaskHigh, buildTypeId);
+    }
+
+    /** {@inheritDoc} */
+    @Override public BuildTypeCompacted getBuildType(String buildTypeId) {
+        return buildTypeDao.getFatBuildType(srvIdMaskHigh, buildTypeId);
+    }
+
     public List<String> branchForQuery(@Nullable String branchName) {
         if (ITeamcity.DEFAULT.equals(branchName))
             return Lists.newArrayList(branchName, ITeamcity.REFS_HEADS_MASTER, "master");

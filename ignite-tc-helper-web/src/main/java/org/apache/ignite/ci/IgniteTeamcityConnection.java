@@ -43,7 +43,11 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
-import org.apache.ignite.ci.util.*;
+import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.ci.util.HttpUtil;
+import org.apache.ignite.ci.util.UrlUtil;
+import org.apache.ignite.ci.util.XmlUtil;
+import org.apache.ignite.ci.util.ZipUtil;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -380,8 +384,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
         }
     }
 
-
-
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
     protected <T> T loadXml(Class<T> rootElem, InputStreamReader reader) throws JAXBException {
@@ -431,8 +433,9 @@ public class IgniteTeamcityConnection implements ITeamcity {
             .replace("+", "%2B");
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
-    public BuildTypeFull getBuildType(String buildTypeId) {
+    @Override public BuildTypeFull getBuildType(String buildTypeId) {
         return sendGetXmlParseJaxb(host + "app/rest/latest/buildTypes/id:" +
             buildTypeId, BuildTypeFull.class);
     }

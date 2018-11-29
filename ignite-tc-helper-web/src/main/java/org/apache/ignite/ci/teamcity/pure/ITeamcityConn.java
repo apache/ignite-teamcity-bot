@@ -24,6 +24,8 @@ import javax.annotation.Nullable;
 
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
@@ -72,6 +74,20 @@ public interface ITeamcityConn {
     ChangesList getChangesList(int buildId);
 
     Change getChange(int changeId);
+
+    /**
+     * List of project suites.
+     *
+     * @param projectId Project id.
+     * @return List of buildType's references.
+     */
+    List<BuildType> getBuildTypes(String projectId);
+
+    /**
+     * @param buildTypeId BuildType id.
+     * @return BuildType.
+     */
+    BuildTypeFull getBuildType(String buildTypeId);
 
     /** */
     @Deprecated

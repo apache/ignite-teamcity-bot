@@ -30,6 +30,7 @@ import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
@@ -602,6 +603,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     @Override public Change getChange(int changeId) {
         return teamcity.getChange(changeId);
+    }
+
+    /** {@inheritDoc} */
+    @Override public BuildTypeFull getBuildType(String buildTypeId) {
+        return teamcity.getBuildType(buildTypeId);
     }
 
     /** {@inheritDoc} */

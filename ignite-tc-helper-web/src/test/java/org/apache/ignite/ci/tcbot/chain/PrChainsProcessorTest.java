@@ -289,8 +289,8 @@ public class PrChainsProcessorTest {
         final Build build = new Build();
         build.buildTypeId = btId;
         final BuildType type = new BuildType();
-        type.id(btId);
-        type.name(btId);
+        type.setId(btId);
+        type.setName(btId);
         build.setBuildType(type);
         build.setId(id);
         build.setStartDateTs(System.currentTimeMillis() - ageMs);
