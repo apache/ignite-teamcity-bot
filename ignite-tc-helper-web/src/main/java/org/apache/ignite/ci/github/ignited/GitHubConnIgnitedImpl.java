@@ -19,6 +19,7 @@ package org.apache.ignite.ci.github.ignited;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
@@ -68,6 +69,27 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         srvIdMaskHigh = Math.abs(srvId.hashCode());
 
         prCache = igniteProvider.get().getOrCreateCache(TcHelperDb.getCache8PartsConfig(GIT_HUB_PR));
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public PullRequest getPullRequest(String branchForTc) {
+        return getPullRequest(IGitHubConnection.convertBranchToId(branchForTc));
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public PullRequest getPullRequest(int prNum) {
+        PullRequest pullReq = prCache.get(prNumberToCacheKey(prNum));
+
+        if (Objects.nonNull(pullReq))
+            return pullReq;
+
+        pullReq = conn.getPullRequest(prNum);
+
+        prCache.put(prNumberToCacheKey(prNum), pullReq);
+
+        return pullReq;
     }
 
     /** {@inheritDoc} */

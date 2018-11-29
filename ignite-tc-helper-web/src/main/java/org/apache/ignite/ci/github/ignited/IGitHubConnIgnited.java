@@ -27,4 +27,10 @@ public interface IGitHubConnIgnited {
      * @return list of open pull requests
      */
     public List<PullRequest> getPullRequests();
+
+    /** */
+    public PullRequest getPullRequest(int prNum);
+
+    /** */
+    public PullRequest getPullRequest(String branchForTc);
 }

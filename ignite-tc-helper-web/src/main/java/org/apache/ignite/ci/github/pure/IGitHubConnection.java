@@ -54,4 +54,22 @@ public interface IGitHubConnection {
     String gitApiUrl();
 
     List<PullRequest> getPullRequests(@Nullable String fullUrl, @Nullable AtomicReference<String> outLinkNext);
+
+    /** */
+    public static Integer convertBranchToId(String branchForTc) {
+        String id = null;
+
+        // Get PR id from string "pull/XXXX/head"
+        for (int i = 5; i < branchForTc.length(); i++) {
+            char c = branchForTc.charAt(i);
+
+            if (!Character.isDigit(c)) {
+                id = branchForTc.substring(5, i);
+
+                break;
+            }
+        }
+
+        return Integer.parseInt(id);
+    }
 }

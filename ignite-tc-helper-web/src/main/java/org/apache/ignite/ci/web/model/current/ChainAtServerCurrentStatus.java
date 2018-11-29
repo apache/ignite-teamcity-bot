@@ -33,6 +33,7 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
@@ -112,13 +113,14 @@ public class ChainAtServerCurrentStatus {
     }
 
     /** */
-    public void initFromContext(ITeamcity teamcity,
+    public void initFromContext(ITeamcityIgnited tcIgnited,
+        @Deprecated ITeamcity teamcity,
         FullChainRunCtx ctx,
-        ITcAnalytics tcAnalytics,
+        @Deprecated ITcAnalytics tcAnalytics,
         @Nullable String baseBranchTc,
-        IGitHubConnection gitHubConn,
+        IGitHubConnIgnited gitHubConn,
         IJiraIntegration jiraIntegration) {
-        initFromContext(teamcity, ctx, tcAnalytics, baseBranchTc);
+        initFromContext(tcIgnited, teamcity, ctx, tcAnalytics, baseBranchTc);
 
         if (!Strings.isNullOrEmpty(branchName)) {
             PullRequest pr = gitHubConn.getPullRequest(branchName);

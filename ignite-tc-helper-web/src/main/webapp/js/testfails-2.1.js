@@ -91,6 +91,21 @@ function showChainCurrentStatusData(server, settings) {
     res += "<table style='width: 40%'>";
     res += "<tr><td><b> Server: </b></td><td>[" + server.serverId + "]</td></tr>";
 
+    res += "<tr><td><b> PR: </b></td><td>";
+
+    if (isDefinedAndFilled(server.webToPr))
+        res += "<a href='" + server.webToPr + "'>[" + server.branchName + "]</a>";
+    else
+        res += "[" + server.branchName + "]";
+
+    res += "</td></tr>";
+
+    if (isDefinedAndFilled(server.webToTicket) && isDefinedAndFilled(server.ticketFullName)) {
+        res += "<tr><td><b> Ticket: </b></td><td>";
+        res += "<a href='" + server.webToTicket + "'>[" + server.ticketFullName + "]</a>";
+        res += "</td></tr>";
+    }
+
     let suiteName;
 
     if (isDefinedAndFilled(findGetParameter("suiteId"))) {
@@ -101,25 +116,12 @@ function showChainCurrentStatusData(server, settings) {
         suiteName = url.searchParams.get("buildTypeId");
     }
 
-    if (isDefinedAndFilled(suiteName))
-        res += "<tr><td><b> Suite: </b></td><td>[" + suiteName + "]</td></tr>";
-
-
-    if (isDefinedAndFilled(server.webToTicket) && isDefinedAndFilled(server.ticketFullName)) {
-        res += "<tr><td><b> Ticket: </b></td><td>";
-        res += "<a href='" + server.webToTicket + "'>[" + server.ticketFullName + "]</a>";
+    if (isDefinedAndFilled(suiteName)) {
+        res += "<tr><td><b> Suite: </b></td><td>[" + suiteName + "] ";
+        res += " <a href='" + server.webToHist + "'>[TC history]</a>";
         res += "</td></tr>";
     }
 
-    res += "<tr><td><b> PR: </b></td><td>";
-
-    if (isDefinedAndFilled(server.webToPr))
-        res += "<a href='" + server.webToPr + "'>[" + server.branchName + "]</a>";
-    else
-        res += "[" + server.branchName + "]";
-
-    res += " <a href='" + server.webToHist + "'>[Run-All history]</a>";
-    res += "</td></tr>";
     res += "</table>";
     res += "</br>";
 
@@ -132,7 +134,7 @@ function showChainCurrentStatusData(server, settings) {
     if (isDefinedAndFilled(server.failedToFinish) && isDefinedAndFilled(server.failedTests))
         res += server.failedToFinish + " suites and " + server.failedTests + " tests failed";
     else
-        res += "is empty";
+        res += "empty";
 
     res += "</br>";
     res += "<a href='longRunningTestsReport.html'>";

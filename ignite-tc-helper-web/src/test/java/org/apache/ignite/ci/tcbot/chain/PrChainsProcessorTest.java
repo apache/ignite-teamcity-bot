@@ -34,6 +34,8 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.IJiraIntegration;
@@ -91,18 +93,22 @@ public class PrChainsProcessorTest {
             bind(IStringCompactor.class).to(InMemoryStringCompactor.class).in(new SingletonScope());
 
             final IGitHubConnectionProvider ghProv = Mockito.mock(IGitHubConnectionProvider.class);
-
             bind(IGitHubConnectionProvider.class).toInstance(ghProv);
+            when(ghProv.server(anyString())).thenReturn(Mockito.mock(IGitHubConnection.class));
 
-            IGitHubConnection gitHubConnection = Mockito.mock(IGitHubConnection.class);
+            final IGitHubConnIgnitedProvider gitHubConnIgnitedProvider = Mockito.mock(IGitHubConnIgnitedProvider.class);
+
+            bind(IGitHubConnIgnitedProvider.class).toInstance(gitHubConnIgnitedProvider);
+
+            IGitHubConnIgnited gitHubConnIgnited = Mockito.mock(IGitHubConnIgnited.class);
 
             PullRequest pullRequest = Mockito.mock(PullRequest.class);
 
             when(pullRequest.getTitle()).thenReturn("");
 
-            when(gitHubConnection.getPullRequest(anyString())).thenReturn(pullRequest);
+            when(gitHubConnIgnited.getPullRequest(anyString())).thenReturn(pullRequest);
 
-            when(ghProv.server(anyString())).thenReturn(gitHubConnection);
+            when(gitHubConnIgnitedProvider.server(anyString())).thenReturn(gitHubConnIgnited);
 
             final IJiraIntegrationProvider jiraProv = Mockito.mock(IJiraIntegrationProvider.class);
 
