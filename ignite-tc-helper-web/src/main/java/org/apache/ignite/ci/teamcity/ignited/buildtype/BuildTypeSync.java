@@ -172,7 +172,7 @@ public class BuildTypeSync {
                         logger.info("Loading buildType [" + id + "] for server [" + conn.serverId() + "] failed:" +
                             e.getMessage(), e);
 
-                        removed += markRemoved(srvIdMaskHigh, id) ? 1 : 1;
+                        removed += markRemoved(srvIdMaskHigh, id) ? 1 : 0;
                     } else
                         throw ExceptionUtil.propagateException(e);
                 }
