@@ -18,6 +18,7 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import java.util.stream.Stream;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
@@ -26,11 +27,13 @@ import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.internal.util.GridConcurrentHashSet;
@@ -65,7 +68,11 @@ public class ProactiveFatBuildSync {
 
     @Inject private IStringCompactor compactor;
 
+    /** Change sync. */
     @Inject private ChangeSync changeSync;
+
+    /** Run history sync. */
+    @Inject private RunHistSync runHistSync;
 
     @GuardedBy("this")
     private Map<String, SyncTask> buildToLoad = new HashMap<>();
@@ -124,30 +131,34 @@ public class ProactiveFatBuildSync {
     protected String findMissingBuildsFromBuildRef(String srvId, ITeamcityConn conn) {
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
 
-        final int[] buildRefKeys = buildRefDao.getAllIds(srvIdMaskHigh);
+        Stream<BuildRefCompacted> buildRefs = buildRefDao.compactedBuildsForServer(srvIdMaskHigh);
 
         List<Integer> buildsIdsToLoad = new ArrayList<>();
-        int totalAskedToLoad = 0;
+        AtomicInteger totalAskedToLoad = new AtomicInteger();
 
-        for (int buildRefKey : buildRefKeys) {
+        buildRefs.forEach(buildRef -> {
+            Integer buildId = buildRef.getId();
+            if (buildId == null)
+                return;
+
             //todo
             // !existingBuild.isRunning(compactor) && !existingBuild.isQueued(compactor);
-            if (!fatBuildDao.containsKey(srvIdMaskHigh, buildRefKey))
-                buildsIdsToLoad.add(buildRefKey);
+            if (!fatBuildDao.containsKey(srvIdMaskHigh, buildId))
+                buildsIdsToLoad.add(buildId);
 
             if (buildsIdsToLoad.size() >= 100) {
-                totalAskedToLoad += buildsIdsToLoad.size();
+                totalAskedToLoad.addAndGet(buildsIdsToLoad.size());
                 scheduleBuildsLoad(conn, buildsIdsToLoad);
                 buildsIdsToLoad.clear();
             }
-        }
+        });
 
         if (!buildsIdsToLoad.isEmpty()) {
-            totalAskedToLoad += buildsIdsToLoad.size();
+            totalAskedToLoad.addAndGet(buildsIdsToLoad.size());
             scheduleBuildsLoad(conn, buildsIdsToLoad);
         }
 
-        return "Invoked later load for " + totalAskedToLoad + " builds from " + srvId;
+        return "Invoked later load for " + totalAskedToLoad.get() + " builds from " + srvId;
     }
 
     /** */
@@ -250,7 +261,20 @@ public class ProactiveFatBuildSync {
                 return null;
         }
 
-        return reloadBuild(conn, buildId, existingBuild);
+        FatBuildCompacted savedVer = reloadBuild(conn, buildId, existingBuild);
+
+        BuildRefCompacted refCompacted = new BuildRefCompacted(savedVer);
+        if (savedVer.isFakeStub())
+            refCompacted.setId(buildId); //to provide possiblity to save the build
+
+        final String srvNme = conn.serverId();
+        final int srvIdMask = ITeamcityIgnited.serverIdToInt(srvNme);
+
+        buildRefDao.save(srvIdMask, refCompacted);
+
+        runHistSync.saveToHistoryLater(srvNme, savedVer);
+
+        return savedVer;
     }
 
     /**
@@ -276,6 +300,9 @@ public class ProactiveFatBuildSync {
         ChangesList changesList = null;
         try {
             build = conn.getBuild(buildId);
+
+            if (build.isFakeStub())
+                build.setCancelled();
 
             if(build.testOccurrences != null && !build.isComposite()) { // don't query tests for compoite
                 String nextHref = null;
@@ -318,9 +345,11 @@ public class ProactiveFatBuildSync {
 
                     problems = existingBuild.problems(compactor);
                 }
-                else
+                else {
                     build = Build.createFakeStub();
-                //todo here can be situation we have build ref, but don't have a build
+
+                    build.setCancelled();
+                }
             } else {
                 logger.error("Loading build [" + buildId + "] for server [" + srvNme + "] failed:" + e.getMessage(), e);
 

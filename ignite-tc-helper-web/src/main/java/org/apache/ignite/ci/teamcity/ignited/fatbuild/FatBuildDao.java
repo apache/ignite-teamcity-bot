@@ -63,8 +63,10 @@ public class FatBuildDao {
     /**
      *
      */
-    public void init() {
+    public FatBuildDao init() {
         buildsCache = igniteProvider.get().getOrCreateCache(TcHelperDb.getCacheV2Config(TEAMCITY_FAT_BUILD_CACHE_NAME));
+
+        return this;
     }
 
     /**
@@ -172,7 +174,7 @@ public class FatBuildDao {
         return key!=null && key >> 32 == srvId;
     }
 
-    public boolean containsKey(int srvIdMaskHigh, int buildRefKey) {
-        return buildsCache.containsKey(buildIdToCacheKey(srvIdMaskHigh, buildRefKey));
+    public boolean containsKey(int srvIdMaskHigh, int buildId) {
+        return buildsCache.containsKey(buildIdToCacheKey(srvIdMaskHigh, buildId));
     }
 }

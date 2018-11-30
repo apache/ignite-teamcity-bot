@@ -55,19 +55,21 @@ public class BuildRefDao {
     @Inject private IStringCompactor compactor;
 
     /** */
-    public void init() {
+    public BuildRefDao init() {
         CacheConfiguration<Long, BuildRefCompacted> cfg = TcHelperDb.getCacheV2Config(TEAMCITY_BUILD_CACHE_NAME);
 
         cfg.setQueryEntities(Collections.singletonList(new QueryEntity(Long.class, BuildRefCompacted.class)));
 
         buildRefsCache = igniteProvider.get().getOrCreateCache(cfg);
+
+        return this;
     }
 
     /**
      * @param srvId Server id.
      * @return all builds for a server, full scan.
      */
-    @NotNull protected Stream<BuildRefCompacted> compactedBuildsForServer(int srvId) {
+    @NotNull public Stream<BuildRefCompacted> compactedBuildsForServer(int srvId) {
         return StreamSupport.stream(buildRefsCache.spliterator(), false)
             .filter(entry -> isKeyForServer(entry.getKey(), srvId))
             .map(javax.cache.Cache.Entry::getValue);
@@ -228,16 +230,16 @@ public class BuildRefDao {
     public int[] getAllIds(int srvId) {
         GridIntList res = new GridIntList(buildRefsCache.size());
 
-        getAllBuilds(srvId)
+        getAllBuildRefs(srvId)
+                .map(Cache.Entry::getKey)
                 .map(BuildRefDao::cacheKeyToBuildId)
                 .forEach(res::add);
 
         return res.array();
     }
 
-    @NotNull public Stream<Long> getAllBuilds(int srvId) {
+    @NotNull public Stream<Cache.Entry<Long, BuildRefCompacted>> getAllBuildRefs(int srvId) {
         return StreamSupport.stream(buildRefsCache.spliterator(), false)
-                .map(Cache.Entry::getKey)
-                .filter(entry -> isKeyForServer(entry, srvId));
+                .filter(entry -> isKeyForServer(entry.getKey(), srvId));
     }
 }

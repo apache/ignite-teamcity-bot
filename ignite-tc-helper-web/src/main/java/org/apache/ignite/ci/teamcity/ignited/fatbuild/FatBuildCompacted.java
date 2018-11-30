@@ -158,8 +158,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             setFakeStub(true);
     }
 
-    public void setFakeStub(boolean val) {
+    public FatBuildCompacted setFakeStub(boolean val) {
         setFlag(FAKE_BUILD_F, val);
+
+        return this;
     }
 
     public void buildTypeName(String btName, IStringCompactor compactor) {

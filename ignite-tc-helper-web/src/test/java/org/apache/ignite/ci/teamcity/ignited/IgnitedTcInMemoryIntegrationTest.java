@@ -16,6 +16,8 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -71,6 +73,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertNotNull;
@@ -549,9 +552,8 @@ public class IgnitedTcInMemoryIntegrationTest {
         });
         Injector injector = Guice.createInjector(module, new IgniteAndShedulerTestModule());
         IStringCompactor c = injector.getInstance(IStringCompactor.class);
-        BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class);
-        buildRefDao.init();
-        injector.getInstance(FatBuildDao.class).init();
+        BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class).init();
+        FatBuildDao fatBuildDao = injector.getInstance(FatBuildDao.class).init();
 
         int buildId = 1000042;
         BuildRef ref = new BuildRef();
@@ -559,25 +561,39 @@ public class IgnitedTcInMemoryIntegrationTest {
         ref.branchName = ITeamcity.REFS_HEADS_MASTER;
         ref.state = BuildRef.STATE_QUEUED;
         ref.setId(buildId);
+
+        int buildIdRunning = 1000043;
+        BuildRef refR = new BuildRef();
+        refR.buildTypeId = "Testbuild";
+        refR.branchName = ITeamcity.REFS_HEADS_MASTER;
+        refR.state = BuildRef.STATE_RUNNING;
+        refR.setId(buildIdRunning);
+
         String srvId = APACHE;
         int srvIdInt = ITeamcityIgnited.serverIdToInt(srvId);
-        buildRefDao.saveChunk(srvIdInt, Collections.singletonList(ref));
-
-        ITcServerFactory srvFactory = injector.getInstance(ITcServerFactory.class);
-        IAnalyticsEnabledTeamcity srv = srvFactory.createServer(srvId);
+        buildRefDao.saveChunk(srvIdInt, Lists.newArrayList(ref, refR));
 
         List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdInt);
-        assertNotNull(running);
-        assertFalse(running.isEmpty());
+        assertFalse(checkNotNull(running).isEmpty());
 
         System.out.println("Running builds: " + running);
 
         ProactiveFatBuildSync buildSync = injector.getInstance(ProactiveFatBuildSync.class);
-        buildSync.invokeLaterFindMissingByBuildRef(srvId, srv);
+        buildSync.invokeLaterFindMissingByBuildRef(srvId,
+            injector.getInstance(ITcServerFactory.class).createServer(srvId));
+
+        FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvIdInt, buildId);
+        System.out.println(fatBuild);
+
+        assertNotNull(fatBuild);
+        assertTrue(fatBuild.isFakeStub());
+
+        assertTrue(fatBuild.isCancelled(c));
 
         List<BuildRefCompacted> running2 = buildRefDao.getQueuedAndRunning(srvIdInt);
-        assertNotNull(running2);
-        assertTrue(running2.isEmpty());
+        System.out.println("Running builds (after sync): " +
+            running2.stream().map(bref->bref.toBuildRef(c)).collect(Collectors.toList()));
+        assertTrue(checkNotNull(running2).isEmpty());
     }
 
     /**

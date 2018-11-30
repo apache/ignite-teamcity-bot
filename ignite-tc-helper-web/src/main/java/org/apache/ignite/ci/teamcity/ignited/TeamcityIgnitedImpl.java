@@ -443,13 +443,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (mode == SyncMode.NONE) {
             if (existingBuild != null)
                 return existingBuild;
-            else {
-                FatBuildCompacted buildCompacted = new FatBuildCompacted();
-
-                buildCompacted.setFakeStub(true);
-
-                return buildCompacted; // providing fake builds
-            }
+            else
+                return new FatBuildCompacted().setFakeStub(true); // providing fake builds
         }
 
         FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, mode);
@@ -457,9 +452,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         //build was modified, probably we need also to update reference accordingly
         if (savedVer == null)
             return existingBuild;
-
-        buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(savedVer));
-        runHistSync.saveToHistoryLater(srvNme, savedVer);
 
         return savedVer;
     }

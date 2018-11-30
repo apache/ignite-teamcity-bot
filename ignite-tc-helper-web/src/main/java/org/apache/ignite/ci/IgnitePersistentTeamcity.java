@@ -89,6 +89,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      * Teamcity
      */
     private ITeamcity teamcity;
+
+    @Nullable
     private String serverId;
 
     /** cached running builds for branch. */
