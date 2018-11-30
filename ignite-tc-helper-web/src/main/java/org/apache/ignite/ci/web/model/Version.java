@@ -20,10 +20,12 @@ package org.apache.ignite.ci.web.model;
 @SuppressWarnings("PublicField") public class Version {
     /** Default contact. */
     public static final String DEFAULT_CONTACT = "dev@ignite.apache.org";
+
+    /** Github mirror reference. */
     public static final String GITHUB_REF = "https://github.com/apache/ignite-teamcity-bot";
 
     /** TC Bot Version. */
-    public static final String VERSION = "20181129";
+    public static final String VERSION = "20181130";
 
     /** TC Bot Version. */
     public String version = VERSION;
@@ -34,10 +36,10 @@ package org.apache.ignite.ci.web.model;
     /** Ignite version. */
     public String ignVerFull;
 
-    /** TC Helper GitHub Mirror. */
+    /** TC Bot GitHub Mirror. */
     public String srcWebUrl = GITHUB_REF;
 
-    /** TC Helper GitHub Mirror. */
+    /** TC Bot GitHub Mirror. */
     public String gitHubMirror = srcWebUrl;
 
     /** TC Bot Source */
