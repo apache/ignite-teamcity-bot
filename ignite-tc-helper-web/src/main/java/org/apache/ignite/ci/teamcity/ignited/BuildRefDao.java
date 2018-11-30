@@ -86,7 +86,7 @@ public class BuildRefDao {
      * @param ghData Gh data.
      */
     @AutoProfiling
-    public Set<Long> saveChunk(long srvId, List<BuildRef> ghData) {
+    public Set<Long> saveChunk(int srvId, List<BuildRef> ghData) {
         Set<Long> ids = ghData.stream().map(BuildRef::getId)
             .filter(Objects::nonNull)
             .map(buildId -> buildIdToCacheKey(srvId, buildId))
@@ -228,12 +228,16 @@ public class BuildRefDao {
     public int[] getAllIds(int srvId) {
         GridIntList res = new GridIntList(buildRefsCache.size());
 
-        StreamSupport.stream(buildRefsCache.spliterator(), false)
-                .map(Cache.Entry::getKey)
-                .filter(entry -> isKeyForServer(entry, srvId))
+        getAllBuilds(srvId)
                 .map(BuildRefDao::cacheKeyToBuildId)
                 .forEach(res::add);
 
         return res.array();
+    }
+
+    @NotNull public Stream<Long> getAllBuilds(int srvId) {
+        return StreamSupport.stream(buildRefsCache.spliterator(), false)
+                .map(Cache.Entry::getKey)
+                .filter(entry -> isKeyForServer(entry, srvId));
     }
 }

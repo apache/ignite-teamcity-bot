@@ -130,6 +130,8 @@ public class ProactiveFatBuildSync {
         int totalAskedToLoad = 0;
 
         for (int buildRefKey : buildRefKeys) {
+            //todo
+            // !existingBuild.isRunning(compactor) && !existingBuild.isQueued(compactor);
             if (!fatBuildDao.containsKey(srvIdMaskHigh, buildRefKey))
                 buildsIdsToLoad.add(buildRefKey);
 

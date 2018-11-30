@@ -33,6 +33,7 @@ import javax.xml.bind.JAXBException;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
@@ -54,10 +55,12 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerFactory;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.configuration.IgniteConfiguration;
@@ -69,6 +72,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
@@ -533,6 +537,47 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         assertNotNull(testRunHist);
         assertEquals(0.5, testRunHist.getFailRate(), 0.1);
+    }
+
+    @Test
+    public void testQueuedBuildsRemoved() {
+        TeamcityIgnitedModule module = new TeamcityIgnitedModule();
+        module.overrideHttp(new ITeamcityHttpConnection() {
+            @Override public InputStream sendGet(String basicAuthTok, String url) throws IOException {
+                throw new FileNotFoundException(url);
+            }
+        });
+        Injector injector = Guice.createInjector(module, new IgniteAndShedulerTestModule());
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+        BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class);
+        buildRefDao.init();
+        injector.getInstance(FatBuildDao.class).init();
+
+        int buildId = 1000042;
+        BuildRef ref = new BuildRef();
+        ref.buildTypeId = "Testbuild";
+        ref.branchName = ITeamcity.REFS_HEADS_MASTER;
+        ref.state = BuildRef.STATE_QUEUED;
+        ref.setId(buildId);
+        String srvId = APACHE;
+        int srvIdInt = ITeamcityIgnited.serverIdToInt(srvId);
+        buildRefDao.saveChunk(srvIdInt, Collections.singletonList(ref));
+
+        ITcServerFactory srvFactory = injector.getInstance(ITcServerFactory.class);
+        IAnalyticsEnabledTeamcity srv = srvFactory.createServer(srvId);
+
+        List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdInt);
+        assertNotNull(running);
+        assertFalse(running.isEmpty());
+
+        System.out.println("Running builds: " + running);
+
+        ProactiveFatBuildSync buildSync = injector.getInstance(ProactiveFatBuildSync.class);
+        buildSync.invokeLaterFindMissingByBuildRef(srvId, srv);
+
+        List<BuildRefCompacted> running2 = buildRefDao.getQueuedAndRunning(srvIdInt);
+        assertNotNull(running2);
+        assertTrue(running2.isEmpty());
     }
 
     /**
