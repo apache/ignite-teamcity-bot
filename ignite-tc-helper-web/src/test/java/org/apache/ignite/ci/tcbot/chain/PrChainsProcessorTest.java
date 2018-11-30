@@ -102,11 +102,11 @@ public class PrChainsProcessorTest {
 
             IGitHubConnIgnited gitHubConnIgnited = Mockito.mock(IGitHubConnIgnited.class);
 
-            PullRequest pullRequest = Mockito.mock(PullRequest.class);
+            PullRequest pullReq = Mockito.mock(PullRequest.class);
 
-            when(pullRequest.getTitle()).thenReturn("");
+            when(pullReq.getTitle()).thenReturn("");
 
-            when(gitHubConnIgnited.getPullRequest(anyString())).thenReturn(pullRequest);
+            when(gitHubConnIgnited.getPullRequest(anyString())).thenReturn(pullReq);
 
             when(gitHubConnIgnitedProvider.server(anyString())).thenReturn(gitHubConnIgnited);
 

@@ -112,7 +112,11 @@ class GitHubConnectionImpl implements IGitHubConnection {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public PullRequest getPullRequest(String branchForTc) {
-        return getPullRequest(IGitHubConnection.convertBranchToId(branchForTc));
+        Integer prId = IGitHubConnection.convertBranchToId(branchForTc);
+
+        Preconditions.checkNotNull(prId, "Invalid TC branch name");
+
+        return getPullRequest(prId);
     }
 
     /** {@inheritDoc} */

@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
@@ -73,17 +74,9 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
     /** {@inheritDoc} */
     @AutoProfiling
+    @Nullable
     @Override public PullRequest getPullRequest(int prNum) {
-        PullRequest pullReq = prCache.get(prNumberToCacheKey(prNum));
-
-        if (Objects.nonNull(pullReq))
-            return pullReq;
-
-        pullReq = conn.getPullRequest(prNum);
-
-        prCache.put(prNumberToCacheKey(prNum), pullReq);
-
-        return pullReq;
+        return prCache.get(prNumberToCacheKey(prNum));
     }
 
     /** {@inheritDoc} */

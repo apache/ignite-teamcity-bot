@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.github.pure;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.ci.github.PullRequest;
 import org.jetbrains.annotations.Nullable;
@@ -58,7 +59,12 @@ public interface IGitHubConnection {
     /**
      * @return PR id from string "pull/XXXX/head"
      */
-    public static Integer convertBranchToId(String branchForTc) {
+    public @Nullable static Integer convertBranchToId(String branchForTc) {
+        Integer res = null;
+
+        if (Objects.isNull(branchForTc))
+            return res;
+
         String id = null;
 
         for (int i = 5; i < branchForTc.length(); i++) {
@@ -71,6 +77,11 @@ public interface IGitHubConnection {
             }
         }
 
-        return Integer.parseInt(id);
+        try {
+            res = Integer.parseInt(id);
+        }
+        finally {
+            return res;
+        }
     }
 }

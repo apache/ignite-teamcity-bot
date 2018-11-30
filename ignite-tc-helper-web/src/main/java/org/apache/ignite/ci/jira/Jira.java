@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.jira;
 
+import com.google.common.base.Preconditions;
 import java.io.File;
 import java.util.Properties;
 import javax.inject.Inject;
@@ -24,6 +25,8 @@ import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.Visa;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  *
@@ -59,6 +62,8 @@ public class Jira implements IJiraIntegration {
 
     /** {@inheritDoc} */
     @Override public String generateTicketUrl(String ticketFullName) {
+        Preconditions.checkState(!isNullOrEmpty(jiraUrl), "Jira URL is not configured for this server.");
+
         return jiraUrl + "browse/" + ticketFullName;
     }
 

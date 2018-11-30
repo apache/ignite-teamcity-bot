@@ -91,13 +91,13 @@ function showChainCurrentStatusData(server, settings) {
     res += "<table style='width: 40%'>";
     res += "<tr><td><b> Server: </b></td><td>[" + server.serverId + "]</td></tr>";
 
-    if (isDefinedAndFilled(server.branchName) && server.branchName !== "<default>") {
+    if (isDefinedAndFilled(server.prNum)) {
         res += "<tr><td><b> PR: </b></td><td>";
 
         if (isDefinedAndFilled(server.webToPr))
-            res += "<a href='" + server.webToPr + "'>[" + server.branchName + "]</a>";
+            res += "<a href='" + server.webToPr + "'>[#" + server.prNum + "]</a>";
         else
-            res += "[" + server.branchName + "]";
+            res += "[#" + server.prNum + "]";
 
         res += "</td></tr>";
     }
