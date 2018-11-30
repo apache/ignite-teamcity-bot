@@ -140,9 +140,9 @@ public class ProactiveFatBuildSync {
             if (buildId == null)
                 return;
 
-            //todo
-            // !existingBuild.isRunning(compactor) && !existingBuild.isQueued(compactor);
-            if (!fatBuildDao.containsKey(srvIdMaskHigh, buildId))
+            if (buildRef.isRunning(compactor)
+                || buildRef.isQueued(compactor)
+                || !fatBuildDao.containsKey(srvIdMaskHigh, buildId))
                 buildsIdsToLoad.add(buildId);
 
             if (buildsIdsToLoad.size() >= 100) {
@@ -256,10 +256,13 @@ public class ProactiveFatBuildSync {
      */
     @Nullable
     public FatBuildCompacted loadBuild(ITeamcityConn conn, int buildId,
-                                       @Nullable FatBuildCompacted existingBuild,
-                                       SyncMode mode) {
+        @Nullable FatBuildCompacted existingBuild,
+        SyncMode mode) {
         if (existingBuild != null && !existingBuild.isOutdatedEntityVersion()) {
-            boolean finished = !existingBuild.isRunning(compactor) && !existingBuild.isQueued(compactor);
+            boolean finished =
+                existingBuild.state(compactor) != null // don't count old fake builds as finished
+                    && !existingBuild.isRunning(compactor)
+                    && !existingBuild.isQueued(compactor);
 
             if (finished || mode != SyncMode.RELOAD_QUEUED)
                 return null;

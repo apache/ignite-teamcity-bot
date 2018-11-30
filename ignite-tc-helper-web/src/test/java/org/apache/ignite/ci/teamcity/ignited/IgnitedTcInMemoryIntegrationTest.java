@@ -76,6 +76,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertNotNull;
+import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 import static org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.STRINGS_CACHE;
@@ -554,19 +555,19 @@ public class IgnitedTcInMemoryIntegrationTest {
         BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class).init();
         FatBuildDao fatBuildDao = injector.getInstance(FatBuildDao.class).init();
 
-        int buildId = 1000042;
+        int buildIdQ = 1000042;
         BuildRef refQ = new BuildRef();
         refQ.buildTypeId = "Testbuild";
         refQ.branchName = ITeamcity.REFS_HEADS_MASTER;
         refQ.state = BuildRef.STATE_QUEUED;
-        refQ.setId(buildId);
+        refQ.setId(buildIdQ);
 
-        int buildIdRunning = 1000043;
+        int buildIdR = 1000043;
         BuildRef refR = new BuildRef();
         refR.buildTypeId = "Testbuild";
         refR.branchName = ITeamcity.REFS_HEADS_MASTER;
         refR.state = BuildRef.STATE_RUNNING;
-        refR.setId(buildIdRunning);
+        refR.setId(buildIdR);
 
         String srvId = APACHE;
         int srvIdInt = ITeamcityIgnited.serverIdToInt(srvId);
@@ -582,7 +583,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         ProactiveFatBuildSync buildSync = injector.getInstance(ProactiveFatBuildSync.class);
         buildSync.invokeLaterFindMissingByBuildRef(srvId, srvConn);
 
-        FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvIdInt, buildId);
+        FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvIdInt, buildIdQ);
         System.out.println(fatBuild);
 
         assertNotNull(fatBuild);
@@ -601,11 +602,24 @@ public class IgnitedTcInMemoryIntegrationTest {
         System.out.println("Running builds (before with fake builds): " + printRefs(c, running3));
         assertFalse(checkNotNull(running3).isEmpty());
 
+        putOldFashionFakeBuild(c, fatBuildDao, buildIdQ, srvIdInt);
+        putOldFashionFakeBuild(c, fatBuildDao, buildIdR, srvIdInt);
+
         buildSync.invokeLaterFindMissingByBuildRef(srvId, srvConn);
 
         List<BuildRefCompacted> running4 = buildRefDao.getQueuedAndRunning(srvIdInt);
         System.out.println("Running builds (before with fake builds): " + printRefs(c, running4));
         assertTrue(checkNotNull(running4).isEmpty());
+    }
+
+    public void putOldFashionFakeBuild(IStringCompactor c, FatBuildDao fatBuildDao, int buildId, int srvIdInt) {
+        FatBuildCompacted fb = fatBuildDao.getFatBuild(srvIdInt, buildId);
+
+        fb.fillFieldsFromBuildRef(c, new BuildRef());
+
+        fatBuildDao.putFatBuild(srvIdInt, buildId, fb);
+
+        assertNull(fatBuildDao.getFatBuild(srvIdInt, buildId).state(c));
     }
 
     @NotNull public List<BuildRef> printRefs(IStringCompactor c, List<BuildRefCompacted> running2) {
