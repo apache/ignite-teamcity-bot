@@ -16,7 +16,6 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -35,7 +34,6 @@ import javax.xml.bind.JAXBException;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
@@ -61,6 +59,7 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
+import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerFactory;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -556,11 +555,11 @@ public class IgnitedTcInMemoryIntegrationTest {
         FatBuildDao fatBuildDao = injector.getInstance(FatBuildDao.class).init();
 
         int buildId = 1000042;
-        BuildRef ref = new BuildRef();
-        ref.buildTypeId = "Testbuild";
-        ref.branchName = ITeamcity.REFS_HEADS_MASTER;
-        ref.state = BuildRef.STATE_QUEUED;
-        ref.setId(buildId);
+        BuildRef refQ = new BuildRef();
+        refQ.buildTypeId = "Testbuild";
+        refQ.branchName = ITeamcity.REFS_HEADS_MASTER;
+        refQ.state = BuildRef.STATE_QUEUED;
+        refQ.setId(buildId);
 
         int buildIdRunning = 1000043;
         BuildRef refR = new BuildRef();
@@ -571,16 +570,17 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         String srvId = APACHE;
         int srvIdInt = ITeamcityIgnited.serverIdToInt(srvId);
-        buildRefDao.saveChunk(srvIdInt, Lists.newArrayList(ref, refR));
+        ITeamcityConn srvConn = injector.getInstance(ITcServerFactory.class).createServer(srvId);
+
+        buildRefDao.saveChunk(srvIdInt, Lists.newArrayList(refQ, refR));
 
         List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdInt);
         assertFalse(checkNotNull(running).isEmpty());
 
-        System.out.println("Running builds: " + running);
+        System.out.println("Running builds (before sync): " + printRefs(c, running));
 
         ProactiveFatBuildSync buildSync = injector.getInstance(ProactiveFatBuildSync.class);
-        buildSync.invokeLaterFindMissingByBuildRef(srvId,
-            injector.getInstance(ITcServerFactory.class).createServer(srvId));
+        buildSync.invokeLaterFindMissingByBuildRef(srvId, srvConn);
 
         FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvIdInt, buildId);
         System.out.println(fatBuild);
@@ -591,9 +591,25 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertTrue(fatBuild.isCancelled(c));
 
         List<BuildRefCompacted> running2 = buildRefDao.getQueuedAndRunning(srvIdInt);
-        System.out.println("Running builds (after sync): " +
-            running2.stream().map(bref->bref.toBuildRef(c)).collect(Collectors.toList()));
+        System.out.println("Running builds (after sync): " + printRefs(c, running2));
         assertTrue(checkNotNull(running2).isEmpty());
+
+        // Now we have 2 fake stubs, retry to actualize
+        buildRefDao.saveChunk(srvIdInt, Lists.newArrayList(refQ, refR));
+
+        List<BuildRefCompacted> running3 = buildRefDao.getQueuedAndRunning(srvIdInt);
+        System.out.println("Running builds (before with fake builds): " + printRefs(c, running3));
+        assertFalse(checkNotNull(running3).isEmpty());
+
+        buildSync.invokeLaterFindMissingByBuildRef(srvId, srvConn);
+
+        List<BuildRefCompacted> running4 = buildRefDao.getQueuedAndRunning(srvIdInt);
+        System.out.println("Running builds (before with fake builds): " + printRefs(c, running4));
+        assertTrue(checkNotNull(running4).isEmpty());
+    }
+
+    @NotNull public List<BuildRef> printRefs(IStringCompactor c, List<BuildRefCompacted> running2) {
+        return running2.stream().map(bref->bref.toBuildRef(c)).collect(Collectors.toList());
     }
 
     /**

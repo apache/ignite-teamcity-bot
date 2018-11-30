@@ -100,7 +100,6 @@ public class ProactiveFatBuildSync {
         if (buildsToAskFromTc.isEmpty())
             return;
 
-
         synchronized (this) {
             final SyncTask syncTask = getSyncTask(conn);
 
@@ -237,6 +236,11 @@ public class ProactiveFatBuildSync {
         return ProactiveFatBuildSync.class.getSimpleName() +"." + taskName + "." + srvName;
     }
 
+    /**
+     * Schedule missing builds into Fat builds cache. Sync is based by BuildRefs cache.
+     * @param srvName Server name.
+     * @param conn Connection.
+     */
     public void invokeLaterFindMissingByBuildRef(String srvName, ITeamcityConn conn) {
         scheduler.sheduleNamed(taskName("findMissingBuildsFromBuildRef", srvName),
                 () -> findMissingBuildsFromBuildRef(srvName, conn), 360, TimeUnit.MINUTES);
