@@ -22,6 +22,6 @@ public enum LatestRebuildMode {
     NONE,
     /** replace builds with Latest rebuild. */
     LATEST,
-    /** Collect history of builds. */
+    /** Collect history of builds. Rebuilds are applied, but have higher priority. */
     ALL
 }

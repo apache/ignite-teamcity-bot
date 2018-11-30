@@ -22,6 +22,7 @@ import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.ci.tcmodel.hist.BuildRef.*;
 
@@ -54,11 +55,19 @@ public class BuildRefCompacted {
      * @param ref Reference.
      */
     public BuildRefCompacted(IStringCompactor compactor, BuildRef ref) {
-        id = ref.getId() == null ? -1 : ref.getId();
+        fillFieldsFromBuildRef(compactor, ref);
+    }
+
+    public void fillFieldsFromBuildRef(IStringCompactor compactor, BuildRef ref) {
+        setId(ref.getId());
         buildTypeId = compactor.getStringId(ref.buildTypeId());
         branchName = compactor.getStringId(ref.branchName());
         status = compactor.getStringId(ref.status());
         state = compactor.getStringId(ref.state());
+    }
+
+    public void setId(Integer buildId) {
+        this.id = buildId == null ? -1 : buildId;
     }
 
     /**
@@ -85,12 +94,16 @@ public class BuildRefCompacted {
     }
 
     protected void fillBuildRefFields(IStringCompactor compactor, BuildRef res) {
-        res.setId(id < 0 ? null : id);
+        res.setId(getId());
         res.buildTypeId = buildTypeId(compactor);
         res.branchName = branchName(compactor);
         res.status = compactor.getStringFromId(status);
         res.state = compactor.getStringFromId(state);
         res.href = getHrefForId(id());
+    }
+
+    @Nullable public Integer getId() {
+        return id < 0 ? null : id;
     }
 
     public String buildTypeId(IStringCompactor compactor) {
@@ -140,7 +153,7 @@ public class BuildRefCompacted {
     }
 
     /** */
-    private int status() {
+    public int status() {
         return status;
     }
 
@@ -155,7 +168,11 @@ public class BuildRefCompacted {
     }
 
     public boolean isNotCancelled(IStringCompactor compactor) {
-        return !hasUnknownStatus(compactor);
+        return !isCancelled(compactor);
+    }
+
+    public boolean isCancelled(IStringCompactor compactor) {
+        return hasUnknownStatus(compactor);
     }
 
     private boolean hasUnknownStatus(IStringCompactor compactor) {
@@ -174,6 +191,10 @@ public class BuildRefCompacted {
         return compactor.getStringId(STATE_QUEUED) == state();
     }
 
+    public boolean isSuccess(IStringCompactor compactor) {
+        return compactor.getStringId(STATUS_SUCCESS) == status();
+    }
+
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("id", id)
@@ -182,5 +203,9 @@ public class BuildRefCompacted {
             .add("status", status)
             .add("state", state)
             .toString();
+    }
+
+    public String state(IStringCompactor compactor) {
+        return compactor.getStringFromId(state());
     }
 }

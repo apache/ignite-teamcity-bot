@@ -15,32 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.result.issues;
+package org.apache.ignite.ci.web.model;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.ignite.ci.tcmodel.changes.ChangesList;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * Build's related issue from TC.
  *
- * See example of XML, e.g. here
- * https://ci.ignite.apache.org/app/rest/latest/builds/id:1694977/relatedIssues
  */
-@XmlRootElement(name = "IssueUsage")
-@XmlAccessorType(XmlAccessType.FIELD)
-public class IssueUsage {
-    @XmlElement(name = "issue")
-    private IssueRef issue;
-    @XmlElement(name = "changes")
-    private ChangesList changesList;
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class JiraCommentResponse {
+    /** */
+    private int id;
 
-    /**
-     * Get issue.
-     */
-    public IssueRef getIssue(){
-        return issue;
+    /** */
+    public int getId() {
+        return id;
     }
 }

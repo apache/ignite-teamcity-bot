@@ -17,74 +17,146 @@
 
 package org.apache.ignite.ci.observer;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.ContributionKey;
 
 /**
  *
  */
 public class BuildsInfo {
+    /** */
+    public static final String FINISHED_STATUS = "finished";
+
+    /** */
+    public static final String RUNNING_STATUS = "running";
+
+    /** */
+    public static final String CANCELLED_STATUS = "cancelled";
+
+    /** */
+    public final String userName;
+
     /** Server id. */
     public final String srvId;
 
     /** Build type id. */
-    public final String buildTypeId;
+    public String buildTypeId;
 
     /** Branch name. */
-    public final String branchName;
+    public final String branchForTc;
 
     /** JIRA ticket full name. */
     public final String ticket;
 
+    /** */
+    public final Date date;
+
     /** Finished builds. */
-    private final Map<Build, Boolean> finishedBuilds = new HashMap<>();
+    private final List<Integer> builds = new ArrayList<>();
+
+    /** */
+    public BuildsInfo(CompactBuildsInfo compactBuildsInfo, IStringCompactor strCompactor) {
+        this.userName = strCompactor.getStringFromId(compactBuildsInfo.userName());
+        this.date = compactBuildsInfo.date();
+        this.srvId = strCompactor.getStringFromId(compactBuildsInfo.srvId());
+        this.ticket = strCompactor.getStringFromId(compactBuildsInfo.ticket());
+        this.branchForTc = strCompactor.getStringFromId(compactBuildsInfo.branchForTc());
+        this.buildTypeId = strCompactor.getStringFromId(compactBuildsInfo.buildTypeId());
+        this.builds.addAll(compactBuildsInfo.getBuilds());
+    }
 
     /**
      * @param srvId Server id.
      * @param prov Prov.
+     * @param branchForTc Branch for TC.
      * @param ticket Ticket.
      * @param builds Builds.
      */
-    public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, Build[] builds) {
+    public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, String branchForTc, Build... builds) {
+        this.userName = prov.getUser(srvId);
+        this.date = Calendar.getInstance().getTime();
         this.srvId = srvId;
         this.ticket = ticket;
-        this.buildTypeId = builds.length > 1 ? "IgniteTests24Java8_RunAll" : builds[0].buildTypeId;
-        this.branchName = builds[0].branchName;
+        this.branchForTc = branchForTc;
+        this.buildTypeId = builds.length == 1 ? builds[0].buildTypeId : "IgniteTests24Java8_RunAll";
 
         for (Build build : builds)
-            finishedBuilds.put(build, false);
+            this.builds.add(build.getId());
+    }
+
+    /**
+     * @param teamcity Teamcity.
+     */
+    public String getStatus(IAnalyticsEnabledTeamcity teamcity) {
+        boolean isFinished = true;
+
+        for (Integer id : builds) {
+            Build build = teamcity.getBuild(id);
+
+            if (build.isUnknown())
+                return CANCELLED_STATUS;
+
+            if (!build.isFinished())
+                isFinished = false;
+        }
+
+        return isFinished ? FINISHED_STATUS : RUNNING_STATUS;
     }
 
     /**
      * @param teamcity Teamcity.
      */
     public boolean isFinished(IAnalyticsEnabledTeamcity teamcity) {
-        for (Map.Entry<Build, Boolean> entry : finishedBuilds.entrySet()) {
-            if (!entry.getValue()) {
-                Build build = teamcity.getBuild(entry.getKey().getId());
-                entry.setValue(build.isFinished());
-            }
-        }
+        return FINISHED_STATUS.equals(getStatus(teamcity));
+    }
 
-        return !finishedBuilds.containsValue(false);
+    /**
+     * @param teamcity Teamcity.
+     */
+    public boolean isCancelled(IAnalyticsEnabledTeamcity teamcity) {
+        return CANCELLED_STATUS.equals(getStatus(teamcity));
     }
 
     /**
      * Return builds count.
      */
     public int buildsCount(){
-        return finishedBuilds.size();
+        return builds.size();
     }
 
     /**
      * Return finished builds count.
      */
-    public int finishedBuildsCount(){
-        return (int)finishedBuilds.values().stream().filter(v -> v).count();
+    public int finishedBuildsCount(IAnalyticsEnabledTeamcity teamcity){
+        int finishedCnt = 0;
+
+        for (Integer id : builds) {
+            Build build = teamcity.getBuild(id);
+
+            if (build.isFinished())
+                ++finishedCnt;
+        }
+
+        return finishedCnt;
+    }
+
+    /** */
+    public ContributionKey getContributionKey() {
+        return new ContributionKey(srvId, branchForTc);
+    }
+
+    /** */
+    public List<Integer> getBuilds() {
+        return Collections.unmodifiableList(builds);
     }
 
     /** {@inheritDoc} */
@@ -99,13 +171,14 @@ public class BuildsInfo {
 
         return Objects.equals(srvId, info.srvId) &&
             Objects.equals(buildTypeId, info.buildTypeId) &&
-            Objects.equals(branchName, info.branchName) &&
+            Objects.equals(branchForTc, info.branchForTc) &&
             Objects.equals(ticket, info.ticket) &&
-            Objects.equals(finishedBuilds.keySet(), info.finishedBuilds.keySet());
+            Objects.equals(builds, info.builds) &&
+            Objects.equals(date, info.date);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(srvId, buildTypeId, branchName, ticket, finishedBuilds.keySet());
+        return Objects.hash(srvId, buildTypeId, branchForTc, ticket, builds, date);
     }
 }

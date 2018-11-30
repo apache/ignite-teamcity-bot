@@ -93,6 +93,21 @@ public class TcHelperDb {
         Ignition.stop(ignite.name(), false);
     }
 
+    /** */
+    @NotNull
+    public static <K, V> CacheConfiguration<K, V> getCacheV3Config(String name) {
+        CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
+
+        ccfg.setAffinity(new RendezvousAffinityFunction(false, 8));
+
+        return ccfg;
+    }
+
+    /** */
+    public static <K, V> CacheConfiguration<K, V> getCacheV3TxConfig(String name) {
+        return TcHelperDb.<K, V>getCacheV3Config(name).setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
+    }
+
     @NotNull
     public static <K, V> CacheConfiguration<K, V> getCacheV2Config(String name) {
         CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
@@ -121,42 +136,62 @@ public class TcHelperDb {
 
     }
 
+    @NotNull
+    public static <K, V> CacheConfiguration<K, V> getCache8PartsConfig(String name) {
+        CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
+
+        ccfg.setAffinity(new RendezvousAffinityFunction(false, 8));
+
+        return ccfg;
+    }
+
     public static class LocalOnlyTcpDiscoveryIpFinder implements TcpDiscoveryIpFinder {
+        /** Port. */
         private int port;
 
+        /**
+         * @param port Port.
+         */
         public LocalOnlyTcpDiscoveryIpFinder(int port) {
             this.port = port;
         }
 
+        /** {@inheritDoc} */
         @Override public void onSpiContextInitialized(IgniteSpiContext spiCtx) throws IgniteSpiException {
 
         }
 
+        /** {@inheritDoc} */
         @Override public void onSpiContextDestroyed() {
 
         }
 
-        @Override
-        public void initializeLocalAddresses(Collection<InetSocketAddress> addrs) throws IgniteSpiException {
+        /** {@inheritDoc} */
+        @Override public void initializeLocalAddresses(Collection<InetSocketAddress> addrs) throws IgniteSpiException {
 
         }
 
+        /** {@inheritDoc} */
         @Override public Collection<InetSocketAddress> getRegisteredAddresses() throws IgniteSpiException {
             return Collections.singletonList(new InetSocketAddress("localhost", port));
         }
 
+        /** {@inheritDoc} */
         @Override public boolean isShared() {
             return false;
         }
 
+        /** {@inheritDoc} */
         @Override public void registerAddresses(Collection<InetSocketAddress> addrs) throws IgniteSpiException {
 
         }
 
+        /** {@inheritDoc} */
         @Override public void unregisterAddresses(Collection<InetSocketAddress> addrs) throws IgniteSpiException {
 
         }
 
+        /** {@inheritDoc} */
         @Override public void close() {
 
         }

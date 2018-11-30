@@ -17,13 +17,18 @@
 package org.apache.ignite.ci.teamcity.ignited;
 
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.tcbot.condition.BuildCondition;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.jetbrains.annotations.NotNull;
 
 /**
  *
@@ -40,27 +45,30 @@ public interface ITeamcityIgnited {
     public String host();
 
     /**
-     * Retun all builds for branch and suite, without relation to its status.
+     * Return all builds for branch and suite, without relation to its status.
      *
      * @param buildTypeId Build type identifier.
      * @param branchName Branch name.
      * @return list of builds in history, includes all statuses: queued, running, etc
      */
-    public List<BuildRefCompacted> getBuildHistoryCompacted(
+    public List<BuildRefCompacted> getAllBuildsCompacted(
             @Nullable String buildTypeId,
             @Nullable String branchName);
 
-
     /**
-     * Retun all builds for branch and suite, without relation to its status.
+     * Return all builds for branch and suite with finish status.
      *
      * @param buildTypeId Build type identifier.
      * @param branchName Branch name.
-     * @return list of builds in history, includes all statuses: queued, running, etc
+     * @param sinceDate Since date.
+     * @param untilDate Until date.
+     * @return list of builds in history in finish status.
      */
-    public List<BuildRef> getBuildHistory(
+    public List<BuildRefCompacted> getFinishedBuildsCompacted(
         @Nullable String buildTypeId,
-        @Nullable String branchName);
+        @Nullable String branchName,
+        @Nullable Date sinceDate,
+        @Nullable Date untilDate);
 
     /**
      * Trigger build. Enforces TC Bot to load all builds related to this triggered one.
@@ -98,15 +106,62 @@ public interface ITeamcityIgnited {
      * @param id Id.
      */
     public default FatBuildCompacted getFatBuild(int id) {
-        return getFatBuild(id, false);
+        return getFatBuild(id, SyncMode.RELOAD_QUEUED);
     }
-
-
 
     /**
      * @param id Id.
+     * @param mode Refresh mode.
      */
-    public FatBuildCompacted getFatBuild(int id, boolean acceptQueued);
+    public FatBuildCompacted getFatBuild(int id, SyncMode mode);
 
     public Collection<ChangeCompacted> getAllChanges(int[] changeIds);
+
+    /**
+     * Returns IDs of N. most recent builds in build history.
+     *
+     * @param btId Bt id.
+     * @param branchForTc Branch for tc.
+     * @param cnt Count.
+     */
+    @NotNull public List<Integer> getLastNBuildsFromHistory(String btId, String branchForTc, int cnt);
+
+    /**
+     * Return list of composite suite ids sorted by number of snapshot dependency.
+     *
+     * @param projectId Project id.
+     * @return List of composite buildType ids.
+     */
+    public List<String> getCompositeBuildTypesIdsSortedByBuildNumberCounter(String projectId);
+
+    /**
+     * Return list of compacted references to project suites.
+     *
+     * @param projectId Project id.
+     * @return List of compacted references to buildTypes.
+     */
+    public List<BuildTypeRefCompacted> getAllBuildTypesCompacted(String projectId);
+
+
+    /**
+     * @param buildTypeId BuildType id.
+     * @return Compacted reference to BuildType.
+     */
+    public BuildTypeRefCompacted getBuildTypeRef(String buildTypeId);
+
+    /**
+     * @param buildTypeId BuildType id.
+     * @return BuildType compacted.
+     */
+    public BuildTypeCompacted getBuildType(String buildTypeId);
+
+    @Nullable public IRunHistory getTestRunHist(TestInBranch testInBranch);
+
+    @Nullable public IRunHistory getSuiteRunHist(SuiteInBranch branch);
+
+    /**
+     * @param suiteBuildTypeId Suite id.
+     * @return run statistics of recent runls on all branches.
+     */
+    @Nullable public IRunStat getSuiteRunStatAllBranches(String suiteBuildTypeId);
 }

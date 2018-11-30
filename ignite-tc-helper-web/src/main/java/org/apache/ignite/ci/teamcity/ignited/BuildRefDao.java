@@ -38,6 +38,9 @@ import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.internal.util.GridIntList;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ *
+ */
 public class BuildRefDao {
     /** Cache name */
     public static final String TEAMCITY_BUILD_CACHE_NAME = "teamcityBuildRef";
@@ -119,6 +122,9 @@ public class BuildRefDao {
         return (long)buildId | srvId << 32;
     }
 
+    /**
+     * @param cacheKey Cache key.
+     */
     public static int cacheKeyToBuildId(Long cacheKey) {
         long l = cacheKey << 32;
         return (int) (l>>32);
@@ -132,33 +138,18 @@ public class BuildRefDao {
     @AutoProfiling
     @NotNull public List<BuildRefCompacted> findBuildsInHistoryCompacted(int srvId,
                                                        @Nullable String buildTypeId,
-                                                       String bracnhNameQry) {
+                                                       List<String> bracnhNameQry) {
 
         Integer buildTypeIdId = compactor.getStringIdIfPresent(buildTypeId);
         if (buildTypeIdId == null)
             return Collections.emptyList();
 
-        Integer bracnhNameQryId = compactor.getStringIdIfPresent(bracnhNameQry);
-        if (bracnhNameQryId == null)
+        if (bracnhNameQry.stream().map(str -> compactor.getStringIdIfPresent(str)).allMatch(Objects::isNull))
             return Collections.emptyList();
 
         return getBuildsForBranch(srvId, bracnhNameQry).stream()
-                .filter(e -> e.buildTypeId() == buildTypeIdId)
+            .filter(e -> e.buildTypeId() == buildTypeIdId)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * @param srvId Server id mask high.
-     * @param buildTypeId Build type id.
-     * @param bracnhNameQry Bracnh name query.
-     */
-    @AutoProfiling
-    @NotNull public List<BuildRef> findBuildsInHistory(int srvId,
-        @Nullable String buildTypeId,
-        String bracnhNameQry) {
-        return findBuildsInHistoryCompacted(srvId, buildTypeId, bracnhNameQry).stream()
-            .map(compacted -> compacted.toBuildRef(compactor))
-            .collect(Collectors.toList());
     }
 
     /**
@@ -181,16 +172,26 @@ public class BuildRefDao {
             .collect(Collectors.toList());
     }
 
+    /**
+     * @param srvId Server id.
+     * @param bracnhNamesQry Branch names.
+     */
     @AutoProfiling
-    @GuavaCached(softValues = true, maximumSize = 1000, expireAfterAccessSecs = 30)
-    public List<BuildRefCompacted> getBuildsForBranch(int srvId, String branchName) {
-        Integer branchNameId = compactor.getStringIdIfPresent(branchName);
-        if (branchNameId == null)
-            return Collections.emptyList();
+    @GuavaCached(softValues = true, maximumSize = 1000, expireAfterAccessSecs = 60)
+    public List<BuildRefCompacted> getBuildsForBranch(int srvId, List<String> bracnhNamesQry) {
+        Set<Integer> branchIds = bracnhNamesQry.stream().map(str -> compactor.getStringIdIfPresent(str))
+            .filter(Objects::nonNull).collect(Collectors.toSet());
 
         List<BuildRefCompacted> list = new ArrayList<>();
-        try (QueryCursor<Cache.Entry<Long, BuildRefCompacted>> qryCursor
-                 = buildRefsCache.query(
+
+        for (Integer next : branchIds)
+            fillBuilds(srvId, next, list);
+
+        return list;
+    }
+
+    public void fillBuilds(int srvId, Integer branchNameId, List<BuildRefCompacted> list) {
+        try (QueryCursor<Cache.Entry<Long, BuildRefCompacted>> qryCursor  = buildRefsCache.query(
             new SqlQuery<Long, BuildRefCompacted>(BuildRefCompacted.class, "branchName = ?")
                 .setArgs(branchNameId))) {
 
@@ -203,8 +204,6 @@ public class BuildRefDao {
                 list.add(next.getValue());
             }
         }
-
-        return list;
     }
 
     /**

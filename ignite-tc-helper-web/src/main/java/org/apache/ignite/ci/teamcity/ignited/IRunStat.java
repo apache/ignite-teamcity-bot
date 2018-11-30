@@ -14,26 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.ignite.ci.tcmodel.result.issues;
-
-import javax.xml.bind.annotation.XmlAttribute;
+package org.apache.ignite.ci.teamcity.ignited;
 
 /**
- * Issue short version from list of build's related issues.
- *
- * See example of XML, e.g. here
- * https://ci.ignite.apache.org/app/rest/latest/builds/id:1694977/relatedIssues
+ * Abstract runs statistics,
  */
-public class IssueRef {
-    @XmlAttribute public String id;
-    @XmlAttribute public String url;
+public interface IRunStat {
+    public int getRunsCount();
+    public int getFailuresCount();
 
-    /** {@inheritDoc} */
-    @Override public String toString() {
-        return "IssueRef{" +
-            "id='" + id + '\'' +
-            ", url='" + url + '\'' +
-            '}';
+    /**
+     * @return fail rate as float.
+     */
+    public default float getFailRate() {
+        int runs = getRunsCount();
+
+        if (runs == 0)
+            return 0.0f;
+
+        return 1.0f * getFailuresCount() / runs;
+    }
+
+    public default String getFailPercentPrintable() {
+        return getPercentPrintable(getFailRate() * 100.0f);
+    }
+
+
+    public static String getPercentPrintable(float percent) {
+        return String.format("%.1f", percent).replace(".", ",");
     }
 }

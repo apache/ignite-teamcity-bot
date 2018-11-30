@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.condition;
+package org.apache.ignite.ci.teamcity.ignited.buildcondition;
 
 import java.util.Date;
 import java.util.Objects;

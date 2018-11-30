@@ -29,9 +29,11 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.internal.util.GridConcurrentHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,9 +70,18 @@ public class ProactiveFatBuildSync {
     @GuardedBy("this")
     private Map<String, SyncTask> buildToLoad = new HashMap<>();
 
+    public void doLoadBuilds(int i, String srvNme, ITeamcityConn conn, Set<Integer> paginateUntil) {
+        doLoadBuilds(i, srvNme, conn, paginateUntil, getSyncTask(conn).loadingBuilds);
+    }
+
+    /**
+     * Scope of work: builds to be loaded from a connection.
+     */
     private static class SyncTask {
         ITeamcityConn conn;
         Set<Integer> ids = new HashSet<>();
+
+        GridConcurrentHashSet<Integer> loadingBuilds = new GridConcurrentHashSet<>();
     }
 
     /**
@@ -84,10 +95,11 @@ public class ProactiveFatBuildSync {
 
 
         synchronized (this) {
-            final String serverId = conn.serverId();
-            final SyncTask syncTask = buildToLoad.computeIfAbsent(serverId, s -> new SyncTask());
-            syncTask.conn = conn;
-            syncTask.ids.addAll(buildsToAskFromTc);
+            final SyncTask syncTask = getSyncTask(conn);
+
+            buildsToAskFromTc.stream()
+                    .filter(id -> !syncTask.loadingBuilds.contains(id))
+                    .forEach(syncTask.ids::add);
         }
 
         int ldrToActivate = ThreadLocalRandom.current().nextInt(FAT_BUILD_PROACTIVE_TASKS);
@@ -95,6 +107,15 @@ public class ProactiveFatBuildSync {
         scheduler.sheduleNamed(taskName("loadFatBuilds" + ldrToActivate, conn.serverId()),
                 () -> loadFatBuilds(ldrToActivate, conn.serverId()), 2, TimeUnit.MINUTES);
 
+    }
+
+    @NotNull
+    public synchronized SyncTask getSyncTask(ITeamcityConn conn) {
+        final SyncTask syncTask = buildToLoad.computeIfAbsent(conn.serverId(), s -> new SyncTask());
+
+        syncTask.conn = conn;
+
+        return syncTask;
     }
 
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
@@ -128,11 +149,13 @@ public class ProactiveFatBuildSync {
     }
 
     /** */
-    private void loadFatBuilds(int ldrNo, String serverId) {
+    private void loadFatBuilds(int ldrNo, String srvId) {
         Set<Integer> load;
         ITeamcityConn conn;
+        final GridConcurrentHashSet<Integer> loadingBuilds;
+
         synchronized (this) {
-            final SyncTask syncTask = buildToLoad.get(serverId);
+            final SyncTask syncTask = buildToLoad.get(srvId);
             if (syncTask == null)
                 return;
 
@@ -145,19 +168,25 @@ public class ProactiveFatBuildSync {
                 return;
 
             load = syncTask.ids;
+            //marking that builds are in progress
+
+            loadingBuilds = syncTask.loadingBuilds;
+            loadingBuilds.addAll(load);
+
             syncTask.ids = new HashSet<>();
 
             conn = syncTask.conn;
             syncTask.conn = null;
         }
 
-        doLoadBuilds(ldrNo, serverId, conn, load);
+        doLoadBuilds(ldrNo, srvId, conn, load,  loadingBuilds);
     }
 
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Proactive Builds Loading (srv,agent)", nameExtArgsIndexes = {1, 0})
     @AutoProfiling
-    public String doLoadBuilds(int ldrNo, String srvId, ITeamcityConn conn, Set<Integer> load) {
+    public String doLoadBuilds(int ldrNo, String srvId, ITeamcityConn conn, Set<Integer> load,
+                               GridConcurrentHashSet<Integer> loadingBuilds) {
         if(load.isEmpty())
             return "Nothing to load";
 
@@ -173,10 +202,12 @@ public class ProactiveFatBuildSync {
                     try {
                         FatBuildCompacted existingBuild = builds.get(FatBuildDao.buildIdToCacheKey(srvIdMaskHigh, buildId));
 
-                        FatBuildCompacted savedVer = reloadBuild(conn, buildId, existingBuild);
+                        FatBuildCompacted savedVer = loadBuild(conn, buildId, existingBuild, SyncMode.RELOAD_QUEUED);
 
                         if (savedVer != null)
                             ld.incrementAndGet();
+
+                        loadingBuilds.remove(buildId);
                     }
                     catch (Exception e) {
                         logger.error("", e);
@@ -196,6 +227,28 @@ public class ProactiveFatBuildSync {
     public void invokeLaterFindMissingByBuildRef(String srvName, ITeamcityConn conn) {
         scheduler.sheduleNamed(taskName("findMissingBuildsFromBuildRef", srvName),
                 () -> findMissingBuildsFromBuildRef(srvName, conn), 360, TimeUnit.MINUTES);
+    }
+
+    /**
+     *
+     * @param conn TC connection to load data
+     * @param buildId build ID (TC identification).
+     * @param existingBuild build from DB.
+     * @return null if nothing was saved, use existing build. Non null value indicates that
+     * new build if it was updated.
+     */
+    @Nullable
+    public FatBuildCompacted loadBuild(ITeamcityConn conn, int buildId,
+                                       @Nullable FatBuildCompacted existingBuild,
+                                       SyncMode mode) {
+        if (existingBuild != null && !existingBuild.isOutdatedEntityVersion()) {
+            boolean finished = !existingBuild.isRunning(compactor) && !existingBuild.isQueued(compactor);
+
+            if (finished || mode != SyncMode.RELOAD_QUEUED)
+                return null;
+        }
+
+        return reloadBuild(conn, buildId, existingBuild);
     }
 
     /**
@@ -222,11 +275,10 @@ public class ProactiveFatBuildSync {
         try {
             build = conn.getBuild(buildId);
 
-            if(build.testOccurrences!=null) {
+            if(build.testOccurrences != null && !build.isComposite()) { // don't query tests for compoite
                 String nextHref = null;
                 do {
-                    boolean testDtls = !build.isComposite(); // don't query test details for compoite
-                    TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, testDtls);
+                    TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, true);
                     nextHref = page.nextHref();
 
                     tests.add(page);
@@ -235,7 +287,7 @@ public class ProactiveFatBuildSync {
             }
 
             if (build.problemOccurrences != null)
-                problems = conn.getProblems(buildId).getProblemsNonNull();
+                problems = conn.getProblemsAndRegisterCritical(build).getProblemsNonNull();
 
             if (build.statisticsRef != null)
                 statistics = conn.getStatistics(buildId);
@@ -264,9 +316,9 @@ public class ProactiveFatBuildSync {
 
                     problems = existingBuild.problems(compactor);
                 }
-                else {
+                else
                     build = Build.createFakeStub();
-                }
+                //todo here can be situation we have build ref, but don't have a build
             } else {
                 logger.error("Loading build [" + buildId + "] for server [" + srvNme + "] failed:" + e.getMessage(), e);
 

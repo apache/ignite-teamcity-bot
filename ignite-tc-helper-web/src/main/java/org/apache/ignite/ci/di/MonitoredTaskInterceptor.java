@@ -52,7 +52,6 @@ public class MonitoredTaskInterceptor implements MethodInterceptor {
             lastStartTs.set(startTs);
 
             lastEndTs.set(0);
-            lastResult.set("(running)");
         }
 
         void saveEnd(long ts, Object res) {
@@ -68,23 +67,36 @@ public class MonitoredTaskInterceptor implements MethodInterceptor {
             return callsCnt.get();
         }
 
+        /**
+         * @return time printable of last observed start time of the task.
+         */
         public String start() {
             final long l = lastStartTs.get();
             return TimeUtil.timestampToDateTimePrintable(l);
         }
 
+        /**
+         * @return time printable of last observed end time of the task.
+         */
         public String end() {
-            final long l = lastEndTs.get();
-            return TimeUtil.timestampToDateTimePrintable(l);
+            return TimeUtil.timestampToDateTimePrintable(lastEndTs.get());
         }
 
+        /**
+         * @return printable task result to be displayed in cell.
+         */
         public String result() {
-            final Object obj = lastResult.get();
+            if (lastEndTs.get() == 0) {
+                long time = System.currentTimeMillis() - lastStartTs.get();
 
-            return Objects.toString(obj);
+                return ("(running for " + TimeUtil.millisToDurationPrintable(time) + ")");
+            }
+
+            return Objects.toString(lastResult.get());
         }
     }
 
+    /** {@inheritDoc} */
     @Override public Object invoke(MethodInvocation invocation) throws Throwable {
         final long startTs = System.currentTimeMillis();
 

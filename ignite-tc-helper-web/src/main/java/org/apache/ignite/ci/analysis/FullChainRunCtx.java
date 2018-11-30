@@ -40,8 +40,8 @@ public class FullChainRunCtx {
         fakeStub = chainResults.isFakeStub();
     }
 
-    public List<MultBuildRunCtx> suites() {
-        return buildCfgsResults;
+    public Stream<MultBuildRunCtx> suites() {
+        return buildCfgsResults.stream();
     }
 
     public Integer getSuiteBuildId() {
@@ -61,7 +61,7 @@ public class FullChainRunCtx {
     }
 
     public Stream<MultBuildRunCtx> failedChildSuites() {
-        return suites().stream().filter(MultBuildRunCtx::isFailed);
+        return suites().filter(MultBuildRunCtx::isFailed);
     }
 
     /**
@@ -79,7 +79,7 @@ public class FullChainRunCtx {
      * @return returns durations of all suites (last builds)
      */
     private Stream<Long> getDurations() {
-        return suites().stream().filter(ctx -> !ctx.isComposite()).map(MultBuildRunCtx::getBuildDuration);
+        return suites().filter(ctx -> !ctx.isComposite()).map(MultBuildRunCtx::getBuildDuration);
     }
 
     /**
@@ -90,7 +90,7 @@ public class FullChainRunCtx {
             + (hasFullDurationInfo() ? "" : "+");
     }
 
-    public void addAllSuites(ArrayList<MultBuildRunCtx> suites) {
+    public void addAllSuites(List<MultBuildRunCtx> suites) {
         this.buildCfgsResults.addAll(suites);
     }
 
@@ -104,5 +104,20 @@ public class FullChainRunCtx {
 
     public boolean isFakeStub() {
         return fakeStub;
+    }
+
+    public String getTestsDurationPrintable() {
+        long tests = suites().filter(ctx -> !ctx.isComposite())
+            .map(MultBuildRunCtx::getAvgTestsDuration)
+            .filter(Objects::nonNull).mapToLong(t -> t).sum();
+
+        return (TimeUtil.millisToDurationPrintable(tests));
+    }
+
+    public String getLostInTimeoutsPrintable() {
+        long timeouts = suites().filter(ctx -> !ctx.isComposite())
+            .mapToLong(MultBuildRunCtx::getLostInTimeouts).sum();
+
+        return TimeUtil.millisToDurationPrintable(timeouts);
     }
 }

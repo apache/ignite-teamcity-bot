@@ -21,31 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.MoreExecutors;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.io.UncheckedIOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.analysis.ISuiteResults;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.LogCheckTask;
@@ -62,14 +37,9 @@ import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.hist.Builds;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.Configurations;
-import org.apache.ignite.ci.tcmodel.result.issues.IssuesUsagesList;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrences;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
-import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
@@ -78,10 +48,25 @@ import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.UrlUtil;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.xml.bind.JAXBException;
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
@@ -125,8 +110,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** Build logger processing running. */
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
-
-    private static int MAX_CFG_CNT = 500;
 
     public Executor getExecutor() {
         return executor;
@@ -317,19 +300,28 @@ public class IgniteTeamcityConnection implements ITeamcity {
         }
     }
 
-    @Override
+    /** {@inheritDoc} */
+    @Deprecated
     @AutoProfiling
-    public ProblemOccurrences getProblems(int buildId) {
+    @Override public ProblemOccurrences getProblemsAndRegisterCritical(BuildRef build) {
+        return getProblems(build.getId());
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public ProblemOccurrences getProblems(int buildId) {
         return getJaxbUsingHref("app/rest/latest/problemOccurrences" +
                 "?locator=build:(id:" + buildId + ")" +
                 "&fields=problemOccurrence(id,type,identity,href,details,build(id))", ProblemOccurrences.class);
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override public Statistics getStatistics(int buildId) {
         return getJaxbUsingHref("app/rest/latest/builds/id:" + buildId + "/statistics", Statistics.class);
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override public ChangesList getChangesList(int buildId) {
         String href = "app/rest/latest/changes" +
@@ -392,8 +384,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
         }
     }
 
-
-
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
     protected <T> T loadXml(Class<T> rootElem, InputStreamReader reader) throws JAXBException {
@@ -443,8 +433,9 @@ public class IgniteTeamcityConnection implements ITeamcity {
             .replace("+", "%2B");
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
-    public BuildTypeFull getBuildType(String buildTypeId) {
+    @Override public BuildTypeFull getBuildType(String buildTypeId) {
         return sendGetXmlParseJaxb(host + "app/rest/latest/buildTypes/id:" +
             buildTypeId, BuildTypeFull.class);
     }
@@ -455,105 +446,12 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getJaxbUsingHref(href, Build.class);
     }
 
-    @AutoProfiling
-    @Override public ProblemOccurrences getProblems(BuildRef buildRef) {
-        ProblemOccurrences coll = getJaxbUsingHref("app/rest/latest/problemOccurrences?" +
-            "locator=build:(id:" + buildRef.getId() + ")", ProblemOccurrences.class);
-
-        coll.getProblemsNonNull().forEach(p -> p.buildRef = buildRef);
-
-        return coll;
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public TestOccurrences getTests(String fullUrl) {
-        return getJaxbUsingHref(fullUrl, TestOccurrences.class);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public CompletableFuture<TestOccurrenceFull> getTestFull(String href) {
-        return supplyAsync(() -> getJaxbUsingHref(href, TestOccurrenceFull.class), executor);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public TestOccurrences getFailedTests(String href, int count, String normalizedBranch) {
-        return getTests(href + ",muted:false,status:FAILURE,count:" + count + "&fields=testOccurrence(id,name)");
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public CompletableFuture<TestRef> getTestRef(FullQueryParams key) {
-        return supplyAsync(() -> {
-            return getJaxbUsingHref("app/rest/latest/tests/name:" + key.getTestName(), TestRef.class);
-        }, executor);
-    }
-
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public Configurations getConfigurations(FullQueryParams key) {
-        Configurations configurations = getJaxbUsingHref("app/rest/latest/builds?locator=snapshotDependency:(to:(id:" + key.getBuildId()
-            + "),includeInitial:true),defaultFilter:false,count:" + MAX_CFG_CNT, Configurations.class);
-
-        return configurations.setBuild(key.getBuildId());
-    }
-
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public Change getChange(String href) {
-        return getJaxbUsingHref(href, Change.class);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public ChangesList getChangesList(String href) {
-        return getJaxbUsingHref(href, ChangesList.class);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public IssuesUsagesList getIssuesUsagesList(String href) { return getJaxbUsingHref(href, IssuesUsagesList.class); }
-
     /**
      * @param href Href.
      * @param elem Element class.
      */
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {
         return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), elem);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuilds(String projectId,
-                                            String branch,
-                                            Date sinceDate,
-                                            Date untilDate,
-                                            @Nullable Integer sinceBuildId) {
-        List<BuildRef> finished = getBuildHistory(projectId,
-            UrlUtil.escape(branch),
-            true,
-            null,
-            sinceDate,
-            untilDate,
-            sinceBuildId);
-
-        return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, null);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public List<BuildRef> getFinishedBuildsIncludeSnDepFailed(String projectId, String branch, Integer sinceBuildId) {
-        return getBuildsInState(projectId, branch, BuildRef.STATE_FINISHED, sinceBuildId);
     }
 
     /** {@inheritDoc} */
@@ -691,6 +589,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
         return "app/rest/latest/testOccurrences?locator=build:(id:" +
             buildId + ")" +
-            "&fields=testOccurrence(" + fieldList + ")";
+            "&fields=testOccurrence(" + fieldList + ")" +
+            "&count=1000)";
     }
 }

@@ -17,29 +17,34 @@
 
 package org.apache.ignite.ci;
 
-import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.inject.Inject;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
+import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
-import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
+import org.apache.ignite.ci.web.model.JiraCommentResponse;
+import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
-import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.ignite.ci.analysis.RunStat.MAX_LATEST_RUNS;
 import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
@@ -68,7 +73,15 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
     @Inject private PrChainsProcessor prChainsProcessor;
 
+    @Inject private ITeamcityIgnitedProvider tcProv;
+
+    @Inject private IStringCompactor compactor;
+
+    /** */
+    private final ObjectMapper objectMapper;
+
     public TcHelper() {
+        objectMapper = new ObjectMapper();
     }
 
     /** {@inheritDoc} */
@@ -132,7 +145,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @Override public String notifyJira(
+    @Override public Visa notifyJira(
         String srvId,
         ICredentialsProv prov,
         String buildTypeId,
@@ -141,18 +154,41 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
     ) {
         IAnalyticsEnabledTeamcity teamcity = server(srvId, prov);
 
-        List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(buildTypeId, branchForTc);
+        ITeamcityIgnited tcIgnited = tcProv.server(srvId, prov);
+
+        List<Integer> builds = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
         if (builds.isEmpty())
-            return "JIRA wasn't commented - no finished builds to analyze.";
+            return new Visa("JIRA wasn't commented - no finished builds to analyze.");
 
-        BuildRef build = builds.get(builds.size() - 1);
-        String comment;
+        Integer buildId = builds.get(0);
+
+        FatBuildCompacted fatBuild = tcIgnited.getFatBuild(buildId);
+        Build build = fatBuild.toBuild(compactor);
+
+        build.webUrl = tcIgnited.host() + "viewLog.html?buildId=" + build.getId() + "&buildTypeId=" + build.buildTypeId;
+
+        int blockers;
+
+        JiraCommentResponse res;
 
         try {
-            comment = generateJiraComment(buildTypeId, build.branchName, srvId, prov, build.webUrl);
+            List<SuiteCurrentStatus> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
+            if (suitesStatuses == null)
+                return new Visa("JIRA wasn't commented - no finished builds to analyze.");
 
-            teamcity.sendJiraComment(ticket, comment);
+            String comment = generateJiraComment(suitesStatuses, build.webUrl, buildTypeId, tcIgnited);
+
+            blockers = suitesStatuses.stream()
+                .mapToInt(suite -> {
+                    if (suite.testFailures.isEmpty())
+                        return 1;
+
+                    return suite.testFailures.size();
+                })
+                .sum();
+
+            res = objectMapper.readValue(teamcity.sendJiraComment(ticket, comment), JiraCommentResponse.class);
         }
         catch (Exception e) {
             String errMsg = "Exception happened during commenting JIRA ticket " +
@@ -160,137 +196,74 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
 
             logger.error(errMsg);
 
-            return "JIRA wasn't commented - " + errMsg;
+            return new Visa("JIRA wasn't commented - " + errMsg);
         }
 
-        return JIRA_COMMENTED;
+        return new Visa(JIRA_COMMENTED, res, blockers);
     }
 
+
     /**
-     * @param buildTypeId Suite name.
-     * @param branchForTc Branch for TeamCity.
-     * @param srvId Server id.
-     * @param prov Credentials.
+     * @param suites Suite Current Status.
      * @param webUrl Build URL.
      * @return Comment, which should be sent to the JIRA ticket.
      */
-    private String generateJiraComment(
-        String buildTypeId,
-        String branchForTc,
-        String srvId,
-        ICredentialsProv prov,
-        String webUrl
-    ) {
+    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl, String buildTypeId, ITeamcityIgnited tcIgnited) {
+        BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
+
+        String suiteName = (bt != null ? bt.name(compactor) : buildTypeId);
+
         StringBuilder res = new StringBuilder();
-        TestFailuresSummary summary = prChainsProcessor.getTestFailuresSummary(
-            prov, srvId, buildTypeId, branchForTc,
-            FullQueryParams.LATEST, null, null, false);
 
-        if (summary != null) {
-            for (ChainAtServerCurrentStatus server : summary.servers) {
-                if (!"apache".equals(server.serverName()))
-                    continue;
+        for (SuiteCurrentStatus suite : suites) {
+            res.append("{color:#d04437}").append(suite.name).append("{color}");
+            res.append(" [[tests ").append(suite.failedTests);
 
-                Map<String, List<SuiteCurrentStatus>> fails = findFailures(server);
+            if (suite.result != null && !suite.result.isEmpty())
+                res.append(' ').append(suite.result);
 
-                for (List<SuiteCurrentStatus> suites : fails.values()) {
-                    for (SuiteCurrentStatus suite : suites) {
-                        res.append("{color:#d04437}").append(suite.name).append("{color}");
-                        res.append(" [[tests ").append(suite.failedTests);
+            res.append('|').append(suite.webToBuild).append("]]\\n");
 
-                        if (suite.result != null && !suite.result.isEmpty())
-                            res.append(' ').append(suite.result);
+            for (TestFailure failure : suite.testFailures) {
+                res.append("* ");
 
-                        res.append('|').append(suite.webToBuild).append("]]\\n");
+                if (failure.suiteName != null && failure.testName != null)
+                    res.append(failure.suiteName).append(": ").append(failure.testName);
+                else
+                    res.append(failure.name);
 
-                        for (TestFailure failure : suite.testFailures) {
-                            res.append("* ");
+                FailureSummary recent = failure.histBaseBranch.recent;
 
-                            if (failure.suiteName != null && failure.testName != null)
-                                res.append(failure.suiteName).append(": ").append(failure.testName);
-                            else
-                                res.append(failure.name);
-
-                            FailureSummary recent = failure.histBaseBranch.recent;
-
-                            if (recent != null) {
-                                if (recent.failureRate != null) {
-                                    res.append(" - ").append(recent.failureRate).append("% fails in last ")
-                                        .append(MAX_LATEST_RUNS).append(" master runs.");
-                                }
-                                else if (recent.failures != null && recent.runs != null) {
-                                    res.append(" - ").append(recent.failures).append(" fails / ")
-                                        .append(recent.runs).append(" runs.");
-                                }
-                            }
-
-                            res.append("\\n");
-                        }
-
-                        res.append("\\n");
+                if (recent != null) {
+                    if (recent.failureRate != null) {
+                        res.append(" - ").append(recent.failureRate).append("% fails in last ")
+                            .append(recent.runs).append(" master runs.");
+                    }
+                    else if (recent.failures != null && recent.runs != null) {
+                        res.append(" - ").append(recent.failures).append(" fails / ")
+                            .append(recent.runs).append(" master runs.");
                     }
                 }
 
-                if (res.length() > 0) {
-                    res.insert(0, "{panel:title=Possible Blockers|" +
-                        "borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}\\n")
-                        .append("{panel}");
-                }
-                else {
-                    res.append("{panel:title=No blockers found!|" +
-                        "borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
-                }
+                res.append("\\n");
             }
+
+            res.append("\\n");
         }
 
-        res.append("\\n").append("[TeamCity Run All Results|").append(webUrl).append(']');
+        if (res.length() > 0) {
+            res.insert(0, "{panel:title=" + suiteName + ": Possible Blockers|" +
+                "borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}\\n")
+                .append("{panel}");
+        }
+        else {
+            res.append("{panel:title=").append(suiteName).append(": No blockers found!|")
+                .append("borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
+        }
+
+        res.append("\\n").append("[TeamCity *").append(suiteName).append("* Results|").append(webUrl).append(']');
 
         return xmlEscapeText(res.toString());
-    }
-
-    /**
-     * @param srv Server.
-     * @return Failures for given server.
-     */
-    private Map<String, List<SuiteCurrentStatus>> findFailures(ChainAtServerCurrentStatus srv) {
-        Map<String, List<SuiteCurrentStatus>> fails = new LinkedHashMap<>();
-
-        for (SuiteCurrentStatus suite : srv.suites) {
-            String suiteRes = suite.result.toLowerCase();
-            String failType = null;
-
-            if (suiteRes.contains("compilation"))
-                failType = "compilation";
-
-            if (suiteRes.contains("timeout"))
-                failType = "timeout";
-
-            if (suiteRes.contains("exit code"))
-                failType = "exit code";
-
-            if(suiteRes.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK.toLowerCase()))
-                failType = "java level deadlock";
-
-            if (failType == null) {
-                List<TestFailure> failures = new ArrayList<>();
-
-                for (TestFailure testFailure : suite.testFailures) {
-                    if (testFailure.isNewFailedTest())
-                        failures.add(testFailure);
-                }
-
-                if (!failures.isEmpty()) {
-                    suite.testFailures = failures;
-
-                    failType = "failed tests";
-                }
-            }
-
-            if (failType != null)
-                fails.computeIfAbsent(failType, k->new ArrayList<>()).add(suite);
-        }
-
-        return fails;
     }
 
     public void close() {

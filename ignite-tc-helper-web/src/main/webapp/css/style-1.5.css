@@ -62,6 +62,15 @@ table.stat tr:nth-child(odd) { background-color: #fafaff; }
     display: none; 
 }
 
+.content {
+	margin: 0px auto;
+	padding: 5px;
+	background: #FFF;
+	border-radius: 4px;
+	border: 1px solid #cfcfcf;
+	box-shadow: 3px 2px 6px -2px rgba(0,0,0,0.64);
+}
+
 /* The navigation bar */
 .navbar {
      overflow: hidden;
@@ -115,6 +124,54 @@ input[type=button]:hover, input[type=submit]:hover, button:hover {
     cursor: pointer;
     background: #125CAA;
     transition: ease-in 0.175s;
+}
+
+button.more {
+	display: inline-block;
+	font-size: 12px;
+	border-radius: 4px;
+	padding-bottom: 2px;
+	padding-right: 5px;
+	padding-left: 5px;
+	text-align: center;
+}
+
+button.more.full {
+	width: 70px;
+}
+
+button.more.short {
+	width: 27px;
+
+}
+
+button.more.white {
+	border: 2px solid #12AD5E;
+	color: #12AD5E;
+	background: white;
+}
+
+button.more.white:hover {
+	background: #eeeeee;
+}
+
+button.more.green {
+	background: #12AD5E;
+	color: #FFF;
+	border: 2px solid #FFF;
+}
+
+button.more.green:hover {
+	background: #128c46;
+}
+
+button.more > b {
+	padding-right:5px;
+}
+
+button.more > i {
+	padding-left: 1px;
+	padding-right:1px;
 }
 
 form, .formgroup {
@@ -256,6 +313,8 @@ form li:after
 }
 
 .testsCell {
+	padding-right: 2%;
+	padding-left: 2%;
 	cursor: default;
 	word-wrap: break-word;
 	vertical-align: top;
@@ -280,25 +339,81 @@ form li:after
 }
 
 .testsTable {
+	table-layout: fixed;
 	width: 96%;
 	border-collapse: collapse;
 	margin-left: 2%;
 	margin-right: 2%;
 }
 
-.testsTable tr:nth-child(4n + 2) {
+.innerTestName {
+	width: 85%;
+	padding-right: 2%;
+	vertical-align: middle;
+	text-align: left;
+	word-wrap: break-word;
+}
+
+.innerFailRate {
+	width: 10%;
+	vertical-align: middle;
+	text-align: center;
+	word-wrap: break-word;
+}
+
+.innerTcLink {
+	width: 5%;
+	vertical-align: middle;
+	text-align: center;
+	word-wrap: break-word;
+}
+
+.testsTableBtnHeader {
+	width: 3%;
+	vertical-align: middle;
+}
+
+.testsTableDataHeader1 {
+	width: 42%;
+	vertical-align: middle;
+	text-align: center;
+}
+
+.testsTableDataHeader2 {
+	width: 42%;
+	vertical-align: middle;
+	text-align: right;
+}
+
+.treshold {
+	width: 8%;
+}
+
+.innerTestTable {
+	table-layout: fixed;
+	width: 96%;
+	border-collapse: collapse;
+	margin-left: 2%;
+	margin-right: 2%;
+}
+
+.testsTable tr.testsCntRow:nth-child(4n + 2) {
 	background-color: #fafaff;
 }
 
-.failedTestsHeader {
-	vertical-align: middle;
+.testsTableTitleHeader {
 	text-align: left;
-	padding: 5px
+	width: 13%;
+	vertical-align: middle;
+	padding-left: 5px;
+	padding-bottom: 10px;
+	padding-top: 10px;
 }
 
 td.details-control {
 	//background: url('../resources/details_open.png') no-repeat center center;
 	cursor: pointer;
+	text-align: center;
 	//content: "+&#x2796";
 }
 tr.shown td.details-control {
@@ -352,8 +467,8 @@ div.tooltip {
 	height: 15px;
 }
 
-.buildDate {
-	width: 140px;
+.value {
+	min-width: 18px;
 	background: #12AD5E;
 }
 
@@ -454,4 +569,21 @@ div.tooltip {
 .fas.fa-exclamation-circle {
 	font-size: 48px;
 	color: #E60000;
+}
+
+.far.fa-chart-bar, .fas.fa-chart-area, .fas.fa-chart-pie, .fas.fa-angle-double-down {
+	font-size: 20px;
+	color: #12AD5E;
+}
+
+.fas.fa-chart-pie:hover {
+	transform: scale(1.2);
+
+}
+
+.fas.fa-angle-right {
+	font-size: 18px;
+	transform: scale(0.8) translateX(0.3em) translateY(2px);
+	transition: transform .25s;
+	display: inline-block;
 }

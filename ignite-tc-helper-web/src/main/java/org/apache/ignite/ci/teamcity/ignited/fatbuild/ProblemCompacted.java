@@ -82,7 +82,7 @@ public class ProblemCompacted {
 
         String fullStrId =
                 "problem:(id:" + id + ")," +
-                        " build:(id:" + buildId + ")";
+                        "build:(id:" + buildId + ")";
         occurrence.id(fullStrId);
         occurrence.type = compactor.getStringFromId(type);
         occurrence.identity = compactor.getStringFromId(identity);
@@ -119,6 +119,20 @@ public class ProblemCompacted {
         return Objects.hashCode(id, type, identity, actualBuildId);
     }
 
+    /** */
+    public boolean isCompilationError(IStringCompactor compactor) {
+        return compactor.getStringId(ProblemOccurrence.TC_COMPILATION_ERROR) == type;
+    }
+
+
+    /** */
+    public boolean isBuildFailureOnMetric(IStringCompactor compactor) {
+        return compactor.getStringId(ProblemOccurrence.BUILD_FAILURE_ON_METRIC) == type;
+    }
+
+    /**
+     * @param compactor Compactor.
+     */
     public boolean isExecutionTimeout(IStringCompactor compactor) {
         return compactor.getStringId(ProblemOccurrence.TC_EXECUTION_TIMEOUT) == type;
     }
@@ -146,6 +160,10 @@ public class ProblemCompacted {
     public boolean isSnapshotDepProblem(IStringCompactor compactor) {
         return compactor.getStringId(ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR) == type
                 || compactor.getStringId(ProblemOccurrence.SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE) == type;
+    }
+
+    public int type() {
+        return type;
     }
 
     @Override public String toString() {

@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.tcmodel.conf.bt;
 
+import com.google.common.base.MoreObjects;
+import java.util.ArrayList;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
@@ -35,6 +37,13 @@ public class Parameters {
     @XmlElement(name = "property")
     List<Property> properties;
 
+    public Parameters() {
+    }
+
+    public Parameters(List<Property> properties) {
+        this.properties = properties == null ? null : new ArrayList<>(properties);
+    }
+
     @Nullable public String getParameter(String key) {
         if (properties == null)
             return null;
@@ -45,9 +54,41 @@ public class Parameters {
     }
 
     public List<Property> properties() {
-        if(this.properties==null)
+        if (this.properties==null)
             return Collections.emptyList();
 
         return Collections.unmodifiableList(this.properties);
+    }
+
+    public boolean setParameter(String key, String value) {
+        if (properties == null)
+            return false;
+
+        return properties.stream().filter(property ->
+            Objects.equals(property.name, key)).map(property -> property.value = value).count() != 0;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+
+        if (!(o instanceof Parameters))
+            return false;
+
+        Parameters that = (Parameters)o;
+        return Objects.equals(properties, that.properties);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hash(properties);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("properties", properties)
+            .toString();
     }
 }

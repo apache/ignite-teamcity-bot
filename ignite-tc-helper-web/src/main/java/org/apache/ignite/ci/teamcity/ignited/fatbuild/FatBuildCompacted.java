@@ -18,6 +18,8 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -30,6 +32,8 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
+import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,6 +60,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     /**   flag offset. */
     public static final int FAKE_BUILD_F = 4;
+
+    /** Failed to start flag offset. */
+    public static final int FAILED_TO_START_F = 6;
+
     public static final int[] EMPTY = new int[0];
 
     /** Entity fields version. */
@@ -118,19 +126,48 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         BuildType type = build.getBuildType();
         if (type != null) {
             projectId = compactor.getStringId(type.getProjectId());
-            name = compactor.getStringId(type.getName());
+            buildTypeName(type.getName(), compactor);
         }
 
-        int[] arr = build.getSnapshotDependenciesNonNull().stream()
-            .filter(b -> b.getId() != null).mapToInt(BuildRef::getId).toArray();
+        AtomicBoolean failedToStart = new AtomicBoolean();
 
-        snapshotDeps = arr.length > 0 ? arr : null;
+        failedToStart.set(build.isFailedToStart());
+
+        int[] arr = build.getSnapshotDependenciesNonNull()
+                .stream()
+                .peek(b -> {
+                    if (failedToStart.get())
+                        return;
+
+                    if (b.hasUnknownStatus())
+                        failedToStart.set(true);
+                })
+                .filter(b -> b.getId() != null)
+                .mapToInt(BuildRef::getId)
+                .toArray();
+
+        snapshotDependencies(arr);
 
         setFlag(DEF_BR_F, build.defaultBranch);
         setFlag(COMPOSITE_F, build.composite);
 
-        if(build.isFakeStub())
-            setFlag(FAKE_BUILD_F, true);
+        if (failedToStart.get())
+            setFlag(FAILED_TO_START_F, true);
+
+        if (build.isFakeStub())
+            setFakeStub(true);
+    }
+
+    public void setFakeStub(boolean val) {
+        setFlag(FAKE_BUILD_F, val);
+    }
+
+    public void buildTypeName(String btName, IStringCompactor compactor) {
+        name = compactor.getStringId(btName);
+    }
+
+    public void snapshotDependencies(int[] arr) {
+        snapshotDeps = arr.length > 0 ? arr : null;
     }
 
     /**
@@ -161,9 +198,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             res.setQueuedDateTs(queuedDate);
 
         BuildType type = new BuildType();
-        type.id(res.buildTypeId());
-        type.name(buildTypeName(compactor));
-        type.projectId(projectId(compactor));
+        type.setId(res.buildTypeId());
+        type.setName(buildTypeName(compactor));
+        type.setProjectId(projectId(compactor));
         res.setBuildType(type);
 
         if (tests != null) {
@@ -175,9 +212,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         if (snapshotDeps != null) {
             List<BuildRef> snapshotDependencies = new ArrayList<>();
-            for (int i = 0; i < snapshotDeps.length; i++) {
-                int depId = snapshotDeps[i];
 
+            for (int depId : snapshotDeps) {
                 BuildRef ref = new BuildRef();
                 ref.setId(depId);
                 ref.href = getHrefForId(depId);
@@ -196,7 +232,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
      * @param compactor Compactor.
      * @param page Page.
      */
-    public void addTests(IStringCompactor compactor, List<TestOccurrenceFull> page) {
+    public FatBuildCompacted addTests(IStringCompactor compactor, List<TestOccurrenceFull> page) {
         for (TestOccurrenceFull next : page) {
             TestCompacted compacted = new TestCompacted(compactor, next);
 
@@ -205,6 +241,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
             tests.add(compacted);
         }
+
+        return this;
     }
 
     /**
@@ -246,10 +284,19 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         TestOccurrencesFull testOccurrences = new TestOccurrencesFull();
 
-        testOccurrences.setTests(res);
         testOccurrences.count = res.size();
+        testOccurrences.setTests(res);
 
         return testOccurrences;
+    }
+
+    /** Start date. */
+    @Nullable public Date getStartDate() {
+        return getStartDateTs() > 0 ? new Date(getStartDateTs()) : null;
+    }
+
+    public long getStartDateTs() {
+        return startDate;
     }
 
     /** {@inheritDoc} */
@@ -290,6 +337,27 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return flag != null && flag;
     }
 
+    /**
+     *
+     */
+    public boolean isFakeStub() {
+        if (getId() == null)
+            return true;
+
+        Boolean flag = getFlag(FAKE_BUILD_F);
+
+        return flag != null && flag;
+    }
+
+    /**
+     *
+     */
+    public boolean isFailedToStart() {
+        Boolean flag = getFlag(FAILED_TO_START_F);
+
+        return flag != null && flag;
+    }
+
     public Stream<TestCompacted> getFailedNotMutedTests(IStringCompactor compactor) {
         if (tests == null)
             return Stream.of();
@@ -307,6 +375,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             return Stream.of();
 
         return tests.stream();
+    }
+
+    public int getTestsCount() {
+        return tests != null ? tests.size() : 0;
     }
 
     public Stream<String> getAllTestNames(IStringCompactor compactor) {
@@ -392,5 +464,33 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             .add("statistics", statistics)
             .add("changesIds", changesIds)
             .toString();
+    }
+
+    public Invocation toInvocation(IStringCompactor compactor) {
+        boolean success = isSuccess(compactor);
+
+        final Invocation invocation = new Invocation(getId());
+
+        final int failCode ;
+
+        if (success)
+            failCode = InvocationData.OK;
+        else {
+            if (problems()
+                .stream().anyMatch(occurrence ->
+                    occurrence.isExecutionTimeout(compactor)
+                        || occurrence.isJvmCrash(compactor)
+                        || occurrence.isBuildFailureOnMetric(compactor)
+                        || occurrence.isCompilationError(compactor)))
+                failCode = InvocationData.CRITICAL_FAILURE;
+            else
+                failCode = InvocationData.FAILURE;
+
+        }
+
+        invocation.status((byte)failCode);
+        invocation.startDate(getStartDateTs());
+        invocation.changesPresent(changes().length > 0 ? 1 : 0);
+        return invocation;
     }
 }

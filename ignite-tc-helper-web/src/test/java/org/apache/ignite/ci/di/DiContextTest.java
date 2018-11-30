@@ -22,16 +22,23 @@ import com.google.inject.Injector;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerFactory;
 import org.apache.ignite.ci.web.TcUpdatePool;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DiContextTest {
     /**
@@ -48,7 +55,11 @@ public class DiContextTest {
 
     public Injector getInjector() {
         IgniteTcBotModule igniteTcBotModule = new IgniteTcBotModule();
-        igniteTcBotModule.setIgniteFut(CompletableFuture.completedFuture(mock(Ignite.class)));
+        Ignite ignite = mock(Ignite.class);
+        when(ignite.getOrCreateCache(anyString())).thenReturn(Mockito.mock(IgniteCache.class));
+        when(ignite.getOrCreateCache(any(CacheConfiguration.class))).thenReturn(Mockito.mock(IgniteCache.class));
+
+        igniteTcBotModule.setIgniteFut(CompletableFuture.completedFuture(ignite));
 
         return Guice.createInjector(igniteTcBotModule);
     }

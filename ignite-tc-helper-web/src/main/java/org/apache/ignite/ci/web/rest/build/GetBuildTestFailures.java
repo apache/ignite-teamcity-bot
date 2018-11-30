@@ -19,21 +19,17 @@ package org.apache.ignite.ci.web.rest.build;
 
 import com.google.common.collect.BiMap;
 import java.text.ParseException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+
 import com.google.inject.Injector;
-import org.apache.ignite.ci.tcbot.condition.BuildCondition;
+import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
@@ -68,7 +64,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 public class GetBuildTestFailures {
     public static final String BUILD = "build";
     public static final String TEST_FAILURES_SUMMARY_CACHE_NAME = BUILD + "TestFailuresSummary";
-    public static final String BUILDS_STATISTICS_SUMMARY_CACHE_NAME = BUILD + "sStatisticsSummary";
+
     @Context
     private ServletContext ctx;
 
@@ -133,21 +129,20 @@ public class GetBuildTestFailures {
             throw ServiceUnauthorizedException.noCreds(srvId);
 
         IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, prov);
-        ITeamcityIgnited teamcityIgnited = tcIgnitedProv.server(srvId, prov);
+        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, prov);
 
-        //processChainByRef(teamcity, includeLatestRebuild, build, true, true)
-        String hrefById = teamcity.getBuildHrefById(buildId);
-        BuildRef build = new BuildRef();
-        build.setId(buildId);
-        build.href = hrefById;
         String failRateBranch = ITeamcity.DEFAULT;
 
         ProcessLogsMode procLogs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity, teamcityIgnited, Collections.singletonList(build),
-                LatestRebuildMode.NONE,
-                procLogs, false,
-            failRateBranch);
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
+            tcIgnited,
+            Collections.singletonList(buildId),
+            LatestRebuildMode.NONE,
+            procLogs,
+            false,
+            failRateBranch,
+            SyncMode.RELOAD_QUEUED);
 
         final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, ctx.branchName());
 
@@ -155,7 +150,7 @@ public class GetBuildTestFailures {
         if (cnt > 0)
             runningUpdates.addAndGet(cnt);
 
-        chainStatus.initFromContext(teamcity, ctx, teamcity, failRateBranch);
+        chainStatus.initFromContext(tcIgnited, teamcity, ctx, teamcity, failRateBranch);
 
         res.addChainOnServer(chainStatus);
 
@@ -163,44 +158,6 @@ public class GetBuildTestFailures {
         res.postProcess(runningUpdates.get());
 
         return res;
-    }
-
-    @GET
-    @Produces(MediaType.TEXT_PLAIN)
-    @Path("testRef")
-    @Deprecated
-    public String getTestRef(
-        @NotNull @QueryParam("testName") String name,
-        @NotNull @QueryParam("suiteName") String suiteName,
-        @Nullable @QueryParam("server") String srv,
-        @Nullable @QueryParam("projectId") String projectId)
-        throws InterruptedException, ExecutionException, ServiceUnauthorizedException {
-        final ITcHelper helper = CtxListener.getTcHelper(ctx);
-
-        final ICredentialsProv prov = ICredentialsProv.get(req);
-
-        String project = projectId == null ? "IgniteTests24Java8" : projectId;
-
-        String srvId = srv == null ? "apache" : srv;
-
-        if (!prov.hasAccess(srvId))
-            throw ServiceUnauthorizedException.noCreds(srvId);
-
-        IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, prov);
-
-        FullQueryParams key = new FullQueryParams();
-
-        key.setTestName(name);
-        key.setProjectId(project);
-        key.setServerId(srvId);
-        key.setSuiteId(suiteName);
-
-        CompletableFuture<TestRef> ref = teamcity.getTestRef(key);
-
-        return ref.isDone() && !ref.isCompletedExceptionally() ? teamcity.host() + "project.html?"
-            + "projectId=" + project
-            + "&testNameId=" + ref.get().id
-            + "&tab=testDetails" : null;
     }
 
     /**
@@ -250,6 +207,9 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("sinceDate") String sinceDate,
         @Nullable @QueryParam("untilDate") String untilDate,
         @Nullable @QueryParam("skipTests") String skipTests)  throws ParseException {
+
+        final Injector injector = CtxListener.getInjector(ctx);
+
         BuildsHistory.Builder builder = new BuildsHistory.Builder()
             .branch(branch)
             .server(srvId)
@@ -260,9 +220,17 @@ public class GetBuildTestFailures {
         if (Boolean.valueOf(skipTests))
             builder.skipTests();
 
-        BuildsHistory buildsHist = builder.build();
+        BuildsHistory buildsHist = builder.build(injector);
 
-        buildsHist.initialize(ICredentialsProv.get(req), ctx);
+        final ICredentialsProv prov = ICredentialsProv.get(req);
+
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
+
+        buildsHist.initialize(prov);
+
+        if (MasterTrendsService.DEBUG)
+            System.out.println("MasterTrendsService: Responding");
 
         return buildsHist;
     }

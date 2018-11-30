@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.github.ignited;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,14 +29,12 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
+import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.configuration.CacheConfiguration;
-import org.jetbrains.annotations.NotNull;
 
 /**
  *
@@ -52,6 +51,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
     /** Ignite provider. */
     @Inject Provider<Ignite> igniteProvider;
+
     /** Scheduler. */
     @Inject IScheduler scheduler;
 
@@ -67,16 +67,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
         srvIdMaskHigh = Math.abs(srvId.hashCode());
 
-        prCache = igniteProvider.get().getOrCreateCache(getCache8PartsConfig(GIT_HUB_PR));
-    }
-
-    @NotNull
-    public static <K, V> CacheConfiguration<K, V> getCache8PartsConfig(String name) {
-        CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
-
-        ccfg.setAffinity(new RendezvousAffinityFunction(false, 8));
-
-        return ccfg;
+        prCache = igniteProvider.get().getOrCreateCache(TcHelperDb.getCache8PartsConfig(GIT_HUB_PR));
     }
 
     /** {@inheritDoc} */
@@ -93,7 +84,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     }
 
     private void actualizePrs() {
-        runAtualizePrs(srvId, false);
+        runActualizePrs(srvId, false);
 
         // schedule full resync later
         scheduler.invokeLater(this::sheduleResync, 20, TimeUnit.SECONDS);
@@ -111,19 +102,23 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
      *
      */
     private void fullReindex() {
-        runAtualizePrs(srvId, true);
+        runActualizePrs(srvId, true);
     }
 
     /**
      * @param srvId Server id.
      * @param fullReindex Reindex all open PRs
      */
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Actualize PRs(srv, full resync)", nameExtArgsIndexes = {0, 1})
     @AutoProfiling
-    protected String runAtualizePrs(String srvId, boolean fullReindex) {
+    protected String runActualizePrs(String srvId, boolean fullReindex) {
         AtomicReference<String> outLinkNext = new AtomicReference<>();
 
         List<PullRequest> ghData = conn.getPullRequests(null, outLinkNext);
+
+        Set<Integer> actualPrs = new HashSet<>();
+
         int cntSaved = saveChunk(ghData);
         int totalChecked = ghData.size();
         while (outLinkNext.get() != null) {
@@ -133,11 +128,35 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
             cntSaved += savedThisChunk;
             totalChecked += ghData.size();
 
+            if (fullReindex) {
+                actualPrs.addAll(ghData.stream()
+                    .map(PullRequest::getNumber)
+                    .collect(Collectors.toSet()));
+            }
+
             if (!fullReindex && savedThisChunk == 0)
                 break;
         }
 
+        if (fullReindex)
+            refreshOutdatedPrs(srvId, actualPrs);
+
         return "Entries saved " + cntSaved + " PRs checked " + totalChecked;
+    }
+
+    /** */
+    @AutoProfiling
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    @MonitoredTask(name = "Check Outdated PRs(srv)", nameExtArgsIndexes = {0})
+    protected String refreshOutdatedPrs(String srvId, Set<Integer> actualPrs) {
+        final long count = StreamSupport.stream(prCache.spliterator(), false)
+                .filter(entry -> entry.getKey() >> 32 == srvIdMaskHigh)
+                .filter(entry -> PullRequest.OPEN.equals(entry.getValue().getState()))
+                .filter(entry -> !actualPrs.contains(entry.getValue().getNumber()))
+                .peek(entry -> prCache.put(entry.getKey(), conn.getPullRequest(entry.getValue().getNumber())))
+                .count();
+
+        return "PRs updated for " + srvId + ": " + count + " from " + prCache.size();
     }
 
     private int saveChunk(List<PullRequest> ghData) {

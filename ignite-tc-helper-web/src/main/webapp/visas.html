@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Ignite Teamcity - Visas history</title>
+        <link rel="icon" href="img/leaf-icon-png-7066.png">
+        <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+        <link rel="stylesheet" href="css/style-1.5.css">
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+        <script src="js/common-1.6.js"></script>
+        <script src="https://d3js.org/d3.v4.min.js"></script>
+        <script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.js"></script>
+        <script src="https://cdn.datatables.net/1.10.16/js/dataTables.jqueryui.js"></script>
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css">
+    </head>
+<body>
+    <br>
+    <div id="loadStatus"></div>
+    <br>
+    <table id="visasTable" class="row-border" style="width:100%">
+        <thead>
+            <tr class="ui-widget-header ">
+                <th>.</th>
+                <th>.</th>
+                <th>.</th>
+                <th>.</th>
+                <th>.</th>
+                <th>.</th>
+                <th>.</th>
+            </tr>
+        </thead>
+    </table>
+    <br>
+    <div id="version"></div>
+<script>
+function showErrInLoadStatus(jqXHR, exception) {
+    if (jqXHR.status === 0) {
+        $("#loadStatus").html('Not connect.\n Verify Network.');
+    } else if (jqXHR.status === 404) {
+        $("#loadStatus").html('Requested page not found. [404]');
+    } else if (jqXHR.status === 401) {
+        $("#loadStatus").html('Unauthorized [401]');
+
+        setTimeout(function() {
+            window.location.href = "/login.html" + "?backref=" + encodeURIComponent(window.location.href);
+        }, 1000);
+    } else if (jqXHR.status === 403) {
+        $("#loadStatus").html('Forbidden [403]');
+    } else if( jqXHR.status === 418) {
+        $("#loadStatus").html('Services are starting [418], I\'m a teapot');
+    } else if (jqXHR.status === 424) {
+        $("#loadStatus").html('Dependency problem: [424]: ' + jqXHR.responseText);
+    } else if (jqXHR.status === 500) {
+        $("#loadStatus").html('Internal Server Error [500].');
+    } else if (exception === 'parsererror') {
+        $("#loadStatus").html('Requested JSON parse failed.');
+    } else if (exception === 'timeout') {
+        $("#loadStatus").html('Time out error.');
+    } else if (exception === 'abort') {
+        $("#loadStatus").html('Ajax request aborted.');
+    } else {
+        $("#loadStatus").html('Uncaught Error.\n' + jqXHR.responseText);
+    }
+}
+
+$(document).ready(function() {
+    loadData();
+
+    $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
+});
+
+function sendCancelRequest(url) {
+    $.ajax({
+        url: url,
+        success: function (result) {
+            location.reload();
+        },
+        error: showErrInLoadStatus
+    });
+}
+
+function showVisasTable(result) {
+    let visasTable = $('#visasTable');
+
+    visasTable.dataTable().fnDestroy();
+
+    var table = visasTable.DataTable({
+        "order": [[ 1, 'desc' ]],
+        data: result,
+        "iDisplayLength": 30, //rows to be shown by default
+        stateSave: true,
+        columnDefs: [
+            {
+                targets: '_all',
+                className: 'dt-body-center'
+            },
+        ],
+        columns: [
+            {
+                "data": "status",
+                title: "Status",
+                "render": function (data, type, row, meta) {
+                    let res = '';
+
+                    if (type === 'display') {
+                        res += "<table width='100%'><tr><td width='70%' style='vertical-align: middle'>";
+
+                        if (data === 'finished' && row.commentUrl)
+                            res += "<a href='" + row.commentUrl + "'>" + data + "</a>";
+                        else
+                            res += data;
+
+                        res += "</td><td width=\"30%\">";
+
+                        if (row.cancelUrl != null)
+                            res += '<button class="more white short" onclick="sendCancelRequest(\'' + row.cancelUrl + '\')">&times</button>';
+
+                        res += "</td></tr>";
+                    }
+
+                    return res;
+                }
+            },
+            {
+                "data": "date",
+                title: "Date"
+            },
+            {
+                "data": "userName",
+                title: "User"
+            },
+            {
+                "data": "branchName",
+                title: "Branch"
+            },
+            {
+                "data": "ticket",
+                title: "Ticket"
+            },
+            {
+                "data": "buildTypeName",
+                title: "Suite",
+                "render": function (data, type, row, meta) {
+                    if (isDefinedAndFilled(row.buildTypeName))
+                        return row.buildTypeName;
+                    else
+                        return row.buildTypeId;
+                }
+            },
+            {
+                "data": "blockers",
+                title: "Blockers",
+                "render": function (data, type, row, meta) {
+                    if (type === 'display') {
+                        if (row.status != 'finished')
+                            data = "";
+                    }
+
+                    return data;
+                }
+            }
+        ]
+    });
+}
+
+function loadData() {
+    $.ajax({
+            url: "rest/visa/history?serverId=apache",
+            success: function (result) {
+                showVisasTable(result);
+            },
+            error: showErrInLoadStatus
+        }
+    );
+}
+</script>
+</body>
+</html>

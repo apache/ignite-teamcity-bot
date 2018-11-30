@@ -18,11 +18,17 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
-import org.apache.ignite.ci.tcbot.condition.BuildConditionDao;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
+import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefSync;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeSync;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.teamcity.restcached.TcRestCachedModule;
 import org.jetbrains.annotations.Nullable;
@@ -38,11 +44,17 @@ public class TeamcityIgnitedModule extends AbstractModule {
     @Override protected void configure() {
         bind(ITeamcityIgnitedProvider.class).to(TcIgnitedCachingProvider.class).in(new SingletonScope());
         bind(BuildRefDao.class).in(new SingletonScope());
+        bind(BuildRefSync.class).in(new SingletonScope());
         bind(BuildConditionDao.class).in(new SingletonScope());
         bind(FatBuildDao.class).in(new SingletonScope());
         bind(ProactiveFatBuildSync.class).in(new SingletonScope());
         bind(ChangeSync.class).in(new SingletonScope());
         bind(ChangeDao.class).in(new SingletonScope());
+        bind(BuildTypeRefDao.class).in(new SingletonScope());
+        bind(BuildTypeDao.class).in(new SingletonScope());
+        bind(BuildTypeSync.class).in(new SingletonScope());
+        bind(RunHistCompactedDao.class).in(new SingletonScope());
+        bind(RunHistSync.class).in(new SingletonScope());
 
         bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
 

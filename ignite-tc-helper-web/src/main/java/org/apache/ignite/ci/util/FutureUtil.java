@@ -17,8 +17,11 @@
 
 package org.apache.ignite.ci.util;
 
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.stream.Stream;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,5 +81,9 @@ public class FutureUtil {
         }
 
         return logCheckRes;
+    }
+
+    @NotNull public static <V> Stream<V> getResults(Collection<Future<V>> listBuilds) {
+        return listBuilds.stream() .map(FutureUtil::getResult);
     }
 }

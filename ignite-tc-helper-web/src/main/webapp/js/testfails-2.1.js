@@ -56,7 +56,22 @@ function showChainResultsWithSettings(result, settings) {
         res += " [";
         res += "tests " + result.failedTests + " suites " + result.failedToFinish + "";
         res += "]";
+    } else
+        res += " is absent";
+
+    let suiteId;
+
+    if (isDefinedAndFilled(findGetParameter("suiteId"))) {
+        suiteId = findGetParameter("suiteId");
+    } else if (isDefinedAndFilled(result.servers[0])) {
+        let url = new URL(result.servers[0].webToHist);
+
+        suiteId = url.searchParams.get("buildTypeId");
     }
+
+    if (isDefinedAndFilled(suiteId))
+        res += " | Suite: <b>" + suiteId + "</b>";
+
     res += "</td></tr>";
     res += "</table>";
 
@@ -77,14 +92,12 @@ function showChainCurrentStatusData(server, settings) {
         return;
 
     if(isDefinedAndFilled(server.buildNotFound) && server.buildNotFound ) {
-        return "<tr><td><b>Error: Build not found for branch [" + server.branchName + "]</b></td></tr>";
+        return "<tr><td><b>Error: Build not found for branch [" + server.branchName + "]</b>" +
+            "<br><br><span style='color:grey; font-size:12px;'>Perhaps, more than 2 weeks have passed since the last build " +
+            "run. <br>There is no data on the TC server</span></td></tr>";
     }
 
     var res = "";
-    var altTxt = "";
-
-    if (isDefinedAndFilled(server.durationPrintable))
-        altTxt += "duration: " + server.durationPrintable;
 
     res += "<table border='0px'>";
     res += "<tr bgcolor='#F5F5FF'><td colspan='3'><b><a href='" + server.webToHist + "'>";
@@ -96,9 +109,14 @@ function showChainCurrentStatusData(server, settings) {
 
     res += "</a> ";
     res += "[";
-    res += " <a href='" + server.webToBuild + "' title='" + altTxt + "'>";
+    res += " <a href='" + server.webToBuild + "' title=''>";
     res += "tests " + server.failedTests + " suites " + server.failedToFinish + "";
     res += " </a>";
+    res += "] ";
+    res += "[";
+    res += "<a href='longRunningTestsReport.html'>";
+    res += "long running tests report";
+    res += "</a>";
     res += "]";
     res += "</b>";
 
@@ -134,7 +152,9 @@ function showChainCurrentStatusData(server, settings) {
         mInfo += " title='trigger builds'>on top</a><br>";
     }
 
-    mInfo += altTxt + "<br>";
+    mInfo += "Duration: " + server.durationPrintable +
+        " (Tests: " + server.testsDurationPrintable + "," +
+        " Timeouts: " + server.lostInTimeouts + ")<br>";
 
     if (isDefinedAndFilled(server.topLongRunning) && server.topLongRunning.length > 0) {
         mInfo += "Top long running:<br>";
@@ -159,7 +179,7 @@ function showChainCurrentStatusData(server, settings) {
 
     if(!isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
         res += "<div class='content'>" + mInfo + "</div></span>";
     }
 
@@ -170,8 +190,10 @@ function showChainCurrentStatusData(server, settings) {
     //     res += "<button onclick='notifyGit()'>Update PR status</button>";
     // }
 
+    var suiteId = findGetParameter("suiteId");
+
     if (settings.isJiraAvailable()) {
-        res += "<button onclick='commentJira(\"" + server.serverId + "\", \"IgniteTests24Java8_RunAll\", \""
+        res += "<button onclick='commentJira(\"" + server.serverId + "\", \"" + suiteId + "\", \""
             + server.branchName + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
 
         var blockersList = "";
@@ -545,10 +567,9 @@ function showSuiteData(suite, settings) {
         moreInfoTxt += "Last commits from: " + suite.userCommits + " <br>";
     }
 
-    moreInfoTxt += "Duration: " + suite.durationPrintable + " <br>";
-
-    var altTxt = "";
-    altTxt += "Duration: " + suite.durationPrintable + "; ";
+    moreInfoTxt += "Duration: " + suite.durationPrintable +
+        " (Tests: " + suite.testsDurationPrintable + "," +
+        " Timeouts: " + suite.lostInTimeouts + ")<br>";
 
     var res = "";
     res += "<tr bgcolor='#FAFAFF'><td align='right' valign='top'>";
@@ -582,7 +603,7 @@ function showSuiteData(suite, settings) {
     res += "<span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + failRateText + "'></span> ";
 
     res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
-        "[ " + "<a href='" + suite.webToBuild + "' title='" + altTxt + "'> " +
+        "[ " + "<a href='" + suite.webToBuild + "' title=''> " +
         "tests " + suite.failedTests + " " + suite.result;
 
     if (isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length > 0) {
@@ -646,7 +667,7 @@ function showSuiteData(suite, settings) {
 
     if(!isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
         res += "<div class='content'>" + mInfo + "</div></span>";
     }
 
@@ -690,11 +711,11 @@ function showSuiteData(suite, settings) {
  * @returns {boolean} True - if test is new. False - otherwise.
  */
 function isNewFailedTest(testFail) {
-    if(!isDefinedAndFilled(testFail.histBaseBranch))
-        return true;
-
     if (isDefinedAndFilled(testFail.webIssueUrl))
         return false;
+
+    if (!isDefinedAndFilled(testFail.histBaseBranch) || !isDefinedAndFilled(testFail.histBaseBranch.latestRuns))
+        return true;
 
     var hist = testFail.histBaseBranch;
 
@@ -773,8 +794,12 @@ function showTestFailData(testFail, isFailureShown, settings) {
     }
 
     // has both base and current, draw current latest runs here.
-    var comparePage = isDefinedAndFilled(testFail.histCurBranch) && isDefinedAndFilled(testFail.histCurBranch.latestRuns)
-        && isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns);
+    var comparePage =
+        findGetParameter('action') != null
+        || (
+            isDefinedAndFilled(testFail.histCurBranch) && isDefinedAndFilled(testFail.histCurBranch.latestRuns)
+            && isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns)
+        );
 
     var baseBranchMarks = "";
 
@@ -808,9 +833,10 @@ function showTestFailData(testFail, isFailureShown, settings) {
     if (haveWeb)
         res += "<a href='" + testFail.webUrl + "'>";
 
-    if(comparePage)
-        res += drawLatestRuns(testFail.histCurBranch.latestRuns);
-    else if(isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns))
+    if(comparePage) {
+        if (isDefinedAndFilled(testFail.histCurBranch))
+            res += drawLatestRuns(testFail.histCurBranch.latestRuns);
+    } else if(isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns))
         res += drawLatestRuns(testFail.histBaseBranch.latestRuns); // has only base branch
 
     if (haveWeb)
@@ -870,7 +896,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
         histContent += "</span>";
 
-        if(comparePage)  {
+        if(comparePage && isDefinedAndFilled(testFail.histBaseBranch) && isDefinedAndFilled(testFail.histBaseBranch.latestRuns))  {
              histContent += " " + drawLatestRuns(testFail.histBaseBranch.latestRuns); // has both base and current, draw current base runs here.
         }
     } else if (haveWeb) {
@@ -891,7 +917,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
     if (isDefinedAndFilled(testFail.warnings) && testFail.warnings.length > 0
         && !isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
-        res += " <a href='javascript:void(0);' class='header'>More &gt;&gt;</a>";
+        res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
 
         res += "<div class='content'>";
 
@@ -971,25 +997,4 @@ function drawLatestRunsBlock(state, len) {
         runColor = "black";
 
     return "<span style='background-color: " + runColor + "; width:" + (len * 1) + "px; height:10px; display: inline-block;'></span>";
-}
-
-
-function initMoreInfo() {
-    var header = $(".header");
-
-    header.unbind("click");
-    header.click(function() {
-        $header = $(this);
-        //getting the next element
-        $content = $header.next();
-        //open up the content needed - toggle the slide- if visible, slide up, if not slidedown.
-        $content.slideToggle(500, function() {
-            //execute this after slideToggle is done
-            //change text of header based on visibility of content div
-            $header.text(function() {
-                //change text based on condition
-                return $content.is(":visible") ? "Hide <<" : "More >>";
-            });
-        });
-    });
 }

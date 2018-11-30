@@ -15,18 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.condition;
+package org.apache.ignite.ci.teamcity.ignited.buildcondition;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+
+import static org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.getCache8PartsConfig;
 
 public class BuildConditionDao {
     /** Cache name*/
-    public static final String BUILD_CONDITIONS_CACHE_NAME = "buildConditions";
+    public static final String BUILDS_CONDITIONS_CACHE_NAME = "buildsConditions";
 
     /** Ignite provider. */
     @Inject private Provider<Ignite> igniteProvider;
@@ -42,7 +43,7 @@ public class BuildConditionDao {
      */
     public void init () {
         Ignite ignite = igniteProvider.get();
-        buildsCache = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(BUILD_CONDITIONS_CACHE_NAME));
+        buildsCache = ignite.getOrCreateCache(getCache8PartsConfig(BUILDS_CONDITIONS_CACHE_NAME));
     }
 
     /**
@@ -50,7 +51,6 @@ public class BuildConditionDao {
      * @param buildId Build id.
      */
     private long buildIdToCacheKey(long srvIdMaskHigh, int buildId) {
-
         return (long)buildId | srvIdMaskHigh << 32;
     }
 

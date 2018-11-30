@@ -22,13 +22,18 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.ITestFailures;
+import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 
@@ -44,7 +49,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOr
  */
 @SuppressWarnings({"WeakerAccess", "PublicField"})
 public class ChainAtServerCurrentStatus {
-    /** {@link org.apache.ignite.ci.tcmodel.conf.BuildType#name} */
+    /** {@link BuildType#name} */
     public String chainName;
 
     /** Server ID. */
@@ -69,6 +74,12 @@ public class ChainAtServerCurrentStatus {
     /** Duration printable. */
     public String durationPrintable;
 
+    /** Tests duration printable. */
+    public String testsDurationPrintable;
+
+    /** Timed out builds average time. */
+    public String lostInTimeouts;
+
     /** top long running suites */
     public List<TestFailure> topLongRunning = new ArrayList<>();
 
@@ -85,10 +96,11 @@ public class ChainAtServerCurrentStatus {
         this.branchName = branchTc;
     }
 
-    public void initFromContext(ITeamcity teamcity,
-        FullChainRunCtx ctx,
-        @Nullable ITcAnalytics tcAnalytics,
-        @Nullable String baseBranchTc) {
+    public void initFromContext(ITeamcityIgnited tcIgnited,
+                                @Deprecated ITeamcity teamcity,
+                                FullChainRunCtx ctx,
+                                @Deprecated ITcAnalytics tcAnalytics,
+                                @Nullable String baseBranchTc) {
         failedTests = 0;
         failedToFinish = 0;
         //todo mode with not failed
@@ -97,31 +109,40 @@ public class ChainAtServerCurrentStatus {
         stream.forEach(
             suite -> {
                 final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
-                suiteCurStatus.initFromContext(teamcity, suite, tcAnalytics, baseBranchTc);
+
+                suiteCurStatus.initFromContext(tcIgnited, teamcity, suite, tcAnalytics, baseBranchTc);
 
                 failedTests += suiteCurStatus.failedTests;
-                if (suite.hasAnyBuildProblemExceptTestOrSnapshot())
+                if (suite.hasAnyBuildProblemExceptTestOrSnapshot() || suite.onlyCancelledBuilds())
                     failedToFinish++;
 
                 this.suites.add(suiteCurStatus);
             }
         );
         durationPrintable = ctx.getDurationPrintable();
+        testsDurationPrintable = ctx.getTestsDurationPrintable();
+        lostInTimeouts = ctx.getLostInTimeoutsPrintable();
         webToHist = buildWebLink(teamcity, ctx);
         webToBuild = buildWebLinkToBuild(teamcity, ctx);
 
-        Stream<T2<MultBuildRunCtx, ITestFailures>> allLongRunning = ctx.suites().stream().flatMap(
+        Stream<T2<MultBuildRunCtx, IMultTestOccurrence>> allLongRunning = ctx.suites().flatMap(
             suite -> suite.getTopLongRunning().map(t -> new T2<>(suite, t))
         );
-        Comparator<T2<MultBuildRunCtx, ITestFailures>> durationComp
+        Comparator<T2<MultBuildRunCtx, IMultTestOccurrence>> durationComp
             = Comparator.comparing((pair) -> pair.get2().getAvgDurationMs());
 
         CollectionUtil.top(allLongRunning, 3, durationComp).forEach(
             pairCtxAndOccur -> {
                 MultBuildRunCtx suite = pairCtxAndOccur.get1();
-                ITestFailures longRunningOccur = pairCtxAndOccur.get2();
+                IMultTestOccurrence longRunningOccur = pairCtxAndOccur.get2();
 
-                TestFailure failure = createOrrucForLongRun(teamcity, suite, tcAnalytics, longRunningOccur, baseBranchTc);
+                Function<TestInBranch, ? extends IRunHistory> function = SuiteCurrentStatus.NEW_RUN_STAT
+                    ? tcIgnited::getTestRunHist
+                    : tcAnalytics.getTestRunStatProvider();
+
+                TestFailure failure = createOrrucForLongRun(tcIgnited, suite, tcAnalytics, longRunningOccur,
+                    baseBranchTc,
+                    function);
 
                 failure.testName = "[" + suite.suiteName() + "] " + failure.testName; //may be separate field
 
@@ -129,7 +150,7 @@ public class ChainAtServerCurrentStatus {
             }
         );
 
-        Stream<T2<MultBuildRunCtx, Map.Entry<String, Long>>> allLogConsumers = ctx.suites().stream().flatMap(
+        Stream<T2<MultBuildRunCtx, Map.Entry<String, Long>>> allLogConsumers = ctx.suites().flatMap(
             suite -> suite.getTopLogConsumers().map(t -> new T2<>(suite, t))
         );
         Comparator<T2<MultBuildRunCtx, Map.Entry<String, Long>>> longConsumingComp
@@ -183,6 +204,8 @@ public class ChainAtServerCurrentStatus {
             Objects.equal(failedTests, status.failedTests) &&
             Objects.equal(failedToFinish, status.failedToFinish) &&
             Objects.equal(durationPrintable, status.durationPrintable) &&
+            Objects.equal(testsDurationPrintable, status.testsDurationPrintable) &&
+            Objects.equal(lostInTimeouts, status.lostInTimeouts) &&
             Objects.equal(logConsumers, status.logConsumers) &&
             Objects.equal(topLongRunning, status.topLongRunning) &&
             Objects.equal(buildNotFound, status.buildNotFound);
@@ -191,8 +214,8 @@ public class ChainAtServerCurrentStatus {
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(chainName, serverId, branchName, webToHist, webToBuild, suites,
-            failedTests, failedToFinish, durationPrintable,
-            logConsumers, topLongRunning, buildNotFound);
+            failedTests, failedToFinish, durationPrintable, testsDurationPrintable,
+            lostInTimeouts, logConsumers, topLongRunning, buildNotFound);
     }
 
     public void setBuildNotFound(boolean buildNotFound) {

@@ -24,6 +24,7 @@ import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
+import org.apache.ignite.ci.web.model.Visa;
 
 /**
  * Teamcity Bot main interface. This inteface became too huge.
@@ -67,7 +68,7 @@ public interface ITcHelper extends ITcServerProvider {
      * @param buildTypeId Suite name.
      * @param branchForTc Branch for TeamCity.
      * @param ticket JIRA ticket full name.
-     * @return {@code True} if JIRA was notified.
+     * @return {@code Visa} which contains info about JIRA notification.
      */
-    String notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc, String ticket);
+    Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc, String ticket);
 }

@@ -48,14 +48,14 @@ import org.jetbrains.annotations.Nullable;
     public void addChainOnServer(ChainAtServerCurrentStatus chainStatus) {
         servers.add(chainStatus);
 
-        if(chainStatus.failedToFinish!=null) {
+        if (chainStatus.failedToFinish != null) {
             if (failedToFinish == null)
                 failedToFinish = 0;
 
             failedToFinish += chainStatus.failedToFinish;
         }
 
-        if(chainStatus.failedTests!=null) {
+        if (chainStatus.failedTests != null) {
             if (failedTests == null)
                 failedTests = 0;
 

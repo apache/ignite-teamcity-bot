@@ -72,21 +72,20 @@ public class RemoteClientTmpHelper {
                 }
             }
         }
-        IgniteCache<Long, FatBuildCompacted> cache1 = ignite.cache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
+        if(false) {
+            IgniteCache<Long, FatBuildCompacted> cache1 = ignite.cache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
 
-        int apache = ITeamcityIgnited.serverIdToInt("apache");
+            int apache = ITeamcityIgnited.serverIdToInt("apache");
 
-        int id = 2200135;
-        int id1 = 2200209;
-        dumpFatBuild(cache1, apache, id);
-        dumpFatBuild(cache1, apache, id1);
+            int id = 2200135;
+            int id1 = 2200209;
+            dumpFatBuild(cache1, apache, id);
+            dumpFatBuild(cache1, apache, id1);
 
-
-        IgniteCache<Long, BuildRefCompacted> cache2 = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
-        dumpBuildRef(cache2, apache, id);
-        dumpBuildRef(cache2, apache, id1);
-        ignite.close();
-
+            IgniteCache<Long, BuildRefCompacted> cache2 = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+            dumpBuildRef(cache2, apache, id);
+            dumpBuildRef(cache2, apache, id1);
+        }
     }
 
     public static void dumpBuildRef(IgniteCache<Long, BuildRefCompacted> cache, int apache, int id) throws IOException {

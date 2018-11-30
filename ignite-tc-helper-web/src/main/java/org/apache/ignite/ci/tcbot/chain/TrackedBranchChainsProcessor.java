@@ -19,22 +19,22 @@ package org.apache.ignite.ci.tcbot.chain;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
+import org.apache.ignite.ci.web.model.long_running.FullLRTestsSummary;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -80,15 +80,9 @@ public class TrackedBranchChainsProcessor {
 
                 ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, creds);
 
-                final List<BuildRef> builds = teamcity.getFinishedBuildsIncludeSnDepFailed(
-                    chainTracked.getSuiteIdMandatory(),
-                    branchForTc);
+                String suiteIdMandatory = chainTracked.getSuiteIdMandatory();
 
-                List<BuildRef> chains = builds.stream()
-                    .filter(ref -> !ref.isFakeStub())
-                    .sorted(Comparator.comparing(BuildRef::getId).reversed())
-                    .limit(buildResMergeCnt)
-                    .filter(b -> b.getId() != null).collect(Collectors.toList());
+                List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc, buildResMergeCnt);
 
                 ProcessLogsMode logs;
                 if (buildResMergeCnt > 1)
@@ -101,18 +95,20 @@ public class TrackedBranchChainsProcessor {
                 boolean includeScheduled = buildResMergeCnt == 1;
 
                 final FullChainRunCtx ctx = chainProc.loadFullChainContext(teamcity,
-                    tcIgnited, chains,
+                    tcIgnited,
+                    chains,
                     rebuild,
                     logs,
                     includeScheduled,
-                    baseBranchTc
+                    baseBranchTc,
+                    SyncMode.RELOAD_QUEUED
                 );
 
                 int cnt = (int)ctx.getRunningUpdates().count();
                 if (cnt > 0)
                     runningUpdates.addAndGet(cnt);
 
-                chainStatus.initFromContext(teamcity, ctx, teamcity, baseBranchTc);
+                chainStatus.initFromContext(tcIgnited, teamcity, ctx, teamcity, baseBranchTc);
 
                 return chainStatus;
             })
@@ -123,5 +119,37 @@ public class TrackedBranchChainsProcessor {
         res.postProcess(runningUpdates.get());
 
         return res;
+    }
+
+    /**
+     * Collects data about all long-running tests (run time more than one minute) within one transfer object.
+     *
+     * @param branch
+     * @param creds
+     * @return
+     */
+    public FullLRTestsSummary getTrackedBranchLongRunningTestsSummary(@Nullable String branch,
+        ICredentialsProv creds) {
+        FullLRTestsSummary summary = new FullLRTestsSummary();
+
+        final String branchNn = isNullOrEmpty(branch) ? FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME : branch;
+        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branchNn);
+
+        tracked.chains.stream()
+            .filter(chainTracked -> creds.hasAccess(chainTracked.serverId))
+            .map(chainTracked -> {
+                final String srvId = chainTracked.serverId;
+
+                final String branchForTc = chainTracked.getBranchForRestMandatory();
+
+                ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, creds);
+
+                List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(chainTracked.getSuiteIdMandatory(), branchForTc, 1);
+
+                return chainProc.loadLongRunningTestsSummary(tcIgnited, hist);
+            })
+            .forEach(summary::addSuiteSummaries);
+
+        return summary;
     }
 }

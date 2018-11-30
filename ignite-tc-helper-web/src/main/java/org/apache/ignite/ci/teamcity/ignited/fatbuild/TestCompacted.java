@@ -33,6 +33,8 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
+import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -315,13 +317,13 @@ public class TestCompacted {
         return isFailedTest(compactor) && !(isMutedTest() || isIgnoredTest());
     }
 
-    private boolean isIgnoredTest() {
+    public boolean isIgnoredTest() {
         Boolean flag = getIgnoredFlag();
 
         return flag != null && flag;
     }
 
-    private boolean isMutedTest() {
+    public boolean isMutedTest() {
         Boolean flag = getMutedFlag();
 
         return flag != null && flag;
@@ -345,11 +347,15 @@ public class TestCompacted {
         return investigatedFlag != null && investigatedFlag;
     }
 
-    @Nullable
-    public Integer getDuration() {
+    public int status() {
+        return status;
+    }
+
+    @Nullable public Integer getDuration() {
         return duration < 0 ? null : duration;
     }
 
+    /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("idInBuild", idInBuild)
@@ -361,5 +367,30 @@ public class TestCompacted {
             .add("actualBuildId", actualBuildId)
             .add("details", details)
             .toString() + "\n";
+    }
+
+    public Long getTestId() {
+        if (testId != 0)
+            return testId;
+
+        return null;
+    }
+
+    public Invocation toInvocation(IStringCompactor compactor, FatBuildCompacted build) {
+        final boolean failedTest = isFailedTest(compactor);
+
+        final Invocation invocation = new Invocation(build.getId());
+
+        final int failCode = failedTest
+                ? (isIgnoredTest() || isMutedTest())
+                ? InvocationData.MUTED
+                : InvocationData.FAILURE
+                : InvocationData.OK;
+
+        invocation.status((byte) failCode);
+        invocation.startDate(build.getStartDateTs());
+        invocation.changesPresent(build.changes().length > 0 ? 1 : 0);
+
+        return invocation;
     }
 }

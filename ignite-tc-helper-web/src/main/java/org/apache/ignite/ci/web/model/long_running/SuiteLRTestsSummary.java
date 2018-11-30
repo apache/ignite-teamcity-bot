@@ -14,23 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.web.model.long_running;
 
-package org.apache.ignite.ci.analysis;
+import java.util.List;
 
-import java.util.stream.Stream;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import static org.apache.ignite.ci.util.TimeUtil.millisToDurationPrintable;
 
 /**
- * Multiple test ocurrence
+ *
  */
-public interface ITestFailures {
-    String getName();
+@SuppressWarnings("WeakerAccess")
+public class SuiteLRTestsSummary {
+    public String name;
 
-    boolean isInvestigated();
+    public long testAvgTime;
 
-    public int failuresCount();
+    public String testAvgTimePrintable;
 
-    public long getAvgDurationMs();
+    public List<LRTest> tests;
 
-    Iterable<TestOccurrenceFull> getOccurrences();
+    public SuiteLRTestsSummary(String name, long testAvgTime, List<LRTest> tests) {
+        this.name = name;
+        this.testAvgTime = testAvgTime;
+        testAvgTimePrintable = millisToDurationPrintable(testAvgTime);
+        this.tests = tests;
+    }
 }

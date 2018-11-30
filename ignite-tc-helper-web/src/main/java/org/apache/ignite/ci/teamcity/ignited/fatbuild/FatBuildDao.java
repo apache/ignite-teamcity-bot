@@ -30,6 +30,7 @@ import javax.validation.constraints.NotNull;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
@@ -103,12 +104,17 @@ public class FatBuildDao {
             newBuild.changes(extractChangeIds(changesList));
 
         if (existingBuild == null || !existingBuild.equals(newBuild)) {
-            buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
+            putFatBuild(srvIdMaskHigh, buildId, newBuild);
 
             return newBuild;
         }
 
         return null;
+    }
+
+    @AutoProfiling
+    public void putFatBuild(long srvIdMaskHigh, int buildId, FatBuildCompacted newBuild) {
+        buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
     }
 
     public static int[] extractChangeIds(@NotNull ChangesList changesList) {
@@ -136,6 +142,7 @@ public class FatBuildDao {
      * @param srvIdMaskHigh Server id mask high.
      * @param buildId Build id.
      */
+    @AutoProfiling
     public FatBuildCompacted getFatBuild(int srvIdMaskHigh, int buildId) {
         Preconditions.checkNotNull(buildsCache, "init() was not called");
 

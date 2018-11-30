@@ -28,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class ProblemOccurrence {
     public static final String BUILD_FAILURE_ON_MESSAGE = "BuildFailureOnMessage";
+    public static final String BUILD_FAILURE_ON_METRIC = "BuildFailureOnMetric";
     public static final String TC_EXIT_CODE = "TC_EXIT_CODE";
     public static final String TC_OOME = "TC_OOME";
     public static final String TC_EXECUTION_TIMEOUT = "TC_EXECUTION_TIMEOUT";
@@ -36,6 +37,9 @@ public class ProblemOccurrence {
     public static final String OTHER = "OTHER";
     public static final String SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE = "SNAPSHOT_DEPENDENCY_ERROR_BUILD_PROCEEDS_TYPE";
     public static final String SNAPSHOT_DEPENDENCY_ERROR = "SNAPSHOT_DEPENDENCY_ERROR";
+
+    /** */
+    public static final String TC_COMPILATION_ERROR = "TC_COMPILATION_ERROR";
 
     /** Java level deadlock: Detected by log processing, not by teamcity */
     public static final String JAVA_LEVEL_DEADLOCK = "JAVA_LEVEL_DEADLOCK";
@@ -49,6 +53,16 @@ public class ProblemOccurrence {
      * May be null for old persisted entries.
      */
     @Nullable public BuildRef buildRef;
+
+    /** */
+    public boolean isCompilationError() {
+        return TC_COMPILATION_ERROR.equals(type);
+    }
+
+    /** */
+    public boolean isFailureOnMetric() {
+        return BUILD_FAILURE_ON_METRIC.equals(type);
+    }
 
     public boolean isExecutionTimeout() {
         return TC_EXECUTION_TIMEOUT.equals(type);
@@ -84,5 +98,9 @@ public class ProblemOccurrence {
 
     public void id(String fullStrId) {
         this.id = fullStrId;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

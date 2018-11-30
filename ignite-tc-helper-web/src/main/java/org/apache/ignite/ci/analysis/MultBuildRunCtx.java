@@ -18,9 +18,22 @@
 package org.apache.ignite.ci.analysis;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
@@ -29,19 +42,14 @@ import org.apache.ignite.ci.util.CollectionUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
-import java.util.*;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 /**
  * Run configuration execution results loaded from different API URLs.
  * Includes tests and problem occurrences; if logs processing is done also contains last started test
  */
 public class MultBuildRunCtx implements ISuiteResults {
+    /** Cancelled. */
+    public static final String CANCELLED = "CANCELLED";
+
     /** First build info. */
     @Nonnull private final BuildRef firstBuildInfo;
 
@@ -95,6 +103,10 @@ public class MultBuildRunCtx implements ISuiteResults {
             .anyMatch(p -> !p.isFailedTests(compactor) && !p.isSnapshotDepProblem(compactor));
     }
 
+    public boolean onlyCancelledBuilds() {
+        return buildsStream().allMatch(bCtx -> !bCtx.isComposite() && bCtx.isCancelled());
+    }
+
     @NotNull
     private Stream<ProblemCompacted> allProblemsInAllBuilds() {
         return buildsStream().flatMap(SingleBuildRunCtx::getProblemsStream);
@@ -104,12 +116,22 @@ public class MultBuildRunCtx implements ISuiteResults {
         return builds;
     }
 
+    /** {@inheritDoc} */
+    @Override public boolean hasCompilationProblem() {
+        return getCompilationProblemCount() > 0;
+    }
+
+    /** */
+    public long getCompilationProblemCount() {
+        return buildsStream().filter(ISuiteResults::hasCompilationProblem).count();
+    }
+
     public boolean hasTimeoutProblem() {
         return getExecutionTimeoutCount() > 0;
     }
 
     private long getExecutionTimeoutCount() {
-        return buildsStream().filter(ISuiteResults::hasTimeoutProblem).count();
+        return buildsStream().filter(SingleBuildRunCtx::hasTimeoutProblem).count();
     }
 
     public boolean hasJvmCrashProblem() {
@@ -152,15 +174,26 @@ public class MultBuildRunCtx implements ISuiteResults {
     public String getResult() {
         StringBuilder res = new StringBuilder();
 
+        long cancelledCnt = buildsStream().filter(bCtx -> !bCtx.isComposite() && bCtx.isCancelled()).count();
+
+        if (cancelledCnt > 0) {
+            res.append(CANCELLED);
+
+            if (cancelledCnt > 1)
+                res.append(" ").append(cancelledCnt);
+        }
+
         addKnownProblemCnt(res, "TIMEOUT", getExecutionTimeoutCount());
         addKnownProblemCnt(res, "JVM CRASH", getJvmCrashProblemCount());
         addKnownProblemCnt(res, "Out Of Memory Error", getOomeProblemCount());
         addKnownProblemCnt(res, "Exit Code", getExitCodeProblemsCount());
+        addKnownProblemCnt(res, "Compilation Error", getCompilationProblemCount());
 
         {
             Stream<ProblemCompacted> stream =
                 allProblemsInAllBuilds().filter(p ->
                     !p.isFailedTests(compactor)
+                        && !p.isCompilationError(compactor)
                         && !p.isSnapshotDepProblem(compactor)
                         && !p.isExecutionTimeout(compactor)
                         && !p.isJvmCrash(compactor)
@@ -222,8 +255,8 @@ public class MultBuildRunCtx implements ISuiteResults {
         return CollectionUtil.top(logSizeBytes.entrySet().stream(), 3 ,comparing).stream();
     }
 
-    public Stream<? extends ITestFailures> getTopLongRunning() {
-        Comparator<ITestFailures> comparing = Comparator.comparing(ITestFailures::getAvgDurationMs);
+    public Stream<? extends IMultTestOccurrence> getTopLongRunning() {
+        Comparator<IMultTestOccurrence> comparing = Comparator.comparing(IMultTestOccurrence::getAvgDurationMs);
 
         Map<Integer, TestCompactedMult> res = new HashMap<>();
 
@@ -234,7 +267,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return CollectionUtil.top(res.values().stream(), 3, comparing).stream();
     }
 
-    public List<ITestFailures> getFailedTests() {
+    public List<IMultTestOccurrence> getFailedTests() {
         Map<Integer, TestCompactedMult> res = new HashMap<>();
 
         builds.forEach(singleBuildRunCtx -> {
@@ -257,7 +290,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     boolean isFailed() {
-        return failedTests() != 0 || hasAnyBuildProblemExceptTestOrSnapshot();
+        return failedTests() != 0 || hasAnyBuildProblemExceptTestOrSnapshot() || onlyCancelledBuilds();
     }
 
     public String branchName() {
@@ -265,10 +298,9 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     /**
-     * @return last build duration.
+     * @return average build duration.
      */
-    @Nullable
-    public Long getBuildDuration() {
+    @Nullable public Long getBuildDuration() {
         final OptionalDouble average = buildsStream()
                 .map(SingleBuildRunCtx::getBuildDuration)
                 .filter(Objects::nonNull)
@@ -279,6 +311,37 @@ public class MultBuildRunCtx implements ISuiteResults {
             return (long) average.getAsDouble();
 
         return null;
+    }
+
+    /**
+     * @return sum of all tests execution duration (for several builds average).
+     */
+    @Nullable public Long getAvgTestsDuration() {
+        final OptionalDouble average = buildsStream()
+            .mapToLong(SingleBuildRunCtx::testsDuration)
+            .average();
+
+        if (average.isPresent())
+            return (long)average.getAsDouble();
+
+        return null;
+    }
+
+    /**
+     * @return sum of all tests execution duration (for several builds average).
+     */
+    public long getLostInTimeouts() {
+        if (builds.isEmpty())
+            return 0;
+
+        long allTimeoutsDuration = buildsStream()
+            .filter(SingleBuildRunCtx::hasTimeoutProblem)
+            .map(SingleBuildRunCtx::getBuildDuration)
+            .filter(Objects::nonNull)
+            .mapToLong(l -> l)
+            .sum();
+
+        return allTimeoutsDuration / builds.size();
     }
 
     @Nullable public String suiteName() {

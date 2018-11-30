@@ -17,29 +17,36 @@
 
 package org.apache.ignite.ci.web.model.current;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
+import org.apache.ignite.internal.util.typedef.T2;
+
+import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.*;
 
 /**
  * Summary of build statistics.
  */
 public class BuildStatisticsSummary {
+    /** String ids. */
+    private static final Map<String, Integer> strIds = new ConcurrentHashMap<>();
+
     /** Short problem names. */
     public static final String TOTAL = "TOTAL";
 
@@ -51,10 +58,10 @@ public class BuildStatisticsSummary {
 
     static {
         shortProblemNames.put(TOTAL, "TT");
-        shortProblemNames.put(ProblemOccurrence.TC_EXECUTION_TIMEOUT, "ET");
-        shortProblemNames.put(ProblemOccurrence.TC_JVM_CRASH, "JC");
-        shortProblemNames.put(ProblemOccurrence.TC_OOME, "OO");
-        shortProblemNames.put(ProblemOccurrence.TC_EXIT_CODE, "EC");
+        shortProblemNames.put(TC_EXECUTION_TIMEOUT, "ET");
+        shortProblemNames.put(TC_JVM_CRASH, "JC");
+        shortProblemNames.put(TC_OOME, "OO");
+        shortProblemNames.put(TC_EXIT_CODE, "EC");
 
         fullProblemNames = shortProblemNames.inverse();
     }
@@ -66,10 +73,7 @@ public class BuildStatisticsSummary {
     public String startDate;
 
     /** Test occurrences. */
-    public TestOccurrencesRef testOccurrences;
-
-    /** List of problem occurrences. */
-    private List<ProblemOccurrence> problemOccurrenceList;
+    public TestOccurrencesRef testOccurrences = new TestOccurrencesRef();
 
     /** Duration (seconds). */
     public long duration;
@@ -80,70 +84,74 @@ public class BuildStatisticsSummary {
     /** Is fake stub. */
     public boolean isFakeStub;
 
+    /** Failed tests: Map from build type string ID ->
+     *           Map of test name (full) string ID -> (test refrenence, to count of failures). */
+    private Map<Integer, Map<Integer, T2<Long, Integer>>> failedTests = new HashMap<>();
+
     /** Is valid. */
     public boolean isValid = true;
 
     /**
      * @param buildId Build id.
      */
-    public BuildStatisticsSummary(Integer buildId){
+    public BuildStatisticsSummary(Integer buildId) {
         this.buildId = buildId;
     }
 
-    /** Initialize build statistics. */
-    public void initialize(@Nonnull final ITeamcity teamcity) {
-        Build build = teamcity.getBuild(buildId);
-
-        isFakeStub = build.isFakeStub();
-
-        if (isFakeStub)
-            return;
-
-        DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy'T'HH:mm:ss");
-        dateFormat.format(build.getFinishDate());
-        startDate = dateFormat.format(build.getStartDate());
-
-        testOccurrences = build.testOccurrences;
-
-        duration = (build.getFinishDate().getTime() - build.getStartDate().getTime()) / 1000;
-
-        List<BuildRef> snapshotDependencies = getSnapshotDependencies(teamcity, build);
-
-        List<BuildRef> snapshotDependenciesWithProblems = getBuildsWithProblems(snapshotDependencies);
-
-        problemOccurrenceList = getProblems(teamcity, snapshotDependenciesWithProblems);
-
-        totalProblems = getRes();
+    /**
+     * @param compactor Compactor.
+     */
+    public static void initStrings(IStringCompactor compactor) {
+        if (strIds.isEmpty()) {
+            synchronized (BuildStatisticsSummary.class) {
+                if (strIds.isEmpty()) {
+                    strIds.put(TestOccurrence.STATUS_SUCCESS, compactor.getStringId(TestOccurrence.STATUS_SUCCESS));
+                    strIds.put(TestOccurrence.STATUS_FAILURE, compactor.getStringId(TestOccurrence.STATUS_FAILURE));
+                    strIds.put(TC_EXIT_CODE, compactor.getStringId(TC_EXIT_CODE));
+                    strIds.put(TC_OOME, compactor.getStringId(TC_OOME));
+                    strIds.put(TC_JVM_CRASH, compactor.getStringId(TC_JVM_CRASH));
+                    strIds.put(TC_EXECUTION_TIMEOUT, compactor.getStringId(TC_EXECUTION_TIMEOUT));
+                    //key is the same with tests. strIds.put(BuildRef.STATUS_SUCCESS, compactor.getStringId(BuildRef.STATUS_SUCCESS));
+                }
+            }
+        }
     }
 
-    private long getExecutionTimeoutCount(String buildTypeId) {
-        return getProblemsStream(buildTypeId).filter(ProblemOccurrence::isExecutionTimeout).count();
+    public static int getStringId(String failure) {
+        Preconditions.checkState(!strIds.isEmpty());
+
+        Integer integer = strIds.get(failure);
+
+        return Preconditions.checkNotNull(integer, "No data for [" + failure + "]");
     }
 
-    private long getJvmCrashProblemCount(String buildTypeId) {
-        return getProblemsStream(buildTypeId).filter(ProblemOccurrence::isJvmCrash).count();
-    }
+    /**
+     * @param problemName Problem name.
+     * @param problems
+     */
+    private long getProblemsCount(String problemName,
+        List<ProblemCompacted> problems) {
+        if (problems == null)
+            return 0;
 
-    private long getExitCodeProblemsCount(String buildTypeId) {
-        return getProblemsStream(buildTypeId).filter(ProblemOccurrence::isExitCode).count();
-    }
-
-    private long getOomeProblemCount(String buildTypeId) {
-        return getProblemsStream(buildTypeId).filter(ProblemOccurrence::isOome).count();
+        return problems.stream()
+            .filter(Objects::nonNull)
+            .filter(p -> p.type() == strIds.get(problemName)).count();
     }
 
     /**
      * Problems for all snapshot-dependencies.
      *
-     * @param teamcity Teamcity.
+     * @param builds Builds.
      */
-    private List<ProblemOccurrence> getProblems(@Nonnull final ITeamcity teamcity, List<BuildRef> builds){
-        List<ProblemOccurrence> problemOccurrences = new ArrayList<>();
+    public List<ProblemCompacted> getProblems(Stream<FatBuildCompacted> builds) {
+        List<ProblemCompacted> problemOccurrences = new ArrayList<>();
 
-        for (BuildRef buildRef : builds)
-            problemOccurrences.addAll(teamcity
-                .getProblems(buildRef)
-                .getProblemsNonNull());
+        builds.forEach(build -> {
+            problemOccurrences.addAll(
+                build.problems()
+            );
+        });
 
         return problemOccurrences;
     }
@@ -151,62 +159,44 @@ public class BuildStatisticsSummary {
     /**
      * Snapshot-dependencies for build.
      *
-     * @param teamcity Teamcity.
-     * @param buildRef Build reference.
+     * @param ignitedTeamcity ignitedTeamcity.
+     * @param buildId Build Id.
      */
-    private List<BuildRef> getSnapshotDependencies(@Nonnull final ITeamcity teamcity, BuildRef buildRef){
-        FullQueryParams key = new FullQueryParams();
+    private List<FatBuildCompacted> getSnapshotDependencies(@Nonnull final ITeamcityIgnited ignitedTeamcity,
+        Integer buildId) {
+        List<FatBuildCompacted> snapshotDependencies = new ArrayList<>();
+        FatBuildCompacted build = ignitedTeamcity.getFatBuild(buildId);
 
-        key.setServerId(teamcity.serverId());
-        key.setBuildId(buildRef.getId());
+        if (build.snapshotDependencies().length > 0) {
+            for (Integer id : build.snapshotDependencies())
+                snapshotDependencies.addAll(getSnapshotDependencies(ignitedTeamcity, id));
+        }
 
-        return teamcity.getConfigurations(key).getBuilds();
+        snapshotDependencies.add(build);
+
+        return snapshotDependencies;
     }
-
     /**
      * Builds without status "Success".
      */
-    private List<BuildRef> getBuildsWithProblems(List<BuildRef> builds){
+    private List<FatBuildCompacted> getBuildsWithProblems(List<FatBuildCompacted> builds) {
         return builds.stream()
-            .filter(b -> !b.isSuccess())
+            .filter(b -> b.status() != strIds.get(BuildRef.STATUS_SUCCESS))
             .collect(Collectors.toList());
     }
 
     /**
-     * @param buildTypeId Build type id (if null - for all problems).
-     */
-    private Stream<ProblemOccurrence> getProblemsStream(String buildTypeId) {
-        if (problemOccurrenceList == null)
-            return Stream.empty();
-
-        return problemOccurrenceList.stream()
-            .filter(Objects::nonNull)
-            .filter(p -> buildTypeId == null || buildTypeId.equals(p.buildRef.buildTypeId));
-    }
-
-    /**
-     * Short build run result (without snapshot-dependencies result).
-     *
-     * @return printable result;
-     */
-    private Map<String, Long> getRes(){
-        return getBuildTypeProblemsCount(null);
-    }
-
-
-    /**
      * BuildType problems count (EXECUTION TIMEOUT, JVM CRASH, OOMe, EXIT CODE, TOTAL PROBLEMS COUNT).
-     *
-     * @param buildTypeId Build type id.
+     * @param problems
      */
-    private Map<String, Long> getBuildTypeProblemsCount(String buildTypeId){
+    public Map<String, Long> getBuildTypeProblemsCount(
+        List<ProblemCompacted> problems) {
         Map<String, Long> occurrences = new HashMap<>();
 
-        occurrences.put(shortProblemNames.get(ProblemOccurrence.TC_EXECUTION_TIMEOUT),
-            getExecutionTimeoutCount(buildTypeId));
-        occurrences.put(shortProblemNames.get(ProblemOccurrence.TC_JVM_CRASH), getJvmCrashProblemCount(buildTypeId));
-        occurrences.put(shortProblemNames.get(ProblemOccurrence.TC_OOME), getOomeProblemCount(buildTypeId));
-        occurrences.put(shortProblemNames.get(ProblemOccurrence.TC_EXIT_CODE), getExitCodeProblemsCount(buildTypeId));
+        occurrences.put(shortProblemNames.get(TC_EXECUTION_TIMEOUT), getProblemsCount(TC_EXECUTION_TIMEOUT, problems));
+        occurrences.put(shortProblemNames.get(TC_JVM_CRASH), getProblemsCount(TC_JVM_CRASH, problems));
+        occurrences.put(shortProblemNames.get(TC_OOME), getProblemsCount(TC_OOME, problems));
+        occurrences.put(shortProblemNames.get(TC_EXIT_CODE), getProblemsCount(TC_EXIT_CODE, problems));
         occurrences.put(shortProblemNames.get(TOTAL), occurrences.values().stream().mapToLong(Long::longValue).sum());
 
         return occurrences;
@@ -226,14 +216,17 @@ public class BuildStatisticsSummary {
             Objects.equals(buildId, that.buildId) &&
             Objects.equals(startDate, that.startDate) &&
             Objects.equals(testOccurrences, that.testOccurrences) &&
-            Objects.equals(problemOccurrenceList, that.problemOccurrenceList) &&
             Objects.equals(duration, that.duration) &&
             Objects.equals(totalProblems, that.totalProblems);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(buildId, startDate, testOccurrences, problemOccurrenceList,
+        return Objects.hash(buildId, startDate, testOccurrences,
             duration, totalProblems, isFakeStub);
+    }
+
+    public Map<Integer, Map<Integer, T2<Long, Integer>>> failedTests() {
+        return failedTests;
     }
 }

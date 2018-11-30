@@ -16,7 +16,9 @@
  */
 package org.apache.ignite.ci.web.rest.visa;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -26,13 +28,17 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcbot.visa.ContributionCheckStatus;
-import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.tcbot.visa.ContributionToCheck;
+import org.apache.ignite.ci.tcbot.visa.CurrentVisaStatus;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
+import org.apache.ignite.ci.tcbot.visa.VisaStatus;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.SimpleResult;
+import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Path("visa")
@@ -45,6 +51,27 @@ public class TcBotVisaService {
     /** Current Request. */
     @Context
     private HttpServletRequest req;
+
+    /** */
+    @GET
+    @Path("cancel")
+    public boolean stopObservation(@NotNull @QueryParam("server") String srv,
+        @NotNull @QueryParam("branch") String branchForTc) {
+            return CtxListener.getInjector(ctx)
+                .getInstance(BuildObserver.class)
+                .stopObservation(new ContributionKey(srv, branchForTc));
+    }
+
+    /**
+     * @param srvId Server id.
+     */
+    @GET
+    @Path("history")
+    public Collection<VisaStatus> history(@Nullable @QueryParam("serverId") String srvId) {
+        return CtxListener.getInjector(ctx)
+            .getInstance(TcBotTriggerAndSignOffService.class)
+            .getVisasStatus(srvId, ICredentialsProv.get(req));
+    }
 
     /**
      * @param srvId Server id.
@@ -61,7 +88,7 @@ public class TcBotVisaService {
 
     @GET
     @Path("contributionStatus")
-    public ContributionCheckStatus contributionStatus(@Nullable @QueryParam("serverId") String srvId,
+    public Set<ContributionCheckStatus> contributionStatus(@Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @QueryParam("prId") String prId) {
         ICredentialsProv prov = ICredentialsProv.get(req);
@@ -71,6 +98,20 @@ public class TcBotVisaService {
         TcBotTriggerAndSignOffService instance = CtxListener.getInjector(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class);
 
-        return instance.contributionStatus(srvId, prov, suiteId, prId);
+        return instance.contributionStatuses(srvId, prov, prId);
+    }
+
+    @GET
+    @Path("visaStatus")
+    public CurrentVisaStatus currentVisaStatus(@Nullable @QueryParam("serverId") String srvId,
+        @Nonnull @QueryParam("suiteId") String suiteId,
+        @QueryParam("tcBranch") String tcBranch) {
+        ICredentialsProv prov = ICredentialsProv.get(req);
+        if (!prov.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
+
+        TcBotTriggerAndSignOffService instance = CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class);
+
+        return instance.currentVisaStatus(srvId, prov, suiteId, tcBranch);
     }
 }
