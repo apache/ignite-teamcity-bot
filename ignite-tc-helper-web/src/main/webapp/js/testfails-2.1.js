@@ -91,14 +91,16 @@ function showChainCurrentStatusData(server, settings) {
     res += "<table style='width: 40%'>";
     res += "<tr><td><b> Server: </b></td><td>[" + server.serverId + "]</td></tr>";
 
-    res += "<tr><td><b> PR: </b></td><td>";
+    if (isDefinedAndFilled(server.branchName) && server.branchName !== "<default>") {
+        res += "<tr><td><b> PR: </b></td><td>";
 
-    if (isDefinedAndFilled(server.webToPr))
-        res += "<a href='" + server.webToPr + "'>[" + server.branchName + "]</a>";
-    else
-        res += "[" + server.branchName + "]";
+        if (isDefinedAndFilled(server.webToPr))
+            res += "<a href='" + server.webToPr + "'>[" + server.branchName + "]</a>";
+        else
+            res += "[" + server.branchName + "]";
 
-    res += "</td></tr>";
+        res += "</td></tr>";
+    }
 
     if (isDefinedAndFilled(server.webToTicket) && isDefinedAndFilled(server.ticketFullName)) {
         res += "<tr><td><b> Ticket: </b></td><td>";

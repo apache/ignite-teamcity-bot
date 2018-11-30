@@ -73,12 +73,6 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public PullRequest getPullRequest(String branchForTc) {
-        return getPullRequest(IGitHubConnection.convertBranchToId(branchForTc));
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
     @Override public PullRequest getPullRequest(int prNum) {
         PullRequest pullReq = prCache.get(prNumberToCacheKey(prNum));
 

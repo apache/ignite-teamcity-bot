@@ -17,7 +17,9 @@
 package org.apache.ignite.ci.github.ignited;
 
 import java.util.List;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
 
 /**
  *
@@ -32,5 +34,8 @@ public interface IGitHubConnIgnited {
     public PullRequest getPullRequest(int prNum);
 
     /** */
-    public PullRequest getPullRequest(String branchForTc);
+    @AutoProfiling
+    public default PullRequest getPullRequest(String branchForTc) {
+        return getPullRequest(IGitHubConnection.convertBranchToId(branchForTc));
+    }
 }
