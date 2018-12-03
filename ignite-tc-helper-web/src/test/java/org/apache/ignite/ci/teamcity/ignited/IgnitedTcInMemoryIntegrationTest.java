@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+import com.google.common.collect.Lists;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -32,6 +33,7 @@ import javax.xml.bind.JAXBException;
 
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
@@ -54,22 +56,29 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
+import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerFactory;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertNotNull;
+import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 import static org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.STRINGS_CACHE;
@@ -114,6 +123,25 @@ public class IgnitedTcInMemoryIntegrationTest {
     public static void stopIgnite() {
         if (ignite != null)
             ignite.close();
+    }
+
+    /**
+     * Clear relevant ignite caches to avoid tests invluence to each other.
+     */
+    @Before
+    public void clearIgniteCaches() {
+        clearCache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+        clearCache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
+    }
+
+    /**
+     * @param cacheName Cache name to clear.
+     */
+    private void clearCache(String cacheName) {
+        IgniteCache<Long, BuildRefCompacted> buildRefCache = ignite.cache(cacheName);
+
+        if (buildRefCache != null)
+            buildRefCache.clear();
     }
 
     @Test
@@ -533,6 +561,91 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         assertNotNull(testRunHist);
         assertEquals(0.5, testRunHist.getFailRate(), 0.1);
+    }
+
+    @Test
+    public void testQueuedBuildsRemoved() {
+        TeamcityIgnitedModule module = new TeamcityIgnitedModule();
+        module.overrideHttp(new ITeamcityHttpConnection() {
+            @Override public InputStream sendGet(String basicAuthTok, String url) throws IOException {
+                throw new FileNotFoundException(url);
+            }
+        });
+        Injector injector = Guice.createInjector(module, new IgniteAndShedulerTestModule());
+
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+        BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class).init();
+        FatBuildDao fatBuildDao = injector.getInstance(FatBuildDao.class).init();
+
+        int buildIdQ = 1000042;
+        BuildRef refQ = new BuildRef();
+        refQ.buildTypeId = "Testbuild";
+        refQ.branchName = ITeamcity.REFS_HEADS_MASTER;
+        refQ.state = BuildRef.STATE_QUEUED;
+        refQ.setId(buildIdQ);
+
+        int buildIdR = 1000043;
+        BuildRef refR = new BuildRef();
+        refR.buildTypeId = "Testbuild";
+        refR.branchName = ITeamcity.REFS_HEADS_MASTER;
+        refR.state = BuildRef.STATE_RUNNING;
+        refR.setId(buildIdR);
+
+        String srvId = APACHE;
+        int srvIdInt = ITeamcityIgnited.serverIdToInt(srvId);
+        ITeamcityConn srvConn = injector.getInstance(ITcServerFactory.class).createServer(srvId);
+
+        buildRefDao.saveChunk(srvIdInt, Lists.newArrayList(refQ, refR));
+
+        List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdInt);
+        assertFalse(checkNotNull(running).isEmpty());
+
+        System.out.println("Running builds (before sync): " + printRefs(c, running));
+
+        ProactiveFatBuildSync buildSync = injector.getInstance(ProactiveFatBuildSync.class);
+        buildSync.invokeLaterFindMissingByBuildRef(srvId, srvConn);
+
+        FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvIdInt, buildIdQ);
+        System.out.println(fatBuild);
+
+        assertNotNull(fatBuild);
+        assertTrue(fatBuild.isFakeStub());
+
+        assertTrue(fatBuild.isCancelled(c));
+
+        List<BuildRefCompacted> running2 = buildRefDao.getQueuedAndRunning(srvIdInt);
+        System.out.println("Running builds (after sync): " + printRefs(c, running2));
+        assertTrue(checkNotNull(running2).isEmpty());
+
+        // Now we have 2 fake stubs, retry to actualize
+        buildRefDao.saveChunk(srvIdInt, Lists.newArrayList(refQ, refR));
+
+        List<BuildRefCompacted> running3 = buildRefDao.getQueuedAndRunning(srvIdInt);
+        System.out.println("Running builds (before with fake builds): " + printRefs(c, running3));
+        assertFalse(checkNotNull(running3).isEmpty());
+
+        putOldFashionFakeBuild(c, fatBuildDao, buildIdQ, srvIdInt);
+        putOldFashionFakeBuild(c, fatBuildDao, buildIdR, srvIdInt);
+
+        buildSync.invokeLaterFindMissingByBuildRef(srvId, srvConn);
+
+        List<BuildRefCompacted> running4 = buildRefDao.getQueuedAndRunning(srvIdInt);
+        System.out.println("Running builds (before with fake builds): " + printRefs(c, running4));
+        assertTrue(checkNotNull(running4).isEmpty());
+    }
+
+    public void putOldFashionFakeBuild(IStringCompactor c, FatBuildDao fatBuildDao, int buildId, int srvIdInt) {
+        FatBuildCompacted fb = fatBuildDao.getFatBuild(srvIdInt, buildId);
+
+        fb.fillFieldsFromBuildRef(c, new BuildRef());
+
+        fatBuildDao.putFatBuild(srvIdInt, buildId, fb);
+
+        assertNull(fatBuildDao.getFatBuild(srvIdInt, buildId).state(c));
+    }
+
+    @NotNull public List<BuildRef> printRefs(IStringCompactor c, List<BuildRefCompacted> running2) {
+        return running2.stream().map(bref->bref.toBuildRef(c)).collect(Collectors.toList());
     }
 
     /**
