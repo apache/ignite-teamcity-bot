@@ -31,10 +31,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
+import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -90,6 +95,26 @@ public class PrChainsProcessorTest {
             final IGitHubConnectionProvider ghProv = Mockito.mock(IGitHubConnectionProvider.class);
             bind(IGitHubConnectionProvider.class).toInstance(ghProv);
             when(ghProv.server(anyString())).thenReturn(Mockito.mock(IGitHubConnection.class));
+
+            final IGitHubConnIgnitedProvider gitHubConnIgnitedProvider = Mockito.mock(IGitHubConnIgnitedProvider.class);
+
+            bind(IGitHubConnIgnitedProvider.class).toInstance(gitHubConnIgnitedProvider);
+
+            IGitHubConnIgnited gitHubConnIgnited = Mockito.mock(IGitHubConnIgnited.class);
+
+            PullRequest pullReq = Mockito.mock(PullRequest.class);
+
+            when(pullReq.getTitle()).thenReturn("");
+
+            when(gitHubConnIgnited.getPullRequest(anyString())).thenReturn(pullReq);
+
+            when(gitHubConnIgnitedProvider.server(anyString())).thenReturn(gitHubConnIgnited);
+
+            final IJiraIntegrationProvider jiraProv = Mockito.mock(IJiraIntegrationProvider.class);
+
+            bind(IJiraIntegrationProvider.class).toInstance(jiraProv);
+
+            when(jiraProv.server(anyString())).thenReturn(Mockito.mock(IJiraIntegration.class));
 
             bind(ITeamcityIgnitedProvider.class).to(TeamcityIgnitedProviderMock.class).in(new SingletonScope());
 

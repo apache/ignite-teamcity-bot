@@ -53,7 +53,7 @@ import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
  * TC Bot implementation. To be migrated to smaller injected classes
  */
 @Deprecated
-public class TcHelper implements ITcHelper, IJiraIntegration {
+public class TcHelper implements ITcHelper {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TcHelper.class);
 
@@ -199,7 +199,7 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
             return new Visa("JIRA wasn't commented - " + errMsg);
         }
 
-        return new Visa(JIRA_COMMENTED, res, blockers);
+        return new Visa(IJiraIntegration.JIRA_COMMENTED, res, blockers);
     }
 
 

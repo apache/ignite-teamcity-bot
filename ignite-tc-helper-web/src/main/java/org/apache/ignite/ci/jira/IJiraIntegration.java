@@ -37,4 +37,16 @@ public interface IJiraIntegration {
      */
     public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
         String ticket);
+
+    /** */
+    public String jiraUrl();
+
+    /** */
+    public void init(String srvId);
+
+    /** */
+    public String generateTicketUrl(String ticketFullName);
+
+    /** */
+    public String generateCommentUrl(String ticketFullName, int commentId);
 }

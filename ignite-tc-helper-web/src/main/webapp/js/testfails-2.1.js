@@ -59,21 +59,8 @@ function showChainResultsWithSettings(result, settings) {
     } else
         res += " is absent";
 
-    let suiteId;
-
-    if (isDefinedAndFilled(findGetParameter("suiteId"))) {
-        suiteId = findGetParameter("suiteId");
-    } else if (isDefinedAndFilled(result.servers[0])) {
-        let url = new URL(result.servers[0].webToHist);
-
-        suiteId = url.searchParams.get("buildTypeId");
-    }
-
-    if (isDefinedAndFilled(suiteId))
-        res += " | Suite: <b>" + suiteId + "</b>";
-
     res += "</td></tr>";
-    res += "</table>";
+    res += "</table></br>";
 
     for (var i = 0; i < result.servers.length; i++) {
         var server = result.servers[i];
@@ -99,26 +86,62 @@ function showChainCurrentStatusData(server, settings) {
 
     var res = "";
 
-    res += "<table border='0px'>";
-    res += "<tr bgcolor='#F5F5FF'><td colspan='3'><b><a href='" + server.webToHist + "'>";
+    res += "<table style='width: 100%;' border='0px'>";
+    res += "<tr bgcolor='#F5F5FF'><td colspan='3' width='75%'>";
+    res += "<table style='width: 40%'>";
+    res += "<tr><td><b> Server: </b></td><td>[" + server.serverId + "]</td></tr>";
+
+    if (isDefinedAndFilled(server.prNum)) {
+        res += "<tr><td><b> PR: </b></td><td>";
+
+        if (isDefinedAndFilled(server.webToPr))
+            res += "<a href='" + server.webToPr + "'>[#" + server.prNum + "]</a>";
+        else
+            res += "[#" + server.prNum + "]";
+
+        res += "</td></tr>";
+    }
+
+    if (isDefinedAndFilled(server.webToTicket) && isDefinedAndFilled(server.ticketFullName)) {
+        res += "<tr><td><b> Ticket: </b></td><td>";
+        res += "<a href='" + server.webToTicket + "'>[" + server.ticketFullName + "]</a>";
+        res += "</td></tr>";
+    }
+
+    let suiteName;
+
+    if (isDefinedAndFilled(findGetParameter("suiteId"))) {
+        suiteName = findGetParameter("suiteId");
+    } else if (isDefinedAndFilled(server)) {
+        let url = new URL(server.webToHist);
+
+        suiteName = url.searchParams.get("buildTypeId");
+    }
+
+    if (isDefinedAndFilled(suiteName)) {
+        res += "<tr><td><b> Suite: </b></td><td>[" + suiteName + "] ";
+        res += " <a href='" + server.webToHist + "'>[TC history]</a>";
+        res += "</td></tr>";
+    }
+
+    res += "</table>";
+    res += "</br>";
 
     if (isDefinedAndFilled(server.chainName)) {
         res += server.chainName + " ";
     }
-    res += server.serverId;
 
-    res += "</a> ";
-    res += "[";
-    res += " <a href='" + server.webToBuild + "' title=''>";
-    res += "tests " + server.failedTests + " suites " + server.failedToFinish + "";
-    res += " </a>";
-    res += "] ";
-    res += "[";
+    res += "<b>Chain result: </b>";
+
+    if (isDefinedAndFilled(server.failedToFinish) && isDefinedAndFilled(server.failedTests))
+        res += server.failedToFinish + " suites and " + server.failedTests + " tests failed";
+    else
+        res += "empty";
+
+    res += " ";
     res += "<a href='longRunningTestsReport.html'>";
-    res += "long running tests report";
+    res += "Long running tests report";
     res += "</a>";
-    res += "]";
-    res += "</b>";
 
     var mInfo = "";
 

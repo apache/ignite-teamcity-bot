@@ -16,8 +16,12 @@
  */
 package org.apache.ignite.ci.github.ignited;
 
+import com.google.common.base.Preconditions;
 import java.util.List;
+import javax.annotation.Nullable;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
 
 /**
  *
@@ -27,4 +31,18 @@ public interface IGitHubConnIgnited {
      * @return list of open pull requests
      */
     public List<PullRequest> getPullRequests();
+
+    /** */
+    public PullRequest getPullRequest(int prNum);
+
+    /** */
+    @AutoProfiling
+    @Nullable
+    public default PullRequest getPullRequest(String branchForTc) {
+        Integer prId = IGitHubConnection.convertBranchToId(branchForTc);
+
+        Preconditions.checkNotNull(prId, "Invalid TC branch name");
+
+        return getPullRequest(prId);
+    }
 }
