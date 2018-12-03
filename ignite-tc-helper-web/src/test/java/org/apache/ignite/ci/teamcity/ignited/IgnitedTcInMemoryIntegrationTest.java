@@ -33,6 +33,7 @@ import javax.xml.bind.JAXBException;
 
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
@@ -68,6 +69,7 @@ import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -121,6 +123,25 @@ public class IgnitedTcInMemoryIntegrationTest {
     public static void stopIgnite() {
         if (ignite != null)
             ignite.close();
+    }
+
+    /**
+     * Clear relevant ignite caches to avoid tests invluence to each other.
+     */
+    @Before
+    public void clearIgniteCaches() {
+        clearCache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+        clearCache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
+    }
+
+    /**
+     * @param cacheName Cache name to clear.
+     */
+    private void clearCache(String cacheName) {
+        IgniteCache<Long, BuildRefCompacted> buildRefCache = ignite.cache(cacheName);
+
+        if (buildRefCache != null)
+            buildRefCache.clear();
     }
 
     @Test
@@ -551,6 +572,7 @@ public class IgnitedTcInMemoryIntegrationTest {
             }
         });
         Injector injector = Guice.createInjector(module, new IgniteAndShedulerTestModule());
+
         IStringCompactor c = injector.getInstance(IStringCompactor.class);
         BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class).init();
         FatBuildDao fatBuildDao = injector.getInstance(FatBuildDao.class).init();
