@@ -274,12 +274,12 @@ public class ProactiveFatBuildSync {
         if (savedVer.isFakeStub())
             refCompacted.setId(buildId); //to provide possiblity to save the build
 
-        final String srvNme = conn.serverId();
-        final int srvIdMask = ITeamcityIgnited.serverIdToInt(srvNme);
+        final String srvName = conn.serverId();
+        final int srvIdMask = ITeamcityIgnited.serverIdToInt(srvName);
 
         buildRefDao.save(srvIdMask, refCompacted);
 
-        runHistSync.saveToHistoryLater(srvNme, savedVer);
+        runHistSync.saveToHistoryLater(srvName, savedVer);
 
         return savedVer;
     }
@@ -297,8 +297,8 @@ public class ProactiveFatBuildSync {
         //  System.err.println(Thread.currentThread().getName()+ ": Build " + buildId);
         //todo some sort of locking to avoid double requests
 
-        final String srvNme = conn.serverId();
-        final int srvIdMask = ITeamcityIgnited.serverIdToInt(srvNme);
+        final String srvName = conn.serverId();
+        final int srvIdMask = ITeamcityIgnited.serverIdToInt(srvName);
 
         Build build;
         List<TestOccurrencesFull> tests = new ArrayList<>();
@@ -340,7 +340,7 @@ public class ProactiveFatBuildSync {
         }
         catch (Exception e) {
             if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                logger.info("Loading build [" + buildId + "] for server [" + srvNme + "] failed:" + e.getMessage(), e);
+                logger.info("Loading build [" + buildId + "] for server [" + srvName + "] failed:" + e.getMessage(), e);
 
                 if (existingBuild != null) {
                     build = existingBuild.toBuild(compactor);
@@ -358,7 +358,7 @@ public class ProactiveFatBuildSync {
                     build.setCancelled();
                 }
             } else {
-                logger.error("Loading build [" + buildId + "] for server [" + srvNme + "] failed:" + e.getMessage(), e);
+                logger.error("Loading build [" + buildId + "] for server [" + srvName + "] failed:" + e.getMessage(), e);
 
                 e.printStackTrace();
 
