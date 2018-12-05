@@ -15,40 +15,40 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.conf;
+package org.apache.ignite.ci.tcmodel.mute;
 
-import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 
 /**
- * Content of poject
+ * Mute target (e.g. muted test).
  */
-@XmlRootElement(name="project")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class Project {
-    /** Id. */
-    @XmlAttribute public String id;
+public class MuteTarget {
+    /** Tests. */
+    @XmlElementWrapper(name="tests")
+    @XmlElement(name="test")
+    public List<TestRef> tests;
 
-    /** Name. */
-    @XmlAttribute(name="name")
-    public String name;
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
 
-    /** Build types. */
-    @XmlElementWrapper(name="buildTypes")
-    @XmlElement(name="buildType")
-    private List<BuildType> buildTypes;
+        if (o == null || getClass() != o.getClass())
+            return false;
 
-    /**
-     * @return List of project's build types or an empty list if there is no build types presented.
-     */
-    public List<BuildType> getBuildTypesNonNull() {
-        return buildTypes == null ? Collections.emptyList() : buildTypes;
+        MuteTarget target = (MuteTarget)o;
+
+        return tests != null ? tests.equals(target.tests) : target.tests == null;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return tests != null ? tests.hashCode() : 0;
     }
 }
-

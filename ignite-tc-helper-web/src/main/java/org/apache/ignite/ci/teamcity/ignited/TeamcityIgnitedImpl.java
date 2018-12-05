@@ -28,6 +28,9 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
+import org.apache.ignite.ci.tcmodel.mute.MuteDao;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
+import org.apache.ignite.ci.tcmodel.mute.Mutes;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
@@ -59,6 +62,9 @@ import java.util.stream.Collectors;
 
 import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
 
+/**
+ *
+ */
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Default project id. */
     public static final String DEFAULT_PROJECT_ID = "IgniteTests24Java8";
@@ -76,7 +82,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     public static final int MAX_INCREMENTAL_BUILDS_TO_CHECK = 5000;
 
     /** Server id. */
-    private String srvNme;
+    private String srvName;
 
     /** Pure HTTP Connection API. */
     private ITeamcityConn conn;
@@ -92,6 +98,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** Build DAO. */
     @Inject private FatBuildDao fatBuildDao;
+
+    /** Mute DAO. */
+    @Inject private MuteDao muteDao;
 
     @Inject private ProactiveFatBuildSync buildSync;
 
@@ -123,7 +132,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     private int srvIdMaskHigh;
 
     public void init(String srvId, ITeamcityConn conn) {
-        this.srvNme = srvId;
+        this.srvName = srvId;
         this.conn = conn;
 
         srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
@@ -132,16 +141,21 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         fatBuildDao.init();
         changesDao.init();
         runHistCompactedDao.init();
+        muteDao.init();
     }
 
+    /**
+     * @param taskName Task name.
+     * @return Task name concatenated with server name.
+     */
     @NotNull
     private String taskName(String taskName) {
-        return ITeamcityIgnited.class.getSimpleName() +"." + taskName + "." + srvNme;
+        return ITeamcityIgnited.class.getSimpleName() +"." + taskName + "." + srvName;
     }
 
     /** {@inheritDoc} */
     @Override public String serverId() {
-        return srvNme;
+        return srvName;
     }
 
     /** {@inheritDoc} */
@@ -308,6 +322,22 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
+    @Override public Mutes getMutes(String projectId) {
+        ensureActualizeMutes(projectId);
+
+        return muteDao.getMutes(srvIdMaskHigh, projectId);
+    }
+
+    /**
+     * Start named task to refresh mutes for given project.
+     *
+     * @param projectId Project id.
+     */
+    private void ensureActualizeMutes(String projectId) {
+        scheduler.sheduleNamed(taskName("actualizeMutes"), () -> actualizeMuteRefs(projectId), 1, TimeUnit.HOURS);
+    }
+
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override @NotNull public List<Integer> getLastNBuildsFromHistory(String btId, String branchForTc, int cnt) {
         List<BuildRefCompacted> hist = getAllBuildsCompacted(btId, branchForTc);
@@ -386,9 +416,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), this::actualizeRecentBuildRefs, 2, TimeUnit.MINUTES);
 
         // schedule find missing later
-        buildSync.invokeLaterFindMissingByBuildRef(srvNme, conn);
+        buildSync.invokeLaterFindMissingByBuildRef(srvName, conn);
 
-        runHistSync.invokeLaterFindMissingHistory(srvNme);
+        runHistSync.invokeLaterFindMissingHistory(srvName);
     }
 
     /** {@inheritDoc} */
@@ -396,7 +426,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
 
         //todo may add additional parameter: load builds into DB in sync/async fashion
-        runActualizeBuildRefs(srvNme, false, Sets.newHashSet(build.getId()));
+        runActualizeBuildRefs(srvName, false, Sets.newHashSet(build.getId()));
 
         return build;
     }
@@ -485,7 +515,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return changes.values();
     }
 
-
     /**
      *
      */
@@ -508,11 +537,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         //schedule direct reload for Fat Builds for all queued too-old builds
         buildSync.scheduleBuildsLoad(conn, directUpload);
 
-        runActualizeBuildRefs(srvNme, false, paginateUntil);
+        runActualizeBuildRefs(srvName, false, paginateUntil);
 
         if (!paginateUntil.isEmpty()) {
             //some builds may stuck in the queued or running, enforce loading now
-            buildSync.doLoadBuilds(-1, srvNme, conn, paginateUntil);
+            buildSync.doLoadBuilds(-1, srvName, conn, paginateUntil);
         }
 
         // schedule full resync later
@@ -530,14 +559,58 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      *
      */
     void fullReindex() {
-        runActualizeBuildRefs(srvNme, true, null);
+        runActualizeBuildRefs(srvName, true, null);
     }
 
+    /**
+     * Refresh mutes for given project.
+     *
+     * @param projectId Project id.
+     * @return Message with loading result.
+     */
+    protected String actualizeMuteRefs(String projectId) {
+        AtomicReference<String> outLinkNext = new AtomicReference<>();
+        Set<MuteInfo> tcDataPage = conn.getMutesPage(projectId, null, outLinkNext);
+        int mutesSaved = tcDataPage.size();
+
+        if (muteDao.projectExists(srvIdMaskHigh, projectId)) {
+            Set<MuteInfo> res = new HashSet<>(tcDataPage);
+
+            while (outLinkNext.get() != null) {
+                String nextPageUrl = outLinkNext.get();
+                outLinkNext.set(null);
+
+                tcDataPage = conn.getMutesPage(projectId, nextPageUrl, outLinkNext);
+
+                res.addAll(tcDataPage);
+
+                mutesSaved += tcDataPage.size();
+            }
+
+            muteDao.refreshMutes(srvIdMaskHigh, projectId, res);
+        } else {
+            muteDao.saveChunk(srvIdMaskHigh, projectId, tcDataPage);
+
+            while (outLinkNext.get() != null) {
+                String nextPageUrl = outLinkNext.get();
+                outLinkNext.set(null);
+
+                tcDataPage = conn.getMutesPage(projectId, nextPageUrl, outLinkNext);
+
+                muteDao.saveChunk(srvIdMaskHigh, projectId, tcDataPage);
+
+                mutesSaved += tcDataPage.size();
+            }
+        }
+
+        return "Mutes saved " + mutesSaved + " for " + projectId;
+    }
 
     /**
      * @param srvId Server id.
      * @param fullReindex Reindex all builds from TC history.
      * @param mandatoryToReload [in/out] Build ID should be found before end of sync. Ignored if fullReindex mode.
+     * @return Message with loading result.
      *
      */
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})

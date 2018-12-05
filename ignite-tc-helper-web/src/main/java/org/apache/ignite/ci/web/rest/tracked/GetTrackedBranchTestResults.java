@@ -17,13 +17,18 @@
 
 package org.apache.ignite.ci.web.rest.tracked;
 
+import java.util.Set;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
+import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
+import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -139,5 +144,32 @@ public class GetTrackedBranchTestResults {
         final TrackedBranchChainsProcessor tbProc = CtxListener.getInjector(ctx).getInstance(TrackedBranchChainsProcessor.class);
 
         return tbProc.getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds);
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param projectId Project id.
+     * @return Mutes for given server-project pair.
+     */
+    @GET
+    @Path("mutes")
+    public Set<MuteInfo> mutes(
+        @Nullable @QueryParam("serverId") String srvId,
+        @Nullable @QueryParam("projectId") String projectId
+    ) {
+        ICredentialsProv creds = ICredentialsProv.get(req);
+
+        if (F.isEmpty(srvId))
+            srvId = "apache";
+
+        if (F.isEmpty(projectId))
+            projectId = "IgniteTests24Java8";
+
+        if (!creds.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
+
+        return CtxListener.getInjector(ctx)
+            .getInstance(TcBotTriggerAndSignOffService.class)
+            .getMutes(srvId, projectId, creds);
     }
 }

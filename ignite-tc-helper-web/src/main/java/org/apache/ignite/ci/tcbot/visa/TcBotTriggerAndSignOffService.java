@@ -44,7 +44,9 @@ import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
+import org.apache.ignite.ci.tcmodel.mute.Mutes;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
@@ -165,6 +167,19 @@ public class TcBotTriggerAndSignOffService {
         }
 
         return visaStatuses;
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param creds Credentials.
+     * @return Mutes for given server-project pair.
+     */
+    public Set<MuteInfo> getMutes(String srvId, String projectId, ICredentialsProv creds) {
+        ITeamcityIgnited ignited = teamcityIgnitedProvider.server(srvId, creds);
+
+        Mutes mutes = ignited.getMutes(projectId);
+
+        return mutes == null ? null : mutes.getMutesNonNull();
     }
 
     /**

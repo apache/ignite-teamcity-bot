@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Apache Ignite Teamcity Bot - Muted tests</title>
+    <link rel="icon" href="img/leaf-icon-png-7066.png">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <link rel="stylesheet" href="css/style-1.5.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="js/common-1.6.js"></script>
+    <script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.js"></script>
+    <script src="https://cdn.datatables.net/1.10.16/js/dataTables.jqueryui.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css">
+    <script>
+        function showErrInLoadStatus(jqXHR, exception) {
+            if (jqXHR.status === 0) {
+                $("#loadStatus").html('Not connect.\n Verify Network.');
+            } else if (jqXHR.status === 404) {
+                $("#loadStatus").html('Requested page not found. [404]');
+            } else if (jqXHR.status === 401) {
+                $("#loadStatus").html('Unauthorized [401]');
+
+                setTimeout(function() {
+                    window.location.href = "/login.html" + "?backref=" + encodeURIComponent(window.location.href);
+                }, 1000);
+            } else if (jqXHR.status === 403) {
+                $("#loadStatus").html('Forbidden [403]');
+            } else if( jqXHR.status === 418) {
+                $("#loadStatus").html('Services are starting [418], I\'m a teapot');
+            } else if (jqXHR.status === 424) {
+                $("#loadStatus").html('Dependency problem: [424]: ' + jqXHR.responseText);
+            } else if (jqXHR.status === 500) {
+                $("#loadStatus").html('Internal Server Error [500].');
+            } else if (exception === 'parsererror') {
+                $("#loadStatus").html('Requested JSON parse failed.');
+            } else if (exception === 'timeout') {
+                $("#loadStatus").html('Time out error.');
+            } else if (exception === 'abort') {
+                $("#loadStatus").html('Ajax request aborted.');
+            } else {
+                $("#loadStatus").html('Uncaught Error.\n' + jqXHR.responseText);
+            }
+        }
+
+        $(document).ready(function() {
+            loadData();
+
+            $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
+        });
+
+        function loadData() {
+            $.ajax({
+                    url: "rest/tracked/mutes?serverId=apache",
+                    success: function (result) {
+                        showVisasTable(result);
+                    },
+                    error: showErrInLoadStatus
+                }
+            );
+        }
+
+        function showVisasTable(result) {
+            // Debug info
+            // if (isDefinedAndFilled(result)) {
+            //     result.sort((a, b) => (a.id < b.id) ? -1 : ((a.id > b.id) ? 1 : 0));
+            //     console.log(result);
+            // }
+
+            let visasTable = $('#visasTable');
+
+            let testNameMatcher = new RegExp("\\.(\\w+):.*\\.([$\\w]+\\.test\\w+)");
+            let testNameMatcher2 = new RegExp("(\\w+\.Test\\w+)$");
+            let suiteNameMatcher2 = new RegExp("(.*):");
+            let ticketMatcher = new RegExp("https:\\/\\/issues.apache.org\\/jira\\/browse\\/(IGNITE-\\d+)");
+
+            visasTable.dataTable().fnDestroy();
+
+            visasTable.DataTable({
+                data: result,
+                "iDisplayLength": 30, //rows to be shown by default
+                stateSave: true,
+                columnDefs: [
+                    {
+                        targets: '_all',
+                        className: 'dt-body-center'
+                    },
+                ],
+                columns: [
+                    {
+                        title: "Suite",
+                        "data": function (data, type, row, meta) {
+                            var name = data.target.test[0].name;
+                            var match = testNameMatcher.exec(name);
+                            var res = "";
+
+                            if (isDefinedAndFilled(match))
+                                res = match[1];
+                            else {
+                                match = suiteNameMatcher2.exec(name);
+
+                                if (isDefinedAndFilled(match))
+                                    res = match[1];
+                                else
+                                    res = "Can't parse suite - report to devs";
+                            }
+
+                            return "<span title='" + name + "'>" + res + "</span>";
+                        }
+                    },
+                    {
+                        title: "Test",
+                        "data": function (data, type, row, meta) {
+                            var name = data.target.test[0].name;
+                            var match = testNameMatcher.exec(name);
+                            var res = "";
+
+                            if (isDefinedAndFilled(match))
+                                res = match[2];
+                            else {
+                                match = testNameMatcher2.exec(name);
+
+                                if (isDefinedAndFilled(match))
+                                    res = match[1];
+                                else
+                                    res = name;
+                            }
+
+                            return "<span title='" + name + "'>" + res + "</span>";
+                        }
+                    },
+                    {
+                        title: "Mute",
+                        width: 60,
+                        "data": function (data) {
+                            if (isDefinedAndFilled(data.target.test)) {
+                                // TODO replace test.id by String because JS long is too low for Java long.
+                                // var testId = data.target.test[0].id;
+                                var testId = data.target.test[0].href.substring("/app/rest/tests/id:".length);
+                                var projectId = null;
+
+                                if (data.scope.project)
+                                    projectId = data.scope.project.id;
+                                else if (isDefinedAndFilled(data.scope.buildTypes) && data.scope.buildTypes.length > 0)
+                                    projectId = data.scope.buildTypes[0].projectId;
+
+                                if (isDefinedAndFilled(testId) && isDefinedAndFilled(projectId)) {
+                                    return "<a href=\"https://ci.ignite.apache.org/project.html?projectId="
+                                        + projectId + "&testNameId=" + testId + "&tab=testDetails\">" + data.id + "</a>"
+                                }
+                            }
+
+                            return data.id;
+                        }
+                    },
+                    {
+                        title: "Ticket",
+                        width: 100,
+                        "data": function (data, type, row, meta) {
+                            var ticket = ticketMatcher.exec(data.assignment.text);
+
+                            if (!isDefinedAndFilled(ticket))
+                                return "";
+
+                            return "<a href=\"" + ticket[0] + "\" title=\"" + ticket[0] + "\">" + ticket[1] + "</a>";
+                        }
+                    },
+                    {
+                        title: "Mute Date",
+                        "data": function (data, type, row, meta) {
+                            return stringToDate(data.assignment.timestamp);
+                        }
+                    },
+                    {
+                        title: "Project",
+                        "data": function (data, type, row, meta) {
+                            if (data.scope.project)
+                                return data.scope.project.name;
+
+                            if (isDefinedAndFilled(data.scope.buildTypes) && data.scope.buildTypes.length > 0)
+                                return data.scope.buildTypes[0].projectName;
+
+                            return "";
+                        }
+                    }
+                ]
+            })
+                .order( [[ 0, 'asc' ], [ 1, 'asc' ]] )
+                .draw();
+        }
+
+        function stringToDate(str) {
+            var Y = str.substring(0, 4);
+            var M = str.substring(4, 6);
+            var D = str.substring(6, 8);
+            var h = str.substring(9, 11);
+            var m = str.substring(11, 13);
+            var s = str.substring(13, 15);
+
+            return Y + '-' + M + '-' + D + ' ' + h + ':' + m + ':' + s;
+        }
+    </script>
+</head>
+<body>
+<br>
+<div id="loadStatus"></div>
+<br>
+<table id="visasTable" class="row-border" style="width:100%">
+    <thead>
+    <tr class="ui-widget-header ">
+        <th>.</th>
+        <th>.</th>
+        <th>.</th>
+        <th>.</th>
+        <th>.</th>
+        <th>.</th>
+    </tr>
+    </thead>
+</table>
+<br>
+<div id="version"></div>
+</body>
+</html>

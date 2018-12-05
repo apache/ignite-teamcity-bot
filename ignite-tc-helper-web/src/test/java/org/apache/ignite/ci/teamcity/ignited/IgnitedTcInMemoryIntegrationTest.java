@@ -39,15 +39,17 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitSheduler;
+import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.di.scheduler.NoOpSheduler;
+import org.apache.ignite.ci.di.scheduler.NoOpScheduler;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
+import org.apache.ignite.ci.tcmodel.mute.Mutes;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
@@ -169,7 +171,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         Injector injector = Guice.createInjector(module, new AbstractModule() {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
-                bind(IScheduler.class).to(DirectExecNoWaitSheduler.class);
+                bind(IScheduler.class).to(DirectExecNoWaitScheduler.class);
             }
         });
 
@@ -239,7 +241,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         Injector injector = Guice.createInjector(module, new AbstractModule() {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
-                bind(IScheduler.class).to(DirectExecNoWaitSheduler.class);
+                bind(IScheduler.class).to(DirectExecNoWaitScheduler.class);
             }
         });
 
@@ -340,7 +342,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         Injector injector = Guice.createInjector(module, new AbstractModule() {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
-                bind(IScheduler.class).to(NoOpSheduler.class);
+                bind(IScheduler.class).to(NoOpScheduler.class);
             }
         });
 
@@ -388,6 +390,31 @@ public class IgnitedTcInMemoryIntegrationTest {
         when(mock.getPassword(anyString())).thenReturn("123");
 
         return mock;
+    }
+
+    @Test
+    public void testMutesXml() throws JAXBException, IOException {
+        Mutes mutes = jaxbTestXml("/mutes.xml", Mutes.class);
+
+        assertNotNull(mutes);
+
+        Set<MuteInfo> infos = mutes.getMutesNonNull();
+
+        assertNotNull(infos);
+        assertEquals(100, infos.size());
+
+        MuteInfo mute = null;
+
+        for (MuteInfo info : infos) {
+            if (info.id != 4832)
+                continue;
+
+            mute = info;
+        }
+
+        assertEquals("20171215T185123+0300", mute.assignment.muteDate);
+        assertEquals("https://issues.apache.org/jira/browse/IGNITE-1090", mute.assignment.text);
+        assertEquals("IgniteTests24Java8", mute.scope.project.id);
     }
 
     @Test
@@ -655,7 +682,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         /** {@inheritDoc} */
         @Override protected void configure() {
             bind(Ignite.class).toInstance(ignite);
-            bind(IScheduler.class).to(DirectExecNoWaitSheduler.class).in(new SingletonScope());
+            bind(IScheduler.class).to(DirectExecNoWaitScheduler.class).in(new SingletonScope());
         }
     }
 }

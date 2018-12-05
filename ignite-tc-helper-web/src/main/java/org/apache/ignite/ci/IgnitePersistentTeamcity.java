@@ -19,6 +19,7 @@ package org.apache.ignite.ci;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import java.util.Set;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.analysis.*;
@@ -32,6 +33,7 @@ import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
@@ -661,6 +663,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public List<BuildRef> getBuildRefsPage(String fullUrl, AtomicReference<String> nextPage) {
         return teamcity.getBuildRefsPage(fullUrl, nextPage);
+    }
+
+    /** {@inheritDoc} */
+    @Override public Set<MuteInfo> getMutesPage(String buildTypeId, String fullUrl, AtomicReference<String> nextPage) {
+        return teamcity.getMutesPage(buildTypeId, fullUrl, nextPage);
     }
 
     /** {@inheritDoc} */
