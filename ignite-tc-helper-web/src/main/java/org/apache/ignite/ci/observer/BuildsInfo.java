@@ -30,16 +30,21 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.ContributionKey;
 
 /**
- *
+ * Represents parameters to determine context of rerunned builds, list of build IDs
+ * which were requested to rerun and provides methods to check status of
+ * rerunned builds.
  */
 public class BuildsInfo {
-    /** */
+    /** Shows that all rerunned builds finished successfully. */
     public static final String FINISHED_STATUS = "finished";
 
-    /** */
+    /** Shows that some rerunned builds is not finished. */
     public static final String RUNNING_STATUS = "running";
 
-    /** */
+    /**
+     * Shows that one or more rerunned builds were cancelled or have UNKNOWN
+     * status on TC for some other reasons.
+     */
     public static final String CANCELLED_STATUS = "cancelled";
 
     /** */
@@ -95,6 +100,9 @@ public class BuildsInfo {
 
     /**
      * @param teamcity Teamcity.
+     *
+     * @return One of {@link FINISHED_STATUS}, {@link CANCELLED_STATUS} or
+     * {@link RUNNING_STATUS} statuses.
      */
     public String getStatus(IAnalyticsEnabledTeamcity teamcity) {
         boolean isFinished = true;
