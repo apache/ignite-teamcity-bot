@@ -61,13 +61,10 @@ function showChainResultsWithSettings(result, settings) {
 
     let suiteId;
 
-    if (isDefinedAndFilled(findGetParameter("suiteId"))) {
+    if (isDefinedAndFilled(findGetParameter("suiteId")))
         suiteId = findGetParameter("suiteId");
-    } else if (isDefinedAndFilled(result.servers[0])) {
-        let url = new URL(result.servers[0].webToHist);
-
-        suiteId = url.searchParams.get("buildTypeId");
-    }
+    else if (isDefinedAndFilled(result.servers[0]))
+        findGetParameter("buildTypeId", result.servers[0].webToHist);
 
     if (isDefinedAndFilled(suiteId))
         res += " | Suite: <b>" + suiteId + "</b>";
@@ -88,6 +85,10 @@ function showChainResultsWithSettings(result, settings) {
 
 //@param server - see ChainAtServerCurrentStatus
 function showChainCurrentStatusData(server, settings) {
+    let suiteId = findGetParameter("suiteId");
+    let buildTypeId = findGetParameter("buildTypeId", server.webToHist);
+    let parentSuitId = isDefinedAndFilled(suiteId) ? suiteId : buildTypeId;
+
     if(!isDefinedAndFilled(server))
         return;
 
@@ -142,13 +143,13 @@ function showChainCurrentStatusData(server, settings) {
     if (suitesFailedList.length !== 0 && isDefinedAndFilled(server.serverId) && isDefinedAndFilled(server.branchName)) {
         mInfo += "Trigger failed " + cntFailed + " builds";
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" +
-            server.branchName + "\", false, false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", " +
+            "\"" + suitesFailedList + "\", \"" + server.branchName + "\", false, false)' ";
         mInfo += " title='trigger builds'>in queue</a> ";
 
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" +
-            server.branchName + "\", true, false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", " +
+            "\"" + suitesFailedList + "\", \"" + server.branchName + "\", true, false)' ";
         mInfo += " title='trigger builds'>on top</a><br>";
     }
 
@@ -190,8 +191,6 @@ function showChainCurrentStatusData(server, settings) {
     //     res += "<button onclick='notifyGit()'>Update PR status</button>";
     // }
 
-    var suiteId = findGetParameter("suiteId");
-
     if (settings.isJiraAvailable()) {
         res += "<button onclick='commentJira(\"" + server.serverId + "\", \"" + suiteId + "\", \""
             + server.branchName + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
@@ -211,11 +210,12 @@ function showChainCurrentStatusData(server, settings) {
             }
         }
 
-        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" +
-            server.branchName + "\", false, false)'> Re-run possible blockers</button><br>";
+        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", \"" +
+            blockersList + "\", \"" + server.branchName + "\", false, false)'> Re-run possible blockers</button><br>";
 
-        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" +
-            server.branchName + "\", false, true)'> Re-run possible blockers & Comment JIRA</button><br>";
+        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" +  + parentSuitId + "\", \"" +
+            blockersList + "\", \"" + server.branchName + "\", false, true)'> " +
+            "Re-run possible blockers & Comment JIRA</button><br>";
     }
 
     if (isDefinedAndFilled(server.baseBranchForTc)) {
@@ -365,7 +365,7 @@ function notifyGit() {
     });
 }
 
-function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId) {
+function triggerBuilds(serverId, parentSuiteId, suiteIdList, branchName, top, observe, ticketId) {
     var queueAtTop = isDefinedAndFilled(top) && top;
     var observeJira = isDefinedAndFilled(observe) && observe;
     var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
@@ -389,6 +389,7 @@ function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId
     }
 
     var suites = suiteIdList.split(',');
+    var parentSuite = isDefinedAndFilled(parentSuiteId) ? parentSuiteId : suites[0];
     var fewSuites = suites.length > 1;
 
     var message = "Trigger build" + (fewSuites ? "s" : "") + " at <b>server:</b> " + serverId + "<br>" +
@@ -418,6 +419,7 @@ function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId
             url: 'rest/build/trigger',
             data: {
                 "serverId": serverId,
+                "parentSuiteId" : parentSuite,
                 "suiteIdList": suiteIdList,
                 "branchName": branchName,
                 "top": queueAtTop,
@@ -625,13 +627,13 @@ function showSuiteData(suite, settings) {
     if (isDefinedAndFilled(suite.serverId) && isDefinedAndFilled(suite.suiteId) && isDefinedAndFilled(suite.branchName)) {
         mInfo += " Trigger build: ";
         mInfo += "<a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName
-            + "\", false, false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", null" +
+            suite.suiteId + "\", \"" + suite.branchName + "\", false, false)' ";
         mInfo += " title='trigger build' >queue</a> ";
 
         mInfo += "<a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName
-            + "\", true, false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", null" +
+            suite.suiteId + "\", \"" + suite.branchName + "\", true, false)' ";
         mInfo += " title='trigger build at top of queue'>top</a><br>";
     }
 
