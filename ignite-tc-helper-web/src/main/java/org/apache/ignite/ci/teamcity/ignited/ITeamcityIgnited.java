@@ -84,7 +84,10 @@ public interface ITeamcityIgnited {
      * @param srvId Server id.
      * @return integer representation of server ID.
      */
-    public static int serverIdToInt(String srvId) {
+    public static int serverIdToInt(@Nullable final String srvId) {
+        if (srvId == null)
+            return 0;
+
         return Math.abs(srvId.hashCode());
     }
 

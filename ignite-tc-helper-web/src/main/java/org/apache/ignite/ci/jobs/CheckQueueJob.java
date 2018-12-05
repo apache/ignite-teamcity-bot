@@ -103,7 +103,6 @@ public class CheckQueueJob implements Runnable {
             return msg;
         }
 
-        //todo support several branches
         List<BranchTracked> tracked = HelperConfig.getTrackedBranches().getBranches();
 
         if (tracked == null || tracked.isEmpty()) {

@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
@@ -68,6 +69,13 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         srvIdMaskHigh = Math.abs(srvId.hashCode());
 
         prCache = igniteProvider.get().getOrCreateCache(TcHelperDb.getCache8PartsConfig(GIT_HUB_PR));
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Nullable
+    @Override public PullRequest getPullRequest(int prNum) {
+        return prCache.get(prNumberToCacheKey(prNum));
     }
 
     /** {@inheritDoc} */

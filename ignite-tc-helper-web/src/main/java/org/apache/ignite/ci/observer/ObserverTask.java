@@ -32,6 +32,7 @@ import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.Visa;
@@ -51,8 +52,8 @@ public class ObserverTask extends TimerTask {
     /** Helper. */
     @Inject private ITcHelper tcHelper;
 
-    /** Helper. */
-    @Inject private IJiraIntegration jiraIntegration;
+    /** */
+    @Inject private IJiraIntegrationProvider jiraIntegrationProvider;
 
     /** */
     @Inject private VisasHistoryStorage visasHistStorage;
@@ -169,6 +170,8 @@ public class ObserverTask extends TimerTask {
 
                 if (!visa.isSuccess()) {
                     ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
+
+                    IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(info.srvId);
 
                     Visa updatedVisa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
                         info.branchForTc, info.ticket);

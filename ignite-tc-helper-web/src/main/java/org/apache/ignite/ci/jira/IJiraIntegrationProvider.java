@@ -14,36 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.visa;
+
+package org.apache.ignite.ci.jira;
 
 /**
  *
  */
-@SuppressWarnings("PublicField") public class ContributionToCheck {
-    /** Pr number. */
-    public Integer prNumber;
-
-    /** Pr title. */
-    public String prTitle;
-
-    /** Pr author. */
-    public String prAuthor;
-
-    /** Pr author avatar url. */
-    public String prAuthorAvatarUrl;
-
-    /** Pr html url. */
-    public String prHtmlUrl;
-
-    /** Branch Name for team city */
-    public String tcBranchName;
-
-    /** JIRA issue without server URL, but with project name */
-    public String jiraIssueId;
-
-    /** Pr time update. */
-    public String prTimeUpdate;
-
-    /** JIRA ticket url */
-    public String jiraIssueUrl;
+public interface IJiraIntegrationProvider {
+    /**
+     * @param srvId Server id.
+     */
+    public IJiraIntegration server(String srvId);
 }
