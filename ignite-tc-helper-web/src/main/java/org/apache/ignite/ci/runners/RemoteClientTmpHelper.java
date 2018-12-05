@@ -46,41 +46,47 @@ import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.jetbrains.annotations.NotNull;
 
 public class RemoteClientTmpHelper {
+    public static   String DUMPS = "dumps";
     private static boolean dumpDict = false;
 
     public static void main(String[] args) {
         try (Ignite ignite = tcbotServer()) {
-            String apacheSrvName = "apache";
-            int apache = ITeamcityIgnited.serverIdToInt(apacheSrvName);
+            validateBuildIdConsistency(ignite);
+        }
+    }
 
-            IgniteCache<String, IgniteStringCompactor.CompactorEntity> strings = ignite.cache(IgniteStringCompactor.STRINGS_CACHE);
-            IgniteStringCompactor.CompactorEntity queuedEnt = strings.get(BuildRef.STATE_QUEUED);
-            int stateQ = queuedEnt.id();
-            IgniteCache<Long, BuildRefCompacted> cacheRef = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
-            IgniteCache<Long, FatBuildCompacted> cacheFat = ignite.cache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
+    public static void validateBuildIdConsistency(Ignite ignite) {
+        String apacheSrvName = "apache";
+        int apache = ITeamcityIgnited.serverIdToInt(apacheSrvName);
 
-            String oldBuild = IgnitePersistentTeamcity.ignCacheNme(IgnitePersistentTeamcity.BUILDS, apacheSrvName);
-            IgniteCache<String, Build> buildCache = ignite.cache(oldBuild);
-            cacheRef.forEach(
-                entry -> {
-                    BuildRefCompacted buildRef = entry.getValue();
+        IgniteCache<String, IgniteStringCompactor.CompactorEntity> strings = ignite.cache(IgniteStringCompactor.STRINGS_CACHE);
+        IgniteStringCompactor.CompactorEntity queuedEnt = strings.get(BuildRef.STATE_QUEUED);
+        int stateQ = queuedEnt.id();
+        IgniteCache<Long, BuildRefCompacted> cacheRef = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
+        IgniteCache<Long, FatBuildCompacted> cacheFat = ignite.cache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
 
-                    int buildId = BuildRefDao.cacheKeyToBuildId(entry.getKey());
+        String oldBuild = IgnitePersistentTeamcity.ignCacheNme(IgnitePersistentTeamcity.BUILDS, apacheSrvName);
+        IgniteCache<String, Build> buildCache = ignite.cache(oldBuild);
+        cacheRef.forEach(
+            entry -> {
+                BuildRefCompacted buildRef = entry.getValue();
 
-                    if (buildRef.state() == stateQ && BuildRefDao.isKeyForServer(entry.getKey(), apache)) {
+                int buildId = BuildRefDao.cacheKeyToBuildId(entry.getKey());
 
-                        FatBuildCompacted fat = cacheFat.get(FatBuildDao.buildIdToCacheKey(apache, buildId));
-                        if (fat != null && fat.getId() != buildId) {
-                            dumpBuildRef(buildId, buildRef);
-                            dumpFatBuild(cacheFat, apache, buildId);
-                            String href = ITeamcity.buildHref(buildId);
-                            Build fatBuild = buildCache.get(href);
+                if (buildRef.state() == stateQ && BuildRefDao.isKeyForServer(entry.getKey(), apache)) {
+
+                    FatBuildCompacted fat = cacheFat.get(FatBuildDao.buildIdToCacheKey(apache, buildId));
+                    if (fat != null && fat.getId() != buildId) {
+                        dumpBuildRef(buildId, buildRef);
+                        dumpFatBuild(cacheFat, apache, buildId);
+                        String href = ITeamcity.buildHref(buildId);
+                        Build fatBuild = buildCache.get(href);
+                        if (fatBuild != null)
                             dumpOldBuild(buildId, href, fatBuild);
-                        }
                     }
                 }
-            );
-        }
+            }
+        );
     }
 
     public static void dumpOldBuild(int buildId, String href, Build fatBuild) {
@@ -169,7 +175,7 @@ public class RemoteClientTmpHelper {
     }
 
     @NotNull public static File dumpsDir() {
-        File dumps = new File("dumps");
+        File dumps = new File(DUMPS);
         if (!dumps.exists())
             Preconditions.checkState(dumps.mkdirs());
         return dumps;
