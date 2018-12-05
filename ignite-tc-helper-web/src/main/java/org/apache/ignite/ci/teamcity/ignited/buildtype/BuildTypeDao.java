@@ -159,9 +159,7 @@ public class BuildTypeDao {
 
         Comparator<BuildTypeCompacted> comp = Comparator.comparingInt(BuildTypeCompacted::buildNumberCounter);
 
-        comp.reversed();
-
-        res.sort(comp);
+        res.sort(comp.reversed());
 
         return res;
     }
