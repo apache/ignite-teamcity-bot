@@ -382,8 +382,8 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
             let jiraBtn = "<button onclick='" +
                 "commentJira(" +
                 "\"" + srvId + "\", " +
-                "\"" + suiteId + "\", " +
                 "\"" + finishedBranch + "\", " +
+                "\"" + suiteId + "\", " +
                 "\"" + row.jiraIssueId + "\"" +
                 "); " +
                 replaintCall +
@@ -432,6 +432,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
         // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
         let triggerBuildsCall = "triggerBuilds(" +
             "\"" + srvId + "\", " +
+            "null, " +
             "\"" + suiteId + "\", " +
             "\"" + status.resolvedBranch + "\"," +
             " false," +
@@ -448,6 +449,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
         // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
         let trigObserveCall = "triggerBuilds(" +
             "\"" + srvId + "\", " +
+            "null, " +
             "\"" + suiteId + "\", " +
             "\"" + status.resolvedBranch + "\"," +
             " false," +
