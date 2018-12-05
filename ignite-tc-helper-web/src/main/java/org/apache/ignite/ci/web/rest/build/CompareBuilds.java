@@ -123,6 +123,6 @@ public class CompareBuilds {
         if (!prov.hasAccess(srv))
             throw ServiceUnauthorizedException.noCreds(srv);
 
-        return compareBuildsSvc.tests0(srv, buildId);
+        return compareBuildsSvc.tests0(srv, buildId, prov);
     }
 }
