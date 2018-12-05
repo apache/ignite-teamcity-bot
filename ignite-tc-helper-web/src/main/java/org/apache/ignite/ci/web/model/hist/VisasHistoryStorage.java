@@ -35,10 +35,11 @@ import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.VisaRequest;
 
 /**
- *
+ * Storage which contains {@link VisaRequest} identified by
+ * {@link CompactContributionKey}, and stored in order of addition.
  */
 public class VisasHistoryStorage {
-    /** */
+    /** Cache name. */
     public static final String VISAS_CACHE_NAME = "compactVisasHistoryCacheV2";
 
     /** */
@@ -49,17 +50,19 @@ public class VisasHistoryStorage {
     @Inject
     private Ignite ignite;
 
-    /** */
+    /** Clear cache. */
     public void clear() {
         visas().clear();
     }
 
-    /** */
+    /**
+     * @return Instance of cache.
+     */
     public Cache<CompactContributionKey, List<CompactVisaRequest>> visas() {
         return ignite.getOrCreateCache(TcHelperDb.getCacheV3TxConfig(VISAS_CACHE_NAME));
     }
 
-    /** */
+    /** Put visa request to cache. */
     public void put(VisaRequest visaReq) {
         CompactVisaRequest compactVisaReq = new CompactVisaRequest(visaReq, strCompactor);
 
@@ -81,7 +84,11 @@ public class VisasHistoryStorage {
         });
     }
 
-    /** */
+    /**
+     * @param key {@link ContributionKey} instance.
+     *
+     * @return list of all {@link VisaRequest} for specified key.
+     */
     public List<VisaRequest> getVisaRequests(ContributionKey key) {
         List<CompactVisaRequest> reqs = visas().get(new CompactContributionKey(key, strCompactor));
 
@@ -93,7 +100,11 @@ public class VisasHistoryStorage {
             .collect(Collectors.toList());
     }
 
-    /** */
+    /**
+     * @param key {@link ContributionKey} instance.
+     *
+     * @return Last added {@link VisaRequest} for specified key.
+     */
     public VisaRequest getLastVisaRequest(ContributionKey key) {
         List<VisaRequest> reqs = getVisaRequests(key);
 
@@ -103,7 +114,12 @@ public class VisasHistoryStorage {
         return reqs.get(reqs.size() - 1);
     }
 
-    /** */
+    /**
+     * @param key {@link ContributionKey} instance.
+     * @param updater {@link Consumer<VisaRequest>} which will be applied to last Visa request for specified key.
+     *
+     * @return <code>True</code> if specified key exists.
+     */
     public boolean updateLastVisaRequest(ContributionKey key, Consumer<VisaRequest> updater) {
         CompactContributionKey compactKey = new CompactContributionKey(key, strCompactor);
 
@@ -129,7 +145,9 @@ public class VisasHistoryStorage {
         return true;
     }
 
-    /** */
+    /**
+     * @return Collection of last {@link VisaRequest} for every stored key.
+     */
     public Collection<VisaRequest> getLastVisas() {
         List<VisaRequest> res = new ArrayList<>();
 
@@ -142,7 +160,9 @@ public class VisasHistoryStorage {
         return Collections.unmodifiableCollection(res);
     }
 
-    /** */
+    /**
+     *  @return Collection of all {@link VisaRequest} for every stored key.
+     */
     public Collection<VisaRequest> getVisas() {
         List<VisaRequest> res = new ArrayList<>();
 
