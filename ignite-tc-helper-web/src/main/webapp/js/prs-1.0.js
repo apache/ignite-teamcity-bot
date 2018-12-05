@@ -348,6 +348,13 @@ function repaintLater(srvId, suiteId) {
 
 function showContributionStatus(status, prId, row, srvId, suiteId) {
     let tdForPr = $('#showResultFor' + prId);
+
+    if (!isDefinedAndFilled(status)) {
+        console.log("Status for " + prId + " is undefined. Wait for the Bot to load the suite list.");
+
+        return;
+    }
+
     let buildIsCompleted = isDefinedAndFilled(status.branchWithFinishedSuite);
     let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;

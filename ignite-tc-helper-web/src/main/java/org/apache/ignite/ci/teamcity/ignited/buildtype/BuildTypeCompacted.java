@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.conf.bt.Parameters;
 import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependencies;
@@ -87,16 +86,31 @@ public class BuildTypeCompacted extends BuildTypeRefCompacted implements IVersio
         this.buildNumberCounter = buildNumberCounter;
     }
 
+    /**
+     * @param compactor Compactor.
+     */
     public BuildTypeFull toBuildType(IStringCompactor compactor) {
+        return toBuildType(compactor, null);
+    }
+
+    /**
+     * @param compactor Compactor.
+     * @param host Normalized Host address, ends with '/'.
+     */
+    public BuildTypeFull toBuildType(IStringCompactor compactor, @Nullable String host) {
         BuildTypeFull res = new BuildTypeFull();
 
-        fillBuildTypeRefFields(compactor, res);
+        super.fillBuildTypeRefFields(compactor, res, host);
 
         fillBuildTypeFields(compactor, res);
 
         return res;
     }
 
+    /**
+     * @param compactor Compactor.
+     * @param res Response.
+     */
     protected void fillBuildTypeFields(IStringCompactor compactor, BuildTypeFull res) {
         res.setParameters(parameters == null ? new Parameters() : parameters.toParameters(compactor));
         res.setSettings(settings == null ? new Parameters() : settings.toParameters(compactor));
@@ -112,16 +126,6 @@ public class BuildTypeCompacted extends BuildTypeRefCompacted implements IVersio
         }
 
         res.setSnapshotDependencies(new SnapshotDependencies(snDpList));
-    }
-
-    protected void fillBuildTypeRefFields(IStringCompactor compactor, BuildType res) {
-        String id = id(compactor);
-        res.setId(id);
-        res.setName(compactor.getStringFromId(super.name()));
-        res.setProjectId(compactor.getStringFromId(super.projectId()));
-        res.setProjectName(compactor.getStringFromId(super.projectName()));
-        res.href = getHrefForId(id);
-        res.setWebUrl(getWebUrlForId(id));
     }
 
     public ParametersCompacted settings() {

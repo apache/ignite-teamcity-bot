@@ -208,7 +208,8 @@ public class TcHelper implements ITcHelper, IJiraIntegration {
      * @param webUrl Build URL.
      * @return Comment, which should be sent to the JIRA ticket.
      */
-    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl, String buildTypeId, ITeamcityIgnited tcIgnited) {
+    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl, String buildTypeId,
+        ITeamcityIgnited tcIgnited) {
         BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
 
         String suiteName = (bt != null ? bt.name(compactor) : buildTypeId);

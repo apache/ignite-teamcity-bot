@@ -32,8 +32,10 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
+import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
@@ -49,6 +51,7 @@ import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.VisaRequest;
@@ -65,6 +68,7 @@ import static org.apache.ignite.ci.observer.BuildsInfo.CANCELLED_STATUS;
 import static org.apache.ignite.ci.observer.BuildsInfo.FINISHED_STATUS;
 import static org.apache.ignite.ci.observer.BuildsInfo.RUNNING_STATUS;
 import static org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
+import static org.apache.ignite.ci.web.rest.parms.FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME;
 
 /**
  * Provides method for TC Bot Visa obtaining
@@ -188,6 +192,7 @@ public class TcBotTriggerAndSignOffService {
     @NotNull public String triggerBuildsAndObserve(
         @Nullable String srvId,
         @Nullable String branchForTc,
+        @Nonnull String parentSuiteId,
         @Nonnull String suiteIdList,
         @Nullable Boolean top,
         @Nullable Boolean observe,
@@ -205,7 +210,7 @@ public class TcBotTriggerAndSignOffService {
             builds[i] = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top);
 
         if (observe != null && observe)
-            jiraRes = observeJira(srvId, branchForTc, ticketId, prov, builds);
+            jiraRes = observeJira(srvId, branchForTc, ticketId, prov, parentSuiteId, builds);
 
         return jiraRes;
     }
@@ -223,6 +228,7 @@ public class TcBotTriggerAndSignOffService {
         String branchForTc,
         @Nullable String ticketFullName,
         ICredentialsProv prov,
+        String parentSuiteId,
         Build... builds
     ) {
         if (F.isEmpty(ticketFullName)) {
@@ -251,7 +257,7 @@ public class TcBotTriggerAndSignOffService {
             ticketFullName = ticketFullName.toUpperCase().startsWith("IGNITE-") ? ticketFullName : "IGNITE-" + ticketFullName;
         }
 
-        buildObserverProvider.get().observe(srvId, prov, ticketFullName, branchForTc, builds);
+        buildObserverProvider.get().observe(srvId, prov, ticketFullName, branchForTc, parentSuiteId, builds);
 
         if (!tcHelper.isServerAuthorized())
             return "Ask server administrator to authorize the Bot to enable JIRA notifications.";
@@ -301,9 +307,7 @@ public class TcBotTriggerAndSignOffService {
         }
 
         if (!Strings.isNullOrEmpty(ticketFullName)) {
-            BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticketFullName, branchForTc);
-
-            buildsInfo.buildTypeId = suiteId;
+            BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticketFullName, suiteId, branchForTc);
 
             VisaRequest lastVisaReq = visasHistoryStorage.getLastVisaRequest(buildsInfo.getContributionKey());
 
@@ -385,8 +389,18 @@ public class TcBotTriggerAndSignOffService {
 
         ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(srvId, prov);
 
+        StringBuilder buildTypeId = new StringBuilder();
+
+        HelperConfig.getTrackedBranches().get(DEFAULT_TRACKED_BRANCH_NAME)
+            .ifPresent(b -> b.getChainsStream().filter(c -> c.branchForRest.equals(ITeamcity.DEFAULT))
+            .findFirst().ifPresent(ch -> buildTypeId.append(ch.suiteId)));
+
+        BuildTypeCompacted suite = teamcity.getBuildType(buildTypeId.toString());
+
+        String projectId = Objects.nonNull(suite) ? compactor.getStringFromId(suite.projectId()) : DEFAULT_PROJECT_ID;
+
         List<String> compositeBuildTypes = teamcity
-            .getCompositeBuildTypesIdsSortedByBuildNumberCounter(DEFAULT_PROJECT_ID);
+            .getCompositeBuildTypesIdsSortedByBuildNumberCounter(projectId);
 
         for (String buildType : compositeBuildTypes) {
             List<BuildRefCompacted> forTests = findBuildsForPr(buildType, prId, teamcity);

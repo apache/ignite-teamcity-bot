@@ -261,13 +261,13 @@ public class IgnitedTcInMemoryIntegrationTest {
             .findFirst()
             .orElse(null);
 
-        BuildType runAllRefFromCache = srv.getBuildTypeRef(runAll).toBuildTypeRef(compactor);
+        BuildType runAllRefFromCache = srv.getBuildTypeRef(runAll).toBuildTypeRef(compactor, srv.host());
 
         assertEquals(runAllRef, runAllRefFromCache);
 
         BuildTypeFull runAllFull = jaxbTestXml("/" + runAll + ".xml", BuildTypeFull.class);
 
-        BuildTypeFull runAllFullFromCache = srv.getBuildType(runAll).toBuildType(compactor);
+        BuildTypeFull runAllFullFromCache = srv.getBuildType(runAll).toBuildType(compactor, srv.host());
 
         assertEquals(runAllFull, runAllFullFromCache);
     }
