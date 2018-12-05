@@ -40,12 +40,11 @@ public class CompareBuildsService {
     private static final Logger logger = LoggerFactory.getLogger(CompareBuildsService.class);
 
     @Inject ITcServerProvider helper;
-    @Inject ICredentialsProv prov;
     @Inject BuildChainProcessor bcp;
     @Inject ITeamcityIgnitedProvider tcIgnitedProv;
     @Inject IStringCompactor compactor;
 
-    public List<String> tests0(String srvId, Integer buildId ) {
+    public List<String> tests0(String srvId, Integer buildId, ICredentialsProv prov ) {
         IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, prov);
 
         String hrefById = teamcity.getBuildHrefById(buildId);
