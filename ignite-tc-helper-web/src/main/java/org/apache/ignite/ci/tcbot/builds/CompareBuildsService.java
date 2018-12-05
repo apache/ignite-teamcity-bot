@@ -47,7 +47,7 @@ public class CompareBuildsService {
     /**
      * @param srvId Server id.
      * @param buildId Build id.
-     * @param prov Credentials provider
+     * @param prov Credentials provider.
      * @return List of build tests.
      */
     public List<String> tests0(String srvId, Integer buildId, ICredentialsProv prov ) {
