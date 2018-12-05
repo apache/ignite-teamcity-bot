@@ -44,6 +44,12 @@ public class CompareBuildsService {
     @Inject ITeamcityIgnitedProvider tcIgnitedProv;
     @Inject IStringCompactor compactor;
 
+    /**
+     * @param srvId Server id.
+     * @param buildId Build id.
+     * @param prov Credentials provider
+     * @return List of build tests.
+     */
     public List<String> tests0(String srvId, Integer buildId, ICredentialsProv prov ) {
         IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, prov);
 
