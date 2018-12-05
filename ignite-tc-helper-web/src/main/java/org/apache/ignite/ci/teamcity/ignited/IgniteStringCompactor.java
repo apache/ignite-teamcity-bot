@@ -80,6 +80,10 @@ public class IgniteStringCompactor implements IStringCompactor {
                 .add("id", id)
                 .toString();
         }
+
+        public int id() {
+            return id;
+        }
     }
 
     private void initIfNeeded() {

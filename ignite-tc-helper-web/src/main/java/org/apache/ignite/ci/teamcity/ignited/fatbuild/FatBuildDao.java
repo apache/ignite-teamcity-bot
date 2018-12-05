@@ -80,7 +80,7 @@ public class FatBuildDao {
      * @param existingBuild existing version of build in the DB.
      * @return Fat Build saved (if modifications detected), otherwise null.
      */
-    public FatBuildCompacted saveBuild(long srvIdMaskHigh,
+    public FatBuildCompacted saveBuild(int srvIdMaskHigh,
                                        int buildId,
                                        @NotNull Build build,
                                        @NotNull List<TestOccurrencesFull> tests,
@@ -115,7 +115,7 @@ public class FatBuildDao {
     }
 
     @AutoProfiling
-    public void putFatBuild(long srvIdMaskHigh, int buildId, FatBuildCompacted newBuild) {
+    public void putFatBuild(int srvIdMaskHigh, int buildId, FatBuildCompacted newBuild) {
         buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
     }
 
@@ -136,8 +136,8 @@ public class FatBuildDao {
      * @param srvIdMaskHigh Server id mask high.
      * @param buildId Build id.
      */
-    public static long buildIdToCacheKey(long srvIdMaskHigh, int buildId) {
-        return (long)buildId | srvIdMaskHigh << 32;
+    public static long buildIdToCacheKey(int srvIdMaskHigh, int buildId) {
+        return (long)buildId | (long)srvIdMaskHigh << 32;
     }
 
     /**
@@ -170,8 +170,8 @@ public class FatBuildDao {
      * @param key Key.
      * @param srvId Server id.
      */
-    private boolean isKeyForServer(Long key, int srvId) {
-        return key!=null && key >> 32 == srvId;
+    public static boolean isKeyForServer(Long key, int srvId) {
+        return key != null && key >> 32 == srvId;
     }
 
     public boolean containsKey(int srvIdMaskHigh, int buildId) {

@@ -79,7 +79,7 @@ public class BuildRefDao {
      * @param key Key.
      * @param srvId Server id.
      */
-    private boolean isKeyForServer(Long key, int srvId) {
+    public static boolean isKeyForServer(Long key, int srvId) {
         return key!=null && key >> 32 == srvId;
     }
 
@@ -129,7 +129,7 @@ public class BuildRefDao {
      */
     public static int cacheKeyToBuildId(Long cacheKey) {
         long l = cacheKey << 32;
-        return (int) (l>>32);
+        return (int)(l >> 32);
     }
 
     /**
