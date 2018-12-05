@@ -62,7 +62,7 @@ public class TriggerBuilds {
     public SimpleResult triggerBuilds(
         @Nullable @QueryParam("serverId") String srvId,
         @Nullable @QueryParam("branchName") String branchForTc,
-        @Nonnull @QueryParam("parentSuite") String parentSuiteId,
+        @Nonnull @QueryParam("parentSuiteId") String parentSuiteId,
         @Nonnull @QueryParam("suiteIdList") String suiteIdList,
         @Nullable @QueryParam("top") Boolean top,
         @Nullable @QueryParam("observe") Boolean observe,

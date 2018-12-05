@@ -307,7 +307,7 @@ public class TcBotTriggerAndSignOffService {
         }
 
         if (!Strings.isNullOrEmpty(ticketFullName)) {
-            BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticketFullName, suiteId, branchForTc);
+            BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticketFullName, branchForTc, suiteId);
 
             VisaRequest lastVisaReq = visasHistoryStorage.getLastVisaRequest(buildsInfo.getContributionKey());
 
