@@ -50,11 +50,14 @@ public interface IJiraIntegration {
 
     /**
      * @param ticketFullName Ticket full name (e.g IGNITE-8331)
-     * URL which is used as link to Jira ticket with specified name.
+     *
+     * @return URL which is used as link to Jira ticket with specified name.
      */
     public String generateTicketUrl(String ticketFullName);
 
     /**
+     * @param ticketFullName Ticket full name (e.g IGNITE-8331)
+     *
      * @return URL which is used as link to Jira comment with specified id.
      */
     public String generateCommentUrl(String ticketFullName, int commentId);

@@ -28,7 +28,7 @@
  * persistent storage for observed {@link BuildsInfo} which are stored as
  * property of {@link org.apache.ignite.ci.web.model.VisaRequest}. It's
  * assumed that only one {@link BuildsInfo} observation should be for every
- * {@link org.apache.ignite.ci.web.model.ContributionKey}. And
+ * {@link org.apache.ignite.ci.web.model.ContributionKey} in same time. And
  * {@link org.apache.ignite.ci.web.model.VisaRequest} with which this
  * observation is connected should be last in
  * {@link org.apache.ignite.ci.web.model.hist.VisasHistoryStorage} request's

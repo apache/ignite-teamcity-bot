@@ -69,8 +69,8 @@ public class BuildObserver {
     }
 
     /**
-     * {@link ObserverTask} wll stop track status of observation for specified
-     * {@link ContributionKey}.
+     * {@link ObserverTask} will stop tracking status of observation for
+     * specified {@link ContributionKey}.
      *
      * @return {@code true} if observation which is connected with specified
      * {@link ContributionKey} was stopped.
