@@ -382,11 +382,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             return Collections.singletonList(branchName);
     }
 
+    /**
+     * Enables scheduleing for build refs/builds/history sync
+     */
     public void ensureActualizeRequested() {
-        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), this::actualizeRecentBuildRefs, 2, TimeUnit.MINUTES);
+        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), () -> actualizeRecentBuildRefs(srvNme), 2, TimeUnit.MINUTES);
 
         // schedule find missing later
-        buildSync.invokeLaterFindMissingByBuildRef(srvNme, conn);
+        buildSync.ensureActualizationRequested(srvNme, conn);
 
         runHistSync.invokeLaterFindMissingHistory(srvNme);
     }
@@ -485,11 +488,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return changes.values();
     }
 
+    String actualizeRecentBuildRefs() {
+        return actualizeRecentBuildRefs(srvNme);
+    }
 
     /**
      *
+     * @param srvNme TC service name
      */
-    void actualizeRecentBuildRefs() {
+    @MonitoredTask(name = "Prepare Actualize BuildRefs(srv, full resync)", nameExtArgsIndexes = {0})
+    String actualizeRecentBuildRefs(String srvNme) {
         List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdMaskHigh);
 
         Set<Integer> paginateUntil = new HashSet<>();
@@ -498,18 +506,22 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         List<Integer> runningIds = running.stream().map(BuildRefCompacted::id).collect(Collectors.toList());
         OptionalInt max = runningIds.stream().mapToInt(i -> i).max();
         if (max.isPresent()) {
-            runningIds.forEach(id->{
-                if(id > (max.getAsInt() - MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN))
+            runningIds.forEach(id -> {
+                if (id > (max.getAsInt() - MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN))
                     paginateUntil.add(id);
                 else
                     directUpload.add(id);
             });
         }
+
+        int cntFreshBuilds = paginateUntil.size();
+
         //schedule direct reload for Fat Builds for all queued too-old builds
         buildSync.scheduleBuildsLoad(conn, directUpload);
 
         runActualizeBuildRefs(srvNme, false, paginateUntil);
 
+        int freshButNotFoundByBuildsRefsScan = paginateUntil.size();
         if (!paginateUntil.isEmpty()) {
             //some builds may stuck in the queued or running, enforce loading now
             buildSync.doLoadBuilds(-1, srvNme, conn, paginateUntil);
@@ -517,6 +529,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         // schedule full resync later
         scheduler.invokeLater(this::sheduleResyncBuildRefs, 15, TimeUnit.MINUTES);
+
+        return "Build queue " + running.size() + ", relatively fresh: " + cntFreshBuilds +
+             ", fresh but not found by scan: " + freshButNotFoundByBuildsRefsScan +
+            ", old builds sheduled " + directUpload.size();
     }
 
     /**

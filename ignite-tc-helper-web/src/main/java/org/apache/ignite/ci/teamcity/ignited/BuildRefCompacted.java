@@ -66,7 +66,7 @@ public class BuildRefCompacted {
         state = compactor.getStringId(ref.state());
     }
 
-    public void setId(Integer buildId) {
+    public void setId(@Nullable Integer buildId) {
         this.id = buildId == null ? -1 : buildId;
     }
 
@@ -158,8 +158,18 @@ public class BuildRefCompacted {
     }
 
     /** */
+    protected void status(int status) {
+        this.status = status;
+    }
+
+    /** */
     public int state() {
         return state;
+    }
+
+    /** */
+    public void state(int state) {
+        this.state = state;
     }
 
     /** */
