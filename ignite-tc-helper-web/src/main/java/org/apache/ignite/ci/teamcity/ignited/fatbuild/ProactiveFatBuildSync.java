@@ -271,6 +271,9 @@ public class ProactiveFatBuildSync {
 
         FatBuildCompacted savedVer = reloadBuild(conn, buildId, existingBuild);
 
+        if (savedVer == null)
+            return null;
+
         BuildRefCompacted refCompacted = new BuildRefCompacted(savedVer);
         if (savedVer.isFakeStub())
             refCompacted.setId(buildId); //to provide possiblity to save the build
@@ -294,7 +297,7 @@ public class ProactiveFatBuildSync {
      */
     @SuppressWarnings({"WeakerAccess"})
     @AutoProfiling
-    public FatBuildCompacted reloadBuild(ITeamcityConn conn, int buildId, @Nullable FatBuildCompacted existingBuild) {
+    @Nullable public FatBuildCompacted reloadBuild(ITeamcityConn conn, int buildId, @Nullable FatBuildCompacted existingBuild) {
         //todo some sort of locking to avoid double requests
 
         final String srvName = conn.serverId();
