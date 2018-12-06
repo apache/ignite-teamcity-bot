@@ -68,15 +68,7 @@ public interface ITeamcity extends ITeamcityConn {
     @Deprecated
     Build getBuild(String href);
 
-    default Build getBuild(int buildId) {
-        return getBuild(getBuildHrefById(buildId));
-    }
-
-    @NotNull default String getBuildHrefById(int id) {
-        return buildHref(id);
-    }
-
-    @NotNull static String buildHref(int id) {
+    @NotNull public static String buildHref(int id) {
         return "app/rest/latest/builds/id:" + id;
     }
 
