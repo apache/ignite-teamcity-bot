@@ -50,10 +50,17 @@ public class RemoteClientTmpHelper {
     public static   String DUMPS = "dumps";
     private static boolean dumpDict = false;
 
+    /**
+     * @param args Args.
+     */
     public static void main(String[] args) {
+        int inconsistent;
+
         try (Ignite ignite = tcbotServer()) {
-            validateBuildIdConsistency(ignite);
+            inconsistent = validateBuildIdConsistency(ignite);
         }
+
+        System.err.println("Inconsistent builds in queue found [" + inconsistent + "]");
     }
 
     public static int validateBuildIdConsistency(Ignite ignite) {

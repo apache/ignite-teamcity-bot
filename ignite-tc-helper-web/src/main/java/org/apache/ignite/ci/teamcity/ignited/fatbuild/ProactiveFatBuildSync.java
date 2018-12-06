@@ -295,7 +295,6 @@ public class ProactiveFatBuildSync {
     @SuppressWarnings({"WeakerAccess"})
     @AutoProfiling
     public FatBuildCompacted reloadBuild(ITeamcityConn conn, int buildId, @Nullable FatBuildCompacted existingBuild) {
-        //  System.err.println(Thread.currentThread().getName()+ ": Build " + buildId);
         //todo some sort of locking to avoid double requests
 
         final String srvName = conn.serverId();
