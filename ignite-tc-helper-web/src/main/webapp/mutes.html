@@ -135,9 +135,7 @@
                         width: 60,
                         "data": function (data) {
                             if (isDefinedAndFilled(data.target.test)) {
-                                // TODO replace test.id by String because JS long is too low for Java long.
-                                // var testId = data.target.test[0].id;
-                                var testId = data.target.test[0].href.substring("/app/rest/tests/id:".length);
+                                var testId = data.target.test[0].id;
                                 var projectId = null;
 
                                 if (data.scope.project)

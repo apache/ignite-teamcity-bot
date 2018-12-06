@@ -78,7 +78,7 @@ public class MuteInfoCompacted {
         for (int i = 0; i < tests.size(); i++) {
             TestRef test = tests.get(i);
 
-            testIds[i] = test.id;
+            testIds[i] = Long.valueOf(test.id);
             testNames[i] = comp.getStringId(test.name);
             testHrefs[i] = comp.getStringId(test.href);
         }
@@ -108,7 +108,7 @@ public class MuteInfoCompacted {
         for (int i = 0; i < testIds.length; i++) {
             TestRef test = new TestRef();
 
-            test.id = testIds[i];
+            test.id = String.valueOf(testIds[i]);
             test.name = comp.getStringFromId(testNames[i]);
             test.href = comp.getStringFromId(testHrefs[i]);
 
