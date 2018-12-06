@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.teamcity.ignited;
 
+import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.junit.Test;
 
