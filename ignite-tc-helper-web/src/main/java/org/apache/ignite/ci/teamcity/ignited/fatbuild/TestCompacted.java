@@ -111,7 +111,7 @@ public class TestCompacted {
             actualBuildId = testOccurrence.build.getId();
 
         if (testOccurrence.test != null && testOccurrence.test.id != null)
-            testId = testOccurrence.test.id;
+            testId = Long.valueOf(testOccurrence.test.id);
 
         setDetails(testOccurrence.details);
     }
@@ -166,7 +166,7 @@ public class TestCompacted {
         if (testId != 0) {
             TestRef test = new TestRef();
 
-            test.id = testId;
+            test.id = String.valueOf(testId);
 
             occurrence.test = test;
         }
