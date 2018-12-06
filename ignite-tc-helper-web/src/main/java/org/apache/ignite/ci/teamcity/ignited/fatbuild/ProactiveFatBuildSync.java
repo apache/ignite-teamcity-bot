@@ -369,6 +369,9 @@ public class ProactiveFatBuildSync {
                     if(build.isRunning() || build.isQueued())
                         build.setCancelled();
 
+                    if (build.isFakeStub())
+                        build.setCancelled();
+
                     tests = Collections.singletonList(existingBuild.getTestOcurrences(compactor));
 
                     problems = existingBuild.problems(compactor);
