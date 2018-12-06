@@ -404,18 +404,19 @@ public class TcBotTriggerAndSignOffService {
             .ifPresent(b -> b.getChainsStream().filter(c -> c.branchForRest.equals(ITeamcity.DEFAULT))
             .findFirst().ifPresent(ch -> buildTypeId.append(ch.suiteId)));
 
-        BuildTypeCompacted suite = teamcity.getBuildType(buildTypeId.toString());
+        BuildTypeCompacted buildType = buildTypeId.length() > 0 ? teamcity.getBuildType(buildTypeId.toString()) : null;
 
-        String projectId = Objects.nonNull(suite) ? compactor.getStringFromId(suite.projectId()) : DEFAULT_PROJECT_ID;
+        String projectId = Objects.nonNull(buildType) ?
+            compactor.getStringFromId(buildType.projectId()) : DEFAULT_PROJECT_ID;
 
-        List<String> compositeBuildTypes = teamcity
+        List<String> compositeBuildTypeIds = teamcity
             .getCompositeBuildTypesIdsSortedByBuildNumberCounter(projectId);
 
-        for (String buildType : compositeBuildTypes) {
-            List<BuildRefCompacted> forTests = findBuildsForPr(buildType, prId, teamcity);
+        for (String btId : compositeBuildTypeIds) {
+            List<BuildRefCompacted> forTests = findBuildsForPr(btId, prId, teamcity);
 
-            statuses.add(forTests.isEmpty() ? new ContributionCheckStatus(buildType, branchForTcA(prId)) :
-                contributionStatus(srvId, buildType, forTests, teamcity, prId));
+            statuses.add(forTests.isEmpty() ? new ContributionCheckStatus(btId, branchForTcA(prId)) :
+                contributionStatus(srvId, btId, forTests, teamcity, prId));
         }
 
         return statuses;

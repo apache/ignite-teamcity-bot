@@ -497,7 +497,7 @@ function jiraTicketNumber(ticket) {
     return regExpr.exec(ticket)[2];
 }
 
-function commentJira(serverId, branchName, suiteId, ticketId) {
+function commentJira(serverId, branchName, parentSuiteId, ticketId) {
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
     ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? jiraTicketNumber(ticketId) : null;
@@ -525,7 +525,7 @@ function commentJira(serverId, branchName, suiteId, ticketId) {
         url: 'rest/build/commentJira',
         data: {
             "serverId": serverId,
-            "suiteId": suiteId,
+            "suiteId": parentSuiteId,
             "branchName": branchName,
             "ticketId": ticketId
         },
@@ -541,7 +541,7 @@ function commentJira(serverId, branchName, suiteId, ticketId) {
 
                         ticketId = $("#enterTicketId").val();
 
-                        commentJira(serverId, branchName, suiteId, ticketId)
+                        commentJira(serverId, branchName, parentSuiteId, ticketId)
                     },
                     "Cancel": function () {
                         $(this).dialog("close");
@@ -559,7 +559,7 @@ function commentJira(serverId, branchName, suiteId, ticketId) {
             var dialog = $("#triggerDialog");
 
             dialog.html("Trigger builds at server: " + serverId + "<br>" +
-                " Suite: " + suiteId + "<br>Branch:" + branchName +
+                " Suite: " + parentSuiteId + "<br>Branch:" + branchName +
                 "<br><br> Result: " + result.result +
                 (needTicketId ? ("<br><br>Enter JIRA ticket number: <input type='text' id='enterTicketId'>") : ""));
 
