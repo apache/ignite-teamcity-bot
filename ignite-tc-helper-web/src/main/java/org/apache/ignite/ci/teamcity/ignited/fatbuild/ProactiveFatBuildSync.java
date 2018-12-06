@@ -306,8 +306,13 @@ public class ProactiveFatBuildSync {
         if (existingBuild != null && existingBuild.isOutdatedEntityVersion()) {
             int ver = existingBuild.version();
             if (ver == FatBuildCompacted.VER_FULL_DATA_BUT_ID_CONFLICTS_POSSIBLE) {
-                if (Objects.equals(buildId, existingBuild.id()))
+                if (Objects.equals(buildId, existingBuild.id())) {
                     existingBuild.setVersion(FatBuildCompacted.LATEST_VERSION);
+
+                    fatBuildDao.putFatBuild(srvIdMask, buildId, existingBuild);
+
+                    return null;
+                }
                 else {
                     logger.warn("Build inconsistency found in the DB, removing build " + existingBuild.getId());
 
@@ -375,6 +380,10 @@ public class ProactiveFatBuildSync {
                     tests = Collections.singletonList(existingBuild.getTestOcurrences(compactor));
 
                     problems = existingBuild.problems(compactor);
+
+                    //todo extract new parameters or save fat build without XML
+                    // - existingBuild.statistics();
+                    // - int[] changes = existingBuild.changes();
                 }
                 else {
                     build = Build.createFakeStub();
