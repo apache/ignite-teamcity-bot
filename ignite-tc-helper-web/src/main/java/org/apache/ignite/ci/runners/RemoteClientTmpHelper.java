@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.cache.Cache;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
@@ -49,13 +50,21 @@ public class RemoteClientTmpHelper {
     public static   String DUMPS = "dumps";
     private static boolean dumpDict = false;
 
+    /**
+     * @param args Args.
+     */
     public static void main(String[] args) {
+        int inconsistent;
+
         try (Ignite ignite = tcbotServer()) {
-            validateBuildIdConsistency(ignite);
+            inconsistent = validateBuildIdConsistency(ignite);
         }
+
+        System.err.println("Inconsistent builds in queue found [" + inconsistent + "]");
     }
 
-    public static void validateBuildIdConsistency(Ignite ignite) {
+    public static int validateBuildIdConsistency(Ignite ignite) {
+        AtomicInteger inconsistent = new AtomicInteger();
         String apacheSrvName = "apache";
         int apache = ITeamcityIgnited.serverIdToInt(apacheSrvName);
 
@@ -65,8 +74,8 @@ public class RemoteClientTmpHelper {
         IgniteCache<Long, BuildRefCompacted> cacheRef = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
         IgniteCache<Long, FatBuildCompacted> cacheFat = ignite.cache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
 
-        String oldBuild = IgnitePersistentTeamcity.ignCacheNme(IgnitePersistentTeamcity.BUILDS, apacheSrvName);
-        IgniteCache<String, Build> buildCache = ignite.cache(oldBuild);
+        String cacheOldBuild = IgnitePersistentTeamcity.ignCacheNme(IgnitePersistentTeamcity.BUILDS, apacheSrvName);
+        IgniteCache<String, Build> buildCache = ignite.cache(cacheOldBuild);
         cacheRef.forEach(
             entry -> {
                 BuildRefCompacted buildRef = entry.getValue();
@@ -80,13 +89,20 @@ public class RemoteClientTmpHelper {
                         dumpBuildRef(buildId, buildRef);
                         dumpFatBuild(cacheFat, apache, buildId);
                         String href = ITeamcity.buildHref(buildId);
-                        Build fatBuild = buildCache.get(href);
-                        if (fatBuild != null)
-                            dumpOldBuild(buildId, href, fatBuild);
+                        Build oldBuild = buildCache.get(href);
+                        if (oldBuild != null)
+                            dumpOldBuild(buildId, href, oldBuild);
+
+                        inconsistent.incrementAndGet();
+
+                        if(!fat.isOutdatedEntityVersion())
+                            Preconditions.checkState(false, oldBuild);
                     }
                 }
             }
         );
+
+        return inconsistent.get();
     }
 
     public static void dumpOldBuild(int buildId, String href, Build fatBuild) {

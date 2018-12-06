@@ -325,6 +325,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return new SuiteInBranch(loaded.suiteId(), normalizeBranch(loaded.branchName));
     }
 
+    @Deprecated
     private Build realLoadBuild(String href1) {
         try {
             return teamcity.getBuild(href1);
@@ -350,6 +351,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public String host() {
         return teamcity.host();
+    }
+
+    /** {@inheritDoc} */
+    @Override public Build getBuild(int buildId) {
+        return teamcity.getBuild(buildId);
     }
 
     @Deprecated

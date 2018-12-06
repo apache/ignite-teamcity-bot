@@ -441,10 +441,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         FatBuildCompacted existingBuild = getFatBuildFromIgnite(buildId);
 
         if (mode == SyncMode.NONE) {
-            if (existingBuild != null)
-                return existingBuild;
-            else
-                return new FatBuildCompacted().setFakeStub(true); // providing fake builds
+            // providing fake builds
+            return existingBuild != null ? existingBuild : new FatBuildCompacted().setFakeStub(true);
         }
 
         FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, mode);

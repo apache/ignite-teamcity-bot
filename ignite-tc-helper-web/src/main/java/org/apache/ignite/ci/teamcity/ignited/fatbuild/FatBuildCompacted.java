@@ -50,7 +50,10 @@ import java.util.stream.Stream;
 @Persisted
 public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEntity {
     /** Latest version. */
-    private static final int LATEST_VERSION = 5;
+    public static final short LATEST_VERSION = 6;
+
+    /** Latest version. */
+    public static final short VER_FULL_DATA_BUT_ID_CONFLICTS_POSSIBLE = 5;
 
     /** Default branch flag offset. */
     public static final int DEF_BR_F = 0;
@@ -66,7 +69,14 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     public static final int[] EMPTY = new int[0];
 
-    /** Entity fields version. */
+    /**
+     * Entity fields version.
+     * <ul>
+     * <li>{@link #VER_FULL_DATA_BUT_ID_CONFLICTS_POSSIBLE} - fully supported field set, tests, problems. </li>
+     * <li>6 - done double check if build ID is consistent with a key. If this check passes, version is set to 6, if
+     * not-build is deleted.</li>
+     * </ul>
+     */
     private short _ver = LATEST_VERSION;
 
     /** Start date. The number of milliseconds since January 1, 1970, 00:00:00 GMT */
@@ -494,5 +504,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         invocation.startDate(getStartDateTs());
         invocation.changesPresent(changes().length > 0 ? 1 : 0);
         return invocation;
+    }
+
+    public void setVersion(short version) {
+        this._ver = version;
     }
 }

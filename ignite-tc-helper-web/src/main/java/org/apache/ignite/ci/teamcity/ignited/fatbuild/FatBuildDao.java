@@ -119,6 +119,12 @@ public class FatBuildDao {
         buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
     }
 
+
+    @AutoProfiling
+    public boolean removeFatBuild(int srvIdMaskHigh, int buildId) {
+       return  buildsCache.remove(buildIdToCacheKey(srvIdMaskHigh, buildId));
+    }
+
     public static int[] extractChangeIds(@NotNull ChangesList changesList) {
         return changesList.changes().stream().mapToInt(
                         ch -> {

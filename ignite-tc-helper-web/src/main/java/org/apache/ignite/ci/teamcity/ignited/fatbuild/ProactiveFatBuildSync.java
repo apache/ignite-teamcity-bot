@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import java.util.stream.Stream;
@@ -294,11 +295,25 @@ public class ProactiveFatBuildSync {
     @SuppressWarnings({"WeakerAccess"})
     @AutoProfiling
     public FatBuildCompacted reloadBuild(ITeamcityConn conn, int buildId, @Nullable FatBuildCompacted existingBuild) {
-        //  System.err.println(Thread.currentThread().getName()+ ": Build " + buildId);
         //todo some sort of locking to avoid double requests
 
         final String srvName = conn.serverId();
         final int srvIdMask = ITeamcityIgnited.serverIdToInt(srvName);
+
+        if (existingBuild != null && existingBuild.isOutdatedEntityVersion()) {
+            int ver = existingBuild.version();
+            if (ver == FatBuildCompacted.VER_FULL_DATA_BUT_ID_CONFLICTS_POSSIBLE) {
+                if (Objects.equals(buildId, existingBuild.id()))
+                    existingBuild.setVersion(FatBuildCompacted.LATEST_VERSION);
+                else {
+                    logger.warn("Build inconsistency found in the DB, removing build " + existingBuild.getId());
+
+                    existingBuild = null;
+
+                    fatBuildDao.removeFatBuild(srvIdMask, buildId);
+                }
+            }
+        }
 
         Build build;
         List<TestOccurrencesFull> tests = new ArrayList<>();
@@ -309,9 +324,12 @@ public class ProactiveFatBuildSync {
             build = conn.getBuild(buildId);
 
             if (build.isFakeStub())
-                build.setCancelled();
+                build.setCancelled(); // probably now it will not happen because of direct connection to TC.
+            else
+                Preconditions.checkState(Objects.equals(build.getId(), buildId),
+                    "Build IDs are not consistent: returned " + build.getId() + " queued is " + buildId);
 
-            if(build.testOccurrences != null && !build.isComposite()) { // don't query tests for compoite
+            if (build.testOccurrences != null && !build.isComposite()) { // don't query tests for compoite
                 String nextHref = null;
                 do {
                     TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, true);
