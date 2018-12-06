@@ -28,14 +28,24 @@ import org.apache.ignite.ci.user.UserAndSessionsStorage;
  * Utility class for local connection to TC helper DB (server) and any manipulations with data needed.
  */
 public class ClientTmpHelper {
+    /**
+     * @param args Args.
+     */
     public static void main(String[] args) {
-        try (Ignite ignite = TcHelperDb.startClient()){
+        int inconsistent;
+        try (Ignite ignite = TcHelperDb.startClient()) {
             RemoteClientTmpHelper.DUMPS = "dumpsLocal";
 
-            RemoteClientTmpHelper.validateBuildIdConsistency(ignite);
+            inconsistent = RemoteClientTmpHelper.validateBuildIdConsistency(ignite);
         }
+
+        System.err.println("Inconsistent builds in queue found [" +
+            +inconsistent + "]");
     }
 
+    /**
+     * @param args Args.
+     */
     public static void main0(String[] args) {
         Ignite ignite = TcHelperDb.startClient();
 

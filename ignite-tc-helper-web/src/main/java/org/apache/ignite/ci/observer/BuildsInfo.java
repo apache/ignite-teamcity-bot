@@ -23,11 +23,14 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.ContributionKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents parameters to determine context of observed builds, list of build IDs
@@ -46,6 +49,9 @@ public class BuildsInfo {
      * status on TC for some other reasons.
      */
     public static final String CANCELLED_STATUS = "cancelled";
+
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(BuildsInfo.class);
 
     /** */
     public final String userName;
@@ -104,16 +110,16 @@ public class BuildsInfo {
      * @return One of {@link #FINISHED_STATUS}, {@link #CANCELLED_STATUS} or
      * {@link #RUNNING_STATUS} statuses.
      */
-    public String getStatus(IAnalyticsEnabledTeamcity teamcity) {
+    public String getStatus(ITeamcityIgnited teamcity) {
         boolean isFinished = true;
 
         for (Integer id : builds) {
-            Build build = teamcity.getBuild(id);
+            FatBuildCompacted build = teamcity.getFatBuild(id);
 
-            if (build.isUnknown())
+            if (build.isFakeStub() || build.isCancelled(teamcity.compactor()))
                 return CANCELLED_STATUS;
 
-            if (!build.isFinished())
+            if (!build.isFinished(teamcity.compactor()))
                 isFinished = false;
         }
 
@@ -123,14 +129,14 @@ public class BuildsInfo {
     /**
      * @param teamcity Teamcity.
      */
-    public boolean isFinished(IAnalyticsEnabledTeamcity teamcity) {
+    public boolean isFinished(ITeamcityIgnited teamcity) {
         return FINISHED_STATUS.equals(getStatus(teamcity));
     }
 
     /**
      * @param teamcity Teamcity.
      */
-    public boolean isCancelled(IAnalyticsEnabledTeamcity teamcity) {
+    public boolean isCancelled(ITeamcityIgnited teamcity) {
         return CANCELLED_STATUS.equals(getStatus(teamcity));
     }
 
@@ -144,13 +150,13 @@ public class BuildsInfo {
     /**
      * Return finished builds count.
      */
-    public int finishedBuildsCount(IAnalyticsEnabledTeamcity teamcity){
+    public int finishedBuildsCount(ITeamcityIgnited teamcity){
         int finishedCnt = 0;
 
         for (Integer id : builds) {
-            Build build = teamcity.getBuild(id);
+            FatBuildCompacted build = teamcity.getFatBuild(id);
 
-            if (build.isFinished())
+            if (!build.isFakeStub() && build.isFinished(teamcity.compactor()))
                 ++finishedCnt;
         }
 

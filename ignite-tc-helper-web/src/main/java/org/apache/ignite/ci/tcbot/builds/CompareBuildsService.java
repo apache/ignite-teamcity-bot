@@ -53,7 +53,7 @@ public class CompareBuildsService {
     public List<String> tests0(String srvId, Integer buildId, ICredentialsProv prov ) {
         IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, prov);
 
-        String hrefById = teamcity.getBuildHrefById(buildId);
+        String hrefById = ITeamcity.buildHref(buildId);
         BuildRef buildRef = new BuildRef();
 
         buildRef.setId(buildId);

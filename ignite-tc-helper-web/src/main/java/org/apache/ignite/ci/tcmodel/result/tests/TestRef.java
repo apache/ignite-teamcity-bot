@@ -26,6 +26,6 @@ import org.apache.ignite.ci.tcmodel.result.AbstractRef;
  */
 @XmlRootElement(name = "test")
 public class TestRef extends AbstractRef {
-    @XmlAttribute public Long id;
+    @XmlAttribute public String id;
     @XmlAttribute public String name;
 }

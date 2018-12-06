@@ -27,12 +27,13 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Inject;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.Visa;
@@ -57,6 +58,9 @@ public class ObserverTask extends TimerTask {
     @Inject private ITcHelper tcHelper;
 
     /** */
+    @Inject private ITeamcityIgnitedProvider teamcityIgnitedProvider;
+
+    /** */
     @Inject private IJiraIntegrationProvider jiraIntegrationProvider;
 
     /** */
@@ -73,7 +77,8 @@ public class ObserverTask extends TimerTask {
     ObserverTask() {
     }
 
-    /** Connect to {@link VisaHistoryStorage} to get observed
+    /**
+     * Connects to {@link VisasHistoryStorage} to get observed
      * {@link VisaRequest}. Chiefly it's used for reconstructing
      *  observations after server restart.
      */
@@ -157,7 +162,8 @@ public class ObserverTask extends TimerTask {
             for (ContributionKey key : infos.keySet()) {
                 BuildsInfo info = infos.get(key);
 
-                IAnalyticsEnabledTeamcity teamcity = tcHelper.server(info.srvId, tcHelper.getServerAuthorizerCreds());
+                ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(info.srvId,
+                    tcHelper.getServerAuthorizerCreds());
 
                 checkedBuilds += info.buildsCount();
 

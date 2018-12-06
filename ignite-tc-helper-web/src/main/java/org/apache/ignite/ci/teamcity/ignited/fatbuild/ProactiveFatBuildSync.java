@@ -241,9 +241,40 @@ public class ProactiveFatBuildSync {
      * @param srvName Server name.
      * @param conn Connection.
      */
-    public void invokeLaterFindMissingByBuildRef(String srvName, ITeamcityConn conn) {
+    public void ensureActualizationRequested(String srvName, ITeamcityConn conn) {
         scheduler.sheduleNamed(taskName("findMissingBuildsFromBuildRef", srvName),
-                () -> findMissingBuildsFromBuildRef(srvName, conn), 360, TimeUnit.MINUTES);
+            () -> findMissingBuildsFromBuildRef(srvName, conn), 360, TimeUnit.MINUTES);
+
+        /*
+        scheduler.sheduleNamed(taskName("migrateBuildsToV6", srvName),
+            () -> migrateBuildsToV6(srvName, conn), 8, TimeUnit.HOURS);
+             */
+    }
+
+    /**
+     * @param srvName Server name.
+     * @param conn Connection.
+     */
+    @MonitoredTask(name = "Migrate Builds to V6", nameExtArgsIndexes = {0})
+    public String migrateBuildsToV6(String srvName, ITeamcityConn conn) {
+        int srvId = ITeamcityIgnited.serverIdToInt(srvName);
+
+        AtomicInteger cnt = new AtomicInteger();
+        AtomicInteger divergedIds = new AtomicInteger();
+        fatBuildDao.outdatedVersionEntries(srvId).forEach(entry -> {
+            cnt.incrementAndGet();
+            int buildId = BuildRefDao.cacheKeyToBuildId(entry.getKey());
+            FatBuildCompacted transformed = transformV5Build(
+                srvId,
+                buildId,
+                entry.getValue());
+
+            if (transformed != null)
+                divergedIds.incrementAndGet();
+        });
+
+        return "Found: " + cnt.get() + " builds found having version < 6 and "
+            + divergedIds.get() + " with ID divergence.";
     }
 
     /**
@@ -270,6 +301,9 @@ public class ProactiveFatBuildSync {
 
         FatBuildCompacted savedVer = reloadBuild(conn, buildId, existingBuild);
 
+        if (savedVer == null)
+            return null;
+
         BuildRefCompacted refCompacted = new BuildRefCompacted(savedVer);
         if (savedVer.isFakeStub())
             refCompacted.setId(buildId); //to provide possiblity to save the build
@@ -293,12 +327,16 @@ public class ProactiveFatBuildSync {
      */
     @SuppressWarnings({"WeakerAccess"})
     @AutoProfiling
-    public FatBuildCompacted reloadBuild(ITeamcityConn conn, int buildId, @Nullable FatBuildCompacted existingBuild) {
-        //  System.err.println(Thread.currentThread().getName()+ ": Build " + buildId);
+    @Nullable public FatBuildCompacted reloadBuild(ITeamcityConn conn, int buildId, @Nullable FatBuildCompacted existingBuild) {
         //todo some sort of locking to avoid double requests
 
         final String srvName = conn.serverId();
         final int srvIdMask = ITeamcityIgnited.serverIdToInt(srvName);
+
+        if (existingBuild != null && existingBuild.isOutdatedEntityVersion()) {
+            if (existingBuild.version() == FatBuildCompacted.VER_FULL_DATA_BUT_ID_CONFLICTS_POSSIBLE)
+                return transformV5Build(srvIdMask, buildId, existingBuild);
+        }
 
         Build build;
         List<TestOccurrencesFull> tests = new ArrayList<>();
@@ -309,9 +347,14 @@ public class ProactiveFatBuildSync {
             build = conn.getBuild(buildId);
 
             if (build.isFakeStub())
-                build.setCancelled();
+                build.setCancelled(); // probably now it will not happen because of direct connection to TC.
+            else {
+                if(!Objects.equals(build.getId(), buildId))
+                    throw new FileNotFoundException(
+                        "Build IDs are not consistent: returned " + build.getId() + " queued is " + buildId);
+            }
 
-            if(build.testOccurrences != null && !build.isComposite()) { // don't query tests for compoite
+            if (build.testOccurrences != null && !build.isComposite()) { // don't query tests for compoite
                 String nextHref = null;
                 do {
                     TestOccurrencesFull page = conn.getTestsPage(buildId, nextHref, true);
@@ -348,9 +391,16 @@ public class ProactiveFatBuildSync {
                     if(build.isRunning() || build.isQueued())
                         build.setCancelled();
 
+                    if (build.isFakeStub())
+                        build.setCancelled();
+
                     tests = Collections.singletonList(existingBuild.getTestOcurrences(compactor));
 
                     problems = existingBuild.problems(compactor);
+
+                    //todo extract new parameters or save fat build without XML convertions
+                    // - existingBuild.statistics();
+                    // - int[] changes = existingBuild.changes();
                 }
                 else {
                     build = Build.createFakeStub();
@@ -369,5 +419,27 @@ public class ProactiveFatBuildSync {
         //if we are here because of some sort of outdated version of build,
         // new save will be performed with new entity version for compacted build
         return fatBuildDao.saveBuild(srvIdMask, buildId, build, tests, problems, statistics, changesList, existingBuild);
+    }
+
+    @Nullable
+    public FatBuildCompacted transformV5Build(int srvIdMask, int buildId, @NotNull FatBuildCompacted existingBuild) {
+        if (Objects.equals(buildId, existingBuild.id())) {
+            existingBuild.setVersion(FatBuildCompacted.LATEST_VERSION);
+
+            fatBuildDao.putFatBuild(srvIdMask, buildId, existingBuild);
+
+            return null;
+        }
+        else {
+            logger.warn("Build inconsistency found in the DB, removing build " + existingBuild.getId());
+
+            FatBuildCompacted buildCompacted = new FatBuildCompacted()
+                .setFakeStub(true)
+                .setCancelled(compactor);
+
+            fatBuildDao.putFatBuild(srvIdMask, buildId, buildCompacted);
+
+            return buildCompacted;
+        }
     }
 }

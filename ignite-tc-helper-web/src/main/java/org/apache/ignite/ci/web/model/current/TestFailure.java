@@ -174,11 +174,13 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         }
     }
 
-    private static String buildWebLink(ITeamcityIgnited tcIgn, Long id,
+    private static String buildWebLink(ITeamcityIgnited tcIgn, String id,
         @Nullable String projectId, @Nullable String branchName) {
         if (projectId == null)
             return null;
+
         final String branch = branchForLink(branchName);
+
         return tcIgn.host() + "project.html"
             + "?projectId=" + projectId
             + "&testNameId=" + id
