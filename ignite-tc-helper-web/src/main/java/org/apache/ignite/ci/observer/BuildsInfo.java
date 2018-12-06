@@ -30,9 +30,9 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.ContributionKey;
 
 /**
- * Represents parameters to determine context of rerunned builds, list of build IDs
- * which were requested to rerun and provides methods to check status of
- * rerunned builds.
+ * Represents parameters to determine context of observed builds, list of build IDs
+ * which were requested for observing and provides methods to check status of
+ * observed builds.
  */
 public class BuildsInfo {
     /** Shows that all rerunned builds finished successfully. */
@@ -43,7 +43,7 @@ public class BuildsInfo {
 
     /**
      * Shows that one or more rerunned builds were cancelled or have UNKNOWN
-     * status on TC for some other reasons.
+     * status on TC for some reasons.
      */
     public static final String CANCELLED_STATUS = "cancelled";
 
