@@ -43,7 +43,7 @@ public class BuildsInfo {
 
     /**
      * Shows that one or more rerunned builds were cancelled or have UNKNOWN
-     * status on TC for some reasons.
+     * status on TC for some other reasons.
      */
     public static final String CANCELLED_STATUS = "cancelled";
 
@@ -101,8 +101,8 @@ public class BuildsInfo {
     /**
      * @param teamcity Teamcity.
      *
-     * @return One of {@link FINISHED_STATUS}, {@link CANCELLED_STATUS} or
-     * {@link RUNNING_STATUS} statuses.
+     * @return One of {@link #FINISHED_STATUS}, {@link #CANCELLED_STATUS} or
+     * {@link #RUNNING_STATUS} statuses.
      */
     public String getStatus(IAnalyticsEnabledTeamcity teamcity) {
         boolean isFinished = true;

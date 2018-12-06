@@ -21,19 +21,23 @@ import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.user.ICredentialsProv;
 
 /**
- *
+ * Reperesents methods to provide interaction with Jira servers.
  */
 public interface IJiraIntegration {
     /** Message to show user when JIRA ticket was successfully commented by the Bot. */
     public static String JIRA_COMMENTED = "JIRA commented.";
 
     /**
+     * Produce visa message(see {@link Visa}) based on passed
+     * parameters and publish it as a comment for specified ticket
+     * on Jira server.
+     *
      * @param srvId TC Server ID to take information about token from.
      * @param prov Credentials.
      * @param buildTypeId Suite name.
      * @param branchForTc Branch for TeamCity.
      * @param ticket JIRA ticket full name. E.g. IGNITE-5555
-     * @return {@code True} if JIRA was notified.
+     * @return {@link Visa} instance.
      */
     public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
         String ticket);
@@ -44,9 +48,14 @@ public interface IJiraIntegration {
     /** */
     public void init(String srvId);
 
-    /** */
+    /**
+     * @param ticketFullName Ticket full name (e.g IGNITE-8331)
+     * URL which is used as link to Jira ticket with specified name.
+     */
     public String generateTicketUrl(String ticketFullName);
 
-    /** */
+    /**
+     * @return URL which is used as link to Jira comment with specified id.
+     */
     public String generateCommentUrl(String ticketFullName, int commentId);
 }

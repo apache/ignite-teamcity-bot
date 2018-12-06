@@ -21,7 +21,8 @@ import org.apache.ignite.ci.observer.CompactBuildsInfo;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
- *
+ * Representation of {@link CompactVisaRequest} with compacted properties for more
+ * effective cache storing.
  */
 public class CompactVisaRequest {
     /** */

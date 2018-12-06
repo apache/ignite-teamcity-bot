@@ -46,7 +46,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 /**
  * Presents statistic for all valid builds and merged failed unmuted tests in
  * specified time interval. Statistics and tests are stored in
- * {@link buildsStatistics} and {@link mergedTestsBySuites} properties
+ * {@link #buildsStatistics} and {@link #mergedTestsBySuites} properties
  * respectively. Builder pattern is used for instance creation.
  * Default values: <br>skipTests = false,<br>projectId="IgniteTests24Java8",
  * <br>srvId="apache", <br>buildTypeId="IgniteTests24Java8_RunAll",
@@ -93,7 +93,7 @@ public class BuildsHistory {
 
 
     /**
-     * Initialize {@link mergedTestsBySuites} and {@link buildsStatistics}
+     * Initialize {@link #mergedTestsBySuites} and {@link #buildsStatistics}
      * properties using builds which satisfy properties setted by Builder.
      *
      * @param prov Credentials.
@@ -126,7 +126,7 @@ public class BuildsHistory {
     }
 
     /**
-     * Initialize {@link buildsStatistics} property with list of {@link BuildStatisticsSummary}
+     * Initialize {@link #buildsStatistics} property with list of {@link BuildStatisticsSummary}
      * produced for each valid build.
      *
      * @param ignited {@link ITeamcityIgnited} instance.
@@ -171,7 +171,7 @@ public class BuildsHistory {
     }
 
     /**
-     * Initialize {@link mergedTestsBySuites} property by unique failed tests
+     * Initialize {@link #mergedTestsBySuites} property by unique failed tests
      * which occured in specified date interval.
      *
      * @param buildIds list of valid builds.

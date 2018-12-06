@@ -27,7 +27,9 @@ import javax.inject.Inject;
 import org.apache.ignite.ci.util.ExceptionUtil;
 
 /**
- *
+ * Class for providing {@link IJiraIntegration} instance for specified Jira
+ * server. Instance for each server is cached with defining instance
+ * expiration time.
  */
 public class JiraIntegrationProvider implements IJiraIntegrationProvider {
     /** */

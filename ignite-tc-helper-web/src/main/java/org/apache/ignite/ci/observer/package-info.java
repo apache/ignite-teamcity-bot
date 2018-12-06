@@ -16,7 +16,7 @@
  */
 
 /**
- * This package intended for creating tasks which statuses and
+ * This package is intended for creating tasks which statuses and
  * results will be observed scheduled. {@link BuildObserver},
  * {@link BuildsInfo} and {@link ObserverTask} are used for automatic Jira
  * Visa reporting for every {@link BuildsInfo} whose builds were finished.
@@ -36,9 +36,9 @@
  * It's needed for proper changing of status and result of
  * {@link org.apache.ignite.ci.web.model.VisaRequest} by {@link ObserverTask}.
  * If happens an attempt to add observation
- * for {@link org.apache.ignite.ci.web.model.ContributionKey} while current is
- * not finished, then current observation will be marked as cancelled and
- * overwritten by the new one.
+ * for {@link org.apache.ignite.ci.web.model.ContributionKey} while current
+ * observation is not finished, then current observation will be marked as
+ * cancelled and overwritten by the new one.
  *
  */
 package org.apache.ignite.ci.observer;

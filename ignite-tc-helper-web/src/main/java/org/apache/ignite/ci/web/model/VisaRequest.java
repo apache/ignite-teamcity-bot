@@ -22,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Representation of visa request from TC Bot. Visa request can be with
- * additional builds rerun and without them. So it is used for tracking
+ * additional builds to rerun and without them. So it is used for tracking
  * rerunned builds status and storing resulting visa.
  */
 public class VisaRequest {

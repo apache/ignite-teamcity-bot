@@ -35,7 +35,7 @@ import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.VisaRequest;
 
 /**
- * Storage which contains {@link VisaRequest} sorted by
+ * Storage which contains {@link VisaRequest} identified by
  * {@link CompactContributionKey}, and stored in order of addition.
  */
 public class VisasHistoryStorage {
@@ -103,7 +103,8 @@ public class VisasHistoryStorage {
     /**
      * @param key {@link ContributionKey} instance.
      *
-     * @return Last added {@link VisaRequest} for specified key. */
+     * @return Last added {@link VisaRequest} for specified key.
+     */
     public VisaRequest getLastVisaRequest(ContributionKey key) {
         List<VisaRequest> reqs = getVisaRequests(key);
 
@@ -117,7 +118,7 @@ public class VisasHistoryStorage {
      * @param key {@link ContributionKey} instance.
      * @param updater {@link Consumer<VisaRequest>} which will be applied to last Visa request for specified key.
      *
-     * @return {@link True} if specified key exists.
+     * @return <code>True</code> if specified key exists.
      */
     public boolean updateLastVisaRequest(ContributionKey key, Consumer<VisaRequest> updater) {
         CompactContributionKey compactKey = new CompactContributionKey(key, strCompactor);

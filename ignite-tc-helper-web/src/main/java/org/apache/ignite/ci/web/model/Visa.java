@@ -39,7 +39,7 @@ public class Visa {
     public final int blockers;
 
     /**
-     * @return instance of {@link Visa} with {@link EMPTY_VISA_STATUS}
+     * @return instance of {@link Visa} with {@link #EMPTY_VISA_STATUS}
      */
     public static Visa emptyVisa() {
         return new Visa(EMPTY_VISA_STATUS);

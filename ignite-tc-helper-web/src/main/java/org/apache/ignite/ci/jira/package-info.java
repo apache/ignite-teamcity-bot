@@ -15,20 +15,9 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.model;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 /**
- * Representation of responce which was received after Jira commenting request.
+ * This package is inteneded for interracting with Jira servers. It contains
+ * classes which is needed for injection Jira integration service instance
+ * via Guice. And interfaces and classes which provide specified functionality.
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class JiraCommentResponse {
-    /** */
-    private int id;
-
-    /** */
-    public int getId() {
-        return id;
-    }
-}
+package org.apache.ignite.ci.jira;
