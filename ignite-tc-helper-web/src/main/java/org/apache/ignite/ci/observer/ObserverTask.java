@@ -44,6 +44,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Checks observed builds for finished status and comments JIRA ticket.
+ * All observations are mapped with {@link ContributionKey} which are produced
+ * from BuildsInfo and used as a key for specific observation. It interacts
+ * with {@link VisasHistoryStorage} as persistent storage. For more information
+ * see package-info.
  */
 public class ObserverTask extends TimerTask {
     /** Logger. */
@@ -69,7 +73,11 @@ public class ObserverTask extends TimerTask {
     ObserverTask() {
     }
 
-    /** */
+    /**
+     * Connects to {@link VisasHistoryStorage} to get observed
+     * {@link VisaRequest}. Chiefly it's used for reconstructing
+     *  observations after server restart.
+     */
     public void init() {
         visasHistStorage.getLastVisas().stream()
             .filter(req -> req.isObserving())
@@ -87,7 +95,11 @@ public class ObserverTask extends TimerTask {
         return infos.values();
     }
 
-    /** */
+    /**
+     * Add {@link BuildsInfo} for observation.
+     * Observation with similar to given {@link ContributionKey} will be
+     * overwritten.
+     */
     public void addInfo(BuildsInfo info) {
         visasHistStorage.updateLastVisaRequest(info.getContributionKey(), req -> req.setObservingStatus(false));
 
@@ -126,7 +138,7 @@ public class ObserverTask extends TimerTask {
     }
 
     /**
-     *
+     * That method is runned by {@link ObserverTask} scheduled.
      */
     @AutoProfiling
     @MonitoredTask(name = "Build Observer")
