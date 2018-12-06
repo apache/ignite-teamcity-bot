@@ -295,7 +295,7 @@ public class PrChainsProcessorTest {
 
         tf.test = new TestRef();
 
-        tf.test.id = id;
+        tf.test.id = String.valueOf(id);
         tf.name = name;
         tf.status = passed ? TestOccurrence.STATUS_SUCCESS : TestOccurrence.STATUS_FAILURE;
         return tf;
