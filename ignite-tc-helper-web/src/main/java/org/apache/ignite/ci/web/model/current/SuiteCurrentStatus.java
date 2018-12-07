@@ -53,7 +53,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
  */
 @SuppressWarnings("WeakerAccess") public class SuiteCurrentStatus extends FailureSummary {
     /** Use New run stat in PR analysis. */
-    public static final boolean NEW_RUN_STAT = false;
+    public static final boolean NEW_RUN_STAT = true;
 
     /** Suite Name */
     public String name;
