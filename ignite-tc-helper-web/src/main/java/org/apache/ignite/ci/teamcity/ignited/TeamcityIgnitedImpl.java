@@ -415,7 +415,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      * Enables scheduleing for build refs/builds/history sync
      */
     public void ensureActualizeRequested() {
-        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), () -> actualizeRecentBuildRefs(srvNme), 2, TimeUnit.MINUTES);
+        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), () -> actualizeRecentBuildRefs(srvName), 2, TimeUnit.MINUTES);
 
         buildRefSync.ensureActualizeRequested();
 

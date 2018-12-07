@@ -20,7 +20,6 @@ package org.apache.ignite.ci.tcmodel.mute;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.internal.util.typedef.F;
@@ -38,11 +37,8 @@ public class MuteInfoCompacted {
     /** Assignment. Text. */
     int text;
 
-    /** Scope. Project id. */
-    int projectId;
-
-    /** Scope. Project name. */
-    int projectName;
+    /** Scope. */
+    MuteScopeCompacted scope;
 
     /** Target. Test ids. */
     long[] testIds;
@@ -63,8 +59,7 @@ public class MuteInfoCompacted {
         muteDate = comp.getStringId(mute.assignment.muteDate);
         text = comp.getStringId(mute.assignment.text);
 
-        projectId = comp.getStringId(mute.scope.project.id);
-        projectName = comp.getStringId(mute.scope.project.name);
+        scope = new MuteScopeCompacted(mute.scope, comp);
 
         List<TestRef> tests = mute.target.tests;
 
@@ -97,10 +92,7 @@ public class MuteInfoCompacted {
         mute.assignment.muteDate = comp.getStringFromId(muteDate);
         mute.assignment.text = comp.getStringFromId(text);
 
-        mute.scope = new MuteScope();
-        mute.scope.project = new Project();
-        mute.scope.project.id = comp.getStringFromId(projectId);
-        mute.scope.project.name = comp.getStringFromId(projectName);
+        mute.scope = scope.toMuteScope(comp);
 
         mute.target = new MuteTarget();
         mute.target.tests = new ArrayList<>();
@@ -133,9 +125,7 @@ public class MuteInfoCompacted {
             return false;
         if (text != compacted.text)
             return false;
-        if (projectId != compacted.projectId)
-            return false;
-        if (projectName != compacted.projectName)
+        if (scope != compacted.scope)
             return false;
         if (!Arrays.equals(testIds, compacted.testIds))
             return false;
@@ -151,8 +141,7 @@ public class MuteInfoCompacted {
 
         res = 31 * res + muteDate;
         res = 31 * res + text;
-        res = 31 * res + projectId;
-        res = 31 * res + projectName;
+        res = 31 * res + scope.hashCode();
         res = 31 * res + Arrays.hashCode(testIds);
         res = 31 * res + Arrays.hashCode(testNames);
         res = 31 * res + Arrays.hashCode(testHrefs);
