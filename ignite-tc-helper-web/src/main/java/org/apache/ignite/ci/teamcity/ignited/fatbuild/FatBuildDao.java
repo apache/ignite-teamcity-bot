@@ -24,6 +24,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+import javax.annotation.Nullable;
+import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.validation.constraints.NotNull;
@@ -37,7 +41,6 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,8 +66,10 @@ public class FatBuildDao {
     /**
      *
      */
-    public void init() {
+    public FatBuildDao init() {
         buildsCache = igniteProvider.get().getOrCreateCache(TcHelperDb.getCacheV2Config(TEAMCITY_FAT_BUILD_CACHE_NAME));
+
+        return this;
     }
 
     /**
@@ -78,7 +83,7 @@ public class FatBuildDao {
      * @param existingBuild existing version of build in the DB.
      * @return Fat Build saved (if modifications detected), otherwise null.
      */
-    public FatBuildCompacted saveBuild(long srvIdMaskHigh,
+    @Nullable public FatBuildCompacted saveBuild(int srvIdMaskHigh,
                                        int buildId,
                                        @NotNull Build build,
                                        @NotNull List<TestOccurrencesFull> tests,
@@ -113,7 +118,7 @@ public class FatBuildDao {
     }
 
     @AutoProfiling
-    public void putFatBuild(long srvIdMaskHigh, int buildId, FatBuildCompacted newBuild) {
+    public void putFatBuild(int srvIdMaskHigh, int buildId, FatBuildCompacted newBuild) {
         buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
     }
 
@@ -134,8 +139,8 @@ public class FatBuildDao {
      * @param srvIdMaskHigh Server id mask high.
      * @param buildId Build id.
      */
-    public static long buildIdToCacheKey(long srvIdMaskHigh, int buildId) {
-        return (long)buildId | srvIdMaskHigh << 32;
+    public static long buildIdToCacheKey(int srvIdMaskHigh, int buildId) {
+        return (long)buildId | (long)srvIdMaskHigh << 32;
     }
 
     /**
@@ -168,11 +173,17 @@ public class FatBuildDao {
      * @param key Key.
      * @param srvId Server id.
      */
-    private boolean isKeyForServer(Long key, int srvId) {
-        return key!=null && key >> 32 == srvId;
+    public static boolean isKeyForServer(Long key, int srvId) {
+        return key != null && key >> 32 == srvId;
     }
 
-    public boolean containsKey(int srvIdMaskHigh, int buildRefKey) {
-        return buildsCache.containsKey(buildIdToCacheKey(srvIdMaskHigh, buildRefKey));
+    public boolean containsKey(int srvIdMaskHigh, int buildId) {
+        return buildsCache.containsKey(buildIdToCacheKey(srvIdMaskHigh, buildId));
+    }
+
+    public Stream<Cache.Entry<Long, FatBuildCompacted>> outdatedVersionEntries(int srvId) {
+        return StreamSupport.stream(buildsCache.spliterator(), false)
+            .filter(entry -> entry.getValue().isOutdatedEntityVersion())
+            .filter(entry -> isKeyForServer(entry.getKey(), srvId));
     }
 }

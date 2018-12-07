@@ -32,6 +32,7 @@ import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.Visa;
@@ -43,6 +44,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Checks observed builds for finished status and comments JIRA ticket.
+ * All observations are mapped with {@link ContributionKey} which are produced
+ * from BuildsInfo and used as a key for specific observation. It interacts
+ * with {@link VisasHistoryStorage} as persistent storage. For more information
+ * see package-info.
  */
 public class ObserverTask extends TimerTask {
     /** Logger. */
@@ -51,8 +56,8 @@ public class ObserverTask extends TimerTask {
     /** Helper. */
     @Inject private ITcHelper tcHelper;
 
-    /** Helper. */
-    @Inject private IJiraIntegration jiraIntegration;
+    /** */
+    @Inject private IJiraIntegrationProvider jiraIntegrationProvider;
 
     /** */
     @Inject private VisasHistoryStorage visasHistStorage;
@@ -68,7 +73,11 @@ public class ObserverTask extends TimerTask {
     ObserverTask() {
     }
 
-    /** */
+    /**
+     * Connects to {@link VisasHistoryStorage} to get observed
+     * {@link VisaRequest}. Chiefly it's used for reconstructing
+     *  observations after server restart.
+     */
     public void init() {
         visasHistStorage.getLastVisas().stream()
             .filter(req -> req.isObserving())
@@ -86,7 +95,11 @@ public class ObserverTask extends TimerTask {
         return infos.values();
     }
 
-    /** */
+    /**
+     * Add {@link BuildsInfo} for observation.
+     * Observation with similar to given {@link ContributionKey} will be
+     * overwritten.
+     */
     public void addInfo(BuildsInfo info) {
         visasHistStorage.updateLastVisaRequest(info.getContributionKey(), req -> req.setObservingStatus(false));
 
@@ -125,7 +138,7 @@ public class ObserverTask extends TimerTask {
     }
 
     /**
-     *
+     * That method is runned by {@link ObserverTask} scheduled.
      */
     @AutoProfiling
     @MonitoredTask(name = "Build Observer")
@@ -169,6 +182,8 @@ public class ObserverTask extends TimerTask {
 
                 if (!visa.isSuccess()) {
                     ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
+
+                    IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(info.srvId);
 
                     Visa updatedVisa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
                         info.branchForTc, info.ticket);

@@ -19,13 +19,11 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import org.apache.ignite.cache.query.annotations.QuerySqlField;
+import java.util.List;
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
-
-import javax.annotation.Nullable;
-import java.util.List;
 
 /**
  *
@@ -84,7 +82,7 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     }
 
     @Override public String getFlakyComments() {
-        return null;
+        return null; //todo implement
     }
 
     @Override public int getCriticalFailuresCount() {

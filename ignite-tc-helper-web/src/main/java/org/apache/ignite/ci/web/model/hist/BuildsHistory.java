@@ -44,7 +44,13 @@ import java.util.stream.Collectors;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
- * Builds History: includes statistic for every build and merged failed unmuted tests in specified time interval.
+ * Presents statistic for all valid builds and merged failed unmuted tests in
+ * specified time interval. Statistics and tests are stored in
+ * {@link #buildsStatistics} and {@link #mergedTestsBySuites} properties
+ * respectively. Builder pattern is used for instance creation.
+ * Default values: <br>skipTests = false,<br>projectId="IgniteTests24Java8",
+ * <br>srvId="apache", <br>buildTypeId="IgniteTests24Java8_RunAll",
+ * <br>branchName="refs/heads/master".
  */
 public class BuildsHistory {
     /** */
@@ -73,7 +79,7 @@ public class BuildsHistory {
     /** */
     private boolean skipTests;
 
-    /** */
+    /** Build statistics for all valid builds in specified time interval. */
     public List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
 
     /** */
@@ -86,7 +92,12 @@ public class BuildsHistory {
     @Inject private IStringCompactor compactor;
 
 
-    /** */
+    /**
+     * Initialize {@link #mergedTestsBySuites} and {@link #buildsStatistics}
+     * properties using builds which satisfy properties setted by Builder.
+     *
+     * @param prov Credentials.
+     */
     public void initialize(ICredentialsProv prov) {
         ITeamcityIgnited ignitedTeamcity = tcIgnitedProv.server(srvId, prov);
 
@@ -114,7 +125,13 @@ public class BuildsHistory {
             System.out.println("Preparing response");
     }
 
-    /** */
+    /**
+     * Initialize {@link #buildsStatistics} property with list of {@link BuildStatisticsSummary}
+     * produced for each valid build.
+     *
+     * @param ignited {@link ITeamcityIgnited} instance.
+     * @param buildIdsWithConditions Build ID -> build validation flag.
+     */
     private void initStatistics(ITeamcityIgnited ignited,
         Map<Integer, Boolean> buildIdsWithConditions) {
         List<Future<BuildStatisticsSummary>> buildStaticsFutures = new ArrayList<>();
@@ -153,7 +170,13 @@ public class BuildsHistory {
         });
     }
 
-    /** */
+    /**
+     * Initialize {@link #mergedTestsBySuites} property by unique failed tests
+     * which occured in specified date interval.
+     *
+     * @param buildIds list of valid builds.
+     * @param buildIdsWithConditions Build ID -> build validation flag.
+     */
     private void initFailedTests(List<Integer> buildIds,
         Map<Integer, Boolean> buildIdsWithConditions) {
 
@@ -222,7 +245,9 @@ public class BuildsHistory {
         /** */
         private DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
 
-        /** */
+        /**
+         * @param srvId server name.
+         */
         public Builder server(String srvId) {
             if (!isNullOrEmpty(srvId))
                 this.srvId = srvId;
@@ -230,7 +255,9 @@ public class BuildsHistory {
             return this;
         }
 
-        /** */
+        /**
+         * @param buildType TC suite(buildType) name.
+         */
         public Builder buildType(String buildType) {
             if (!isNullOrEmpty(buildType))
                 this.buildTypeId = buildType;
@@ -238,7 +265,9 @@ public class BuildsHistory {
             return this;
         }
 
-        /** */
+        /**
+         * @param projectId TC project name.
+         */
         public Builder project(String projectId) {
             if (!isNullOrEmpty(projectId))
                 this.projectId = projectId;
@@ -246,7 +275,9 @@ public class BuildsHistory {
             return this;
         }
 
-        /** */
+        /**
+         * @param branchName TC branch name.
+         */
         public Builder branch(String branchName) {
             if (!isNullOrEmpty(branchName))
                 this.branchName = branchName;
@@ -254,7 +285,10 @@ public class BuildsHistory {
             return this;
         }
 
-        /** */
+        /**
+         * @param sinceDate left border of date interval form which builds
+         * will be presented.
+         */
         public Builder sinceDate(String sinceDate) throws ParseException {
             if (!isNullOrEmpty(sinceDate))
                 this.sinceDate = dateFormat.parse(sinceDate);
@@ -262,7 +296,10 @@ public class BuildsHistory {
             return this;
         }
 
-        /** */
+        /**
+         * @param untilDate right border of date interval form which builds
+         * will be presented.
+         */
         public Builder untilDate(String untilDate) throws ParseException {
             if (!isNullOrEmpty(untilDate))
                 this.untilDate = dateFormat.parse(untilDate);
@@ -270,7 +307,7 @@ public class BuildsHistory {
             return this;
         }
 
-        /** */
+        /** Set flag to skip collection of failed tests info. */
         public Builder skipTests() {
             this.skipTests = true;
 
@@ -279,7 +316,8 @@ public class BuildsHistory {
 
 
         /**
-         * @param injector */
+         * @param injector Guice instance for dependency injection.
+         */
         public BuildsHistory build(Injector injector) {
             final BuildsHistory instance = injector.getInstance(BuildsHistory.class);
 

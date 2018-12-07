@@ -39,7 +39,7 @@ public interface ITeamcityConn {
     /**
      * @return Internal server ID as string
      */
-    String serverId();
+    @Nullable public String serverId();
 
     /**
      * @return Normalized Host address, ends with '/'.

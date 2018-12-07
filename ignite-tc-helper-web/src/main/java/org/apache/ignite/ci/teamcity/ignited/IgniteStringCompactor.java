@@ -32,6 +32,7 @@ import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
+import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.util.ExceptionUtil;
@@ -63,6 +64,7 @@ public class IgniteStringCompactor implements IStringCompactor {
     /** Sequence. */
     private IgniteAtomicSequence seq;
 
+    @Persisted
     public static class CompactorEntity {
         @QuerySqlField
         String val;
@@ -79,6 +81,10 @@ public class IgniteStringCompactor implements IStringCompactor {
                 .add("val", val)
                 .add("id", id)
                 .toString();
+        }
+
+        public int id() {
+            return id;
         }
     }
 

@@ -163,7 +163,6 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         webToHistBaseBranch = buildWebLink(teamcity, suite, baseBranch);
         webToBuild = buildWebLinkToBuild(teamcity, suite);
 
-
         List<IMultTestOccurrence> tests = suite.getFailedTests();
         Function<IMultTestOccurrence, Float> function = foccur -> {
             TestInBranch testInBranch = new TestInBranch(foccur.getName(), failRateNormalizedBranch);

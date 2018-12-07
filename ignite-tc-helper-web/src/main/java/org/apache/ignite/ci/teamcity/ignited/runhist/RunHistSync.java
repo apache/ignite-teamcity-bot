@@ -34,7 +34,7 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefDao;
+import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
@@ -103,46 +103,49 @@ public class RunHistSync {
 
         int branchNameNormalized = compactor.getStringId(normalizeBranch(build.branchName(compactor)));
 
+        AtomicInteger cntTests = new AtomicInteger();
         Map<RunHistKey, List<Invocation>> testInvMap = new HashMap<>();
         build.getAllTests().forEach(t -> {
             RunHistKey histKey = new RunHistKey(srvId, t.testName(), branchNameNormalized);
             List<Invocation> list = testInvMap.computeIfAbsent(histKey, k -> new ArrayList<>());
-            Invocation inv = t.toInvocation(compactor, build);
-            list.add(inv);
+            list.add(t.toInvocation(compactor, build));
+
+            cntTests.incrementAndGet();
         });
 
         RunHistKey buildInvKey = new RunHistKey(srvId, build.buildTypeId(), branchNameNormalized);
         Invocation buildInv = build.toInvocation(compactor);
 
-        int cnt = containedTestsCnt(testInvMap);
+        int cnt = cntTests.get();
 
         synchronized (this) {
             final SyncTask syncTask = buildToSave.computeIfAbsent(srvVame, s -> new SyncTask());
 
-            if (syncTask.sheduled() + cnt <= MAX_TESTS_QUEUE)
-                syncTask.addLater(testInvMap, buildInvKey, buildInv);
+            if (syncTask.sheduledTestsCnt() + cnt <= MAX_TESTS_QUEUE)
+                syncTask.addLater(testInvMap, cnt, buildInvKey, buildInv);
             else
                 saveNow = true;
         }
 
         if (saveNow) {
-            Map<RunHistKey, List<Invocation>> suiteAsMap =
+            saveInvocationsMap(
                 Collections.singletonMap(buildInvKey,
-                    Collections.singletonList(buildInv));
-            saveInvocationsMap(suiteAsMap, testInvMap);
+                    Collections.singletonList(buildInv)
+                ),
+                testInvMap);
         }
         else {
             int ldrToActivate = ThreadLocalRandom.current().nextInt(HIST_LDR_TASKS) + 1;
 
             scheduler.sheduleNamed(taskName("saveBuildToHistory." + ldrToActivate, srvVame),
-                () -> saveBuildToHistory(srvVame, ldrToActivate), 2, TimeUnit.MINUTES);
+                () -> saveBuildToHistory(srvVame, ldrToActivate), 1, TimeUnit.MINUTES);
         }
     }
 
     @MonitoredTask(name="Save Builds To History(srv, runner)", nameExtArgsIndexes = {0,1})
     @SuppressWarnings("WeakerAccess")
     protected String saveBuildToHistory(String srvName, int ldrToActivate) {
-        Map<RunHistKey, List<Invocation>> saveThisRun;
+        Map<RunHistKey, List<Invocation>> testsSaveThisRun;
         Map<RunHistKey, List<Invocation>> buildsSaveThisRun;
 
         synchronized (this) {
@@ -150,14 +153,14 @@ public class RunHistSync {
             if (syncTask == null)
                 return "Nothing to sync";
 
-            saveThisRun = syncTask.tests;
-            buildsSaveThisRun = syncTask.suites;
-
-            syncTask.tests = new HashMap<>();
-            syncTask.suites = new HashMap<>();
+            buildsSaveThisRun = syncTask.takeSuites();
+            testsSaveThisRun = syncTask.takeTests();
         }
 
-        return saveInvocationsMap(buildsSaveThisRun, saveThisRun);
+        if(buildsSaveThisRun.isEmpty() && testsSaveThisRun.isEmpty())
+            return "Nothing to sync";
+
+        return saveInvocationsMap(buildsSaveThisRun, testsSaveThisRun);
     }
 
     @AutoProfiling
@@ -241,7 +244,7 @@ public class RunHistSync {
 
     public void invokeLaterFindMissingHistory(String srvName) {
         scheduler.sheduleNamed(taskName("findMissingHistFromBuildRef", srvName),
-            () -> findMissingHistFromBuildRef(srvName), 360, TimeUnit.MINUTES);
+            () -> findMissingHistFromBuildRef(srvName), 12, TimeUnit.HOURS);
     }
 
     @NotNull
@@ -309,28 +312,39 @@ public class RunHistSync {
      * Scope of work: builds to be loaded from a connection.
      */
     private static class SyncTask {
-        Map<RunHistKey, List<Invocation>> suites = new HashMap<>();
-        Map<RunHistKey, List<Invocation>> tests = new HashMap<>();
+        private Map<RunHistKey, List<Invocation>> suites = new HashMap<>();
+        private AtomicInteger testCnt = new AtomicInteger();
+        private Map<RunHistKey, List<Invocation>> tests = new HashMap<>();
 
-        public int sheduled() {
-            return containedTestsCnt(this.tests);
+        public int sheduledTestsCnt() {
+            return testCnt.get();
         }
 
         public void addLater(Map<RunHistKey, List<Invocation>> testInvMap,
-            RunHistKey buildInvKey,
+            int testCnt, RunHistKey buildInvKey,
             Invocation buildInv) {
             suites
                 .computeIfAbsent(buildInvKey, k -> new ArrayList<>())
                 .add(buildInv);
             tests.putAll(testInvMap);
+            this.testCnt.addAndGet(testCnt);
         }
-    }
 
-    /**
-     * @param tests Tests.
-     * @return count of invocations.
-     */
-    public static int containedTestsCnt(Map<RunHistKey, List<Invocation>> tests) {
-        return tests.values().stream().mapToInt(List::size).sum();
+        private Map<RunHistKey, List<Invocation>> takeTests() {
+            Map<RunHistKey, List<Invocation>> saveThisRun  = tests;
+
+            tests = new HashMap<>();
+            testCnt.set(0);
+
+            return saveThisRun;
+        }
+
+        private Map<RunHistKey, List<Invocation>> takeSuites() {
+            Map<RunHistKey, List<Invocation>> buildsSaveThisRun = suites;
+
+            suites = new HashMap<>();
+
+            return buildsSaveThisRun;
+        }
     }
 }

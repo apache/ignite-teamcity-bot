@@ -30,8 +30,9 @@ import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
+import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefSync;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeSync;
@@ -54,7 +55,6 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
@@ -69,12 +69,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Max build id diff to enforce reload during incremental refresh. */
     public static final int MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN = 3000;
 
-    /**
-     * Max builds to check during incremental sync. If this value is reached (50 pages) and some stuck builds still not
-     * found, then iteration stops
-     */
-    public static final int MAX_INCREMENTAL_BUILDS_TO_CHECK = 5000;
-
     /** Server id. */
     private String srvNme;
 
@@ -87,13 +81,17 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Build reference DAO. */
     @Inject private BuildRefDao buildRefDao;
 
+    /** Build reference (short version of build data) sync. */
+    @Inject private BuildRefSync buildRefSync;
+
     /** Build condition DAO. */
     @Inject private BuildConditionDao buildConditionDao;
 
     /** Build DAO. */
     @Inject private FatBuildDao fatBuildDao;
 
-    @Inject private ProactiveFatBuildSync buildSync;
+    /** Build Sync. */
+    @Inject private ProactiveFatBuildSync fatBuildSync;
 
     /** Changes DAO. */
     @Inject private ChangeDao changesDao;
@@ -382,11 +380,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             return Collections.singletonList(branchName);
     }
 
+    /**
+     * Enables scheduleing for build refs/builds/history sync
+     */
     public void ensureActualizeRequested() {
-        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), this::actualizeRecentBuildRefs, 2, TimeUnit.MINUTES);
+        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), () -> actualizeRecentBuildRefs(srvNme), 2, TimeUnit.MINUTES);
+
+        buildRefSync.ensureActualizeRequested();
 
         // schedule find missing later
-        buildSync.invokeLaterFindMissingByBuildRef(srvNme, conn);
+        fatBuildSync.ensureActualizationRequested(srvNme, conn);
 
         runHistSync.invokeLaterFindMissingHistory(srvNme);
     }
@@ -396,7 +399,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
 
         //todo may add additional parameter: load builds into DB in sync/async fashion
-        runActualizeBuildRefs(srvNme, false, Sets.newHashSet(build.getId()));
+        buildRefSync.runActualizeBuildRefs(srvNme, false, Sets.newHashSet(build.getId()), conn);
 
         return build;
     }
@@ -421,6 +424,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @GuavaCached(maximumSize = 2000, cacheNullRval = false)
     @AutoProfiling
     @Nullable public Date getBuildStartDate(int buildId) {
+        final Long buildStartTime = runHistCompactedDao.getBuildStartTime(srvIdMaskHigh, buildId);
+        if (buildStartTime != null)
+            return new Date(buildStartTime);
+
         String msg = "Loading build [" + buildId + "] start date";
 
         if (MasterTrendsService.DEBUG)
@@ -441,25 +448,15 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         FatBuildCompacted existingBuild = getFatBuildFromIgnite(buildId);
 
         if (mode == SyncMode.NONE) {
-            if (existingBuild != null)
-                return existingBuild;
-            else {
-                FatBuildCompacted buildCompacted = new FatBuildCompacted();
-
-                buildCompacted.setFakeStub(true);
-
-                return buildCompacted; // providing fake builds
-            }
+            // providing fake builds
+            return existingBuild != null ? existingBuild : new FatBuildCompacted().setFakeStub(true);
         }
 
-        FatBuildCompacted savedVer = buildSync.loadBuild(conn, buildId, existingBuild, mode);
+        FatBuildCompacted savedVer = fatBuildSync.loadBuild(conn, buildId, existingBuild, mode);
 
         //build was modified, probably we need also to update reference accordingly
         if (savedVer == null)
             return existingBuild;
-
-        buildRefDao.save(srvIdMaskHigh, new BuildRefCompacted(savedVer));
-        runHistSync.saveToHistoryLater(srvNme, savedVer);
 
         return savedVer;
     }
@@ -495,11 +492,16 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return changes.values();
     }
 
+    String actualizeRecentBuildRefs() {
+        return actualizeRecentBuildRefs(srvNme);
+    }
 
     /**
      *
+     * @param srvNme TC service name
      */
-    void actualizeRecentBuildRefs() {
+    @MonitoredTask(name = "Prepare Actualize BuildRefs(srv, full resync)", nameExtArgsIndexes = {0})
+    String actualizeRecentBuildRefs(String srvNme) {
         List<BuildRefCompacted> running = buildRefDao.getQueuedAndRunning(srvIdMaskHigh);
 
         Set<Integer> paginateUntil = new HashSet<>();
@@ -508,25 +510,33 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         List<Integer> runningIds = running.stream().map(BuildRefCompacted::id).collect(Collectors.toList());
         OptionalInt max = runningIds.stream().mapToInt(i -> i).max();
         if (max.isPresent()) {
-            runningIds.forEach(id->{
-                if(id > (max.getAsInt() - MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN))
+            runningIds.forEach(id -> {
+                if (id > (max.getAsInt() - MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN))
                     paginateUntil.add(id);
                 else
                     directUpload.add(id);
             });
         }
+
+        int cntFreshBuilds = paginateUntil.size();
+
         //schedule direct reload for Fat Builds for all queued too-old builds
-        buildSync.scheduleBuildsLoad(conn, directUpload);
+        fatBuildSync.scheduleBuildsLoad(conn, directUpload);
 
-        runActualizeBuildRefs(srvNme, false, paginateUntil);
+        buildRefSync.runActualizeBuildRefs(srvNme, false, paginateUntil, conn);
 
+        int freshButNotFoundByBuildsRefsScan = paginateUntil.size();
         if (!paginateUntil.isEmpty()) {
             //some builds may stuck in the queued or running, enforce loading now
-            buildSync.doLoadBuilds(-1, srvNme, conn, paginateUntil);
+            fatBuildSync.doLoadBuilds(-1, srvNme, conn, paginateUntil);
         }
 
         // schedule full resync later
         scheduler.invokeLater(this::sheduleResyncBuildRefs, 15, TimeUnit.MINUTES);
+
+        return "Build queue " + running.size() + ", relatively fresh: " + cntFreshBuilds +
+             ", fresh but not found by scan: " + freshButNotFoundByBuildsRefsScan +
+            ", old builds sheduled " + directUpload.size();
     }
 
     /**
@@ -540,68 +550,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      *
      */
     void fullReindex() {
-        runActualizeBuildRefs(srvNme, true, null);
+        buildRefSync.runActualizeBuildRefs(srvNme, true, null, conn);
     }
 
 
-    /**
-     * @param srvId Server id.
-     * @param fullReindex Reindex all builds from TC history.
-     * @param mandatoryToReload [in/out] Build ID should be found before end of sync. Ignored if fullReindex mode.
-     *
-     */
-    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
-    @MonitoredTask(name = "Actualize BuildRefs(srv, full resync)", nameExtArgsIndexes = {0, 1})
-    @AutoProfiling
-    protected String runActualizeBuildRefs(String srvId, boolean fullReindex,
-                                           @Nullable Set<Integer> mandatoryToReload) {
-        AtomicReference<String> outLinkNext = new AtomicReference<>();
-        List<BuildRef> tcDataFirstPage = conn.getBuildRefsPage(null, outLinkNext);
-
-        Set<Long> buildsUpdated = buildRefDao.saveChunk(srvIdMaskHigh, tcDataFirstPage);
-        int totalUpdated = buildsUpdated.size();
-        buildSync.scheduleBuildsLoad(conn, cacheKeysToBuildIds(buildsUpdated));
-
-        int totalChecked = tcDataFirstPage.size();
-        int neededToFind = 0;
-        if (mandatoryToReload != null) {
-            neededToFind = mandatoryToReload.size();
-
-            tcDataFirstPage.stream().map(BuildRef::getId).forEach(mandatoryToReload::remove);
-        }
-
-        while (outLinkNext.get() != null) {
-            String nextPageUrl = outLinkNext.get();
-            outLinkNext.set(null);
-            List<BuildRef> tcDataNextPage = conn.getBuildRefsPage(nextPageUrl, outLinkNext);
-            Set<Long> curChunkBuildsSaved = buildRefDao.saveChunk(srvIdMaskHigh, tcDataNextPage);
-            totalUpdated += curChunkBuildsSaved.size();
-            buildSync.scheduleBuildsLoad(conn, cacheKeysToBuildIds(curChunkBuildsSaved));
-
-            int savedCurChunk = curChunkBuildsSaved.size();
-
-            totalChecked += tcDataNextPage.size();
-
-            if (!fullReindex) {
-                if (mandatoryToReload != null && !mandatoryToReload.isEmpty())
-                    tcDataNextPage.stream().map(BuildRef::getId).forEach(mandatoryToReload::remove);
-
-                if (savedCurChunk == 0 &&
-                    (mandatoryToReload == null
-                        || mandatoryToReload.isEmpty()
-                        || totalChecked > MAX_INCREMENTAL_BUILDS_TO_CHECK)
-                ) {
-                    // There are no modification at current page, hopefully no modifications at all
-                    break;
-                }
-            }
-        }
-
-        int leftToFind = mandatoryToReload == null ? 0 : mandatoryToReload.size();
-        return "Entries saved " + totalUpdated + " Builds checked " + totalChecked + " Needed to find " + neededToFind + " remained to find " + leftToFind;
-    }
-
-    @NotNull private List<Integer> cacheKeysToBuildIds(Collection<Long> cacheKeysUpdated) {
-        return cacheKeysUpdated.stream().map(BuildRefDao::cacheKeyToBuildId).collect(Collectors.toList());
-    }
 }

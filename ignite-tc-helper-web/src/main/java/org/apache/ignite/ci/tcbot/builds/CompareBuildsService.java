@@ -40,15 +40,20 @@ public class CompareBuildsService {
     private static final Logger logger = LoggerFactory.getLogger(CompareBuildsService.class);
 
     @Inject ITcServerProvider helper;
-    @Inject ICredentialsProv prov;
     @Inject BuildChainProcessor bcp;
     @Inject ITeamcityIgnitedProvider tcIgnitedProv;
     @Inject IStringCompactor compactor;
 
-    public List<String> tests0(String srvId, Integer buildId ) {
+    /**
+     * @param srvId Server id.
+     * @param buildId Build id.
+     * @param prov Credentials provider.
+     * @return List of build tests.
+     */
+    public List<String> tests0(String srvId, Integer buildId, ICredentialsProv prov ) {
         IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, prov);
 
-        String hrefById = teamcity.getBuildHrefById(buildId);
+        String hrefById = ITeamcity.buildHref(buildId);
         BuildRef buildRef = new BuildRef();
 
         buildRef.setId(buildId);

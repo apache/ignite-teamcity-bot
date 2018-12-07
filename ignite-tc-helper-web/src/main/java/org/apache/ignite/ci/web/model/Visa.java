@@ -21,10 +21,12 @@ import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.jetbrains.annotations.Nullable;
 
 /**
- *
+ * Representation of TC Bot visa - comment in apache Jira ticket conversation
+ * which shows a list of tests which probably failed because of committed
+ * changes(blockers) based on TC Run-All results.
  */
 public class Visa {
-    /** */
+    /** Determines Visa with no results and info. */
     public static final String EMPTY_VISA_STATUS = "emptyVisa";
 
     /** */
@@ -36,7 +38,9 @@ public class Visa {
     /** */
     public final int blockers;
 
-    /** */
+    /**
+     * @return instance of {@link Visa} with {@link #EMPTY_VISA_STATUS}
+     */
     public static Visa emptyVisa() {
         return new Visa(EMPTY_VISA_STATUS);
     }

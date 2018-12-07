@@ -20,14 +20,12 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import javax.annotation.Nullable;
-
-import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.jetbrains.annotations.NotNull;
@@ -86,7 +84,10 @@ public interface ITeamcityIgnited {
      * @param srvId Server id.
      * @return integer representation of server ID.
      */
-    public static int serverIdToInt(String srvId) {
+    public static int serverIdToInt(@Nullable final String srvId) {
+        if (srvId == null)
+            return 0;
+
         return Math.abs(srvId.hashCode());
     }
 

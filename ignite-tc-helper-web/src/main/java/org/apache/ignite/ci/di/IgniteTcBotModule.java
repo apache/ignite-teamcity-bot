@@ -24,7 +24,6 @@ import com.google.inject.matcher.Matchers;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITcHelper;
@@ -34,16 +33,14 @@ import org.apache.ignite.ci.di.cache.GuavaCachedModule;
 import org.apache.ignite.ci.di.scheduler.SchedulerModule;
 import org.apache.ignite.ci.github.ignited.GitHubIgnitedModule;
 import org.apache.ignite.ci.issue.IssueDetector;
-import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.jira.JiraIntegrationModule;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedModule;
-import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.TcUpdatePool;
-import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 
@@ -80,25 +77,13 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(BuildObserver.class).in(new SingletonScope());
         bind(VisasHistoryStorage.class).in(new SingletonScope());
         bind(ITcHelper.class).to(TcHelper.class).in(new SingletonScope());
-
-        bind(IJiraIntegration.class).to(Jira.class).in(new SingletonScope());
-
         bind(BackgroundUpdater.class).in(new SingletonScope());
         bind(MasterTrendsService.class).in(new SingletonScope());
 
         install(new TeamcityIgnitedModule());
+        install(new JiraIntegrationModule());
         install(new GitHubIgnitedModule());
         install(new SchedulerModule());
-    }
-
-    //todo now it is just fallback to TC big class, extract JIRA integation module
-    private static class Jira implements IJiraIntegration {
-        @Inject ITcHelper helper;
-
-        @Override public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
-            String ticket) {
-            return helper.notifyJira(srvId, prov, buildTypeId, branchForTc, ticket);
-        }
     }
 
     private void configProfiling() {

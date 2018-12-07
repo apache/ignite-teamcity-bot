@@ -60,7 +60,7 @@ public class TeamcityIgnitedMock {
                 return builds.values()
                     .stream()
                     .filter(fb -> btId.equals(fb.buildTypeId(c)))
-                        .filter(fb -> branch.equals(fb.branchName(c)))
+                    .filter(fb -> branch.equals(fb.branchName(c)))
                     .sorted(Comparator.comparing(BuildRefCompacted::id).reversed())
                     .collect(Collectors.toList());
             });

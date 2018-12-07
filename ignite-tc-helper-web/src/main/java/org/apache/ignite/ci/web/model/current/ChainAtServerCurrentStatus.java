@@ -30,6 +30,11 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
@@ -64,6 +69,18 @@ public class ChainAtServerCurrentStatus {
     /** Web Href. to suite particular run */
     public String webToBuild = "";
 
+    /** Filled only for compare page (e.g. pr.html). */
+    public String ticketFullName;
+
+    /** */
+    public String webToTicket;
+
+    /** */
+    public Integer prNum;
+
+    /** */
+    public String webToPr;
+
     /** Suites involved in chain. */
     public List<SuiteCurrentStatus> suites = new ArrayList<>();
 
@@ -94,6 +111,45 @@ public class ChainAtServerCurrentStatus {
     public ChainAtServerCurrentStatus(String srvId, String branchTc) {
         this.serverId = srvId;
         this.branchName = branchTc;
+    }
+
+    /** */
+    public void setJiraTicketInfo(@Nullable String ticketFullName, @Nullable String webToTicket) {
+        this.ticketFullName = ticketFullName;
+        this.webToTicket = webToTicket;
+    }
+
+    /** */
+    public void setPrInfo(@Nullable Integer prNum, @Nullable String webToPr) {
+        this.prNum = prNum;
+        this.webToPr = webToPr;
+    }
+
+    /** */
+    public void initJiraAndGitInfo(IJiraIntegration jiraIntegration, IGitHubConnIgnited gitHubConnIgnited) {
+        Integer prNum = IGitHubConnection.convertBranchToId(branchName);
+
+        String prUrl = null;
+
+        String ticketFullName = null;
+
+        String ticketUrl = null;
+
+        if (prNum != null) {
+            PullRequest pullReq = gitHubConnIgnited.getPullRequest(prNum);
+
+            if (pullReq != null && pullReq.getTitle() != null) {
+                prUrl = pullReq.htmlUrl();
+
+                ticketFullName = TcBotTriggerAndSignOffService.getTicketFullName(pullReq);
+
+                if (!ticketFullName.isEmpty())
+                    ticketUrl = jiraIntegration.generateTicketUrl(ticketFullName);
+            }
+        }
+
+        setPrInfo(prNum, prUrl);
+        setJiraTicketInfo(ticketFullName, ticketUrl);
     }
 
     public void initFromContext(ITeamcityIgnited tcIgnited,

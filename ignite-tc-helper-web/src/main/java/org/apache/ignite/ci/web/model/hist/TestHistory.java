@@ -20,9 +20,7 @@ package org.apache.ignite.ci.web.model.hist;
 import com.google.common.base.Objects;
 import java.util.List;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Summary of failures - all history and recent runs for suite or for suite.

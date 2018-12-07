@@ -89,6 +89,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      * Teamcity
      */
     private ITeamcity teamcity;
+
+    @Nullable
     private String serverId;
 
     /** cached running builds for branch. */
@@ -163,32 +165,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public String serverId() {
         return serverId;
-    }
-
-    private <K, V> V loadIfAbsentV2(String cacheName, K key, Function<K, V> loadFunction) {
-        return loadIfAbsent(getOrCreateCacheV2(ignCacheNme(cacheName)), key, loadFunction, (V v) -> true);
-    }
-
-    private <K, V> V loadIfAbsent(IgniteCache<K, V> cache, K key, Function<K, V> loadFunction) {
-        return loadIfAbsent(cache, key, loadFunction, null);
-    }
-
-    private <K, V> V loadIfAbsent(IgniteCache<K, V> cache, K key, Function<K, V> loadFunction,
-        Predicate<V> saveValueFilter) {
-        @Nullable final V persistedBuilds = cache.get(key);
-
-        if (persistedBuilds != null) {
-            int fields = ObjectInterner.internFields(persistedBuilds);
-
-            return persistedBuilds;
-        }
-
-        final V loaded = loadFunction.apply(key);
-
-        if (saveValueFilter == null || saveValueFilter.test(loaded))
-            cache.put(key, loaded);
-
-        return loaded;
     }
 
     @Deprecated
@@ -323,6 +299,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return new SuiteInBranch(loaded.suiteId(), normalizeBranch(loaded.branchName));
     }
 
+    @Deprecated
     private Build realLoadBuild(String href1) {
         try {
             return teamcity.getBuild(href1);
@@ -348,6 +325,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public String host() {
         return teamcity.host();
+    }
+
+    /** {@inheritDoc} */
+    @Override public Build getBuild(int buildId) {
+        return teamcity.getBuild(buildId);
     }
 
     @Deprecated

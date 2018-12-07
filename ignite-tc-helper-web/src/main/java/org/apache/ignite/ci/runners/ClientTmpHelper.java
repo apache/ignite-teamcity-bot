@@ -24,8 +24,29 @@ import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
 
+/**
+ * Utility class for local connection to TC helper DB (server) and any manipulations with data needed.
+ */
 public class ClientTmpHelper {
+    /**
+     * @param args Args.
+     */
     public static void main(String[] args) {
+        int inconsistent;
+        try (Ignite ignite = TcHelperDb.startClient()) {
+            RemoteClientTmpHelper.DUMPS = "dumpsLocal";
+
+            inconsistent = RemoteClientTmpHelper.validateBuildIdConsistency(ignite);
+        }
+
+        System.err.println("Inconsistent builds in queue found [" +
+            +inconsistent + "]");
+    }
+
+    /**
+     * @param args Args.
+     */
+    public static void main0(String[] args) {
         Ignite ignite = TcHelperDb.startClient();
 
         //ignite.cache(IgnitePersistentTeamcity.ISSUES).clear();

@@ -22,14 +22,24 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
+import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -37,7 +47,10 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
-import org.apache.ignite.ci.teamcity.ignited.*;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
@@ -49,14 +62,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -86,6 +95,26 @@ public class PrChainsProcessorTest {
             final IGitHubConnectionProvider ghProv = Mockito.mock(IGitHubConnectionProvider.class);
             bind(IGitHubConnectionProvider.class).toInstance(ghProv);
             when(ghProv.server(anyString())).thenReturn(Mockito.mock(IGitHubConnection.class));
+
+            final IGitHubConnIgnitedProvider gitHubConnIgnitedProvider = Mockito.mock(IGitHubConnIgnitedProvider.class);
+
+            bind(IGitHubConnIgnitedProvider.class).toInstance(gitHubConnIgnitedProvider);
+
+            IGitHubConnIgnited gitHubConnIgnited = Mockito.mock(IGitHubConnIgnited.class);
+
+            PullRequest pullReq = Mockito.mock(PullRequest.class);
+
+            when(pullReq.getTitle()).thenReturn("");
+
+            when(gitHubConnIgnited.getPullRequest(anyString())).thenReturn(pullReq);
+
+            when(gitHubConnIgnitedProvider.server(anyString())).thenReturn(gitHubConnIgnited);
+
+            final IJiraIntegrationProvider jiraProv = Mockito.mock(IJiraIntegrationProvider.class);
+
+            bind(IJiraIntegrationProvider.class).toInstance(jiraProv);
+
+            when(jiraProv.server(anyString())).thenReturn(Mockito.mock(IJiraIntegration.class));
 
             bind(ITeamcityIgnitedProvider.class).to(TeamcityIgnitedProviderMock.class).in(new SingletonScope());
 
@@ -266,7 +295,7 @@ public class PrChainsProcessorTest {
 
         tf.test = new TestRef();
 
-        tf.test.id = id;
+        tf.test.id = String.valueOf(id);
         tf.name = name;
         tf.status = passed ? TestOccurrence.STATUS_SUCCESS : TestOccurrence.STATUS_FAILURE;
         return tf;

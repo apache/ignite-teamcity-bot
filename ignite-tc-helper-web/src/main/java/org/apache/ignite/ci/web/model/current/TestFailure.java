@@ -174,11 +174,13 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         }
     }
 
-    private static String buildWebLink(ITeamcityIgnited tcIgn, Long id,
+    private static String buildWebLink(ITeamcityIgnited tcIgn, String id,
         @Nullable String projectId, @Nullable String branchName) {
         if (projectId == null)
             return null;
+
         final String branch = branchForLink(branchName);
+
         return tcIgn.host() + "project.html"
             + "?projectId=" + projectId
             + "&testNameId=" + id
@@ -248,7 +250,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         boolean lowFailureRate = recent != null && recent.failureRate != null &&
             Float.valueOf(recent.failureRate.replace(',', '.')) < 4.;
 
-        System.out.println(name + " " + recent.failureRate);
+        //System.out.println(name + " " + recent.failureRate);
 
         return lowFailureRate && histBaseBranch.flakyComments == null;
     }

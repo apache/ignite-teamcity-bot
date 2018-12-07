@@ -446,6 +446,12 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getJaxbUsingHref(href, Build.class);
     }
 
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public Build getBuild(int buildId) {
+        return getJaxbUsingHref(ITeamcity.buildHref(buildId), Build.class);
+    }
+
     /**
      * @param href Href.
      * @param elem Element class.

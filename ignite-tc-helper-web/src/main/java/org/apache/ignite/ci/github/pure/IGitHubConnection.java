@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.github.pure;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.ci.github.PullRequest;
 import org.jetbrains.annotations.Nullable;
@@ -54,4 +55,33 @@ public interface IGitHubConnection {
     String gitApiUrl();
 
     List<PullRequest> getPullRequests(@Nullable String fullUrl, @Nullable AtomicReference<String> outLinkNext);
+
+    /**
+     * @return PR id from string "pull/XXXX/head"
+     */
+    public @Nullable static Integer convertBranchToId(String branchForTc) {
+        Integer res = null;
+
+        if (Objects.isNull(branchForTc))
+            return res;
+
+        String id = null;
+
+        for (int i = 5; i < branchForTc.length(); i++) {
+            char c = branchForTc.charAt(i);
+
+            if (!Character.isDigit(c)) {
+                id = branchForTc.substring(5, i);
+
+                break;
+            }
+        }
+
+        try {
+            res = Integer.parseInt(id);
+        }
+        finally {
+            return res;
+        }
+    }
 }

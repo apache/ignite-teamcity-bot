@@ -29,7 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *
+ * {@link BuildObserver} provides opportunity for scheduled run of
+ * {@link ObserverTask} and controlling existing and new observations.
  */
 public class BuildObserver {
     /** Logger. */
@@ -67,7 +68,13 @@ public class BuildObserver {
         timer.cancel();
     }
 
-    /** */
+    /**
+     * {@link ObserverTask} will stop tracking status of observation for
+     * specified {@link ContributionKey}.
+     *
+     * @return {@code true} if observation which is connected with specified
+     * {@link ContributionKey} was stopped.
+     */
     public boolean stopObservation(ContributionKey key) {
         try {
             return observerTask.removeBuildInfo(key);
@@ -85,8 +92,9 @@ public class BuildObserver {
      * @param branchForTc Branch for TC.
      * @param ticket JIRA ticket name.
      */
-    public void observe(String srvId, ICredentialsProv prov, String ticket, String branchForTc, Build... builds) {
-        BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, branchForTc, builds);
+    public void observe(String srvId, ICredentialsProv prov, String ticket, String branchForTc, String parentSuiteId,
+        Build... builds) {
+        BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, branchForTc, parentSuiteId, builds);
 
         observerTask.addInfo(buildsInfo);
     }

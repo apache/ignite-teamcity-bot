@@ -22,6 +22,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
+import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
@@ -62,6 +66,12 @@ public class PrChainsProcessor {
     /** Git hub connection provider. */
     @Inject IGitHubConnectionProvider gitHubConnProvider;
 
+    /** */
+    @Inject IGitHubConnIgnitedProvider gitHubConnIgnitedProvider;
+
+    /** */
+    @Inject IJiraIntegrationProvider jiraIntegrationProvider;
+
     /**
      * @param creds Credentials.
      * @param srvId Server id.
@@ -93,6 +103,10 @@ public class PrChainsProcessor {
         ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvId, creds);
 
         IGitHubConnection gitHubConn = gitHubConnProvider.server(srvId);
+
+        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvId);
+
+        IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(srvId);
 
         res.setJavaFlags(teamcity, gitHubConn);
 
@@ -145,6 +159,8 @@ public class PrChainsProcessor {
 
             //fail rate reference is always default (master)
             chainStatus.initFromContext(tcIgnited, teamcity, ctx, teamcity, baseBranch);
+
+            chainStatus.initJiraAndGitInfo(jiraIntegration, gitHubConnIgnited);
         }
 
         res.addChainOnServer(chainStatus);

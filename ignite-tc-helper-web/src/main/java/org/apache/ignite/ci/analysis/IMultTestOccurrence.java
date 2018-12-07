@@ -17,7 +17,6 @@
 
 package org.apache.ignite.ci.analysis;
 
-import java.util.stream.Stream;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 
 /**

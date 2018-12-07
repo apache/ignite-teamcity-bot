@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity.ignited;
+package org.apache.ignite.ci.teamcity.ignited.buildref;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -34,6 +34,8 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.internal.util.GridIntList;
 import org.jetbrains.annotations.NotNull;
@@ -55,19 +57,21 @@ public class BuildRefDao {
     @Inject private IStringCompactor compactor;
 
     /** */
-    public void init() {
+    public BuildRefDao init() {
         CacheConfiguration<Long, BuildRefCompacted> cfg = TcHelperDb.getCacheV2Config(TEAMCITY_BUILD_CACHE_NAME);
 
         cfg.setQueryEntities(Collections.singletonList(new QueryEntity(Long.class, BuildRefCompacted.class)));
 
         buildRefsCache = igniteProvider.get().getOrCreateCache(cfg);
+
+        return this;
     }
 
     /**
      * @param srvId Server id.
      * @return all builds for a server, full scan.
      */
-    @NotNull protected Stream<BuildRefCompacted> compactedBuildsForServer(int srvId) {
+    @NotNull public Stream<BuildRefCompacted> compactedBuildsForServer(int srvId) {
         return StreamSupport.stream(buildRefsCache.spliterator(), false)
             .filter(entry -> isKeyForServer(entry.getKey(), srvId))
             .map(javax.cache.Cache.Entry::getValue);
@@ -77,7 +81,7 @@ public class BuildRefDao {
      * @param key Key.
      * @param srvId Server id.
      */
-    private boolean isKeyForServer(Long key, int srvId) {
+    public static boolean isKeyForServer(Long key, int srvId) {
         return key!=null && key >> 32 == srvId;
     }
 
@@ -86,7 +90,7 @@ public class BuildRefDao {
      * @param ghData Gh data.
      */
     @AutoProfiling
-    public Set<Long> saveChunk(long srvId, List<BuildRef> ghData) {
+    public Set<Long> saveChunk(int srvId, List<BuildRef> ghData) {
         Set<Long> ids = ghData.stream().map(BuildRef::getId)
             .filter(Objects::nonNull)
             .map(buildId -> buildIdToCacheKey(srvId, buildId))
@@ -127,7 +131,7 @@ public class BuildRefDao {
      */
     public static int cacheKeyToBuildId(Long cacheKey) {
         long l = cacheKey << 32;
-        return (int) (l>>32);
+        return (int)(l >> 32);
     }
 
     /**
@@ -228,12 +232,16 @@ public class BuildRefDao {
     public int[] getAllIds(int srvId) {
         GridIntList res = new GridIntList(buildRefsCache.size());
 
-        StreamSupport.stream(buildRefsCache.spliterator(), false)
+        getAllBuildRefs(srvId)
                 .map(Cache.Entry::getKey)
-                .filter(entry -> isKeyForServer(entry, srvId))
                 .map(BuildRefDao::cacheKeyToBuildId)
                 .forEach(res::add);
 
         return res.array();
+    }
+
+    @NotNull public Stream<Cache.Entry<Long, BuildRefCompacted>> getAllBuildRefs(int srvId) {
+        return StreamSupport.stream(buildRefsCache.spliterator(), false)
+                .filter(entry -> isKeyForServer(entry.getKey(), srvId));
     }
 }

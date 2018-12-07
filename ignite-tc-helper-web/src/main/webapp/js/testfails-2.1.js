@@ -59,21 +59,8 @@ function showChainResultsWithSettings(result, settings) {
     } else
         res += " is absent";
 
-    let suiteId;
-
-    if (isDefinedAndFilled(findGetParameter("suiteId"))) {
-        suiteId = findGetParameter("suiteId");
-    } else if (isDefinedAndFilled(result.servers[0])) {
-        let url = new URL(result.servers[0].webToHist);
-
-        suiteId = url.searchParams.get("buildTypeId");
-    }
-
-    if (isDefinedAndFilled(suiteId))
-        res += " | Suite: <b>" + suiteId + "</b>";
-
     res += "</td></tr>";
-    res += "</table>";
+    res += "</table></br>";
 
     for (var i = 0; i < result.servers.length; i++) {
         var server = result.servers[i];
@@ -99,26 +86,59 @@ function showChainCurrentStatusData(server, settings) {
 
     var res = "";
 
-    res += "<table border='0px'>";
-    res += "<tr bgcolor='#F5F5FF'><td colspan='3'><b><a href='" + server.webToHist + "'>";
+    res += "<table style='width: 100%;' border='0px'>";
+    res += "<tr bgcolor='#F5F5FF'><td colspan='3' width='75%'>";
+    res += "<table style='width: 40%'>";
+    res += "<tr><td><b> Server: </b></td><td>[" + server.serverId + "]</td></tr>";
+
+    if (isDefinedAndFilled(server.prNum)) {
+        res += "<tr><td><b> PR: </b></td><td>";
+
+        if (isDefinedAndFilled(server.webToPr))
+            res += "<a href='" + server.webToPr + "'>[#" + server.prNum + "]</a>";
+        else
+            res += "[#" + server.prNum + "]";
+
+        res += "</td></tr>";
+    }
+
+    if (isDefinedAndFilled(server.webToTicket) && isDefinedAndFilled(server.ticketFullName)) {
+        res += "<tr><td><b> Ticket: </b></td><td>";
+        res += "<a href='" + server.webToTicket + "'>[" + server.ticketFullName + "]</a>";
+        res += "</td></tr>";
+    }
+
+    let parentSuitId;
+
+    if (isDefinedAndFilled(findGetParameter("suiteId")))
+        parentSuitId = findGetParameter("suiteId");
+    else if (isDefinedAndFilled(server))
+        parentSuitId = findGetParameter("buildTypeId", server.webToHist);
+
+    if (isDefinedAndFilled(parentSuitId)) {
+        res += "<tr><td><b> Suite: </b></td><td>[" + parentSuitId + "] ";
+        res += " <a href='" + server.webToHist + "'>[TC history]</a>";
+        res += "</td></tr>";
+    }
+
+    res += "</table>";
+    res += "</br>";
 
     if (isDefinedAndFilled(server.chainName)) {
         res += server.chainName + " ";
     }
-    res += server.serverId;
 
-    res += "</a> ";
-    res += "[";
-    res += " <a href='" + server.webToBuild + "' title=''>";
-    res += "tests " + server.failedTests + " suites " + server.failedToFinish + "";
-    res += " </a>";
-    res += "] ";
-    res += "[";
+    res += "<b>Chain result: </b>";
+
+    if (isDefinedAndFilled(server.failedToFinish) && isDefinedAndFilled(server.failedTests))
+        res += server.failedToFinish + " suites and " + server.failedTests + " tests failed";
+    else
+        res += "empty";
+
+    res += " ";
     res += "<a href='longRunningTestsReport.html'>";
-    res += "long running tests report";
+    res += "Long running tests report";
     res += "</a>";
-    res += "]";
-    res += "</b>";
 
     var mInfo = "";
 
@@ -142,13 +162,13 @@ function showChainCurrentStatusData(server, settings) {
     if (suitesFailedList.length !== 0 && isDefinedAndFilled(server.serverId) && isDefinedAndFilled(server.branchName)) {
         mInfo += "Trigger failed " + cntFailed + " builds";
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" +
-            server.branchName + "\", false, false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", " +
+            "\"" + suitesFailedList + "\", \"" + server.branchName + "\", false, false)' ";
         mInfo += " title='trigger builds'>in queue</a> ";
 
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + suitesFailedList + "\", \"" +
-            server.branchName + "\", true, false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", " +
+            "\"" + suitesFailedList + "\", \"" + server.branchName + "\", true, false)' ";
         mInfo += " title='trigger builds'>on top</a><br>";
     }
 
@@ -190,11 +210,9 @@ function showChainCurrentStatusData(server, settings) {
     //     res += "<button onclick='notifyGit()'>Update PR status</button>";
     // }
 
-    var suiteId = findGetParameter("suiteId");
-
     if (settings.isJiraAvailable()) {
-        res += "<button onclick='commentJira(\"" + server.serverId + "\", \"" + suiteId + "\", \""
-            + server.branchName + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
+        res += "<button onclick='commentJira(\"" + server.serverId + "\", \"" + server.branchName + "\", \""
+            + parentSuitId + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
 
         var blockersList = "";
 
@@ -211,11 +229,12 @@ function showChainCurrentStatusData(server, settings) {
             }
         }
 
-        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" +
-            server.branchName + "\", false, false)'> Re-run possible blockers</button><br>";
+        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", \"" +
+            blockersList + "\", \"" + server.branchName + "\", false, false)'> Re-run possible blockers</button><br>";
 
-        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + blockersList + "\", \"" +
-            server.branchName + "\", false, true)'> Re-run possible blockers & Comment JIRA</button><br>";
+        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", \"" +
+            blockersList + "\", \"" + server.branchName + "\", false, true)'> " +
+            "Re-run possible blockers & Comment JIRA</button><br>";
     }
 
     if (isDefinedAndFilled(server.baseBranchForTc)) {
@@ -365,7 +384,7 @@ function notifyGit() {
     });
 }
 
-function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId) {
+function triggerBuilds(serverId, parentSuiteId, suiteIdList, branchName, top, observe, ticketId) {
     var queueAtTop = isDefinedAndFilled(top) && top;
     var observeJira = isDefinedAndFilled(observe) && observe;
     var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
@@ -389,6 +408,7 @@ function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId
     }
 
     var suites = suiteIdList.split(',');
+    var parentSuite = isDefinedAndFilled(parentSuiteId) ? parentSuiteId : suites[0];
     var fewSuites = suites.length > 1;
 
     var message = "Trigger build" + (fewSuites ? "s" : "") + " at <b>server:</b> " + serverId + "<br>" +
@@ -418,8 +438,9 @@ function triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId
             url: 'rest/build/trigger',
             data: {
                 "serverId": serverId,
-                "suiteIdList": suiteIdList,
                 "branchName": branchName,
+                "parentSuiteId" : parentSuite,
+                "suiteIdList": suiteIdList,
                 "top": queueAtTop,
                 "observe": observeJira,
                 "ticketId": ticketId
@@ -476,7 +497,7 @@ function jiraTicketNumber(ticket) {
     return regExpr.exec(ticket)[2];
 }
 
-function commentJira(serverId, suiteId, branchName, ticketId) {
+function commentJira(serverId, branchName, parentSuiteId, ticketId) {
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
     ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? jiraTicketNumber(ticketId) : null;
@@ -504,7 +525,7 @@ function commentJira(serverId, suiteId, branchName, ticketId) {
         url: 'rest/build/commentJira',
         data: {
             "serverId": serverId,
-            "suiteId": suiteId,
+            "suiteId": parentSuiteId,
             "branchName": branchName,
             "ticketId": ticketId
         },
@@ -520,7 +541,7 @@ function commentJira(serverId, suiteId, branchName, ticketId) {
 
                         ticketId = $("#enterTicketId").val();
 
-                        commentJira(serverId, suiteId, branchName, ticketId)
+                        commentJira(serverId, branchName, parentSuiteId, ticketId)
                     },
                     "Cancel": function () {
                         $(this).dialog("close");
@@ -538,7 +559,7 @@ function commentJira(serverId, suiteId, branchName, ticketId) {
             var dialog = $("#triggerDialog");
 
             dialog.html("Trigger builds at server: " + serverId + "<br>" +
-                " Suite: " + suiteId + "<br>Branch:" + branchName +
+                " Suite: " + parentSuiteId + "<br>Branch:" + branchName +
                 "<br><br> Result: " + result.result +
                 (needTicketId ? ("<br><br>Enter JIRA ticket number: <input type='text' id='enterTicketId'>") : ""));
 
@@ -625,13 +646,13 @@ function showSuiteData(suite, settings) {
     if (isDefinedAndFilled(suite.serverId) && isDefinedAndFilled(suite.suiteId) && isDefinedAndFilled(suite.branchName)) {
         mInfo += " Trigger build: ";
         mInfo += "<a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName
-            + "\", false, false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", null, \"" +
+            suite.suiteId + "\", \"" + suite.branchName + "\", false, false)' ";
         mInfo += " title='trigger build' >queue</a> ";
 
         mInfo += "<a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", \"" + suite.suiteId + "\", \"" + suite.branchName
-            + "\", true, false)' ";
+        mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", null, \"" +
+            suite.suiteId + "\", \"" + suite.branchName + "\", true, false)' ";
         mInfo += " title='trigger build at top of queue'>top</a><br>";
     }
 

@@ -19,6 +19,7 @@ package org.apache.ignite.ci.teamcity.ignited;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
+import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefSync;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeSync;

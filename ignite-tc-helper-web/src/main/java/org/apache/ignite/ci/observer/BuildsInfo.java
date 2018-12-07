@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.observer;
 
+import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -30,16 +31,21 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.ContributionKey;
 
 /**
- *
+ * Represents parameters to determine context of observed builds, list of build IDs
+ * which were requested for observing and provides methods to check status of
+ * observed builds.
  */
 public class BuildsInfo {
-    /** */
+    /** Shows that all rerunned builds finished successfully. */
     public static final String FINISHED_STATUS = "finished";
 
-    /** */
+    /** Shows that some rerunned builds is not finished. */
     public static final String RUNNING_STATUS = "running";
 
-    /** */
+    /**
+     * Shows that one or more rerunned builds were cancelled or have UNKNOWN
+     * status on TC for some other reasons.
+     */
     public static final String CANCELLED_STATUS = "cancelled";
 
     /** */
@@ -81,13 +87,15 @@ public class BuildsInfo {
      * @param ticket Ticket.
      * @param builds Builds.
      */
-    public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, String branchForTc, Build... builds) {
+    public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, String branchForTc, String parentSuiteId,
+        Build... builds) {
         this.userName = prov.getUser(srvId);
         this.date = Calendar.getInstance().getTime();
         this.srvId = srvId;
         this.ticket = ticket;
         this.branchForTc = branchForTc;
-        this.buildTypeId = builds.length == 1 ? builds[0].buildTypeId : "IgniteTests24Java8_RunAll";
+        this.buildTypeId = Strings.isNullOrEmpty(parentSuiteId) ?
+            (builds.length == 1 ? builds[0].buildTypeId : "IgniteTests24Java8_RunAll") : parentSuiteId;
 
         for (Build build : builds)
             this.builds.add(build.getId());
@@ -95,6 +103,9 @@ public class BuildsInfo {
 
     /**
      * @param teamcity Teamcity.
+     *
+     * @return One of {@link #FINISHED_STATUS}, {@link #CANCELLED_STATUS} or
+     * {@link #RUNNING_STATUS} statuses.
      */
     public String getStatus(IAnalyticsEnabledTeamcity teamcity) {
         boolean isFinished = true;

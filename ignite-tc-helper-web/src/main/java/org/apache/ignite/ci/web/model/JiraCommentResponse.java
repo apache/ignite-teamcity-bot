@@ -20,7 +20,7 @@ package org.apache.ignite.ci.web.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- *
+ * Representation of responce which was received after Jira commenting request.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class JiraCommentResponse {

@@ -92,24 +92,6 @@ class GitHubConnectionImpl implements IGitHubConnection {
         gitApiUrl = (props.getProperty(HelperConfig.GIT_API_URL));
     }
 
-    /** */
-    private Integer convertBranchToId(String branchForTc) {
-        String id = null;
-
-        // Get PR id from string "pull/XXXX/head"
-        for (int i = 5; i < branchForTc.length(); i++) {
-            char c = branchForTc.charAt(i);
-
-            if (!Character.isDigit(c)) {
-                id = branchForTc.substring(5, i);
-
-                break;
-            }
-        }
-
-        return Integer.parseInt(id);
-    }
-
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public PullRequest getPullRequest(Integer id) {
@@ -130,7 +112,11 @@ class GitHubConnectionImpl implements IGitHubConnection {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public PullRequest getPullRequest(String branchForTc) {
-        return getPullRequest(convertBranchToId(branchForTc));
+        Integer prId = IGitHubConnection.convertBranchToId(branchForTc);
+
+        Preconditions.checkNotNull(prId, "Invalid TC branch name");
+
+        return getPullRequest(prId);
     }
 
     /** {@inheritDoc} */
