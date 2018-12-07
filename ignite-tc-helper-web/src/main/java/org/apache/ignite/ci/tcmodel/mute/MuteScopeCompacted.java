@@ -49,6 +49,8 @@ public class MuteScopeCompacted {
         }
 
         if (!F.isEmpty(scope.buildTypes)) {
+            buildTypes = new ArrayList<>(scope.buildTypes.size());
+
             for (BuildType bt : scope.buildTypes)
                 buildTypes.add(new BuildTypeRefCompacted(comp, bt));
         }

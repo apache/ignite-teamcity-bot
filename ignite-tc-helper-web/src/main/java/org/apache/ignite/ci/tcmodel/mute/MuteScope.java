@@ -35,7 +35,8 @@ public class MuteScope {
 
     /** Build types. */
     @XmlElementWrapper(name = "buildTypes")
-    @XmlElement public List<BuildType> buildTypes;
+    @XmlElement(name = "buildType")
+    public List<BuildType> buildTypes;
 
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
@@ -56,7 +57,9 @@ public class MuteScope {
     /** {@inheritDoc} */
     @Override public int hashCode() {
         int res = project != null ? project.hashCode() : 0;
+
         res = 31 * res + (buildTypes != null ? buildTypes.hashCode() : 0);
+
         return res;
     }
 }

@@ -70,8 +70,8 @@
 
             let visasTable = $('#visasTable');
 
-            let testNameMatcher = new RegExp("\\.(\\w+):.*\\.([$\\w]+\\.test\\w+)");
-            let testNameMatcher2 = new RegExp("(\\w+\.Test\\w+)$");
+            let testNameMatcher = new RegExp("\\.(\\w+\\d*):.*\\.([a-z][$\\w]+\\w+\\d*)");
+            let testNameMatcher2 = new RegExp("(\\w+\.Test\\w+\\d*)$");
             let suiteNameMatcher2 = new RegExp("(.*):");
             let ticketMatcher = new RegExp("https:\\/\\/issues.apache.org\\/jira\\/browse\\/(IGNITE-\\d+)");
 
@@ -140,8 +140,8 @@
 
                                 if (data.scope.project)
                                     projectId = data.scope.project.id;
-                                else if (isDefinedAndFilled(data.scope.buildTypes) && data.scope.buildTypes.length > 0)
-                                    projectId = data.scope.buildTypes[0].projectId;
+                                else if (isDefinedAndFilled(data.scope.buildType) && data.scope.buildType.length > 0)
+                                    projectId = data.scope.buildType[0].projectId;
 
                                 if (isDefinedAndFilled(testId) && isDefinedAndFilled(projectId)) {
                                     return "<a href=\"https://ci.ignite.apache.org/project.html?projectId="
@@ -176,8 +176,8 @@
                             if (data.scope.project)
                                 return data.scope.project.name;
 
-                            if (isDefinedAndFilled(data.scope.buildTypes) && data.scope.buildTypes.length > 0)
-                                return data.scope.buildTypes[0].projectName;
+                            if (isDefinedAndFilled(data.scope.buildType) && data.scope.buildType.length > 0)
+                                return data.scope.buildType[0].projectName;
 
                             return "";
                         }

@@ -404,18 +404,37 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertNotNull(infos);
         assertEquals(100, infos.size());
 
-        MuteInfo mute = null;
-
-        for (MuteInfo info : infos) {
-            if (info.id != 4832)
-                continue;
-
-            mute = info;
-        }
+        MuteInfo mute = findMute(4832, infos);
 
         assertEquals("20171215T185123+0300", mute.assignment.muteDate);
         assertEquals("https://issues.apache.org/jira/browse/IGNITE-1090", mute.assignment.text);
         assertEquals("IgniteTests24Java8", mute.scope.project.id);
+
+        mute = findMute(6919, infos);
+
+        assertNotNull(mute.scope.buildTypes);
+        assertEquals(1, mute.scope.buildTypes.size());
+        assertEquals("IgniteTests24Java8_DiskPageCompressions", mute.scope.buildTypes.get(0).getId());
+        assertNotNull(mute.target.tests);
+        assertEquals(1, mute.target.tests.size());
+        assertEquals("-5875314334924226234", mute.target.tests.get(0).id);
+    }
+
+    /**
+     * @param id Mute id.
+     * @param infos Collection of mutes.
+     * @return Mute with speciified id.
+     * @throws IllegalArgumentException if mute wasn't found.
+     */
+    private MuteInfo findMute(int id, Collection<MuteInfo> infos) {
+        for (MuteInfo info : infos) {
+            if (info.id != 4832)
+                continue;
+
+            return info;
+        }
+
+        throw new IllegalArgumentException("Mute not found [id=" + id + ']');
     }
 
     @Test

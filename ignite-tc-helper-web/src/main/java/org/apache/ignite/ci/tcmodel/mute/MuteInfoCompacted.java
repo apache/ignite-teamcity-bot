@@ -97,6 +97,9 @@ public class MuteInfoCompacted {
         mute.target = new MuteTarget();
         mute.target.tests = new ArrayList<>();
 
+        if (testIds == null)
+            return mute;
+
         for (int i = 0; i < testIds.length; i++) {
             TestRef test = new TestRef();
 

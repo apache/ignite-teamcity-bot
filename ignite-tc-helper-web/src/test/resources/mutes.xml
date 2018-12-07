@@ -1,15 +1,17 @@
 <mutes nextHref="/app/rest/mutes?locator=project:(id:IgniteTests24Java8),start:100,count:100" href="/app/rest/mutes?locator=project:(id:IgniteTests24Java8)">
-    <mute id="4958">
+    <mute id="6919">
         <assignment>
-            <timestamp>20171215T185124+0300</timestamp>
-            <text>https://issues.apache.org/jira/browse/IGNITE-584</text>
+            <timestamp>20181127T210409+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-10431</text>
         </assignment>
         <scope>
-            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+            <buildTypes count="1">
+                <buildType id="IgniteTests24Java8_DiskPageCompressions" name="Disk Page Compressions" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_DiskPageCompressions" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_DiskPageCompressions"/>
+            </buildTypes>
         </scope>
         <target>
             <tests>
-                <test id="377144147518836505" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheDataStructuresSelfTestSuite: org.apache.ignite.internal.processors.cache.datastructures.partitioned.GridCachePartitionedSetSelfTest.testNodeJoinsAndLeavesCollocated" href="/app/rest/tests/id:377144147518836505"/>
+                <test id="-5875314334924226234" name="org.apache.ignite.testsuites.IgnitePdsCompressionTestSuite2: org.apache.ignite.internal.processors.cache.persistence.db.wal.reader.IgniteWalReaderTest.testFillWalForExactSegmentsCount" href="/app/rest/tests/id:-5875314334924226234"/>
             </tests>
         </target>
     </mute>
