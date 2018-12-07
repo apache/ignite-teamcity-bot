@@ -83,8 +83,6 @@ public class RunHistCompactedDao {
 
         testHistCache = ignite.getOrCreateCache(cfg);
 
-        buildStartTime = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(BUILD_START_TIME_CACHE_NAME));
-
         final CacheConfiguration<RunHistKey, RunHistCompacted> cfg2 = TcHelperDb.getCache8PartsConfig(SUITE_HIST_CACHE_NAME);
 
         cfg2.setQueryEntities(Collections.singletonList(new QueryEntity(RunHistKey.class, RunHistCompacted.class)));
@@ -125,6 +123,10 @@ public class RunHistCompactedDao {
     @AutoProfiling
     public boolean buildWasProcessed(int srvId, int buildId) {
         return buildStartTime.containsKey(buildIdToCacheKey(srvId, buildId));
+    }
+
+    @Nullable public Long getBuildStartTime(int srvId, int buildId) {
+        return buildStartTime.get(buildIdToCacheKey(srvId, buildId));
     }
 
     @AutoProfiling

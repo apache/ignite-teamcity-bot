@@ -356,6 +356,13 @@ function repaintLater(srvId, suiteId) {
 
 function showContributionStatus(status, prId, row, srvId, suiteId) {
     let tdForPr = $('#showResultFor' + prId);
+
+    if (!isDefinedAndFilled(status)) {
+        console.log("Status for " + prId + " is undefined. Wait for the Bot to load the suite list.");
+
+        return;
+    }
+
     let buildIsCompleted = isDefinedAndFilled(status.branchWithFinishedSuite);
     let hasJiraIssue = isDefinedAndFilled(row.jiraIssueId);
     let hasQueued = status.queuedBuilds > 0 || status.runningBuilds > 0;
@@ -383,8 +390,8 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
             let jiraBtn = "<button onclick='" +
                 "commentJira(" +
                 "\"" + srvId + "\", " +
-                "\"" + suiteId + "\", " +
                 "\"" + finishedBranch + "\", " +
+                "\"" + suiteId + "\", " +
                 "\"" + row.jiraIssueId + "\"" +
                 "); " +
                 replaintCall +
@@ -433,6 +440,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
         // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
         let triggerBuildsCall = "triggerBuilds(" +
             "\"" + srvId + "\", " +
+            "null, " +
             "\"" + suiteId + "\", " +
             "\"" + status.resolvedBranch + "\"," +
             " false," +
@@ -449,6 +457,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
         // triggerBuilds(serverId, suiteIdList, branchName, top, observe, ticketId)  defined in test fails
         let trigObserveCall = "triggerBuilds(" +
             "\"" + srvId + "\", " +
+            "null, " +
             "\"" + suiteId + "\", " +
             "\"" + status.resolvedBranch + "\"," +
             " false," +

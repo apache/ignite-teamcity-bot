@@ -167,32 +167,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return serverId;
     }
 
-    private <K, V> V loadIfAbsentV2(String cacheName, K key, Function<K, V> loadFunction) {
-        return loadIfAbsent(getOrCreateCacheV2(ignCacheNme(cacheName)), key, loadFunction, (V v) -> true);
-    }
-
-    private <K, V> V loadIfAbsent(IgniteCache<K, V> cache, K key, Function<K, V> loadFunction) {
-        return loadIfAbsent(cache, key, loadFunction, null);
-    }
-
-    private <K, V> V loadIfAbsent(IgniteCache<K, V> cache, K key, Function<K, V> loadFunction,
-        Predicate<V> saveValueFilter) {
-        @Nullable final V persistedBuilds = cache.get(key);
-
-        if (persistedBuilds != null) {
-            int fields = ObjectInterner.internFields(persistedBuilds);
-
-            return persistedBuilds;
-        }
-
-        final V loaded = loadFunction.apply(key);
-
-        if (saveValueFilter == null || saveValueFilter.test(loaded))
-            cache.put(key, loaded);
-
-        return loaded;
-    }
-
     @Deprecated
     private <K, V> CompletableFuture<V> loadAsyncIfAbsentOrExpired(ConcurrentMap<K, Expirable<V>> cache,
                                                                    K key,

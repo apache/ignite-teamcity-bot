@@ -5,9 +5,23 @@ function isDefinedAndFilled(val) {
     return typeof val !== 'undefined' && val != null
 }
 
-function findGetParameter(parameterName) {
-    var result = null,
+/**
+ * Function return URL parameter from webUrl (if is defined and filled) or from current location of the document.
+ *
+ * @returns {string | null} Search parameter or null.
+ * @param {String} parameterName - Search parameter name.
+ * @param {String | null} webUrl - URL.
+ */
+function findGetParameter(parameterName, webUrl) {
+    if (isDefinedAndFilled(webUrl)) {
+        let url = new URL(webUrl);
+
+        return url.searchParams.get(parameterName);
+    }
+
+    let result = null,
         tmp = [];
+
     location.search
         .substr(1)
         .split("&")
@@ -15,6 +29,7 @@ function findGetParameter(parameterName) {
             tmp = item.split("=");
             if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
         });
+
     return result;
 }
 

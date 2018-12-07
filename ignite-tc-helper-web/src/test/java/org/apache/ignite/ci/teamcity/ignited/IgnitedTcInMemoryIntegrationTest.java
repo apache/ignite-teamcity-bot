@@ -53,6 +53,7 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
+import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
@@ -289,13 +290,13 @@ public class IgnitedTcInMemoryIntegrationTest {
             .findFirst()
             .orElse(null);
 
-        BuildType runAllRefFromCache = srv.getBuildTypeRef(runAll).toBuildTypeRef(compactor);
+        BuildType runAllRefFromCache = srv.getBuildTypeRef(runAll).toBuildTypeRef(compactor, srv.host());
 
         assertEquals(runAllRef, runAllRefFromCache);
 
         BuildTypeFull runAllFull = jaxbTestXml("/" + runAll + ".xml", BuildTypeFull.class);
 
-        BuildTypeFull runAllFullFromCache = srv.getBuildType(runAll).toBuildType(compactor);
+        BuildTypeFull runAllFullFromCache = srv.getBuildType(runAll).toBuildType(compactor, srv.host());
 
         assertEquals(runAllFull, runAllFullFromCache);
     }
