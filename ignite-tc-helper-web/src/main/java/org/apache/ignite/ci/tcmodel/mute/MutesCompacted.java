@@ -39,7 +39,7 @@ public class MutesCompacted {
 
     /**
      * @param infos Mute infos.
-     * @param comp Comparator.
+     * @param comp Compactor.
      */
     public MutesCompacted(Set<MuteInfo> infos, IStringCompactor comp) {
         mutes = new HashSet<>(U.capacity(infos.size()));
