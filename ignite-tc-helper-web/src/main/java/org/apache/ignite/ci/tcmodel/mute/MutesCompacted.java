@@ -49,7 +49,7 @@ public class MutesCompacted {
     }
 
     /**
-     * @param comp Comparator.
+     * @param comp Compactor.
      */
     Mutes toMutes(IStringCompactor comp) {
         Set<MuteInfo> infos = new HashSet<>();
