@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.issue;
+package org.apache.ignite.ci.tcbot.issue;
 
 import java.util.*;
 
+import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.util.TimeUtil;
 import org.apache.ignite.ci.web.model.Version;
 

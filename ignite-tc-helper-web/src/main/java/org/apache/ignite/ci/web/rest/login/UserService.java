@@ -32,7 +32,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Form;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.issue.IssueDetector;
+import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.teamcity.pure.ITcLogin;

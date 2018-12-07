@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.issue;
+package org.apache.ignite.ci.tcbot.issue;
 
 import com.google.common.base.Strings;
 
@@ -35,6 +35,11 @@ import javax.inject.Provider;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.issue.EventTemplate;
+import org.apache.ignite.ci.issue.EventTemplates;
+import org.apache.ignite.ci.issue.Issue;
+import org.apache.ignite.ci.issue.IssueKey;
+import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
@@ -83,7 +88,7 @@ public class IssueDetector {
 
     @Inject private Provider<CheckQueueJob> checkQueueJobProv;
 
-    /** TrackedBranch Processor. */
+    /** Tracked Branch Processor. */
     @Inject private TrackedBranchChainsProcessor tbProc;
 
     /** Tc helper. */
@@ -101,16 +106,18 @@ public class IssueDetector {
     private final AtomicBoolean sndNotificationGuard = new AtomicBoolean();
 
 
-    private void registerIssuesAndNotifyLater(TestFailuresSummary res,
+    private String registerIssuesAndNotifyLater(TestFailuresSummary res,
         ICredentialsProv creds) {
 
         if (creds == null)
-            return;
+            return null;
 
-        registerNewIssues(res, creds);
+        String newIssues = registerNewIssues(res, creds);
 
         if (sndNotificationGuard.compareAndSet(false, true))
             executorService.schedule(this::sendNewNotifications, 90, TimeUnit.SECONDS);
+
+        return newIssues;
     }
 
 
@@ -446,9 +453,9 @@ public class IssueDetector {
                         backgroundOpsCreds
                 );
 
-        registerIssuesAndNotifyLater(failures, backgroundOpsCreds);
+        String issResult = registerIssuesAndNotifyLater(failures, backgroundOpsCreds);
 
-        return "Tests " + failures.failedTests + " Suites " + failures.failedToFinish + " were checked";
+        return "Tests " + failures.failedTests + " Suites " + failures.failedToFinish + " were checked. " + issResult;
     }
 
     public void stop() {

@@ -41,7 +41,11 @@ import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
+/**
+ * Process failures for some setup tracked branch, which may be triggered/monitored by TC Bot.
+ */
 public class TrackedBranchChainsProcessor {
+    /** TC Server prov. */
     @Inject private ITcServerProvider srvProv;
     @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
 
