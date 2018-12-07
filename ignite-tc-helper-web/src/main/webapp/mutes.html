@@ -144,8 +144,9 @@
                                     projectId = data.scope.buildType[0].projectId;
 
                                 if (isDefinedAndFilled(testId) && isDefinedAndFilled(projectId)) {
-                                    return "<a href=\"https://ci.ignite.apache.org/project.html?projectId="
-                                        + projectId + "&testNameId=" + testId + "&tab=testDetails\">" + data.id + "</a>"
+                                    return "<a href='https://ci.ignite.apache.org/project.html?projectId="
+                                        + projectId + "&testNameId=" + testId + "&tab=testDetails' target='_blank'>"
+                                        + data.id + "</a>"
                                 }
                             }
 
@@ -161,7 +162,8 @@
                             if (!isDefinedAndFilled(ticket))
                                 return "";
 
-                            return "<a href=\"" + ticket[0] + "\" title=\"" + ticket[0] + "\">" + ticket[1] + "</a>";
+                            return "<a href='" + ticket[0] + "' title='" + ticket[0] + "' target='_blank'>"
+                                + ticket[1] + "</a>";
                         }
                     },
                     {
