@@ -102,7 +102,7 @@ public class MuteDao {
     }
 
     /**
-     * Check that mutes for specified poject are downloaded from specified server.
+     * Check that mutes for specified project are downloaded from specified server.
      *
      * @param srvId Server id.
      * @param projectId Project id.
