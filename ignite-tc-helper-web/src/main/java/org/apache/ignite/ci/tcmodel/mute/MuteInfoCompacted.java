@@ -81,7 +81,7 @@ public class MuteInfoCompacted {
 
     /**
      * @param comp Comparator.
-     * @return Exctracted mute.
+     * @return Extracted mute.
      */
     MuteInfo toMuteInfo(IStringCompactor comp) {
         MuteInfo mute = new MuteInfo();
