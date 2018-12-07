@@ -506,7 +506,15 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return invocation;
     }
 
-    public void setVersion(short version) {
-        this._ver = version;
+    public void setVersion(short ver) {
+        this._ver = ver;
     }
+
+    public FatBuildCompacted setCancelled(IStringCompactor compactor) {
+        status(compactor.getStringId(BuildRef.STATUS_UNKNOWN));
+        state(compactor.getStringId(BuildRef.STATE_FINISHED));
+
+        return this;
+    }
+
 }

@@ -24,6 +24,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+import javax.annotation.Nullable;
+import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.validation.constraints.NotNull;
@@ -37,7 +41,6 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,7 +83,7 @@ public class FatBuildDao {
      * @param existingBuild existing version of build in the DB.
      * @return Fat Build saved (if modifications detected), otherwise null.
      */
-    public FatBuildCompacted saveBuild(int srvIdMaskHigh,
+    @Nullable public FatBuildCompacted saveBuild(int srvIdMaskHigh,
                                        int buildId,
                                        @NotNull Build build,
                                        @NotNull List<TestOccurrencesFull> tests,
@@ -117,12 +120,6 @@ public class FatBuildDao {
     @AutoProfiling
     public void putFatBuild(int srvIdMaskHigh, int buildId, FatBuildCompacted newBuild) {
         buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
-    }
-
-
-    @AutoProfiling
-    public boolean removeFatBuild(int srvIdMaskHigh, int buildId) {
-       return  buildsCache.remove(buildIdToCacheKey(srvIdMaskHigh, buildId));
     }
 
     public static int[] extractChangeIds(@NotNull ChangesList changesList) {
@@ -182,5 +179,11 @@ public class FatBuildDao {
 
     public boolean containsKey(int srvIdMaskHigh, int buildId) {
         return buildsCache.containsKey(buildIdToCacheKey(srvIdMaskHigh, buildId));
+    }
+
+    public Stream<Cache.Entry<Long, FatBuildCompacted>> outdatedVersionEntries(int srvId) {
+        return StreamSupport.stream(buildsCache.spliterator(), false)
+            .filter(entry -> entry.getValue().isOutdatedEntityVersion())
+            .filter(entry -> isKeyForServer(entry.getKey(), srvId));
     }
 }

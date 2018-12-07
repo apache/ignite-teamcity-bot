@@ -21,7 +21,8 @@ import java.util.Objects;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
- *
+ * Representation of {@link ContributionKey} with compacted properties for more
+ * effective cache storing.
  */
 public class CompactContributionKey {
     /** */

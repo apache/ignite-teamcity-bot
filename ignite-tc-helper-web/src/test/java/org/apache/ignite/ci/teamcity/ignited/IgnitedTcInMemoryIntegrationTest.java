@@ -55,6 +55,7 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
+import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
@@ -630,7 +631,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         System.out.println("Running builds (before sync): " + printRefs(c, running));
 
         ProactiveFatBuildSync buildSync = injector.getInstance(ProactiveFatBuildSync.class);
-        buildSync.invokeLaterFindMissingByBuildRef(srvId, srvConn);
+        buildSync.ensureActualizationRequested(srvId, srvConn);
 
         FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvIdInt, buildIdQ);
         System.out.println(fatBuild);
@@ -654,7 +655,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         putOldFashionFakeBuild(c, fatBuildDao, buildIdQ, srvIdInt);
         putOldFashionFakeBuild(c, fatBuildDao, buildIdR, srvIdInt);
 
-        buildSync.invokeLaterFindMissingByBuildRef(srvId, srvConn);
+        buildSync.ensureActualizationRequested(srvId, srvConn);
 
         List<BuildRefCompacted> running4 = buildRefDao.getQueuedAndRunning(srvIdInt);
         System.out.println("Running builds (before with fake builds): " + printRefs(c, running4));
