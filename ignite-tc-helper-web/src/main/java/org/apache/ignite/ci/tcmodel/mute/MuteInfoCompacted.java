@@ -51,7 +51,7 @@ public class MuteInfoCompacted {
 
     /**
      * @param mute Mute to compact.
-     * @param comp Comparator.
+     * @param comp Compactor.
      */
     MuteInfoCompacted(MuteInfo mute, IStringCompactor comp) {
         id = mute.id;
