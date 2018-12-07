@@ -31,7 +31,7 @@ public class MutesCompacted {
 
     /**
      * @param mutes Mutes.
-     * @param comp Comparator.
+     * @param comp Compactor.
      */
     public MutesCompacted(Mutes mutes, IStringCompactor comp) {
         this(mutes.getMutesNonNull(), comp);
