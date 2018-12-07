@@ -112,7 +112,7 @@ public class MuteDao {
     }
 
     /**
-     * Replace current chached mutes by fresh data.
+     * Replace current cached mutes by fresh data.
      *
      * @param srvId Server id.
      * @param projectId Project id.
