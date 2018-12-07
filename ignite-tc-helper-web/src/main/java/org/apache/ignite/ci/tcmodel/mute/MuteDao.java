@@ -32,7 +32,7 @@ import org.apache.ignite.internal.util.typedef.F;
  *
  */
 public class MuteDao {
-    /** Cache name */
+    /** Cache name. */
     public static final String TEAMCITY_MUTE_CACHE_NAME = "teamcityMute";
 
     /** Ignite provider. */
