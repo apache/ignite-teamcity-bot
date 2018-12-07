@@ -22,6 +22,7 @@ import java.util.Timer;
 import javax.inject.Inject;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -51,6 +52,9 @@ public class BuildObserver {
 
     /** */
     @Inject private ITeamcityIgnitedProvider teamcityIgnitedProvider;
+
+    /** */
+    @Inject private IStringCompactor strCompactor;
 
     /**
      */
@@ -117,7 +121,7 @@ public class BuildObserver {
 
         if (Objects.nonNull(buildsInfo)) {
             sb.append(buildsInfo.ticket).append(" to be commented, waiting for builds. ");
-            sb.append(buildsInfo.finishedBuildsCount(teamcity));
+            sb.append(buildsInfo.finishedBuildsCount(teamcity, strCompactor));
             sb.append(" builds done from ");
             sb.append(buildsInfo.buildsCount());
         }

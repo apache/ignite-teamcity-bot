@@ -167,9 +167,4 @@ public interface ITeamcityIgnited {
      * @return run statistics of recent runls on all branches.
      */
     @Nullable public IRunStat getSuiteRunStatAllBranches(String suiteBuildTypeId);
-
-    /**
-     * @return {@link IStringCompactor} instance.
-     */
-    public IStringCompactor compactor();
 }

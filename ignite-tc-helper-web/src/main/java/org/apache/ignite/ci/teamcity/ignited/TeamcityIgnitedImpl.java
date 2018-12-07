@@ -553,8 +553,5 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         buildRefSync.runActualizeBuildRefs(srvNme, true, null, conn);
     }
 
-    /** {@inheritDoc} */
-    @Override public IStringCompactor compactor() {
-        return compactor;
-    }
+
 }
