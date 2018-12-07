@@ -92,8 +92,9 @@ public class BuildObserver {
      * @param branchForTc Branch for TC.
      * @param ticket JIRA ticket name.
      */
-    public void observe(String srvId, ICredentialsProv prov, String ticket, String branchForTc, Build... builds) {
-        BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, branchForTc, builds);
+    public void observe(String srvId, ICredentialsProv prov, String ticket, String branchForTc, String parentSuiteId,
+        Build... builds) {
+        BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, branchForTc, parentSuiteId, builds);
 
         observerTask.addInfo(buildsInfo);
     }

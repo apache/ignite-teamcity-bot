@@ -23,6 +23,7 @@ import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 @Persisted
 public class BuildTypeRefCompacted {
@@ -119,23 +120,38 @@ public class BuildTypeRefCompacted {
 
     /**
      * @param compactor Compacter.
+     * @param host Normalized Host address, ends with '/'.
      */
-    public BuildType toBuildTypeRef(IStringCompactor compactor) {
+    public BuildType toBuildTypeRef(IStringCompactor compactor, @Nullable String host) {
         BuildType res = new BuildType();
 
-        fillBuildTypeRefFields(compactor, res);
+        fillBuildTypeRefFields(compactor, res, host);
 
         return res;
     }
 
-    protected void fillBuildTypeRefFields(IStringCompactor compactor, BuildType res) {
+    /**
+     * @param compactor Compacter.
+     */
+    public BuildType toBuildTypeRef(IStringCompactor compactor) {
+        return toBuildTypeRef(compactor, null);
+    }
+
+    /**
+     * @param compactor Compactor.
+     * @param res Response.
+     * @param host Normalized Host address, ends with '/'.
+     */
+    protected void fillBuildTypeRefFields(IStringCompactor compactor, BuildType res, @Nullable String host) {
         String id = id(compactor);
         res.setId(id);
         res.setName(compactor.getStringFromId(name));
         res.setProjectId(compactor.getStringFromId(projectId));
         res.setProjectName(compactor.getStringFromId(projectName));
         res.href = getHrefForId(id);
-        res.setWebUrl(getWebUrlForId(id));
+
+        if (Objects.nonNull(host))
+            res.setWebUrl(getWebUrlForId(host, id));
     }
 
     /**
@@ -147,11 +163,12 @@ public class BuildTypeRefCompacted {
     }
 
     /**
+     * @param host Normalized Host address, ends with '/'.
      * @param buildTypeId BuildType id.
      * @return URL to BuildType on Teamcity.
      */
-    @NotNull protected static String getWebUrlForId(String buildTypeId) {
-        return "http://ci.ignite.apache.org/viewType.html?buildTypeId=" + buildTypeId;
+    @NotNull protected static String getWebUrlForId(String host, String buildTypeId) {
+        return host + "viewType.html?buildTypeId=" + buildTypeId;
     }
 
     /** {@inheritDoc} */

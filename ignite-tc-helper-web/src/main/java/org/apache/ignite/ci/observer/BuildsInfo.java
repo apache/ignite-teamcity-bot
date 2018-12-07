@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.observer;
 
+import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -86,13 +87,15 @@ public class BuildsInfo {
      * @param ticket Ticket.
      * @param builds Builds.
      */
-    public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, String branchForTc, Build... builds) {
+    public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, String branchForTc, String parentSuiteId,
+        Build... builds) {
         this.userName = prov.getUser(srvId);
         this.date = Calendar.getInstance().getTime();
         this.srvId = srvId;
         this.ticket = ticket;
         this.branchForTc = branchForTc;
-        this.buildTypeId = builds.length == 1 ? builds[0].buildTypeId : "IgniteTests24Java8_RunAll";
+        this.buildTypeId = Strings.isNullOrEmpty(parentSuiteId) ?
+            (builds.length == 1 ? builds[0].buildTypeId : "IgniteTests24Java8_RunAll") : parentSuiteId;
 
         for (Build build : builds)
             this.builds.add(build.getId());

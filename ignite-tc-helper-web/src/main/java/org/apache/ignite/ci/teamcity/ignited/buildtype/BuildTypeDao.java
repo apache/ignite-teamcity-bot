@@ -19,7 +19,6 @@ package org.apache.ignite.ci.teamcity.ignited.buildtype;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -160,9 +159,7 @@ public class BuildTypeDao {
 
         Comparator<BuildTypeCompacted> comp = Comparator.comparingInt(BuildTypeCompacted::buildNumberCounter);
 
-        res.sort(comp);
-
-        Collections.reverse(res);
+        res.sort(comp.reversed());
 
         return res;
     }
