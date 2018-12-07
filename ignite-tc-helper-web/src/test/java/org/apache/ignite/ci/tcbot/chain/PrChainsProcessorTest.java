@@ -98,8 +98,8 @@ public class PrChainsProcessorTest {
     /** Build apache ignite: contains compilation error, should became a blocker. */
     public static final String BUILD_APACHE_IGNITE = "Build";
 
+    /** Builds emulated storage. */
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
-
 
     /**
      * Injector.
@@ -159,7 +159,7 @@ public class PrChainsProcessorTest {
         final String btId = "RunAll";
         final String branch = "ignite-9542";
 
-        initBuildChain(c, btId, branch);
+        initBuildChainAndMasterHistory(c, btId, branch);
 
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
         final List<SuiteCurrentStatus> blockers = prcp.getBlockersSuitesStatuses(btId,
@@ -169,16 +169,16 @@ public class PrChainsProcessorTest {
         assertNotNull(blockers);
         assertFalse(blockers.isEmpty());
 
-        assertTrue(blockers.stream().anyMatch(containsTestFail("testWithoutHistory")));
+        assertTrue(containsTestFailure(blockers, TEST_WITHOUT_HISTORY));
 
         assertTrue(blockers.stream().anyMatch(s -> BUILD_APACHE_IGNITE.equals(s.suiteId)));
         assertTrue(blockers.stream().anyMatch(s -> "CancelledBuild".equals(s.suiteId)));
 
-        assertTrue(blockers.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_PASSING_IN_MASTER)));
+        assertTrue(containsTestFailure(blockers, TEST_WITH_HISTORY_PASSING_IN_MASTER));
 
         if (SuiteCurrentStatus.NEW_RUN_STAT) {
-            assertFalse(blockers.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_FAILING_IN_MASTER)));
-            assertFalse(blockers.stream().anyMatch(containsTestFail(TEST_FLAKY_IN_MASTER)));
+            assertFalse(containsTestFailure(blockers, TEST_WITH_HISTORY_FAILING_IN_MASTER));
+            assertFalse(containsTestFailure(blockers, TEST_FLAKY_IN_MASTER));
         }
 
         Optional<TestFailure> testOpt = findBlockerTestFailure(blockers, TEST_WITH_HISTORY_PASSING_IN_MASTER);
@@ -192,12 +192,34 @@ public class PrChainsProcessorTest {
             assertEquals(etalon, testOpt.get().histBaseBranch.latestRuns);
         }
 
-        assertTrue(blockers.stream().anyMatch(containsTestFail(TEST_WAS_FIXED_IN_MASTER)));
+        assertTrue(containsTestFailure(blockers, TEST_WAS_FIXED_IN_MASTER));
         if(SuiteCurrentStatus.NEW_RUN_STAT)
-            assertFalse(blockers.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_FAILING_IN_MASTER)));
+            assertFalse(containsTestFailure(blockers, TEST_WITH_HISTORY_FAILING_IN_MASTER));
         // otherwise this non-blocker will not be filtered out
 
-        assertTrue(blockers.stream().anyMatch(containsTestFail(TEST_WITH_HISTORY_PASSING_IN_MASTER)));
+        assertTrue(containsTestFailure(blockers, TEST_WITH_HISTORY_PASSING_IN_MASTER));
+    }
+
+    public boolean containsTestFailure(List<SuiteCurrentStatus> blockers, String name) {
+        return blockers.stream().anyMatch(containsTestFail(name));
+    }
+
+    @Test
+    public void testFlakyDetector() {
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+
+        final String btId = "RunAll";
+        final String branch = "ignite-10056";
+
+        initChainForFlakyTest(c, btId, branch);
+
+        initHistory(c);
+
+        PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
+        final List<SuiteCurrentStatus> blockers = prcp.getBlockersSuitesStatuses(btId,
+            branch, SRV_ID, mock(ICredentialsProv.class));
+
+        System.out.println(blockers);
 
         Optional<TestFailure> rareNotFlaky = findBlockerTestFailure(blockers, TEST_RARE_FAILED_WITH_CHANGES);
         assertTrue(rareNotFlaky.isPresent());
@@ -221,6 +243,73 @@ public class PrChainsProcessorTest {
         });
     }
 
+    public void initBuildChainAndMasterHistory(IStringCompactor c, String btId, String branch) {
+        initBuildChain(c, btId, branch);
+
+        initHistory(c);
+    }
+
+    public void initHistory(IStringCompactor c) {
+        for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++) {
+            FatBuildCompacted cache1InMaster = createFailedBuild(c, CACHE_1,
+                ITeamcity.DEFAULT, 500 + i, 100000 + (i * 10000))
+                .addTests(c, Lists.newArrayList(
+                    createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
+                    createPassingTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
+                    createTest(50L, TEST_FLAKY_IN_MASTER, i % 2 == 0),
+                    createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)));
+
+            if (i % 7 == 1) {
+                ProblemOccurrence timeout = new ProblemOccurrence();
+                timeout.setType(ProblemOccurrence.TC_EXECUTION_TIMEOUT);
+                cache1InMaster.addProblems(c, Collections.singletonList(timeout));
+            }
+
+            addBuildsToEmulatedStor(cache1InMaster);
+        }
+
+        long ageMs = TimeUnit.DAYS.toMillis(InvocationData.MAX_DAYS);
+
+        for (int i = 0; i < 134; i++) {
+            addBuildsToEmulatedStor(createFailedBuild(c, CACHE_1,
+                ITeamcity.DEFAULT, i, ageMs + (i * 10000))
+                .addTests(c, Lists.newArrayList(
+                    createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER))));
+        }
+
+        for (int i = 0; i < 10; i++) {
+            final FatBuildCompacted successfull =
+                createFatBuild(c, CACHE_1, "some-exotic-branch", i+7777, 100020, true)
+                    .addTests(c,
+                        Lists.newArrayList(
+                            createPassingTest(1L, TEST_WITHOUT_HISTORY),
+                            createPassingTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
+                            createPassingTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
+                            createPassingTest(50L, TEST_FLAKY_IN_MASTER),
+                            createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)));
+
+            addBuildsToEmulatedStor(successfull);
+        }
+
+        for (int i = 0; i < 100; i++) {
+            boolean failNoChanges = i==77;
+            boolean failWithChanges = i==55;
+
+            boolean passed = !failNoChanges && !failWithChanges;
+
+            FatBuildCompacted fatBuild = createFatBuild(c, CACHE_9, ITeamcity.DEFAULT, i + 9999, 1340020, passed)
+                .addTests(c,
+                    Lists.newArrayList(
+                        createTest(1L, TEST_RARE_FAILED_WITHOUT_CHANGES, !failNoChanges),
+                        createTest(2L, TEST_RARE_FAILED_WITH_CHANGES, !failWithChanges)));
+
+            if (failWithChanges || i==56) // add change to test status change after failure.
+                fatBuild.changes(new int[] {1000000+i, 1000020+i});
+
+            addBuildsToEmulatedStor(fatBuild);
+        }
+    }
+
     public void initBuildChain(IStringCompactor c, String btId, String branch) {
         final FatBuildCompacted buildBuild = createFailedBuild(c, BUILD_APACHE_IGNITE, branch, 1002, 100020);
         final ProblemOccurrence compile = new ProblemOccurrence();
@@ -239,15 +328,6 @@ public class PrChainsProcessorTest {
 
         cache1.snapshotDependencies(new int[] {buildBuild.id()});
 
-
-        final FatBuildCompacted cache9 = createFailedBuild(c, CACHE_9, branch, 9001, 100090)
-            .addTests(c,
-                Lists.newArrayList(
-                    createFailedTest(1L, TEST_RARE_FAILED_WITH_CHANGES),
-                    createFailedTest(2L, TEST_RARE_FAILED_WITHOUT_CHANGES)));
-
-        cache9.snapshotDependencies(new int[] {buildBuild.id()});
-
         final Build build = createJaxbBuild("CancelledBuild", branch, 1003, 100020, true);
 
         build.status = BuildRef.STATUS_UNKNOWN;
@@ -259,76 +339,36 @@ public class PrChainsProcessorTest {
 
         final int id = 1000;
 
-        final FatBuildCompacted chain = createFailedBuild(c, btId, branch, id, 100000);
+        FatBuildCompacted runAll = createFailedBuild(c, btId, branch, id, 100000)
+            .snapshotDependencies(new int[] {cache1.id(), cancelledBuild.id()});
 
-        chain.snapshotDependencies(new int[]{cache1.id(), cancelledBuild.id(), cache9.id()});
-
-        addBuilds(chain);
-        addBuilds(buildBuild, cancelledBuild, cache1, cache9);
-
-        for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++) {
-            FatBuildCompacted cache1InMaster = createFailedBuild(c, CACHE_1,
-                ITeamcity.DEFAULT, 500 + i, 100000 + (i * 10000))
-                .addTests(c, Lists.newArrayList(
-                    createFailedTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
-                    createPassingTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
-                    createTest(50L, TEST_FLAKY_IN_MASTER, i % 2 == 0),
-                    createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)));
-
-            if (i % 7 == 1) {
-                ProblemOccurrence timeout = new ProblemOccurrence();
-                timeout.setType(ProblemOccurrence.TC_EXECUTION_TIMEOUT);
-                cache1InMaster.addProblems(c, Collections.singletonList(timeout));
-            }
-
-            addBuilds(cache1InMaster);
-        }
-
-        long ageMs = TimeUnit.DAYS.toMillis(InvocationData.MAX_DAYS);
-
-        for (int i = 0; i < 134; i++) {
-            addBuilds(createFailedBuild(c, CACHE_1,
-                ITeamcity.DEFAULT, i, ageMs + (i * 10000))
-                .addTests(c, Lists.newArrayList(
-                    createFailedTest(400L, TEST_WAS_FIXED_IN_MASTER))));
-        }
-
-        for (int i = 0; i < 10; i++) {
-            final FatBuildCompacted successfull =
-                createFatBuild(c, CACHE_1, "some-exotic-branch", i+7777, 100020, true)
-                    .addTests(c,
-                        Lists.newArrayList(
-                            createPassingTest(1L, TEST_WITHOUT_HISTORY),
-                            createPassingTest(2L, TEST_WITH_HISTORY_FAILING_IN_MASTER),
-                            createPassingTest(3L, TEST_WITH_HISTORY_PASSING_IN_MASTER),
-                            createPassingTest(50L, TEST_FLAKY_IN_MASTER),
-                            createPassingTest(400L, TEST_WAS_FIXED_IN_MASTER)));
-
-            addBuilds(successfull);
-        }
-
-
-        for (int i = 0; i < 100; i++) {
-            boolean failNoChanges = i==77;
-            boolean failWithChanges = i==55;
-
-            boolean passed = !failNoChanges && !failWithChanges;
-
-            FatBuildCompacted fatBuild = createFatBuild(c, CACHE_9, ITeamcity.DEFAULT, i + 9999, 1340020, passed)
-                .addTests(c,
-                    Lists.newArrayList(
-                        createTest(1L, TEST_RARE_FAILED_WITHOUT_CHANGES, !failNoChanges),
-                        createTest(2L, TEST_RARE_FAILED_WITH_CHANGES, !failWithChanges)));
-
-            if (failWithChanges)
-                fatBuild.changes(new int[] {12323325, 42354326});
-
-            addBuilds(fatBuild);
-        }
-
+        addBuildsToEmulatedStor(buildBuild, cancelledBuild, cache1, runAll);
     }
 
-    private void addBuilds(FatBuildCompacted... builds) {
+    public void initChainForFlakyTest(IStringCompactor c, String btId, String branch) {
+        final FatBuildCompacted buildBuild = createFailedBuild(c, BUILD_APACHE_IGNITE, branch, 1002, 100020);
+
+        final FatBuildCompacted cache9 = createFailedBuild(c, CACHE_9, branch, 9001, 100090)
+            .addTests(c,
+                Lists.newArrayList(
+                    createFailedTest(1L, TEST_RARE_FAILED_WITH_CHANGES),
+                    createFailedTest(2L, TEST_RARE_FAILED_WITHOUT_CHANGES)));
+
+        cache9.snapshotDependencies(new int[] {buildBuild.id()});
+
+        final FatBuildCompacted chain = createFailedBuild(c, btId, branch, 1000, 100000);
+
+        chain.snapshotDependencies(new int[]{cache9.id()});
+
+        addBuildsToEmulatedStor(buildBuild, cache9, chain);
+    }
+
+    /**
+     * Adds builds into emulated storage.
+     *
+     * @param builds Builds.
+     */
+    private void addBuildsToEmulatedStor(FatBuildCompacted... builds) {
         for (FatBuildCompacted build : builds) {
             final FatBuildCompacted oldB = apacheBuilds.put(build.id(), build);
 

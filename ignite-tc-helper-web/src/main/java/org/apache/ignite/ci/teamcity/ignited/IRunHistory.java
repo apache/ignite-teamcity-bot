@@ -41,7 +41,7 @@ public interface IRunHistory extends IRunStat {
     @Nullable
     List<Integer> getLatestRunResults();
 
-    String getFlakyComments();
+    @Nullable String getFlakyComments();
 
     public default String getCriticalFailPercentPrintable() {
         return IRunStat.getPercentPrintable(getCriticalFailRate() * 100.0f);

@@ -20,8 +20,10 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
+import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 
@@ -82,7 +84,27 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     }
 
     @Override public String getFlakyComments() {
-        return null; //todo implement
+        int statusChange = 0;
+
+        Invocation prev = null;
+
+        List<Invocation> latestRuns = data.invocations().collect(Collectors.toList());
+
+        for (Invocation cur : latestRuns) {
+            if (prev != null && cur != null) {
+                if (prev.status() != cur.status()
+                    && cur.changesState() == RunStat.ChangesState.NONE
+                    && prev.changesState() != RunStat.ChangesState.UNKNOWN)
+                    statusChange++;
+            }
+            prev = cur;
+        }
+
+        if (statusChange < 1)
+            return null;
+
+        return "Test seems to be flaky: " +
+            "changed its status [" + statusChange + "/" + latestRuns.size() + "] without code modifications";
     }
 
     @Override public int getCriticalFailuresCount() {

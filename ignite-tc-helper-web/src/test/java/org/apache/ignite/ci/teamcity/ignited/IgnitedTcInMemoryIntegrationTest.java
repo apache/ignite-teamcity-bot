@@ -491,7 +491,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         final String branch = ITeamcity.DEFAULT;
 
         final PrChainsProcessorTest tst = new PrChainsProcessorTest();
-        tst.initBuildChain(c, btId, branch);
+        tst.initBuildChainAndMasterHistory(c, btId, branch);
 
         final Map<Integer, FatBuildCompacted> buildsMap = tst.apacheBuilds();
 
@@ -545,7 +545,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
 
         final PrChainsProcessorTest tst = new PrChainsProcessorTest();
-        tst.initBuildChain(c, btId, branch);
+        tst.initBuildChainAndMasterHistory(c, btId, branch);
 
         final Map<Integer, FatBuildCompacted> buildsMap = tst.apacheBuilds();
 

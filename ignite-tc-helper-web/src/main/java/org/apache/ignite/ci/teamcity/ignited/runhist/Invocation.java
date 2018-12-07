@@ -20,15 +20,30 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import org.apache.ignite.ci.analysis.RunStat;
 
+/**
+ * Run history element: invocation of build or test.
+ */
 public class Invocation {
+    /** Change not filled. */
+    public static final int CHANGE_NOT_FILLED = 2;
+    public static final int CHANGE_PRESENT = 1;
+    public static final int NO_CHANGES = 0;
+
+    /** Build id. */
     private int buildId;
-    byte status;
+    /** Status: An integer (actually byte) code from RunStat.RunStatus */
+    private byte status;
+
+    /** Change present: 0 - no changes, 1 - changes present, 2- unknown */
     private byte changePresent;
-    long startDate;
+    /** Build Start date as timestamp. */
+    private long startDate;
 
     public Invocation(Integer buildId) {
         this.buildId = buildId;
+        this.changePresent = CHANGE_NOT_FILLED;
     }
 
     /** {@inheritDoc} */
@@ -40,18 +55,42 @@ public class Invocation {
             .toString();
     }
 
-    public void status(int failCode) {
+    public Invocation withStatus(int failCode) {
         Preconditions.checkState(failCode < 128);
+        Preconditions.checkState(failCode >= 0);
+
         this.status = (byte) failCode;
+
+        return this;
     }
 
-    public void startDate(long startDateTs) {
+    public byte status() {
+        return status;
+    }
+
+    public Invocation withStartDate(long startDateTs) {
         this.startDate = startDateTs;
+
+        return this;
     }
 
-    public void changesPresent(int changesPresent) {
-        Preconditions.checkState(changesPresent < 128);
-        this.changePresent = (byte) changesPresent;
+    public Invocation withChanges(int[] changes) {
+        int i = changes.length > 0 ? CHANGE_PRESENT : NO_CHANGES;
+
+        Preconditions.checkState(i < 128);
+
+        this.changePresent = (byte)i;
+
+        return this;
+    }
+
+    public RunStat.ChangesState changesState() {
+        if (changePresent == NO_CHANGES)
+            return RunStat.ChangesState.NONE;
+        else if (changePresent == CHANGE_PRESENT)
+            return RunStat.ChangesState.EXIST;
+        else
+            return RunStat.ChangesState.UNKNOWN;
     }
 
     public boolean isFailure() {
