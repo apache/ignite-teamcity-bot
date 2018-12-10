@@ -39,9 +39,9 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitSheduler;
+import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.di.scheduler.NoOpSheduler;
+import org.apache.ignite.ci.di.scheduler.NoOpScheduler;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -170,7 +170,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         Injector injector = Guice.createInjector(module, new AbstractModule() {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
-                bind(IScheduler.class).to(DirectExecNoWaitSheduler.class);
+                bind(IScheduler.class).to(DirectExecNoWaitScheduler.class);
             }
         });
 
@@ -240,7 +240,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         Injector injector = Guice.createInjector(module, new AbstractModule() {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
-                bind(IScheduler.class).to(DirectExecNoWaitSheduler.class);
+                bind(IScheduler.class).to(DirectExecNoWaitScheduler.class);
             }
         });
 
@@ -341,7 +341,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         Injector injector = Guice.createInjector(module, new AbstractModule() {
             @Override protected void configure() {
                 bind(Ignite.class).toInstance(ignite);
-                bind(IScheduler.class).to(NoOpSheduler.class);
+                bind(IScheduler.class).to(NoOpScheduler.class);
             }
         });
 
@@ -481,7 +481,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
     @Test
     public void testRunHistSaveLoad() {
-        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new IgniteAndShedulerTestModule());
+        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new IgniteAndSchedulerTestModule());
 
         injector.getInstance(RunHistCompactedDao.class).init();
         final IStringCompactor c = injector.getInstance(IStringCompactor.class);
@@ -524,7 +524,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
     @Test
     public void testHistoryBackgroundUpdateWorks() {
-        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new IgniteAndShedulerTestModule());
+        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new IgniteAndSchedulerTestModule());
 
         injector.getInstance(RunHistCompactedDao.class).init();
 
@@ -572,7 +572,7 @@ public class IgnitedTcInMemoryIntegrationTest {
                 throw new FileNotFoundException(url);
             }
         });
-        Injector injector = Guice.createInjector(module, new IgniteAndShedulerTestModule());
+        Injector injector = Guice.createInjector(module, new IgniteAndSchedulerTestModule());
 
         IStringCompactor c = injector.getInstance(IStringCompactor.class);
         BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class).init();
@@ -652,11 +652,11 @@ public class IgnitedTcInMemoryIntegrationTest {
     /**
      *
      */
-    private static class IgniteAndShedulerTestModule extends AbstractModule {
+    private static class IgniteAndSchedulerTestModule extends AbstractModule {
         /** {@inheritDoc} */
         @Override protected void configure() {
             bind(Ignite.class).toInstance(ignite);
-            bind(IScheduler.class).to(DirectExecNoWaitSheduler.class).in(new SingletonScope());
+            bind(IScheduler.class).to(DirectExecNoWaitScheduler.class).in(new SingletonScope());
         }
     }
 }

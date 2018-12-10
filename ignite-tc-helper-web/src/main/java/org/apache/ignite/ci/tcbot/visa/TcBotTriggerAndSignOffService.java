@@ -34,7 +34,6 @@ import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
@@ -103,6 +102,9 @@ public class TcBotTriggerAndSignOffService {
     @Inject private VisasHistoryStorage visasHistoryStorage;
 
     /** */
+    @Inject private IStringCompactor strCompactor;
+
+    /** */
     @Inject IStringCompactor compactor;
 
     /** Helper. */
@@ -120,7 +122,6 @@ public class TcBotTriggerAndSignOffService {
     public List<VisaStatus> getVisasStatus(String srvId, ICredentialsProv prov) {
         List<VisaStatus> visaStatuses = new ArrayList<>();
 
-        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, prov);
         ITeamcityIgnited ignited = tcIgnitedProv.server(srvId, prov);
 
         IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(srvId);
@@ -143,7 +144,7 @@ public class TcBotTriggerAndSignOffService {
             BuildTypeRefCompacted bt = ignited.getBuildTypeRef(info.buildTypeId);
             visaStatus.buildTypeName = (bt != null ? bt.name(compactor) : visaStatus.buildTypeId);
 
-            String buildsStatus = visaStatus.status = info.getStatus(teamcity);
+            String buildsStatus = visaStatus.status = info.getStatus(ignited, strCompactor);
 
             if (FINISHED_STATUS.equals(buildsStatus)) {
                 if (visa.isSuccess()) {

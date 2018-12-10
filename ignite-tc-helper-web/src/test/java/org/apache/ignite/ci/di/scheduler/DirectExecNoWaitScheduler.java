@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Sheduler which never waits
  */
-public class DirectExecNoWaitSheduler implements IScheduler {
+public class DirectExecNoWaitScheduler implements IScheduler {
     /** {@inheritDoc} */
     @Override public void invokeLater(Runnable cmd, long delay, TimeUnit unit) {
         cmd.run();
