@@ -178,8 +178,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         name = compactor.getStringId(btName);
     }
 
-    public void snapshotDependencies(int[] arr) {
+    public FatBuildCompacted snapshotDependencies(int[] arr) {
         snapshotDeps = arr.length > 0 ? arr : null;
+
+        return this;
     }
 
     /**
@@ -481,8 +483,6 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     public Invocation toInvocation(IStringCompactor compactor) {
         boolean success = isSuccess(compactor);
 
-        final Invocation invocation = new Invocation(getId());
-
         final int failCode ;
 
         if (success)
@@ -500,10 +500,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         }
 
-        invocation.status((byte)failCode);
-        invocation.startDate(getStartDateTs());
-        invocation.changesPresent(changes().length > 0 ? 1 : 0);
-        return invocation;
+        return new Invocation(getId())
+            .withStatus((byte)failCode)
+            .withStartDate(getStartDateTs())
+            .withChanges(changes());
     }
 
     public void setVersion(short ver) {

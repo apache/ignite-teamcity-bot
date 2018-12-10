@@ -20,9 +20,12 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
+import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.db.Persisted;
+import org.apache.ignite.ci.issue.EventTemplate;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 
 /**
@@ -37,6 +40,7 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     @SuppressWarnings("FieldCanBeLocal")
     private short _ver = LATEST_VERSION;
 
+    /** Data. */
     private InvocationData data = new InvocationData();
 
     public RunHistCompacted() {}
@@ -81,10 +85,32 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
         return data.getLatestRuns();
     }
 
+    /** {@inheritDoc} */
     @Override public String getFlakyComments() {
-        return null; //todo implement
+        int statusChange = 0;
+
+        Invocation prev = null;
+
+        List<Invocation> latestRuns = data.invocations().collect(Collectors.toList());
+
+        for (Invocation cur : latestRuns) {
+            if (prev != null && cur != null) {
+                if (prev.status() != cur.status()
+                    && cur.changesState() == RunStat.ChangesState.NONE
+                    && prev.changesState() != RunStat.ChangesState.UNKNOWN)
+                    statusChange++;
+            }
+            prev = cur;
+        }
+
+        if (statusChange < 1)
+            return null;
+
+        return "Test seems to be flaky: " +
+            "changed its status [" + statusChange + "/" + latestRuns.size() + "] without code modifications";
     }
 
+    /** {@inheritDoc} */
     @Override public int getCriticalFailuresCount() {
         return data.criticalFailuresCount();
     }
@@ -95,6 +121,74 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
      */
     public boolean addInvocation(Invocation inv) {
         return data.addInvocation(inv);
+    }
+
+
+    private static int[] concatArr(int[] arr1, int[] arr2) {
+        int[] arr1and2 = new int[arr1.length + arr2.length];
+        System.arraycopy(arr1, 0, arr1and2, 0, arr1.length);
+        System.arraycopy(arr2, 0, arr1and2, arr1.length, arr2.length);
+
+        return arr1and2;
+    }
+
+    @Nullable
+    public Integer detectTemplate(EventTemplate t) {
+        if (data  == null)
+            return null;
+
+        int centralEvtBuild = t.beforeEvent().length;
+
+        int[] template = concatArr(t.beforeEvent(), t.eventAndAfter());
+
+        assert centralEvtBuild < template.length;
+        assert centralEvtBuild >= 0;
+
+        List<Invocation> histAsArr = data.invocations().collect(Collectors.toList());
+
+
+        if (histAsArr.size() < template.length)
+            return null;
+
+        Integer detectedAt = null;
+        if (t.shouldBeFirst()) {
+            if (histAsArr.size() >= getRunsAllHist()) // skip if total runs can't fit to latest runs
+                detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, 0);
+        }
+        else {
+            //startIgnite from the end to find most recent
+            for (int idx = histAsArr.size() - template.length; idx >= 0; idx--) {
+                detectedAt = checkTemplateAtPos(template, centralEvtBuild, histAsArr, idx);
+
+                if (detectedAt != null)
+                    break;
+            }
+        }
+
+        return detectedAt;
+    }
+
+    @Nullable
+    private static Integer checkTemplateAtPos(int[] template, int centralEvtBuild, List<Invocation> histAsArr,
+        int idx) {
+        for (int tIdx = 0; tIdx < template.length; tIdx++) {
+            Invocation curStatus = histAsArr.get(idx + tIdx);
+
+            if (curStatus == null)
+                break;
+
+            RunStat.RunStatus tmpl = RunStat.RunStatus.byCode(template[tIdx]);
+
+            if ((tmpl == RunStat.RunStatus.RES_OK_OR_FAILURE && (curStatus.status() == InvocationData.OK || curStatus.status() == InvocationData.FAILURE))
+                || curStatus.status() == tmpl.getCode()) {
+                if (tIdx == template.length - 1)
+                    return histAsArr.get(idx + centralEvtBuild).buildId();
+            }
+            else
+                break;
+        }
+
+        return null;
     }
 
     /** {@inheritDoc} */

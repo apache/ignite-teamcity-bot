@@ -192,9 +192,10 @@ public class ChainAtServerCurrentStatus {
                 MultBuildRunCtx suite = pairCtxAndOccur.get1();
                 IMultTestOccurrence longRunningOccur = pairCtxAndOccur.get2();
 
-                Function<TestInBranch, ? extends IRunHistory> function = SuiteCurrentStatus.NEW_RUN_STAT
-                    ? tcIgnited::getTestRunHist
-                    : tcAnalytics.getTestRunStatProvider();
+                Function<TestInBranch, ? extends IRunHistory> function =
+                    ITeamcity.NEW_RUN_STAT
+                        ? tcIgnited::getTestRunHist
+                        : tcAnalytics.getTestRunStatProvider();
 
                 TestFailure failure = createOrrucForLongRun(tcIgnited, suite, tcAnalytics, longRunningOccur,
                     baseBranchTc,

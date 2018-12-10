@@ -220,18 +220,12 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         } else
             statForProblemsDetection = stat;
 
-        if (statForProblemsDetection instanceof RunStat) {
-            final RunStat forProblemsDetection = (RunStat) statForProblemsDetection;
-            RunStat.TestId testId = forProblemsDetection.detectTemplate(EventTemplates.newFailure);
-
-            if (testId != null)
+        if (statForProblemsDetection != null) {
+            if (statForProblemsDetection.detectTemplate(EventTemplates.newFailure) != null)
                 problemRef = new ProblemRef("New Failure");
 
-            RunStat.TestId recentContributedTestId = forProblemsDetection.detectTemplate(EventTemplates.newContributedTestFailure);
-
-            if (recentContributedTestId != null)
+            if (statForProblemsDetection.detectTemplate(EventTemplates.newContributedTestFailure) != null)
                 problemRef = new ProblemRef("Recently contributed test failure");
-
         }
     }
 

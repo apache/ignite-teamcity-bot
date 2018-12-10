@@ -37,7 +37,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
- * TC Helper Config access stuff.
+ * TC Helper Config access, tracked branches, etc stuff.
  */
 public class HelperConfig {
     public static final String CONFIG_FILE_NAME = "auth.properties";

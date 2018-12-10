@@ -43,11 +43,14 @@ import java.util.concurrent.ExecutorService;
  */
 public interface ITeamcity extends ITeamcityConn {
 
-    String DEFAULT = "<default>";
-    String REFS_HEADS_MASTER = "refs/heads/master";
+    public String DEFAULT = "<default>";
+    public String REFS_HEADS_MASTER = "refs/heads/master";
 
     @Deprecated
     long DEFAULT_BUILDS_COUNT = 1000;
+
+    /** Temporary feature toggle: Use New run stat in PR analysis, issue detection. */
+    boolean NEW_RUN_STAT = true;
 
     /** {@inheritDoc} */
     @Override default List<BuildType> getBuildTypes(String projectId) {

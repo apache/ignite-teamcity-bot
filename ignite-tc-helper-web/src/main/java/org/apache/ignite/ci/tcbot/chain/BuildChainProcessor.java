@@ -38,9 +38,9 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
@@ -49,6 +49,7 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
@@ -115,13 +116,8 @@ public class BuildChainProcessor {
                         long t0 = test0.time;
                         long t1 = test1.time;
 
-                        if (t0 < t1)
-                            return 1;
+                        return Long.compare(t1, t0);
 
-                        if (t0 == t1)
-                            return 0;
-
-                        return -1;
                     });
 
                     res.add(
@@ -131,15 +127,7 @@ public class BuildChainProcessor {
                 }
             });
 
-        Collections.sort(res, (s0, s1) -> {
-            if (s0.testAvgTime < s1.testAvgTime)
-                return 1;
-
-            if (s0.testAvgTime == s1.testAvgTime)
-                return 0;
-
-            return -1;
-        });
+        res.sort((s0, s1) -> Long.compare(s1.testAvgTime, s0.testAvgTime));
 
         return res;
     }
@@ -212,7 +200,12 @@ public class BuildChainProcessor {
             SuiteInBranch key = new SuiteInBranch(ctx.suiteId(), RunHistSync.normalizeBranch(failRateBranch));
 
             //todo place RunStat into suite context to compare
-            RunStat runStat = teamcity.getBuildFailureRunStatProvider().apply(key);
+            Function<SuiteInBranch, ? extends IRunHistory> provider   =
+                ITeamcity.NEW_RUN_STAT
+                    ? tcIgn::getSuiteRunHist
+                    : teamcity.getBuildFailureRunStatProvider();
+
+            IRunHistory runStat = provider.apply(key);
 
             if (runStat == null)
                 return 0f;
@@ -372,11 +365,12 @@ public class BuildChainProcessor {
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
     protected void analyzeTests(MultBuildRunCtx outCtx, IAnalyticsEnabledTeamcity teamcity,
-                                     ProcessLogsMode procLog) {
+        ProcessLogsMode procLog) {
         for (SingleBuildRunCtx ctx : outCtx.getBuilds()) {
-            tcUpdatePool.getService().submit(() -> {
-                teamcity.calculateBuildStatistic(ctx);
-            });
+            if (!ITeamcity.NEW_RUN_STAT)
+                tcUpdatePool.getService().submit(() -> {
+                    teamcity.calculateBuildStatistic(ctx);
+                });
 
             if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
                     || procLog == ProcessLogsMode.ALL)

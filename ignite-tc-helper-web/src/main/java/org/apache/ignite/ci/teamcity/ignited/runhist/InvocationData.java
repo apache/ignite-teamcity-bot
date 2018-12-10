@@ -75,7 +75,7 @@ public class InvocationData {
         if (invocationMap.containsKey(build))
             return false;
 
-        if (isExpired(inv.startDate))
+        if (isExpired(inv.startDate()))
             return false;
 
         Invocation prevVal = invocationMap.putIfAbsent(build, inv);
@@ -92,7 +92,7 @@ public class InvocationData {
     }
 
     void removeEldiest() {
-        invocationMap.entrySet().removeIf(entries -> isExpired(entries.getValue().startDate));
+        invocationMap.entrySet().removeIf(entries -> isExpired(entries.getValue().startDate()));
     }
 
     /**
@@ -115,7 +115,7 @@ public class InvocationData {
     public int notMutedRunsCount() {
         return (int)
                 invocations()
-                        .filter(invocation -> invocation.status != MUTED)
+                        .filter(invocation -> invocation.status() != MUTED)
                         .count();
     }
 
@@ -132,14 +132,14 @@ public class InvocationData {
      * @param invocation Invocation.
      */
     private boolean isActual(Invocation invocation) {
-        return !isExpired(invocation.startDate);
+        return !isExpired(invocation.startDate());
     }
 
     /**
      *
      */
     public int failuresCount() {
-        return (int)invocations().filter(inv -> inv.status == FAILURE || inv.status == CRITICAL_FAILURE).count();
+        return (int)invocations().filter(inv -> inv.status() == FAILURE || inv.status() == CRITICAL_FAILURE).count();
     }
 
     /** {@inheritDoc} */
@@ -173,7 +173,7 @@ public class InvocationData {
      */
     public List<Integer> getLatestRuns() {
         return invocations()
-            .map(i->(int)i.status)
+            .map(i -> (int)i.status())
             .collect(Collectors.toList());
     }
 
@@ -181,6 +181,6 @@ public class InvocationData {
      *
      */
     public int criticalFailuresCount() {
-        return (int)invocations().filter(inv -> inv.status == CRITICAL_FAILURE).count();
+        return (int)invocations().filter(inv -> inv.status() == CRITICAL_FAILURE).count();
     }
 }

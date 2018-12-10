@@ -24,9 +24,12 @@ import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 
+@Deprecated
 public interface ITcAnalytics {
+    @Deprecated
     List<RunStat> topTestFailing(int cnt);
 
+    @Deprecated
     List<RunStat> topTestsLongRunning(int cnt);
 
     /**
@@ -43,6 +46,7 @@ public interface ITcAnalytics {
     @Deprecated
     Function<TestInBranch, RunStat> getTestRunStatProvider();
 
+    @Deprecated
     List<RunStat> topFailingSuite(int cnt);
 
     String getThreadDumpCached(Integer buildId);
@@ -52,5 +56,6 @@ public interface ITcAnalytics {
      *
      * @param ctx Context as provider build data.
      */
+    @Deprecated
     void calculateBuildStatistic(SingleBuildRunCtx ctx);
 }
