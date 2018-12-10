@@ -226,8 +226,7 @@
         formatDay = d3.timeFormat("%a %e"),
         formatWeek = d3.timeFormat("%b %e"),
         formatMonth = d3.timeFormat("%B"),
-        formatYear = d3.timeFormat("%Y"),
-        parseDuration = d3.utcParse("%s");
+        formatYear = d3.timeFormat("%Y");
 
     const fieldNames = new Map([['Duration', 'Duration'], ['Count', 'Count'], ['Passed', 'Passed'], ['Failed','Failed'],
             ['Ignored','Ignored'], ['Muted','Muted'], ['OO' ,'OOME'], ['TT', 'Total'], ['JC', 'JVM crash'],
@@ -303,7 +302,6 @@
              this.buildIds = [];
              this.num = num;
              this['Duration'] = [];
-             this['DurationF'] = [];
              this['Count'] = [];
              this['Passed'] = [];
              this['Failed'] = [];
@@ -323,7 +321,6 @@
             this.date = parseTime(item.startDate);
             this.stat = {
                 'Duration' : item.duration,
-                'DurationF' : parseDuration(parseInt(item.duration)),
                 'Count' : item.testOccurrences.count,
                 'Passed' : item.testOccurrences.passed,
                 'Failed' : item.testOccurrences.failed,
@@ -679,7 +676,6 @@
 
     function drawGraph(builds, fieldName, median, num) {
         let isDuration = (fieldName === duration),
-            F = isDuration ? "F" : "",
             svg = d3.select("#graph" + fieldName + num).append("svg:svg"),
             margin = {top: 20, right: 20, bottom: 30, left: 50},
             width = 500 - margin.left - margin.right,
@@ -695,14 +691,15 @@
 
         let line = d3.line()
             .x(function(d) { return x(d.date); })
-            .y(function(d) { return y(d.stat[fieldName + F]); });
+            .y(function(d) { return y(d.stat[fieldName]); });
 
         x.domain(d3.extent(builds, function(d) { return d.date; }));
-        y.domain(d3.extent(builds, function(d) { return d.stat[fieldName + F]; }));
+        y.domain(d3.extent(builds, function(d) { return d.stat[fieldName]; }));
 
         g.append("svg:g").attr("transform", "translate(0," + (height) + ")")
             .call(d3.axisBottom(x).tickFormat(multiFormat));
-        g.append("svg:g").call(isDuration ? d3.axisLeft(y).tickFormat(d3.utcFormat("%H:%M")) : d3.axisLeft(y));
+        g.append("svg:g").call(isDuration ? d3.axisLeft(y).tickFormat( function (d) { return time(d); })
+            : d3.axisLeft(y));
 
         let svg_aline = g.append("line")
             .attr("class", "line")
@@ -719,8 +716,8 @@
             .attr("class", "line")
             .attr("x1",0)
             .attr("x2",width)
-            .attr("y1",y(isDuration ? parseDuration(parseInt(median)) : median))
-            .attr("y2",y(isDuration ? parseDuration(parseInt(median)) : median))
+            .attr("y1",y(median))
+            .attr("y2",y(median))
             .attr("stroke", "red")
             .attr("stroke-width", "0.2")
             .style("display", "block");
@@ -739,7 +736,7 @@
             .append("circle")
             .attr("r", 3)
             .attr("cx", function(d){return x(d.date); })
-            .attr("cy", function(d){return y(d.stat[fieldName + F]); })
+            .attr("cy", function(d){return y(d.stat[fieldName]); })
             .attr("class", function(d) {
                 return getDotClass(d);
             })
@@ -753,13 +750,13 @@
                 svg_aline.transition().duration(10)
                     .style("display", "block")
                     .attr("x1", x(d.date))
-                    .attr("y1", y(d.stat[fieldName + F]))
+                    .attr("y1", y(d.stat[fieldName]))
                     .attr("x2", x(d.date))
                     .attr("y2", height);
 
                 let graphTd = document.getElementById("graph" + fieldName + num).getBoundingClientRect(),
                     scrollTop = window.pageYOffset || document.documentElement.scrollTop,
-                    top = scrollTop + graphTd.top + y(d.stat[fieldName + F]) - 10,
+                    top = scrollTop + graphTd.top + y(d.stat[fieldName]) - 10,
                     partLeft = graphTd.left + x(d.date) + 44,
                     minWidth = 18, interval = 8;
 
@@ -782,8 +779,7 @@
                     .style("left", partLeft - minWidth - interval - valueWidth / 2 + "px")
                     .style("top", top + "px" )
                     .attr("onclick", "setCondition(" + num + ", " + d.buildId + ", " +
-                        (isDuration ? d.stat[fieldName + F].getTime() / 1000 : d.stat[fieldName + F]) +
-                        ", " + median + ", '" + (fieldName + F) + "'); return false;").transition()
+                        d.stat[fieldName] + ", " + median + ", '" + fieldName + "'); return false;").transition()
                     .duration(200).style("opacity", .8).style("display", "block");
             })
 
