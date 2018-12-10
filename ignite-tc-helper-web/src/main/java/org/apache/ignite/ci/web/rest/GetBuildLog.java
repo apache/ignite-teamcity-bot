@@ -36,7 +36,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import org.apache.ignite.ci.ITcAnalytics;
-import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.web.CtxListener;
 
 /**
@@ -67,8 +67,8 @@ public class GetBuildLog {
         @QueryParam(BUILD_NO) Integer buildNo,
         @Deprecated @QueryParam(FILE_IDX) Integer fileIdx) {
 
-        ITcHelper helper = CtxListener.getTcHelper(ctx);
-        ITcAnalytics srv = helper.tcAnalytics(srvId);
+        ITcServerProvider helper = CtxListener.getInjector(ctx).getInstance(ITcServerProvider.class);
+        ITcAnalytics srv = helper.server(srvId, null);
         String cached = srv.getThreadDumpCached(buildNo);
 
         return sendString(cached);

@@ -370,16 +370,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public List<RunStat> topTestFailing(int cnt) {
-        return CollectionUtil.top(allTestAnalysis(), cnt, Comparator.comparing(IRunStat::getFailRate));
-    }
-
-    /** {@inheritDoc} */
-    @Override public List<RunStat> topTestsLongRunning(int cnt) {
-        return CollectionUtil.top(allTestAnalysis(), cnt, Comparator.comparing(RunStat::getAverageDurationMs));
-    }
-
-    /** {@inheritDoc} */
     @Override public Function<TestInBranch, RunStat> getTestRunStatProvider() {
         return key -> key == null ? null : getRunStatForTest(key);
     }
@@ -389,11 +379,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
     protected RunStat getRunStatForTest(TestInBranch key) {
         return testRunStatCache().get(key);
-    }
-
-    private Stream<RunStat> allTestAnalysis() {
-        return StreamSupport.stream(testRunStatCache().spliterator(), false)
-            .map(Cache.Entry::getValue);
     }
 
     @Deprecated
@@ -417,11 +402,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @GuavaCached(maximumSize = 500, expireAfterAccessSecs = 90, softValues = true)
     protected RunStat getRunStatForSuite(SuiteInBranch key) {
         return buildsFailureRunStatCache().get(key);
-    }
-
-    private Stream<RunStat> buildsFailureAnalysis() {
-        return StreamSupport.stream(buildsFailureRunStatCache().spliterator(), false)
-            .map(Cache.Entry::getValue);
     }
 
     /**
@@ -460,11 +440,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
             return null;
         }, next);
-    }
-
-    /** {@inheritDoc} */
-    @Override public List<RunStat> topFailingSuite(int cnt) {
-        return CollectionUtil.top(buildsFailureAnalysis(), cnt, Comparator.comparing(RunStat::getFailRate));
     }
 
     /** {@inheritDoc} */

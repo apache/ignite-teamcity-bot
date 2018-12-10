@@ -43,8 +43,6 @@ public interface ITcHelper extends ITcServerProvider {
 
     IssueDetector issueDetector();
 
-    ITcAnalytics tcAnalytics(String serverId);
-
     UserAndSessionsStorage users();
 
     String primaryServerId();
