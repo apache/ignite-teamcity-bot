@@ -21,6 +21,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.tcbot.chain.MockBasedTcBotModule;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
@@ -33,14 +34,19 @@ import org.junit.Test;
  *
  */
 public class IssueDetectorTest {
+    /** Server id. */
     public static final String SRV_ID = "apache";
+
     /** Builds emulated storage. */
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
 
+
+    /** Config Branches tracked. */
+    private BranchesTracked branchesTracked = new BranchesTracked();
     /**
      * Injector.
      */
-    private Injector injector = Guice.createInjector(new MockBasedTcBotModule());
+    private Injector injector = Guice.createInjector(new MockBasedTcBotModule(branchesTracked));
 
     /** */
     @Before
@@ -50,7 +56,6 @@ public class IssueDetectorTest {
     }
 
     @Test
-    @Ignore
     public void testDetector() {
         IssueDetector issueDetector = injector.getInstance(IssueDetector.class);
 

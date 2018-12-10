@@ -16,11 +16,30 @@
  */
 package org.apache.ignite.ci.tcbot.conf;
 
+import java.util.Collection;
+import java.util.List;
 import org.apache.ignite.ci.conf.BranchesTracked;
 
 /**
  * Teamcity Bot configuration access inteface.
  */
 public interface ITcBotConfig {
-    BranchesTracked getTrackedBranches();
+    /**
+     * @return Tracked branches configuration for TC Bot.
+     */
+    public BranchesTracked getTrackedBranches();
+
+    /**
+     * @return list of internal TC Bot identifiers of all tracked branches.
+     */
+    public default List<String> getTrackedBranchesIds() {
+        return getTrackedBranches().getIds();
+    }
+
+    /**
+     * @return list of servers (services) identifiers involved into tracked branhes processing.
+     */
+    public default Collection<String> getServerIds() {
+        return getTrackedBranches().getServerIds();
+    }
 }

@@ -368,7 +368,7 @@ public class PrChainsProcessorTest {
         return createTest(id, name, true);
     }
 
-    @NotNull private TestOccurrenceFull createTest(long id, String name, boolean passed) {
+    @NotNull public static TestOccurrenceFull createTest(long id, String name, boolean passed) {
         TestOccurrenceFull tf = new TestOccurrenceFull();
 
         tf.test = new TestRef();
@@ -384,7 +384,8 @@ public class PrChainsProcessorTest {
         return createFatBuild(c, btId, branch, id, ageMs, false);
     }
 
-    @NotNull public FatBuildCompacted createFatBuild(IStringCompactor c, String btId, String branch, int id, long ageMs,
+    @NotNull public static FatBuildCompacted createFatBuild(IStringCompactor c, String btId, String branch, int id,
+        long ageMs,
         boolean passed) {
         final Build build = createJaxbBuild(btId, branch, id, ageMs, passed);
 
@@ -392,7 +393,7 @@ public class PrChainsProcessorTest {
     }
 
     @NotNull
-    private Build createJaxbBuild(String btId, String branch, int id, long ageMs, boolean passed) {
+    private static Build createJaxbBuild(String btId, String branch, int id, long ageMs, boolean passed) {
         final Build build = new Build();
         build.buildTypeId = btId;
         final BuildType type = new BuildType();

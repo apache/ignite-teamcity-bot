@@ -18,7 +18,6 @@
 package org.apache.ignite.ci.tcbot.issue;
 
 import com.google.common.base.Strings;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,22 +25,31 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
-
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.issue.EventTemplate;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.jobs.CheckQueueJob;
+import org.apache.ignite.ci.mail.EmailSender;
+import org.apache.ignite.ci.mail.SlackSender;
+import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
@@ -49,14 +57,6 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
-import org.apache.ignite.ci.analysis.SuiteInBranch;
-import org.apache.ignite.ci.analysis.TestInBranch;
-import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
-import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.di.MonitoredTask;
-import org.apache.ignite.ci.jobs.CheckQueueJob;
-import org.apache.ignite.ci.mail.EmailSender;
-import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -93,9 +93,6 @@ public class IssueDetector {
     /** Tracked Branch Processor. */
     @Inject private TrackedBranchChainsProcessor tbProc;
 
-    /** Tc helper. */
-    @Inject private ITcHelper tcHelper;
-
     /** Server provider. */
     @Inject private ITcServerProvider srvProvider;
 
@@ -104,6 +101,9 @@ public class IssueDetector {
 
     /** String Compactor. */
     @Inject private IStringCompactor compactor;
+
+    /** Config. */
+    @Inject private ITcBotConfig cfg;
 
     /** Send notification guard. */
     private final AtomicBoolean sndNotificationGuard = new AtomicBoolean();
@@ -427,7 +427,7 @@ public class IssueDetector {
      *
      */
     private void checkFailures() {
-        List<String> ids = tcHelper.getTrackedBranchesIds();
+        List<String> ids = cfg.getTrackedBranchesIds();
 
         for (Iterator<String> iter = ids.iterator(); iter.hasNext(); ) {
             String tbranchName = iter.next();

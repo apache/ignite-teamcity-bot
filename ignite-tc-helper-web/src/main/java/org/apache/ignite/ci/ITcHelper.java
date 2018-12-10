@@ -49,9 +49,6 @@ public interface ITcHelper extends ITcServerProvider {
 
     String primaryServerId();
 
-    Collection<String> getServerIds();
-
-    List<String> getTrackedBranchesIds();
 
     /** */
     void setServerAuthorizerCreds(ICredentialsProv creds);

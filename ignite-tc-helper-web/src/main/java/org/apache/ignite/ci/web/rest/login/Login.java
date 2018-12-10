@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.inject.Injector;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.teamcity.pure.ITcLogin;
 import org.apache.ignite.ci.user.TcHelperUser;
@@ -71,6 +72,7 @@ public class Login {
 
         ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
         final Injector injector = CtxListener.getInjector(ctx);
+        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
         final ITcLogin tcLogin = injector.getInstance(ITcLogin.class);
         UserAndSessionsStorage users = tcHelper.users();
 
@@ -78,7 +80,7 @@ public class Login {
 
         try {
             return doLogin(username, pwd, users, primarySrvId,
-                    tcHelper.getServerIds(), tcLogin);
+                cfg.getServerIds(), tcLogin);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
