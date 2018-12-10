@@ -27,6 +27,12 @@
         <th style="text-align: center;" width="42%"><input type='text' name='daterange1'/></th>
         <th style="text-align: center;" width="42%"><input type='text' name='daterange2'/></th>
     </tr>
+    <tr id="switchNightly">
+        <td class="section">RUN_ALL <span class="nightly on" id="nightly"><b>ɴɪɢʜᴛʟʏ</b></span></td>
+        <td class="icon"><div class="switch-btn switch-on suites"></div></td>
+        <td></td>
+        <td></td>
+    </tr>
     <tr id="showInfo">
         <td class="section">SHOW INVALID BUILD</td>
         <td class="icon"><div class="switch-btn builds"></div></td>
@@ -181,7 +187,8 @@
 
     let invalidInclude = false,
         markBuildId = 0,
-        testsTrigger = false;
+        testsTrigger = false,
+        nightly = true;
 
     function refreshTests() {
         printTests(generateTestsResultsComparison(mergedTestsResults));
@@ -213,9 +220,7 @@
     function toggleTests() {
         testsTrigger = !testsTrigger;
 
-        loadData(1, dateIntervals[1].start, dateIntervals[1].end, testsTrigger);
-
-        loadData(2, dateIntervals[2].start, dateIntervals[2].end, testsTrigger);
+        reloadAll();
     }
 
     const parseTime = d3.timeParse("%d-%m-%YT%H:%M:%S"),
@@ -556,8 +561,8 @@
 
         mergedTestsResults[num] = {};
 
-        let url = 'rest/build/history?server=apache&buildType=IgniteTests24Java8_RunAll&sinceDate=' + sinceDate.format("DDMMYYYY") +
-            '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
+        let url = 'rest/build/history?server=apache&buildType=IgniteTests24Java8_RunAll' + (nightly ? 'Nightly' : '') +
+            '&sinceDate=' + sinceDate.format("DDMMYYYY") + '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
 
         if (!testsTrigger)
             url = url + '&' + SKIP_TESTS;
@@ -915,8 +920,7 @@
         });
     }
 
-    function getBuildLink(buildId) { return "https://ci.ignite.apache.org/viewLog.html?buildId=" + buildId
-            + "&tab=buildResultsDiv&buildTypeId=IgniteTests24Java8_RunAll"; }
+    function getBuildLink(buildId) { return "https://ci.ignite.apache.org/viewLog.html?buildId=" + buildId; }
 
     function checkAvailable(buildId, date) {
         let dateDiff = moment().diff(moment(date), 'days');
@@ -975,6 +979,18 @@
         toggleTests();
     });
 
+    $('.switch-btn.suites').click(function(){
+        $(this).toggleClass('switch-on');
+
+        let nightlySpan = $('#nightly');
+
+        nightlySpan.replaceClass('off', 'on');
+
+        nightly = nightlySpan.hasClass('on');
+
+        reloadAll();
+    });
+
     function setBuildCondition(buildId, isValid, conditionLocal) {
         setBuildConditionForColumn(buildId, isValid, 1, conditionLocal);
         setBuildConditionForColumn(buildId, isValid, 2, conditionLocal);
@@ -1010,6 +1026,11 @@
             printTests(generateTestsResultsComparison(mergedTestsResults));
     }
 
+    function reloadAll(){
+        loadData(1, dateIntervals[1].start, dateIntervals[1].end, testsTrigger);
+        loadData(2, dateIntervals[2].start, dateIntervals[2].end, testsTrigger);
+    }
+
     function multiFormat(date) {
         return (d3.timeSecond(date) < date ? formatMillisecond
             : d3.timeMinute(date) < date ? formatSecond
@@ -1035,6 +1056,15 @@
             "startDate": moment(startDate).format("DD-MM-YYYY"), "endDate": moment(endDate).format("DD-MM-YYYY")
         }
     }
+
+    (function ($) {
+        $.fn.replaceClass = function (pFromClass, pToClass) {
+            if (this.hasClass(pFromClass))
+                return this.removeClass(pFromClass).addClass(pToClass);
+            else
+                return this.removeClass(pToClass).addClass(pFromClass);
+        };
+    }(jQuery));
 </script>
 <div style="visibility:hidden">
     <div id="modalDialog" title="Information"></div><div id="resultDialog" title="Result"></div>
