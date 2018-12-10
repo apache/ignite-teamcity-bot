@@ -130,7 +130,7 @@ public class PrChainsProcessorTest {
 
         assertTrue(containsTestFailure(blockers, TEST_WITH_HISTORY_PASSING_IN_MASTER));
 
-        if (SuiteCurrentStatus.NEW_RUN_STAT) {
+        if (ITeamcity.NEW_RUN_STAT) {
             assertFalse(containsTestFailure(blockers, TEST_WITH_HISTORY_FAILING_IN_MASTER));
             assertFalse(containsTestFailure(blockers, TEST_FLAKY_IN_MASTER));
         }
@@ -138,7 +138,7 @@ public class PrChainsProcessorTest {
         Optional<TestFailure> testOpt = findBlockerTestFailure(blockers, TEST_WITH_HISTORY_PASSING_IN_MASTER);
         assertTrue(testOpt.isPresent());
 
-        if (SuiteCurrentStatus.NEW_RUN_STAT) {
+        if (ITeamcity.NEW_RUN_STAT) {
             List<Integer> etalon = new ArrayList<>();
             for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++)
                 etalon.add(RunStat.RunStatus.RES_OK.getCode());
@@ -147,7 +147,7 @@ public class PrChainsProcessorTest {
         }
 
         assertTrue(containsTestFailure(blockers, TEST_WAS_FIXED_IN_MASTER));
-        if(SuiteCurrentStatus.NEW_RUN_STAT)
+        if(ITeamcity.NEW_RUN_STAT)
             assertFalse(containsTestFailure(blockers, TEST_WITH_HISTORY_FAILING_IN_MASTER));
         // otherwise this non-blocker will not be filtered out
 
@@ -438,8 +438,6 @@ public class PrChainsProcessorTest {
             addBuildsToEmulatedStor(buildBuild, cache8, chain);
         }
     }
-
-
 
     @Test
     public void testTemplateDetectionInBranch() {

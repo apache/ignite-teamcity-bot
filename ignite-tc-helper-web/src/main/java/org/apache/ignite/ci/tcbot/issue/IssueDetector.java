@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -35,6 +36,7 @@ import javax.inject.Provider;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.issue.EventTemplate;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.Issue;
@@ -47,7 +49,6 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
-import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
@@ -268,7 +269,12 @@ public class IssueDetector {
 
         SuiteInBranch key = new SuiteInBranch(suiteId, normalizeBranch);
 
-        IRunHistory runStat = teamcity.getBuildFailureRunStatProvider().apply(key);
+        Function<SuiteInBranch, ? extends IRunHistory> provider   =
+            ITeamcity.NEW_RUN_STAT
+                ? tcIgnited::getSuiteRunHist
+                : teamcity.getBuildFailureRunStatProvider();
+
+        IRunHistory runStat = provider.apply(key);
 
         if (runStat == null)
             return false;
@@ -322,7 +328,12 @@ public class IssueDetector {
         String name = testFailure.name;
         TestInBranch testInBranch = new TestInBranch(name, normalizeBranch);
 
-        IRunHistory runStat = teamcity.getTestRunStatProvider().apply(testInBranch);
+        Function<TestInBranch, ? extends IRunHistory> function =
+            ITeamcity.NEW_RUN_STAT
+                ? tcIgnited::getTestRunHist
+                : teamcity.getTestRunStatProvider();
+
+        IRunHistory runStat = function.apply(testInBranch);
 
         if (runStat == null)
             return false;

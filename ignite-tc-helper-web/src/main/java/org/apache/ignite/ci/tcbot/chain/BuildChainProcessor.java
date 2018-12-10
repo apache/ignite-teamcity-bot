@@ -38,9 +38,9 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
@@ -49,6 +49,7 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
@@ -199,7 +200,12 @@ public class BuildChainProcessor {
             SuiteInBranch key = new SuiteInBranch(ctx.suiteId(), RunHistSync.normalizeBranch(failRateBranch));
 
             //todo place RunStat into suite context to compare
-            RunStat runStat = teamcity.getBuildFailureRunStatProvider().apply(key);
+            Function<SuiteInBranch, ? extends IRunHistory> provider   =
+                ITeamcity.NEW_RUN_STAT
+                    ? tcIgn::getSuiteRunHist
+                    : teamcity.getBuildFailureRunStatProvider();
+
+            IRunHistory runStat = provider.apply(key);
 
             if (runStat == null)
                 return 0f;
