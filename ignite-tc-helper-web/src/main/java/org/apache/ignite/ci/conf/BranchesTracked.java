@@ -27,7 +27,6 @@ public class BranchesTracked {
     /** Branches. */
     private List<BranchTracked> branches = new ArrayList<>();
 
-
     /**
      * @return list of internal identifiers of branch.
      */
@@ -56,5 +55,9 @@ public class BranchesTracked {
 
     public List<BranchTracked> getBranches() {
         return Collections.unmodifiableList(branches);
+    }
+
+    public void addBranch(BranchTracked branch) {
+        branches.add(branch);
     }
 }

@@ -20,6 +20,7 @@ package org.apache.ignite.ci.tcbot.chain;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
@@ -27,6 +28,7 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
@@ -44,6 +46,16 @@ import static org.mockito.Mockito.when;
  * - TC: {@link TeamcityIgnitedProviderMock}
  */
 public class MockBasedTcBotModule extends AbstractModule {
+    private BranchesTracked tracked = new BranchesTracked();
+
+    public MockBasedTcBotModule(BranchesTracked tracked) {
+        this.tracked = tracked;
+    }
+
+    public MockBasedTcBotModule() {
+
+    }
+
     /** {@inheritDoc} */
     @Override protected void configure() {
         bind(IStringCompactor.class).to(InMemoryStringCompactor.class).in(new SingletonScope());
@@ -80,6 +92,12 @@ public class MockBasedTcBotModule extends AbstractModule {
         when(tcSrvOldProv.server(anyString(), any(ICredentialsProv.class))).thenReturn(tcOld);
 
         bind(ITcServerProvider.class).toInstance(tcSrvOldProv);
+
+        bind(ITcBotConfig.class).toInstance(new ITcBotConfig() {
+            @Override public BranchesTracked getTrackedBranches() {
+                return tracked;
+            }
+        });
 
         super.configure();
     }

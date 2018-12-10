@@ -32,6 +32,8 @@ import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.di.cache.GuavaCachedModule;
 import org.apache.ignite.ci.di.scheduler.SchedulerModule;
 import org.apache.ignite.ci.github.ignited.GitHubIgnitedModule;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.LocalFilesBasedConfig;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.jira.JiraIntegrationModule;
 import org.apache.ignite.ci.observer.BuildObserver;
@@ -79,6 +81,7 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(ITcHelper.class).to(TcHelper.class).in(new SingletonScope());
         bind(BackgroundUpdater.class).in(new SingletonScope());
         bind(MasterTrendsService.class).in(new SingletonScope());
+        bind(ITcBotConfig.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
 
         install(new TeamcityIgnitedModule());
         install(new JiraIntegrationModule());

@@ -102,6 +102,7 @@ public class IssueDetector {
     /** Server provider. */
     @Inject private ITeamcityIgnitedProvider tcProv;
 
+    /** String Compactor. */
     @Inject private IStringCompactor compactor;
 
     /** Send notification guard. */

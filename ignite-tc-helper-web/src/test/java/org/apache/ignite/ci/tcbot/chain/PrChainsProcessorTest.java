@@ -215,7 +215,7 @@ public class PrChainsProcessorTest {
      *
      * @param c Compactor.
      */
-    public void initHistory(IStringCompactor c) {
+    public Map<Integer, FatBuildCompacted> initHistory(IStringCompactor c) {
         for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++) {
             FatBuildCompacted cache1InMaster = createFailedBuild(c, CACHE_1,
                 ITeamcity.DEFAULT, 500 + i, 100000 + (i * 10000))
@@ -274,6 +274,8 @@ public class PrChainsProcessorTest {
 
             addBuildsToEmulatedStor(fatBuild);
         }
+
+        return apacheBuilds();
     }
 
     /**
