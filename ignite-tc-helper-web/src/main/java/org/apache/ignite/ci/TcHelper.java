@@ -117,11 +117,6 @@ public class TcHelper implements ITcHelper {
     }
 
     /** {@inheritDoc} */
-    @Override public ITcAnalytics tcAnalytics(String srvId) {
-        return server(srvId, null);
-    }
-
-    /** {@inheritDoc} */
     @Override public UserAndSessionsStorage users() {
         return userAndSessionsStorage;
     }

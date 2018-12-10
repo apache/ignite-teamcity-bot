@@ -26,12 +26,6 @@ import org.apache.ignite.ci.analysis.TestInBranch;
 
 @Deprecated
 public interface ITcAnalytics {
-    @Deprecated
-    List<RunStat> topTestFailing(int cnt);
-
-    @Deprecated
-    List<RunStat> topTestsLongRunning(int cnt);
-
     /**
      * Return build statistics for default branch provider
      *
@@ -45,9 +39,6 @@ public interface ITcAnalytics {
      */
     @Deprecated
     Function<TestInBranch, RunStat> getTestRunStatProvider();
-
-    @Deprecated
-    List<RunStat> topFailingSuite(int cnt);
 
     String getThreadDumpCached(Integer buildId);
 
