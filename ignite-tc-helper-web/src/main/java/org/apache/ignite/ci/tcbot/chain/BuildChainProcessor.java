@@ -115,13 +115,8 @@ public class BuildChainProcessor {
                         long t0 = test0.time;
                         long t1 = test1.time;
 
-                        if (t0 < t1)
-                            return 1;
+                        return Long.compare(t1, t0);
 
-                        if (t0 == t1)
-                            return 0;
-
-                        return -1;
                     });
 
                     res.add(
@@ -131,15 +126,7 @@ public class BuildChainProcessor {
                 }
             });
 
-        Collections.sort(res, (s0, s1) -> {
-            if (s0.testAvgTime < s1.testAvgTime)
-                return 1;
-
-            if (s0.testAvgTime == s1.testAvgTime)
-                return 0;
-
-            return -1;
-        });
+        res.sort((s0, s1) -> Long.compare(s1.testAvgTime, s0.testAvgTime));
 
         return res;
     }

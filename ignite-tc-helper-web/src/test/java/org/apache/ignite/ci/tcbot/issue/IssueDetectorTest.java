@@ -57,7 +57,7 @@ public class IssueDetectorTest {
         String masterStatus = issueDetector.checkFailuresEx("master");
 
         System.out.println(masterStatus);
-        /* todo: implement users/issue test only storeages
+        /* todo: https://issues.apache.org/jira/browse/IGNITE-10620 implement users/issue test only storeages
         1) No implementation for org.apache.ignite.Ignite was bound.
   while locating com.google.inject.Provider<org.apache.ignite.Ignite>
     for field at org.apache.ignite.ci.issue.IssuesStorage.igniteProvider(IssuesStorage.java:37)

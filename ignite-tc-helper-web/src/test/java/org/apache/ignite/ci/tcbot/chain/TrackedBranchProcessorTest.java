@@ -56,7 +56,7 @@ public class TrackedBranchProcessorTest {
     public void testTrackedBranchChainsProcessor() {
         TrackedBranchChainsProcessor tbProc = injector.getInstance(TrackedBranchChainsProcessor.class);
 
-        String brachName = "master"; //todo use separate branch e.g. masterForTests
+        String brachName = "master"; //todo https://issues.apache.org/jira/browse/IGNITE-10620 use separate branch e.g. masterForTests
         TestFailuresSummary failures = tbProc.getTrackedBranchTestFailures(brachName,
             false,
             1,
