@@ -19,10 +19,22 @@ package org.apache.ignite.ci.teamcity.ignited;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.annotation.concurrent.GuardedBy;
 
+/**
+ * In-memory string compactor analogue without using Ignite.
+ */
 public class InMemoryStringCompactor implements IStringCompactor {
+    /** Id to string mapping. */
+    @GuardedBy("this")
     private final Map<Integer, String> idToStr = new ConcurrentHashMap<>();
+
+    /** String to ID mapping. */
+    @GuardedBy("this")
     private final Map<String, Integer> strToId = new ConcurrentHashMap<>();
+
+    /** ID generator Sequence. */
+    @GuardedBy("this")
     private final AtomicInteger seq = new AtomicInteger();
 
     /** {@inheritDoc} */

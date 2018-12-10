@@ -40,6 +40,7 @@ import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
@@ -267,17 +268,16 @@ public class IssueDetector {
 
         SuiteInBranch key = new SuiteInBranch(suiteId, normalizeBranch);
 
-        RunStat runStat = teamcity.getBuildFailureRunStatProvider().apply(key);
+        IRunHistory runStat = teamcity.getBuildFailureRunStatProvider().apply(key);
 
         if (runStat == null)
             return false;
 
         boolean issueFound = false;
 
-        RunStat.TestId firstFailedTestId = runStat.detectTemplate(EventTemplates.newCriticalFailure);
+        Integer firstFailedBuildId = runStat.detectTemplate(EventTemplates.newCriticalFailure);
 
-        if (firstFailedTestId != null && suiteFailure.hasCriticalProblem != null && suiteFailure.hasCriticalProblem) {
-            int firstFailedBuildId = firstFailedTestId.getBuildId();
+        if (firstFailedBuildId != null && suiteFailure.hasCriticalProblem != null && suiteFailure.hasCriticalProblem) {
             IssueKey issueKey = new IssueKey(srvId, firstFailedBuildId, suiteId);
 
             if (issuesStorage.cache().containsKey(issueKey))
@@ -322,23 +322,22 @@ public class IssueDetector {
         String name = testFailure.name;
         TestInBranch testInBranch = new TestInBranch(name, normalizeBranch);
 
-        RunStat runStat = teamcity.getTestRunStatProvider().apply(testInBranch);
+        IRunHistory runStat = teamcity.getTestRunStatProvider().apply(testInBranch);
 
         if (runStat == null)
             return false;
 
-        RunStat.TestId firstFailedTestId;
         String displayType = null;
 
-        firstFailedTestId = runStat.detectTemplate(EventTemplates.newContributedTestFailure);
+        Integer firstFailedBuildId = runStat.detectTemplate(EventTemplates.newContributedTestFailure);
 
-        if (firstFailedTestId != null)
+        if (firstFailedBuildId != null)
             displayType = "Recently contributed test failed";
 
-        if (firstFailedTestId == null) {
-            firstFailedTestId = runStat.detectTemplate(EventTemplates.newFailure);
+        if (firstFailedBuildId == null) {
+            firstFailedBuildId = runStat.detectTemplate(EventTemplates.newFailure);
 
-            if (firstFailedTestId != null) {
+            if (firstFailedBuildId != null) {
                 displayType = "New test failure";
                 final String flakyComments = runStat.getFlakyComments();
 
@@ -347,17 +346,17 @@ public class IssueDetector {
                         logger.info("Skipping registering new issue for test fail:" +
                                 " Test seems to be flaky " + name + ": " + flakyComments);
 
-                        firstFailedTestId = null;
+                        firstFailedBuildId = null;
                     } else
                         displayType = "New stable failure of a flaky test";
                 }
             }
         }
 
-        if (firstFailedTestId == null)
+        if (firstFailedBuildId == null)
             return false;
 
-        int buildId = firstFailedTestId.getBuildId();
+        int buildId = firstFailedBuildId;
 
         IssueKey issueKey = new IssueKey(srvId, buildId, name);
 

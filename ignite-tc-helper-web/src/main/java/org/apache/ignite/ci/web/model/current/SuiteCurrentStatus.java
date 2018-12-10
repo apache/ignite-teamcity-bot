@@ -265,16 +265,11 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         } else
             latestRunsSrc = stat;
 
-        if (latestRunsSrc instanceof RunStat) {
-            RunStat latestRunsSrcV1 = (RunStat)latestRunsSrc;
-            RunStat.TestId testId = latestRunsSrcV1.detectTemplate(EventTemplates.newFailureForFlakyTest); //extended runs required for suite
-
-            if (testId != null)
+        if (latestRunsSrc != null) {
+            if (latestRunsSrc.detectTemplate(EventTemplates.newFailureForFlakyTest) != null)
                 problemRef = new ProblemRef("New Failure");
 
-            RunStat.TestId buildIdCritical = latestRunsSrcV1.detectTemplate(EventTemplates.newCriticalFailure);
-
-            if (buildIdCritical != null)
+            if (latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailure) != null)
                 problemRef = new ProblemRef("New Critical Failure");
         }
     }

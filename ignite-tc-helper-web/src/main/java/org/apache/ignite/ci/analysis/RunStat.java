@@ -273,7 +273,7 @@ public class RunStat implements IRunHistory {
     }
 
     @Nullable
-    public TestId detectTemplate(EventTemplate t) {
+    public Integer detectTemplate(EventTemplate t) {
         if (latestRuns == null)
             return null;
 
@@ -306,7 +306,7 @@ public class RunStat implements IRunHistory {
             }
         }
 
-        return detectedAt;
+        return detectedAt == null ? null : detectedAt.getBuildId();
     }
 
     @Nullable

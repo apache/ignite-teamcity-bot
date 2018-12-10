@@ -64,7 +64,10 @@ public class PrChainsProcessorTest {
     public static final String SRV_ID = "apache";
     public static final String TEST_WITH_HISTORY_FAILING_IN_MASTER = "testWithHistoryFailingInMaster";
     public static final String TEST_WITH_HISTORY_PASSING_IN_MASTER = "testWithHistoryPassingInMaster";
+
+    /** Test which is flaky in master, fail rate ~50%. */
     public static final String TEST_FLAKY_IN_MASTER = "testFlaky50";
+
     public static final String TEST_WITHOUT_HISTORY = "testWithoutHistory";
     public static final String TEST_WAS_FIXED_IN_MASTER = "testFailingButFixedInMaster";
     public static final int NUM_OF_TESTS_IN_MASTER = 10;
@@ -79,8 +82,14 @@ public class PrChainsProcessorTest {
     /** Test rare failed without any changes in build: should be considered flaky, and will not appear as blocker. */
     public static final String TEST_RARE_FAILED_WITHOUT_CHANGES = "testWithRareFailuresWithoutChanges";
 
-    /** Build apache ignite: contains compilation error, should became a blocker. */
+    /** Build apache ignite: in some tests may contains compilation error, should became a blocker. */
     public static final String BUILD_APACHE_IGNITE = "Build";
+
+    /** Cache 8: Used to test templates detection for PR branch. */
+    public static final String CACHE_8 = "Cache8";
+
+    /** Test, which was passing but became failed in branch. */
+    public static final String TEST_BECAME_FAILED_IN_BRANCH = "testBecameFailedInBranch";
 
     /** Builds emulated storage. */
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
@@ -149,6 +158,10 @@ public class PrChainsProcessorTest {
         return blockers.stream().anyMatch(containsTestFail(name));
     }
 
+    /**
+     * Tests flaky detection mechanism. If master failures contained changes this test is non flaky. If test changes its
+     * status wihtout code modificaitons this test should be marged as flaky.
+     */
     @Test
     public void testFlakyDetector() {
         IStringCompactor c = injector.getInstance(IStringCompactor.class);
@@ -181,6 +194,9 @@ public class PrChainsProcessorTest {
         return suiteOpt.flatMap(suite->suite.testFailures.stream().filter(tf -> name.equals(tf.name)).findAny());
     }
 
+    /**
+     * @param name Test failure Name to find.
+     */
     @NotNull
     private Predicate<SuiteCurrentStatus> containsTestFail(String name) {
         return s -> s.testFailures.stream().anyMatch(testFailure -> {
@@ -194,6 +210,11 @@ public class PrChainsProcessorTest {
         initHistory(c);
     }
 
+    /**
+     * Initializes master test runs to be used as refenence.
+     *
+     * @param c Compactor.
+     */
     public void initHistory(IStringCompactor c) {
         for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++) {
             FatBuildCompacted cache1InMaster = createFailedBuild(c, CACHE_1,
@@ -237,8 +258,8 @@ public class PrChainsProcessorTest {
         }
 
         for (int i = 0; i < 100; i++) {
-            boolean failNoChanges = i==77;
-            boolean failWithChanges = i==55;
+            boolean failNoChanges = i == 77;
+            boolean failWithChanges = i == 55;
 
             boolean passed = !failNoChanges && !failWithChanges;
 
@@ -248,13 +269,20 @@ public class PrChainsProcessorTest {
                         createTest(1L, TEST_RARE_FAILED_WITHOUT_CHANGES, !failNoChanges),
                         createTest(2L, TEST_RARE_FAILED_WITH_CHANGES, !failWithChanges)));
 
-            if (failWithChanges || i==56) // add change to test status change after failure.
-                fatBuild.changes(new int[] {1000000+i, 1000020+i});
+            if (failWithChanges || i == 56) // add change to test status change after failure.
+                fatBuild.changes(new int[] {1000000 + i, 1000020 + i});
 
             addBuildsToEmulatedStor(fatBuild);
         }
     }
 
+    /**
+     * Initializes
+     *
+     * @param c Compatcor.
+     * @param btId Build type.
+     * @param branch Branch tested.
+     */
     public void initBuildChain(IStringCompactor c, String btId, String branch) {
         final FatBuildCompacted buildBuild = createFailedBuild(c, BUILD_APACHE_IGNITE, branch, 1002, 100020);
         final ProblemOccurrence compile = new ProblemOccurrence();
@@ -290,6 +318,11 @@ public class PrChainsProcessorTest {
         addBuildsToEmulatedStor(buildBuild, cancelledBuild, cache1, runAll);
     }
 
+    /**
+     * @param c Compactor.
+     * @param btId Build Type id.
+     * @param branch Branch.
+     */
     public void initChainForFlakyTest(IStringCompactor c, String btId, String branch) {
         final FatBuildCompacted buildBuild = createFailedBuild(c, BUILD_APACHE_IGNITE, branch, 1002, 100020);
 
@@ -301,12 +334,14 @@ public class PrChainsProcessorTest {
 
         cache9.snapshotDependencies(new int[] {buildBuild.id()});
 
-        final FatBuildCompacted chain = createFailedBuild(c, btId, branch, 1000, 100000);
-
-        chain.snapshotDependencies(new int[]{cache9.id()});
+        final FatBuildCompacted chain =
+            createFailedBuild(c, btId, branch, 1000, 100000)
+                .snapshotDependencies(new int[] {cache9.id()});
 
         addBuildsToEmulatedStor(buildBuild, cache9, chain);
     }
+
+
 
     /**
      * Adds builds into emulated storage.
@@ -375,4 +410,62 @@ public class PrChainsProcessorTest {
         return apacheBuilds;
     }
 
+    /**
+     * @param c Compactor.
+     * @param btId Chain Build type id.
+     * @param branch Branch.
+     */
+    public void initChainForTemplateDetection(IStringCompactor c, String btId, String branch) {
+        int firstFailedBuild = 6;
+
+        for (int i = 0; i < 10; i++) {
+            final FatBuildCompacted buildBuild = createFailedBuild(c, BUILD_APACHE_IGNITE, branch, 1332 + i, 100020);
+
+            final FatBuildCompacted cache8 =
+                createFailedBuild(c, CACHE_8, branch, 9331 + i, 100090)
+                    .addTests(c,
+                        Lists.newArrayList(
+                            createTest(1L, TEST_BECAME_FAILED_IN_BRANCH, i < firstFailedBuild)))
+                    .snapshotDependencies(new int[] {buildBuild.id()});
+
+            if (i == firstFailedBuild)
+                cache8.changes(new int[] {i}); //change which failed this test
+
+            final FatBuildCompacted chain =
+                createFailedBuild(c, btId, branch, 1220+i, 100000)
+                    .snapshotDependencies(new int[] {cache8.id()});
+
+            addBuildsToEmulatedStor(buildBuild, cache8, chain);
+        }
+    }
+
+
+
+    @Test
+    public void testTemplateDetectionInBranch() {
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+
+        final String btId = "RunAll";
+        final String branch = "ignite-9542";
+
+        initChainForTemplateDetection(c, btId, branch);
+
+        initHistory(c);
+
+        PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
+
+        final List<SuiteCurrentStatus> blockers = prcp.getBlockersSuitesStatuses(btId, branch, SRV_ID, mock(ICredentialsProv.class));
+
+        System.out.println(blockers);
+
+        Optional<TestFailure> testBecameFailed = findBlockerTestFailure(blockers, TEST_BECAME_FAILED_IN_BRANCH);
+        assertTrue(testBecameFailed.isPresent());
+
+        assertNull(testBecameFailed.get().histCurBranch.flakyComments);
+
+        assertNotNull(testBecameFailed.get().problemRef);
+
+        System.err.println(testBecameFailed.get().problemRef.name);
+        assertTrue(testBecameFailed.get().problemRef.name.contains("Failure"));
+    }
 }
