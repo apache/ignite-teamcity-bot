@@ -50,6 +50,7 @@ import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
@@ -81,7 +82,7 @@ public class IssueDetector {
     private static final String SLACK = "slack:";
 
     @Inject private IssuesStorage issuesStorage;
-    @Inject private UserAndSessionsStorage userStorage;
+    @Inject private IUserStorage userStorage;
 
     private final AtomicBoolean init = new AtomicBoolean();
     private ICredentialsProv backgroundOpsCreds;
@@ -141,17 +142,12 @@ public class IssueDetector {
     @AutoProfiling
     @MonitoredTask(name = "Send Notifications")
     protected String sendNewNotificationsEx() throws IOException {
-        Collection<TcHelperUser> userForPossibleNotifications = new ArrayList<>();
+        List<TcHelperUser> userForPossibleNotifications = new ArrayList<>();
 
-        for(Cache.Entry<String, TcHelperUser> entry : userStorage.users()) {
-            TcHelperUser tcHelperUser = entry.getValue();
-
-            if (Strings.isNullOrEmpty(tcHelperUser.email))
-                continue;
-
-            if(tcHelperUser.hasSubscriptions())
-                userForPossibleNotifications.add(tcHelperUser);
-        }
+        userStorage.allUsers()
+                .filter(TcHelperUser::hasEmail)
+                .filter(TcHelperUser::hasSubscriptions)
+                .forEach(userForPossibleNotifications::add);
 
         String slackCh = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
         Map<String, Notification> toBeSent = new HashMap<>();
@@ -287,7 +283,7 @@ public class IssueDetector {
         if (firstFailedBuildId != null && suiteFailure.hasCriticalProblem != null && suiteFailure.hasCriticalProblem) {
             IssueKey issueKey = new IssueKey(srvId, firstFailedBuildId, suiteId);
 
-            if (issuesStorage.cache().containsKey(issueKey))
+            if (issuesStorage.containsIssueKey(issueKey))
                 return false; //duplicate
 
             Issue issue = new Issue(issueKey);
@@ -300,7 +296,7 @@ public class IssueDetector {
 
             logger.info("Register new issue for suite fail: " + issue);
 
-            issuesStorage.cache().put(issueKey, issue);
+            issuesStorage.saveIssue(issue);
 
             issueFound = true;
         }
@@ -372,7 +368,7 @@ public class IssueDetector {
 
         IssueKey issueKey = new IssueKey(srvId, buildId, name);
 
-        if (issuesStorage.cache().containsKey(issueKey))
+        if (issuesStorage.containsIssueKey(issueKey))
             return false; //duplicate
 
         Issue issue = new Issue(issueKey);
@@ -385,7 +381,7 @@ public class IssueDetector {
 
         logger.info("Register new issue for test fail: " + issue);
 
-        issuesStorage.cache().put(issueKey, issue);
+        issuesStorage.saveIssue(issue);
 
         return true;
     }

@@ -67,11 +67,6 @@ public class IssueDetectorTest {
   while locating com.google.inject.Provider<org.apache.ignite.Ignite>
     for field at org.apache.ignite.ci.issue.IssuesStorage.igniteProvider(IssuesStorage.java:37)
 
-2) No implementation for org.apache.ignite.ci.ITcHelper was bound.
-  while locating org.apache.ignite.ci.ITcHelper
-
-3) No implementation for org.apache.ignite.Ignite was bound.
-  while locating com.google.inject.Provider<org.apache.ignite.Ignite>
          */
     }
 

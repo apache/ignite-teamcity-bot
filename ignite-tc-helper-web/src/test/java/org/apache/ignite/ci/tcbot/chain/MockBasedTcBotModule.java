@@ -29,6 +29,8 @@ import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
+import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
@@ -98,6 +100,9 @@ public class MockBasedTcBotModule extends AbstractModule {
                 return tracked;
             }
         });
+
+        bind(IIssuesStorage.class).toInstance(Mockito.mock(IIssuesStorage.class));
+        bind(IUserStorage.class).toInstance(Mockito.mock(IUserStorage.class));
 
         super.configure();
     }

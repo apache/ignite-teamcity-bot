@@ -142,6 +142,10 @@ public class TcHelperUser implements IVersionedEntity {
         return subscribedToAllFailures!=null && !subscribedToAllFailures.isEmpty();
     }
 
+    public boolean hasEmail() {
+        return !Strings.isNullOrEmpty(email);
+    }
+
     public static class Credentials {
         String serverId;
         String username;

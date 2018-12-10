@@ -27,8 +27,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 
-public class IssuesStorage {
+public class IssuesStorage implements IIssuesStorage {
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
 
     @Inject
@@ -73,5 +74,15 @@ public class IssuesStorage {
             cache().put(issueKey, issue);
 
         return add;
+    }
+
+    @Override
+    public boolean containsIssueKey(IssueKey issueKey) {
+        return cache().containsKey(issueKey);
+    }
+
+    @Override
+    public void saveIssue(Issue issue) {
+        cache().put(issue.issueKey(), issue);
     }
 }

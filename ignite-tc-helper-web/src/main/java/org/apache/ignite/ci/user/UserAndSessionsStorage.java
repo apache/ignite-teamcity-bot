@@ -20,12 +20,16 @@ package org.apache.ignite.ci.user;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.jetbrains.annotations.Nullable;
 
+import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
-public class UserAndSessionsStorage {
+public class UserAndSessionsStorage implements IUserStorage {
     public static final String USERS = "users";
     public static final String USER_SESSIONS = "sessions";
     @Inject
@@ -68,4 +72,10 @@ public class UserAndSessionsStorage {
         users().put(username, user);
     }
 
+    @Override
+    public Stream<TcHelperUser> allUsers() {
+        final Stream<Cache.Entry<String, TcHelperUser>> stream = StreamSupport.stream(users().spliterator(), false);
+
+        return stream.map(Cache.Entry::getValue);
+    }
 }
