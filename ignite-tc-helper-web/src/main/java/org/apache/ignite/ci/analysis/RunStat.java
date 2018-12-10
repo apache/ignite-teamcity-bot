@@ -41,6 +41,7 @@ import static org.apache.ignite.ci.analysis.RunStat.RunStatus.RES_OK;
  * Test or Build run statistics.
  */
 @Persisted
+@Deprecated
 public class RunStat implements IRunHistory {
     public static final int MAX_LATEST_RUNS = 100;
 
