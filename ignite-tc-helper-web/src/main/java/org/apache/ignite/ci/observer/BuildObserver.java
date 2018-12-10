@@ -20,9 +20,11 @@ package org.apache.ignite.ci.observer;
 import java.util.Objects;
 import java.util.Timer;
 import javax.inject.Inject;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.slf4j.Logger;
@@ -47,6 +49,12 @@ public class BuildObserver {
 
     /** Helper. */
     @Inject private ITcHelper tcHelper;
+
+    /** */
+    @Inject private ITeamcityIgnitedProvider teamcityIgnitedProvider;
+
+    /** */
+    @Inject private IStringCompactor strCompactor;
 
     /**
      */
@@ -109,11 +117,11 @@ public class BuildObserver {
 
         ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
 
-        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(key.srvId, creds);
+        ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(key.srvId, creds);
 
         if (Objects.nonNull(buildsInfo)) {
             sb.append(buildsInfo.ticket).append(" to be commented, waiting for builds. ");
-            sb.append(buildsInfo.finishedBuildsCount(teamcity));
+            sb.append(buildsInfo.finishedBuildsCount(teamcity, strCompactor));
             sb.append(" builds done from ");
             sb.append(buildsInfo.buildsCount());
         }
