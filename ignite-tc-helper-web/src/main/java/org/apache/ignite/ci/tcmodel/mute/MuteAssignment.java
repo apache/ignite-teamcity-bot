@@ -19,6 +19,7 @@ package org.apache.ignite.ci.tcmodel.mute;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.ignite.ci.util.TimeUtil;
 
 /**
  *
@@ -28,29 +29,26 @@ public class MuteAssignment {
     /** Mute date. */
     @XmlElement(name = "timestamp") public String muteDate;
 
+    /** Timestamp. */
+    private long ts;
+
     /** Mute comment. */
     @XmlElement public String text;
 
-    /** {@inheritDoc} */
-    @Override public boolean equals(Object o) {
-        if (this == o)
-            return true;
+    /**
+     * @return Timestamp for mute date.
+     */
+    public long timestamp() {
+        if (ts == 0)
+            ts = TimeUtil.tcSimpleDateToTimestamp(muteDate);
 
-        if (o == null || getClass() != o.getClass())
-            return false;
-
-        MuteAssignment that = (MuteAssignment)o;
-
-        if (muteDate != null ? !muteDate.equals(that.muteDate) : that.muteDate != null)
-            return false;
-
-        return text != null ? text.equals(that.text) : that.text == null;
+        return ts;
     }
 
-    /** {@inheritDoc} */
-    @Override public int hashCode() {
-        int res = muteDate != null ? muteDate.hashCode() : 0;
-        res = 31 * res + (text != null ? text.hashCode() : 0);
-        return res;
+    /**
+     * @param ts Timestamp for mute date.
+     */
+    public void timestamp(long ts) {
+        this.ts = ts;
     }
 }

@@ -15,18 +15,24 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.mute;
+package org.apache.ignite.ci.teamcity.ignited.mute;
 
 import com.google.common.base.Preconditions;
+import java.util.HashMap;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.internal.util.typedef.F;
+import org.apache.ignite.internal.util.typedef.internal.U;
 
 /**
  *
@@ -39,7 +45,7 @@ public class MuteDao {
     @Inject private Provider<Ignite> igniteProvider;
 
     /** Builds cache. */
-    private IgniteCache<Long, MutesCompacted> muteCache;
+    private IgniteCache<Long, MuteInfoCompacted> muteCache;
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
@@ -53,74 +59,85 @@ public class MuteDao {
 
     /**
      * @param srvIdMaskHigh Server id mask high.
-     * @param projectId Build id.
+     * @return Server mutes.
      */
     @AutoProfiling
-    public Mutes getMutes(int srvIdMaskHigh, String projectId) {
+    public SortedSet<MuteInfo> getMutes(long srvIdMaskHigh) {
         Preconditions.checkNotNull(muteCache, "init() was not called");
+        long srvId = srvIdMaskHigh << 32;
 
-        MutesCompacted compacted = muteCache.get(projectIdToCacheKey(srvIdMaskHigh, projectId));
+        TreeSet<MuteInfo> res = new TreeSet<>();
 
-        return compacted != null ? compacted.toMutes(compactor) : new Mutes();
+        for (Cache.Entry<Long, MuteInfoCompacted> entry : muteCache) {
+            if ((entry.getKey() & srvId) == srvId)
+                res.add(entry.getValue().toMuteInfo(compactor));
+        }
+
+        return res;
     }
 
     /**
      * Combine server and project into key for storage.
      *
      * @param srvIdMaskHigh Server id mask high.
-     * @param projectId Build type id.
+     * @param muteId Mute id.
      * @return Key from server-project pair.
      */
-    public static long projectIdToCacheKey(long srvIdMaskHigh, String projectId) {
-        return (long)projectId.hashCode() | srvIdMaskHigh << 32;
+    public static long muteIdToCacheKey(int srvIdMaskHigh, int muteId) {
+        return (long) muteId | (long) srvIdMaskHigh << 32;
     }
 
     /**
      * Save small part of loaded mutes.
      *
-     * @param srvId Server id.
-     * @param projectId Project id.
+     * @param srvIdMaskHigh Server id mask high.
      * @param chunk Chunk.
      */
-    public void saveChunk(int srvId, String projectId, Set<MuteInfo> chunk) {
+    @AutoProfiling
+    public void saveChunk(int srvIdMaskHigh, Set<MuteInfo> chunk) {
+        Preconditions.checkNotNull(muteCache, "init() was not called");
+
         if (F.isEmpty(chunk))
             return;
 
-        long key = projectIdToCacheKey(srvId, projectId);
-        MutesCompacted compacted = muteCache.get(key);
-        Mutes mutes;
+        HashMap<Long, MuteInfoCompacted> compactedMutes = new HashMap<>(U.capacity(chunk.size()));
 
-        if (compacted == null)
-            mutes = new Mutes(chunk);
-        else {
-            mutes = compacted.toMutes(compactor);
+        for (MuteInfo mute : chunk) {
+            long key = muteIdToCacheKey(srvIdMaskHigh, mute.id);
+            MuteInfoCompacted val = new MuteInfoCompacted(mute, compactor);
 
-            mutes.add(chunk);
+            compactedMutes.put(key, val);
         }
 
-        muteCache.put(key, new MutesCompacted(mutes, compactor));
+        muteCache.putAll(compactedMutes);
     }
 
     /**
-     * Check that mutes for specified project are downloaded from specified server.
-     *
-     * @param srvId Server id.
-     * @param projectId Project id.
+     * @param srvIdMaskHigh Server id mask high.
+     * @param muteId Mute id.
      */
-    public boolean projectExists(int srvId, String projectId) {
-        return muteCache.containsKey(projectIdToCacheKey(srvId, projectId));
+    public boolean remove(int srvIdMaskHigh, int muteId) {
+        return muteCache.remove(muteIdToCacheKey(srvIdMaskHigh, muteId));
     }
 
     /**
-     * Replace current cached mutes by fresh data.
-     *
-     * @param srvId Server id.
-     * @param projectId Project id.
-     * @param muteList Mute list.
+     * @param srvIdMaskHigh Server id mask high.
+     * @param startId Start id.
      */
-    public void refreshMutes(int srvId, String projectId, Set<MuteInfo> muteList) {
-        long key = projectIdToCacheKey(srvId, projectId);
+    public int removeAllAfter(int srvIdMaskHigh, int startId) {
+        int rmv = 0;
+        long srvId = (long) srvIdMaskHigh << 32;
 
-        muteCache.put(key, new MutesCompacted(muteList, compactor));
+        for (Cache.Entry<Long, MuteInfoCompacted> entry : muteCache) {
+            if ((srvId & entry.getKey()) != 0)
+                continue;
+
+            if (entry.getValue().id > startId) {
+                if (muteCache.remove(entry.getKey()))
+                    rmv++;
+            }
+        }
+
+        return rmv;
     }
 }

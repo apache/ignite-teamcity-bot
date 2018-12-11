@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.teamcity.pure;
 
 import java.util.List;
-import java.util.Set;
+import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -58,7 +58,8 @@ public interface ITeamcityConn {
      * @param nextPage Next page.
      * @return Set of mutes from given page or default page.
      */
-    public Set<MuteInfo> getMutesPage(String buildTypeId, @Nullable String fullUrl, AtomicReference<String> nextPage);
+    public SortedSet<MuteInfo> getMutesPage(String buildTypeId, @Nullable String fullUrl,
+        AtomicReference<String> nextPage);
 
     /**
      * @param buildId Build id.

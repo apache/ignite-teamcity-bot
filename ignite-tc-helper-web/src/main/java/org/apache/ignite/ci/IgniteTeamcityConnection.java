@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.MoreExecutors;
-import java.util.Set;
 import org.apache.ignite.ci.analysis.ISuiteResults;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.LogCheckTask;
@@ -61,6 +60,7 @@ import javax.inject.Inject;
 import javax.xml.bind.JAXBException;
 import java.io.*;
 import java.text.SimpleDateFormat;
+import java.util.SortedSet;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
@@ -579,7 +579,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override public Set<MuteInfo> getMutesPage(String buildTypeId, String fullUrl, AtomicReference<String> nextPage) {
+    @Override public SortedSet<MuteInfo> getMutesPage(String buildTypeId, String fullUrl, AtomicReference<String> nextPage) {
         String relPath = "app/rest/mutes?locator=project:(id:" + buildTypeId + ')';
         String relPathSelected = Strings.isNullOrEmpty(fullUrl) ? relPath : fullUrl;
         String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);

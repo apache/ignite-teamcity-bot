@@ -15,13 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.mute;
+package org.apache.ignite.ci.teamcity.ignited.mute;
 
+import com.google.common.base.Objects;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import org.apache.ignite.ci.tcmodel.mute.MuteAssignment;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
+import org.apache.ignite.ci.tcmodel.mute.MuteTarget;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.util.TimeUtil;
 import org.apache.ignite.internal.util.typedef.F;
 
 /**
@@ -32,7 +36,7 @@ public class MuteInfoCompacted {
     int id;
 
     /** Assignment. Mute date. */
-    int muteDate;
+    long muteDate;
 
     /** Assignment. Text. */
     int text;
@@ -46,9 +50,6 @@ public class MuteInfoCompacted {
     /** Target. Test names. */
     int[] testNames;
 
-    /** Target. Test hrefs. */
-    int[] testHrefs;
-
     /**
      * @param mute Mute to compact.
      * @param comp Compactor.
@@ -56,7 +57,7 @@ public class MuteInfoCompacted {
     MuteInfoCompacted(MuteInfo mute, IStringCompactor comp) {
         id = mute.id;
 
-        muteDate = comp.getStringId(mute.assignment.muteDate);
+        muteDate = TimeUtil.tcSimpleDateToTimestamp(mute.assignment.muteDate);
         text = comp.getStringId(mute.assignment.text);
 
         scope = new MuteScopeCompacted(mute.scope, comp);
@@ -68,14 +69,12 @@ public class MuteInfoCompacted {
 
         testIds = new long[tests.size()];
         testNames = new int[tests.size()];
-        testHrefs = new int[tests.size()];
 
         for (int i = 0; i < tests.size(); i++) {
             TestRef test = tests.get(i);
 
             testIds[i] = Long.valueOf(test.id);
             testNames[i] = comp.getStringId(test.name);
-            testHrefs[i] = comp.getStringId(test.href);
         }
     }
 
@@ -83,13 +82,13 @@ public class MuteInfoCompacted {
      * @param comp Compactor.
      * @return Extracted mute.
      */
-    MuteInfo toMuteInfo(IStringCompactor comp) {
+    public MuteInfo toMuteInfo(IStringCompactor comp) {
         MuteInfo mute = new MuteInfo();
 
         mute.id = id;
 
         mute.assignment = new MuteAssignment();
-        mute.assignment.muteDate = comp.getStringFromId(muteDate);
+        mute.assignment.muteDate = TimeUtil.timestampToTcSimpleDate(muteDate);
         mute.assignment.text = comp.getStringFromId(text);
 
         mute.scope = scope.toMuteScope(comp);
@@ -105,7 +104,7 @@ public class MuteInfoCompacted {
 
             test.id = String.valueOf(testIds[i]);
             test.name = comp.getStringFromId(testNames[i]);
-            test.href = comp.getStringFromId(testHrefs[i]);
+            test.href = "/app/rest/tests/id:" + id;
 
             mute.target.tests.add(test);
         }
@@ -119,36 +118,12 @@ public class MuteInfoCompacted {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-
         MuteInfoCompacted compacted = (MuteInfoCompacted)o;
-
-        if (id != compacted.id)
-            return false;
-        if (muteDate != compacted.muteDate)
-            return false;
-        if (text != compacted.text)
-            return false;
-        if (scope != compacted.scope)
-            return false;
-        if (!Arrays.equals(testIds, compacted.testIds))
-            return false;
-        if (!Arrays.equals(testNames, compacted.testNames))
-            return false;
-
-        return Arrays.equals(testHrefs, compacted.testHrefs);
+        return id == compacted.id;
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        int res = id;
-
-        res = 31 * res + muteDate;
-        res = 31 * res + text;
-        res = 31 * res + scope.hashCode();
-        res = 31 * res + Arrays.hashCode(testIds);
-        res = 31 * res + Arrays.hashCode(testNames);
-        res = 31 * res + Arrays.hashCode(testHrefs);
-
-        return res;
+        return Objects.hashCode(id);
     }
 }

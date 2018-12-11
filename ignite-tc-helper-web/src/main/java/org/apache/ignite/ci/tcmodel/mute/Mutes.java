@@ -17,10 +17,10 @@
 
 package org.apache.ignite.ci.tcmodel.mute;
 
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -40,7 +40,7 @@ import org.apache.ignite.ci.tcmodel.result.AbstractRef;
 public class Mutes extends AbstractRef {
     /** Mutes. */
     @XmlElement(name = "mute")
-    private Set<MuteInfo> mutes;
+    private SortedSet<MuteInfo> mutes;
 
     /** Next page url. */
     @XmlAttribute private String nextHref;
@@ -54,25 +54,14 @@ public class Mutes extends AbstractRef {
      * @param mutes List.
      */
     public Mutes(Set<MuteInfo> mutes) {
-        this.mutes = new HashSet<>(mutes);
+        this.mutes = new TreeSet<>(mutes);
     }
 
     /**
      * @return Mute set. Return empty set if no mutes presented.
      */
-    public Set<MuteInfo> getMutesNonNull() {
-        return mutes == null ? Collections.emptySet() : mutes;
-    }
-
-    /**
-     * @param infos Mutes.
-     * @return {@code True} if this set changed as a result of the call.
-     */
-    public boolean add(Collection<MuteInfo> infos) {
-        if (mutes == null)
-            mutes = new HashSet<>();
-
-        return mutes.addAll(infos);
+    public SortedSet<MuteInfo> getMutesNonNull() {
+        return mutes == null ? Collections.emptySortedSet() : mutes;
     }
 
     /**
@@ -80,28 +69,5 @@ public class Mutes extends AbstractRef {
      */
     public String nextHref() {
         return nextHref;
-    }
-
-    /** {@inheritDoc} */
-    @Override public boolean equals(Object o) {
-        if (this == o)
-            return true;
-
-        if (o == null || getClass() != o.getClass())
-            return false;
-
-        Mutes mutes1 = (Mutes)o;
-
-        if (mutes != null ? !mutes.equals(mutes1.mutes) : mutes1.mutes != null)
-            return false;
-
-        return nextHref != null ? nextHref.equals(mutes1.nextHref) : mutes1.nextHref == null;
-    }
-
-    /** {@inheritDoc} */
-    @Override public int hashCode() {
-        int res = mutes != null ? mutes.hashCode() : 0;
-        res = 31 * res + (nextHref != null ? nextHref.hashCode() : 0);
-        return res;
     }
 }

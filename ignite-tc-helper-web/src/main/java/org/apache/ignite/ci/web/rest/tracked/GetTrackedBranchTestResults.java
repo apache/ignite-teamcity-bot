@@ -41,6 +41,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import static org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
+import static org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl.DEFAULT_SERVER_ID;
+
 @Path(GetTrackedBranchTestResults.TRACKED)
 @Produces(MediaType.APPLICATION_JSON)
 public class GetTrackedBranchTestResults {
@@ -160,10 +163,10 @@ public class GetTrackedBranchTestResults {
         ICredentialsProv creds = ICredentialsProv.get(req);
 
         if (F.isEmpty(srvId))
-            srvId = "apache";
+            srvId = DEFAULT_SERVER_ID;
 
         if (F.isEmpty(projectId))
-            projectId = "IgniteTests24Java8";
+            projectId = DEFAULT_PROJECT_ID;
 
         if (!creds.hasAccess(srvId))
             throw ServiceUnauthorizedException.noCreds(srvId);

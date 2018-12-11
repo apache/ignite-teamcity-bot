@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.util;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.Date;
@@ -68,5 +69,29 @@ public class TimeUtil {
         final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm:ss dd-MM-yyyy");
 
         return simpleDateFormat.format(new Date(l));
+    }
+
+    /**
+     * @param date String with date format {@code yyyyMMdd'T'HHmmssZ}.
+     * @return Timestamp for given date.
+     */
+    public static long tcSimpleDateToTimestamp(String date) {
+        try {
+            return new SimpleDateFormat("yyyyMMdd'T'HHmmssZ").parse(date).getTime();
+        }
+        catch (ParseException e) {
+            System.err.println("Exception happened when TimeUtilo tried to convert date into timestamp [" +
+                "date=" + date + ", err=" + e.getMessage() + ']');
+        }
+
+        return 0;
+    }
+
+    /**
+     * @param ts Timestamp.
+     * @return String with date format {@code yyyyMMdd'T'HHmmssZ} for given timestamp.
+     */
+    public static String timestampToTcSimpleDate(long ts) {
+        return new SimpleDateFormat("yyyyMMdd'T'HHmmssZ").format(new Date(ts));
     }
 }

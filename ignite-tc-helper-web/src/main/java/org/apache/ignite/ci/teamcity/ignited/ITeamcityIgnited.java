@@ -19,10 +19,11 @@ package org.apache.ignite.ci.teamcity.ignited;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
-import org.apache.ignite.ci.tcmodel.mute.Mutes;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
@@ -60,7 +61,7 @@ public interface ITeamcityIgnited {
      * @param projectId Project id.
      * @return Mutes for associated server and given project pair.
      */
-    Mutes getMutes(String projectId);
+    Set<MuteInfo> getMutes(String projectId);
 
     /**
      * Return all builds for branch and suite with finish status.

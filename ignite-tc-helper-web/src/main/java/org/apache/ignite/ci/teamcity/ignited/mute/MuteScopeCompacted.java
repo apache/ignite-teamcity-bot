@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.mute;
+package org.apache.ignite.ci.teamcity.ignited.mute;
 
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.Project;
+import org.apache.ignite.ci.tcmodel.mute.MuteScope;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.internal.util.typedef.F;
@@ -42,7 +43,7 @@ public class MuteScopeCompacted {
      * @param scope Mute scope.
      * @param comp Compactor.
      */
-    MuteScopeCompacted(MuteScope scope, IStringCompactor comp) {
+    public MuteScopeCompacted(MuteScope scope, IStringCompactor comp) {
         if (scope.project != null) {
             projectId = comp.getStringId(scope.project.id);
             projectName = comp.getStringId(scope.project.name);
@@ -59,7 +60,7 @@ public class MuteScopeCompacted {
     /**
      * @return Mute scope.
      */
-    MuteScope toMuteScope(IStringCompactor comp) {
+    public MuteScope toMuteScope(IStringCompactor comp) {
         MuteScope scope = new MuteScope();
 
         if (projectId > 0 && projectName > 0) {
@@ -77,32 +78,5 @@ public class MuteScopeCompacted {
         }
 
         return scope;
-    }
-
-    /** {@inheritDoc} */
-    @Override public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-
-        MuteScopeCompacted compacted = (MuteScopeCompacted)o;
-
-        if (projectId != compacted.projectId)
-            return false;
-        if (projectName != compacted.projectName)
-            return false;
-
-        return buildTypes != null ? buildTypes.equals(compacted.buildTypes) : compacted.buildTypes == null;
-    }
-
-    /** {@inheritDoc} */
-    @Override public int hashCode() {
-        int res = projectId;
-
-        res = 31 * res + projectName;
-        res = 31 * res + (buildTypes != null ? buildTypes.hashCode() : 0);
-
-        return res;
     }
 }

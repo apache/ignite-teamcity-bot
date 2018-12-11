@@ -37,29 +37,4 @@ public class MuteScope {
     @XmlElementWrapper(name = "buildTypes")
     @XmlElement(name = "buildType")
     public List<BuildType> buildTypes;
-
-    /** {@inheritDoc} */
-    @Override public boolean equals(Object o) {
-        if (this == o)
-            return true;
-
-        if (o == null || getClass() != o.getClass())
-            return false;
-
-        MuteScope scope = (MuteScope)o;
-
-        if (project != null ? !project.equals(scope.project) : scope.project != null)
-            return false;
-
-        return buildTypes != null ? buildTypes.equals(scope.buildTypes) : scope.buildTypes == null;
-    }
-
-    /** {@inheritDoc} */
-    @Override public int hashCode() {
-        int res = project != null ? project.hashCode() : 0;
-
-        res = 31 * res + (buildTypes != null ? buildTypes.hashCode() : 0);
-
-        return res;
-    }
 }

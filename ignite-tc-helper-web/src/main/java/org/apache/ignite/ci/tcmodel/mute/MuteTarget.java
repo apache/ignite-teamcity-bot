@@ -33,22 +33,4 @@ public class MuteTarget {
     @XmlElementWrapper(name="tests")
     @XmlElement(name="test")
     public List<TestRef> tests;
-
-    /** {@inheritDoc} */
-    @Override public boolean equals(Object o) {
-        if (this == o)
-            return true;
-
-        if (o == null || getClass() != o.getClass())
-            return false;
-
-        MuteTarget target = (MuteTarget)o;
-
-        return tests != null ? tests.equals(target.tests) : target.tests == null;
-    }
-
-    /** {@inheritDoc} */
-    @Override public int hashCode() {
-        return tests != null ? tests.hashCode() : 0;
-    }
 }

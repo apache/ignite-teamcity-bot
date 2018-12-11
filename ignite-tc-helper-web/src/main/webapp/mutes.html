@@ -169,7 +169,7 @@
                     {
                         title: "Mute Date",
                         "data": function (data, type, row, meta) {
-                            return stringToDate(data.assignment.timestamp);
+                            return data.assignment.timestamp;
                         }
                     },
                     {
@@ -188,17 +188,6 @@
             })
                 .order( [[ 0, 'asc' ], [ 1, 'asc' ]] )
                 .draw();
-        }
-
-        function stringToDate(str) {
-            var Y = str.substring(0, 4);
-            var M = str.substring(4, 6);
-            var D = str.substring(6, 8);
-            var h = str.substring(9, 11);
-            var m = str.substring(11, 13);
-            var s = str.substring(13, 15);
-
-            return Y + '-' + M + '-' + D + ' ' + h + ':' + m + ':' + s;
         }
     </script>
 </head>

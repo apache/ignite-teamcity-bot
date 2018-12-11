@@ -19,7 +19,7 @@ package org.apache.ignite.ci;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
-import java.util.Set;
+import java.util.SortedSet;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.analysis.*;
@@ -666,7 +666,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public Set<MuteInfo> getMutesPage(String buildTypeId, String fullUrl, AtomicReference<String> nextPage) {
+    @Override public SortedSet<MuteInfo> getMutesPage(String buildTypeId, String fullUrl, AtomicReference<String> nextPage) {
         return teamcity.getMutesPage(buildTypeId, fullUrl, nextPage);
     }
 

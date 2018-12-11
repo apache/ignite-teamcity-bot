@@ -17,18 +17,20 @@
 
 package org.apache.ignite.ci.tcmodel.mute;
 
+import com.google.common.base.Objects;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import org.jetbrains.annotations.NotNull;
 
 /**
  *
  */
 @XmlRootElement(name = "mute")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class MuteInfo {
+public class MuteInfo implements Comparable<MuteInfo> {
     /** Id. */
     @XmlAttribute public int id;
 
@@ -45,30 +47,19 @@ public class MuteInfo {
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
-
         if (o == null || getClass() != o.getClass())
             return false;
-
         MuteInfo info = (MuteInfo)o;
-
-        if (id != info.id)
-            return false;
-
-        if (assignment != null ? !assignment.equals(info.assignment) : info.assignment != null)
-            return false;
-
-        if (scope != null ? !scope.equals(info.scope) : info.scope != null)
-            return false;
-
-        return target != null ? target.equals(info.target) : info.target == null;
+        return id == info.id;
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        int res = id;
-        res = 31 * res + (assignment != null ? assignment.hashCode() : 0);
-        res = 31 * res + (scope != null ? scope.hashCode() : 0);
-        res = 31 * res + (target != null ? target.hashCode() : 0);
-        return res;
+        return Objects.hashCode(id);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int compareTo(@NotNull MuteInfo o) {
+        return Integer.compare(id, o.id);
     }
 }

@@ -20,7 +20,6 @@ package org.apache.ignite.ci.teamcity.ignited;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
@@ -29,9 +28,9 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
-import org.apache.ignite.ci.tcmodel.mute.MuteDao;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
-import org.apache.ignite.ci.tcmodel.mute.Mutes;
+import org.apache.ignite.ci.teamcity.ignited.mute.MuteDao;
+import org.apache.ignite.ci.teamcity.ignited.mute.MuteSync;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -67,6 +66,9 @@ import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
  *
  */
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
+    /** Default serrver id. */
+    public static final String DEFAULT_SERVER_ID = "apache";
+
     /** Default project id. */
     public static final String DEFAULT_PROJECT_ID = "IgniteTests24Java8";
 
@@ -97,11 +99,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Build DAO. */
     @Inject private FatBuildDao fatBuildDao;
 
+    /** Build Sync. */
+    @Inject private ProactiveFatBuildSync fatBuildSync;
+
     /** Mute DAO. */
     @Inject private MuteDao muteDao;
 
-    /** Build Sync. */
-    @Inject private ProactiveFatBuildSync fatBuildSync;
+    /** Mute Sync. */
+    @Inject private MuteSync muteSync;
 
     /** Changes DAO. */
     @Inject private ChangeDao changesDao;
@@ -321,19 +326,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @Override public Mutes getMutes(String projectId) {
-        ensureActualizeMutes(projectId);
+    @Override public Set<MuteInfo> getMutes(String projectId) {
+        muteSync.ensureActualizeMutes(taskName("actualizeMutes"), projectId, srvIdMaskHigh, conn);
 
-        return muteDao.getMutes(srvIdMaskHigh, projectId);
-    }
-
-    /**
-     * Start named task to refresh mutes for given project.
-     *
-     * @param projectId Project id.
-     */
-    private void ensureActualizeMutes(String projectId) {
-        scheduler.sheduleNamed(taskName("actualizeMutes"), () -> actualizeMuteRefs(projectId), 1, TimeUnit.HOURS);
+        return muteDao.getMutes(srvIdMaskHigh);
     }
 
     /** {@inheritDoc} */
@@ -582,50 +578,5 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     void fullReindex() {
         buildRefSync.runActualizeBuildRefs(srvName, true, null, conn);
-    }
-
-
-    /**
-     * Refresh mutes for given project.
-     *
-     * @param projectId Project id.
-     * @return Message with loading result.
-     */
-    protected String actualizeMuteRefs(String projectId) {
-        AtomicReference<String> outLinkNext = new AtomicReference<>();
-        Set<MuteInfo> tcDataPage = conn.getMutesPage(projectId, null, outLinkNext);
-        int mutesSaved = tcDataPage.size();
-
-        if (muteDao.projectExists(srvIdMaskHigh, projectId)) {
-            Set<MuteInfo> res = new HashSet<>(tcDataPage);
-
-            while (outLinkNext.get() != null) {
-                String nextPageUrl = outLinkNext.get();
-                outLinkNext.set(null);
-
-                tcDataPage = conn.getMutesPage(projectId, nextPageUrl, outLinkNext);
-
-                res.addAll(tcDataPage);
-
-                mutesSaved += tcDataPage.size();
-            }
-
-            muteDao.refreshMutes(srvIdMaskHigh, projectId, res);
-        } else {
-            muteDao.saveChunk(srvIdMaskHigh, projectId, tcDataPage);
-
-            while (outLinkNext.get() != null) {
-                String nextPageUrl = outLinkNext.get();
-                outLinkNext.set(null);
-
-                tcDataPage = conn.getMutesPage(projectId, nextPageUrl, outLinkNext);
-
-                muteDao.saveChunk(srvIdMaskHigh, projectId, tcDataPage);
-
-                mutesSaved += tcDataPage.size();
-            }
-        }
-
-        return "Mutes saved " + mutesSaved + " for " + projectId;
     }
 }
