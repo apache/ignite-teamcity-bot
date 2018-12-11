@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.issue;
 
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 
@@ -28,6 +30,7 @@ import java.util.List;
 
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
+import org.apache.ignite.ci.user.TcHelperUser;
 
 public class IssuesStorage implements IIssuesStorage {
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
@@ -38,7 +41,7 @@ public class IssuesStorage implements IIssuesStorage {
     public IssuesStorage() {
     }
 
-    public IgniteCache<IssueKey, Issue> cache() {
+    private IgniteCache<IssueKey, Issue> cache() {
         return botDetectedIssuesCache(getIgnite());
     }
 
@@ -63,7 +66,8 @@ public class IssuesStorage implements IIssuesStorage {
         return res;
     }
 
-    public boolean needNotify(IssueKey issueKey, String to) {
+    /** {@inheritDoc} */
+    @Override public boolean setNotified(IssueKey issueKey, String to) {
         Issue issue = cache().get(issueKey);
         if (issue == null)
             return false;
@@ -76,13 +80,18 @@ public class IssuesStorage implements IIssuesStorage {
         return add;
     }
 
-    @Override
-    public boolean containsIssueKey(IssueKey issueKey) {
+    /** {@inheritDoc} */
+    @Override public boolean containsIssueKey(IssueKey issueKey) {
         return cache().containsKey(issueKey);
     }
 
-    @Override
-    public void saveIssue(Issue issue) {
+    /** {@inheritDoc} */
+    @Override public void saveIssue(Issue issue) {
         cache().put(issue.issueKey(), issue);
+    }
+
+    /** {@inheritDoc} */
+    @Override public Stream<Issue> allIssues() {
+        return StreamSupport.stream(cache().spliterator(), false).map(Cache.Entry::getValue);
     }
 }

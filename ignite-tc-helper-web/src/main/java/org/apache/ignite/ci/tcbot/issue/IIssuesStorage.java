@@ -17,11 +17,23 @@
 
 package org.apache.ignite.ci.tcbot.issue;
 
+import java.util.stream.Stream;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 
 public interface IIssuesStorage {
-    boolean containsIssueKey(IssueKey issueKey);
+    /**
+     * Determines if the storage contains an entry for the specified issue key.
+     *
+     * @param issueKey Issue to be checked.
+     *
+     * @return true if issue
+     */
+    public boolean containsIssueKey(IssueKey issueKey);
 
     void saveIssue(Issue issue);
+
+    Stream<Issue> allIssues();
+
+    boolean setNotified(IssueKey key, String addr);
 }

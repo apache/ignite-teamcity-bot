@@ -72,10 +72,8 @@ public class UserAndSessionsStorage implements IUserStorage {
         users().put(username, user);
     }
 
-    @Override
-    public Stream<TcHelperUser> allUsers() {
-        final Stream<Cache.Entry<String, TcHelperUser>> stream = StreamSupport.stream(users().spliterator(), false);
-
-        return stream.map(Cache.Entry::getValue);
+    /** {@inheritDoc} */
+    @Override public Stream<TcHelperUser> allUsers() {
+        return StreamSupport.stream(users().spliterator(), false).map(Cache.Entry::getValue);
     }
 }

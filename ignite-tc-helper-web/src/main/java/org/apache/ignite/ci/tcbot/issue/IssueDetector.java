@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.tcbot.issue;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import javax.cache.Cache;
 import javax.inject.Inject;
@@ -81,7 +83,7 @@ public class IssueDetector {
     /**Slack prefix, using this for email address will switch notifier to slack (if configured). */
     private static final String SLACK = "slack:";
 
-    @Inject private IssuesStorage issuesStorage;
+    @Inject private IIssuesStorage issuesStorage;
     @Inject private IUserStorage userStorage;
 
     private final AtomicBoolean init = new AtomicBoolean();
@@ -150,43 +152,47 @@ public class IssueDetector {
                 .forEach(userForPossibleNotifications::add);
 
         String slackCh = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
+
         Map<String, Notification> toBeSent = new HashMap<>();
 
-        int issuesChecked = 0;
-        for (Issue issue : issuesStorage.all()) {
-            issuesChecked++;
-            long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
-            long issueAgeMs = System.currentTimeMillis() - detected;
-            if (issueAgeMs > TimeUnit.HOURS.toMillis(2))
-                continue;
+        AtomicInteger issuesChecked = new AtomicInteger();
 
-            List<String> addrs = new ArrayList<>();
+        issuesStorage.allIssues()
+            .peek(issue -> issuesChecked.incrementAndGet())
+            .filter(issue -> {
+                long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
+                long issueAgeMs = System.currentTimeMillis() - detected;
 
-            if (slackCh != null && FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME.equals(issue.trackedBranchName))
-                addrs.add(SLACK + "#" + slackCh);
+                return issueAgeMs <= TimeUnit.HOURS.toMillis(2);
+            })
+            .forEach(issue -> {
+                List<String> addrs = new ArrayList<>();
 
-            for (TcHelperUser next : userForPossibleNotifications) {
-                if (next.getCredentials(issue.issueKey().server) != null) {
-                    if (next.isSubscribed(issue.trackedBranchName)) {
-                        logger.info("User " + next + " is candidate for notification " + next.email
-                            + " for " + issue);
+                if (slackCh != null && FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME.equals(issue.trackedBranchName))
+                    addrs.add(SLACK + "#" + slackCh);
 
-                        addrs.add(next.email);
+                for (TcHelperUser next : userForPossibleNotifications) {
+                    if (next.getCredentials(issue.issueKey().server) != null) {
+                        if (next.isSubscribed(issue.trackedBranchName)) {
+                            logger.info("User " + next + " is candidate for notification " + next.email
+                                + " for " + issue);
+
+                            addrs.add(next.email);
+                        }
                     }
                 }
-            }
 
-            for (String nextAddr : addrs) {
-                if (issuesStorage.needNotify(issue.issueKey, nextAddr)) {
-                    toBeSent.computeIfAbsent(nextAddr, addr -> {
-                        Notification notification = new Notification();
-                        notification.ts = System.currentTimeMillis();
-                        notification.addr = addr;
-                        return notification;
-                    }).addIssue(issue);
+                for (String nextAddr : addrs) {
+                    if (issuesStorage.setNotified(issue.issueKey, nextAddr)) {
+                        toBeSent.computeIfAbsent(nextAddr, addr -> {
+                            Notification notification = new Notification();
+                            notification.ts = System.currentTimeMillis();
+                            notification.addr = addr;
+                            return notification;
+                        }).addIssue(issue);
+                    }
                 }
-            }
-        }
+            });
 
         if(toBeSent.isEmpty())
             return "Noting to notify, " + issuesChecked + " issues checked";
@@ -215,7 +221,7 @@ public class IssueDetector {
             }
         }
 
-        return res + ", " + issuesChecked + "issues checked";
+        return res + ", " + issuesChecked.get() + "issues checked";
     }
 
     /**
@@ -450,15 +456,20 @@ public class IssueDetector {
     protected String checkFailuresEx(String brachName) {
         int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
 
-        TestFailuresSummary allHist = tbProc.getTrackedBranchTestFailures(brachName,
-            false, buildsToQry, backgroundOpsCreds);
+        ICredentialsProv creds = Preconditions.checkNotNull(backgroundOpsCreds, "Server should be authorized");
+
+        TestFailuresSummary allHist = tbProc.getTrackedBranchTestFailures(
+            brachName,
+            false,
+            buildsToQry,
+            creds);
 
         TestFailuresSummary failures =
-                tbProc.getTrackedBranchTestFailures(brachName,
+            tbProc.getTrackedBranchTestFailures(brachName,
                 false,
                 1,
-                        backgroundOpsCreds
-                );
+                creds
+            );
 
         String issResult = registerIssuesAndNotifyLater(failures, backgroundOpsCreds);
 

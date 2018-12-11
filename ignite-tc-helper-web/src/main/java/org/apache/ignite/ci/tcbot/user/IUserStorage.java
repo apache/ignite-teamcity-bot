@@ -20,6 +20,12 @@ import org.apache.ignite.ci.user.TcHelperUser;
 
 import java.util.stream.Stream;
 
+/**
+ * Teamcity Bot User and Sessions storage interface.
+ */
 public interface IUserStorage {
-    Stream<TcHelperUser> allUsers();
+    /**
+     * @return All users in storage stream.
+     */
+    public Stream<TcHelperUser> allUsers();
 }
