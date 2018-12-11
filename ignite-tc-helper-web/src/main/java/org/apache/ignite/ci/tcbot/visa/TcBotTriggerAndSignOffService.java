@@ -23,6 +23,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -46,6 +47,7 @@ import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
@@ -170,6 +172,22 @@ public class TcBotTriggerAndSignOffService {
         }
 
         return visaStatuses;
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param creds Credentials.
+     * @return Mutes for given server-project pair.
+     */
+    public Set<MuteInfo> getMutes(String srvId, String projectId, ICredentialsProv creds) {
+        ITeamcityIgnited ignited = teamcityIgnitedProvider.server(srvId, creds);
+
+        Set<MuteInfo> infos = ignited.getMutes(projectId);
+
+        for (MuteInfo info : infos)
+            info.assignment.muteDate = THREAD_FORMATTER.get().format(new Date(info.assignment.timestamp()));
+
+        return infos;
     }
 
     /**

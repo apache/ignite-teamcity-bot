@@ -15,50 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.conf;
+package org.apache.ignite.ci.tcmodel.mute;
 
-import java.util.Collections;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.Project;
 
 /**
- * Content of poject
+ *
  */
-@XmlRootElement(name="project")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class Project {
-    /** Id. */
-    @XmlAttribute public String id;
-
-    /** Name. */
-    @XmlAttribute(name="name")
-    private String name;
+public class MuteScope {
+    /** Project. */
+    @XmlElement public Project project;
 
     /** Build types. */
-    @XmlElementWrapper(name="buildTypes")
-    @XmlElement(name="buildType")
-    private List<BuildType> buildTypes;
-
-    /**
-     * @return List of project's build types or an empty list if there is no build types presented.
-     */
-    public List<BuildType> getBuildTypesNonNull() {
-        return buildTypes == null ? Collections.emptyList() : buildTypes;
-    }
-
-    /** */
-    public void name(String name) {
-        this.name = name;
-    }
-
-    /** */
-    public String name() {
-        return name;
-    }
+    @XmlElementWrapper(name = "buildTypes")
+    @XmlElement(name = "buildType")
+    public List<BuildType> buildTypes;
 }
-

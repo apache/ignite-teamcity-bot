@@ -83,7 +83,11 @@ public class FutureUtil {
         return logCheckRes;
     }
 
+    /**
+     * @param listBuilds Futures to get builds.
+     * @return Stream with builds.
+     */
     @NotNull public static <V> Stream<V> getResults(Collection<Future<V>> listBuilds) {
-        return listBuilds.stream() .map(FutureUtil::getResult);
+        return listBuilds.stream().map(FutureUtil::getResult);
     }
 }

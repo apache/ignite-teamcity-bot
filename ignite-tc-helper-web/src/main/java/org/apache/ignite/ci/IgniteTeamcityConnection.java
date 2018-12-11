@@ -36,6 +36,8 @@ import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.hist.Builds;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
+import org.apache.ignite.ci.tcmodel.mute.Mutes;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
@@ -58,6 +60,7 @@ import javax.inject.Inject;
 import javax.xml.bind.JAXBException;
 import java.io.*;
 import java.text.SimpleDateFormat;
+import java.util.SortedSet;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
@@ -573,6 +576,19 @@ public class IgniteTeamcityConnection implements ITeamcity {
         outNextPage.set(Strings.emptyToNull(builds.nextHref()));
 
         return builds.getBuildsNonNull();
+    }
+
+    /** {@inheritDoc} */
+    @Override public SortedSet<MuteInfo> getMutesPage(String buildTypeId, String fullUrl, AtomicReference<String> nextPage) {
+        String relPath = "app/rest/mutes?locator=project:(id:" + buildTypeId + ')';
+        String relPathSelected = Strings.isNullOrEmpty(fullUrl) ? relPath : fullUrl;
+        String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
+
+        Mutes mutes = sendGetXmlParseJaxb(url, Mutes.class);
+
+        nextPage.set(Strings.emptyToNull(mutes.nextHref()));
+
+        return mutes.getMutesNonNull();
     }
 
     /** {@inheritDoc} */
