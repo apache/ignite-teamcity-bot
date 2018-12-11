@@ -37,7 +37,7 @@ public class IssuesStorage {
     public IssuesStorage() {
     }
 
-    IgniteCache<IssueKey, Issue> cache() {
+    public IgniteCache<IssueKey, Issue> cache() {
         return botDetectedIssuesCache(getIgnite());
     }
 

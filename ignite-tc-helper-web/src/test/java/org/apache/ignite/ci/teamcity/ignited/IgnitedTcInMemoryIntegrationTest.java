@@ -292,13 +292,13 @@ public class IgnitedTcInMemoryIntegrationTest {
             .findFirst()
             .orElse(null);
 
-        BuildType runAllRefFromCache = srv.getBuildTypeRef(runAll).toBuildTypeRef(compactor);
+        BuildType runAllRefFromCache = srv.getBuildTypeRef(runAll).toBuildTypeRef(compactor, srv.host());
 
         assertEquals(runAllRef, runAllRefFromCache);
 
         BuildTypeFull runAllFull = jaxbTestXml("/" + runAll + ".xml", BuildTypeFull.class);
 
-        BuildTypeFull runAllFullFromCache = srv.getBuildType(runAll).toBuildType(compactor);
+        BuildTypeFull runAllFullFromCache = srv.getBuildType(runAll).toBuildType(compactor, srv.host());
 
         assertEquals(runAllFull, runAllFullFromCache);
     }
@@ -527,7 +527,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
     @Test
     public void testRunHistSaveLoad() {
-        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new IgniteAndShedulerTestModule());
+        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new IgniteAndSchedulerTestModule());
 
         injector.getInstance(RunHistCompactedDao.class).init();
         final IStringCompactor c = injector.getInstance(IStringCompactor.class);
@@ -537,7 +537,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         final String branch = ITeamcity.DEFAULT;
 
         final PrChainsProcessorTest tst = new PrChainsProcessorTest();
-        tst.initBuildChain(c, btId, branch);
+        tst.initBuildChainAndMasterHistory(c, btId, branch);
 
         final Map<Integer, FatBuildCompacted> buildsMap = tst.apacheBuilds();
 
@@ -570,7 +570,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
     @Test
     public void testHistoryBackgroundUpdateWorks() {
-        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new IgniteAndShedulerTestModule());
+        Injector injector = Guice.createInjector(new TeamcityIgnitedModule(), new IgniteAndSchedulerTestModule());
 
         injector.getInstance(RunHistCompactedDao.class).init();
 
@@ -591,7 +591,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
 
         final PrChainsProcessorTest tst = new PrChainsProcessorTest();
-        tst.initBuildChain(c, btId, branch);
+        tst.initBuildChainAndMasterHistory(c, btId, branch);
 
         final Map<Integer, FatBuildCompacted> buildsMap = tst.apacheBuilds();
 
@@ -618,7 +618,7 @@ public class IgnitedTcInMemoryIntegrationTest {
                 throw new FileNotFoundException(url);
             }
         });
-        Injector injector = Guice.createInjector(module, new IgniteAndShedulerTestModule());
+        Injector injector = Guice.createInjector(module, new IgniteAndSchedulerTestModule());
 
         IStringCompactor c = injector.getInstance(IStringCompactor.class);
         BuildRefDao buildRefDao = injector.getInstance(BuildRefDao.class).init();
@@ -698,7 +698,7 @@ public class IgnitedTcInMemoryIntegrationTest {
     /**
      *
      */
-    private static class IgniteAndShedulerTestModule extends AbstractModule {
+    private static class IgniteAndSchedulerTestModule extends AbstractModule {
         /** {@inheritDoc} */
         @Override protected void configure() {
             bind(Ignite.class).toInstance(ignite);

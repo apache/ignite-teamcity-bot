@@ -40,6 +40,7 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.tcmodel.user.User;
+import org.apache.ignite.ci.teamcity.ignited.IRunStat;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
@@ -167,32 +168,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public String serverId() {
         return serverId;
-    }
-
-    private <K, V> V loadIfAbsentV2(String cacheName, K key, Function<K, V> loadFunction) {
-        return loadIfAbsent(getOrCreateCacheV2(ignCacheNme(cacheName)), key, loadFunction, (V v) -> true);
-    }
-
-    private <K, V> V loadIfAbsent(IgniteCache<K, V> cache, K key, Function<K, V> loadFunction) {
-        return loadIfAbsent(cache, key, loadFunction, null);
-    }
-
-    private <K, V> V loadIfAbsent(IgniteCache<K, V> cache, K key, Function<K, V> loadFunction,
-        Predicate<V> saveValueFilter) {
-        @Nullable final V persistedBuilds = cache.get(key);
-
-        if (persistedBuilds != null) {
-            int fields = ObjectInterner.internFields(persistedBuilds);
-
-            return persistedBuilds;
-        }
-
-        final V loaded = loadFunction.apply(key);
-
-        if (saveValueFilter == null || saveValueFilter.test(loaded))
-            cache.put(key, loaded);
-
-        return loaded;
     }
 
     @Deprecated
@@ -397,16 +372,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public List<RunStat> topTestFailing(int cnt) {
-        return CollectionUtil.top(allTestAnalysis(), cnt, Comparator.comparing(RunStat::getFailRate));
-    }
-
-    /** {@inheritDoc} */
-    @Override public List<RunStat> topTestsLongRunning(int cnt) {
-        return CollectionUtil.top(allTestAnalysis(), cnt, Comparator.comparing(RunStat::getAverageDurationMs));
-    }
-
-    /** {@inheritDoc} */
     @Override public Function<TestInBranch, RunStat> getTestRunStatProvider() {
         return key -> key == null ? null : getRunStatForTest(key);
     }
@@ -416,11 +381,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
     protected RunStat getRunStatForTest(TestInBranch key) {
         return testRunStatCache().get(key);
-    }
-
-    private Stream<RunStat> allTestAnalysis() {
-        return StreamSupport.stream(testRunStatCache().spliterator(), false)
-            .map(Cache.Entry::getValue);
     }
 
     @Deprecated
@@ -444,11 +404,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @GuavaCached(maximumSize = 500, expireAfterAccessSecs = 90, softValues = true)
     protected RunStat getRunStatForSuite(SuiteInBranch key) {
         return buildsFailureRunStatCache().get(key);
-    }
-
-    private Stream<RunStat> buildsFailureAnalysis() {
-        return StreamSupport.stream(buildsFailureRunStatCache().spliterator(), false)
-            .map(Cache.Entry::getValue);
     }
 
     /**
@@ -487,11 +442,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
             return null;
         }, next);
-    }
-
-    /** {@inheritDoc} */
-    @Override public List<RunStat> topFailingSuite(int cnt) {
-        return CollectionUtil.top(buildsFailureAnalysis(), cnt, Comparator.comparing(RunStat::getFailRate));
     }
 
     /** {@inheritDoc} */

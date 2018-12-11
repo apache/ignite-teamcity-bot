@@ -27,12 +27,14 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Inject;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.Visa;
@@ -57,6 +59,9 @@ public class ObserverTask extends TimerTask {
     @Inject private ITcHelper tcHelper;
 
     /** */
+    @Inject private ITeamcityIgnitedProvider teamcityIgnitedProvider;
+
+    /** */
     @Inject private IJiraIntegrationProvider jiraIntegrationProvider;
 
     /** */
@@ -67,6 +72,9 @@ public class ObserverTask extends TimerTask {
 
     /** */
     private Map<ContributionKey, BuildsInfo> infos = new ConcurrentHashMap<>();
+
+    /** */
+    @Inject private IStringCompactor strCompactor;
 
     /**
      */
@@ -158,11 +166,12 @@ public class ObserverTask extends TimerTask {
             for (ContributionKey key : infos.keySet()) {
                 BuildsInfo info = infos.get(key);
 
-                IAnalyticsEnabledTeamcity teamcity = tcHelper.server(info.srvId, tcHelper.getServerAuthorizerCreds());
+                ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(info.srvId,
+                    tcHelper.getServerAuthorizerCreds());
 
                 checkedBuilds += info.buildsCount();
 
-                if (info.isCancelled(teamcity)) {
+                if (info.isCancelled(teamcity, strCompactor)) {
                     rmv.add(key);
 
                     logger.error("JIRA will not be commented." +
@@ -172,8 +181,8 @@ public class ObserverTask extends TimerTask {
                     continue;
                 }
 
-                if (!info.isFinished(teamcity)) {
-                    notFinishedBuilds += info.buildsCount() - info.finishedBuildsCount(teamcity);
+                if (!info.isFinished(teamcity, strCompactor)) {
+                    notFinishedBuilds += info.buildsCount() - info.finishedBuildsCount(teamcity, strCompactor);
 
                     continue;
                 }

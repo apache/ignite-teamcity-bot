@@ -17,15 +17,17 @@
 
 package org.apache.ignite.ci.observer;
 
+import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.ContributionKey;
 
@@ -86,13 +88,15 @@ public class BuildsInfo {
      * @param ticket Ticket.
      * @param builds Builds.
      */
-    public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, String branchForTc, Build... builds) {
+    public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, String branchForTc, String parentSuiteId,
+        Build... builds) {
         this.userName = prov.getUser(srvId);
         this.date = Calendar.getInstance().getTime();
         this.srvId = srvId;
         this.ticket = ticket;
         this.branchForTc = branchForTc;
-        this.buildTypeId = builds.length == 1 ? builds[0].buildTypeId : "IgniteTests24Java8_RunAll";
+        this.buildTypeId = Strings.isNullOrEmpty(parentSuiteId) ?
+            (builds.length == 1 ? builds[0].buildTypeId : "IgniteTests24Java8_RunAll") : parentSuiteId;
 
         for (Build build : builds)
             this.builds.add(build.getId());
@@ -100,20 +104,21 @@ public class BuildsInfo {
 
     /**
      * @param teamcity Teamcity.
+     * @param strCompactor {@link IStringCompactor} instance.
      *
      * @return One of {@link #FINISHED_STATUS}, {@link #CANCELLED_STATUS} or
      * {@link #RUNNING_STATUS} statuses.
      */
-    public String getStatus(IAnalyticsEnabledTeamcity teamcity) {
+    public String getStatus(ITeamcityIgnited teamcity, IStringCompactor strCompactor) {
         boolean isFinished = true;
 
         for (Integer id : builds) {
-            Build build = teamcity.getBuild(id);
+            FatBuildCompacted build = teamcity.getFatBuild(id);
 
-            if (build.isUnknown())
+            if (build.isFakeStub() || build.isCancelled(strCompactor))
                 return CANCELLED_STATUS;
 
-            if (!build.isFinished())
+            if (!build.isFinished(strCompactor))
                 isFinished = false;
         }
 
@@ -122,16 +127,18 @@ public class BuildsInfo {
 
     /**
      * @param teamcity Teamcity.
+     * @param strCompactor {@link IStringCompactor} instance.
      */
-    public boolean isFinished(IAnalyticsEnabledTeamcity teamcity) {
-        return FINISHED_STATUS.equals(getStatus(teamcity));
+    public boolean isFinished(ITeamcityIgnited teamcity, IStringCompactor strCompactor) {
+        return FINISHED_STATUS.equals(getStatus(teamcity, strCompactor));
     }
 
     /**
      * @param teamcity Teamcity.
+     * @param strCompactor {@link IStringCompactor} instance.
      */
-    public boolean isCancelled(IAnalyticsEnabledTeamcity teamcity) {
-        return CANCELLED_STATUS.equals(getStatus(teamcity));
+    public boolean isCancelled(ITeamcityIgnited teamcity, IStringCompactor strCompactor) {
+        return CANCELLED_STATUS.equals(getStatus(teamcity, strCompactor));
     }
 
     /**
@@ -144,13 +151,13 @@ public class BuildsInfo {
     /**
      * Return finished builds count.
      */
-    public int finishedBuildsCount(IAnalyticsEnabledTeamcity teamcity){
+    public int finishedBuildsCount(ITeamcityIgnited teamcity, IStringCompactor strCompactor){
         int finishedCnt = 0;
 
         for (Integer id : builds) {
-            Build build = teamcity.getBuild(id);
+            FatBuildCompacted build = teamcity.getFatBuild(id);
 
-            if (build.isFinished())
+            if (!build.isFakeStub() && build.isFinished(strCompactor))
                 ++finishedCnt;
         }
 

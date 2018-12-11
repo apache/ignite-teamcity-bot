@@ -32,7 +32,6 @@ import org.apache.ignite.ci.ITcAnalytics;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.analysis.TestLogCheckResult;
@@ -52,8 +51,6 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
  * Represent Suite result
  */
 @SuppressWarnings("WeakerAccess") public class SuiteCurrentStatus extends FailureSummary {
-    /** Use New run stat in PR analysis. */
-    public static final boolean NEW_RUN_STAT = false;
 
     /** Suite Name */
     public String name;
@@ -136,14 +133,15 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         String failRateNormalizedBranch = normalizeBranch(baseBranch);
         String curBranchNormalized = normalizeBranch(suite.branchName());
 
-        Function<TestInBranch, ? extends IRunHistory> testStatProv = NEW_RUN_STAT
-            ? tcIgnited::getTestRunHist
-            : tcAnalytics.getTestRunStatProvider();
+        Function<TestInBranch, ? extends IRunHistory> testStatProv =
+            ITeamcity.NEW_RUN_STAT
+                ? tcIgnited::getTestRunHist
+                : tcAnalytics.getTestRunStatProvider();
 
         String suiteId = suite.suiteId();
 
-        Function<SuiteInBranch, ? extends IRunHistory> provider   =
-            NEW_RUN_STAT
+        Function<SuiteInBranch, ? extends IRunHistory> provider =
+            ITeamcity.NEW_RUN_STAT
                 ? tcIgnited::getSuiteRunHist
                 : tcAnalytics.getBuildFailureRunStatProvider();
 
@@ -151,7 +149,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         Set<String> collect = suite.lastChangeUsers().collect(Collectors.toSet());
 
-        if(!collect.isEmpty())
+        if (!collect.isEmpty())
             userCommits = collect.toString();
 
         result = suite.getResult();
@@ -265,16 +263,11 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         } else
             latestRunsSrc = stat;
 
-        if (latestRunsSrc instanceof RunStat) {
-            RunStat latestRunsSrcV1 = (RunStat)latestRunsSrc;
-            RunStat.TestId testId = latestRunsSrcV1.detectTemplate(EventTemplates.newFailureForFlakyTest); //extended runs required for suite
-
-            if (testId != null)
+        if (latestRunsSrc != null) {
+            if (latestRunsSrc.detectTemplate(EventTemplates.newFailureForFlakyTest) != null)
                 problemRef = new ProblemRef("New Failure");
 
-            RunStat.TestId buildIdCritical = latestRunsSrcV1.detectTemplate(EventTemplates.newCriticalFailure);
-
-            if (buildIdCritical != null)
+            if (latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailure) != null)
                 problemRef = new ProblemRef("New Critical Failure");
         }
     }

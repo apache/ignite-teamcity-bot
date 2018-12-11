@@ -41,6 +41,7 @@ import static org.apache.ignite.ci.analysis.RunStat.RunStatus.RES_OK;
  * Test or Build run statistics.
  */
 @Persisted
+@Deprecated
 public class RunStat implements IRunHistory {
     public static final int MAX_LATEST_RUNS = 100;
 
@@ -273,7 +274,7 @@ public class RunStat implements IRunHistory {
     }
 
     @Nullable
-    public TestId detectTemplate(EventTemplate t) {
+    public Integer detectTemplate(EventTemplate t) {
         if (latestRuns == null)
             return null;
 
@@ -306,7 +307,7 @@ public class RunStat implements IRunHistory {
             }
         }
 
-        return detectedAt;
+        return detectedAt == null ? null : detectedAt.getBuildId();
     }
 
     @Nullable

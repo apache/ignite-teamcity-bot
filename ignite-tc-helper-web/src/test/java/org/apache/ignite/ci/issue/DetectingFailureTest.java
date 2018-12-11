@@ -47,10 +47,10 @@ public class DetectingFailureTest {
         for (int i = 0; i < 5; i++)
             stat.addTestRunToLatest(occurrence.setId(fakeTestId(firstFailedBuildId + i)), UNKNOWN);
 
-        RunStat.TestId testId = stat.detectTemplate(EventTemplates.newFailure);
+        Integer buildId = stat.detectTemplate(EventTemplates.newFailure);
 
-        assertNotNull(testId);
-        assertEquals(firstFailedBuildId, testId.getBuildId());
+        assertNotNull(buildId);
+        assertEquals(firstFailedBuildId, buildId.intValue());
 
         assertNull(stat.detectTemplate(EventTemplates.fixOfFailure));
     }
@@ -82,11 +82,11 @@ public class DetectingFailureTest {
         for (int i = 0; i < 4; i++)
             stat.setBuildCriticalError(firstFailedBuildId + i);
 
-        RunStat.TestId testId = stat.detectTemplate(EventTemplates.newCriticalFailure);
+        Integer buildId = stat.detectTemplate(EventTemplates.newCriticalFailure);
 
         System.out.println(stat.getLatestRunResults());
-        assertNotNull(testId);
-        assertEquals(firstFailedBuildId, testId.getBuildId());
+        assertNotNull(buildId);
+        assertEquals(firstFailedBuildId, buildId.intValue());
     }
 
     @Test
@@ -114,9 +114,9 @@ public class DetectingFailureTest {
         assertTrue(stat.isFlaky());
 
         System.out.println(stat.getLatestRunResults());
-        RunStat.TestId testId = stat.detectTemplate(EventTemplates.newFailure);
-        assertNotNull(testId);
-        assertEquals(firstFailedBuildId, testId.getBuildId());
+        Integer buildId = stat.detectTemplate(EventTemplates.newFailure);
+        assertNotNull(buildId);
+        assertEquals(firstFailedBuildId, buildId.intValue());
     }
 
 
@@ -146,9 +146,9 @@ public class DetectingFailureTest {
         for (int i = 0; i < 5; i++)
             contributedTestStat.addTestRunToLatest(occurrence.setId(fakeTestId(firstFailedBuildId + i)), UNKNOWN);
 
-        RunStat.TestId testId = contributedTestStat.detectTemplate(EventTemplates.newContributedTestFailure);
-        assertNotNull(testId);
-        assertEquals(firstFailedBuildId, testId.getBuildId());
+        Integer buildId = contributedTestStat.detectTemplate(EventTemplates.newContributedTestFailure);
+        assertNotNull(buildId);
+        assertEquals(firstFailedBuildId, buildId.intValue());
     }
 
 
@@ -174,22 +174,22 @@ public class DetectingFailureTest {
         for (int i = 0; i < timedOutBuildCnt; i++)
             stat.setBuildCriticalError(firstFailedBuildId + i);
 
-        RunStat.TestId testId = stat.detectTemplate(EventTemplates.newCriticalFailure);
+        Integer buildId = stat.detectTemplate(EventTemplates.newCriticalFailure);
 
-        assertNotNull(testId);
-        assertEquals(firstFailedBuildId, testId.getBuildId());
+        assertNotNull(buildId);
+        assertEquals(firstFailedBuildId, buildId.intValue());
 
 
         for (int i = 0; i < 4; i++)
             stat.setBuildCriticalError(timedOutBuildCnt + firstFailedBuildId + i);
 
-        RunStat.TestId testId2 = stat.detectTemplate(EventTemplates.newCriticalFailure);
+        Integer buildId2 = stat.detectTemplate(EventTemplates.newCriticalFailure);
 
         System.out.println(stat.getLatestRunResults());
-        System.out.println(testId);
-        System.out.println(testId2);
+        System.out.println(buildId);
+        System.out.println(buildId2);
 
-        assertEquals(testId, testId2);
+        assertEquals(buildId, buildId2);
 
     }
 }

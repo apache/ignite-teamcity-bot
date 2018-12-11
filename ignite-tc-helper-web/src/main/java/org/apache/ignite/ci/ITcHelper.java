@@ -19,7 +19,7 @@ package org.apache.ignite.ci;
 
 import java.util.Collection;
 import java.util.List;
-import org.apache.ignite.ci.issue.IssueDetector;
+import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -42,8 +42,6 @@ public interface ITcHelper extends ITcServerProvider {
     IssuesStorage issues();
 
     IssueDetector issueDetector();
-
-    ITcAnalytics tcAnalytics(String serverId);
 
     UserAndSessionsStorage users();
 

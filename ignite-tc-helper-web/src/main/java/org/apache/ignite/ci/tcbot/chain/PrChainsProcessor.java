@@ -195,7 +195,7 @@ public class PrChainsProcessor {
 
         boolean noBuilds = summary.servers.stream().anyMatch(s -> s.buildNotFound);
 
-        if(noBuilds)
+        if (noBuilds)
             return null;
 
         for (ChainAtServerCurrentStatus server : summary.servers) {

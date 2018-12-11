@@ -25,12 +25,21 @@ public interface ICredentialsProv {
     String _KEY = ICredentialsProv.class.getName();
 
     //note it will not work for PermitAll Methods
-    static ICredentialsProv get(HttpServletRequest request) {
-        return (ICredentialsProv) request.getAttribute(_KEY);
+    static ICredentialsProv get(HttpServletRequest req) {
+        return (ICredentialsProv) req.getAttribute(_KEY);
     }
 
-    String getUser(String server);
-    String getPassword(String server);
+    /**
+     * Gets username for particular service
+     * @param srv Server Id.
+     */
+    public String getUser(String srv);
+
+    /**
+     * Gets password for particular service
+     * @param srv Server Id.
+     */
+    public String getPassword(String srv);
 
     default boolean hasAccess(String srvId) {
         return !Strings.isNullOrEmpty(getUser(srvId)) && !Strings.isNullOrEmpty(getPassword(srvId));

@@ -18,6 +18,7 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import org.apache.ignite.ci.issue.EventTemplate;
 
 /**
  * Test or Build run statistics.
@@ -41,7 +42,10 @@ public interface IRunHistory extends IRunStat {
     @Nullable
     List<Integer> getLatestRunResults();
 
-    String getFlakyComments();
+    @Nullable String getFlakyComments();
+
+    @Nullable
+    public Integer detectTemplate(EventTemplate t);
 
     public default String getCriticalFailPercentPrintable() {
         return IRunStat.getPercentPrintable(getCriticalFailRate() * 100.0f);

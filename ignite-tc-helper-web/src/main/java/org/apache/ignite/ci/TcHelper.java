@@ -24,7 +24,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import org.apache.ignite.ci.conf.BranchesTracked;
-import org.apache.ignite.ci.issue.IssueDetector;
+import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.jira.IJiraIntegration;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
@@ -46,7 +46,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.ignite.ci.analysis.RunStat.MAX_LATEST_RUNS;
 import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
 
 /**
@@ -115,11 +114,6 @@ public class TcHelper implements ITcHelper {
             throw new IllegalStateException("Shutdown");
 
         return serverProvider.server(srvId, prov);
-    }
-
-    /** {@inheritDoc} */
-    @Override public ITcAnalytics tcAnalytics(String srvId) {
-        return server(srvId, null);
     }
 
     /** {@inheritDoc} */
@@ -208,7 +202,8 @@ public class TcHelper implements ITcHelper {
      * @param webUrl Build URL.
      * @return Comment, which should be sent to the JIRA ticket.
      */
-    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl, String buildTypeId, ITeamcityIgnited tcIgnited) {
+    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl, String buildTypeId,
+        ITeamcityIgnited tcIgnited) {
         BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
 
         String suiteName = (bt != null ? bt.name(compactor) : buildTypeId);
