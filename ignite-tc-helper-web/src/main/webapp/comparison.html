@@ -26,7 +26,12 @@
         <th width="3%"></th>
         <th style="text-align: center;" width="42%"><input type='text' name='daterange1'/></th>
         <th style="text-align: center;" width="42%"><input type='text' name='daterange2'/></th>
-    </tr>
+    </tr><tr></tr><tr></tr>
+    <tr id="showError">
+        <td class="section">RUN_ALL <span class="nightly on" id="nightly"><b>ɴɪɢʜᴛʟʏ</b></span></td>
+        <td class="icon"><div class="switch-btn switch-on suites"></div></td>
+        <td colspan="2" id="loadStatus" style="text-align: center; color: red;"></td>
+    </tr><tr></tr>
     <tr id="showInfo">
         <td class="section">SHOW INVALID BUILD</td>
         <td class="icon"><div class="switch-btn builds"></div></td>
@@ -181,7 +186,9 @@
 
     let invalidInclude = false,
         markBuildId = 0,
-        testsTrigger = false;
+        testsTrigger = false,
+        nightly = true,
+        error = $('#loadStatus');
 
     function refreshTests() {
         printTests(generateTestsResultsComparison(mergedTestsResults));
@@ -213,9 +220,7 @@
     function toggleTests() {
         testsTrigger = !testsTrigger;
 
-        loadData(1, dateIntervals[1].start, dateIntervals[1].end, testsTrigger);
-
-        loadData(2, dateIntervals[2].start, dateIntervals[2].end, testsTrigger);
+        reloadAll();
     }
 
     const parseTime = d3.timeParse("%d-%m-%YT%H:%M:%S"),
@@ -226,8 +231,7 @@
         formatDay = d3.timeFormat("%a %e"),
         formatWeek = d3.timeFormat("%b %e"),
         formatMonth = d3.timeFormat("%B"),
-        formatYear = d3.timeFormat("%Y"),
-        parseDuration = d3.utcParse("%s");
+        formatYear = d3.timeFormat("%Y");
 
     const fieldNames = new Map([['Duration', 'Duration'], ['Count', 'Count'], ['Passed', 'Passed'], ['Failed','Failed'],
             ['Ignored','Ignored'], ['Muted','Muted'], ['OO' ,'OOME'], ['TT', 'Total'], ['JC', 'JVM crash'],
@@ -303,7 +307,6 @@
              this.buildIds = [];
              this.num = num;
              this['Duration'] = [];
-             this['DurationF'] = [];
              this['Count'] = [];
              this['Passed'] = [];
              this['Failed'] = [];
@@ -323,7 +326,6 @@
             this.date = parseTime(item.startDate);
             this.stat = {
                 'Duration' : item.duration,
-                'DurationF' : parseDuration(parseInt(item.duration)),
                 'Count' : item.testOccurrences.count,
                 'Passed' : item.testOccurrences.passed,
                 'Failed' : item.testOccurrences.failed,
@@ -479,6 +481,7 @@
         clearBackgroundFromAllDataCells();
         clearGraphs(data.num);
         fillAllDataCells(data.num, "");
+        error.html("");
 
         if (data.isEmpty) {
             printImportantMessage(data.num, "#ff0000", "No data for the selected period");
@@ -559,8 +562,9 @@
 
         mergedTestsResults[num] = {};
 
-        let url = 'rest/build/history?server=apache&buildType=IgniteTests24Java8_RunAll&sinceDate=' + sinceDate.format("DDMMYYYY") +
-            '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
+        //todo change this: Hardcoded build type, we should ask server about builds
+        let url = 'rest/build/history?server=apache&buildType=IgniteTests24Java8_RunAll' + (nightly ? 'Nightly' : '') +
+            '&sinceDate=' + sinceDate.format("DDMMYYYY") + '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
 
         if (!testsTrigger)
             url = url + '&' + SKIP_TESTS;
@@ -568,15 +572,21 @@
         $.ajax({
                 url: url,
                 success: function (result) {
-                    g_tcHost = result.tcHost;
-                    g_projectId = result.projectId;
-                    data[num] = new Data(num, result.buildsStatistics, sinceDate, untilDate);
+                    try {
+                        g_tcHost = result.tcHost;
+                        g_projectId = result.projectId;
+                        data[num] = new Data(num, result.buildsStatistics, sinceDate, untilDate);
 
-                    printStatistics(data[num]);
+                        printStatistics(data[num]);
 
-                    mergedTestsResults[num] = result.mergedTestsBySuites;
+                        mergedTestsResults[num] = result.mergedTestsBySuites;
 
-                    printTests(generateTestsResultsComparison(mergedTestsResults));
+                        printTests(generateTestsResultsComparison(mergedTestsResults));
+                    } catch (e) {
+                        error.html(e.name + ":" + e.message);
+
+                        throw e;
+                    }
                 },
                 error: showErrInLoadStatus,
                 timeout: 1800000
@@ -639,6 +649,8 @@
 
         clearGraphs(num);
 
+        error.html("");
+
         fillAllDataCells(num, "<img src='/img/loading.gif' width=15px height=15px>");
     }
 
@@ -679,7 +691,6 @@
 
     function drawGraph(builds, fieldName, median, num) {
         let isDuration = (fieldName === duration),
-            F = isDuration ? "F" : "",
             svg = d3.select("#graph" + fieldName + num).append("svg:svg"),
             margin = {top: 20, right: 20, bottom: 30, left: 50},
             width = 500 - margin.left - margin.right,
@@ -695,14 +706,15 @@
 
         let line = d3.line()
             .x(function(d) { return x(d.date); })
-            .y(function(d) { return y(d.stat[fieldName + F]); });
+            .y(function(d) { return y(d.stat[fieldName]); });
 
         x.domain(d3.extent(builds, function(d) { return d.date; }));
-        y.domain(d3.extent(builds, function(d) { return d.stat[fieldName + F]; }));
+        y.domain(d3.extent(builds, function(d) { return d.stat[fieldName]; }));
 
         g.append("svg:g").attr("transform", "translate(0," + (height) + ")")
             .call(d3.axisBottom(x).tickFormat(multiFormat));
-        g.append("svg:g").call(isDuration ? d3.axisLeft(y).tickFormat(d3.utcFormat("%H:%M")) : d3.axisLeft(y));
+        g.append("svg:g").call(isDuration ? d3.axisLeft(y).tickFormat( function (d) { return time(d); })
+            : d3.axisLeft(y));
 
         let svg_aline = g.append("line")
             .attr("class", "line")
@@ -719,8 +731,8 @@
             .attr("class", "line")
             .attr("x1",0)
             .attr("x2",width)
-            .attr("y1",y(isDuration ? parseDuration(parseInt(median)) : median))
-            .attr("y2",y(isDuration ? parseDuration(parseInt(median)) : median))
+            .attr("y1",y(median))
+            .attr("y2",y(median))
             .attr("stroke", "red")
             .attr("stroke-width", "0.2")
             .style("display", "block");
@@ -739,7 +751,7 @@
             .append("circle")
             .attr("r", 3)
             .attr("cx", function(d){return x(d.date); })
-            .attr("cy", function(d){return y(d.stat[fieldName + F]); })
+            .attr("cy", function(d){return y(d.stat[fieldName]); })
             .attr("class", function(d) {
                 return getDotClass(d);
             })
@@ -753,13 +765,13 @@
                 svg_aline.transition().duration(10)
                     .style("display", "block")
                     .attr("x1", x(d.date))
-                    .attr("y1", y(d.stat[fieldName + F]))
+                    .attr("y1", y(d.stat[fieldName]))
                     .attr("x2", x(d.date))
                     .attr("y2", height);
 
                 let graphTd = document.getElementById("graph" + fieldName + num).getBoundingClientRect(),
                     scrollTop = window.pageYOffset || document.documentElement.scrollTop,
-                    top = scrollTop + graphTd.top + y(d.stat[fieldName + F]) - 10,
+                    top = scrollTop + graphTd.top + y(d.stat[fieldName]) - 10,
                     partLeft = graphTd.left + x(d.date) + 44,
                     minWidth = 18, interval = 8;
 
@@ -782,8 +794,7 @@
                     .style("left", partLeft - minWidth - interval - valueWidth / 2 + "px")
                     .style("top", top + "px" )
                     .attr("onclick", "setCondition(" + num + ", " + d.buildId + ", " +
-                        (isDuration ? d.stat[fieldName + F].getTime() / 1000 : d.stat[fieldName + F]) +
-                        ", " + median + ", '" + (fieldName + F) + "'); return false;").transition()
+                        d.stat[fieldName] + ", " + median + ", '" + fieldName + "'); return false;").transition()
                     .duration(200).style("opacity", .8).style("display", "block");
             })
 
@@ -919,8 +930,7 @@
         });
     }
 
-    function getBuildLink(buildId) { return "https://ci.ignite.apache.org/viewLog.html?buildId=" + buildId
-            + "&tab=buildResultsDiv&buildTypeId=IgniteTests24Java8_RunAll"; }
+    function getBuildLink(buildId) { return "https://ci.ignite.apache.org/viewLog.html?buildId=" + buildId; }
 
     function checkAvailable(buildId, date) {
         let dateDiff = moment().diff(moment(date), 'days');
@@ -979,6 +989,18 @@
         toggleTests();
     });
 
+    $('.switch-btn.suites').click(function(){
+        $(this).toggleClass('switch-on');
+
+        let nightlySpan = $('#nightly');
+
+        nightlySpan.replaceClass('off', 'on');
+
+        nightly = nightlySpan.hasClass('on');
+
+        reloadAll();
+    });
+
     function setBuildCondition(buildId, isValid, conditionLocal) {
         setBuildConditionForColumn(buildId, isValid, 1, conditionLocal);
         setBuildConditionForColumn(buildId, isValid, 2, conditionLocal);
@@ -1014,6 +1036,11 @@
             printTests(generateTestsResultsComparison(mergedTestsResults));
     }
 
+    function reloadAll(){
+        loadData(1, dateIntervals[1].start, dateIntervals[1].end, testsTrigger);
+        loadData(2, dateIntervals[2].start, dateIntervals[2].end, testsTrigger);
+    }
+
     function multiFormat(date) {
         return (d3.timeSecond(date) < date ? formatMillisecond
             : d3.timeMinute(date) < date ? formatSecond
@@ -1039,6 +1066,15 @@
             "startDate": moment(startDate).format("DD-MM-YYYY"), "endDate": moment(endDate).format("DD-MM-YYYY")
         }
     }
+
+    (function ($) {
+        $.fn.replaceClass = function (pFromClass, pToClass) {
+            if (this.hasClass(pFromClass))
+                return this.removeClass(pFromClass).addClass(pToClass);
+            else
+                return this.removeClass(pToClass).addClass(pFromClass);
+        };
+    }(jQuery));
 </script>
 <div style="visibility:hidden">
     <div id="modalDialog" title="Information"></div><div id="resultDialog" title="Result"></div>
