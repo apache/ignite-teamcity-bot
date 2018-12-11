@@ -428,7 +428,7 @@ public class IgnitedTcInMemoryIntegrationTest {
      */
     private MuteInfo findMute(int id, Collection<MuteInfo> infos) {
         for (MuteInfo info : infos) {
-            if (info.id != 4832)
+            if (info.id != id)
                 continue;
 
             return info;
