@@ -27,11 +27,10 @@
         <th style="text-align: center;" width="42%"><input type='text' name='daterange1'/></th>
         <th style="text-align: center;" width="42%"><input type='text' name='daterange2'/></th>
     </tr><tr></tr><tr></tr>
-    <tr id="switchNightly">
+    <tr id="showError">
         <td class="section">RUN_ALL <span class="nightly on" id="nightly"><b>ɴɪɢʜᴛʟʏ</b></span></td>
         <td class="icon"><div class="switch-btn switch-on suites"></div></td>
-        <td></td>
-        <td></td>
+        <td colspan="2" id="loadStatus" style="text-align: center; color: red;"></td>
     </tr><tr></tr>
     <tr id="showInfo">
         <td class="section">SHOW INVALID BUILD</td>
@@ -188,7 +187,8 @@
     let invalidInclude = false,
         markBuildId = 0,
         testsTrigger = false,
-        nightly = true;
+        nightly = true,
+        error = $('#loadStatus');
 
     function refreshTests() {
         printTests(generateTestsResultsComparison(mergedTestsResults));
@@ -481,6 +481,7 @@
         clearBackgroundFromAllDataCells();
         clearGraphs(data.num);
         fillAllDataCells(data.num, "");
+        error.html("");
 
         if (data.isEmpty) {
             printImportantMessage(data.num, "#ff0000", "No data for the selected period");
@@ -570,15 +571,21 @@
         $.ajax({
                 url: url,
                 success: function (result) {
-                    g_tcHost = result.tcHost;
-                    g_projectId = result.projectId;
-                    data[num] = new Data(num, result.buildsStatistics, sinceDate, untilDate);
+                    try {
+                        g_tcHost = result.tcHost;
+                        g_projectId = result.projectId;
+                        data[num] = new Data(num, result.buildsStatistics, sinceDate, untilDate);
 
-                    printStatistics(data[num]);
+                        printStatistics(data[num]);
 
-                    mergedTestsResults[num] = result.mergedTestsBySuites;
+                        mergedTestsResults[num] = result.mergedTestsBySuites;
 
-                    printTests(generateTestsResultsComparison(mergedTestsResults));
+                        printTests(generateTestsResultsComparison(mergedTestsResults));
+                    } catch (e) {
+                        error.html(e.name + ":" + e.message);
+
+                        throw e;
+                    }
                 },
                 error: showErrInLoadStatus,
                 timeout: 1800000
@@ -640,6 +647,8 @@
         clearBackgroundFromAllDataCells();
 
         clearGraphs(num);
+
+        error.html("");
 
         fillAllDataCells(num, "<img src='/img/loading.gif' width=15px height=15px>");
     }
