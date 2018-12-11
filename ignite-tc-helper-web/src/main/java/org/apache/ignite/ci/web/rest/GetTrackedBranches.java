@@ -31,6 +31,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.ChainAtServer;
 import org.apache.ignite.ci.tcbot.TcBotGeneralService;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.Version;
@@ -59,7 +60,7 @@ public class GetTrackedBranches {
     @GET
     @Path("getIds")
     public List<String> getIds() {
-        return CtxListener.getTcHelper(ctx).getTrackedBranchesIds();
+        return CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class).getTrackedBranchesIds();
     }
 
     @GET

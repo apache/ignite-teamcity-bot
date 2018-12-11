@@ -215,7 +215,7 @@ public class PrChainsProcessorTest {
      *
      * @param c Compactor.
      */
-    public void initHistory(IStringCompactor c) {
+    public Map<Integer, FatBuildCompacted> initHistory(IStringCompactor c) {
         for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++) {
             FatBuildCompacted cache1InMaster = createFailedBuild(c, CACHE_1,
                 ITeamcity.DEFAULT, 500 + i, 100000 + (i * 10000))
@@ -274,6 +274,8 @@ public class PrChainsProcessorTest {
 
             addBuildsToEmulatedStor(fatBuild);
         }
+
+        return apacheBuilds();
     }
 
     /**
@@ -366,7 +368,7 @@ public class PrChainsProcessorTest {
         return createTest(id, name, true);
     }
 
-    @NotNull private TestOccurrenceFull createTest(long id, String name, boolean passed) {
+    @NotNull public static TestOccurrenceFull createTest(long id, String name, boolean passed) {
         TestOccurrenceFull tf = new TestOccurrenceFull();
 
         tf.test = new TestRef();
@@ -382,7 +384,8 @@ public class PrChainsProcessorTest {
         return createFatBuild(c, btId, branch, id, ageMs, false);
     }
 
-    @NotNull public FatBuildCompacted createFatBuild(IStringCompactor c, String btId, String branch, int id, long ageMs,
+    @NotNull public static FatBuildCompacted createFatBuild(IStringCompactor c, String btId, String branch, int id,
+        long ageMs,
         boolean passed) {
         final Build build = createJaxbBuild(btId, branch, id, ageMs, passed);
 
@@ -390,7 +393,7 @@ public class PrChainsProcessorTest {
     }
 
     @NotNull
-    private Build createJaxbBuild(String btId, String branch, int id, long ageMs, boolean passed) {
+    private static Build createJaxbBuild(String btId, String branch, int id, long ageMs, boolean passed) {
         final Build build = new Build();
         build.buildTypeId = btId;
         final BuildType type = new BuildType();

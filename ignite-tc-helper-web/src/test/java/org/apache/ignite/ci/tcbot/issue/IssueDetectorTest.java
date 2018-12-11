@@ -21,26 +21,42 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.conf.BranchTracked;
+import org.apache.ignite.ci.conf.BranchesTracked;
+import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.tcbot.chain.MockBasedTcBotModule;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  *
  */
 public class IssueDetectorTest {
+    /** Server id. */
     public static final String SRV_ID = "apache";
+
     /** Builds emulated storage. */
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
 
+
+    /** Config Branches tracked. */
+    private BranchesTracked branchesTracked = new BranchesTracked();
     /**
      * Injector.
      */
-    private Injector injector = Guice.createInjector(new MockBasedTcBotModule());
+    private Injector injector = Guice.createInjector(new MockBasedTcBotModule(branchesTracked));
 
     /** */
     @Before
@@ -49,24 +65,37 @@ public class IssueDetectorTest {
         instance.addServer(SRV_ID, apacheBuilds);
     }
 
+    @NotNull public ChainAtServerTracked trackedChain(String suiteId) {
+        ChainAtServerTracked chain = new ChainAtServerTracked();
+
+        chain.serverId = SRV_ID;
+        chain.branchForRest = ITeamcity.DEFAULT;
+        chain.suiteId = suiteId;
+
+        return chain;
+    }
+
+
     @Test
-    @Ignore
     public void testDetector() {
+        BranchTracked branch = new BranchTracked();
+        branch.id = FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME;
+        branch.chains.add(trackedChain(TeamcityIgnitedImpl.DEFAULT_PROJECT_ID));
+        branchesTracked.addBranch(branch);
+
         IssueDetector issueDetector = injector.getInstance(IssueDetector.class);
+
+        ICredentialsProv mock = mock(ICredentialsProv.class);
+        when(mock.hasAccess(anyString())).thenReturn(true);
+        issueDetector.startBackgroundCheck(mock);
 
         String masterStatus = issueDetector.checkFailuresEx("master");
 
         System.out.println(masterStatus);
-        /* todo: https://issues.apache.org/jira/browse/IGNITE-10620 implement users/issue test only storeages
-        1) No implementation for org.apache.ignite.Ignite was bound.
-  while locating com.google.inject.Provider<org.apache.ignite.Ignite>
-    for field at org.apache.ignite.ci.issue.IssuesStorage.igniteProvider(IssuesStorage.java:37)
+        /* todo: https://issues.apache.org/jira/browse/IGNITE-10620
 
-2) No implementation for org.apache.ignite.ci.ITcHelper was bound.
-  while locating org.apache.ignite.ci.ITcHelper
+        - Add examples of failed tests into history, validate notifications originated.
 
-3) No implementation for org.apache.ignite.Ignite was bound.
-  while locating com.google.inject.Provider<org.apache.ignite.Ignite>
          */
     }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.tcbot.chain;
 
+import com.google.common.base.Preconditions;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,6 +28,7 @@ import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
@@ -47,7 +49,12 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 public class TrackedBranchChainsProcessor {
     /** TC Server prov. */
     @Inject private ITcServerProvider srvProv;
+
+    /** TC ignited server provider. */
     @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
+
+    /** Tc Bot config. */
+    @Inject private ITcBotConfig tcBotConfig;
 
     /** Chains processor. */
     @Inject private BuildChainProcessor chainProc;
@@ -63,7 +70,7 @@ public class TrackedBranchChainsProcessor {
         final AtomicInteger runningUpdates = new AtomicInteger();
 
         final String branchNn = isNullOrEmpty(branch) ? FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME : branch;
-        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branchNn);
+        final BranchTracked tracked = tcBotConfig.getTrackedBranches().getBranchMandatory(branchNn);
         res.setTrackedBranch(branchNn);
 
         tracked.chains.stream()

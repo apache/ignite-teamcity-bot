@@ -17,8 +17,8 @@
 
 package org.apache.ignite.ci.tcbot.issue;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,22 +26,31 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
-
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.issue.EventTemplate;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
-import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.jobs.CheckQueueJob;
+import org.apache.ignite.ci.mail.EmailSender;
+import org.apache.ignite.ci.mail.SlackSender;
+import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
@@ -49,17 +58,8 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
-import org.apache.ignite.ci.analysis.SuiteInBranch;
-import org.apache.ignite.ci.analysis.TestInBranch;
-import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
-import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.di.MonitoredTask;
-import org.apache.ignite.ci.jobs.CheckQueueJob;
-import org.apache.ignite.ci.mail.EmailSender;
-import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.TcHelperUser;
-import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
@@ -80,8 +80,8 @@ public class IssueDetector {
     /**Slack prefix, using this for email address will switch notifier to slack (if configured). */
     private static final String SLACK = "slack:";
 
-    @Inject private IssuesStorage issuesStorage;
-    @Inject private UserAndSessionsStorage userStorage;
+    @Inject private IIssuesStorage issuesStorage;
+    @Inject private IUserStorage userStorage;
 
     private final AtomicBoolean init = new AtomicBoolean();
     private ICredentialsProv backgroundOpsCreds;
@@ -93,16 +93,17 @@ public class IssueDetector {
     /** Tracked Branch Processor. */
     @Inject private TrackedBranchChainsProcessor tbProc;
 
-    /** Tc helper. */
-    @Inject private ITcHelper tcHelper;
-
     /** Server provider. */
     @Inject private ITcServerProvider srvProvider;
 
     /** Server provider. */
     @Inject private ITeamcityIgnitedProvider tcProv;
 
+    /** String Compactor. */
     @Inject private IStringCompactor compactor;
+
+    /** Config. */
+    @Inject private ITcBotConfig cfg;
 
     /** Send notification guard. */
     private final AtomicBoolean sndNotificationGuard = new AtomicBoolean();
@@ -140,56 +141,55 @@ public class IssueDetector {
     @AutoProfiling
     @MonitoredTask(name = "Send Notifications")
     protected String sendNewNotificationsEx() throws IOException {
-        Collection<TcHelperUser> userForPossibleNotifications = new ArrayList<>();
+        List<TcHelperUser> userForPossibleNotifications = new ArrayList<>();
 
-        for(Cache.Entry<String, TcHelperUser> entry : userStorage.users()) {
-            TcHelperUser tcHelperUser = entry.getValue();
-
-            if (Strings.isNullOrEmpty(tcHelperUser.email))
-                continue;
-
-            if(tcHelperUser.hasSubscriptions())
-                userForPossibleNotifications.add(tcHelperUser);
-        }
+        userStorage.allUsers()
+                .filter(TcHelperUser::hasEmail)
+                .filter(TcHelperUser::hasSubscriptions)
+                .forEach(userForPossibleNotifications::add);
 
         String slackCh = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
+
         Map<String, Notification> toBeSent = new HashMap<>();
 
-        int issuesChecked = 0;
-        for (Issue issue : issuesStorage.all()) {
-            issuesChecked++;
-            long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
-            long issueAgeMs = System.currentTimeMillis() - detected;
-            if (issueAgeMs > TimeUnit.HOURS.toMillis(2))
-                continue;
+        AtomicInteger issuesChecked = new AtomicInteger();
 
-            List<String> addrs = new ArrayList<>();
+        issuesStorage.allIssues()
+            .peek(issue -> issuesChecked.incrementAndGet())
+            .filter(issue -> {
+                long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
+                long issueAgeMs = System.currentTimeMillis() - detected;
 
-            if (slackCh != null && FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME.equals(issue.trackedBranchName))
-                addrs.add(SLACK + "#" + slackCh);
+                return issueAgeMs <= TimeUnit.HOURS.toMillis(2);
+            })
+            .forEach(issue -> {
+                List<String> addrs = new ArrayList<>();
 
-            for (TcHelperUser next : userForPossibleNotifications) {
-                if (next.getCredentials(issue.issueKey().server) != null) {
-                    if (next.isSubscribed(issue.trackedBranchName)) {
-                        logger.info("User " + next + " is candidate for notification " + next.email
-                            + " for " + issue);
+                if (slackCh != null && FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME.equals(issue.trackedBranchName))
+                    addrs.add(SLACK + "#" + slackCh);
 
-                        addrs.add(next.email);
+                for (TcHelperUser next : userForPossibleNotifications) {
+                    if (next.getCredentials(issue.issueKey().server) != null) {
+                        if (next.isSubscribed(issue.trackedBranchName)) {
+                            logger.info("User " + next + " is candidate for notification " + next.email
+                                + " for " + issue);
+
+                            addrs.add(next.email);
+                        }
                     }
                 }
-            }
 
-            for (String nextAddr : addrs) {
-                if (issuesStorage.needNotify(issue.issueKey, nextAddr)) {
-                    toBeSent.computeIfAbsent(nextAddr, addr -> {
-                        Notification notification = new Notification();
-                        notification.ts = System.currentTimeMillis();
-                        notification.addr = addr;
-                        return notification;
-                    }).addIssue(issue);
+                for (String nextAddr : addrs) {
+                    if (issuesStorage.setNotified(issue.issueKey, nextAddr)) {
+                        toBeSent.computeIfAbsent(nextAddr, addr -> {
+                            Notification notification = new Notification();
+                            notification.ts = System.currentTimeMillis();
+                            notification.addr = addr;
+                            return notification;
+                        }).addIssue(issue);
+                    }
                 }
-            }
-        }
+            });
 
         if(toBeSent.isEmpty())
             return "Noting to notify, " + issuesChecked + " issues checked";
@@ -218,7 +218,7 @@ public class IssueDetector {
             }
         }
 
-        return res + ", " + issuesChecked + "issues checked";
+        return res + ", " + issuesChecked.get() + "issues checked";
     }
 
     /**
@@ -286,7 +286,7 @@ public class IssueDetector {
         if (firstFailedBuildId != null && suiteFailure.hasCriticalProblem != null && suiteFailure.hasCriticalProblem) {
             IssueKey issueKey = new IssueKey(srvId, firstFailedBuildId, suiteId);
 
-            if (issuesStorage.cache().containsKey(issueKey))
+            if (issuesStorage.containsIssueKey(issueKey))
                 return false; //duplicate
 
             Issue issue = new Issue(issueKey);
@@ -299,7 +299,7 @@ public class IssueDetector {
 
             logger.info("Register new issue for suite fail: " + issue);
 
-            issuesStorage.cache().put(issueKey, issue);
+            issuesStorage.saveIssue(issue);
 
             issueFound = true;
         }
@@ -371,7 +371,7 @@ public class IssueDetector {
 
         IssueKey issueKey = new IssueKey(srvId, buildId, name);
 
-        if (issuesStorage.cache().containsKey(issueKey))
+        if (issuesStorage.containsIssueKey(issueKey))
             return false; //duplicate
 
         Issue issue = new Issue(issueKey);
@@ -384,7 +384,7 @@ public class IssueDetector {
 
         logger.info("Register new issue for test fail: " + issue);
 
-        issuesStorage.cache().put(issueKey, issue);
+        issuesStorage.saveIssue(issue);
 
         return true;
     }
@@ -426,7 +426,7 @@ public class IssueDetector {
      *
      */
     private void checkFailures() {
-        List<String> ids = tcHelper.getTrackedBranchesIds();
+        List<String> ids = cfg.getTrackedBranchesIds();
 
         for (Iterator<String> iter = ids.iterator(); iter.hasNext(); ) {
             String tbranchName = iter.next();
@@ -453,15 +453,20 @@ public class IssueDetector {
     protected String checkFailuresEx(String brachName) {
         int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
 
-        TestFailuresSummary allHist = tbProc.getTrackedBranchTestFailures(brachName,
-            false, buildsToQry, backgroundOpsCreds);
+        ICredentialsProv creds = Preconditions.checkNotNull(backgroundOpsCreds, "Server should be authorized");
+
+        TestFailuresSummary allHist = tbProc.getTrackedBranchTestFailures(
+            brachName,
+            false,
+            buildsToQry,
+            creds);
 
         TestFailuresSummary failures =
-                tbProc.getTrackedBranchTestFailures(brachName,
+            tbProc.getTrackedBranchTestFailures(brachName,
                 false,
                 1,
-                        backgroundOpsCreds
-                );
+                creds
+            );
 
         String issResult = registerIssuesAndNotifyLater(failures, backgroundOpsCreds);
 

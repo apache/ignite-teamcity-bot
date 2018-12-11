@@ -125,18 +125,6 @@ public class TcHelper implements ITcHelper {
         return "apache"; //todo remove
     }
 
-    //todo get from persistence
-    @Override public Collection<String> getServerIds() {
-        return getTrackedBranches().getServerIds();
-    }
-
-    private BranchesTracked getTrackedBranches() {
-        return HelperConfig.getTrackedBranches();
-    }
-
-    @Override public List<String> getTrackedBranchesIds() {
-        return getTrackedBranches().getIds();
-    }
 
     /** {@inheritDoc} */
     @Override public Visa notifyJira(

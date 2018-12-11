@@ -32,6 +32,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Form;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.tcmodel.user.User;
@@ -106,10 +107,13 @@ public class UserService {
     public TcHelperUserUi getUserData(@Nullable @QueryParam("login") final String loginParm) {
         final String currUserLogin = ICredentialsProv.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
-        ITcHelper helper = CtxListener.getTcHelper(ctx);
+        Injector injector = CtxListener.getInjector(ctx);
+        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+
+        ITcHelper helper = injector.getInstance(ITcHelper.class);
         final TcHelperUser user = helper.users().getUser(login);
 
-        final TcHelperUserUi tcHelperUserUi = new TcHelperUserUi(user, helper.getTrackedBranchesIds());
+        final TcHelperUserUi tcHelperUserUi = new TcHelperUserUi(user, cfg.getTrackedBranchesIds());
 
         //if principal is not null, can do only brief check of credentials.
 

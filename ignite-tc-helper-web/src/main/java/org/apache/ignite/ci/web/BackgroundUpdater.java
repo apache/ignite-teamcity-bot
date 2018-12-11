@@ -28,9 +28,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.analysis.Expirable;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
@@ -79,8 +79,8 @@ public class BackgroundUpdater {
         return thread;
     });
 
-    /** Tc helper. */
-    @Inject private ITcHelper tcHelper;
+    /** Config. */
+    @Inject private ITcBotConfig cfg;
 
 
     /**
@@ -90,7 +90,7 @@ public class BackgroundUpdater {
         StringBuffer sb = new StringBuffer();
         sb.append("[");
 
-        tcHelper.getServerIds()
+        cfg.getServerIds()
             .stream()
             .filter(prov::hasAccess)
             .forEach(s -> sb.append(s).append(" "));

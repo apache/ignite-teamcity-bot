@@ -17,33 +17,59 @@
 
 package org.apache.ignite.ci.tcbot.chain;
 
+import com.google.common.collect.Lists;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.conf.BranchTracked;
+import org.apache.ignite.ci.conf.BranchesTracked;
+import org.apache.ignite.ci.conf.ChainAtServerTracked;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
+import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
+import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest.CACHE_9;
+import static org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest.TEST_RARE_FAILED_WITHOUT_CHANGES;
+import static org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest.TEST_RARE_FAILED_WITH_CHANGES;
+import static org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest.createFatBuild;
+import static org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest.createTest;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests {@link TrackedBranchChainsProcessor}
  */
 public class TrackedBranchProcessorTest {
-    public static final String SRV_ID = "apache";
+    public static final String SRV_ID = "apacheTest";
+    public static final String BRACH_NAME = "trackedMaster";
     /** Builds emulated storage. */
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
 
+    /** Branches tracked. */
+    private BranchesTracked branchesTracked = new BranchesTracked();
     /**
      * Injector.
      */
-    private Injector injector = Guice.createInjector(new MockBasedTcBotModule());
+    private Injector injector = Guice.createInjector(new MockBasedTcBotModule(branchesTracked));
 
     /** */
     @Before
@@ -52,19 +78,84 @@ public class TrackedBranchProcessorTest {
         instance.addServer(SRV_ID, apacheBuilds);
     }
 
+    @NotNull public ChainAtServerTracked trackedChain(String suiteId) {
+        ChainAtServerTracked chain = new ChainAtServerTracked();
+
+        chain.serverId = SRV_ID;
+        chain.branchForRest = ITeamcity.DEFAULT;
+        chain.suiteId = suiteId;
+        return chain;
+    }
+
     @Test
     public void testTrackedBranchChainsProcessor() {
+        BranchTracked branch = new BranchTracked();
+        branch.id = BRACH_NAME;
+        branch.chains.add(trackedChain(CACHE_9));
+        branchesTracked.addBranch(branch);
+
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+
+        apacheBuilds.putAll(new PrChainsProcessorTest().initHistory(c));
+
+        int buildCnt = 101;
+        FatBuildCompacted fatBuild = createFatBuild(c, CACHE_9, ITeamcity.DEFAULT, buildCnt + 9999, 1340020, false)
+            .addTests(c,
+                Lists.newArrayList(
+                    createTest(1L, TEST_RARE_FAILED_WITHOUT_CHANGES, false),
+                    createTest(2L, TEST_RARE_FAILED_WITH_CHANGES, false)));
+
+        fatBuild.changes(new int[] {1000000 + buildCnt, 1000020 + buildCnt});
+
+        apacheBuilds.put(fatBuild.id(), fatBuild);
+
         TrackedBranchChainsProcessor tbProc = injector.getInstance(TrackedBranchChainsProcessor.class);
 
-        String brachName = "master"; //todo https://issues.apache.org/jira/browse/IGNITE-10620 use separate branch e.g. masterForTests
-        TestFailuresSummary failures = tbProc.getTrackedBranchTestFailures(brachName,
+        ICredentialsProv mock = mock(ICredentialsProv.class);
+        when(mock.hasAccess(anyString())).thenReturn(true);
+        TestFailuresSummary failures = tbProc.getTrackedBranchTestFailures(BRACH_NAME,
             false,
             1,
-            mock(ICredentialsProv.class)
+            mock
         );
 
-        System.out.println(new Gson().toJson(failures));
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        System.out.println(gson.toJson(failures));
 
+        assertFalse(failures.servers.isEmpty());
+
+        ChainAtServerCurrentStatus apacheSrv = failures.servers.get(0);
+
+        assertTrue(apacheSrv.failedTests > 0);
+
+        assertFalse(apacheSrv.suites.isEmpty());
+
+        Optional<SuiteCurrentStatus> cache9 = findSuite(apacheSrv, CACHE_9);
+        assertTrue(cache9.isPresent());
+
+        SuiteCurrentStatus suiteFails = cache9.get();
+        assertFalse(suiteFails.testFailures.isEmpty());
+
+        Optional<TestFailure> tfOpt = findTestFailure(suiteFails, TEST_RARE_FAILED_WITH_CHANGES);
+        assertTrue(tfOpt.isPresent());
+        assertNull(tfOpt.get().histBaseBranch.flakyComments);
+        assertNull(tfOpt.get().problemRef);
+
+        Optional<TestFailure> tfFlakyOpt = findTestFailure(suiteFails, TEST_RARE_FAILED_WITHOUT_CHANGES);
+        assertTrue(tfFlakyOpt.isPresent());
+        assertNotNull(tfFlakyOpt.get().histBaseBranch.flakyComments);
+
+        assertNull(tfFlakyOpt.get().problemRef);
+    }
+
+    public Optional<SuiteCurrentStatus> findSuite(ChainAtServerCurrentStatus apacheSrv, String suiteName) {
+        return apacheSrv.suites.stream().filter(s -> {
+            return s.name.contains(suiteName);
+        }).findAny();
+    }
+
+    public Optional<TestFailure> findTestFailure(SuiteCurrentStatus suiteFails, String name) {
+        return suiteFails.testFailures.stream().filter(tf -> tf.name.equals(name)) .findAny();
     }
 
 }
