@@ -28,6 +28,9 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
+import org.apache.ignite.ci.teamcity.ignited.mute.MuteDao;
+import org.apache.ignite.ci.teamcity.ignited.mute.MuteSync;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -59,7 +62,13 @@ import java.util.stream.Collectors;
 
 import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
 
+/**
+ *
+ */
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
+    /** Default server id. */
+    public static final String DEFAULT_SERVER_ID = "apache";
+
     /** Default project id. */
     public static final String DEFAULT_PROJECT_ID = "IgniteTests24Java8";
 
@@ -70,7 +79,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     public static final int MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN = 3000;
 
     /** Server id. */
-    private String srvNme;
+    private String srvName;
 
     /** Pure HTTP Connection API. */
     private ITeamcityConn conn;
@@ -92,6 +101,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** Build Sync. */
     @Inject private ProactiveFatBuildSync fatBuildSync;
+
+    /** Mute DAO. */
+    @Inject private MuteDao muteDao;
+
+    /** Mute Sync. */
+    @Inject private MuteSync muteSync;
 
     /** Changes DAO. */
     @Inject private ChangeDao changesDao;
@@ -121,7 +136,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     private int srvIdMaskHigh;
 
     public void init(String srvId, ITeamcityConn conn) {
-        this.srvNme = srvId;
+        this.srvName = srvId;
         this.conn = conn;
 
         srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
@@ -130,16 +145,21 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         fatBuildDao.init();
         changesDao.init();
         runHistCompactedDao.init();
+        muteDao.init();
     }
 
+    /**
+     * @param taskName Task name.
+     * @return Task name concatenated with server name.
+     */
     @NotNull
     private String taskName(String taskName) {
-        return ITeamcityIgnited.class.getSimpleName() +"." + taskName + "." + srvNme;
+        return ITeamcityIgnited.class.getSimpleName() +"." + taskName + "." + srvName;
     }
 
     /** {@inheritDoc} */
     @Override public String serverId() {
-        return srvNme;
+        return srvName;
     }
 
     /** {@inheritDoc} */
@@ -306,6 +326,13 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
+    @Override public Set<MuteInfo> getMutes(String projectId) {
+        muteSync.ensureActualizeMutes(taskName("actualizeMutes"), projectId, srvIdMaskHigh, conn);
+
+        return muteDao.getMutes(srvIdMaskHigh);
+    }
+
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override @NotNull public List<Integer> getLastNBuildsFromHistory(String btId, String branchForTc, int cnt) {
         List<BuildRefCompacted> hist = getAllBuildsCompacted(btId, branchForTc);
@@ -384,14 +411,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      * Enables scheduleing for build refs/builds/history sync
      */
     public void ensureActualizeRequested() {
-        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), () -> actualizeRecentBuildRefs(srvNme), 2, TimeUnit.MINUTES);
+        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), () -> actualizeRecentBuildRefs(srvName), 2, TimeUnit.MINUTES);
 
         buildRefSync.ensureActualizeRequested();
 
         // schedule find missing later
-        fatBuildSync.ensureActualizationRequested(srvNme, conn);
+        fatBuildSync.ensureActualizationRequested(srvName, conn);
 
-        runHistSync.invokeLaterFindMissingHistory(srvNme);
+        runHistSync.invokeLaterFindMissingHistory(srvName);
     }
 
     /** {@inheritDoc} */
@@ -399,7 +426,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
 
         //todo may add additional parameter: load builds into DB in sync/async fashion
-        buildRefSync.runActualizeBuildRefs(srvNme, false, Sets.newHashSet(build.getId()), conn);
+        buildRefSync.runActualizeBuildRefs(srvName, false, Sets.newHashSet(build.getId()), conn);
 
         return build;
     }
@@ -493,7 +520,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     String actualizeRecentBuildRefs() {
-        return actualizeRecentBuildRefs(srvNme);
+        return actualizeRecentBuildRefs(srvName);
     }
 
     /**
@@ -523,12 +550,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         //schedule direct reload for Fat Builds for all queued too-old builds
         fatBuildSync.scheduleBuildsLoad(conn, directUpload);
 
-        buildRefSync.runActualizeBuildRefs(srvNme, false, paginateUntil, conn);
+        buildRefSync.runActualizeBuildRefs(srvName, false, paginateUntil, conn);
 
         int freshButNotFoundByBuildsRefsScan = paginateUntil.size();
         if (!paginateUntil.isEmpty()) {
             //some builds may stuck in the queued or running, enforce loading now
-            fatBuildSync.doLoadBuilds(-1, srvNme, conn, paginateUntil);
+            fatBuildSync.doLoadBuilds(-1, srvName, conn, paginateUntil);
         }
 
         // schedule full resync later
@@ -550,8 +577,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      *
      */
     void fullReindex() {
-        buildRefSync.runActualizeBuildRefs(srvNme, true, null, conn);
+        buildRefSync.runActualizeBuildRefs(srvName, true, null, conn);
     }
-
-
 }

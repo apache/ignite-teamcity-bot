@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.teamcity.pure;
 
 import java.util.List;
+import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -27,6 +28,7 @@ import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
@@ -49,6 +51,15 @@ public interface ITeamcityConn {
     public Build getBuild(int buildId);
 
     public List<BuildRef> getBuildRefsPage(String fullUrl, AtomicReference<String> nextPage);
+
+    /**
+     * @param buildTypeId Build type id.
+     * @param fullUrl Full url.
+     * @param nextPage Next page.
+     * @return Set of mutes from given page or default page.
+     */
+    public SortedSet<MuteInfo> getMutesPage(String buildTypeId, @Nullable String fullUrl,
+        AtomicReference<String> nextPage);
 
     /**
      * @param buildId Build id.

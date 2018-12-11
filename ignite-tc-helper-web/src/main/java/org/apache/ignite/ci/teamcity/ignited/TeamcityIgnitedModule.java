@@ -28,6 +28,7 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
+import org.apache.ignite.ci.teamcity.ignited.mute.MuteDao;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
@@ -56,6 +57,7 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(BuildTypeSync.class).in(new SingletonScope());
         bind(RunHistCompactedDao.class).in(new SingletonScope());
         bind(RunHistSync.class).in(new SingletonScope());
+        bind(MuteDao.class).in(new SingletonScope());
 
         bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
 

@@ -140,6 +140,27 @@ button.more.full {
 	width: 70px;
 }
 
+span.nightly {
+	display: inline-block;
+	font-size: 12px;
+	border-radius: 4px;
+	text-align: center;
+	width: 60px;
+	background: white;
+	margin-left: 10px;
+	background: white;
+}
+
+span.nightly.off {
+	border: 2px solid lightgrey;
+	color: lightgrey;
+}
+
+span.nightly.on {
+	border: 2px solid #12AD5E;
+	color: #12AD5E;
+}
+
 button.more.short {
 	width: 27px;
 

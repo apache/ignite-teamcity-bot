@@ -17,13 +17,18 @@
 
 package org.apache.ignite.ci.web.rest.tracked;
 
+import java.util.Set;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
+import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
+import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,6 +40,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+
+import static org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
+import static org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl.DEFAULT_SERVER_ID;
 
 @Path(GetTrackedBranchTestResults.TRACKED)
 @Produces(MediaType.APPLICATION_JSON)
@@ -139,5 +147,32 @@ public class GetTrackedBranchTestResults {
         final TrackedBranchChainsProcessor tbProc = CtxListener.getInjector(ctx).getInstance(TrackedBranchChainsProcessor.class);
 
         return tbProc.getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds);
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param projectId Project id.
+     * @return Mutes for given server-project pair.
+     */
+    @GET
+    @Path("mutes")
+    public Set<MuteInfo> mutes(
+        @Nullable @QueryParam("serverId") String srvId,
+        @Nullable @QueryParam("projectId") String projectId
+    ) {
+        ICredentialsProv creds = ICredentialsProv.get(req);
+
+        if (F.isEmpty(srvId))
+            srvId = DEFAULT_SERVER_ID;
+
+        if (F.isEmpty(projectId))
+            projectId = DEFAULT_PROJECT_ID;
+
+        if (!creds.hasAccess(srvId))
+            throw ServiceUnauthorizedException.noCreds(srvId);
+
+        return CtxListener.getInjector(ctx)
+            .getInstance(TcBotTriggerAndSignOffService.class)
+            .getMutes(srvId, projectId, creds);
     }
 }

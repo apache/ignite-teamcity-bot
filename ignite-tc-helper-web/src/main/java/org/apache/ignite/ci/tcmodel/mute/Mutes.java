@@ -15,50 +15,59 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.conf;
+package org.apache.ignite.ci.tcmodel.mute;
 
 import java.util.Collections;
-import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.ignite.ci.tcmodel.result.AbstractRef;
 
 /**
- * Content of poject
+ * Mute entities from TeamCity. On TeamCity this object represent page with several mutes.
+ * <p>
+ * But we unite mutes into single object to store in mute cache.
+ * <p>
+ * See https://ci.ignite.apache.org/app/rest/mutes/
  */
-@XmlRootElement(name="project")
+@XmlRootElement(name = "mutes")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class Project {
-    /** Id. */
-    @XmlAttribute public String id;
+public class Mutes extends AbstractRef {
+    /** Mutes. */
+    @XmlElement(name = "mute")
+    private SortedSet<MuteInfo> mutes;
 
-    /** Name. */
-    @XmlAttribute(name="name")
-    private String name;
-
-    /** Build types. */
-    @XmlElementWrapper(name="buildTypes")
-    @XmlElement(name="buildType")
-    private List<BuildType> buildTypes;
+    /** Next page url. */
+    @XmlAttribute private String nextHref;
 
     /**
-     * @return List of project's build types or an empty list if there is no build types presented.
+     * Default constructor. Need for xml loader.
      */
-    public List<BuildType> getBuildTypesNonNull() {
-        return buildTypes == null ? Collections.emptyList() : buildTypes;
+    public Mutes() {}
+
+    /**
+     * @param mutes List.
+     */
+    public Mutes(Set<MuteInfo> mutes) {
+        this.mutes = new TreeSet<>(mutes);
     }
 
-    /** */
-    public void name(String name) {
-        this.name = name;
+    /**
+     * @return Mute set. Return empty set if no mutes presented.
+     */
+    public SortedSet<MuteInfo> getMutesNonNull() {
+        return mutes == null ? Collections.emptySortedSet() : mutes;
     }
 
-    /** */
-    public String name() {
-        return name;
+    /**
+     * @return Next page url.
+     */
+    public String nextHref() {
+        return nextHref;
     }
 }
-

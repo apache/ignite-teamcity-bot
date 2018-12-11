@@ -1,0 +1,1469 @@
+<mutes nextHref="/app/rest/mutes?locator=project:(id:IgniteTests24Java8),start:100,count:100" href="/app/rest/mutes?locator=project:(id:IgniteTests24Java8)">
+    <mute id="6919">
+        <assignment>
+            <timestamp>20181127T210409+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-10431</text>
+        </assignment>
+        <scope>
+            <buildTypes count="1">
+                <buildType id="IgniteTests24Java8_DiskPageCompressions" name="Disk Page Compressions" projectName="Ignite Tests 2.4+ (Java 8/9/10/11)" projectId="IgniteTests24Java8" href="/app/rest/buildTypes/id:IgniteTests24Java8_DiskPageCompressions" webUrl="http://ci.ignite.apache.org/viewType.html?buildTypeId=IgniteTests24Java8_DiskPageCompressions"/>
+            </buildTypes>
+        </scope>
+        <target>
+            <tests>
+                <test id="-5875314334924226234" name="org.apache.ignite.testsuites.IgnitePdsCompressionTestSuite2: org.apache.ignite.internal.processors.cache.persistence.db.wal.reader.IgniteWalReaderTest.testFillWalForExactSegmentsCount" href="/app/rest/tests/id:-5875314334924226234"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4896">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-5518</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-7354756275660245280" name="org.apache.ignite.testsuites.IgniteStandByClusterSuite: org.apache.ignite.internal.processors.cache.persistence.standbycluster.join.persistence.JoinInActiveNodeToActiveClusterWithPersistence.testJoinClientStaticCacheConfigurationInCluster" href="/app/rest/tests/id:-7354756275660245280"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4863">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-5841</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="6214893244013017172" name="org.apache.ignite.testsuites.IgniteSpiTestSuite: org.apache.ignite.spi.discovery.tcp.TcpClientDiscoverySpiSelfTest.testReconnectAfterFailTopologyChanged" href="/app/rest/tests/id:6214893244013017172"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4834">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="6413101165702094634" name="org.apache.ignite.testsuites.IgniteBinaryCacheQueryTestSuite: org.apache.ignite.internal.processors.cache.IgniteCacheJoinPartitionedAndReplicatedTest.testJoin" href="/app/rest/tests/id:6413101165702094634"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4938">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1603</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="175632083582112283" name="org.apache.ignite.testsuites.IgniteBinaryCacheTestSuite: org.apache.ignite.internal.processors.datastreamer.DataStreamerMultinodeCreateCacheTest.testCreateCacheAndStream" href="/app/rest/tests/id:175632083582112283"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4856">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>Ticket exists.</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-8336901743086435336" name="org.apache.ignite.testsuites.IgniteBinaryCacheQueryTestSuite: org.apache.ignite.internal.processors.cache.IgniteCacheFullTextQueryNodeJoiningSelfTest.testFullTextQueryNodeJoin" href="/app/rest/tests/id:-8336901743086435336"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4868">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1755</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-3148038396213980751" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite3: org.apache.ignite.internal.processors.cache.distributed.replicated.GridReplicatedTxPreloadTest.testLocalTxPreloadingOptimistic" href="/app/rest/tests/id:-3148038396213980751"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4905">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-6430</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="8001954801639841975" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite3: org.apache.ignite.internal.processors.cache.CacheGroupsMetricsRebalanceTest.testRebalanceEstimateFinishTime" href="/app/rest/tests/id:8001954801639841975"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4932">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="447067402447763411" name="org.apache.ignite.internal.websession.IgniteWebSessionSelfTestSuite: org.apache.ignite.internal.websession.IgniteWebSessionSelfTestSuite$WebSessionTransactionalV1SelfTest.testRestarts" href="/app/rest/tests/id:447067402447763411"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4982">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-6058</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-1942035557817509990" name="org.apache.ignite.testsuites.IgniteCacheFullApiMultiJvmSelfTestSuite: org.apache.ignite.internal.processors.cache.multijvm.GridCachePartitionedNearDisabledMultiJvmP2PDisabledFullApiSelfTest.testTransformResourceInjection" href="/app/rest/tests/id:-1942035557817509990"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4875">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-4931</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-6379724889789998501" name="org.apache.ignite.testsuites.IgniteCacheTestSuite5: org.apache.ignite.internal.processors.cache.ClusterStateReplicatedSelfTest.testDeactivationWithPendingLock" href="/app/rest/tests/id:-6379724889789998501"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4862">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1094</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-8324578937577696374" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.GridCacheJtaSelfTest.testUncompatibleTmLookup" href="/app/rest/tests/id:-8324578937577696374"/>
+                <test id="5457528773188214568" name="org.apache.ignite.testsuites.IgniteJtaTestSuite: org.apache.ignite.internal.processors.cache.GridCacheReplicatedJtaSelfTest.testUncompatibleTmLookup" href="/app/rest/tests/id:5457528773188214568"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4937">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-584</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-6788820615112617192" name="org.apache.ignite.testsuites.IgniteCacheDataStructuresSelfTestSuite: org.apache.ignite.internal.processors.cache.datastructures.partitioned.IgnitePartitionedSetNoBackupsSelfTest.testNodeJoinsAndLeavesCollocated" href="/app/rest/tests/id:-6788820615112617192"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4921">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-614</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="4461362778658830549" name="org.apache.ignite.testsuites.IgniteBinaryCacheTestSuite: org.apache.ignite.internal.processors.cache.GridCacheSwapPreloadSelfTest.testSwapReplicatedMultithreaded" href="/app/rest/tests/id:4461362778658830549"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="5000">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-6017</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-4844090607810040440" name="org.apache.ignite.testsuites.IgniteIgfsTestSuite: org.apache.ignite.internal.processors.igfs.IgfsStreamsSelfTest.testCreateFileFragmented" href="/app/rest/tests/id:-4844090607810040440"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4844">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-5518</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-1786365592876961932" name="org.apache.ignite.testsuites.IgniteStandByClusterSuite: org.apache.ignite.internal.processors.cache.persistence.standbycluster.join.JoinActiveNodeToActiveCluster.testJoinClientStaticCacheConfigurationDifferentOnBoth" href="/app/rest/tests/id:-1786365592876961932"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4996">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>This test is flaky!</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="5739305362200551067" name="org.apache.ignite.testsuites.IgniteBinaryObjectsTestSuite: org.apache.ignite.internal.processors.cache.binary.GridCacheBinaryObjectMetadataExchangeMultinodeTest.testSequentialUpdatesNoConflicts" href="/app/rest/tests/id:5739305362200551067"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4930">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-5312366123406069276" name="org.apache.ignite.testsuites.IgniteBinaryObjectsComputeGridTestSuite: org.apache.ignite.internal.GridTaskExecutionSelfTest.testJobIdCollision" href="/app/rest/tests/id:-5312366123406069276"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4885">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-585</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-8163883431732995418" name="org.apache.ignite.testsuites.IgniteBinarySimpleNameMapperBasicTestSuite: org.apache.ignite.internal.processors.continuous.GridEventConsumeSelfTest.testNodeJoinWithP2P" href="/app/rest/tests/id:-8163883431732995418"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4835">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>ticket IGNITE-5956 created</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-6773434310375895032" name="org.apache.ignite.testsuites.IgniteCacheQuerySelfTestSuite3: org.apache.ignite.internal.processors.cache.IgniteCacheDistributedJoinPartitionedAndReplicatedTest.testJoin2" href="/app/rest/tests/id:-6773434310375895032"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4880">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-601</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="347393709966040916" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite3: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedMultiNodeLockSelfTest.testBasicLock" href="/app/rest/tests/id:347393709966040916"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4988">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-5979</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-7197727268986978983" name="org.apache.ignite.testsuites.IgniteCacheFailoverTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.atomic.GridCacheAtomicClientInvalidPartitionHandlingSelfTest.testPrimaryFullAsync" href="/app/rest/tests/id:-7197727268986978983"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4947">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-648</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="5442287555868615685" name="org.apache.ignite.testsuites.IgniteCacheFullApiMultiJvmSelfTestSuite: org.apache.ignite.internal.processors.cache.multijvm.GridCacheReplicatedNearOnlyMultiJvmFullApiSelfTest.testNearDhtKeySize" href="/app/rest/tests/id:5442287555868615685"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4965">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-647</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="7839858476521645647" name="org.apache.ignite.testsuites.IgniteCacheTestSuite: org.apache.ignite.cache.affinity.fair.FairAffinityDynamicCacheSelfTest.testStartStopCache" href="/app/rest/tests/id:7839858476521645647"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4842">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-807</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-76898889247732504" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite2: org.apache.ignite.internal.processors.cache.distributed.dht.GridCachePartitionedTopologyChangeSelfTest.testPrimaryTxNodeLeft" href="/app/rest/tests/id:-76898889247732504"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4989">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>IGNITE-5959</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-6307290792749315433" name="org.apache.ignite.testsuites.IgniteHadoopTestSuite: org.apache.ignite.internal.processors.hadoop.impl.igfs.IgniteHadoopFileSystemClientBasedDualSyncSelfTest.testClientReconnectMultithreaded" href="/app/rest/tests/id:-6307290792749315433"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4870">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-807</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-2458349323402117860" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite2: org.apache.ignite.internal.processors.cache.distributed.dht.GridCachePartitionedTopologyChangeSelfTest.testBackupTxNodeLeft" href="/app/rest/tests/id:-2458349323402117860"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4935">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-584</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-1793766594938100193" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheDataStructuresSelfTestSuite: org.apache.ignite.internal.processors.cache.datastructures.replicated.GridCacheReplicatedSetSelfTest.testNodeJoinsAndLeaves" href="/app/rest/tests/id:-1793766594938100193"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4832">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1090</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="1456888467079971267" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheRestartTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedOptimisticTxNodeRestartTest.testRestartWithTxPutAllFourNodesTwoBackups" href="/app/rest/tests/id:1456888467079971267"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4951">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-809</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-6247676866622690556" name="org.apache.ignite.testsuites.IgniteCacheTestSuite4: org.apache.ignite.internal.processors.cache.GridCacheMultinodeUpdateNearEnabledSelfTest.testInvoke" href="/app/rest/tests/id:-6247676866622690556"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4967">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-5954</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-4251967135363519547" name="org.apache.ignite.testsuites.IgniteCacheFailoverTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicNearRemoveFailureTest.testPutAndRemove" href="/app/rest/tests/id:-4251967135363519547"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4904">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-585</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-1050492473222354654" name="org.apache.ignite.testsuites.IgniteBasicTestSuite: org.apache.ignite.internal.processors.continuous.GridEventConsumeSelfTest.testNodeJoinWithP2P" href="/app/rest/tests/id:-1050492473222354654"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4979">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1090</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-4661619302930750081" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheRestartTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedOptimisticTxNodeRestartTest.testRestartWithTxFourNodesNoBackups" href="/app/rest/tests/id:-4661619302930750081"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4999">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-5518</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="5729401225615670959" name="org.apache.ignite.testsuites.IgniteStandByClusterSuite: org.apache.ignite.internal.processors.cache.persistence.standbycluster.join.JoinActiveNodeToActiveCluster.testJoinClientStaticCacheConfigurationInCluster" href="/app/rest/tests/id:5729401225615670959"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4901">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-6015</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-7969068005886244552" name="org.apache.ignite.testsuites.IgniteCacheTestSuite2: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedAtomicGetAndTransformStoreSelfTest.testGetAndTransform" href="/app/rest/tests/id:-7969068005886244552"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4847">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>IGNITE-5959</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="3964949468483050211" name="org.apache.ignite.testsuites.IgniteHadoopTestSuite: org.apache.ignite.internal.processors.hadoop.impl.igfs.IgniteHadoopFileSystemClientBasedDualAsyncSelfTest.testClientReconnect" href="/app/rest/tests/id:3964949468483050211"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4892">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-873915870661324601" name="org.apache.ignite.testsuites.IgniteComputeGridTestSuite: org.apache.ignite.internal.GridTaskExecutionSelfTest.testJobIdCollision" href="/app/rest/tests/id:-873915870661324601"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4912">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>This test is flaky!</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-7736969127581642827" name="org.apache.ignite.testsuites.IgniteCacheRestartTestSuite2: org.apache.ignite.internal.processors.cache.distributed.IgniteCacheGetRestartTest.testGetRestartPartitionedNearEnabled" href="/app/rest/tests/id:-7736969127581642827"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4853">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1757</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-1335148868073515937" name="org.apache.ignite.testsuites.IgniteHibernateTestSuite: org.apache.ignite.cache.store.hibernate.CacheHibernateBlobStoreSelfTest.testSimpleMultithreading" href="/app/rest/tests/id:-1335148868073515937"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4981">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>This test is flaky! https://issues.apache.org/jira/browse/IGNITE-5969</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="8370199420635377520" name="org.apache.ignite.testsuites.IgniteCacheTestSuite2: org.apache.ignite.internal.processors.cache.distributed.CacheLoadingConcurrentGridStartSelfTest.testLoadCacheWithDataStreamerSequentialWithConfigAndRestarts" href="/app/rest/tests/id:8370199420635377520"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4916">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1090</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-9198292730092576000" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheRestartTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedOptimisticTxNodeRestartTest.testRestartWithTxTwoNodesNoBackups" href="/app/rest/tests/id:-9198292730092576000"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4968">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1090</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-2994733465493622101" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheRestartTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedOptimisticTxNodeRestartTest.testRestartWithPutFourNodesNoBackups" href="/app/rest/tests/id:-2994733465493622101"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4978">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-6058</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="2529587627744686868" name="org.apache.ignite.testsuites.IgniteCacheFullApiMultiJvmSelfTestSuite: org.apache.ignite.internal.processors.cache.multijvm.GridCacheReplicatedOnheapMultiJvmFullApiSelfTest.testTransformResourceInjection" href="/app/rest/tests/id:2529587627744686868"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4929">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-5518</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-1344540528897632480" name="org.apache.ignite.testsuites.IgniteStandByClusterSuite: org.apache.ignite.internal.processors.cache.persistence.standbycluster.join.persistence.JoinActiveNodeToInActiveClusterWithPersistence.testJoinClientStaticCacheConfigurationDifferentOnBoth" href="/app/rest/tests/id:-1344540528897632480"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4973">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>This test is flaky! https://issues.apache.org/jira/browse/IGNITE-5968</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-536779311010959488" name="org.apache.ignite.testsuites.IgniteCacheTestSuite2: org.apache.ignite.internal.processors.cache.distributed.GridCachePartitionNotLoadedEventSelfTest.testPrimaryAndBackupDead" href="/app/rest/tests/id:-536779311010959488"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4899">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-627</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-4319651782304807574" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite3: org.apache.ignite.internal.processors.cache.GridCacheValueConsistencyTransactionalNearEnabledSelfTest.testPutRemoveConsistencyMultithreaded" href="/app/rest/tests/id:-4319651782304807574"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4964">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>Ticket created.</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-64288205905226824" name="org.apache.ignite.testsuites.IgniteBinarySimpleNameMapperCacheQueryTestSuite: org.apache.ignite.internal.processors.cache.IgniteCacheFullTextQueryNodeJoiningSelfTest.testFullTextQueryNodeJoin" href="/app/rest/tests/id:-64288205905226824"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4911">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-601</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="374922293639721713" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite3: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedMultiNodeSelfTest.testGlobalClearAll" href="/app/rest/tests/id:374922293639721713"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4865">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-795</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-6254343749078583584" name="org.apache.ignite.testsuites.IgniteCacheTestSuite: org.apache.ignite.internal.processors.cache.distributed.IgniteCacheAtomicMessageRecoveryTest.testMessageRecovery" href="/app/rest/tests/id:-6254343749078583584"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4887">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-601</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-5187817907135311293" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite3: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedMultiNodeSelfTest.testBasicPut" href="/app/rest/tests/id:-5187817907135311293"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4997">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-584</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-7175582928676029632" name="org.apache.ignite.testsuites.IgniteCacheDataStructuresSelfTestSuite: org.apache.ignite.internal.processors.cache.datastructures.partitioned.GridCachePartitionedSetSelfTest.testNodeJoinsAndLeavesCollocated" href="/app/rest/tests/id:-7175582928676029632"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4913">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-5959</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="2163500981105322885" name="org.apache.ignite.testsuites.IgniteHadoopTestSuite: org.apache.ignite.internal.processors.hadoop.impl.igfs.IgniteHadoopFileSystemClientBasedDualSyncSelfTest.testClientReconnect" href="/app/rest/tests/id:2163500981105322885"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4927">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-4015</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="4400427326943913772" name="org.apache.ignite.testsuites.IgniteCacheQuerySelfTestSuite4: org.apache.ignite.internal.processors.cache.query.continuous.CacheContinuousQueryAsyncFailoverTxReplicatedSelfTest.testNoEventLossOnTopologyChange" href="/app/rest/tests/id:4400427326943913772"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4971">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="6434850924645139695" name="org.apache.ignite.internal.websession.IgniteWebSessionSelfTestSuite: org.apache.ignite.internal.websession.IgniteWebSessionSelfTestSuite$WebSessionTransactionalV1SelfTest.testInvalidatedSession" href="/app/rest/tests/id:6434850924645139695"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4908">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="3536779558186229022" name="org.apache.ignite.testsuites.IgniteBinaryObjectsSimpleNameMapperComputeGridTestSuite: org.apache.ignite.internal.GridTaskExecutionWithoutPeerClassLoadingSelfTest.testJobIdCollision" href="/app/rest/tests/id:3536779558186229022"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4890">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-601</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="2218992456668812471" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite3: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedMultiNodeSelfTest.testMultiNodePut" href="/app/rest/tests/id:2218992456668812471"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4924">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-584</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="6723001949796225742" name="org.apache.ignite.testsuites.IgniteCacheDataStructuresSelfTestSuite: org.apache.ignite.internal.processors.cache.datastructures.partitioned.GridCachePartitionedSetSelfTest.testNodeJoinsAndLeaves" href="/app/rest/tests/id:6723001949796225742"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4897">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>IGNITE-602</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-2195733798051313844" name="org.apache.ignite.testsuites.IgniteBasicTestSuite: org.apache.ignite.internal.util.tostring.GridToStringBuilderSelfTest.testToStringCheckAdvancedRecursionPrevention" href="/app/rest/tests/id:-2195733798051313844"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4864">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-5495</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="1957307729511047131" name="org.apache.ignite.testsuites.IgniteS3TestSuite: org.apache.ignite.spi.discovery.tcp.ipfinder.s3.TcpDiscoveryS3IpFinderAwsCredentialsSelfTest.testIpFinder" href="/app/rest/tests/id:1957307729511047131"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4867">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-809</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="9165110565322500566" name="org.apache.ignite.testsuites.IgniteCacheTestSuite4: org.apache.ignite.internal.processors.cache.GridCacheMultinodeUpdateNearEnabledNoBackupsSelfTest.testInvoke" href="/app/rest/tests/id:9165110565322500566"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4923">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-807</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-2131417246446405449" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite2: org.apache.ignite.internal.processors.cache.distributed.dht.GridCachePartitionedTopologyChangeSelfTest.testNearTxNodeJoined" href="/app/rest/tests/id:-2131417246446405449"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4984">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1600</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-791552215533777691" name="org.apache.ignite.testsuites.IgniteBinaryCacheTestSuite: org.apache.ignite.internal.processors.cache.IgniteCacheEntryListenerEagerTtlDisabledTest.testEventsObjectKeyValue" href="/app/rest/tests/id:-791552215533777691"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4860">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-584</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-6392657618189919780" name="org.apache.ignite.testsuites.IgniteCacheDataStructuresSelfTestSuite: org.apache.ignite.internal.processors.cache.datastructures.partitioned.GridCachePartitionedAtomicSetSelfTest.testNodeJoinsAndLeaves" href="/app/rest/tests/id:-6392657618189919780"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4977">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-804</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-4541080121344866152" name="org.apache.ignite.testsuites.IgniteCacheTestSuite3: org.apache.ignite.internal.processors.cache.eviction.GridCacheSynchronousEvictionsFailoverSelfTest.testSynchronousEvictions" href="/app/rest/tests/id:-4541080121344866152"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4985">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-4931</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-4464680188430524845" name="org.apache.ignite.testsuites.IgniteCacheTestSuite5: org.apache.ignite.internal.processors.cache.ClusterStatePartitionedSelfTest.testDeactivationWithPendingLock" href="/app/rest/tests/id:-4464680188430524845"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4994">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1756</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-9024192690252958221" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCachePartitionedNearDisabledMultiNodeP2PDisabledFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-9024192690252958221"/>
+                <test id="-8726321594116192391" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.local.GridCacheLocalAtomicOffHeapTieredFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-8726321594116192391"/>
+                <test id="-8674287699395950221" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCacheAtomicNearEnabledFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-8674287699395950221"/>
+                <test id="-8040512715428697377" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicClientOnlyMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-8040512715428697377"/>
+                <test id="-7780779099367604299" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.local.GridCacheLocalAtomicOffHeapFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-7780779099367604299"/>
+                <test id="-7760268349780554184" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCachePartitionedNearDisabledFairAffinityMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-7760268349780554184"/>
+                <test id="-7493614527570414164" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicNearEnabledMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-7493614527570414164"/>
+                <test id="-7481130696198204565" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCachePartitionedNearDisabledOffHeapTieredAtomicFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-7481130696198204565"/>
+                <test id="-7032259069300324179" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.local.GridCacheLocalFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-7032259069300324179"/>
+                <test id="-7000909551805464516" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-7000909551805464516"/>
+                <test id="-6767997549118582080" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicOffHeapFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-6767997549118582080"/>
+                <test id="-6501306358102439078" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCachePartitionedNearDisabledFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-6501306358102439078"/>
+                <test id="-6426081136280965228" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedMultiNodeP2PDisabledFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-6426081136280965228"/>
+                <test id="-6258176735722442156" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCachePartitionedFairAffinityMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-6258176735722442156"/>
+                <test id="-6094734616125115815" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.local.GridCacheLocalOffHeapTieredFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-6094734616125115815"/>
+                <test id="-5802591021652019957" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicPrimaryWrityOrderOffHeapTieredMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-5802591021652019957"/>
+                <test id="-5385490150080064135" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedAtomicFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-5385490150080064135"/>
+                <test id="-5291686088678045315" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedClientOnlyNoPrimaryFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-5291686088678045315"/>
+                <test id="-5119216316215342827" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheNearOnlyFairAffinityMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-5119216316215342827"/>
+                <test id="-4711517777307449704" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedOffHeapTieredFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-4711517777307449704"/>
+                <test id="-4359342936590290127" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCacheAtomicFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-4359342936590290127"/>
+                <test id="-4333064290709480708" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCachePartitionedNearDisabledOffHeapFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-4333064290709480708"/>
+                <test id="-4275643145431130081" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicNearEnabledFairAffinityMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-4275643145431130081"/>
+                <test id="-3628795501545305212" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedOffHeapTieredMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-3628795501545305212"/>
+                <test id="-3396513835817135921" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicNearEnabledPrimaryWriteOrderMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-3396513835817135921"/>
+                <test id="-3352692587928224835" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicOffHeapMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-3352692587928224835"/>
+                <test id="-2662869895146546606" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicPrimaryWriteOrderMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-2662869895146546606"/>
+                <test id="-2581997298221603417" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.CacheReplicatedFairAffinityMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-2581997298221603417"/>
+                <test id="-1609417247617778081" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicNearOnlyMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-1609417247617778081"/>
+                <test id="-1476565766411534460" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicPrimaryWriteOrderOffHeapFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-1476565766411534460"/>
+                <test id="-478874056604908052" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.CacheReplicatedRendezvousAffinityExcludeNeighborsMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-478874056604908052"/>
+                <test id="-193706868527730877" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:-193706868527730877"/>
+                <test id="247079697965980212" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicOffHeapTieredFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:247079697965980212"/>
+                <test id="249753407935761954" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicPrimaryWrityOrderOffHeapMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:249753407935761954"/>
+                <test id="623344588147568598" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheNearOnlyMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:623344588147568598"/>
+                <test id="988518412409898191" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedNearOnlyNoPrimaryFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:988518412409898191"/>
+                <test id="1080784654672062278" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedCopyOnReadDisabledMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:1080784654672062278"/>
+                <test id="1217375352920862130" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedOffHeapFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:1217375352920862130"/>
+                <test id="1485959148209739365" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheNearOnlyMultiNodeP2PDisabledFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:1485959148209739365"/>
+                <test id="1491577392883638625" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.local.GridCacheLocalOffHeapFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:1491577392883638625"/>
+                <test id="1499089719703790635" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCachePartitionedNearDisabledAtomicOffHeapTieredMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:1499089719703790635"/>
+                <test id="2295112398910737563" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCacheAtomicPrimaryWriteOrderFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:2295112398910737563"/>
+                <test id="2643634903703632323" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedNearOnlyNoPrimaryFullApiSelfTest.testSize" href="/app/rest/tests/id:2643634903703632323"/>
+                <test id="3215465861001384703" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicOffHeapTieredMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:3215465861001384703"/>
+                <test id="3240173753762616907" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicFairAffinityMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:3240173753762616907"/>
+                <test id="3546564758587422831" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedOffHeapMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:3546564758587422831"/>
+                <test id="3931881358530712201" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:3931881358530712201"/>
+                <test id="3937221322499110036" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedNearOnlyMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:3937221322499110036"/>
+                <test id="3992733353754407696" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.local.GridCacheLocalAtomicFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:3992733353754407696"/>
+                <test id="4062469038935912756" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:4062469038935912756"/>
+                <test id="4440680022369080494" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.CacheReplicatedFairAffinityExcludeNeighborsMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:4440680022369080494"/>
+                <test id="4538545305335701208" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedOffHeapMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:4538545305335701208"/>
+                <test id="4562464713659835975" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedOffHeapTieredMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:4562464713659835975"/>
+                <test id="5432213662019447265" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedOffHeapFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:5432213662019447265"/>
+                <test id="5529579715505128318" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCachePartitionedNearDisabledOffHeapMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:5529579715505128318"/>
+                <test id="5577747557173252150" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.CacheReplicatedRendezvousAffinityMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:5577747557173252150"/>
+                <test id="6381405874217681860" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:6381405874217681860"/>
+                <test id="6515946097123788004" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedMultiNodeP2PDisabledFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:6515946097123788004"/>
+                <test id="6767373711973294616" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCachePartitionedNearDisabledOffHeapTieredMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:6767373711973294616"/>
+                <test id="6818144616970992074" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicMultiNodeP2PDisabledFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:6818144616970992074"/>
+                <test id="6873666129551151694" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedOffHeapTieredFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:6873666129551151694"/>
+                <test id="7217827258687276199" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCacheAtomicNearEnabledPrimaryWriteOrderFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:7217827258687276199"/>
+                <test id="7433640582346591014" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicPrimaryWriteOrderOffHeapTieredFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:7433640582346591014"/>
+                <test id="7539725866234905647" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicPrimaryWriteOrderFairAffinityMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:7539725866234905647"/>
+                <test id="8130535788143908140" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCachePartitionedNearDisabledOffHeapTieredFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:8130535788143908140"/>
+                <test id="8180700984071477613" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicNearOnlyMultiNodeP2PDisabledFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:8180700984071477613"/>
+                <test id="8272691389037054355" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedAtomicMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:8272691389037054355"/>
+                <test id="8284841932079815331" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicClientOnlyMultiNodeP2PDisabledFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:8284841932079815331"/>
+                <test id="8374984178982801561" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicClientOnlyFairAffinityMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:8374984178982801561"/>
+                <test id="8588291739066134596" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicCopyOnReadDisabledMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:8588291739066134596"/>
+                <test id="8823777660980219826" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.dht.GridCachePartitionedNearDisabledMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:8823777660980219826"/>
+                <test id="8912658548791723344" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedAtomicPrimaryWriteOrderMultiNodeFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:8912658548791723344"/>
+                <test id="8985913073967870200" name="org.apache.ignite.testsuites.IgnitePortableCacheFullApiTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCacheAtomicPrimaryWriteOrderMultiNodeP2PDisabledFullApiSelfTest.testIgniteCacheIterator" href="/app/rest/tests/id:8985913073967870200"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4839">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-601</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-6500405146406636953" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite3: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedMultiNodeSelfTest.testMultiValuePut" href="/app/rest/tests/id:-6500405146406636953"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4891">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-5520</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="1631068609266412004" name="org.apache.ignite.testsuites.IgniteStandByClusterSuite: org.apache.ignite.internal.processors.cache.persistence.standbycluster.IgniteChangeGlobalStateFailOverTest.testActivateDeActivateOnJoiningNode" href="/app/rest/tests/id:1631068609266412004"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4980">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>IGNITE-5992</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-2583741557382834908" name="org.apache.ignite.testsuites.IgniteCacheQuerySelfTestSuite3: org.apache.ignite.internal.processors.cache.distributed.near.IgniteCacheQueryNodeRestartDistributedJoinSelfTest.testRestarts" href="/app/rest/tests/id:-2583741557382834908"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4928">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-810</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-1781204490671725410" name="org.apache.ignite.internal.websession.IgniteWebSessionSelfTestSuite: org.apache.ignite.internal.websession.IgniteWebSessionSelfTestSuite$WebSessionTransactionalSelfTest.testRestarts" href="/app/rest/tests/id:-1781204490671725410"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4869">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-601</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="8607780480126922540" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite3: org.apache.ignite.internal.processors.cache.distributed.replicated.GridCacheReplicatedMultiNodeLockSelfTest.testLockMultithreaded" href="/app/rest/tests/id:8607780480126922540"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4895">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-5959</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="7211932464612665229" name="org.apache.ignite.testsuites.IgniteHadoopTestSuite: org.apache.ignite.internal.processors.hadoop.impl.igfs.IgniteHadoopFileSystemClientBasedPrimarySelfTest.testClientReconnect" href="/app/rest/tests/id:7211932464612665229"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4961">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>IGNITE-3009</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="8618390535638445577" name="org.apache.ignite.testsuites.IgniteRDDTestSuite: org.apache.ignite.spark.JavaEmbeddedIgniteRDDSelfTest.testQueryObjectsFromIgnite" href="/app/rest/tests/id:8618390535638445577"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4874">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>This test is flaky!</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-5440530939858694701" name="org.apache.ignite.testsuites.IgniteCacheRestartTestSuite2: org.apache.ignite.internal.processors.cache.distributed.IgniteCacheGetRestartTest.testGetRestartPartitioned2" href="/app/rest/tests/id:-5440530939858694701"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4894">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-6454</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-7756134217079363207" name="org.apache.ignite.testsuites.IgniteCacheDataStructuresSelfTestSuite: org.apache.ignite.internal.processors.cache.datastructures.replicated.GridCacheReplicatedDataStructuresFailoverSelfTest.testReentrantLockConstantMultipleTopologyChangeNonFailoverSafe" href="/app/rest/tests/id:-7756134217079363207"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4936">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1090</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-2062378701989365607" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheRestartTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedOptimisticTxNodeRestartTest.testRestartWithTxPutAllTenNodesTwoBackups" href="/app/rest/tests/id:-2062378701989365607"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4956">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="2336296151087559291" name="org.apache.ignite.testsuites.IgniteComputeGridTestSuite: org.apache.ignite.internal.GridTaskExecutionWithoutPeerClassLoadingSelfTest.testJobIdCollision" href="/app/rest/tests/id:2336296151087559291"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4970">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1090</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-68274804405699979" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheRestartTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedOptimisticTxNodeRestartTest.testRestartWithPutFourNodesOneBackupsOffheapEvict" href="/app/rest/tests/id:-68274804405699979"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4960">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>This test is flaky!
+https://issues.apache.org/jira/browse/IGNITE-5971</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-2272916706308565226" name="org.apache.ignite.testsuites.IgniteCacheQuerySelfTestSuite4: org.apache.ignite.internal.processors.cache.query.continuous.CacheContinuousQueryFailoverTxReplicatedSelfTest.testMultiThreadedFailover" href="/app/rest/tests/id:-2272916706308565226"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4941">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-584</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-3254269340428002095" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheDataStructuresSelfTestSuite: org.apache.ignite.internal.processors.cache.datastructures.partitioned.IgnitePartitionedSetNoBackupsSelfTest.testNodeJoinsAndLeaves" href="/app/rest/tests/id:-3254269340428002095"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4836">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-5223630177106221051" name="org.apache.ignite.testsuites.IgniteBinaryObjectsSimpleNameMapperComputeGridTestSuite: org.apache.ignite.internal.GridTaskExecutionSelfTest.testJobIdCollision" href="/app/rest/tests/id:-5223630177106221051"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4879">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-627</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="950534620846557498" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite3: org.apache.ignite.internal.processors.cache.distributed.dht.atomic.GridCacheValueConsistencyAtomicNearEnabledSelfTest.testPutConsistencyMultithreaded" href="/app/rest/tests/id:950534620846557498"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4975">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-6058</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-3878529209888460552" name="org.apache.ignite.testsuites.IgniteCacheFullApiMultiJvmSelfTestSuite: org.apache.ignite.internal.processors.cache.multijvm.GridCacheReplicatedMultiJvmFullApiSelfTest.testTransformResourceInjection" href="/app/rest/tests/id:-3878529209888460552"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4953">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>This test is flaky!
+https://issues.apache.org/jira/browse/IGNITE-5971</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-7237913126712958525" name="org.apache.ignite.testsuites.IgniteCacheQuerySelfTestSuite4: org.apache.ignite.internal.processors.cache.query.continuous.CacheContinuousQueryAsyncFailoverTxSelfTest.testMultiThreadedFailover" href="/app/rest/tests/id:-7237913126712958525"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4962">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>IGNITE-590</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-8215694329097780262" name="org.apache.ignite.internal.client.suite.IgniteClientTestSuite: org.apache.ignite.internal.client.ClientReconnectionSelfTest.testIdleConnection" href="/app/rest/tests/id:-8215694329097780262"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4848">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-4210</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-2303352586865102265" name="org.apache.ignite.testsuites.IgniteCacheTestSuite2: org.apache.ignite.internal.processors.cache.distributed.CacheLoadingConcurrentGridStartSelfTestAllowOverwrite.testLoadCacheFromStore" href="/app/rest/tests/id:-2303352586865102265"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4883">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-804</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="5541364307107928359" name="org.apache.ignite.testsuites.IgniteCacheTestSuite: org.apache.ignite.internal.processors.cache.eviction.GridCacheSynchronousEvictionsFailoverSelfTest.testSynchronousEvictions" href="/app/rest/tests/id:5541364307107928359"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4955">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-3850494584735435911" name="org.apache.ignite.jdbc.suite.IgniteJdbcDriverTestSuite: org.apache.ignite.jdbc.thin.JdbcThinMetadataSelfTest.testMetadataResultSetClose" href="/app/rest/tests/id:-3850494584735435911"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4993">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-170</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="6596915668797486625" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheDataStructuresSelfTestSuite: org.apache.ignite.internal.processors.cache.datastructures.partitioned.GridCachePartitionedAtomicSetFailoverSelfTest.testNodeRestart" href="/app/rest/tests/id:6596915668797486625"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4889">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-604</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="6574182220133084146" name="org.apache.ignite.testsuites.IgniteSpringTestSuite: org.apache.ignite.p2p.GridP2PUserVersionChangeSelfTest.testCacheRedeployVersionChangeContinuousMode" href="/app/rest/tests/id:6574182220133084146"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4909">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>IGNITE-5958</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-318150309218360964" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheTestSuite3: org.apache.ignite.internal.processors.cache.IgniteTopologyValidatorGridSplitCacheTest.testTopologyValidator" href="/app/rest/tests/id:-318150309218360964"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4877">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-5495</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="7241236409890370562" name="org.apache.ignite.testsuites.IgniteS3TestSuite: org.apache.ignite.spi.discovery.tcp.ipfinder.s3.TcpDiscoveryS3IpFinderBucketEndpointSelfTest.testIpFinder" href="/app/rest/tests/id:7241236409890370562"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4876">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-584</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-8273472901659479896" name="org.apache.ignite.testsuites.IgniteCacheDataStructuresSelfTestSuite: org.apache.ignite.internal.processors.cache.datastructures.partitioned.GridCachePartitionedAtomicSetSelfTest.testNodeJoinsAndLeavesCollocated" href="/app/rest/tests/id:-8273472901659479896"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4933">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1090</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-252008896518103944" name="org.apache.ignite.testsuites.IgniteBinaryObjectsCacheRestartTestSuite: org.apache.ignite.internal.processors.cache.distributed.near.GridCachePartitionedOptimisticTxNodeRestartTest.testRestartWithPutTwoNodesOneBackup" href="/app/rest/tests/id:-252008896518103944"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4906">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-5689</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-2374041999886202817" name="org.apache.ignite.testsuites.IgniteBinaryCacheTestSuite: org.apache.ignite.internal.managers.communication.IgniteCommunicationBalanceMultipleConnectionsTest.testBalance1" href="/app/rest/tests/id:-2374041999886202817"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4833">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-4931</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-1811510918765646202" name="org.apache.ignite.testsuites.IgniteCacheTestSuite5: org.apache.ignite.internal.processors.cache.ClusterStatePartitionedSelfTest.testDeactivationWithPendingTransaction" href="/app/rest/tests/id:-1811510918765646202"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4888">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-584</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-6736584854186981572" name="org.apache.ignite.testsuites.IgniteCacheDataStructuresSelfTestSuite: org.apache.ignite.internal.processors.cache.datastructures.replicated.GridCacheReplicatedSetSelfTest.testNodeJoinsAndLeaves" href="/app/rest/tests/id:-6736584854186981572"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4990">
+        <assignment>
+            <timestamp>20171215T185124+0300</timestamp>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-3822017359127000120" name="org.apache.ignite.internal.websession.IgniteWebSessionSelfTestSuite: org.apache.ignite.internal.websession.IgniteWebSessionSelfTestSuite$WebSessionTransactionalV1SelfTest.testClientReconnectRequest" href="/app/rest/tests/id:-3822017359127000120"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4900">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-1386</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="2293789670696544685" name="org.apache.ignite.testsuites.IgniteBinarySimpleNameMapperBasicTestSuite: org.apache.ignite.internal.util.ipc.shmem.IpcSharedMemoryCrashDetectionSelfTest.testIgfsClientServerInteractionsUponServerKilling" href="/app/rest/tests/id:2293789670696544685"/>
+            </tests>
+        </target>
+    </mute>
+    <mute id="4918">
+        <assignment>
+            <timestamp>20171215T185123+0300</timestamp>
+            <text>https://issues.apache.org/jira/browse/IGNITE-6058</text>
+        </assignment>
+        <scope>
+            <project id="IgniteTests24Java8" name="Ignite Tests 2.4+ (Java 8/9/10/11)"/>
+        </scope>
+        <target>
+            <tests>
+                <test id="-6305397409161667157" name="org.apache.ignite.testsuites.IgniteCacheFullApiMultiJvmSelfTestSuite: org.apache.ignite.internal.processors.cache.multijvm.GridCachePartitionedNearDisabledMultiJvmFullApiSelfTest.testTransformResourceInjection" href="/app/rest/tests/id:-6305397409161667157"/>
+            </tests>
+        </target>
+    </mute>
+</mutes>
