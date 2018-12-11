@@ -144,7 +144,7 @@ public class TrackedBranchChainsProcessor {
         FullLRTestsSummary summary = new FullLRTestsSummary();
 
         final String branchNn = isNullOrEmpty(branch) ? FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME : branch;
-        final BranchTracked tracked = HelperConfig.getTrackedBranches().getBranchMandatory(branchNn);
+        final BranchTracked tracked = tcBotConfig.getTrackedBranches().getBranchMandatory(branchNn);
 
         tracked.chains.stream()
             .filter(chainTracked -> creds.hasAccess(chainTracked.serverId))

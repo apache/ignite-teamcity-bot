@@ -18,12 +18,14 @@ package org.apache.ignite.ci.tcbot.conf;
 
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.BranchesTracked;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 
 /**
  *
  */
 public class LocalFilesBasedConfig implements ITcBotConfig {
     /** {@inheritDoc} */
+    @GuavaCached(softValues = true, expireAfterAccessSecs = 3 * 60)
     @Override public BranchesTracked getTrackedBranches() {
         return HelperConfig.getTrackedBranches();
     }
