@@ -96,7 +96,7 @@ public class MuteSync {
 
         for (MuteInfo mute : page) {
             while (checkId++ != mute.id) {
-                if (muteDao.remove(srvIdMaskHigh, mute.id))
+                if (muteDao.remove(srvIdMaskHigh, checkId - 1))
                     rmv++;
             }
         }
