@@ -129,7 +129,7 @@ public class MuteDao {
         long srvId = (long) srvIdMaskHigh << 32;
 
         for (Cache.Entry<Long, MuteInfoCompacted> entry : muteCache) {
-            if ((srvId & entry.getKey()) != 0)
+            if ((srvId & entry.getKey()) != srvId)
                 continue;
 
             if (entry.getValue().id > startId) {
