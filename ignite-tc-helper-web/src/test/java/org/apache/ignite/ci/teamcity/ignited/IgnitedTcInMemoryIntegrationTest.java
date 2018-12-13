@@ -20,18 +20,23 @@ import com.google.common.collect.Lists;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.internal.SingletonScope;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javax.xml.bind.JAXBException;
-
-import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
@@ -41,7 +46,7 @@ import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.di.scheduler.NoOpScheduler;
+import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -169,12 +174,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         module.overrideHttp(http);
 
-        Injector injector = Guice.createInjector(module, new AbstractModule() {
-            @Override protected void configure() {
-                bind(Ignite.class).toInstance(ignite);
-                bind(IScheduler.class).to(DirectExecNoWaitScheduler.class);
-            }
-        });
+        Injector injector = Guice.createInjector(module, new IgniteAndSchedulerTestModule());
 
         ITeamcityIgnited srv = injector.getInstance(ITeamcityIgnitedProvider.class).server(APACHE, creds());
         IStringCompactor compactor = injector.getInstance(IStringCompactor.class);
@@ -239,12 +239,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         module.overrideHttp(http);
 
-        Injector injector = Guice.createInjector(module, new AbstractModule() {
-            @Override protected void configure() {
-                bind(Ignite.class).toInstance(ignite);
-                bind(IScheduler.class).to(DirectExecNoWaitScheduler.class);
-            }
-        });
+        Injector injector = Guice.createInjector(module, new IgniteAndSchedulerTestModule());
 
         ITeamcityIgnited srv = injector.getInstance(ITeamcityIgnitedProvider.class).server(APACHE, creds());
         IStringCompactor compactor = injector.getInstance(IStringCompactor.class);
@@ -340,12 +335,7 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         module.overrideHttp(http);
 
-        Injector injector = Guice.createInjector(module, new AbstractModule() {
-            @Override protected void configure() {
-                bind(Ignite.class).toInstance(ignite);
-                bind(IScheduler.class).to(NoOpScheduler.class);
-            }
-        });
+        Injector injector = Guice.createInjector(module, new IgniteAndSchedulerTestModule());
 
         ITeamcityIgnited srv = injector.getInstance(ITeamcityIgnitedProvider.class).server(APACHE, creds());
         IStringCompactor compactor = injector.getInstance(IStringCompactor.class);
@@ -703,6 +693,9 @@ public class IgnitedTcInMemoryIntegrationTest {
         @Override protected void configure() {
             bind(Ignite.class).toInstance(ignite);
             bind(IScheduler.class).to(DirectExecNoWaitScheduler.class).in(new SingletonScope());
+
+            final IJiraIntegrationProvider jiraProv = Mockito.mock(IJiraIntegrationProvider.class);
+            bind(IJiraIntegrationProvider.class).toInstance(jiraProv);
         }
     }
 }
