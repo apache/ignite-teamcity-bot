@@ -15,22 +15,33 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.mute;
-
-import java.util.List;
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
+package org.apache.ignite.ci.jira;
 
 /**
- * Mute additional information. Contains what was muted (tests, problems).
+ * See example of GSON here
+ * https://issues.apache.org/jira/rest/api/2/issue/IGNITE-123
  */
-@XmlAccessorType(XmlAccessType.FIELD)
-public class MuteTarget {
-    /** Tests. */
-    @XmlElementWrapper(name="tests")
-    @XmlElement(name="test")
-    public List<TestRef> tests;
+public class Ticket {
+    /** Id. */
+    public long id;
+
+    /** Ticket full name like "IGNITE-123". */
+    public String key;
+
+    /** Fields. */
+    public Fields fields;
+
+    /**
+     * @return Ignite id (like 123 in IGNITE-123).
+     */
+    public int igniteId() {
+        return Integer.valueOf(key.substring("IGNITE-".length()));
+    }
+
+    /**
+     * @return Ticket status (open, resolved, etc);
+     */
+    public String status() {
+        return fields.status.name;
+    }
 }

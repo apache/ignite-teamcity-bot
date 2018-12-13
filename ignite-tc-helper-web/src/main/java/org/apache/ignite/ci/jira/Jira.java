@@ -61,6 +61,11 @@ public class Jira implements IJiraIntegration {
     }
 
     /** {@inheritDoc} */
+    @Override public Tickets getTickets(String srvId, ICredentialsProv prov, String url) {
+        return helper.getJiraTickets(srvId, prov, url);
+    }
+
+    /** {@inheritDoc} */
     @Override public String generateTicketUrl(String ticketFullName) {
         Preconditions.checkState(!isNullOrEmpty(jiraUrl), "Jira URL is not configured for this server.");
 

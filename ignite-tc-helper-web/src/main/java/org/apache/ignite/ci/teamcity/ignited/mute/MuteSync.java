@@ -48,6 +48,8 @@ public class MuteSync {
      * Refresh mutes for given project.
      *
      * @param projectId Project id.
+     * @param srvIdMaskHigh Server id mask high.
+     * @param conn TeamCity connection.
      * @return Message with loading result.
      */
     @MonitoredTask(name = "Actualize Mute", nameExtArgsIndexes = {0})

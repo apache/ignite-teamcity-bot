@@ -228,7 +228,7 @@ public class HttpUtil {
     }
 
     /**
-     * Send POST request to the GitHub url.
+     * Send POST request to the JIRA url.
      *
      * @param jiraAuthTok Authorization Base64 token.
      * @param url URL.
@@ -257,7 +257,37 @@ public class HttpUtil {
 
         logger.info("\nSending 'POST' request to URL : " + url + "\n" + body);
 
-        try (InputStream inputStream = getInputStream(con)){
+        try (InputStream inputStream = getInputStream(con)) {
+            return readIsToString(inputStream);
+        }
+    }
+
+    /**
+     * Send GET request to the JIRA url.
+     *
+     * @param jiraAuthTok Jira auth token.
+     * @param url Url.
+     */
+    public static String sendGetToJira(String jiraAuthTok, String url) throws IOException {
+        Stopwatch started = Stopwatch.createStarted();
+        URL obj = new URL(url);
+        HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+        Charset charset = StandardCharsets.UTF_8;
+
+        con.setRequestProperty("accept-charset", charset.toString());
+        con.setRequestProperty("Authorization", "Basic " + jiraAuthTok);
+        con.setRequestProperty("content-type", "application/json");
+        con.setRequestProperty("Connection", "Keep-Alive");
+        con.setRequestProperty("Keep-Alive", "header");
+
+        con.setRequestMethod("GET");
+
+        int resCode = con.getResponseCode();
+
+        logger.info(Thread.currentThread().getName() + ": Required: " + started.elapsed(TimeUnit.MILLISECONDS)
+            + "ms : Sending 'GET' request to : " + url + " Response: " + resCode);
+
+        try (InputStream inputStream = getInputStream(con)) {
             return readIsToString(inputStream);
         }
     }

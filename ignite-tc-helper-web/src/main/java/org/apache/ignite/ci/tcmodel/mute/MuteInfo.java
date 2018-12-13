@@ -26,7 +26,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.jetbrains.annotations.NotNull;
 
 /**
- *
+ * TeamCity mute.
+ * <p>
+ * See example of XML here
+ * https://ci.ignite.apache.org/app/rest/mutes/
  */
 @XmlRootElement(name = "mute")
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -42,6 +45,9 @@ public class MuteInfo implements Comparable<MuteInfo> {
 
     /** Target. */
     @XmlElement public MuteTarget target;
+
+    /** Jira ticket status. TeamCity don't send it, we fill it when send mutes.html. */
+    @XmlElement public String ticketStatus;
 
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {

@@ -30,6 +30,7 @@ import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -59,9 +60,10 @@ public interface ITeamcityIgnited {
 
     /**
      * @param projectId Project id.
+     * @param creds Credentials.
      * @return Mutes for associated server and given project pair.
      */
-    Set<MuteInfo> getMutes(String projectId);
+    public Set<MuteInfo> getMutes(String projectId, ICredentialsProv creds);
 
     /**
      * Return all builds for branch and suite with finish status.

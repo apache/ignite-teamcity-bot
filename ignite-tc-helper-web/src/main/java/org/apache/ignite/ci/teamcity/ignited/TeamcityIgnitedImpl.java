@@ -27,6 +27,9 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.jira.ignited.JiraTicketDao;
+import org.apache.ignite.ci.jira.ignited.JiraTicketSync;
+import org.apache.ignite.ci.jira.Ticket;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.teamcity.ignited.mute.MuteDao;
@@ -50,6 +53,8 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
+import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,6 +113,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Mute Sync. */
     @Inject private MuteSync muteSync;
 
+    /** Jira ticket DAO. */
+    @Inject private JiraTicketDao jiraTicketDao;
+
+    /** Jira ticket Sync. */
+    @Inject private JiraTicketSync jiraTicketSync;
+
     /** Changes DAO. */
     @Inject private ChangeDao changesDao;
 
@@ -146,6 +157,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         changesDao.init();
         runHistCompactedDao.init();
         muteDao.init();
+        jiraTicketDao.init();
     }
 
     /**
@@ -326,10 +338,45 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @Override public Set<MuteInfo> getMutes(String projectId) {
+    @Override public Set<MuteInfo> getMutes(String projectId, ICredentialsProv creds) {
         muteSync.ensureActualizeMutes(taskName("actualizeMutes"), projectId, srvIdMaskHigh, conn);
+        jiraTicketSync.ensureActualizeJiraTickets(taskName("actualizeJiraTickets"), srvIdMaskHigh, creds, conn);
 
-        return muteDao.getMutes(srvIdMaskHigh);
+        SortedSet<MuteInfo> mutes = muteDao.getMutes(srvIdMaskHigh);
+        Collection<Ticket> tickets = jiraTicketDao.getTickets(srvIdMaskHigh);
+
+        insertTicketStatus(mutes, tickets);
+
+        return mutes;
+    }
+
+    /**
+     * Insert ticket status for all mutes, if they have ticket in description.
+     *
+     * @param mutes Mutes.
+     * @param tickets Tickets.
+     */
+    private void insertTicketStatus(SortedSet<MuteInfo> mutes, Collection<Ticket> tickets) {
+        for (MuteInfo mute : mutes) {
+            if (F.isEmpty(mute.assignment.text))
+                continue;
+
+            int pos = mute.assignment.text.indexOf("https://issues.apache.org/jira/browse/");
+
+            if (pos == -1)
+                continue;
+
+            for (Ticket ticket : tickets) {
+                String muteTicket = mute.assignment.text.substring(pos +
+                    "https://issues.apache.org/jira/browse/".length());
+
+                if (ticket.key.equals(muteTicket)) {
+                    mute.ticketStatus = ticket.status();
+
+                    break;
+                }
+            }
+        }
     }
 
     /** {@inheritDoc} */

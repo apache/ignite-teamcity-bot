@@ -17,8 +17,7 @@
 
 package org.apache.ignite.ci;
 
-import java.util.Collection;
-import java.util.List;
+import org.apache.ignite.ci.jira.Tickets;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
@@ -65,4 +64,12 @@ public interface ITcHelper extends ITcServerProvider {
      * @return {@code Visa} which contains info about JIRA notification.
      */
     Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc, String ticket);
+
+    /**
+     * @param srvId Server id.
+     * @param prov Credentials.
+     * @param ticketId Ticket.
+     * @return Jira tickets.
+     */
+    Tickets getJiraTickets(String srvId, ICredentialsProv prov, String ticketId);
 }

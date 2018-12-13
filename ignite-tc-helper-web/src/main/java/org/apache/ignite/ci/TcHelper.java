@@ -18,12 +18,12 @@
 package org.apache.ignite.ci;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Collection;
+import com.google.gson.Gson;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
-import org.apache.ignite.ci.conf.BranchesTracked;
+import org.apache.ignite.ci.jira.Tickets;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.jira.IJiraIntegration;
@@ -184,6 +184,22 @@ public class TcHelper implements ITcHelper {
         return new Visa(IJiraIntegration.JIRA_COMMENTED, res, blockers);
     }
 
+    /** {@inheritDoc} */
+    @Override public Tickets getJiraTickets(String srvId, ICredentialsProv prov, String url) {
+        IAnalyticsEnabledTeamcity teamcity = server(srvId, prov);
+
+        try {
+            return new Gson().fromJson(teamcity.sendGetToJira(url), Tickets.class);
+        }
+        catch (Exception e) {
+            String errMsg = "Exception happened during receiving JIRA tickets " +
+                "[url=" + url + ", errMsg=" + e.getMessage() + ']';
+
+            logger.error(errMsg);
+
+            return new Tickets();
+        }
+    }
 
     /**
      * @param suites Suite Current Status.

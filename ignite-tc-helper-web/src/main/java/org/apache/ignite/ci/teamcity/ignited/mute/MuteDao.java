@@ -62,9 +62,9 @@ public class MuteDao {
      * @return Server mutes.
      */
     @AutoProfiling
-    public SortedSet<MuteInfo> getMutes(long srvIdMaskHigh) {
+    public SortedSet<MuteInfo> getMutes(int srvIdMaskHigh) {
         Preconditions.checkNotNull(muteCache, "init() was not called");
-        long srvId = srvIdMaskHigh << 32;
+        long srvId = (long) srvIdMaskHigh << 32;
 
         TreeSet<MuteInfo> res = new TreeSet<>();
 

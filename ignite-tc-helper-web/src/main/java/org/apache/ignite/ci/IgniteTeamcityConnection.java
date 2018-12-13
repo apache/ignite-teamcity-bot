@@ -181,6 +181,14 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
+    @Override public String sendGetToJira(String url) throws IOException {
+        if (isNullOrEmpty(jiraApiUrl))
+            throw new IllegalStateException("JIRA API URL is not configured for this server.");
+
+        return HttpUtil.sendGetToJira(jiraBasicAuthTok, jiraApiUrl + url);
+    }
+
+    /** {@inheritDoc} */
     @Override public void setJiraApiUrl(String url) {
         jiraApiUrl = url;
     }

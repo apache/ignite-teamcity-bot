@@ -31,9 +31,8 @@ import org.apache.ignite.ci.tcmodel.result.AbstractRef;
 /**
  * Mute entities from TeamCity. On TeamCity this object represent page with several mutes.
  * <p>
- * But we unite mutes into single object to store in mute cache.
- * <p>
- * See https://ci.ignite.apache.org/app/rest/mutes/
+ * See example of XML here
+ * https://ci.ignite.apache.org/app/rest/mutes/
  */
 @XmlRootElement(name = "mutes")
 @XmlAccessorType(XmlAccessType.FIELD)

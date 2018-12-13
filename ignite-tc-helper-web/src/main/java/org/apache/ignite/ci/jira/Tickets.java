@@ -15,40 +15,44 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.mute;
+package org.apache.ignite.ci.jira;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.ignite.ci.util.TimeUtil;
+import java.util.Collection;
+import java.util.Collections;
 
 /**
- * Mute additional information. Contains mute date and it's comment.
+ * See example of GSON here
+ * https://issues.apache.org/jira/rest/api/2/search?jql=project%20=%20IGNITE%20order%20by%20updated%20DESC&fields=status
  */
-@XmlRootElement(name = "assignment")
-public class MuteAssignment {
-    /** Mute date. */
-    @XmlElement(name = "timestamp") public String muteDate;
+public class Tickets {
+    /** Start at. */
+    public int startAt;
 
-    /** Timestamp. */
-    private long ts;
+    /** Max amount of tickets on the page. */
+    public int maxResults;
 
-    /** Mute comment. */
-    @XmlElement public String text;
+    /** Total tickets. */
+    public int total;
+
+    /** Jira tickets. */
+    public Collection<Ticket> issues;
 
     /**
-     * @return Timestamp for mute date.
+     * @return Start index for next page. Return -1 if it is last page.
      */
-    public long timestamp() {
-        if (ts == 0)
-            ts = TimeUtil.tcSimpleDateToTimestamp(muteDate);
+    public int nextStart() {
+        int next = startAt + maxResults;
 
-        return ts;
+        if (next < total)
+            return next;
+
+        return -1;
     }
 
     /**
-     * @param ts Timestamp for mute date.
+     * @return Jira tickets.
      */
-    public void timestamp(long ts) {
-        this.ts = ts;
+    public Collection<Ticket> issuesNotNull() {
+        return issues == null ? Collections.emptyList() : issues;
     }
 }
