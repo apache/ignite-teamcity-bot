@@ -54,7 +54,7 @@ public class JiraTicketDao {
      *
      */
     public void init() {
-        jiraCache = igniteProvider.get().getOrCreateCache(TcHelperDb.getCacheV2Config(TEAMCITY_JIRA_TICKET_CACHE_NAME));
+        jiraCache = igniteProvider.get().getOrCreateCache(TcHelperDb.getCache8PartsConfig(TEAMCITY_JIRA_TICKET_CACHE_NAME));
     }
 
     /**
