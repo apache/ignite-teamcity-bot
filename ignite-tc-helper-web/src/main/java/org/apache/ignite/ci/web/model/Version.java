@@ -25,7 +25,7 @@ package org.apache.ignite.ci.web.model;
     public static final String GITHUB_REF = "https://github.com/apache/ignite-teamcity-bot";
 
     /** TC Bot Version. */
-    public static final String VERSION = "20181211";
+    public static final String VERSION = "20181213";
 
     /** TC Bot Version. */
     public String version = VERSION;
@@ -37,6 +37,7 @@ package org.apache.ignite.ci.web.model;
     public String ignVerFull;
 
     /** TC Bot GitHub Mirror. */
+    @Deprecated
     public String srcWebUrl = GITHUB_REF;
 
     /** TC Bot GitHub Mirror. */

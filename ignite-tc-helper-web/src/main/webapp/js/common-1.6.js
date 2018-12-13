@@ -79,8 +79,8 @@ function showVersionInfo(result) {
     var res = "<hr>";
     res += "<small><a href='https://cwiki.apache.org/confluence/display/IGNITE/Apache+Ignite+Teamcity+Bot'>Apache Ignite Teamcity Bot</a>, V" + result.version + ", ";
 
-    if (isDefinedAndFilled(result.srcWebUrl)) {
-        res += "<a href='" + result.srcWebUrl + "'>source code (GitHub)</a>";
+    if (isDefinedAndFilled(result.gitHubMirror)) {
+        res += "<a href='" + result.gitHubMirror + "'>source code (GitHub)</a>";
     }
 
     if (isDefinedAndFilled(result.apacheGitUrl)) {
