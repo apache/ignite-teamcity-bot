@@ -124,6 +124,12 @@ public interface ITeamcity extends ITeamcityConn {
     public String sendJiraComment(String ticket, String comment) throws IOException;
 
     /**
+     * @param url Url.
+     * @return Response as gson string.
+     */
+    String sendGetToJira(String url) throws IOException;
+
+    /**
      * @param url URL for JIRA integration.
      */
     void setJiraApiUrl(String url);

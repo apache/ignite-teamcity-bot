@@ -26,7 +26,7 @@ import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.Project;
 
 /**
- *
+ * Mute additional information. Contains project or build types - scope affected by mute.
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class MuteScope {

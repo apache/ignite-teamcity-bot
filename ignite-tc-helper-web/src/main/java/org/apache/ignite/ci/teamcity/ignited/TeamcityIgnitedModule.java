@@ -18,6 +18,8 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
+import org.apache.ignite.ci.jira.ignited.JiraTicketDao;
+import org.apache.ignite.ci.jira.ignited.JiraTicketSync;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefSync;
@@ -29,6 +31,7 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
 import org.apache.ignite.ci.teamcity.ignited.mute.MuteDao;
+import org.apache.ignite.ci.teamcity.ignited.mute.MuteSync;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
@@ -58,6 +61,9 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(RunHistCompactedDao.class).in(new SingletonScope());
         bind(RunHistSync.class).in(new SingletonScope());
         bind(MuteDao.class).in(new SingletonScope());
+        bind(MuteSync.class).in(new SingletonScope());
+        bind(JiraTicketDao.class).in(new SingletonScope());
+        bind(JiraTicketSync.class).in(new SingletonScope());
 
         bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
 

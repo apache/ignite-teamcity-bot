@@ -596,6 +596,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
+    @Override public String sendGetToJira(String url) throws IOException {
+        return teamcity.sendGetToJira(url);
+    }
+
+    /** {@inheritDoc} */
     @Override public void setJiraApiUrl(String url) {
         teamcity.setJiraApiUrl(url);
     }

@@ -182,7 +182,7 @@ public class TcBotTriggerAndSignOffService {
     public Set<MuteInfo> getMutes(String srvId, String projectId, ICredentialsProv creds) {
         ITeamcityIgnited ignited = teamcityIgnitedProvider.server(srvId, creds);
 
-        Set<MuteInfo> infos = ignited.getMutes(projectId);
+        Set<MuteInfo> infos = ignited.getMutes(projectId, creds);
 
         for (MuteInfo info : infos)
             info.assignment.muteDate = THREAD_FORMATTER.get().format(new Date(info.assignment.timestamp()));

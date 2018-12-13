@@ -23,8 +23,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.internal.util.typedef.F;
 
 /**
@@ -48,6 +50,8 @@ public class MuteSync {
      * Refresh mutes for given project.
      *
      * @param projectId Project id.
+     * @param srvIdMaskHigh Server id mask high.
+     * @param conn TeamCity connection.
      * @return Message with loading result.
      */
     @MonitoredTask(name = "Actualize Mute", nameExtArgsIndexes = {0})

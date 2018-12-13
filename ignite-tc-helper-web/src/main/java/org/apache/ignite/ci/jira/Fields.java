@@ -15,22 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcmodel.mute;
-
-import java.util.List;
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
+package org.apache.ignite.ci.jira;
 
 /**
- * Mute additional information. Contains what was muted (tests, problems).
+ *
  */
-@XmlAccessorType(XmlAccessType.FIELD)
-public class MuteTarget {
-    /** Tests. */
-    @XmlElementWrapper(name="tests")
-    @XmlElement(name="test")
-    public List<TestRef> tests;
+public class Fields {
+    /** Ticket status. */
+    public Status status;
 }
