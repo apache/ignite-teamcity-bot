@@ -41,6 +41,7 @@ public class TicketCompacted {
      */
     public TicketCompacted(Ticket ticket, IStringCompactor comp) {
         id = ticket.id;
+        //todo support non ignite/configurable prefix/string ID from compactor;
         igniteId = Integer.valueOf(ticket.key.substring("IGNITE-".length()));
         status = comp.getStringId(ticket.fields.status.name);
     }
