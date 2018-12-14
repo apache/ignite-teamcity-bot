@@ -68,6 +68,8 @@
             //     console.log(result);
             // }
 
+            let mutes = separateMutedTests(result);
+
             let table = $('#table');
 
             let testNameMatcher = new RegExp("\\.(\\w+\\d*):.*\\.([a-z][$\\w]+\\w+\\d*)");
@@ -78,7 +80,7 @@
             table.dataTable().fnDestroy();
 
             table.DataTable({
-                data: result,
+                data: mutes,
                 "iDisplayLength": 30, //rows to be shown by default
                 stateSave: true,
                 columnDefs: [
@@ -195,6 +197,33 @@
             })
                 .order( [[ 0, 'asc' ], [ 1, 'asc' ]] )
                 .draw();
+        }
+
+        function separateMutedTests(result) {
+            let mutes = [];
+
+            for (let mute of result) {
+                if (!isDefinedAndFilled(mute.target.test) || mute.target.test.length === 1) {
+                    mutes.push(mute);
+
+                    continue;
+                }
+
+                for (let t of mute.target.test) {
+                    let separateTest = {
+                        id: mute.id,
+                        assignment: mute.assignment,
+                        scope: mute.scope,
+                        ticketStatus: mute.ticketStatus
+                    };
+
+                    separateTest.target = {test: [t]};
+
+                    mutes.push(separateTest);
+                }
+            }
+
+            return mutes;
         }
     </script>
 </head>
