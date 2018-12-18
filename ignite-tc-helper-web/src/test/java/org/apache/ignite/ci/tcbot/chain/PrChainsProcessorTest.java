@@ -380,7 +380,7 @@ public class PrChainsProcessorTest {
     }
 
     @NotNull
-    public FatBuildCompacted createFailedBuild(IStringCompactor c, String btId, String branch, int id, long ageMs) {
+    public  FatBuildCompacted createFailedBuild(IStringCompactor c, String btId, String branch, int id, long ageMs) {
         return createFatBuild(c, btId, branch, id, ageMs, false);
     }
 

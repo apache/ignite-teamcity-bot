@@ -17,25 +17,34 @@
 
 package org.apache.ignite.ci.tcbot.issue;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.tcbot.chain.MockBasedTcBotModule;
+import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
+import static junit.framework.TestCase.assertTrue;
+import static org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest.createFatBuild;
+import static org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest.createTest;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -45,7 +54,7 @@ import static org.mockito.Mockito.when;
  */
 public class IssueDetectorTest {
     /** Server id. */
-    public static final String SRV_ID = "apache";
+    public static final String SRV_ID = "apacheTest";
 
     /** Builds emulated storage. */
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
@@ -61,8 +70,8 @@ public class IssueDetectorTest {
     /** */
     @Before
     public void initBuilds() {
-        final TeamcityIgnitedProviderMock instance = (TeamcityIgnitedProviderMock) injector.getInstance(ITeamcityIgnitedProvider.class);
-        instance.addServer(SRV_ID, apacheBuilds);
+        ((TeamcityIgnitedProviderMock)injector.getInstance(ITeamcityIgnitedProvider.class))
+            .addServer(SRV_ID, apacheBuilds);
     }
 
     @NotNull public ChainAtServerTracked trackedChain(String suiteId) {
@@ -78,10 +87,23 @@ public class IssueDetectorTest {
 
     @Test
     public void testDetector() {
+        String brachName = "masterTest";
+        String chainId = TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
         BranchTracked branch = new BranchTracked();
-        branch.id = FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME;
-        branch.chains.add(trackedChain(TeamcityIgnitedImpl.DEFAULT_PROJECT_ID));
+        branch.id = brachName;
+        branch.chains.add(trackedChain(chainId));
         branchesTracked.addBranch(branch);
+
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+
+        TreeMap<String, String> pds1Hist = new TreeMap<String, String>() {
+            {
+                put("testFailed", "0000011111");
+                put("testOk",     "      0000");
+            }
+        };
+
+        emulateHistory(chainId, c, pds1Hist);
 
         IssueDetector issueDetector = injector.getInstance(IssueDetector.class);
 
@@ -89,7 +111,11 @@ public class IssueDetectorTest {
         when(mock.hasAccess(anyString())).thenReturn(true);
         issueDetector.startBackgroundCheck(mock);
 
-        String masterStatus = issueDetector.checkFailuresEx("master");
+        String masterStatus = issueDetector.checkFailuresEx(brachName);
+
+        int expIssuesCount = 1;
+
+        assertTrue(masterStatus.contains("New issues found " + expIssuesCount));
 
         System.out.println(masterStatus);
         /* todo: https://issues.apache.org/jira/browse/IGNITE-10620
@@ -97,6 +123,42 @@ public class IssueDetectorTest {
         - Add examples of failed tests into history, validate notifications originated.
 
          */
+
+        issueDetector.stop();
+    }
+
+    public void emulateHistory(String chainId, IStringCompactor c, TreeMap<String, String> pds1Hist) {
+        OptionalInt longestHist = pds1Hist.values().stream().mapToInt(String::length).max();
+        Preconditions.checkState(longestHist.isPresent());
+        int histLen = longestHist.getAsInt();
+
+        for (int i = 0; i < histLen; i++) {
+
+            List<TestOccurrenceFull> page = Lists.newArrayList();
+            int finalI = i;
+            pds1Hist.forEach((name, stat) -> {
+                int cnt = stat.length();
+                int idx = cnt - histLen + finalI;
+                if (idx < 0)
+                    return;
+
+                char chState = stat.charAt(idx);
+                boolean ok = '0' == chState;
+                boolean failed = '1' == chState;
+                if (ok || failed)
+                    page.add(createTest(name.hashCode(), name, ok));
+            });
+            FatBuildCompacted pds1Build = createFatBuild(c, "PDS1", ITeamcity.DEFAULT, 1100 + i, 1000 * i, false);
+
+            pds1Build.addTests(c, page)
+                .changes(new int[] {finalI});
+            apacheBuilds.put(pds1Build.id(), pds1Build);
+
+
+            FatBuildCompacted chainBuild = createFatBuild(c, chainId, ITeamcity.DEFAULT, 1000 + i, 1000 * i, false)
+                .snapshotDependencies(new int[] {pds1Build.id()});
+            apacheBuilds.put(chainBuild.id(), chainBuild);
+        }
     }
 
 }

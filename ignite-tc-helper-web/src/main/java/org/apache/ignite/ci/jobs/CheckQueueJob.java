@@ -168,14 +168,14 @@ public class CheckQueueJob implements Runnable {
                 ++running;
         }
 
-        int free = (total - running) * 100 / total;
+        int free = total == 0 ? -1 : (total - running) * 100 / total;
 
         final String agentStatus = MessageFormat.format("{0}% of agents are free ({1} total, {2} running builds).", free, total, running);
 
         logger.info(agentStatus);
 
         if (free < CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT)
-            return"Min agent percent of free agents not met:" + agentStatus;
+            return "Min agent percent of free agents not met:" + agentStatus;
 
         logger.info("There are more than half free agents (total={}, free={}).", total, total - running);
 

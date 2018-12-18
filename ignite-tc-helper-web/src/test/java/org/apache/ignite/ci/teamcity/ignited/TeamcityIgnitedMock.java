@@ -30,6 +30,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import org.mockito.stubbing.Answer;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -43,13 +44,13 @@ public class TeamcityIgnitedMock {
         Map<RunHistKey, RunHistCompacted> histCache = new ConcurrentHashMap<>();
         final int srvId = 0;
 
-        when(tcIgnited.getFatBuild(anyInt(), any(SyncMode.class)))
-            .thenAnswer(inv ->
-            {
-                Integer arg = inv.getArgument(0);
+        Answer<Object> buildAnswer = inv -> {
+            Integer arg = inv.getArgument(0);
 
-                return Preconditions.checkNotNull(builds.get(arg), "Can't find build in map [" + arg + "]");
-            });
+            return Preconditions.checkNotNull(builds.get(arg), "Can't find build in map [" + arg + "]");
+        };
+        when(tcIgnited.getFatBuild(anyInt(), any(SyncMode.class))).thenAnswer(buildAnswer);
+        when(tcIgnited.getFatBuild(anyInt())).thenAnswer(buildAnswer);
 
         when(tcIgnited.getAllBuildsCompacted(anyString(), anyString()))
             .thenAnswer(inv -> {
@@ -93,9 +94,8 @@ public class TeamcityIgnitedMock {
 
                     if (histCache.isEmpty()) {
                         synchronized (histCache) {
-                            if (histCache.isEmpty()) {
+                            if (histCache.isEmpty())
                                 initHistory(c, histCache, builds, srvId);
-                            }
                         }
                     }
 
