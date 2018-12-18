@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -86,7 +87,7 @@ public class IssueDetectorTest {
 
 
     @Test
-    public void testDetector() {
+    public void testDetector() throws IOException {
         String brachName = "masterTest";
         String chainId = TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
         BranchTracked branch = new BranchTracked();
@@ -130,6 +131,7 @@ public class IssueDetectorTest {
         - Add examples of failed tests into history, validate notifications originated.
 
          */
+        issueDetector.sendNewNotificationsEx();
 
         issueDetector.stop();
     }

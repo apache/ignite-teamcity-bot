@@ -132,6 +132,7 @@ public class MonitoringService {
     }
 
 
+    @Deprecated
     @GET
     @PermitAll
     @Path("urlsUsed")

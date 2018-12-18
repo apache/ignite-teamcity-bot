@@ -80,6 +80,7 @@ public class TeamcityRecorder {
     /**
      *
      */
+    @Deprecated
     public List<String> getUrls() {
         return new ArrayList<>(urls);
     }

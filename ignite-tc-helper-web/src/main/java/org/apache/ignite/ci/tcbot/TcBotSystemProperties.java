@@ -19,6 +19,7 @@ package org.apache.ignite.ci.tcbot;
 
 public class TcBotSystemProperties {
     public static final String DEV_MODE = "DEV_MODE";
+    @Deprecated
     public static final String TEAMCITY_BOT_RECORDER_URLS = "teamcity.bot.recorder.urls";
     public static final String TEAMCITY_BOT_RECORDER = "teamcity.bot.recorder";
 }

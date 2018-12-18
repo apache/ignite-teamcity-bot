@@ -18,6 +18,7 @@ package org.apache.ignite.ci.web.rest.monitoring;
 
 
 @SuppressWarnings("WeakerAccess")
+@Deprecated
 public class UrlUsed {
     public String url;
 }
