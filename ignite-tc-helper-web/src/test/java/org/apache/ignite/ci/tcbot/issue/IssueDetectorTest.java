@@ -96,14 +96,21 @@ public class IssueDetectorTest {
 
         IStringCompactor c = injector.getInstance(IStringCompactor.class);
 
-        TreeMap<String, String> pds1Hist = new TreeMap<String, String>() {
+        Map<String, String> pds1Hist = new TreeMap<String, String>() {
             {
                 put("testFailed", "0000011111");
-                put("testOk",     "      0000");
+                put("testOk", "      0000");
             }
         };
 
-        emulateHistory(chainId, c, pds1Hist);
+        Map<String, String> buildWoChanges = new TreeMap<String, String>() {
+            {
+                put("testFailedShoudlBeConsideredAsFlaky", "0000011111");
+                put("testFlakyStableFailure", "0000011111111111");
+            }
+        };
+
+        emulateHistory(chainId, c, pds1Hist, buildWoChanges);
 
         IssueDetector issueDetector = injector.getInstance(IssueDetector.class);
 
@@ -113,11 +120,11 @@ public class IssueDetectorTest {
 
         String masterStatus = issueDetector.checkFailuresEx(brachName);
 
-        int expIssuesCount = 1;
-
-        assertTrue(masterStatus.contains("New issues found " + expIssuesCount));
+        int expIssuesCnt = 2;
 
         System.out.println(masterStatus);
+        assertTrue(masterStatus, masterStatus.contains("New issues found " + expIssuesCnt));
+
         /* todo: https://issues.apache.org/jira/browse/IGNITE-10620
 
         - Add examples of failed tests into history, validate notifications originated.
@@ -127,38 +134,60 @@ public class IssueDetectorTest {
         issueDetector.stop();
     }
 
-    public void emulateHistory(String chainId, IStringCompactor c, TreeMap<String, String> pds1Hist) {
+    /**
+     * @param chainId Chain id.
+     * @param c Compactor.
+     * @param pds1Hist PDS 1 history - build with changes all the time
+     */
+    public void emulateHistory(String chainId,
+        IStringCompactor c,
+        Map<String, String> pds1Hist,
+        Map<String, String> buildWoChanges) {
         OptionalInt longestHist = pds1Hist.values().stream().mapToInt(String::length).max();
         Preconditions.checkState(longestHist.isPresent());
         int histLen = longestHist.getAsInt();
 
         for (int i = 0; i < histLen; i++) {
+            FatBuildCompacted pds1Build
+                = createFatBuild(c, "PDS1", ITeamcity.DEFAULT, 1100 + i, 1000 * i, false)
+                .addTests(c, testsMapToXmlModel(pds1Hist, histLen, i))
+                .changes(new int[] {i});
 
-            List<TestOccurrenceFull> page = Lists.newArrayList();
-            int finalI = i;
-            pds1Hist.forEach((name, stat) -> {
-                int cnt = stat.length();
-                int idx = cnt - histLen + finalI;
-                if (idx < 0)
-                    return;
-
-                char chState = stat.charAt(idx);
-                boolean ok = '0' == chState;
-                boolean failed = '1' == chState;
-                if (ok || failed)
-                    page.add(createTest(name.hashCode(), name, ok));
-            });
-            FatBuildCompacted pds1Build = createFatBuild(c, "PDS1", ITeamcity.DEFAULT, 1100 + i, 1000 * i, false);
-
-            pds1Build.addTests(c, page)
-                .changes(new int[] {finalI});
             apacheBuilds.put(pds1Build.id(), pds1Build);
 
+            FatBuildCompacted pds2Build
+                = createFatBuild(c, "PDS2_noChanges", ITeamcity.DEFAULT, 1200 + i, 1000 * i, false)
+                .addTests(c, testsMapToXmlModel(buildWoChanges, histLen, i));
+
+            apacheBuilds.put(pds2Build.id(), pds2Build);
 
             FatBuildCompacted chainBuild = createFatBuild(c, chainId, ITeamcity.DEFAULT, 1000 + i, 1000 * i, false)
-                .snapshotDependencies(new int[] {pds1Build.id()});
+                .snapshotDependencies(new int[] {pds1Build.id(), pds2Build.id()});
             apacheBuilds.put(chainBuild.id(), chainBuild);
         }
+    }
+
+    @NotNull
+    public List<TestOccurrenceFull> testsMapToXmlModel(
+        Map<String, String> pds1Hist,
+        int histLen,
+        int idx) {
+        List<TestOccurrenceFull> page = Lists.newArrayList();
+
+        pds1Hist.forEach((name, stat) -> {
+            int cnt = stat.length();
+            int locIdx = cnt - histLen + idx;
+            if (locIdx < 0)
+                return;
+
+            char chState = stat.charAt(locIdx);
+            boolean ok = '0' == chState;
+            boolean failed = '1' == chState;
+            if (ok || failed)
+                page.add(createTest(name.hashCode(), name, ok));
+        });
+
+        return page;
     }
 
 }

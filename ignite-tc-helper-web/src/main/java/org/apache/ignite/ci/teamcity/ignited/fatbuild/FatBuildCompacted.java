@@ -444,8 +444,13 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         this.statistics = new StatisticsCompacted(compactor, statistics);
     }
 
-    public void changes(int[] changes) {
-        this.changesIds = changes;
+    /**
+     * @param changes Changes.
+     */
+    public FatBuildCompacted changes(int[] changes) {
+        this.changesIds = changes.clone();
+
+        return this;
     }
 
     public int[] changes() {
