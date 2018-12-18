@@ -74,7 +74,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Deprecated
     private static final String TESTS_RUN_STAT = "testsRunStat";
     @Deprecated
-    private static final String CALCULATED_STATISTIC = "calculatedStatistic";
     private static final String LOG_CHECK_RESULT = "logCheckResult";
 
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
@@ -388,11 +387,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return getOrCreateCacheV2(ignCacheNme(TESTS_RUN_STAT));
     }
 
-    @Deprecated
-    private IgniteCache<Integer, Boolean> calculatedStatistic() {
-        return getOrCreateCacheV2(ignCacheNme(CALCULATED_STATISTIC));
-    }
-
     /** {@inheritDoc} */
     @Override public Function<SuiteInBranch, RunStat> getBuildFailureRunStatProvider() {
         return key -> key == null ? null : getRunStatForSuite(key);
@@ -415,33 +409,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     private IgniteCache<Integer, LogCheckResult> logCheckResultCache() {
         return getOrCreateCacheV2(ignCacheNme(LOG_CHECK_RESULT));
-    }
-
-    @Deprecated
-    private void addTestOccurrenceToStat(TestOccurrence next, String normalizedBranch, Boolean changesExist) {
-        String name = next.getName();
-        if (Strings.isNullOrEmpty(name))
-            return;
-
-        if (next.isMutedTest() || next.isIgnoredTest())
-            return;
-
-        TestInBranch k = new TestInBranch(name, normalizedBranch);
-
-        testRunStatCache().invoke(k, (entry, arguments) -> {
-            TestInBranch key = entry.getKey();
-            TestOccurrence testOccurrence = (TestOccurrence)arguments[0];
-
-            RunStat val = entry.getValue();
-            if (val == null)
-                val = new RunStat(key.getName());
-
-            val.addTestRun(testOccurrence, changesExist);
-
-            entry.setValue(val);
-
-            return null;
-        }, next);
     }
 
     /** {@inheritDoc} */
@@ -475,23 +442,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return logCheckRes.getLastThreadDump();
     }
 
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public void calculateBuildStatistic(SingleBuildRunCtx ctx) {
-        if (ctx.buildId() == null)
-            return;
-
-        if (calculatedStatistic().containsKey(ctx.buildId()))
-            return;
-
-        for (TestOccurrence testOccurrence : ctx.getTests()) {
-            String branch = normalizeBranch(ctx.getBranch());
-
-            addTestOccurrenceToStat(testOccurrence, branch, !ctx.getChanges().isEmpty());
-        }
-
-        calculatedStatistic().put(ctx.buildId(), true);
-    }
 
     /**
      * @param cache

@@ -34,25 +34,30 @@ public class TestCompactedMult implements IMultTestOccurrence {
         this.compactor = compactor;
     }
 
+    /** {@inheritDoc} */
     @Override public String getName() {
         return occurrences.isEmpty() ? "" : occurrences.iterator().next().testName(compactor);
     }
 
+    /** {@inheritDoc} */
     @Override public boolean isInvestigated() {
         return occurrences.stream().anyMatch(TestCompacted::isInvestigated);
     }
 
+    /** */
     private int getFailedButNotMutedCount() {
         return (int)occurrences.stream()
             .filter(Objects::nonNull)
             .filter(t -> t.isFailedButNotMuted(compactor)).count();
     }
 
+    /** {@inheritDoc} */
     @Override public int failuresCount() {
         return getFailedButNotMutedCount();
     }
 
-    public long getAvgDurationMs() {
+    /** {@inheritDoc} */
+    @Override public long getAvgDurationMs() {
         if (avgDuration < 0) {
             avgDuration = (long)occurrences.stream()
                 .map(TestCompacted::getDuration)
@@ -61,9 +66,11 @@ public class TestCompactedMult implements IMultTestOccurrence {
                 .average()
                 .orElse(0);
         }
+
         return avgDuration;
     }
 
+    /** {@inheritDoc} */
     @Override public Iterable<TestOccurrenceFull> getOccurrences() {
         return occurrences.stream()
                 .map(testCompacted -> testCompacted.toTestOccurrence(compactor, 0))

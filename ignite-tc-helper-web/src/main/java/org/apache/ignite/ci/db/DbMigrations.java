@@ -117,15 +117,18 @@ public class DbMigrations {
         String ISSUES_USAGES_LIST = "issuesUsagesList";
 
         /** Cache name.*/
-        public static final String TEST_HIST_CACHE_NAME = "testRunHistV0";
-        public static final String TEST_HIST_CACHE_NAME2 ="teamcityTestRunHistV0";
+        String TEST_HIST_CACHE_NAME = "testRunHistV0";
+        String TEST_HIST_CACHE_NAME2 ="teamcityTestRunHistV0";
 
         /** Build Start time Cache name. */
-        public static final String BUILD_START_TIME_CACHE_NAME = "buildStartTimeV0";
-        public static final String BUILD_START_TIME_CACHE_NAME2 = "teamcityBuildStartTimeV0";
+        String BUILD_START_TIME_CACHE_NAME = "buildStartTimeV0";
+        String BUILD_START_TIME_CACHE_NAME2 = "teamcityBuildStartTimeV0";
 
         /** Cache name.*/
-        public static final String SUITE_HIST_CACHE_NAME = "teamcitySuiteRunHistV0";
+        String SUITE_HIST_CACHE_NAME = "teamcitySuiteRunHistV0";
+
+
+        String CALCULATED_STATISTIC = "calculatedStatistic";
 
     }
 
@@ -360,24 +363,6 @@ public class DbMigrations {
             }
         });
 
-        applyMigration("latestRunResultsToLatestRuns", () -> {
-            System.out.println("Total entry for migrate : " + testHistCache.size());
-            int i = 0;
-            for (Cache.Entry<?, RunStat> next : testHistCache) {
-                TestInBranch key = (TestInBranch)next.getKey();
-                RunStat value = next.getValue();
-
-                value.migrateLatestRuns();
-
-                testHistCache.put(key, value);
-
-                if (i % 1000 == 0)
-                    System.out.println("Migrating entry: count : " + i);
-
-                i++;
-            }
-        });
-
         applyDestroyIgnCacheMigration(RUNNING_BUILDS);
 
         applyDestroyIgnCacheMigration(BUILD_QUEUE);
@@ -415,6 +400,8 @@ public class DbMigrations {
         applyDestroyCacheMigration(Old.TEST_HIST_CACHE_NAME2);
         applyDestroyCacheMigration(Old.BUILD_START_TIME_CACHE_NAME);
         applyDestroyCacheMigration(Old.BUILD_START_TIME_CACHE_NAME2);
+
+        applyDestroyIgnCacheMigration(Old.CALCULATED_STATISTIC);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {

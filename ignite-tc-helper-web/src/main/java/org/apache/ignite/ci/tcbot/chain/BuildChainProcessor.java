@@ -367,11 +367,6 @@ public class BuildChainProcessor {
     protected void analyzeTests(MultBuildRunCtx outCtx, IAnalyticsEnabledTeamcity teamcity,
         ProcessLogsMode procLog) {
         for (SingleBuildRunCtx ctx : outCtx.getBuilds()) {
-            if (!ITeamcity.NEW_RUN_STAT)
-                tcUpdatePool.getService().submit(() -> {
-                    teamcity.calculateBuildStatistic(ctx);
-                });
-
             if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
                     || procLog == ProcessLogsMode.ALL)
                 ctx.setLogCheckResFut(teamcity.analyzeBuildLog(ctx.buildId(), ctx));

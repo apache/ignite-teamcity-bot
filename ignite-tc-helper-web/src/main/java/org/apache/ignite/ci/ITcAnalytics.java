@@ -41,12 +41,4 @@ public interface ITcAnalytics {
     Function<TestInBranch, RunStat> getTestRunStatProvider();
 
     String getThreadDumpCached(Integer buildId);
-
-    /**
-     * Calculate required statistic for build if was not already calculated.
-     *
-     * @param ctx Context as provider build data.
-     */
-    @Deprecated
-    void calculateBuildStatistic(SingleBuildRunCtx ctx);
 }

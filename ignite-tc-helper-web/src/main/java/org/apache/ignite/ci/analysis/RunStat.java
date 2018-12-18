@@ -59,21 +59,10 @@ public class RunStat implements IRunHistory {
     public int runsWithDuration;
 
     /**
-     * timestamp of last write to entry
-     */
-    public long lastUpdatedMs;
-
-    /**
      * Name: Key in run stat cache
      */
     private String name;
 
-    /**
-     * @deprecated {@link #latestRuns} should be used.
-     */
-    @Deprecated
-    @Nullable
-    SortedMap<TestId, Integer> latestRunResults;
 
     @Nullable
     SortedMap<TestId, RunInfo> latestRuns;
@@ -83,22 +72,6 @@ public class RunStat implements IRunHistory {
      */
     public RunStat(String name) {
         this.name = name;
-    }
-
-    public void addTestRun(TestOccurrence testOccurrence, Boolean changesExist) {
-        addTestRunToLatest(testOccurrence, changesStatus(changesExist));
-
-        runs++;
-
-        if (testOccurrence.duration != null) {
-            totalDurationMs += testOccurrence.duration;
-            runsWithDuration++;
-        }
-
-        if (testOccurrence.isFailedTest())
-            failures++;
-
-        lastUpdatedMs = System.currentTimeMillis();
     }
 
     private ChangesState changesStatus(Boolean changesExist) {
@@ -363,24 +336,6 @@ public class RunStat implements IRunHistory {
             "changed its status [" + statusChange + "/" + latestRuns.size() + "] without code modifications";
     }
 
-    /**
-     * Migrate data from latestRunResults to latestRuns.
-     *
-     * @deprecated need to be remove after migrate.
-     */
-    @Deprecated
-    public void migrateLatestRuns(){
-        if(latestRunResults == null)
-            return;
-
-        if (latestRuns == null)
-            latestRuns = new TreeMap<>();
-        else
-            latestRuns.clear();
-
-        for (Map.Entry<TestId, Integer> entry : latestRunResults.entrySet())
-            latestRuns.put(entry.getKey(), new RunInfo(RunStatus.byCode(entry.getValue()), ChangesState.UNKNOWN));
-    }
 
     /**
      * Status of run.

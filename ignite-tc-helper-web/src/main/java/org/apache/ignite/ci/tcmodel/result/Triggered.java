@@ -74,13 +74,13 @@ public class Triggered {
     /**
      * Sets the value of the user property.
      *
-     * @param value
+     * @param val
      *     allowed object is
      *     {@link User }
      *
      */
-    public void setUser(User value) {
-        this.user = value;
+    public void setUser(User val) {
+        this.user = val;
     }
 
     /**
@@ -98,13 +98,13 @@ public class Triggered {
     /**
      * Sets the value of the type property.
      *
-     * @param value
+     * @param val
      *     allowed object is
      *     {@link String }
      *
      */
-    public void setType(String value) {
-        this.type = value;
+    public void setType(String val) {
+        this.type = val;
     }
 
     /**
@@ -122,13 +122,13 @@ public class Triggered {
     /**
      * Sets the value of the date property.
      *
-     * @param value
+     * @param val
      *     allowed object is
      *     {@link String }
      *
      */
-    public void setDate(String value) {
-        this.date = value;
+    public void setDate(String val) {
+        this.date = val;
     }
 
     /**
