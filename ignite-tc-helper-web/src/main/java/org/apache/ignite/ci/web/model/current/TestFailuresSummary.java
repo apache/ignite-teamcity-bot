@@ -25,12 +25,10 @@ import org.apache.ignite.internal.util.typedef.internal.U;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Created by dpavlov on 25.10.2017
- *
  * Summary of failures from all servers.
  */
 @SuppressWarnings("WeakerAccess") public class TestFailuresSummary extends UpdateInfo implements IBackgroundUpdatable {
-
+    /** Servers (Services) and their chain results. */
     public List<ChainAtServerCurrentStatus> servers = new ArrayList<>();
 
     public Integer failedTests;

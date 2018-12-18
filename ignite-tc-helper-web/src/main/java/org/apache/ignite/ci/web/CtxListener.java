@@ -94,12 +94,6 @@ public class CtxListener implements ServletContextListener {
 
         Injector injector = getInjector(ctx);
 
-        try {
-            TcHelperDb.stop(injector.getInstance(Ignite.class));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
         getBackgroundUpdater(ctx).stop();
 
         TcHelper helper = (TcHelper)getTcHelper(ctx);
@@ -118,6 +112,13 @@ public class CtxListener implements ServletContextListener {
         try {
             injector.getInstance(TeamcityRecorder.class).stop();
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        try {
+            TcHelperDb.stop(injector.getInstance(Ignite.class));
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
