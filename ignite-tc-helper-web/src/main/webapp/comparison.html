@@ -28,8 +28,7 @@
         <th style="text-align: center;" width="42%"><input type='text' name='daterange2'/></th>
     </tr><tr></tr><tr></tr>
     <tr id="showError">
-        <td class="section">RUN_ALL <span class="nightly on" id="nightly"><b>ɴɪɢʜᴛʟʏ</b></span></td>
-        <td class="icon"><div class="switch-btn switch-on suites"></div></td>
+        <td class="section" colspan="2" id="choiceSuite"></td>
         <td colspan="2" id="loadStatus" style="text-align: center; color: red;"></td>
     </tr><tr></tr>
     <tr id="showInfo">
@@ -187,7 +186,6 @@
     let invalidInclude = false,
         markBuildId = 0,
         testsTrigger = false,
-        nightly = true,
         error = $('#loadStatus');
 
     function refreshTests() {
@@ -432,7 +430,7 @@
                     }
                 }
 
-                if (Object.keys(newFailedTests).length != 0)
+                if (Object.keys(newFailedTests).length !== 0)
                     obj[suite] = newFailedTests;
             }
 
@@ -443,7 +441,7 @@
     }
 
     function getSuiteTestsHtml(results, suite, key) {
-        if (!results[key].hasOwnProperty(suite) || Object.keys(results[key][suite]).length == 0)
+        if (!results[key].hasOwnProperty(suite) || Object.keys(results[key][suite]).length === 0)
             return '';
 
         let res = '<table class="innerTestTable">\n';
@@ -557,14 +555,52 @@
         $('.' + cssClass + '.data.' + num).prop('title', title);
     }
 
+    function loadTrackedSuites() {
+        $.ajax({
+            url: "rest/branches/suites?server=apache",
+            success: function(result) {
+                if (!isDefinedAndFilled(result)) {
+                    error.html("Result from " + this.url + " is undefined!");
+
+                    return;
+                }
+
+                printSuites(result);
+
+                reloadAll();
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
+    function printSuites(result) {
+        let selectHtml = "<select id='selectSuite'>";
+
+        for (let i = 0; i < result.length; i++)
+            selectHtml += getHtmlOption(result[i].suiteId, false, false, result[i].suiteId);
+
+        selectHtml += "</select>";
+
+        $('#choiceSuite').html(selectHtml);
+
+        $('#selectSuite').change(function () { reloadAll(); });
+    }
+
     function loadData(num, sinceDate, untilDate, testsTrigger) {
         loadGif(num);
 
+        let suiteId = $('#selectSuite').val();
+
         mergedTestsResults[num] = {};
 
-        //todo change this: Hardcoded build type, we should ask server about builds
-        let url = 'rest/build/history?server=apache&buildType=IgniteTests24Java8_RunAll' + (nightly ? 'Nightly' : '') +
-            '&sinceDate=' + sinceDate.format("DDMMYYYY") + '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
+        if ((!isDefinedAndFilled(suiteId)) || (suiteId === "")) {
+            error.html("Suite is " + (isDefinedAndFilled(suiteId) ? "empty" : "undefined") + "!");
+
+            return;
+        }
+
+        let url = 'rest/build/history?server=apache&buildType=' + suiteId + '&sinceDate=' +
+            sinceDate.format("DDMMYYYY") + '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
 
         if (!testsTrigger)
             url = url + '&' + SKIP_TESTS;
@@ -625,8 +661,7 @@
     }
 
     $(document).ready(function() {
-        loadData(1, moment(getDateFewWeeksAgo(1)), moment(), testsTrigger);
-        loadData(2, moment(getDateFewWeeksAgo(2)), moment(getDateFewWeeksAgo(1)), testsTrigger);
+        loadTrackedSuites();
 
         $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
     });
@@ -903,11 +938,11 @@
                 }
             }
         });
+    }
 
-        function getHtmlOption(value, disabled, selected, text){
-            return "<option value='" + value + "' " + (disabled ? "disabled" : "") + (selected ? "selected" : "") +
-                ">" + text + "</option>";
-        }
+    function getHtmlOption(value, disabled, selected, text){
+        return "<option value='" + value + "' " + (disabled ? "disabled" : "") + (selected ? "selected" : "") +
+            ">" + text + "</option>";
     }
 
     function setBuildConditionOnFrontAndShowDialog(buildId, isValid, text, conditionLocal) {
@@ -989,18 +1024,6 @@
         toggleTests();
     });
 
-    $('.switch-btn.suites').click(function(){
-        $(this).toggleClass('switch-on');
-
-        let nightlySpan = $('#nightly');
-
-        nightlySpan.replaceClass('off', 'on');
-
-        nightly = nightlySpan.hasClass('on');
-
-        reloadAll();
-    });
-
     function setBuildCondition(buildId, isValid, conditionLocal) {
         setBuildConditionForColumn(buildId, isValid, 1, conditionLocal);
         setBuildConditionForColumn(buildId, isValid, 2, conditionLocal);
@@ -1066,15 +1089,6 @@
             "startDate": moment(startDate).format("DD-MM-YYYY"), "endDate": moment(endDate).format("DD-MM-YYYY")
         }
     }
-
-    (function ($) {
-        $.fn.replaceClass = function (pFromClass, pToClass) {
-            if (this.hasClass(pFromClass))
-                return this.removeClass(pFromClass).addClass(pToClass);
-            else
-                return this.removeClass(pToClass).addClass(pFromClass);
-        };
-    }(jQuery));
 </script>
 <div style="visibility:hidden">
     <div id="modalDialog" title="Information"></div><div id="resultDialog" title="Result"></div>

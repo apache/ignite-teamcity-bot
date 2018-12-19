@@ -196,6 +196,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             .filter(b -> b.status() != unknownStatus)
             .collect(Collectors.toList());
 
+        if (buildRefs.isEmpty())
+            return Collections.emptyList();
+
         int idSince = 0;
         int idUntil = buildRefs.size() - 1;
 

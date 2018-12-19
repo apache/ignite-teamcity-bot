@@ -117,13 +117,13 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
                 visasHistStorage.visas());
     }
 
-    @Override
-    public void init(String serverId) {
+    /** {@inheritDoc} */
+    @Override public void init(String srvId) {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public User getUserByUsername(String username) {
+    /** {@inheritDoc} */
+    @Override public User getUserByUsername(String username) {
         return teamcity.getUserByUsername(username);
     }
 

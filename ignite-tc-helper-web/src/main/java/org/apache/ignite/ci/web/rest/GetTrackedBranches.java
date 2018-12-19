@@ -17,15 +17,18 @@
 
 package org.apache.ignite.ci.web.rest;
 
+import com.google.common.base.Strings;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.HelperConfig;
@@ -63,16 +66,24 @@ public class GetTrackedBranches {
         return CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class).getTrackedBranchesIds();
     }
 
+    /**
+     * Return all suites involved into tracked branches.
+     *
+     * @param srvId Optional service ID to additiona filtering of chains.
+     */
     @GET
     @Path("suites")
-    public Set<ChainAtServer> getSuites() {
+    public Set<ChainAtServer> getSuites(@Nullable @QueryParam("server") String srvId) {
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
         return HelperConfig.getTrackedBranches()
-                .getSuitesUnique()
-                .stream()
-                .filter(chainAtServer -> prov.hasAccess(chainAtServer.serverId))
-                .collect(Collectors.toSet());
+            .getSuitesUnique()
+            .stream()
+            .filter(chainAtSrv ->
+                Strings.isNullOrEmpty(srvId)
+                    || srvId.equals(chainAtSrv.serverId))
+            .filter(chainAtServer -> prov.hasAccess(chainAtServer.serverId))
+            .collect(Collectors.toSet());
     }
 
     @GET
