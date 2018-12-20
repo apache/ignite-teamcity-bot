@@ -187,7 +187,8 @@ public class RunHistSync {
         buildsSaveThisRun.forEach(
             (histKey, suiteList) -> {
                 List<Invocation> invocationsToSave = suiteList.stream()
-                    .filter(inv -> confirmedNewBuild.contains(inv.buildId()))
+                    .filter(inv -> confirmedNewBuild.contains(inv.buildId())
+                        || histDao.setBuildProcessed(histKey.srvId(), inv.buildId(), inv.startDate()))
                     .filter(inv -> !InvocationData.isExpired(inv.startDate()))
                     .collect(Collectors.toList());
 

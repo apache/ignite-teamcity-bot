@@ -69,6 +69,11 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     /** {@inheritDoc} */
+    @Override public boolean hasMetricProblem() {
+        return getProblemsStream().anyMatch(p -> p.isBuildFailureOnMetric(compactor));
+    }
+
+    /** {@inheritDoc} */
     @Override public boolean hasCompilationProblem() {
         return getProblemsStream().anyMatch(p -> p.isCompilationError(compactor));
     }
