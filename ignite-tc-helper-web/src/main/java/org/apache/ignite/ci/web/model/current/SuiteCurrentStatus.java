@@ -51,14 +51,13 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
  * Represent Suite result
  */
 @SuppressWarnings("WeakerAccess") public class SuiteCurrentStatus extends FailureSummary {
-
     /** Suite Name */
     public String name;
 
     /** Suite Run Result (filled if failed): Summary of build problems, count of tests, etc. */
     public String result;
 
-    /** Has critical problem: Timeout, JMV Crash or Compilation Error*/
+    /** Has critical problem: Timeout, JMV Crash, Compilation Error or Failure on Metric*/
     @Nullable public Boolean hasCriticalProblem;
 
     /** Web Href. to suite runs history */

@@ -979,7 +979,9 @@ function drawLatestRuns(latestRuns) {
         return "";
 
     var res = "";
-    res += "<nobr><span style='white-space: nowrap; width:" + (latestRuns.length  * 1) + "px; display: inline-block;' title='Latest master runs history from right to left is oldest to newest. Red-failed,green-passed,black-timeout'>";
+    res += "<nobr><span style='white-space: nowrap; width:" + (latestRuns.length  * 1) + "px; display: inline-block;' " +
+        "title='Latest master runs history from right to left is oldest to newest." +
+        " Red-failed,green-passed,black-critical failure'>";
 
     var len = 1;
     var prevState = null;

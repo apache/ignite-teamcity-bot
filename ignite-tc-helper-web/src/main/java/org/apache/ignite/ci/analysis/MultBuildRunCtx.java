@@ -117,6 +117,16 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     /** {@inheritDoc} */
+    @Override public boolean hasMetricProblem() {
+        return getMetricProblemCount() > 0;
+    }
+
+    /** */
+    public long getMetricProblemCount() {
+        return buildsStream().filter(ISuiteResults::hasMetricProblem).count();
+    }
+
+    /** {@inheritDoc} */
     @Override public boolean hasCompilationProblem() {
         return getCompilationProblemCount() > 0;
     }
@@ -188,11 +198,13 @@ public class MultBuildRunCtx implements ISuiteResults {
         addKnownProblemCnt(res, "Out Of Memory Error", getOomeProblemCount());
         addKnownProblemCnt(res, "Exit Code", getExitCodeProblemsCount());
         addKnownProblemCnt(res, "Compilation Error", getCompilationProblemCount());
+        addKnownProblemCnt(res, "Failure on metric", getMetricProblemCount());
 
         {
             Stream<ProblemCompacted> stream =
                 allProblemsInAllBuilds().filter(p ->
                     !p.isFailedTests(compactor)
+                        && !p.isBuildFailureOnMetric(compactor)
                         && !p.isCompilationError(compactor)
                         && !p.isSnapshotDepProblem(compactor)
                         && !p.isExecutionTimeout(compactor)

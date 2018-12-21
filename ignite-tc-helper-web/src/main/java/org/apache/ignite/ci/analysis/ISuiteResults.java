@@ -24,6 +24,9 @@ public interface ISuiteResults {
     /** */
     boolean hasCompilationProblem();
 
+    /** */
+    boolean hasMetricProblem();
+
     boolean hasTimeoutProblem();
 
     boolean hasJvmCrashProblem();
@@ -33,7 +36,10 @@ public interface ISuiteResults {
     boolean hasExitCodeProblem();
 
     default boolean hasCriticalProblem() {
-        return hasJvmCrashProblem() || hasTimeoutProblem() || hasCompilationProblem();
+        return hasJvmCrashProblem()
+            || hasTimeoutProblem()
+            || hasCompilationProblem()
+            || hasMetricProblem();
     }
 
     default boolean hasSuiteIncompleteFailure() {
@@ -41,7 +47,8 @@ public interface ISuiteResults {
             || hasTimeoutProblem()
             || hasOomeProblem()
             || hasExitCodeProblem()
-            || hasCompilationProblem();
+            || hasCompilationProblem()
+            || hasMetricProblem();
     }
 
     String suiteId();
