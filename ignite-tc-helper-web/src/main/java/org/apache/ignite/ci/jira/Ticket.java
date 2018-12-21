@@ -32,11 +32,11 @@ public class Ticket {
     public Fields fields;
 
     /**
+     * @param ticketTemplate Ticket name template.
      * @return Ignite id (like 123 in IGNITE-123).
      */
-    public int igniteId() {
-        //todo support non ignite/configurable prefix/string ID from compactor;
-        return Integer.valueOf(key.substring("IGNITE-".length()));
+    public int igniteId(String ticketTemplate) {
+        return Integer.valueOf(key.substring(ticketTemplate.length()));
     }
 
     /**

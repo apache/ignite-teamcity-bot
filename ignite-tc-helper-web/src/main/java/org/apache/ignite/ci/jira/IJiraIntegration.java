@@ -56,6 +56,9 @@ public interface IJiraIntegration {
     public String jiraUrl();
 
     /** */
+    public String ticketTemplate();
+
+    /** */
     public void init(String srvId);
 
     /**

@@ -38,11 +38,11 @@ public class TicketCompacted {
     /**
      * @param ticket Jira ticket.
      * @param comp Compactor.
+     * @param ticketTemplate Ticket name template.
      */
-    public TicketCompacted(Ticket ticket, IStringCompactor comp) {
+    public TicketCompacted(Ticket ticket, IStringCompactor comp, String ticketTemplate) {
         id = ticket.id;
-        //todo support non ignite/configurable prefix/string ID from compactor;
-        igniteId = Integer.valueOf(ticket.key.substring("IGNITE-".length()));
+        igniteId = Integer.valueOf(ticket.key.substring(ticketTemplate.length()));
         status = comp.getStringId(ticket.fields.status.name);
     }
 

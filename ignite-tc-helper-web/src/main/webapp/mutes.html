@@ -82,6 +82,7 @@
             table.DataTable({
                 data: mutes,
                 "iDisplayLength": 30, //rows to be shown by default
+                "order": [[ 0, 'asc' ], [ 1, 'asc' ]],
                 stateSave: true,
                 columnDefs: [
                     {
@@ -194,9 +195,7 @@
                         }
                     }
                 ]
-            })
-                .order( [[ 0, 'asc' ], [ 1, 'asc' ]] )
-                .draw();
+            });
         }
 
         function separateMutedTests(result) {

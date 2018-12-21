@@ -38,6 +38,9 @@ public class Jira implements IJiraIntegration {
     /** */
     private String jiraUrl;
 
+    /** */
+    private String jiraTicketTemplate;
+
     /** {@inheritDoc} */
     @Override public void init(String srvId) {
         final File workDir = HelperConfig.resolveWorkDir();
@@ -47,11 +50,18 @@ public class Jira implements IJiraIntegration {
         final Properties props = HelperConfig.loadAuthProperties(workDir, cfgName);
 
         jiraUrl = props.getProperty(HelperConfig.JIRA_URL);
+        jiraTicketTemplate = props.getProperty(HelperConfig.JIRA_TICKET_TEMPLATE,
+            "IGNITE-");
     }
 
     /** {@inheritDoc} */
     @Override public String jiraUrl() {
         return jiraUrl;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String ticketTemplate() {
+        return jiraTicketTemplate;
     }
 
     /** {@inheritDoc} */

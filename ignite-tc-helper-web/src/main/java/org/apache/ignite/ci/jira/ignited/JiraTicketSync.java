@@ -69,7 +69,7 @@ public class JiraTicketSync {
         if (F.isEmpty(page))
             return "Something went wrong - no tickets found. Check jira availability.";
 
-        jiraDao.saveChunk(srvIdMaskHigh, page);
+        jiraDao.saveChunk(srvIdMaskHigh, page, jira.ticketTemplate());
 
         int ticketsSaved = page.size();
 
@@ -84,7 +84,7 @@ public class JiraTicketSync {
             if (F.isEmpty(page))
                 break;
 
-            jiraDao.saveChunk(srvIdMaskHigh, page);
+            jiraDao.saveChunk(srvIdMaskHigh, page, jira.ticketTemplate());
 
             ticketsSaved += page.size();
         }
