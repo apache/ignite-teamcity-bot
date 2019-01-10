@@ -46,8 +46,8 @@ import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
-import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
+import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
@@ -55,11 +55,11 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
-import org.apache.ignite.ci.web.model.ContributionKey;
-import org.apache.ignite.ci.web.model.VisaRequest;
-import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.SimpleResult;
+import org.apache.ignite.ci.web.model.Visa;
+import org.apache.ignite.ci.web.model.VisaRequest;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.internal.util.typedef.F;
@@ -420,16 +420,19 @@ public class TcBotTriggerAndSignOffService {
         StringBuilder buildTypeId = new StringBuilder();
 
         HelperConfig.getTrackedBranches().get(DEFAULT_TRACKED_BRANCH_NAME)
-            .ifPresent(b -> b.getChainsStream().filter(c -> c.branchForRest.equals(ITeamcity.DEFAULT))
-            .findFirst().ifPresent(ch -> buildTypeId.append(ch.suiteId)));
+            .ifPresent(
+                b -> b.getChainsStream()
+                    .filter(c -> Objects.equals(srvId, c.serverId))
+                    .filter(c -> c.branchForRest.equals(ITeamcity.DEFAULT))
+                    .findFirst()
+                    .ifPresent(ch -> buildTypeId.append(ch.suiteId)));
 
         BuildTypeCompacted buildType = buildTypeId.length() > 0 ? teamcity.getBuildType(buildTypeId.toString()) : null;
 
         String projectId = Objects.nonNull(buildType) ?
             compactor.getStringFromId(buildType.projectId()) : DEFAULT_PROJECT_ID;
 
-        List<String> compositeBuildTypeIds = teamcity
-            .getCompositeBuildTypesIdsSortedByBuildNumberCounter(projectId);
+        List<String> compositeBuildTypeIds = teamcity.getCompositeBuildTypesIdsSortedByBuildNumberCounter(projectId);
 
         for (String btId : compositeBuildTypeIds) {
             List<BuildRefCompacted> forTests = findBuildsForPr(btId, prId, teamcity);

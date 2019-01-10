@@ -56,14 +56,14 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 
     /**
      * @param teamcity TeamCity to get info about tokens.
-     * @param gitHubConnection
+     * @param gitHubConn GitHub integration associated with this server.
      */
     public void setJavaFlags(IAnalyticsEnabledTeamcity teamcity,
-        IGitHubConnection gitHubConnection) {
+        IGitHubConnection gitHubConn) {
         if (teamcity.isTeamCityTokenAvailable())
             javaFlags |= TEAMCITY_FLAG;
 
-        if (gitHubConnection.isGitTokenAvailable())
+        if (gitHubConn.isGitTokenAvailable())
             javaFlags |= GITHUB_FLAG;
 
         if (teamcity.isJiraTokenAvailable())
