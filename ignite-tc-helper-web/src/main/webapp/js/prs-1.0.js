@@ -1,4 +1,4 @@
-function drawTable(srvId, suiteId, element) {
+function drawTable(srvId, element) {
     let tableId = "serverContributions-" + srvId;
 
     element.append("<div id='expandAllButton' align='right' style='margin-right:50px'></div><br>" +
@@ -19,19 +19,19 @@ function drawTable(srvId, suiteId, element) {
 
 function requestTableForServer(srvId, suiteId, element) {
     // TODO multiple servers
-    if (srvId != "apache")
-        return;
+   // if (srvId != "apache")
+    //    return;
 
     // TODO multiple suites
-    if (suiteId != "IgniteTests24Java8_RunAll")
-        return;
+   // if (suiteId != "IgniteTests24Java8_RunAll")
+   //     return;
 
     let tableId = "serverContributions-" + srvId;
 
     if ($("#" + tableId).length > 0)
         return;
 
-    drawTable(srvId, suiteId, element);
+    drawTable(srvId, element);
 
     $.ajax({
         url: "rest/visa/contributions?serverId=" + srvId,
@@ -280,7 +280,6 @@ function formatContributionDetails(row, srvId, suiteId) {
     $.ajax({
         url: "rest/visa/contributionStatus" +
             "?serverId=" + srvId +
-            "&suiteId=" + suiteId +
             "&prId=" + prId,
         success:
             function (result) {

@@ -19,6 +19,7 @@ package org.apache.ignite.ci.jira;
 
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Reperesents methods to provide interaction with Jira servers.
@@ -55,8 +56,8 @@ public interface IJiraIntegration {
     /** */
     public String jiraUrl();
 
-    /** */
-    public String ticketTemplate();
+    /** @return JIRA ticket prefix. */
+    @NotNull public String ticketPrefix();
 
     /** */
     public void init(String srvId);

@@ -25,6 +25,7 @@ import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.Visa;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -38,8 +39,8 @@ public class Jira implements IJiraIntegration {
     /** */
     private String jiraUrl;
 
-    /** */
-    private String jiraTicketTemplate;
+    /** JIRA ticket prefix. */
+    @NotNull private String jiraTicketPrefix;
 
     /** {@inheritDoc} */
     @Override public void init(String srvId) {
@@ -50,8 +51,8 @@ public class Jira implements IJiraIntegration {
         final Properties props = HelperConfig.loadAuthProperties(workDir, cfgName);
 
         jiraUrl = props.getProperty(HelperConfig.JIRA_URL);
-        jiraTicketTemplate = props.getProperty(HelperConfig.JIRA_TICKET_TEMPLATE,
-            "IGNITE-");
+
+        jiraTicketPrefix = props.getProperty(HelperConfig.JIRA_TICKET_TEMPLATE, "IGNITE-");
     }
 
     /** {@inheritDoc} */
@@ -60,8 +61,8 @@ public class Jira implements IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @Override public String ticketTemplate() {
-        return jiraTicketTemplate;
+    @Override public String ticketPrefix() {
+        return jiraTicketPrefix;
     }
 
     /** {@inheritDoc} */

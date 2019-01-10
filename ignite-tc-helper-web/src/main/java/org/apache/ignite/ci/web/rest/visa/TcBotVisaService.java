@@ -89,7 +89,6 @@ public class TcBotVisaService {
     @GET
     @Path("contributionStatus")
     public Set<ContributionCheckStatus> contributionStatus(@Nullable @QueryParam("serverId") String srvId,
-        @Nonnull @QueryParam("suiteId") String suiteId,
         @QueryParam("prId") String prId) {
         ICredentialsProv prov = ICredentialsProv.get(req);
         if (!prov.hasAccess(srvId))

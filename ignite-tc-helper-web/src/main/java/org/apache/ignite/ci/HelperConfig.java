@@ -63,7 +63,7 @@ public class HelperConfig {
     /** JIRA URL to build links to tickets. */
     public static final String JIRA_URL = "jira.url";
 
-    /** Template for JIRA ticket names. */
+    /** Prefix for JIRA ticket names. */
     public static final String JIRA_TICKET_TEMPLATE = "jira.ticket_template";
 
     /** Slack authorization token property name. */
