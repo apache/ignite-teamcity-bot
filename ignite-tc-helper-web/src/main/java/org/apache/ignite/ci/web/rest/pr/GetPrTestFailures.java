@@ -137,7 +137,6 @@ public class GetPrTestFailures {
             return "Given branch is not a pull request. Notify works only for pull requests.";
 
         final Injector injector = CtxListener.getInjector(ctx);
-        final ICredentialsProv creds = ICredentialsProv.get(req);
         final IGitHubConnection srv = injector.getInstance(IGitHubConnectionProvider.class).server(srvId);
 
         PullRequest pr;

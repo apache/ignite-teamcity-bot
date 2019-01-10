@@ -36,8 +36,10 @@ import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.github.GitHubBranch;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
@@ -69,7 +71,6 @@ import org.jetbrains.annotations.Nullable;
 import static org.apache.ignite.ci.observer.BuildsInfo.CANCELLED_STATUS;
 import static org.apache.ignite.ci.observer.BuildsInfo.FINISHED_STATUS;
 import static org.apache.ignite.ci.observer.BuildsInfo.RUNNING_STATUS;
-import static org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
 import static org.apache.ignite.ci.web.rest.parms.FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME;
 
 /**
@@ -83,22 +84,20 @@ public class TcBotTriggerAndSignOffService {
         }
     };
 
+    /** Build observer provider. */
     @Inject Provider<BuildObserver> buildObserverProvider;
 
-    /** Git hub pure http connection provider. */
-    @Inject IGitHubConnectionProvider gitHubConnectionProvider;
+    /** GitHub (pure) HTTP connection provider. */
+    @Inject IGitHubConnectionProvider gitHubConnProvider;
 
-    /** Git hub connection ignited provider. */
+    /** GitHub connection ignited provider. */
     @Inject IGitHubConnIgnitedProvider gitHubConnIgnitedProvider;
 
+    /** TC ignited provider. */
     @Inject ITeamcityIgnitedProvider tcIgnitedProv;
 
     /** */
     @Inject IJiraIntegrationProvider jiraIntegrationProvider;
-
-    @Inject ITeamcityIgnitedProvider teamcityIgnitedProvider;
-
-    @Inject Provider<BuildObserver> observer;
 
     /** */
     @Inject private VisasHistoryStorage visasHistoryStorage;
@@ -180,7 +179,7 @@ public class TcBotTriggerAndSignOffService {
      * @return Mutes for given server-project pair.
      */
     public Set<MuteInfo> getMutes(String srvId, String projectId, ICredentialsProv creds) {
-        ITeamcityIgnited ignited = teamcityIgnitedProvider.server(srvId, creds);
+        ITeamcityIgnited ignited = tcIgnitedProv.server(srvId, creds);
 
         Set<MuteInfo> infos = ignited.getMutes(projectId, creds);
 
@@ -254,7 +253,7 @@ public class TcBotTriggerAndSignOffService {
     ) {
         if (F.isEmpty(ticketFullName)) {
             try {
-                IGitHubConnection gitHubConn = gitHubConnectionProvider.server(srvId);
+                IGitHubConnection gitHubConn = gitHubConnProvider.server(srvId);
 
                 PullRequest pr = gitHubConn.getPullRequest(branchForTc);
 
@@ -305,7 +304,7 @@ public class TcBotTriggerAndSignOffService {
 
         if (Strings.isNullOrEmpty(ticketFullName)) {
             try {
-                IGitHubConnection gitHubConn = gitHubConnectionProvider.server(srvId);
+                IGitHubConnection gitHubConn = gitHubConnProvider.server(srvId);
                 PullRequest pr = gitHubConn.getPullRequest(branchForTc);
 
                 ticketFullName = getTicketFullName(pr);
@@ -382,10 +381,9 @@ public class TcBotTriggerAndSignOffService {
         }).collect(Collectors.toList());
     }
 
-    @Nonnull private List<BuildRefCompacted> findBuildsForPr(String suiteId, String prId, ITeamcityIgnited srv) {
-
-        String branchName = branchForTcA(prId);
-        List<BuildRefCompacted> buildHist = srv.getAllBuildsCompacted(suiteId, branchName);
+    @Nonnull private List<BuildRefCompacted> findBuildsForPr(String suiteId, String prId,
+        IGitHubConnIgnited ghConn, ITeamcityIgnited srv) {
+        List<BuildRefCompacted> buildHist = srv.getAllBuildsCompacted(suiteId, branchForTcA(prId));
 
         if (!buildHist.isEmpty())
             return buildHist;
@@ -394,6 +392,28 @@ public class TcBotTriggerAndSignOffService {
 
         if (!buildHist.isEmpty())
             return buildHist;
+
+        PullRequest pr = ghConn.getPullRequest(Integer.valueOf(prId));
+
+        if (pr != null) {
+            GitHubBranch head = pr.head();
+
+            if (head != null) {
+                String ref = head.ref();
+
+                buildHist = srv.getAllBuildsCompacted(suiteId, ref);
+
+                if (!buildHist.isEmpty())
+                    return buildHist;
+
+                ref = ref.toLowerCase();
+
+                buildHist = srv.getAllBuildsCompacted(suiteId, ref);
+
+                if (!buildHist.isEmpty())
+                    return buildHist;
+            }
+        }
 
         return Collections.emptyList();
     }
@@ -415,7 +435,9 @@ public class TcBotTriggerAndSignOffService {
         String prId) {
         Set<ContributionCheckStatus> statuses = new LinkedHashSet<>();
 
-        ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(srvId, prov);
+        ITeamcityIgnited teamcity = tcIgnitedProv.server(srvId, prov);
+
+        IGitHubConnIgnited ghConn = gitHubConnIgnitedProvider.server(srvId);
 
         StringBuilder buildTypeId = new StringBuilder();
 
@@ -450,7 +472,7 @@ public class TcBotTriggerAndSignOffService {
 
 
         for (String btId : compositeBuildTypeIds) {
-            List<BuildRefCompacted> forTests = findBuildsForPr(btId, prId, teamcity);
+            List<BuildRefCompacted> forTests = findBuildsForPr(btId, prId, ghConn, teamcity);
 
             statuses.add(forTests.isEmpty() ? new ContributionCheckStatus(btId, branchForTcA(prId)) :
                 contributionStatus(srvId, btId, forTests, teamcity, prId));
@@ -490,7 +512,7 @@ public class TcBotTriggerAndSignOffService {
         else
             status.resolvedBranch = !builds.isEmpty() ? builds.get(0).branchName(compactor) : branchForTcA(prId);
 
-        String observationsStatus = observer.get().getObservationStatus(new ContributionKey(srvId, status.resolvedBranch));
+        String observationsStatus = buildObserverProvider.get().getObservationStatus(new ContributionKey(srvId, status.resolvedBranch));
 
         status.observationsStatus  = Strings.emptyToNull(observationsStatus);
 

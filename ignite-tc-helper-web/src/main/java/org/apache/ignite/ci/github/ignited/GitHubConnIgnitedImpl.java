@@ -36,7 +36,6 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -167,14 +166,14 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Check Outdated PRs(srv)", nameExtArgsIndexes = {0})
     protected String refreshOutdatedPrs(String srvId, Set<Integer> actualPrs) {
-        final long count = StreamSupport.stream(prCache.spliterator(), false)
+        final long cnt = StreamSupport.stream(prCache.spliterator(), false)
                 .filter(entry -> entry.getKey() >> 32 == srvIdMaskHigh)
                 .filter(entry -> PullRequest.OPEN.equals(entry.getValue().getState()))
                 .filter(entry -> !actualPrs.contains(entry.getValue().getNumber()))
                 .peek(entry -> prCache.put(entry.getKey(), conn.getPullRequest(entry.getValue().getNumber())))
                 .count();
 
-        return "PRs updated for " + srvId + ": " + count + " from " + prCache.size();
+        return "PRs updated for " + srvId + ": " + cnt + " from " + prCache.size();
     }
 
     private int saveChunk(List<PullRequest> ghData) {
