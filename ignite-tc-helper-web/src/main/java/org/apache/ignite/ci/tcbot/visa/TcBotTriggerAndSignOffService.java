@@ -268,7 +268,7 @@ public class TcBotTriggerAndSignOffService {
 
         if (F.isEmpty(ticketFullName)) {
             try {
-                IGitHubConnection gitHubConn = gitHubConnProvider.server(srvId);
+                IGitHubConnIgnited gitHubConn = gitHubConnIgnitedProvider.server(srvId);
 
                 PullRequest pr = gitHubConn.getPullRequest(branchForTc);
 
@@ -322,7 +322,7 @@ public class TcBotTriggerAndSignOffService {
 
         if (Strings.isNullOrEmpty(ticketFullName)) {
             try {
-                IGitHubConnection gitHubConn = gitHubConnProvider.server(srvId);
+                IGitHubConnIgnited gitHubConn = gitHubConnIgnitedProvider.server(srvId);
                 PullRequest pr = gitHubConn.getPullRequest(branchForTc);
 
                 ticketFullName = getTicketFullName(pr, prefix);

@@ -111,16 +111,6 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public PullRequest getPullRequest(String branchForTc) {
-        Integer prId = IGitHubConnection.convertBranchToId(branchForTc);
-
-        Preconditions.checkNotNull(prId, "Invalid TC branch name");
-
-        return getPullRequest(prId);
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
     @Override public boolean notifyGit(String url, String body) {
         try {
             HttpUtil.sendPostAsStringToGit(gitAuthTok, url, body);

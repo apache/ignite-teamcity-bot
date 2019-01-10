@@ -45,4 +45,13 @@ public interface IGitHubConnIgnited {
 
         return getPullRequest(prId);
     }
+
+    /**
+     * Send POST request with given body.
+     *
+     * @param url Url.
+     * @param body Request body.
+     * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
+     */
+    void notifyGit(String url, String body);
 }

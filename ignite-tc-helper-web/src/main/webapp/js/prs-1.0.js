@@ -17,14 +17,19 @@ function drawTable(srvId, element) {
         "        </table>\n");
 }
 
-function requestTableForServer(srvId, suiteId, element) {
+function requestTableForServer(srvId, suiteIdIgnored, element) {
     // TODO multiple servers
-   // if (srvId != "apache")
-    //    return;
+    let s = findGetParameter("server");
+    if (!isDefinedAndFilled(s)) {
+        if (srvId !== "apache")
+            return;
+    }
+    else if (srvId !== s)
+        return;
 
     // TODO multiple suites
-   // if (suiteId != "IgniteTests24Java8_RunAll")
-   //     return;
+    // if (suiteId != "IgniteTests24Java8_RunAll")
+    //     return;
 
     let tableId = "serverContributions-" + srvId;
 
@@ -37,7 +42,7 @@ function requestTableForServer(srvId, suiteId, element) {
         url: "rest/visa/contributions?serverId=" + srvId,
         success:
             function (result) {
-                showContributionsTable(result, srvId, suiteId);
+                showContributionsTable(result, srvId, "");
                 fillBranchAutocompleteList(result, srvId);
                 setAutocompleteFilter();
             }
@@ -144,10 +149,7 @@ function showContributionsTable(result, srvId, suiteId) {
                 "render": function (data, type, row, meta) {
                     let prId = data;
                     if (type === 'display' && isDefinedAndFilled(data)) {
-                        data = "<a id='showReportlink_" + prId + "' href='" +
-                            prShowHref(srvId, suiteId, data) +
-                            "'>" +
-                            "<button id='show_" + prId + "'>Open " + data + "head</button></a>";
+                        data = " " + data + "";
                     }
 
                     return data;

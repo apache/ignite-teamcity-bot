@@ -156,6 +156,7 @@ public class TcHelper implements ITcHelper {
 
         try {
             List<SuiteCurrentStatus> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
+
             if (suitesStatuses == null)
                 return new Visa("JIRA wasn't commented - no finished builds to analyze.");
 

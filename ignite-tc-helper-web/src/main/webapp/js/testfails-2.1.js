@@ -390,7 +390,7 @@ function triggerBuilds(serverId, parentSuiteId, suiteIdList, branchName, top, ob
     var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
-    ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? jiraTicketNumber(ticketId) : null;
+    ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? ticketId : null;
 
     var triggerConfirm = $("#triggerConfirm");
 
@@ -485,22 +485,10 @@ function branchForTc(pr) {
     return pr;
 }
 
-/**
- * Converts JIRA ticket full name to the tickets number.
- *
- * @param ticket - JIRA ticket.
- * @returns {string} JIRA ticket number.
- */
-function jiraTicketNumber(ticket) {
-    var regExpr = /(ignite-)?(\d*)/i;
-
-    return regExpr.exec(ticket)[2];
-}
-
 function commentJira(serverId, branchName, parentSuiteId, ticketId) {
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
-    ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? jiraTicketNumber(ticketId) : null;
+    ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? ticketId : null;
 
     if (branchNotExists) {
         var triggerConfirm = $("#triggerConfirm");

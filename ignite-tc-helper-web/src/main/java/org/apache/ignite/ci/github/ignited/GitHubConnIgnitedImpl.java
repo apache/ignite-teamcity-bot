@@ -80,6 +80,11 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     }
 
     /** {@inheritDoc} */
+    @Override public void notifyGit(String url, String body) {
+        conn.notifyGit(url, body);
+    }
+
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override public List<PullRequest> getPullRequests() {
         scheduler.sheduleNamed(taskName("actualizePrs"), this::actualizePrs, 2, TimeUnit.MINUTES);

@@ -94,10 +94,8 @@ public class TcBotVisaService {
         if (!prov.hasAccess(srvId))
             throw ServiceUnauthorizedException.noCreds(srvId);
 
-        TcBotTriggerAndSignOffService instance = CtxListener.getInjector(ctx)
-            .getInstance(TcBotTriggerAndSignOffService.class);
-
-        return instance.contributionStatuses(srvId, prov, prId);
+        return CtxListener.getInjector(ctx)
+            .getInstance(TcBotTriggerAndSignOffService.class).contributionStatuses(srvId, prov, prId);
     }
 
     @GET
