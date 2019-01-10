@@ -277,12 +277,12 @@ public class GenerateStatusHtml {
     private static ProjectStatus getBuildStatuses(
         final String tcId,
         final String projectId,
-        final List<Branch> branchesPriv) throws Exception {
+        final List<Branch> branchesPriv) {
 
         ProjectStatus projStatus = new ProjectStatus();
         final IgniteTeamcityConnection teamcityHelper = TcConnectionStaticLinker.create(tcId);
 
-        List<BuildType> suites = teamcityHelper.getProjectSuites(projectId).get();
+        List<BuildType> suites = teamcityHelper.getBuildTypes(projectId);
 
         for (BuildType buildType : suites) {
             if (!"-> Run All".equals(buildType.getName())

@@ -52,18 +52,6 @@ public interface ITeamcity extends ITeamcityConn {
     /** Temporary feature toggle: Use New run stat in PR analysis, issue detection. */
     boolean NEW_RUN_STAT = true;
 
-    /** {@inheritDoc} */
-    @Override default List<BuildType> getBuildTypes(String projectId) {
-        return FutureUtil.getResult(getProjectSuites(projectId));
-    }
-
-    /**
-     * List of project suites.
-     *
-     * @param projectId Project id.
-     */
-    CompletableFuture<List<BuildType>> getProjectSuites(String projectId);
-
     /**   */
     @Deprecated
     CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch);

@@ -107,7 +107,7 @@ public class BuildTypeSync {
      * @param conn Pure HTTP Connection API.
      */
     private void ensureActualizeBuildTypeRefsRequested(int srvIdMaskHigh, String projectId, ITeamcityConn conn) {
-        scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs", conn.serverId()),
+        scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs", conn.serverId(), projectId),
             () -> reindexBuildTypeRefs(srvIdMaskHigh, projectId, conn), 4, TimeUnit.HOURS);
     }
 
@@ -119,7 +119,7 @@ public class BuildTypeSync {
      * @param conn Pure HTTP Connection API.
      */
     private void ensureActualizeBuildTypesRequested(int srvIdMaskHigh, String projectId, ITeamcityConn conn) {
-        scheduler.sheduleNamed(taskName("actualizeAllBuildTypes", conn.serverId()),
+        scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs", "actualizeAllBuildTypes", conn.serverId()),
             () -> reindexBuildTypes(srvIdMaskHigh, projectId, conn), 24, TimeUnit.HOURS);
     }
 
@@ -241,9 +241,10 @@ public class BuildTypeSync {
     /**
      * @param taskName Task name.
      * @param srvName Server name.
+     * @param prjName Project name.
      */
     @NotNull
-    private String taskName(String taskName, String srvName) {
-        return BuildTypeSync.class.getSimpleName() +"." + taskName + "." + srvName;
+    private String taskName(String taskName, String srvName, String prjName) {
+        return BuildTypeSync.class.getSimpleName() + "." + taskName + "." + srvName + "." + prjName;
     }
 }

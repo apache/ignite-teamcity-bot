@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
@@ -103,4 +104,9 @@ public interface ITeamcityConn {
     /** */
     @Deprecated
     ProblemOccurrences getProblemsAndRegisterCritical(BuildRef build);
+
+    /**
+     * @return List of all project available at Teamcity server.
+     */
+    List<Project> getProjects();
 }

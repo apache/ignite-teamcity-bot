@@ -429,10 +429,25 @@ public class TcBotTriggerAndSignOffService {
 
         BuildTypeCompacted buildType = buildTypeId.length() > 0 ? teamcity.getBuildType(buildTypeId.toString()) : null;
 
-        String projectId = Objects.nonNull(buildType) ?
-            compactor.getStringFromId(buildType.projectId()) : DEFAULT_PROJECT_ID;
+        List<String> compositeBuildTypeIds;
+        String projectId;
+        if (buildType != null) {
+            projectId = compactor.getStringFromId(buildType.projectId());
+            compositeBuildTypeIds = teamcity.getCompositeBuildTypesIdsSortedByBuildNumberCounter(projectId);
+        }
+        else {
+            //for case build type not found, actualizing all projects resync
+            List<String> projects = teamcity.getAllProjectsIds();
 
-        List<String> compositeBuildTypeIds = teamcity.getCompositeBuildTypesIdsSortedByBuildNumberCounter(projectId);
+            for (String pId : projects)
+                teamcity.getCompositeBuildTypesIdsSortedByBuildNumberCounter(pId);
+
+            compositeBuildTypeIds = new ArrayList<>();
+
+            if (buildTypeId.length() > 0)
+                compositeBuildTypeIds.add(buildTypeId.toString());
+        }
+
 
         for (String btId : compositeBuildTypeIds) {
             List<BuildRefCompacted> forTests = findBuildsForPr(btId, prId, teamcity);

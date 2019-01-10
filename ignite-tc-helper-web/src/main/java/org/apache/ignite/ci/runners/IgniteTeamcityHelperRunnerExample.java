@@ -49,7 +49,7 @@ public class IgniteTeamcityHelperRunnerExample {
         int k = 0;
         if (k > 0) {
             //branch example: "pull/2335/head"
-            List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests").get();
+            List<BuildType> buildTypes = helper.getBuildTypes("Ignite20Tests");
 
         }
 
@@ -70,10 +70,10 @@ public class IgniteTeamcityHelperRunnerExample {
         }
     }
 
-    private static void checkBuildTypes(IgniteTeamcityConnection helper) throws InterruptedException, ExecutionException {
+    private static void checkBuildTypes(IgniteTeamcityConnection helper) {
         Map<String, Set<String>> duplicates = new TreeMap<>();
         Map<String, String> suiteToBt = new TreeMap<>();
-        List<BuildType> buildTypes = helper.getProjectSuites("Ignite20Tests").get();
+        List<BuildType> buildTypes = helper.getBuildTypes("Ignite20Tests");
         for (BuildType bt : buildTypes) {
             final BuildTypeFull type = helper.getBuildType(bt.getId());
             if ("Ignite20Tests_RunAll".equals(type.getId())
