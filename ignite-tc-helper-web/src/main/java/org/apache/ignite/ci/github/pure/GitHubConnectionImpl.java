@@ -165,9 +165,10 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
             List<PullRequest> list = new Gson().fromJson(reader, listType);
             String link = rspHeaders.get("Link");
-            if (link != null) {
 
+            if (link != null) {
                 String nextLink = parseNextLinkFromLinkRspHeader(link);
+
                 if (nextLink != null)
                     outLinkNext.set(nextLink);
             }

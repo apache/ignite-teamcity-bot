@@ -90,7 +90,7 @@ public class PasswordEncoder {
     }
 
     public static void main(String[] args) {
-        String pass = "ddd";
+        String pass = "324aadfe23....";
         String encode = encode(pass);
         System.err.println("Encoded: " +  HelperConfig.GITHUB_AUTH_TOKEN + "=" + encode);
         String decode = decode(encode);
