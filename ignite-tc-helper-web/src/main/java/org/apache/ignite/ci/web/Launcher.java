@@ -22,15 +22,18 @@ import java.io.Console;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
+import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 /**
- * Created by Дмитрий on 04.08.2017
+ * Launcher for server note and web application: all in one.
+ * For client only node use {@link LauncherIgniteClientMode} and {@link TcHelperDb} for server.
  */
 public class Launcher {
+    /** */
     public static void main(String[] args) throws Exception {
         runServer(true);
     }

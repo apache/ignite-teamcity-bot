@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web;
 
 /**
- * Created by Дмитрий on 02.11.2017
+ *
  */
 public interface IBackgroundUpdatable {
     /**

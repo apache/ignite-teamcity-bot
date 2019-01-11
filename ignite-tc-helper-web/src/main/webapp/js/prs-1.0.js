@@ -224,7 +224,7 @@ function showStageBlockers(stageNum, prId, blockers) {
 
 
 /* Formatting function for row details - modify as you need */
-function formatContributionDetails(row, srvId, suiteId) {
+function formatContributionDetails(row, srvId) {
     //  row  is the original data object for the row
     if(!isDefinedAndFilled(row))
         return;
@@ -328,7 +328,7 @@ function formatContributionDetails(row, srvId, suiteId) {
     return res;
 }
 
-function repaint(srvId, suiteId) {
+function repaint(srvId) {
     let tableId = 'serverContributions-' + srvId;
     let datatable = $('#' + tableId).DataTable();
 
@@ -341,7 +341,7 @@ function repaint(srvId, suiteId) {
         if (isDefinedAndFilled(row.child)) {
             if (row.child.isShown()) {
                 // Replaint this row
-                row.child(formatContributionDetails(row.data(), srvId, suiteId)).show();
+                row.child(formatContributionDetails(row.data(), srvId)).show();
             }
         }
     }
@@ -349,13 +349,13 @@ function repaint(srvId, suiteId) {
     datatable.draw();
 }
 
-function repaintLater(srvId, suiteId) {
+function repaintLater(srvId) {
     setTimeout(function () {
-        repaint(srvId, suiteId)
+        repaint(srvId)
     }, 3000);
 }
 
-function showContributionStatus(status, prId, row, srvId, suiteId) {
+function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
     let tdForPr = $('#showResultFor' + prId);
 
     if (!isDefinedAndFilled(status)) {
@@ -370,8 +370,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
 
     let replaintCall = "repaintLater(" +
-        "\"" + srvId + "\", " +
-        "\"" + suiteId + "\", " +
+        "\"" + srvId + "\"" +
         ");";
 
     var linksToRunningBuilds = "";
@@ -384,7 +383,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
     if (buildIsCompleted) {
         let finishedBranch = status.branchWithFinishedSuite;
 
-        tdForPr.html("<a id='showReportlink_" + prId + "' href='" + prShowHref(srvId, suiteId, finishedBranch) + "'>" +
+        tdForPr.html("<a id='showReportlink_" + prId + "' href='" + prShowHref(srvId, suiteIdSelected, finishedBranch) + "'>" +
             "<button id='show_" + prId + "'>Show " + finishedBranch + " report</button></a>");
 
         if (hasJiraIssue) {
@@ -392,7 +391,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
                 "commentJira(" +
                 "\"" + srvId + "\", " +
                 "\"" + finishedBranch + "\", " +
-                "\"" + suiteId + "\", " +
+                "\"" + suiteIdSelected + "\", " +
                 "\"" + row.jiraIssueId + "\"" +
                 "); " +
                 replaintCall +
@@ -442,7 +441,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
         let triggerBuildsCall = "triggerBuilds(" +
             "\"" + srvId + "\", " +
             "null, " +
-            "\"" + suiteId + "\", " +
+            "\"" + suiteIdSelected + "\", " +
             "\"" + status.resolvedBranch + "\"," +
             " false," +
             " false," +
@@ -459,7 +458,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
         let trigObserveCall = "triggerBuilds(" +
             "\"" + srvId + "\", " +
             "null, " +
-            "\"" + suiteId + "\", " +
+            "\"" + suiteIdSelected + "\", " +
             "\"" + status.resolvedBranch + "\"," +
             " false," +
             " true," +
@@ -480,7 +479,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
         $.ajax({
             url: "rest/visa/visaStatus" +
                 "?serverId=" + srvId +
-                "&suiteId=" + suiteId +
+                "&suiteId=" + suiteIdSelected +
                 "&tcBranch=" + status.branchWithFinishedSuite,
             success:
                 function (result) {
