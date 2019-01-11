@@ -17,6 +17,9 @@
 
 package org.apache.ignite.ci.web.model;
 
+/**
+ * TC Bot version data.
+ */
 @SuppressWarnings("PublicField") public class Version {
     /** Default contact. */
     public static final String DEFAULT_CONTACT = "dev@ignite.apache.org";
@@ -25,7 +28,7 @@ package org.apache.ignite.ci.web.model;
     public static final String GITHUB_REF = "https://github.com/apache/ignite-teamcity-bot";
 
     /** TC Bot Version. */
-    public static final String VERSION = "20181221";
+    public static final String VERSION = "20190111";
 
     /** TC Bot Version. */
     public String version = VERSION;
