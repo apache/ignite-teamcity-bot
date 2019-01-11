@@ -405,7 +405,7 @@ function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
             $('#commentJiraFor' + prId).html(jiraBtn);
         }
     } else {
-        tdForPr.html("No builds, please trigger " + suiteId);
+        tdForPr.html("No builds, please trigger " + suiteIdSelected);
     }
 
 
