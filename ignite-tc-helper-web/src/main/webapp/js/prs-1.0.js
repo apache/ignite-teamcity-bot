@@ -1,4 +1,4 @@
-function drawTable(srvId, suiteId, element) {
+function drawTable(srvId, element) {
     let tableId = "serverContributions-" + srvId;
 
     element.append("<div id='expandAllButton' align='right' style='margin-right:50px'></div><br>" +
@@ -17,27 +17,32 @@ function drawTable(srvId, suiteId, element) {
         "        </table>\n");
 }
 
-function requestTableForServer(srvId, suiteId, element) {
+function requestTableForServer(srvId, suiteIdIgnored, element) {
     // TODO multiple servers
-    if (srvId != "apache")
+    let s = findGetParameter("server");
+    if (!isDefinedAndFilled(s)) {
+        if (srvId !== "apache")
+            return;
+    }
+    else if (srvId !== s)
         return;
 
     // TODO multiple suites
-    if (suiteId != "IgniteTests24Java8_RunAll")
-        return;
+    // if (suiteId != "IgniteTests24Java8_RunAll")
+    //     return;
 
     let tableId = "serverContributions-" + srvId;
 
     if ($("#" + tableId).length > 0)
         return;
 
-    drawTable(srvId, suiteId, element);
+    drawTable(srvId, element);
 
     $.ajax({
         url: "rest/visa/contributions?serverId=" + srvId,
         success:
             function (result) {
-                showContributionsTable(result, srvId, suiteId);
+                showContributionsTable(result, srvId, "");
                 fillBranchAutocompleteList(result, srvId);
                 setAutocompleteFilter();
             }
@@ -144,10 +149,7 @@ function showContributionsTable(result, srvId, suiteId) {
                 "render": function (data, type, row, meta) {
                     let prId = data;
                     if (type === 'display' && isDefinedAndFilled(data)) {
-                        data = "<a id='showReportlink_" + prId + "' href='" +
-                            prShowHref(srvId, suiteId, data) +
-                            "'>" +
-                            "<button id='show_" + prId + "'>Open " + data + "head</button></a>";
+                        data = " " + data + "";
                     }
 
                     return data;
@@ -222,7 +224,7 @@ function showStageBlockers(stageNum, prId, blockers) {
 
 
 /* Formatting function for row details - modify as you need */
-function formatContributionDetails(row, srvId, suiteId) {
+function formatContributionDetails(row, srvId) {
     //  row  is the original data object for the row
     if(!isDefinedAndFilled(row))
         return;
@@ -280,7 +282,6 @@ function formatContributionDetails(row, srvId, suiteId) {
     $.ajax({
         url: "rest/visa/contributionStatus" +
             "?serverId=" + srvId +
-            "&suiteId=" + suiteId +
             "&prId=" + prId,
         success:
             function (result) {
@@ -327,7 +328,7 @@ function formatContributionDetails(row, srvId, suiteId) {
     return res;
 }
 
-function repaint(srvId, suiteId) {
+function repaint(srvId) {
     let tableId = 'serverContributions-' + srvId;
     let datatable = $('#' + tableId).DataTable();
 
@@ -340,7 +341,7 @@ function repaint(srvId, suiteId) {
         if (isDefinedAndFilled(row.child)) {
             if (row.child.isShown()) {
                 // Replaint this row
-                row.child(formatContributionDetails(row.data(), srvId, suiteId)).show();
+                row.child(formatContributionDetails(row.data(), srvId)).show();
             }
         }
     }
@@ -348,13 +349,13 @@ function repaint(srvId, suiteId) {
     datatable.draw();
 }
 
-function repaintLater(srvId, suiteId) {
+function repaintLater(srvId) {
     setTimeout(function () {
-        repaint(srvId, suiteId)
+        repaint(srvId)
     }, 3000);
 }
 
-function showContributionStatus(status, prId, row, srvId, suiteId) {
+function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
     let tdForPr = $('#showResultFor' + prId);
 
     if (!isDefinedAndFilled(status)) {
@@ -369,8 +370,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
     let queuedStatus = "Has queued builds: " + status.queuedBuilds  + " queued " + " " + status.runningBuilds  + " running";
 
     let replaintCall = "repaintLater(" +
-        "\"" + srvId + "\", " +
-        "\"" + suiteId + "\", " +
+        "\"" + srvId + "\"" +
         ");";
 
     var linksToRunningBuilds = "";
@@ -383,7 +383,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
     if (buildIsCompleted) {
         let finishedBranch = status.branchWithFinishedSuite;
 
-        tdForPr.html("<a id='showReportlink_" + prId + "' href='" + prShowHref(srvId, suiteId, finishedBranch) + "'>" +
+        tdForPr.html("<a id='showReportlink_" + prId + "' href='" + prShowHref(srvId, suiteIdSelected, finishedBranch) + "'>" +
             "<button id='show_" + prId + "'>Show " + finishedBranch + " report</button></a>");
 
         if (hasJiraIssue) {
@@ -391,7 +391,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
                 "commentJira(" +
                 "\"" + srvId + "\", " +
                 "\"" + finishedBranch + "\", " +
-                "\"" + suiteId + "\", " +
+                "\"" + suiteIdSelected + "\", " +
                 "\"" + row.jiraIssueId + "\"" +
                 "); " +
                 replaintCall +
@@ -441,7 +441,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
         let triggerBuildsCall = "triggerBuilds(" +
             "\"" + srvId + "\", " +
             "null, " +
-            "\"" + suiteId + "\", " +
+            "\"" + suiteIdSelected + "\", " +
             "\"" + status.resolvedBranch + "\"," +
             " false," +
             " false," +
@@ -458,7 +458,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
         let trigObserveCall = "triggerBuilds(" +
             "\"" + srvId + "\", " +
             "null, " +
-            "\"" + suiteId + "\", " +
+            "\"" + suiteIdSelected + "\", " +
             "\"" + status.resolvedBranch + "\"," +
             " false," +
             " true," +
@@ -479,7 +479,7 @@ function showContributionStatus(status, prId, row, srvId, suiteId) {
         $.ajax({
             url: "rest/visa/visaStatus" +
                 "?serverId=" + srvId +
-                "&suiteId=" + suiteId +
+                "&suiteId=" + suiteIdSelected +
                 "&tcBranch=" + status.branchWithFinishedSuite,
             success:
                 function (result) {

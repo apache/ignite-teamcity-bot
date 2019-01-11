@@ -19,10 +19,30 @@ package org.apache.ignite.ci;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.List;
 import java.util.SortedSet;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.analysis.*;
+import org.apache.ignite.ci.analysis.Expirable;
+import org.apache.ignite.ci.analysis.IVersionedEntity;
+import org.apache.ignite.ci.analysis.LogCheckResult;
+import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -31,35 +51,18 @@ import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.tcmodel.user.User;
-import org.apache.ignite.ci.teamcity.ignited.IRunStat;
-import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.ci.util.ObjectInterner;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
-import javax.cache.Cache;
-import javax.inject.Inject;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normalizeBranch;
 
@@ -160,8 +163,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public CompletableFuture<List<BuildType>> getProjectSuites(String projectId) {
-        return teamcity.getProjectSuites(projectId);
+    @Override public List<BuildType> getBuildTypes(String projectId) {
+        return teamcity.getBuildTypes(projectId);
     }
 
     /** {@inheritDoc} */
@@ -489,6 +492,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
     }
 
+    /** {@inheritDoc} */
     @Override public ProblemOccurrences getProblems(int buildId) {
         return teamcity.getProblems(buildId);
     }
@@ -501,6 +505,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         registerCriticalBuildProblemInStat(build, problems);
 
         return problems;
+    }
+
+    /** {@inheritDoc} */
+    @Override public List<Project> getProjects() {
+        return teamcity.getProjects();
     }
 
     @Override public Statistics getStatistics(int buildId) {

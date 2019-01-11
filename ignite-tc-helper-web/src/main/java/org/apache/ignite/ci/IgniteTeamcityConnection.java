@@ -33,6 +33,7 @@ import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.Project;
+import org.apache.ignite.ci.tcmodel.conf.ProjectsList;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.hist.Builds;
@@ -342,9 +343,10 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return getJaxbUsingHref(href, ChangesList.class);
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override public Change getChange(int changeId) {
-        String href = "app/rest/latest/changes/id:" + + changeId +"";
+        String href = "app/rest/latest/changes/id:" + +changeId;
 
         return getJaxbUsingHref(href, Change.class);
     }
@@ -370,11 +372,12 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override public CompletableFuture<List<BuildType>> getProjectSuites(String projectId) {
-        return supplyAsync(() -> getProjectSuitesSync(projectId), executor);
+    @Override public List<Project> getProjects() {
+        return sendGetXmlParseJaxb(host + "app/rest/latest/projects", ProjectsList.class).projects();
     }
 
-    private List<BuildType> getProjectSuitesSync(String projectId) {
+    /** {@inheritDoc} */
+    @Override public List<BuildType> getBuildTypes(String projectId) {
         return sendGetXmlParseJaxb(host + "app/rest/latest/projects/" + projectId, Project.class)
             .getBuildTypesNonNull();
     }

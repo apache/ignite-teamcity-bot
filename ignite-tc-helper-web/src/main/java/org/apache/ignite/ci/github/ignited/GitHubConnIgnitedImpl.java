@@ -36,6 +36,7 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.jetbrains.annotations.NotNull;
 
 /**
  *
@@ -79,10 +80,14 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     }
 
     /** {@inheritDoc} */
+    @Override public void notifyGit(String url, String body) {
+        conn.notifyGit(url, body);
+    }
+
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override public List<PullRequest> getPullRequests() {
-        scheduler.sheduleNamed(IGitHubConnIgnited.class.getSimpleName() + ".actualizePrs",
-            this::actualizePrs, 2, TimeUnit.MINUTES);
+        scheduler.sheduleNamed(taskName("actualizePrs"), this::actualizePrs, 2, TimeUnit.MINUTES);
 
         return StreamSupport.stream(prCache.spliterator(), false)
             .filter(entry -> entry.getKey() >> 32 == srvIdMaskHigh)
@@ -90,6 +95,16 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
             .map(javax.cache.Cache.Entry::getValue)
             .collect(Collectors.toList());
     }
+
+    /**
+     * @param taskName Task name.
+     * @return Task name concatenated with server name.
+     */
+    @NotNull
+    private String taskName(String taskName) {
+        return IGitHubConnIgnited.class.getSimpleName() + "." + taskName + "." + srvId;
+    }
+
 
     private void actualizePrs() {
         runActualizePrs(srvId, false);
@@ -102,8 +117,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
      *
      */
     private void sheduleResync() {
-        scheduler.sheduleNamed(IGitHubConnIgnited.class.getSimpleName() + ".fullReindex",
-            this::fullReindex, 60, TimeUnit.MINUTES);
+        scheduler.sheduleNamed(taskName("fullReindex"), this::fullReindex, 60, TimeUnit.MINUTES);
     }
 
     /**
@@ -157,14 +171,14 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Check Outdated PRs(srv)", nameExtArgsIndexes = {0})
     protected String refreshOutdatedPrs(String srvId, Set<Integer> actualPrs) {
-        final long count = StreamSupport.stream(prCache.spliterator(), false)
+        final long cnt = StreamSupport.stream(prCache.spliterator(), false)
                 .filter(entry -> entry.getKey() >> 32 == srvIdMaskHigh)
                 .filter(entry -> PullRequest.OPEN.equals(entry.getValue().getState()))
                 .filter(entry -> !actualPrs.contains(entry.getValue().getNumber()))
                 .peek(entry -> prCache.put(entry.getKey(), conn.getPullRequest(entry.getValue().getNumber())))
                 .count();
 
-        return "PRs updated for " + srvId + ": " + count + " from " + prCache.size();
+        return "PRs updated for " + srvId + ": " + cnt + " from " + prCache.size();
     }
 
     private int saveChunk(List<PullRequest> ghData) {

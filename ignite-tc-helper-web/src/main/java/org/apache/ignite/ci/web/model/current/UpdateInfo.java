@@ -21,7 +21,7 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 
 /**
- * Created by Дмитрий on 19.02.2018
+ *
  */
 @SuppressWarnings("WeakerAccess") public class UpdateInfo {
     /** TeamCity auth token availability flag. */
@@ -56,14 +56,14 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 
     /**
      * @param teamcity TeamCity to get info about tokens.
-     * @param gitHubConnection
+     * @param gitHubConn GitHub integration associated with this server.
      */
     public void setJavaFlags(IAnalyticsEnabledTeamcity teamcity,
-        IGitHubConnection gitHubConnection) {
+        IGitHubConnection gitHubConn) {
         if (teamcity.isTeamCityTokenAvailable())
             javaFlags |= TEAMCITY_FLAG;
 
-        if (gitHubConnection.isGitTokenAvailable())
+        if (gitHubConn.isGitTokenAvailable())
             javaFlags |= GITHUB_FLAG;
 
         if (teamcity.isJiraTokenAvailable())

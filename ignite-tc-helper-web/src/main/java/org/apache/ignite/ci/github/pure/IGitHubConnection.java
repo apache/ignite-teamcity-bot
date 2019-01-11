@@ -22,15 +22,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.ci.github.PullRequest;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ *
+ */
 public interface IGitHubConnection {
-
     void init(String srvId);
-
-    /**
-     * @param branch TeamCity's branch name. Looks like "pull/123/head".
-     * @return Pull Request.
-     */
-    PullRequest getPullRequest(String branch);
 
     /** */
     PullRequest getPullRequest(Integer id);

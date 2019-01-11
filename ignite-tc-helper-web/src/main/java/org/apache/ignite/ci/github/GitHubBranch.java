@@ -23,6 +23,7 @@ public class GitHubBranch {
     private String ref;
     private String sha;
 
+    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
@@ -34,7 +35,12 @@ public class GitHubBranch {
             Objects.equal(sha, branch.sha);
     }
 
+    /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(label, ref, sha);
+    }
+
+    public String ref() {
+        return ref;
     }
 }

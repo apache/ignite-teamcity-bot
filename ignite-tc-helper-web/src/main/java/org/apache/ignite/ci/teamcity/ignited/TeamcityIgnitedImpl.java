@@ -31,6 +31,7 @@ import org.apache.ignite.ci.jira.ignited.JiraTicketDao;
 import org.apache.ignite.ci.jira.ignited.JiraTicketSync;
 import org.apache.ignite.ci.jira.Ticket;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
+import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.teamcity.ignited.mute.MuteDao;
 import org.apache.ignite.ci.teamcity.ignited.mute.MuteSync;
@@ -427,9 +428,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return runHistCompactedDao.getSuiteRunStatAllBranches(srvIdMaskHigh, suiteBuildTypeId);
     }
 
-    /**
-     * @param branchName Branch name.
-     */
+    /** {@inheritDoc} */
+    @Override public List<String> getAllProjectsIds() {
+        return conn.getProjects().stream().map(Project::id).collect(Collectors.toList());
+    }
+
     /** {@inheritDoc} */
     @Override public List<String> getCompositeBuildTypesIdsSortedByBuildNumberCounter(String projectId) {
         return buildTypeSync.getCompositeBuildTypesIdsSortedByBuildNumberCounter(srvIdMaskHigh, projectId, conn);
@@ -447,6 +450,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** {@inheritDoc} */
     @Override public BuildTypeCompacted getBuildType(String buildTypeId) {
+
         return buildTypeDao.getFatBuildType(srvIdMaskHigh, buildTypeId);
     }
 

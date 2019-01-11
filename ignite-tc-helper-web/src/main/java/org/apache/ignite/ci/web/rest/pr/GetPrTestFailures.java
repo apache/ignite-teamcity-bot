@@ -17,14 +17,22 @@
 
 package org.apache.ignite.ci.web.rest.pr;
 
-import javax.ws.rs.FormParam;
-import javax.ws.rs.POST;
-
 import com.google.inject.Injector;
-import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
-import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
+import javax.annotation.Nonnull;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
+import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
@@ -32,16 +40,6 @@ import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.annotation.Nonnull;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
 
 @Path(GetPrTestFailures.PR)
 @Produces(MediaType.APPLICATION_JSON)
@@ -137,8 +135,7 @@ public class GetPrTestFailures {
             return "Given branch is not a pull request. Notify works only for pull requests.";
 
         final Injector injector = CtxListener.getInjector(ctx);
-        final ICredentialsProv creds = ICredentialsProv.get(req);
-        final IGitHubConnection srv = injector.getInstance(IGitHubConnectionProvider.class).server(srvId);
+        final IGitHubConnIgnited srv = injector.getInstance(IGitHubConnIgnitedProvider.class).server(srvId);
 
         PullRequest pr;
 
@@ -152,7 +149,6 @@ public class GetPrTestFailures {
         String statusesUrl = pr.getStatusesUrl();
 
         srv.notifyGit(statusesUrl, msg);
-
 
         return "Git was notified.";
     }

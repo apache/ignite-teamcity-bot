@@ -141,7 +141,7 @@ public class ChainAtServerCurrentStatus {
             if (pullReq != null && pullReq.getTitle() != null) {
                 prUrl = pullReq.htmlUrl();
 
-                ticketFullName = TcBotTriggerAndSignOffService.getTicketFullName(pullReq);
+                ticketFullName = TcBotTriggerAndSignOffService.getTicketFullName(pullReq, jiraIntegration.ticketPrefix());
 
                 if (!ticketFullName.isEmpty())
                     ticketUrl = jiraIntegration.generateTicketUrl(ticketFullName);

@@ -89,16 +89,13 @@ public class TcBotVisaService {
     @GET
     @Path("contributionStatus")
     public Set<ContributionCheckStatus> contributionStatus(@Nullable @QueryParam("serverId") String srvId,
-        @Nonnull @QueryParam("suiteId") String suiteId,
         @QueryParam("prId") String prId) {
         ICredentialsProv prov = ICredentialsProv.get(req);
         if (!prov.hasAccess(srvId))
             throw ServiceUnauthorizedException.noCreds(srvId);
 
-        TcBotTriggerAndSignOffService instance = CtxListener.getInjector(ctx)
-            .getInstance(TcBotTriggerAndSignOffService.class);
-
-        return instance.contributionStatuses(srvId, prov, prId);
+        return CtxListener.getInjector(ctx)
+            .getInstance(TcBotTriggerAndSignOffService.class).contributionStatuses(srvId, prov, prId);
     }
 
     @GET
