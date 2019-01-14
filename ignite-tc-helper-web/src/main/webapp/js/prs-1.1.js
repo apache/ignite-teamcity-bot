@@ -1,7 +1,7 @@
 function drawTable(srvId, element) {
     let tableId = "serverContributions-" + srvId;
 
-    element.append("<div id='expandAllButton' align='right' style='margin-right:50px'></div><br>" +
+    element.append("<div id='expandAllButton-" + srvId + "' align='right' style='margin-right:50px'></div><br>" +
         "<table id=\"" + tableId + "\" class='ui-widget ui-widget-content'>\n" +
         "            <thead>\n" +
         "            <tr class=\"ui-widget-header \">\n" +
@@ -18,23 +18,11 @@ function drawTable(srvId, element) {
 }
 
 function requestTableForServer(srvId, suiteIdIgnored, element) {
-    // TODO multiple servers
-    let s = findGetParameter("server");
-    if (!isDefinedAndFilled(s)) {
-        if (srvId !== "apache")
-            return;
-    }
-    else if (srvId !== s)
-        return;
-
-    // TODO multiple suites
-    // if (suiteId != "IgniteTests24Java8_RunAll")
-    //     return;
 
     let tableId = "serverContributions-" + srvId;
 
     if ($("#" + tableId).length > 0)
-        return;
+        return; //protection from duplicate
 
     drawTable(srvId, element);
 
@@ -60,7 +48,7 @@ function showContributionsTable(result, srvId, suiteId) {
     tableForSrv.dataTable().fnDestroy();
 
     if (isDefinedAndFilled(result) && result.length > 0)
-        $("#expandAllButton").html("<button class='more green' id='expandAll'>Expand all</button>");
+        $("#expandAllButton-"+ srvId).html("<button class='more green' id='expandAll'>Expand all</button>");
 
     var table = tableForSrv.DataTable({
         order: [[1, 'desc']],
