@@ -28,7 +28,7 @@ import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.di.cache.GuavaCachedModule;
 import org.apache.ignite.ci.di.scheduler.SchedulerModule;
 import org.apache.ignite.ci.github.ignited.GitHubIgnitedModule;
-import org.apache.ignite.ci.jira.JiraIntegrationModule;
+import org.apache.ignite.ci.jira.pure.JiraIntegrationModule;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.tcbot.TcBotBusinessServicesModule;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.jira;
+package org.apache.ignite.ci.jira.pure;
 
 import com.google.common.base.Preconditions;
 import java.io.File;
@@ -23,7 +23,7 @@ import java.util.Properties;
 import javax.inject.Inject;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.jira.Tickets;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.Visa;
 import org.jetbrains.annotations.NotNull;
@@ -33,7 +33,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 /**
  *
  */
-public class Jira implements IJiraIntegration {
+class Jira implements IJiraIntegration {
     /** */
     @Inject ITcHelper helper;
 

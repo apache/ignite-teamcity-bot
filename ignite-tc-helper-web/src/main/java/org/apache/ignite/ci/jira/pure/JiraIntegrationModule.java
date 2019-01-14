@@ -15,15 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.jira;
+package org.apache.ignite.ci.jira.pure;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
-import org.apache.ignite.ci.jira.pure.IJiraIntegration;
-import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 
 /**
- *
+ * JIRA pure integration module
  */
 public class JiraIntegrationModule extends AbstractModule {
     /** {@inheritDoc} */
