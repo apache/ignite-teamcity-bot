@@ -1,7 +1,7 @@
 function drawTable(srvId, element) {
     let tableId = "serverContributions-" + srvId;
 
-    element.append("<div id='expandAllButton' align='right' style='margin-right:50px'></div><br>" +
+    element.append("<div id='expandAllButton-" + srvId + "' align='right' style='margin-right:50px'></div><br>" +
         "<table id=\"" + tableId + "\" class='ui-widget ui-widget-content'>\n" +
         "            <thead>\n" +
         "            <tr class=\"ui-widget-header \">\n" +
@@ -21,8 +21,8 @@ function requestTableForServer(srvId, suiteIdIgnored, element) {
     // TODO multiple servers
     let s = findGetParameter("server");
     if (!isDefinedAndFilled(s)) {
-        if (srvId !== "apache")
-            return;
+        //if (srvId !== "apache")
+         //   return;
     }
     else if (srvId !== s)
         return;
@@ -60,7 +60,7 @@ function showContributionsTable(result, srvId, suiteId) {
     tableForSrv.dataTable().fnDestroy();
 
     if (isDefinedAndFilled(result) && result.length > 0)
-        $("#expandAllButton").html("<button class='more green' id='expandAll'>Expand all</button>");
+        $("#expandAllButton-"+ srvId).html("<button class='more green' id='expandAll'>Expand all</button>");
 
     var table = tableForSrv.DataTable({
         order: [[1, 'desc']],

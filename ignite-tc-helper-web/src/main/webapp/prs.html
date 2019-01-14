@@ -27,27 +27,10 @@
     <script>
         const prs = new Map();
 
-        function updateAccordionSize() {
-            let height = $(window).height();
-            let number = (height - 120);
-            if (number > 100)
-                $("#mainaccordion").css('height', number + 'px');
-            // update accordion height
-            //$("#mainaccordion").accordion("resize");
-        }
-
         $(document).ready(function() {
             $.getScript("js/common-1.6.js", function(data, textStatus, jqxhr){ });
 
             $( document ).tooltip();
-            updateAccordionSize();
-            $( "#mainaccordion" ).accordion({
-                heightStyle: "fill",
-                //heightStyle: "content"
-            });
-            $(window).resize(function () {
-                updateAccordionSize();
-            });
 
             loadData();
         });
@@ -68,9 +51,26 @@
                     showSuitesForTeamCityRunData(result);
                     showFormAndSuitesForPrCheck(result);
                     showCommentJiraForm(result);
+                    const processed = new Set();
+                    for (let chainAtServer of result) {
+                        let serverId = chainAtServer.serverId;
 
-                    for (let chainAtServer of result)
-                        requestTableForServer(chainAtServer.serverId,  chainAtServer.suiteId, $("#contributionsToCheck"));
+                        if(processed.has(serverId))
+                            continue;
+
+                        processed.add(serverId);
+
+                        let tabsInsertion = $("#tabs-insertionPoint");
+                        let tabId = "tabs-" + serverId;
+                        let tabRef = "#" + tabId;
+                        tabsInsertion.prepend("<li><a href=\"" + tabRef + "\">" + serverId + "</a></li>");
+
+                        tabsInsertion.after("<div id=\"" + tabId + "\">" + "</div>");
+
+                        requestTableForServer(serverId, chainAtServer.suiteId, $(tabRef));
+                    }
+
+                    $( "#tabs" ).tabs();
                 },
                 error: showErrInLoadStatus
             });
@@ -83,7 +83,6 @@
                 "&branchForTc=" +  branchName +
                 "&action=Latest";
         }
-
 
 
         function showSuitesForTeamCityRunData(result) {
@@ -184,15 +183,11 @@
 <body>
 <div id="loadStatus"></div>
 
-
-<div id="mainaccordion" style="height: 500px">
-    <h3>Select PR</h3>
-    <div id="contributionsToCheck">
-
-    </div>
-
-    <h3>I'll enter branch data</h3>
-    <div>
+<div id="tabs" >
+    <ul id="tabs-insertionPoint">
+        <li><a href="#tabs-manual" title="I'll enter branch data">Manual</a></li>
+    </ul>
+    <div id="tabs-manual">
         <div class="formgroup">
             Trigger new TeamCity Run All for a PR/Branch: <br>
             <div id="suitesForRunAll"></div>
@@ -208,7 +203,6 @@
         <br>Check results of branch/PR TeamCity Run All:
         <div id="suitesForPrCheck"></div>
 
-
         <!--Notify GitHub:   <br>
         <div id="notifyGitHub">
             <form>
@@ -220,7 +214,6 @@
         <br>-->
     </div>
 </div>
-
 
 <div id="version"></div>
 
