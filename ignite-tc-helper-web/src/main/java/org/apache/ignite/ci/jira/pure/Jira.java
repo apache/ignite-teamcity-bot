@@ -18,15 +18,24 @@
 package org.apache.ignite.ci.jira.pure;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.gson.Gson;
 import java.io.File;
+import java.io.IOException;
 import java.util.Properties;
 import javax.inject.Inject;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.jira.Tickets;
+import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.web.model.Visa;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -34,14 +43,20 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  *
  */
 class Jira implements IJiraIntegration {
-    /** */
-    @Inject ITcHelper helper;
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(Jira.class);
 
     /** */
     private String jiraUrl;
 
     /** JIRA ticket prefix. */
     @NotNull private String jiraTicketPrefix;
+
+    /** JIRA authorization token. */
+    private String jiraBasicAuthTok;
+
+    /** URL for JIRA integration. */
+    private String jiraApiUrl;
 
     /** {@inheritDoc} */
     @Override public void init(String srvId) {
@@ -54,7 +69,15 @@ class Jira implements IJiraIntegration {
         jiraUrl = props.getProperty(HelperConfig.JIRA_URL);
 
         jiraTicketPrefix = props.getProperty(HelperConfig.JIRA_TICKET_TEMPLATE, "IGNITE-");
+
+        jiraBasicAuthTok = HelperConfig.prepareJiraHttpAuthToken(props);
+        jiraApiUrl = props.getProperty(HelperConfig.JIRA_API_URL);
     }
+
+    /**
+     * @return {@code True} if JIRA authorization token is available.
+     */
+    // boolean isJiraTokenAvailable();
 
     /** {@inheritDoc} */
     @Override public String jiraUrl() {
@@ -67,14 +90,23 @@ class Jira implements IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @Override public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
-        String ticket) {
-        return helper.notifyJira(srvId, prov, buildTypeId, branchForTc, ticket);
+    @Override public Tickets getTickets(String srvId, ICredentialsProv prov, String url) {
+        return getJiraTickets(srvId, prov, url);
     }
 
     /** {@inheritDoc} */
-    @Override public Tickets getTickets(String srvId, ICredentialsProv prov, String url) {
-        return helper.getJiraTickets(srvId, prov, url);
+    public Tickets getJiraTickets(String srvId, ICredentialsProv prov, String url) {
+        try {
+            return new Gson().fromJson(sendGetToJira(url), Tickets.class);
+        }
+        catch (Exception e) {
+            String errMsg = "Exception happened during receiving JIRA tickets " +
+                "[url=" + url + ", errMsg=" + e.getMessage() + ']';
+
+            logger.error(errMsg);
+
+            return new Tickets();
+        }
     }
 
     /** {@inheritDoc} */
@@ -91,4 +123,37 @@ class Jira implements IJiraIntegration {
             "&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-" +
             commentId;
     }
+
+    /** {@inheritDoc} */
+    @Override public String getJiraApiUrl() {
+        return jiraApiUrl;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isJiraTokenAvailable() {
+        return !Strings.isNullOrEmpty(jiraBasicAuthTok);
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public String sendJiraComment(String ticket, String comment) throws IOException {
+        if (isNullOrEmpty(jiraApiUrl))
+            throw new IllegalStateException("JIRA API URL is not configured for this server.");
+
+        String url = jiraApiUrl + "issue/" + ticket + "/comment";
+
+        return HttpUtil.sendPostAsStringToJira(jiraBasicAuthTok, url, "{\"body\": \"" + comment + "\"}");
+    }
+
+    /**
+     * @param url Url.
+     * @return Response as gson string.
+     */
+    public String sendGetToJira(String url) throws IOException {
+        if (isNullOrEmpty(jiraApiUrl))
+            throw new IllegalStateException("JIRA API URL is not configured for this server.");
+
+        return HttpUtil.sendGetToJira(jiraBasicAuthTok, jiraApiUrl + url);
+    }
+
 }

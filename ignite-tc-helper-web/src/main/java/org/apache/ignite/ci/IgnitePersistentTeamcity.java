@@ -540,36 +540,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public void setJiraToken(String tok) {
-        teamcity.setJiraToken(tok);
-    }
-
-    /** {@inheritDoc} */
-    @Override public boolean isJiraTokenAvailable() {
-        return teamcity.isJiraTokenAvailable();
-    }
-
-    /** {@inheritDoc} */
-    @Override public String sendJiraComment(String ticket, String comment) throws IOException {
-        return teamcity.sendJiraComment(ticket, comment);
-    }
-
-    /** {@inheritDoc} */
-    @Override public String sendGetToJira(String url) throws IOException {
-        return teamcity.sendGetToJira(url);
-    }
-
-    /** {@inheritDoc} */
-    @Override public void setJiraApiUrl(String url) {
-        teamcity.setJiraApiUrl(url);
-    }
-
-    /** {@inheritDoc} */
-    @Override public String getJiraApiUrl() {
-        return teamcity.getJiraApiUrl();
-    }
-
-    /** {@inheritDoc} */
     @Override public List<Agent> agents(boolean connected, boolean authorized) {
         return teamcity.agents(connected, authorized);
     }

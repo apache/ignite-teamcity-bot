@@ -91,42 +91,6 @@ public interface ITeamcity extends ITeamcityConn {
     boolean isTeamCityTokenAvailable();
 
 
-    /**
-     * @param tok Jira authorization token.
-     */
-    void setJiraToken(String tok);
-
-    /**
-     * @return {@code True} if JIRA authorization token is available.
-     */
-    boolean isJiraTokenAvailable();
-
-    /**
-     * @param ticket JIRA ticket full name. E.g 'IGNITE-5555'.
-     * @param comment Comment to be placed in the ticket conversation.
-     * @return {@code True} if ticket was succesfully commented. Otherwise - {@code false}.
-     *
-     * @throws IOException If failed to comment JIRA ticket.
-     * @throws IllegalStateException If can't find URL to the JIRA.
-     */
-    public String sendJiraComment(String ticket, String comment) throws IOException;
-
-    /**
-     * @param url Url.
-     * @return Response as gson string.
-     */
-    String sendGetToJira(String url) throws IOException;
-
-    /**
-     * @param url URL for JIRA integration.
-     */
-    void setJiraApiUrl(String url);
-
-    /**
-     * @return URL for JIRA integration.
-     */
-    String getJiraApiUrl();
-
     default void setAuthData(String user, String pwd) {
         setAuthToken(
                 Base64Util.encodeUtf8String(user + ":" + pwd));

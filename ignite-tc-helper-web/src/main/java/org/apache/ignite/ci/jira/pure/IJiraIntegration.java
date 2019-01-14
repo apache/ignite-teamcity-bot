@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.jira.pure;
 
+import java.io.IOException;
 import org.apache.ignite.ci.jira.Tickets;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -30,19 +31,13 @@ public interface IJiraIntegration {
     public static String JIRA_COMMENTED = "JIRA commented.";
 
     /**
-     * Produce visa message(see {@link Visa}) based on passed
-     * parameters and publish it as a comment for specified ticket
-     * on Jira server.
-     *
-     * @param srvId TC Server ID to take information about token from.
-     * @param prov Credentials.
-     * @param buildTypeId Suite name.
-     * @param branchForTc Branch for TeamCity.
-     * @param ticket JIRA ticket full name. E.g. IGNITE-5555
-     * @return {@link Visa} instance.
+     * @param ticket JIRA ticket full name. E.g 'IGNITE-5555'.
+     * @param comment Comment to be placed in the ticket conversation.
+     * @return {@code True} if ticket was succesfully commented. Otherwise - {@code false}.
+     * @throws IOException If failed to comment JIRA ticket.
+     * @throws IllegalStateException If can't find URL to the JIRA.
      */
-    public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
-        String ticket);
+    public String sendJiraComment(String ticket, String comment) throws IOException;
 
     /**
      * Produce wrapper for collection of Jira tickets for given server.
@@ -65,15 +60,17 @@ public interface IJiraIntegration {
 
     /**
      * @param ticketFullName Ticket full name (e.g IGNITE-8331)
-     *
      * @return URL which is used as link to Jira ticket with specified name.
      */
     public String generateTicketUrl(String ticketFullName);
 
     /**
      * @param ticketFullName Ticket full name (e.g IGNITE-8331)
-     *
      * @return URL which is used as link to Jira comment with specified id.
      */
     public String generateCommentUrl(String ticketFullName, int commentId);
+
+    String getJiraApiUrl();
+
+    boolean isJiraTokenAvailable();
 }

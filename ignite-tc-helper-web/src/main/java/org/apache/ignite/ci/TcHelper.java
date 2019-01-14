@@ -53,9 +53,6 @@ import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
  */
 @Deprecated
 public class TcHelper implements ITcHelper {
-    /** Logger. */
-    private static final Logger logger = LoggerFactory.getLogger(TcHelper.class);
-
     /** Stop guard. */
     private AtomicBoolean stop = new AtomicBoolean();
 
@@ -70,18 +67,6 @@ public class TcHelper implements ITcHelper {
 
     @Inject private UserAndSessionsStorage userAndSessionsStorage;
 
-    @Inject private PrChainsProcessor prChainsProcessor;
-
-    @Inject private ITeamcityIgnitedProvider tcProv;
-
-    @Inject private IStringCompactor compactor;
-
-    /** */
-    private final ObjectMapper objectMapper;
-
-    public TcHelper() {
-        objectMapper = new ObjectMapper();
-    }
 
     /** {@inheritDoc} */
     @Override public void setServerAuthorizerCreds(ICredentialsProv creds) {
@@ -126,145 +111,6 @@ public class TcHelper implements ITcHelper {
     }
 
 
-    /** {@inheritDoc} */
-    @Override public Visa notifyJira(
-        String srvId,
-        ICredentialsProv prov,
-        String buildTypeId,
-        String branchForTc,
-        String ticket
-    ) {
-        IAnalyticsEnabledTeamcity teamcity = server(srvId, prov);
-
-        ITeamcityIgnited tcIgnited = tcProv.server(srvId, prov);
-
-        List<Integer> builds = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
-
-        if (builds.isEmpty())
-            return new Visa("JIRA wasn't commented - no finished builds to analyze.");
-
-        Integer buildId = builds.get(0);
-
-        FatBuildCompacted fatBuild = tcIgnited.getFatBuild(buildId);
-        Build build = fatBuild.toBuild(compactor);
-
-        build.webUrl = tcIgnited.host() + "viewLog.html?buildId=" + build.getId() + "&buildTypeId=" + build.buildTypeId;
-
-        int blockers;
-
-        JiraCommentResponse res;
-
-        try {
-            List<SuiteCurrentStatus> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
-
-            if (suitesStatuses == null)
-                return new Visa("JIRA wasn't commented - no finished builds to analyze.");
-
-            String comment = generateJiraComment(suitesStatuses, build.webUrl, buildTypeId, tcIgnited);
-
-            blockers = suitesStatuses.stream()
-                .mapToInt(suite -> {
-                    if (suite.testFailures.isEmpty())
-                        return 1;
-
-                    return suite.testFailures.size();
-                })
-                .sum();
-
-            res = objectMapper.readValue(teamcity.sendJiraComment(ticket, comment), JiraCommentResponse.class);
-        }
-        catch (Exception e) {
-            String errMsg = "Exception happened during commenting JIRA ticket " +
-                "[build=" + build.getId() + ", errMsg=" + e.getMessage() + ']';
-
-            logger.error(errMsg);
-
-            return new Visa("JIRA wasn't commented - " + errMsg);
-        }
-
-        return new Visa(IJiraIntegration.JIRA_COMMENTED, res, blockers);
-    }
-
-    /** {@inheritDoc} */
-    @Override public Tickets getJiraTickets(String srvId, ICredentialsProv prov, String url) {
-        IAnalyticsEnabledTeamcity teamcity = server(srvId, prov);
-
-        try {
-            return new Gson().fromJson(teamcity.sendGetToJira(url), Tickets.class);
-        }
-        catch (Exception e) {
-            String errMsg = "Exception happened during receiving JIRA tickets " +
-                "[url=" + url + ", errMsg=" + e.getMessage() + ']';
-
-            logger.error(errMsg);
-
-            return new Tickets();
-        }
-    }
-
-    /**
-     * @param suites Suite Current Status.
-     * @param webUrl Build URL.
-     * @return Comment, which should be sent to the JIRA ticket.
-     */
-    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl, String buildTypeId,
-        ITeamcityIgnited tcIgnited) {
-        BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
-
-        String suiteName = (bt != null ? bt.name(compactor) : buildTypeId);
-
-        StringBuilder res = new StringBuilder();
-
-        for (SuiteCurrentStatus suite : suites) {
-            res.append("{color:#d04437}").append(suite.name).append("{color}");
-            res.append(" [[tests ").append(suite.failedTests);
-
-            if (suite.result != null && !suite.result.isEmpty())
-                res.append(' ').append(suite.result);
-
-            res.append('|').append(suite.webToBuild).append("]]\\n");
-
-            for (TestFailure failure : suite.testFailures) {
-                res.append("* ");
-
-                if (failure.suiteName != null && failure.testName != null)
-                    res.append(failure.suiteName).append(": ").append(failure.testName);
-                else
-                    res.append(failure.name);
-
-                FailureSummary recent = failure.histBaseBranch.recent;
-
-                if (recent != null) {
-                    if (recent.failureRate != null) {
-                        res.append(" - ").append(recent.failureRate).append("% fails in last ")
-                            .append(recent.runs).append(" master runs.");
-                    }
-                    else if (recent.failures != null && recent.runs != null) {
-                        res.append(" - ").append(recent.failures).append(" fails / ")
-                            .append(recent.runs).append(" master runs.");
-                    }
-                }
-
-                res.append("\\n");
-            }
-
-            res.append("\\n");
-        }
-
-        if (res.length() > 0) {
-            res.insert(0, "{panel:title=" + suiteName + ": Possible Blockers|" +
-                "borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}\\n")
-                .append("{panel}");
-        }
-        else {
-            res.append("{panel:title=").append(suiteName).append(": No blockers found!|")
-                .append("borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
-        }
-
-        res.append("\\n").append("[TeamCity *").append(suiteName).append("* Results|").append(webUrl).append(']');
-
-        return xmlEscapeText(res.toString());
-    }
 
     public void close() {
         if (stop.compareAndSet(false, true))

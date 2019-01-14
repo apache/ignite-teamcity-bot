@@ -55,21 +55,4 @@ public interface ITcHelper extends ITcServerProvider {
     /** */
     boolean isServerAuthorized();
 
-    /**
-     * @param srvId Server id.
-     * @param prov Credentials.
-     * @param buildTypeId Suite name.
-     * @param branchForTc Branch for TeamCity.
-     * @param ticket JIRA ticket full name.
-     * @return {@code Visa} which contains info about JIRA notification.
-     */
-    Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc, String ticket);
-
-    /**
-     * @param srvId Server id.
-     * @param prov Credentials.
-     * @param ticketId Ticket.
-     * @return Jira tickets.
-     */
-    Tickets getJiraTickets(String srvId, ICredentialsProv prov, String ticketId);
 }

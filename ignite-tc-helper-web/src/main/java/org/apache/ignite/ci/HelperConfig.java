@@ -159,7 +159,7 @@ public class HelperConfig {
      * @param props Properties, where token is placed.
      * @return Null or decoded auth token for Github.
      */
-    @Nullable static String prepareJiraHttpAuthToken(Properties props) {
+    @Nullable public static String prepareJiraHttpAuthToken(Properties props) {
         String tok = props.getProperty(JIRA_AUTH_TOKEN);
 
         if (isNullOrEmpty(tok))

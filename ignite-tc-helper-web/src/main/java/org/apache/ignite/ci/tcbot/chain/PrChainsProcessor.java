@@ -108,7 +108,7 @@ public class PrChainsProcessor {
 
         IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(srvId);
 
-        res.setJavaFlags(teamcity, gitHubConn);
+        res.setJavaFlags(teamcity, gitHubConn, jiraIntegration);
 
         LatestRebuildMode rebuild;
         if (FullQueryParams.HISTORY.equals(act))
