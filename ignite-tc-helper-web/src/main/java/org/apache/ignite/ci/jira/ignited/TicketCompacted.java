@@ -52,6 +52,7 @@ public class TicketCompacted {
     public Ticket toTicket(IStringCompactor comp) {
         Ticket ticket = new Ticket();
 
+        //todo take prefix from outside
         ticket.id = id;
         ticket.key = "IGNITE-" + igniteId;
         ticket.fields = new Fields();

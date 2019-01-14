@@ -46,7 +46,7 @@ import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
+import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;

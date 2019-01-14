@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.jira;
+package org.apache.ignite.ci.jira.pure;
 
+import org.apache.ignite.ci.jira.Tickets;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.jetbrains.annotations.NotNull;
@@ -48,10 +49,10 @@ public interface IJiraIntegration {
      *
      * @param srvId Server id.
      * @param prov Prov.
-     * @param ticketId Ticket id.
+     * @param url Ticket id.
      * @return Jira tickets.
      */
-    public Tickets getTickets(String srvId, ICredentialsProv prov, String ticketId);
+    public Tickets getTickets(@Deprecated String srvId, ICredentialsProv prov, String url);
 
     /** */
     public String jiraUrl();

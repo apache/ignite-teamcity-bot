@@ -23,6 +23,7 @@ import java.util.Properties;
 import javax.inject.Inject;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.Visa;
 import org.jetbrains.annotations.NotNull;

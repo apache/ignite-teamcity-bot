@@ -41,10 +41,9 @@ import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
-import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
-import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
+import org.apache.ignite.ci.jira.Tickets;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
@@ -86,9 +85,6 @@ public class TcBotTriggerAndSignOffService {
 
     /** Build observer provider. */
     @Inject Provider<BuildObserver> buildObserverProvider;
-
-    /** GitHub (pure) HTTP connection provider. */
-    @Inject IGitHubConnectionProvider gitHubConnProvider;
 
     /** GitHub connection ignited provider. */
     @Inject IGitHubConnIgnitedProvider gitHubConnIgnitedProvider;
@@ -367,15 +363,28 @@ public class TcBotTriggerAndSignOffService {
 
     /**
      * @param srvId Server id.
+     * @param credsProv Credentials
      */
-    public List<ContributionToCheck> getContributionsToCheck(String srvId) {
+    public List<ContributionToCheck> getContributionsToCheck(String srvId,
+        ICredentialsProv credsProv) {
         IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(srvId);
 
         List<PullRequest> requests = gitHubConnIgnitedProvider.server(srvId).getPullRequests();
         if (requests == null)
             return null;
 
-        return requests.stream().map(pr -> {
+        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, credsProv);
+
+        String prj = jiraIntegration.ticketPrefix().replaceAll("-", "");
+        String url = "search?jql=project=" +
+            prj +
+            "%20order%20by%20updated%20DESC&fields=status&maxResults=100";
+        Tickets tickets = jiraIntegration.getTickets(srvId, credsProv, url);
+        System.out.println("srvId="+srvId + " tickets " + tickets.issues);
+
+        //todo JIRA ignited
+
+        List<ContributionToCheck> contribsList = requests.stream().map(pr -> {
             ContributionToCheck check = new ContributionToCheck();
             check.prNumber = pr.getNumber();
             check.prTitle = pr.getTitle();
@@ -396,6 +405,10 @@ public class TcBotTriggerAndSignOffService {
 
             return check;
         }).collect(Collectors.toList());
+
+
+
+        return contribsList;
     }
 
     @Nonnull private List<BuildRefCompacted> findBuildsForPr(String suiteId, String prId,

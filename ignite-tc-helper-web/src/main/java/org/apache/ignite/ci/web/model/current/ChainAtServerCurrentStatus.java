@@ -33,7 +33,7 @@ import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.analysis.TestInBranch;

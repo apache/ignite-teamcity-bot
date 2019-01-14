@@ -19,6 +19,8 @@ package org.apache.ignite.ci.jira;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 
 /**
  *

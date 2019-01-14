@@ -75,15 +75,18 @@ public class TcBotVisaService {
 
     /**
      * @param srvId Server id.
+     * @return Contribution list for PRs and branches can be checked by TC bot.
      */
     @GET
     @Path("contributions")
     public List<ContributionToCheck> contributions(@Nullable @QueryParam("serverId") String srvId) {
-        if (!ICredentialsProv.get(req).hasAccess(srvId))
+        ICredentialsProv credsProv = ICredentialsProv.get(req);
+
+        if (!credsProv.hasAccess(srvId))
             throw ServiceUnauthorizedException.noCreds(srvId);
 
         return CtxListener.getInjector(ctx)
-            .getInstance(TcBotTriggerAndSignOffService.class).getContributionsToCheck(srvId);
+            .getInstance(TcBotTriggerAndSignOffService.class).getContributionsToCheck(srvId, credsProv);
     }
 
     @GET

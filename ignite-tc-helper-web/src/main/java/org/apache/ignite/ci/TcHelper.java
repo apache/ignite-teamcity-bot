@@ -26,7 +26,7 @@ import javax.inject.Inject;
 import org.apache.ignite.ci.jira.Tickets;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.issue.IssuesStorage;
-import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;

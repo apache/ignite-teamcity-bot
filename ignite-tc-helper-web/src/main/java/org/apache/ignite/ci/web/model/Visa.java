@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.model;
 
-import org.apache.ignite.ci.jira.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.jetbrains.annotations.Nullable;
 
 /**

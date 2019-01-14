@@ -24,6 +24,8 @@ import com.google.inject.Provider;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.util.ExceptionUtil;
 
 /**

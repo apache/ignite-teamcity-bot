@@ -91,10 +91,10 @@ public class JiraTicketDao {
      *
      * @param srvIdMaskHigh Server id mask high.
      * @param chunk Chunk.
-     * @param ticketTemplate Ticket name template.
+     * @param ticketPrefix Ticket name template.
      */
     @AutoProfiling
-    public void saveChunk(int srvIdMaskHigh, Collection<Ticket> chunk, String ticketTemplate) {
+    public void saveChunk(int srvIdMaskHigh, Collection<Ticket> chunk, String ticketPrefix) {
         Preconditions.checkNotNull(jiraCache, "init() was not called");
 
         if (F.isEmpty(chunk))
@@ -103,8 +103,8 @@ public class JiraTicketDao {
         HashMap<Long, TicketCompacted> compactedTickets = new HashMap<>(U.capacity(chunk.size()));
 
         for (Ticket ticket : chunk) {
-            long key = ticketToCacheKey(srvIdMaskHigh, ticket.igniteId(ticketTemplate));
-            TicketCompacted val = new TicketCompacted(ticket, compactor, ticketTemplate);
+            long key = ticketToCacheKey(srvIdMaskHigh, ticket.igniteId(ticketPrefix));
+            TicketCompacted val = new TicketCompacted(ticket, compactor, ticketPrefix);
 
             compactedTickets.put(key, val);
         }

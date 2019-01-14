@@ -22,8 +22,8 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.jira.Ticket;
 import org.apache.ignite.ci.jira.Tickets;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
@@ -31,7 +31,7 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.internal.util.typedef.F;
 
 /**
- * 
+ * Sync serving requests for all JIRA servers.
  */
 public class JiraTicketSync {
     /** Scheduler. */
@@ -59,7 +59,7 @@ public class JiraTicketSync {
      * @param creds Credentials.
      */
     @MonitoredTask(name = "Actualize Jira", nameExtArgsIndexes = {0})
-    private String actualizeJiraTickets(int srvIdMaskHigh, ITeamcityConn conn, ICredentialsProv creds) {
+    protected String actualizeJiraTickets(int srvIdMaskHigh, ITeamcityConn conn, ICredentialsProv creds) {
         String srvId = conn.serverId();
         IJiraIntegration jira = jiraIntegrationProvider.server(srvId);
         String url = "search?jql=project%20=%20IGNITE%20order%20by%20updated%20DESC&fields=status&maxResults=100";
