@@ -16,7 +16,14 @@
  */
 package org.apache.ignite.ci.jira.ignited;
 
+import com.google.common.collect.Sets;
+import java.util.Collection;
+import java.util.Set;
+import javax.inject.Inject;
+import org.apache.ignite.ci.jira.Ticket;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.jetbrains.annotations.NotNull;
 
 /**
  *
@@ -25,7 +32,60 @@ class JiraIgnited implements IJiraIgnited {
     /** Pure HTTP Jira connection. */
     private IJiraIntegration jira;
 
+    /** Jira ticket DAO. */
+    @Inject private JiraTicketDao jiraTicketDao;
+
+    /** Jira ticket Sync. */
+    @Inject private JiraTicketSync jiraTicketSync;
+
+    /** Server id. */
+    private String srvId;
+
+    /** Server id mask high. */
+    private int srvIdMaskHigh;
+
     public void init(IJiraIntegration jira) {
         this.jira = jira;
+
+        srvId = jira.getServiceId();
+
+        srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
+
+        jiraTicketDao.init();
+    }
+
+    /** {@inheritDoc} */
+    @Override public String ticketPrefix() {
+        return jira.ticketPrefix();
+    }
+
+    /** {@inheritDoc} */
+    @NotNull @Override public String projectName() {
+        return jira.projectName();
+    }
+
+    @Override public Set<Ticket> getTickets() {
+        jiraTicketSync.ensureActualizeJiraTickets(taskName("actualizeJiraTickets"), srvId);
+
+        return jiraTicketDao.getTickets(srvIdMaskHigh);
+    }
+
+    /**
+     * @param taskName Task name.
+     * @return Task name concatenated with server name.
+     */
+    @NotNull
+    private String taskName(String taskName) {
+        return ITeamcityIgnited.class.getSimpleName() + "." + taskName + "." + srvId;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String generateCommentUrl(String ticketFullName, int commentId) {
+        return jira.generateCommentUrl(ticketFullName, commentId);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String generateTicketUrl(String id) {
+        return jira.generateTicketUrl(id);
     }
 }

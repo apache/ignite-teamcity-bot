@@ -19,16 +19,33 @@ package org.apache.ignite.ci.jira.pure;
 
 import java.io.IOException;
 import org.apache.ignite.ci.jira.Tickets;
-import org.apache.ignite.ci.web.model.Visa;
-import org.apache.ignite.ci.user.ICredentialsProv;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Reperesents methods to provide interaction with Jira servers.
  */
 public interface IJiraIntegration {
-    /** Message to show user when JIRA ticket was successfully commented by the Bot. */
-    public static String JIRA_COMMENTED = "JIRA commented.";
+
+    /** @return JIRA ticket prefix. */
+    @NotNull public String ticketPrefix();
+
+    /**
+     *
+     */
+    @NotNull public default String projectName() {
+        return ticketPrefix().replaceAll("-", "");
+    }
+
+    /**
+     * @return Internal identified service ID.
+     */
+    public void init(String srvId);
+
+    /**
+     * @return Internal identified service ID.
+     */
+    public String getServiceId();
+
 
     /**
      * @param ticket JIRA ticket full name. E.g 'IGNITE-5555'.
@@ -37,26 +54,19 @@ public interface IJiraIntegration {
      * @throws IOException If failed to comment JIRA ticket.
      * @throws IllegalStateException If can't find URL to the JIRA.
      */
-    public String sendJiraComment(String ticket, String comment) throws IOException;
+    public String postJiraComment(String ticket, String comment) throws IOException;
 
     /**
      * Produce wrapper for collection of Jira tickets for given server.
      *
      * @param srvId Server id.
-     * @param prov Prov.
-     * @param url Ticket id.
+     * @param url Tickets loading URL and parameters.
      * @return Jira tickets.
      */
-    public Tickets getTickets(@Deprecated String srvId, ICredentialsProv prov, String url);
+    public Tickets getTicketsPage(@Deprecated String srvId, String url);
 
     /** */
     public String jiraUrl();
-
-    /** @return JIRA ticket prefix. */
-    @NotNull public String ticketPrefix();
-
-    /** */
-    public void init(String srvId);
 
     /**
      * @param ticketFullName Ticket full name (e.g IGNITE-8331)

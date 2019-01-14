@@ -21,6 +21,10 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
 import com.google.inject.internal.SingletonScope;
 import com.google.inject.matcher.Matchers;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.TcHelper;
@@ -28,7 +32,7 @@ import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.di.cache.GuavaCachedModule;
 import org.apache.ignite.ci.di.scheduler.SchedulerModule;
 import org.apache.ignite.ci.github.ignited.GitHubIgnitedModule;
-import org.apache.ignite.ci.jira.pure.JiraIntegrationModule;
+import org.apache.ignite.ci.jira.ignited.JiraIgnitedModule;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.tcbot.TcBotBusinessServicesModule;
@@ -39,11 +43,6 @@ import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
-
-import javax.inject.Provider;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  *
@@ -81,7 +80,7 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(BackgroundUpdater.class).in(new SingletonScope());
 
         install(new TeamcityIgnitedModule());
-        install(new JiraIntegrationModule());
+        install(new JiraIgnitedModule());
         install(new GitHubIgnitedModule());
         install(new SchedulerModule());
         install(new TcBotBusinessServicesModule());

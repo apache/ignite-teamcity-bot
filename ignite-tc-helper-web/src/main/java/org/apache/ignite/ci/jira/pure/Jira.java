@@ -23,16 +23,10 @@ import com.google.gson.Gson;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
-import javax.inject.Inject;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.jira.Tickets;
-import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
-import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.HttpUtil;
-import org.apache.ignite.ci.web.model.Visa;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,9 +51,11 @@ class Jira implements IJiraIntegration {
 
     /** URL for JIRA integration. */
     private String jiraApiUrl;
+    private String srvId;
 
     /** {@inheritDoc} */
     @Override public void init(String srvId) {
+        this.srvId = srvId;
         final File workDir = HelperConfig.resolveWorkDir();
 
         final String cfgName = HelperConfig.prepareConfigName(srvId);
@@ -90,12 +86,7 @@ class Jira implements IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @Override public Tickets getTickets(String srvId, ICredentialsProv prov, String url) {
-        return getJiraTickets(srvId, prov, url);
-    }
-
-    /** {@inheritDoc} */
-    public Tickets getJiraTickets(String srvId, ICredentialsProv prov, String url) {
+    @Override public Tickets getTicketsPage(String srvId, String url) {
         try {
             return new Gson().fromJson(sendGetToJira(url), Tickets.class);
         }
@@ -136,7 +127,7 @@ class Jira implements IJiraIntegration {
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public String sendJiraComment(String ticket, String comment) throws IOException {
+    @Override public String postJiraComment(String ticket, String comment) throws IOException {
         if (isNullOrEmpty(jiraApiUrl))
             throw new IllegalStateException("JIRA API URL is not configured for this server.");
 
@@ -156,4 +147,7 @@ class Jira implements IJiraIntegration {
         return HttpUtil.sendGetToJira(jiraBasicAuthTok, jiraApiUrl + url);
     }
 
+    public String getServiceId() {
+        return srvId;
+    }
 }

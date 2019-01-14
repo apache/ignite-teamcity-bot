@@ -23,12 +23,14 @@ import com.google.inject.Provider;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
@@ -37,13 +39,15 @@ import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.github.GitHubBranch;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
+import org.apache.ignite.ci.jira.Ticket;
 import org.apache.ignite.ci.jira.Tickets;
+import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
+import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.observer.BuildObserver;
@@ -82,7 +86,9 @@ import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
 import static org.apache.ignite.ci.web.rest.parms.FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME;
 
 /**
- * Provides method for TC Bot Visa obtaining
+ * Provides method for TC Bot Visa obtaining.
+ * Contains features for adding comment to the ticket based on latest state.
+ *
  */
 public class TcBotTriggerAndSignOffService {
     /** Logger. */
@@ -104,8 +110,11 @@ public class TcBotTriggerAndSignOffService {
     /** TC ignited provider. */
     @Inject ITeamcityIgnitedProvider tcIgnitedProv;
 
-    /** */
-    @Inject IJiraIntegrationProvider jiraIntegrationProvider;
+    /** Direct connection to JIRA provider */
+    @Inject IJiraIgnitedProvider jiraIgnProv;
+
+    /** Direct connection to JIRA provider */
+    @Inject IJiraIntegrationProvider jiraPureProvider;
 
     /** */
     @Inject private VisasHistoryStorage visasHistStorage;
@@ -135,7 +144,7 @@ public class TcBotTriggerAndSignOffService {
 
         ITeamcityIgnited ignited = tcIgnitedProv.server(srvId, prov);
 
-        IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(srvId);
+        IJiraIntegration jiraIntegration = jiraPureProvider.server(srvId);
 
         for (VisaRequest visaRequest : visasHistStorage.getVisas()) {
             VisaStatus visaStatus = new VisaStatus();
@@ -191,12 +200,46 @@ public class TcBotTriggerAndSignOffService {
     public Set<MuteInfo> getMutes(String srvId, String projectId, ICredentialsProv creds) {
         ITeamcityIgnited ignited = tcIgnitedProv.server(srvId, creds);
 
-        Set<MuteInfo> infos = ignited.getMutes(projectId, creds);
+        Set<MuteInfo> mutes = ignited.getMutes(projectId, creds);
 
-        for (MuteInfo info : infos)
+        IJiraIgnited jiraIgn = jiraIgnProv.server(srvId);
+
+        insertTicketStatus(mutes, jiraIgn.getTickets());
+
+        for (MuteInfo info : mutes)
             info.assignment.muteDate = THREAD_FORMATTER.get().format(new Date(info.assignment.timestamp()));
 
-        return infos;
+        return mutes;
+    }
+
+    /**
+     * Insert ticket status for all mutes, if they have ticket in description.
+     *
+     * @param mutes Mutes.
+     * @param tickets Tickets.
+     */
+    private void insertTicketStatus(Set<MuteInfo> mutes, Collection<Ticket> tickets) {
+        for (MuteInfo mute : mutes) {
+            if (F.isEmpty(mute.assignment.text))
+                continue;
+
+            String browseUrl = "https://issues.apache.org/jira/browse/";
+            int pos = mute.assignment.text.indexOf(browseUrl);
+
+            if (pos == -1)
+                continue;
+
+            for (Ticket ticket : tickets) {
+                String muteTicket = mute.assignment.text.substring(pos +
+                    browseUrl.length());
+
+                if (ticket.key.equals(muteTicket)) {
+                    mute.ticketStatus = ticket.status();
+
+                    break;
+                }
+            }
+        }
     }
 
     /**
@@ -261,7 +304,7 @@ public class TcBotTriggerAndSignOffService {
         String parentSuiteId,
         Build... builds
     ) {
-        IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(srvId);
+        IJiraIntegration jiraIntegration = jiraPureProvider.server(srvId);
 
         String prefix = jiraIntegration.ticketPrefix();
 
@@ -315,7 +358,7 @@ public class TcBotTriggerAndSignOffService {
         ICredentialsProv prov) {
         String jiraRes = "";
 
-        IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(srvId);
+        IJiraIntegration jiraIntegration = jiraPureProvider.server(srvId);
 
         String prefix = jiraIntegration.ticketPrefix();
 
@@ -369,7 +412,7 @@ public class TcBotTriggerAndSignOffService {
      */
     public List<ContributionToCheck> getContributionsToCheck(String srvId,
         ICredentialsProv credsProv) {
-        IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(srvId);
+        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvId);
 
         List<PullRequest> requests = gitHubConnIgnitedProvider.server(srvId).getPullRequests();
         if (requests == null)
@@ -377,12 +420,9 @@ public class TcBotTriggerAndSignOffService {
 
         ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, credsProv);
 
-        String prj = jiraIntegration.ticketPrefix().replaceAll("-", "");
-        String url = "search?jql=project=" +
-            prj +
-            "%20order%20by%20updated%20DESC&fields=status&maxResults=100";
-        Tickets tickets = jiraIntegration.getTickets(srvId, credsProv, url);
-        System.out.println("srvId="+srvId + " tickets " + tickets.issues);
+        String prj = jiraIntegration.projectName();
+        Set<Ticket> tickets = jiraIntegration.getTickets();
+        System.out.println("srvId=" + srvId + " tickets " + tickets);
 
         //todo JIRA ignited
 
@@ -621,7 +661,7 @@ public class TcBotTriggerAndSignOffService {
     ) {
         ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, prov);
 
-        IJiraIntegration jira = jiraIntegrationProvider.server(srvId);
+        IJiraIntegration jira = jiraPureProvider.server(srvId);
 
         List<Integer> builds = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
@@ -656,7 +696,7 @@ public class TcBotTriggerAndSignOffService {
                 })
                 .sum();
 
-            res = objMapper.readValue(jira.sendJiraComment(ticket, comment), JiraCommentResponse.class);
+            res = objMapper.readValue(jira.postJiraComment(ticket, comment), JiraCommentResponse.class);
         }
         catch (Exception e) {
             String errMsg = "Exception happened during commenting JIRA ticket " +
@@ -667,7 +707,7 @@ public class TcBotTriggerAndSignOffService {
             return new Visa("JIRA wasn't commented - " + errMsg);
         }
 
-        return new Visa(IJiraIntegration.JIRA_COMMENTED, res, blockers);
+        return new Visa(Visa.JIRA_COMMENTED, res, blockers);
     }
 
 

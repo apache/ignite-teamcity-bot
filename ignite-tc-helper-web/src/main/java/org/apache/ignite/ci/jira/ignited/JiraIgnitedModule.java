@@ -25,6 +25,8 @@ import org.apache.ignite.ci.jira.pure.JiraIntegrationModule;
 public class JiraIgnitedModule extends AbstractModule {
     /** {@inheritDoc} */
     @Override protected void configure() {
+        bind(IJiraIgnitedProvider.class).to(JiraIgnitedProvider.class);
+
         install(new JiraIntegrationModule());
     }
 }

@@ -114,12 +114,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Mute Sync. */
     @Inject private MuteSync muteSync;
 
-    /** Jira ticket DAO. */
-    @Inject private JiraTicketDao jiraTicketDao;
-
-    /** Jira ticket Sync. */
-    @Inject private JiraTicketSync jiraTicketSync;
-
     /** Changes DAO. */
     @Inject private ChangeDao changesDao;
 
@@ -158,7 +152,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         changesDao.init();
         runHistCompactedDao.init();
         muteDao.init();
-        jiraTicketDao.init();
     }
 
     /**
@@ -344,44 +337,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @Override public Set<MuteInfo> getMutes(String projectId, ICredentialsProv creds) {
         muteSync.ensureActualizeMutes(taskName("actualizeMutes"), projectId, srvIdMaskHigh, conn);
-        jiraTicketSync.ensureActualizeJiraTickets(taskName("actualizeJiraTickets"), srvIdMaskHigh, creds, conn);
 
         SortedSet<MuteInfo> mutes = muteDao.getMutes(srvIdMaskHigh);
-        Collection<Ticket> tickets = jiraTicketDao.getTickets(srvIdMaskHigh);
 
-        insertTicketStatus(mutes, tickets);
 
         return mutes;
     }
 
-    /**
-     * Insert ticket status for all mutes, if they have ticket in description.
-     *
-     * @param mutes Mutes.
-     * @param tickets Tickets.
-     */
-    private void insertTicketStatus(SortedSet<MuteInfo> mutes, Collection<Ticket> tickets) {
-        for (MuteInfo mute : mutes) {
-            if (F.isEmpty(mute.assignment.text))
-                continue;
 
-            int pos = mute.assignment.text.indexOf("https://issues.apache.org/jira/browse/");
-
-            if (pos == -1)
-                continue;
-
-            for (Ticket ticket : tickets) {
-                String muteTicket = mute.assignment.text.substring(pos +
-                    "https://issues.apache.org/jira/browse/".length());
-
-                if (ticket.key.equals(muteTicket)) {
-                    mute.ticketStatus = ticket.status();
-
-                    break;
-                }
-            }
-        }
-    }
 
     /** {@inheritDoc} */
     @AutoProfiling

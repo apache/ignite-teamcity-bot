@@ -16,8 +16,34 @@
  */
 package org.apache.ignite.ci.jira.ignited;
 
+import java.util.Set;
+import org.apache.ignite.ci.jira.Ticket;
+import org.jetbrains.annotations.NotNull;
+
 /**
  *
  */
 public interface IJiraIgnited {
+    @NotNull public String ticketPrefix();
+
+    @NotNull public String projectName();
+
+
+    /**
+     * @return Jira tickets.
+     */
+    public Set<Ticket> getTickets();
+
+    /**
+     * @param ticketFullName Ticket full name (e.g IGNITE-8331)
+     * @return URL which is used as link to Jira comment with specified id.
+     */
+    public String generateCommentUrl(String ticketFullName, int commentId);
+
+    /**
+     * @param id Ticket full ID (e.g IGNITE-8331)
+     * @return URL which is used as link to Jira ticket with specified name.
+     */
+    String generateTicketUrl(String id);
+
 }

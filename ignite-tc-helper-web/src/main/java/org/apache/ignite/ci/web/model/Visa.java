@@ -17,7 +17,6 @@
 
 package org.apache.ignite.ci.web.model;
 
-import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -28,6 +27,9 @@ import org.jetbrains.annotations.Nullable;
 public class Visa {
     /** Determines Visa with no results and info. */
     public static final String EMPTY_VISA_STATUS = "emptyVisa";
+
+    /** Message to show user when JIRA ticket was successfully commented by the Bot. */
+    public static final String JIRA_COMMENTED = "JIRA commented.";
 
     /** */
     public final String status;
@@ -71,7 +73,7 @@ public class Visa {
 
     /** */
     public boolean isSuccess() {
-        return IJiraIntegration.JIRA_COMMENTED.equals(status)
+        return JIRA_COMMENTED.equals(status)
             && jiraCommentRes != null;
     }
 
