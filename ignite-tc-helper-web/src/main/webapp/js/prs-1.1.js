@@ -18,23 +18,11 @@ function drawTable(srvId, element) {
 }
 
 function requestTableForServer(srvId, suiteIdIgnored, element) {
-    // TODO multiple servers
-    let s = findGetParameter("server");
-    if (!isDefinedAndFilled(s)) {
-        //if (srvId !== "apache")
-         //   return;
-    }
-    else if (srvId !== s)
-        return;
-
-    // TODO multiple suites
-    // if (suiteId != "IgniteTests24Java8_RunAll")
-    //     return;
 
     let tableId = "serverContributions-" + srvId;
 
     if ($("#" + tableId).length > 0)
-        return;
+        return; //protection from duplicate
 
     drawTable(srvId, element);
 

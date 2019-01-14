@@ -51,6 +51,7 @@
                     showSuitesForTeamCityRunData(result);
                     showFormAndSuitesForPrCheck(result);
                     showCommentJiraForm(result);
+
                     const processed = new Set();
                     for (let chainAtServer of result) {
                         let serverId = chainAtServer.serverId;
@@ -59,6 +60,12 @@
                             continue;
 
                         processed.add(serverId);
+
+                        let selSrv = findGetParameter("server");
+                        if (isDefinedAndFilled(selSrv)) {
+                            if (serverId !== selSrv)
+                                continue;
+                        }
 
                         let tabsInsertion = $("#tabs-insertionPoint");
                         let tabId = "tabs-" + serverId;
