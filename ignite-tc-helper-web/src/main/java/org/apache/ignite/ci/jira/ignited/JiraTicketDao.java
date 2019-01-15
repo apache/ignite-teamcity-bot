@@ -59,9 +59,10 @@ public class JiraTicketDao {
 
     /**
      * @param srvIdMaskHigh Server id mask high.
+     * @param ticketPrefix Fixed prefix for JIRA tickets.
      * @return Jira tickets.
      */
-    public Set<Ticket> getTickets(int srvIdMaskHigh) {
+    public Set<Ticket> getTickets(int srvIdMaskHigh, String ticketPrefix) {
         Preconditions.checkNotNull(jiraCache, "init() was not called");
         long srvId = (long) srvIdMaskHigh << 32;
 
@@ -69,7 +70,7 @@ public class JiraTicketDao {
 
         for (Cache.Entry<Long, TicketCompacted> entry : jiraCache) {
             if ((entry.getKey() & srvId) == srvId)
-                res.add(entry.getValue().toTicket(compactor));
+                res.add(entry.getValue().toTicket(compactor, ticketPrefix));
         }
 
         return res;

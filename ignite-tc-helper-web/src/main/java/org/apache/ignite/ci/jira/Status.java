@@ -23,6 +23,12 @@ import com.google.common.base.MoreObjects;
  * Status for Jira ticket.
  */
 public class Status {
+    /** Patch Available status name. */
+    public static final String PA_NAME = "Patch Available";
+
+    /** In Progress status name. */
+    public static final String IP_NAME = "In Progress";
+
     /** Status text (open, resolved, etc). */
     public String name;
 

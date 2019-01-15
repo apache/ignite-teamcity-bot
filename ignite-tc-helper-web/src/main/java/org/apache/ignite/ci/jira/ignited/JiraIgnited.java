@@ -16,9 +16,7 @@
  */
 package org.apache.ignite.ci.jira.ignited;
 
-import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Set;
 import javax.inject.Inject;
 import org.apache.ignite.ci.jira.Ticket;
@@ -69,7 +67,7 @@ class JiraIgnited implements IJiraIgnited {
     @Override public Set<Ticket> getTickets() {
         jiraTicketSync.ensureActualizeJiraTickets(taskName("actualizeJiraTickets"), srvId);
 
-        return jiraTicketDao.getTickets(srvIdMaskHigh);
+        return jiraTicketDao.getTickets(srvIdMaskHigh, ticketPrefix());
     }
 
     /**

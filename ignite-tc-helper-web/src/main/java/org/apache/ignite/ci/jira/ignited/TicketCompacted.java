@@ -48,13 +48,13 @@ public class TicketCompacted {
 
     /**
      * @param comp Compactor.
+     * @param ticketPrefix Ticket name fixed prefix for the project.
      */
-    public Ticket toTicket(IStringCompactor comp) {
+    public Ticket toTicket(IStringCompactor comp, String ticketPrefix) {
         Ticket ticket = new Ticket();
 
-        //todo take prefix from outside
         ticket.id = id;
-        ticket.key = "IGNITE-" + igniteId;
+        ticket.key = ticketPrefix + igniteId;
         ticket.fields = new Fields();
         ticket.fields.status = new Status(comp.getStringFromId(status));
 

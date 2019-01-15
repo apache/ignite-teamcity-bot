@@ -56,4 +56,12 @@ public class Ticket {
             .add("fields", fields)
             .toString();
     }
+
+    /**
+     * Checks if ticket relates to some Active (In progress/Patch Available) Contribution.
+     */
+    public boolean isActiveContribution() {
+        return Status.PA_NAME.equals(status())
+            || Status.IP_NAME.equals(status());
+    }
 }
