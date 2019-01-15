@@ -65,19 +65,12 @@ class JiraIgnited implements IJiraIgnited {
 
     /** {@inheritDoc} */
     @Override public Set<Ticket> getTickets() {
-        jiraTicketSync.ensureActualizeJiraTickets(taskName("actualizeJiraTickets"), srvId);
+        jiraTicketSync.ensureActualizeJiraTickets(srvId);
 
         return jiraTicketDao.getTickets(srvIdMaskHigh, ticketPrefix());
     }
 
-    /**
-     * @param taskName Task name.
-     * @return Task name concatenated with server name.
-     */
-    @NotNull
-    private String taskName(String taskName) {
-        return ITeamcityIgnited.class.getSimpleName() + "." + taskName + "." + srvId;
-    }
+
 
     /** {@inheritDoc} */
     @Override public String generateCommentUrl(String ticketFullName, int commentId) {

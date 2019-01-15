@@ -202,7 +202,9 @@ public class TcBotTriggerAndSignOffService {
 
         IJiraIgnited jiraIgn = jiraIgnProv.server(srvId);
 
-        insertTicketStatus(mutes, jiraIgn.getTickets());
+        String browseUrl = jiraIgn.generateTicketUrl("");
+
+        insertTicketStatus(mutes, jiraIgn.getTickets(), browseUrl);
 
         for (MuteInfo info : mutes)
             info.assignment.muteDate = THREAD_FORMATTER.get().format(new Date(info.assignment.timestamp()));
@@ -212,24 +214,22 @@ public class TcBotTriggerAndSignOffService {
 
     /**
      * Insert ticket status for all mutes, if they have ticket in description.
-     *
-     * @param mutes Mutes.
+     *  @param mutes Mutes.
      * @param tickets Tickets.
+     * @param browseUrl JIRA URL for browsing tickets, e.g. https://issues.apache.org/jira/browse/
      */
-    private void insertTicketStatus(Set<MuteInfo> mutes, Collection<Ticket> tickets) {
+    private void insertTicketStatus(Set<MuteInfo> mutes, Collection<Ticket> tickets, String browseUrl) {
         for (MuteInfo mute : mutes) {
             if (F.isEmpty(mute.assignment.text))
                 continue;
 
-            String browseUrl = "https://issues.apache.org/jira/browse/";
             int pos = mute.assignment.text.indexOf(browseUrl);
 
             if (pos == -1)
                 continue;
 
             for (Ticket ticket : tickets) {
-                String muteTicket = mute.assignment.text.substring(pos +
-                    browseUrl.length());
+                String muteTicket = mute.assignment.text.substring(pos + browseUrl.length());
 
                 if (ticket.key.equals(muteTicket)) {
                     mute.ticketStatus = ticket.status();
@@ -418,7 +418,6 @@ public class TcBotTriggerAndSignOffService {
 
         ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, credsProv);
 
-        String prj = jiraIntegration.projectName();
         Set<Ticket> tickets = jiraIntegration.getTickets();
 
         List<Ticket> paTickets = tickets.stream().filter(Ticket::isActiveContribution).collect(Collectors.toList());

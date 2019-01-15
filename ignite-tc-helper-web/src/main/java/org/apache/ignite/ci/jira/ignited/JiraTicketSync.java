@@ -28,6 +28,9 @@ import org.apache.ignite.ci.jira.Ticket;
 import org.apache.ignite.ci.jira.Tickets;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.internal.util.typedef.F;
+import org.jetbrains.annotations.NotNull;
+
+import static org.apache.ignite.ci.util.UrlUtil.escape;
 
 /**
  * Sync serving requests for all JIRA servers.
@@ -43,13 +46,22 @@ public class JiraTicketSync {
     @Inject IJiraIntegrationProvider jiraIntegrationProvider;
 
     /**
-     * @param taskName Task name.
      * @param srvId Server ID
      */
-    public void ensureActualizeJiraTickets(String taskName, String srvId) {
-        scheduler.sheduleNamed(taskName, () -> actualizeJiraTickets(srvId), 15, TimeUnit.MINUTES);
+    public void ensureActualizeJiraTickets(String srvId) {
+        scheduler.sheduleNamed(taskName("actualizeJiraTickets", srvId),
+            () -> actualizeJiraTickets(srvId), 15, TimeUnit.MINUTES);
     }
 
+    /**
+     * @param taskName Task name.
+     * @param srvId Service ID
+     * @return Task name concatenated with server name.
+     */
+    @NotNull
+    private String taskName(String taskName, String srvId) {
+        return JiraTicketSync.class.getSimpleName() + "." + taskName + "." + srvId;
+    }
     /**
      * @param srvId Server internal identification.
      */
@@ -59,7 +71,9 @@ public class JiraTicketSync {
         IJiraIntegration jira = jiraIntegrationProvider.server(srvId);
 
         String projectName = jira.projectName();
-        String baseUrl = "search?jql=project=" + projectName + "%20order%20by%20updated%20DESC&fields=status&maxResults=100";
+        String baseUrl = "search?jql=" + escape("project=" + projectName + " order by updated DESC")
+            + "&fields=status&maxResults=100";
+
         String url = baseUrl;
         Tickets tickets = jira.getTicketsPage(srvId, url);
         Collection<Ticket> page = tickets.issuesNotNull();

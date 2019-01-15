@@ -44,7 +44,7 @@ public class JiraTicketDao {
     /** Ignite provider. */
     @Inject private Provider<Ignite> igniteProvider;
 
-    /** Builds cache. */
+    /** JIRA tickets cache : (srvId || ticketNuber) -> Ticket data compacted. */
     private IgniteCache<Long, TicketCompacted> jiraCache;
 
     /** Compactor. */
@@ -80,7 +80,7 @@ public class JiraTicketDao {
      * Combine server and project into key for storage.
      *
      * @param srvIdMaskHigh Server id mask high.
-     * @param igniteId Ticket.
+     * @param igniteId Ticket number without project name.
      * @return Key from server-project pair.
      */
     public static long ticketToCacheKey(int srvIdMaskHigh, int igniteId) {
