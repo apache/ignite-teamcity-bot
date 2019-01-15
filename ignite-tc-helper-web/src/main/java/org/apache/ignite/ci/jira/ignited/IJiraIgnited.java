@@ -25,8 +25,14 @@ import org.jetbrains.annotations.NotNull;
  *
  */
 public interface IJiraIgnited {
+    /**
+     *
+     */
     @NotNull public String ticketPrefix();
 
+    /**
+     *
+     */
     @NotNull public String projectName();
 
 
@@ -45,7 +51,7 @@ public interface IJiraIgnited {
      * @param id Ticket full ID (e.g IGNITE-8331)
      * @return URL which is used as link to Jira ticket with specified name.
      */
-    String generateTicketUrl(String id);
+    public String generateTicketUrl(String id);
 
 
     /**

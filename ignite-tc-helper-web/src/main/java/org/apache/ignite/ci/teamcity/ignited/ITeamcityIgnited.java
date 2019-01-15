@@ -179,4 +179,6 @@ public interface ITeamcityIgnited {
     @Nullable public IRunStat getSuiteRunStatAllBranches(String suiteBuildTypeId);
 
     List<String> getAllProjectsIds();
+
+    String gitBranchPrefix();
 }

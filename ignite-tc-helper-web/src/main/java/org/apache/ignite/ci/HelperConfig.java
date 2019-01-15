@@ -51,6 +51,9 @@ public class HelperConfig {
     /** GitHub authorization token property name. */
     public static final String GITHUB_AUTH_TOKEN = "github.auth_token";
 
+    /** Git branch naming prefix for PRLess contributions. */
+    public static final String GIT_BRANCH_PREFIX = "git.branch_prefix";
+
     /** JIRA authorization token property name. */
     public static final String JIRA_AUTH_TOKEN = "jira.auth_token";
 

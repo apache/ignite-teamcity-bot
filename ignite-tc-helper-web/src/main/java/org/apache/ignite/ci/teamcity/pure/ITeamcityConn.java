@@ -109,4 +109,9 @@ public interface ITeamcityConn {
      * @return List of all project available at Teamcity server.
      */
     List<Project> getProjects();
+
+    /**
+     * @return Branch name mandatory prefix for all PR-less contributions, e.g. "ignite-".
+     */
+    public String gitBranchPrefix();
 }

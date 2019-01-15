@@ -35,7 +35,7 @@ public class Ticket {
 
     /**
      * @param ticketPrefix Ticket name fixed prefix.
-     * @return Ignite id (like 123 in IGNITE-123).
+     * @return Ignite ticket Number ignoring project code (like 123 in IGNITE-123).
      */
     public int igniteId(String ticketPrefix) {
         return Integer.valueOf(key.substring(ticketPrefix.length()));

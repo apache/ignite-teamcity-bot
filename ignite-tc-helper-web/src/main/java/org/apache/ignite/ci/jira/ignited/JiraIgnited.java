@@ -43,6 +43,9 @@ class JiraIgnited implements IJiraIgnited {
     /** Server id mask high. */
     private int srvIdMaskHigh;
 
+    /**
+     * @param jira Pure Jira integration.
+     */
     public void init(IJiraIntegration jira) {
         this.jira = jira;
 
@@ -69,8 +72,6 @@ class JiraIgnited implements IJiraIgnited {
 
         return jiraTicketDao.getTickets(srvIdMaskHigh, ticketPrefix());
     }
-
-
 
     /** {@inheritDoc} */
     @Override public String generateCommentUrl(String ticketFullName, int commentId) {

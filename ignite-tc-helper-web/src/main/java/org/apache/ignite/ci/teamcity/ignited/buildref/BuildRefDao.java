@@ -153,7 +153,7 @@ public class BuildRefDao {
 
         return getBuildsForBranch(srvId, bracnhNameQry).stream()
             .filter(e -> e.buildTypeId() == buildTypeIdId)
-                .collect(Collectors.toList());
+            .collect(Collectors.toList());
     }
 
     /**

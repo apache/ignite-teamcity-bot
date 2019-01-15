@@ -402,6 +402,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
+    @Override public String gitBranchPrefix() {
+        return conn.gitBranchPrefix();
+    }
+
+    /** {@inheritDoc} */
     @Override public List<String> getCompositeBuildTypesIdsSortedByBuildNumberCounter(String projectId) {
         return buildTypeSync.getCompositeBuildTypesIdsSortedByBuildNumberCounter(srvIdMaskHigh, projectId, conn);
     }

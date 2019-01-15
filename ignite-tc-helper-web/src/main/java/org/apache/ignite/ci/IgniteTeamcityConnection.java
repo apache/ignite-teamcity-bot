@@ -110,6 +110,10 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** Build logger processing running. */
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
 
+    /** Git branch prefix for seach TC runs in PR-less contributions. */
+    @NotNull
+    private String gitBranchPrefix;
+
     public Executor getExecutor() {
         return executor;
     }
@@ -135,7 +139,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
             logger.error("Failed to set credentials", e);
         }
 
-
+        this.gitBranchPrefix = props.getProperty(HelperConfig.GIT_BRANCH_PREFIX, "ignite-");
 
         final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
 
@@ -329,6 +333,11 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @Override public List<Project> getProjects() {
         return sendGetXmlParseJaxb(host + "app/rest/latest/projects", ProjectsList.class).projects();
+    }
+
+    /** {@inheritDoc} */
+    @Override public String gitBranchPrefix() {
+        return gitBranchPrefix;
     }
 
     /** {@inheritDoc} */

@@ -20,6 +20,7 @@ package org.apache.ignite.ci;
 /**
  * Combination of REST data and persisted statistics.
  */
+@Deprecated
 public interface IAnalyticsEnabledTeamcity extends ITeamcity, ITcAnalytics {
     public void init(ITeamcity conn);
 }

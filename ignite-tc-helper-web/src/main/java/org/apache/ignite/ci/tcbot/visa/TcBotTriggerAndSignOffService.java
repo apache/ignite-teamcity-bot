@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -316,7 +317,7 @@ public class TcBotTriggerAndSignOffService {
 
                 if (ticketFullName.isEmpty()) {
                     return "JIRA ticket will not be notified after the tests are completed - " +
-                        "PR title \"" + pr.getTitle() + "\" should starts with \"" + prefix + "-NNNNN\"." +
+                        "PR title \"" + pr.getTitle() + "\" should starts with \"" + prefix + "NNNNN\"." +
                         " Please, rename PR according to the" +
                         " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
                         "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>.";
@@ -416,16 +417,6 @@ public class TcBotTriggerAndSignOffService {
         if (requests == null)
             return null;
 
-        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, credsProv);
-
-        Set<Ticket> tickets = jiraIntegration.getTickets();
-
-        List<Ticket> paTickets = tickets.stream().filter(Ticket::isActiveContribution).collect(Collectors.toList());
-
-        System.out.println("srvId=" + srvId + " tickets " + paTickets);
-
-
-        //todo JIRA ignited
 
         List<ContributionToCheck> contribsList = requests.stream().map(pr -> {
             ContributionToCheck check = new ContributionToCheck();
@@ -439,6 +430,10 @@ public class TcBotTriggerAndSignOffService {
                 check.prAuthor = user.login();
                 check.prAuthorAvatarUrl = user.avatarUrl();
             }
+            else {
+                check.prAuthor = "";
+                check.prAuthorAvatarUrl = "";
+            }
 
             String prefix = jiraIntegration.ticketPrefix();
             check.jiraIssueId = Strings.emptyToNull(getTicketFullName(pr, prefix));
@@ -450,6 +445,37 @@ public class TcBotTriggerAndSignOffService {
         }).collect(Collectors.toList());
 
 
+        Set<Ticket> tickets = jiraIntegration.getTickets();
+
+        List<Ticket> paTickets = tickets.stream().filter(Ticket::isActiveContribution).collect(Collectors.toList());
+
+        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, credsProv);
+
+        paTickets.forEach(ticket -> {
+            int ticketId = ticket.igniteId(jiraIntegration.ticketPrefix());
+            String branch = tcIgn.gitBranchPrefix() + ticketId;
+
+            String defBtForMaster = findDefaultBranchBuildType(srvId);
+
+            if(tcIgn.getAllBuildsCompacted(defBtForMaster, branch).isEmpty())
+                return; //Skipping contributions without builds
+
+            ContributionToCheck contribution = new ContributionToCheck();
+
+            contribution.jiraIssueId = ticket.key;
+            contribution.jiraIssueUrl = jiraIntegration.generateTicketUrl( ticket.key);
+            contribution.tcBranchName = branch;
+
+            contribution.prNumber = -ticketId;
+            contribution.prTitle = ""; //todo ticket title
+            contribution.prHtmlUrl = "";
+            contribution.prTimeUpdate = ""; //todo ticket updateTime
+
+            contribution.prAuthor = "";
+            contribution.prAuthorAvatarUrl = "";
+
+            contribsList.add(contribution);
+        });
 
         return contribsList;
     }
@@ -505,17 +531,11 @@ public class TcBotTriggerAndSignOffService {
 
         IGitHubConnIgnited ghConn = gitHubConnIgnitedProvider.server(srvId);
 
-        StringBuilder buildTypeId = new StringBuilder();
+        String defBtForMaster = findDefaultBranchBuildType(srvId);
 
-        HelperConfig.getTrackedBranches().get(DEFAULT_TRACKED_BRANCH_NAME)
-            .ifPresent(
-                b -> b.getChainsStream()
-                    .filter(c -> Objects.equals(srvId, c.serverId))
-                    .filter(c -> c.branchForRest.equals(ITeamcity.DEFAULT))
-                    .findFirst()
-                    .ifPresent(ch -> buildTypeId.append(ch.suiteId)));
-
-        BuildTypeCompacted buildType = buildTypeId.length() > 0 ? teamcity.getBuildType(buildTypeId.toString()) : null;
+        BuildTypeCompacted buildType = Strings.isNullOrEmpty(defBtForMaster)
+            ? null
+            : teamcity.getBuildType(defBtForMaster);
 
         List<String> compositeBuildTypeIds;
         String projectId;
@@ -532,8 +552,8 @@ public class TcBotTriggerAndSignOffService {
 
             compositeBuildTypeIds = new ArrayList<>();
 
-            if (buildTypeId.length() > 0)
-                compositeBuildTypeIds.add(buildTypeId.toString());
+            if (!Strings.isNullOrEmpty(defBtForMaster))
+                compositeBuildTypeIds.add(defBtForMaster);
         }
 
 
@@ -545,6 +565,20 @@ public class TcBotTriggerAndSignOffService {
         }
 
         return statuses;
+    }
+
+    @NotNull public String findDefaultBranchBuildType(String srvId) {
+        StringBuilder buildTypeId = new StringBuilder();
+
+        HelperConfig.getTrackedBranches().get(DEFAULT_TRACKED_BRANCH_NAME)
+            .ifPresent(
+                b -> b.getChainsStream()
+                    .filter(c -> Objects.equals(srvId, c.serverId))
+                    .filter(c -> c.branchForRest.equals(ITeamcity.DEFAULT))
+                    .findFirst()
+                    .ifPresent(ch -> buildTypeId.append(ch.suiteId)));
+
+        return buildTypeId.toString();
     }
 
     /**
