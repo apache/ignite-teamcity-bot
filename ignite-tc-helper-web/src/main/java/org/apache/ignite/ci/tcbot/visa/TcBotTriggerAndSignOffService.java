@@ -86,6 +86,7 @@ import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
 import static org.apache.ignite.ci.web.rest.parms.FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME;
 
 /**
+ * TC Bot Visa Facade.
  * Provides method for TC Bot Visa obtaining.
  * Contains features for adding comment to the ticket based on latest state.
  *
@@ -144,7 +145,7 @@ public class TcBotTriggerAndSignOffService {
 
         ITeamcityIgnited ignited = tcIgnitedProv.server(srvId, prov);
 
-        IJiraIntegration jiraIntegration = jiraPureProvider.server(srvId);
+        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvId);
 
         for (VisaRequest visaRequest : visasHistStorage.getVisas()) {
             VisaStatus visaStatus = new VisaStatus();
@@ -304,7 +305,7 @@ public class TcBotTriggerAndSignOffService {
         String parentSuiteId,
         Build... builds
     ) {
-        IJiraIntegration jiraIntegration = jiraPureProvider.server(srvId);
+        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvId);
 
         String prefix = jiraIntegration.ticketPrefix();
 
@@ -358,7 +359,7 @@ public class TcBotTriggerAndSignOffService {
         ICredentialsProv prov) {
         String jiraRes = "";
 
-        IJiraIntegration jiraIntegration = jiraPureProvider.server(srvId);
+        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvId);
 
         String prefix = jiraIntegration.ticketPrefix();
 
@@ -661,7 +662,7 @@ public class TcBotTriggerAndSignOffService {
     ) {
         ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, prov);
 
-        IJiraIntegration jira = jiraPureProvider.server(srvId);
+        IJiraIgnited jira = jiraIgnProv.server(srvId);
 
         List<Integer> builds = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 

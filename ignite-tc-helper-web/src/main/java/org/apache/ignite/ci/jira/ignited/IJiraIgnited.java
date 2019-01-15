@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.jira.ignited;
 
+import java.io.IOException;
 import java.util.Set;
 import org.apache.ignite.ci.jira.Ticket;
 import org.jetbrains.annotations.NotNull;
@@ -46,4 +47,13 @@ public interface IJiraIgnited {
      */
     String generateTicketUrl(String id);
 
+
+    /**
+     * @param ticket JIRA ticket full name. E.g 'IGNITE-5555'.
+     * @param comment Comment to be placed in the ticket conversation.
+     * @return {@code True} if ticket was succesfully commented. Otherwise - {@code false}.
+     * @throws IOException If failed to comment JIRA ticket.
+     * @throws IllegalStateException If can't find URL to the JIRA.
+     */
+    public String postJiraComment(String ticket, String comment) throws IOException;
 }

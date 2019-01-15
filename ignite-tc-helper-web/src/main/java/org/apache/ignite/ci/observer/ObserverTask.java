@@ -63,9 +63,6 @@ public class ObserverTask extends TimerTask {
     @Inject private ITeamcityIgnitedProvider teamcityIgnitedProvider;
 
     /** */
-    @Inject private IJiraIntegrationProvider jiraIntegrationProvider;
-
-    /** */
     @Inject private VisasHistoryStorage visasHistStorage;
 
     @Inject private TcBotTriggerAndSignOffService visaIssuer;
@@ -194,8 +191,6 @@ public class ObserverTask extends TimerTask {
 
                 if (!visa.isSuccess()) {
                     ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
-
-                    IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(info.srvId);
 
                     Visa updatedVisa = visaIssuer.notifyJira(info.srvId, creds, info.buildTypeId,
                         info.branchForTc, info.ticket);

@@ -46,7 +46,6 @@ public interface IJiraIntegration {
      */
     public String getServiceId();
 
-
     /**
      * @param ticket JIRA ticket full name. E.g 'IGNITE-5555'.
      * @param comment Comment to be placed in the ticket conversation.

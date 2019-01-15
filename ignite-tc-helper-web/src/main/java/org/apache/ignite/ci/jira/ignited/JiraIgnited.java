@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.jira.ignited;
 
 import com.google.common.collect.Sets;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
 import javax.inject.Inject;
@@ -64,6 +65,7 @@ class JiraIgnited implements IJiraIgnited {
         return jira.projectName();
     }
 
+    /** {@inheritDoc} */
     @Override public Set<Ticket> getTickets() {
         jiraTicketSync.ensureActualizeJiraTickets(taskName("actualizeJiraTickets"), srvId);
 
@@ -87,5 +89,10 @@ class JiraIgnited implements IJiraIgnited {
     /** {@inheritDoc} */
     @Override public String generateTicketUrl(String id) {
         return jira.generateTicketUrl(id);
+    }
+
+    /** {@inheritDoc} */
+    @Override public String postJiraComment(String ticket, String comment) throws IOException {
+        return jira.postJiraComment(ticket, comment);
     }
 }
