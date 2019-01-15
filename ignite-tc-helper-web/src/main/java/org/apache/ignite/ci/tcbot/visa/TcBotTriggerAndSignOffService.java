@@ -482,17 +482,24 @@ public class TcBotTriggerAndSignOffService {
 
     @Nonnull private List<BuildRefCompacted> findBuildsForPr(String suiteId, String prId,
         IGitHubConnIgnited ghConn, ITeamcityIgnited srv) {
-        List<BuildRefCompacted> buildHist = srv.getAllBuildsCompacted(suiteId, branchForTcA(prId));
+
+        List<BuildRefCompacted> buildHist = srv.getAllBuildsCompacted(suiteId, branchForTcDefault(prId, srv));
 
         if (!buildHist.isEmpty())
             return buildHist;
+
+        Integer prNum = Integer.valueOf(prId);
+        if (prNum < 0) {
+            return buildHist; // Don't iterate for other options if PR ID is absent
+        }
+
 
         buildHist = srv.getAllBuildsCompacted(suiteId, branchForTcB(prId));
 
         if (!buildHist.isEmpty())
             return buildHist;
 
-        PullRequest pr = ghConn.getPullRequest(Integer.valueOf(prId));
+        PullRequest pr = ghConn.getPullRequest(prNum);
 
         if (pr != null) {
             GitHubBranch head = pr.head();
@@ -510,11 +517,19 @@ public class TcBotTriggerAndSignOffService {
         return Collections.emptyList();
     }
 
-    String branchForTcA(String prId) {
+    private String branchForTcDefault(String prId, ITeamcityIgnited srv) {
+        Integer prNum = Integer.valueOf(prId);
+        if (prNum < 0)
+            return srv.gitBranchPrefix() + (-prNum); // Checking "ignite-10930" builds only
+
+        return branchForTcA(prId);
+    }
+
+    private String branchForTcA(String prId) {
         return "pull/" + prId + "/head";
     }
 
-    String branchForTcB(String prId) {
+    private String branchForTcB(String prId) {
         return "pull/" + prId + "/merge";
     }
 
@@ -560,7 +575,7 @@ public class TcBotTriggerAndSignOffService {
         for (String btId : compositeBuildTypeIds) {
             List<BuildRefCompacted> forTests = findBuildsForPr(btId, prId, ghConn, teamcity);
 
-            statuses.add(forTests.isEmpty() ? new ContributionCheckStatus(btId, branchForTcA(prId)) :
+            statuses.add(forTests.isEmpty() ? new ContributionCheckStatus(btId, branchForTcDefault(prId, teamcity)) :
                 contributionStatus(srvId, btId, forTests, teamcity, prId));
         }
 
@@ -610,7 +625,7 @@ public class TcBotTriggerAndSignOffService {
             status.resolvedBranch = status.branchWithFinishedSuite;
             //todo take into account running/queued
         else
-            status.resolvedBranch = !builds.isEmpty() ? builds.get(0).branchName(compactor) : branchForTcA(prId);
+            status.resolvedBranch = !builds.isEmpty() ? builds.get(0).branchName(compactor) : branchForTcDefault(prId, teamcity);
 
         String observationsStatus = buildObserverProvider.get().getObservationStatus(new ContributionKey(srvId, status.resolvedBranch));
 
