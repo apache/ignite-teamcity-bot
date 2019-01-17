@@ -81,7 +81,7 @@ function showContributionsTable(result, srvId, suiteId) {
                 "data": "prTimeUpdate",
                 title: "Update Time",
                 "render": function (data, type, row, meta) {
-                    if (type === 'display') {
+                    if (type === 'display' && isDefinedAndFilled(data) && data.length >0) {
                         let date = new Date(data);
 
                         data = normalizeDateNum(date.getFullYear()) + '-' + normalizeDateNum(date.getMonth() + 1) +
@@ -96,7 +96,7 @@ function showContributionsTable(result, srvId, suiteId) {
                 "data": "prHtmlUrl",
                 title: "PR Number",
                 "render": function (data, type, row, meta) {
-                    if (type === 'display') {
+                    if (type === 'display' && row.prNumber > 0) {
                         data = "<a href='" + data + "'>#" + row.prNumber + "</a>";
                     }
 
@@ -111,7 +111,7 @@ function showContributionsTable(result, srvId, suiteId) {
                 "data": "prAuthor",
                 title: "Author",
                 "render": function (data, type, row, meta) {
-                    if (type === 'display') {
+                    if (type === 'display' && isDefinedAndFilled(row.prAuthorAvatarUrl) && row.prAuthorAvatarUrl.length >0) {
                         data = "<img src='" + row.prAuthorAvatarUrl + "' width='20px' height='20px'> " + data + "";
                     }
 
@@ -256,9 +256,14 @@ function formatContributionDetails(row, srvId) {
         "           </tr>";
 
     //References
-    res += "        <tr>\n" +
-        "            <td>Edit PR: " + "<a href='" + row.prHtmlUrl + "'>#" + row.prNumber + "</a>" + "</td>\n" +
-        "            <td id='viewQueuedBuildsFor" + prId + "'></td>\n" +
+    res += "        <tr>\n";
+
+    if (row.prNumber > 0)
+        res += "            <td>Edit PR: " + "<a href='" + row.prHtmlUrl + "'>#" + row.prNumber + "</a>" + "</td>\n";
+    else
+        res += "            <td></td>\n";
+
+    res += "            <td id='viewQueuedBuildsFor" + prId + "'></td>\n" +
         "            <td></td>\n" +
         "            <td></td>\n" +
         "        </tr>";

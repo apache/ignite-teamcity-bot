@@ -51,6 +51,9 @@ public class HelperConfig {
     /** GitHub authorization token property name. */
     public static final String GITHUB_AUTH_TOKEN = "github.auth_token";
 
+    /** Git branch naming prefix for PRLess contributions. */
+    public static final String GIT_BRANCH_PREFIX = "git.branch_prefix";
+
     /** JIRA authorization token property name. */
     public static final String JIRA_AUTH_TOKEN = "jira.auth_token";
 
@@ -159,7 +162,7 @@ public class HelperConfig {
      * @param props Properties, where token is placed.
      * @return Null or decoded auth token for Github.
      */
-    @Nullable static String prepareJiraHttpAuthToken(Properties props) {
+    @Nullable public static String prepareJiraHttpAuthToken(Properties props) {
         String tok = props.getProperty(JIRA_AUTH_TOKEN);
 
         if (isNullOrEmpty(tok))

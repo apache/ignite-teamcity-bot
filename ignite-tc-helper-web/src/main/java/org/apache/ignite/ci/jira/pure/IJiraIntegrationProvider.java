@@ -15,12 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci;
+package org.apache.ignite.ci.jira.pure;
 
 /**
- * Combination of REST data and persisted statistics.
+ *
  */
-@Deprecated
-public interface IAnalyticsEnabledTeamcity extends ITeamcity, ITcAnalytics {
-    public void init(ITeamcity conn);
+public interface IJiraIntegrationProvider {
+    /**
+     * @param srvId Server id.
+     */
+    public IJiraIntegration server(String srvId);
 }

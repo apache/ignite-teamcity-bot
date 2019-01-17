@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.tcbot.chain;
 
+import com.google.common.base.Preconditions;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
@@ -26,8 +27,8 @@ import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
-import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
@@ -40,6 +41,7 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -76,7 +78,7 @@ public class MockBasedTcBotModule extends AbstractModule {
 
         when(pullReq.getTitle()).thenReturn("");
 
-        when(gitHubConnIgnited.getPullRequest(anyString())).thenReturn(pullReq);
+        when(gitHubConnIgnited.getPullRequest(anyInt())).thenReturn(pullReq);
 
         when(gitHubConnIgnitedProvider.server(anyString())).thenReturn(gitHubConnIgnited);
 

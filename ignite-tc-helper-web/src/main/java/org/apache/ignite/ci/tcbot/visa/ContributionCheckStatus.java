@@ -20,10 +20,14 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Status of contribution check details returned from server
+ * Status of contribution check details returned from server. UI model for displaying detailed {@link
+ * ContributionToCheck} status.
  */
 @SuppressWarnings("PublicField") public class ContributionCheckStatus {
+    /** Queued builds. */
     public int queuedBuilds;
+
+    /** Running builds. */
     public int runningBuilds;
 
     /** Suite id. */
@@ -41,6 +45,7 @@ import java.util.List;
     /** Observations status: Filled if build observer has something sheduled related to {@link #resolvedBranch} */
     public String observationsStatus;
 
+    /** Web links to queued suites. */
     public List<String> webLinksQueuedSuites = new LinkedList<>();
 
     public ContributionCheckStatus() {

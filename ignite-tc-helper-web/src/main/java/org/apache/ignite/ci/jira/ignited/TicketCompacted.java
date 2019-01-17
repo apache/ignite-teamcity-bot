@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.jira.ignited;
 
+import com.google.common.base.Objects;
 import org.apache.ignite.ci.jira.Fields;
 import org.apache.ignite.ci.jira.Status;
 import org.apache.ignite.ci.jira.Ticket;
@@ -48,15 +49,36 @@ public class TicketCompacted {
 
     /**
      * @param comp Compactor.
+     * @param ticketPrefix Ticket name fixed prefix for the project.
      */
-    public Ticket toTicket(IStringCompactor comp) {
+    public Ticket toTicket(IStringCompactor comp, String ticketPrefix) {
         Ticket ticket = new Ticket();
 
         ticket.id = id;
-        ticket.key = "IGNITE-" + igniteId;
+        ticket.key = ticketPrefix + igniteId;
         ticket.fields = new Fields();
         ticket.fields.status = new Status(comp.getStringFromId(status));
 
         return ticket;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+
+        if (o == null || getClass() != o.getClass())
+            return false;
+
+        TicketCompacted compacted = (TicketCompacted)o;
+
+        return id == compacted.id &&
+            igniteId == compacted.igniteId &&
+            status == compacted.status;
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hashCode(id, igniteId, status);
     }
 }

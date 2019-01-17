@@ -17,10 +17,18 @@
 
 package org.apache.ignite.ci.jira;
 
+import com.google.common.base.MoreObjects;
+
 /**
  * Status for Jira ticket.
  */
 public class Status {
+    /** Patch Available status name. */
+    public static final String PA_NAME = "Patch Available";
+
+    /** In Progress status name. */
+    public static final String IP_NAME = "In Progress";
+
     /** Status text (open, resolved, etc). */
     public String name;
 
@@ -29,5 +37,10 @@ public class Status {
      */
     public Status(String name) {
         this.name = name;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return name;
     }
 }

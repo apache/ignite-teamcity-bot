@@ -35,17 +35,6 @@ public interface IGitHubConnIgnited {
     /** */
     public PullRequest getPullRequest(int prNum);
 
-    /** */
-    @AutoProfiling
-    @Nullable
-    public default PullRequest getPullRequest(String branchForTc) {
-        Integer prId = IGitHubConnection.convertBranchToId(branchForTc);
-
-        Preconditions.checkNotNull(prId, "Invalid TC branch name");
-
-        return getPullRequest(prId);
-    }
-
     /**
      * Send POST request with given body.
      *

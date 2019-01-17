@@ -17,10 +17,19 @@
 
 package org.apache.ignite.ci.jira;
 
+import com.google.common.base.MoreObjects;
+
 /**
  *
  */
 public class Fields {
     /** Ticket status. */
     public Status status;
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("status", status)
+            .toString();
+    }
 }

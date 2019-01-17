@@ -30,8 +30,9 @@ import javax.inject.Inject;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
-import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
+import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
@@ -62,10 +63,9 @@ public class ObserverTask extends TimerTask {
     @Inject private ITeamcityIgnitedProvider teamcityIgnitedProvider;
 
     /** */
-    @Inject private IJiraIntegrationProvider jiraIntegrationProvider;
-
-    /** */
     @Inject private VisasHistoryStorage visasHistStorage;
+
+    @Inject private TcBotTriggerAndSignOffService visaIssuer;
 
     /** */
     private ReentrantLock observationLock = new ReentrantLock();
@@ -192,9 +192,7 @@ public class ObserverTask extends TimerTask {
                 if (!visa.isSuccess()) {
                     ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
 
-                    IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(info.srvId);
-
-                    Visa updatedVisa = jiraIntegration.notifyJira(info.srvId, creds, info.buildTypeId,
+                    Visa updatedVisa = visaIssuer.notifyJira(info.srvId, creds, info.buildTypeId,
                         info.branchForTc, info.ticket);
 
                     visasHistStorage.updateLastVisaRequest(info.getContributionKey(), (req -> req.setResult(updatedVisa)));

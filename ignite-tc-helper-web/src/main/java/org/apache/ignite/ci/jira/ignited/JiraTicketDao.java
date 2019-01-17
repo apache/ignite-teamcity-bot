@@ -44,7 +44,7 @@ public class JiraTicketDao {
     /** Ignite provider. */
     @Inject private Provider<Ignite> igniteProvider;
 
-    /** Builds cache. */
+    /** JIRA tickets cache : (srvId || ticketNuber) -> Ticket data compacted. */
     private IgniteCache<Long, TicketCompacted> jiraCache;
 
     /** Compactor. */
@@ -59,9 +59,10 @@ public class JiraTicketDao {
 
     /**
      * @param srvIdMaskHigh Server id mask high.
+     * @param ticketPrefix Fixed prefix for JIRA tickets.
      * @return Jira tickets.
      */
-    public Set<Ticket> getTickets(int srvIdMaskHigh) {
+    public Set<Ticket> getTickets(int srvIdMaskHigh, String ticketPrefix) {
         Preconditions.checkNotNull(jiraCache, "init() was not called");
         long srvId = (long) srvIdMaskHigh << 32;
 
@@ -69,7 +70,7 @@ public class JiraTicketDao {
 
         for (Cache.Entry<Long, TicketCompacted> entry : jiraCache) {
             if ((entry.getKey() & srvId) == srvId)
-                res.add(entry.getValue().toTicket(compactor));
+                res.add(entry.getValue().toTicket(compactor, ticketPrefix));
         }
 
         return res;
@@ -79,7 +80,7 @@ public class JiraTicketDao {
      * Combine server and project into key for storage.
      *
      * @param srvIdMaskHigh Server id mask high.
-     * @param igniteId Ticket.
+     * @param igniteId Ticket number without project name.
      * @return Key from server-project pair.
      */
     public static long ticketToCacheKey(int srvIdMaskHigh, int igniteId) {
@@ -91,10 +92,10 @@ public class JiraTicketDao {
      *
      * @param srvIdMaskHigh Server id mask high.
      * @param chunk Chunk.
-     * @param ticketTemplate Ticket name template.
+     * @param ticketPrefix Ticket name template.
      */
     @AutoProfiling
-    public void saveChunk(int srvIdMaskHigh, Collection<Ticket> chunk, String ticketTemplate) {
+    public void saveChunk(int srvIdMaskHigh, Collection<Ticket> chunk, String ticketPrefix) {
         Preconditions.checkNotNull(jiraCache, "init() was not called");
 
         if (F.isEmpty(chunk))
@@ -103,8 +104,8 @@ public class JiraTicketDao {
         HashMap<Long, TicketCompacted> compactedTickets = new HashMap<>(U.capacity(chunk.size()));
 
         for (Ticket ticket : chunk) {
-            long key = ticketToCacheKey(srvIdMaskHigh, ticket.igniteId(ticketTemplate));
-            TicketCompacted val = new TicketCompacted(ticket, compactor, ticketTemplate);
+            long key = ticketToCacheKey(srvIdMaskHigh, ticket.igniteId(ticketPrefix));
+            TicketCompacted val = new TicketCompacted(ticket, compactor, ticketPrefix);
 
             compactedTickets.put(key, val);
         }

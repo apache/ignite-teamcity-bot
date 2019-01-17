@@ -22,16 +22,18 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.jira.Ticket;
 import org.apache.ignite.ci.jira.Tickets;
-import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.internal.util.typedef.F;
+import org.jetbrains.annotations.NotNull;
+
+import static org.apache.ignite.ci.util.UrlUtil.escape;
 
 /**
- * 
+ * Sync serving requests for all JIRA servers.
  */
 public class JiraTicketSync {
     /** Scheduler. */
@@ -44,26 +46,36 @@ public class JiraTicketSync {
     @Inject IJiraIntegrationProvider jiraIntegrationProvider;
 
     /**
-     * @param taskName Task name.
-     * @param srvIdMaskHigh Server id mask high.
-     * @param creds Credentials.
-     * @param conn Connection.
+     * @param srvId Server ID
      */
-    public void ensureActualizeJiraTickets(String taskName, int srvIdMaskHigh, ICredentialsProv creds, ITeamcityConn conn) {
-        scheduler.sheduleNamed(taskName, () -> actualizeJiraTickets(srvIdMaskHigh, conn, creds), 15, TimeUnit.MINUTES);
+    public void ensureActualizeJiraTickets(String srvId) {
+        scheduler.sheduleNamed(taskName("actualizeJiraTickets", srvId),
+            () -> actualizeJiraTickets(srvId), 15, TimeUnit.MINUTES);
     }
 
     /**
-     * @param srvIdMaskHigh Server id mask high.
-     * @param conn Connection.
-     * @param creds Credentials.
+     * @param taskName Task name.
+     * @param srvId Service ID
+     * @return Task name concatenated with server name.
+     */
+    @NotNull
+    private String taskName(String taskName, String srvId) {
+        return JiraTicketSync.class.getSimpleName() + "." + taskName + "." + srvId;
+    }
+    /**
+     * @param srvId Server internal identification.
      */
     @MonitoredTask(name = "Actualize Jira", nameExtArgsIndexes = {0})
-    private String actualizeJiraTickets(int srvIdMaskHigh, ITeamcityConn conn, ICredentialsProv creds) {
-        String srvId = conn.serverId();
+    protected String actualizeJiraTickets(String srvId) {
+        int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
         IJiraIntegration jira = jiraIntegrationProvider.server(srvId);
-        String url = "search?jql=project%20=%20IGNITE%20order%20by%20updated%20DESC&fields=status&maxResults=100";
-        Tickets tickets = jira.getTickets(srvId, creds, url);
+
+        String projectName = jira.projectName();
+        String baseUrl = "search?jql=" + escape("project=" + projectName + " order by updated DESC")
+            + "&fields=status&maxResults=100";
+
+        String url = baseUrl;
+        Tickets tickets = jira.getTicketsPage(srvId, url);
         Collection<Ticket> page = tickets.issuesNotNull();
 
         if (F.isEmpty(page))
@@ -74,16 +86,16 @@ public class JiraTicketSync {
         int ticketsSaved = page.size();
 
         while (tickets.nextStart() > 0) {
-            url = "search?jql=project%20=%20IGNITE%20order%20by%20updated%20DESC&fields=status&maxResults=100&startAt=" +
-                tickets.nextStart();
+            url = baseUrl + "&startAt=" + tickets.nextStart();
 
-            tickets = jira.getTickets(srvId, creds, url);
+            tickets = jira.getTicketsPage(srvId, url);
 
             page = tickets.issuesNotNull();
 
             if (F.isEmpty(page))
                 break;
 
+            //todo find not updated chunk and exit
             jiraDao.saveChunk(srvIdMaskHigh, page, jira.ticketPrefix());
 
             ticketsSaved += page.size();

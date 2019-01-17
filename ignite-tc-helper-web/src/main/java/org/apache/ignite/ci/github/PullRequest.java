@@ -61,7 +61,7 @@ public class PullRequest implements IVersionedEntity {
      * @return Pull Request time update.
      */
     public String getTimeUpdate() {
-        return  updatedAt;
+        return updatedAt;
     }
 
     /**

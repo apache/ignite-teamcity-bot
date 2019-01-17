@@ -14,19 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.ignite.ci.jira;
-
-import com.google.inject.AbstractModule;
-import com.google.inject.internal.SingletonScope;
+package org.apache.ignite.ci.jira.ignited;
 
 /**
  *
  */
-public class JiraIntegrationModule extends AbstractModule {
-    /** {@inheritDoc} */
-    @Override protected void configure() {
-        bind(IJiraIntegration.class).to(Jira.class);
-        bind(IJiraIntegrationProvider.class).to(JiraIntegrationProvider.class).in(new SingletonScope());
-    }
+public interface IJiraIgnitedProvider {
+    /**
+     * @param srvId Server id.
+     */
+    public IJiraIgnited server(String srvId);
 }

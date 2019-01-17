@@ -15,64 +15,71 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.jira;
+package org.apache.ignite.ci.jira.pure;
 
-import org.apache.ignite.ci.web.model.Visa;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import java.io.IOException;
+import org.apache.ignite.ci.jira.Tickets;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Reperesents methods to provide interaction with Jira servers.
  */
 public interface IJiraIntegration {
-    /** Message to show user when JIRA ticket was successfully commented by the Bot. */
-    public static String JIRA_COMMENTED = "JIRA commented.";
+
+    /** @return JIRA ticket prefix. */
+    @NotNull public String ticketPrefix();
 
     /**
-     * Produce visa message(see {@link Visa}) based on passed
-     * parameters and publish it as a comment for specified ticket
-     * on Jira server.
      *
-     * @param srvId TC Server ID to take information about token from.
-     * @param prov Credentials.
-     * @param buildTypeId Suite name.
-     * @param branchForTc Branch for TeamCity.
-     * @param ticket JIRA ticket full name. E.g. IGNITE-5555
-     * @return {@link Visa} instance.
      */
-    public Visa notifyJira(String srvId, ICredentialsProv prov, String buildTypeId, String branchForTc,
-        String ticket);
+    @NotNull public default String projectName() {
+        return ticketPrefix().replaceAll("-", "");
+    }
+
+    /**
+     * @return Internal identified service ID.
+     */
+    public void init(String srvId);
+
+    /**
+     * @return Internal identified service ID.
+     */
+    public String getServiceId();
+
+    /**
+     * @param ticket JIRA ticket full name. E.g 'IGNITE-5555'.
+     * @param comment Comment to be placed in the ticket conversation.
+     * @return {@code True} if ticket was succesfully commented. Otherwise - {@code false}.
+     * @throws IOException If failed to comment JIRA ticket.
+     * @throws IllegalStateException If can't find URL to the JIRA.
+     */
+    public String postJiraComment(String ticket, String comment) throws IOException;
 
     /**
      * Produce wrapper for collection of Jira tickets for given server.
      *
      * @param srvId Server id.
-     * @param prov Prov.
-     * @param ticketId Ticket id.
+     * @param url Tickets loading URL and parameters.
      * @return Jira tickets.
      */
-    public Tickets getTickets(String srvId, ICredentialsProv prov, String ticketId);
+    public Tickets getTicketsPage(@Deprecated String srvId, String url);
 
     /** */
     public String jiraUrl();
 
-    /** @return JIRA ticket prefix. */
-    @NotNull public String ticketPrefix();
-
-    /** */
-    public void init(String srvId);
-
     /**
      * @param ticketFullName Ticket full name (e.g IGNITE-8331)
-     *
      * @return URL which is used as link to Jira ticket with specified name.
      */
     public String generateTicketUrl(String ticketFullName);
 
     /**
      * @param ticketFullName Ticket full name (e.g IGNITE-8331)
-     *
      * @return URL which is used as link to Jira comment with specified id.
      */
     public String generateCommentUrl(String ticketFullName, int commentId);
+
+    String getJiraApiUrl();
+
+    boolean isJiraTokenAvailable();
 }

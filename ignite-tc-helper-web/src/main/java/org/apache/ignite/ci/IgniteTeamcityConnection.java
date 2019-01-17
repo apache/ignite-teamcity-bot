@@ -103,17 +103,16 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** Teamcity http connection. */
     @Inject private ITeamcityHttpConnection teamcityHttpConn;
 
-    /**  JIRA authorization token. */
-    private String jiraBasicAuthTok;
-
-    /** URL for JIRA integration. */
-    private String jiraApiUrl;
 
     private String configName; //main properties file name
     private String tcName;
 
     /** Build logger processing running. */
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
+
+    /** Git branch prefix for seach TC runs in PR-less contributions. */
+    @NotNull
+    private String gitBranchPrefix;
 
     public Executor getExecutor() {
         return executor;
@@ -140,8 +139,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
             logger.error("Failed to set credentials", e);
         }
 
-        setJiraToken(HelperConfig.prepareJiraHttpAuthToken(props));
-        setJiraApiUrl(props.getProperty(HelperConfig.JIRA_API_URL));
+        this.gitBranchPrefix = props.getProperty(HelperConfig.GIT_BRANCH_PREFIX, "ignite-");
 
         final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
 
@@ -158,45 +156,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @Override public boolean isTeamCityTokenAvailable() {
         return basicAuthTok != null;
-    }
-
-    /** {@inheritDoc} */
-    @Override public void setJiraToken(String tok) {
-        jiraBasicAuthTok = tok;
-    }
-
-    /** {@inheritDoc} */
-    @Override public boolean isJiraTokenAvailable() {
-        return jiraBasicAuthTok != null;
-    }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public String sendJiraComment(String ticket, String comment) throws IOException {
-        if (isNullOrEmpty(jiraApiUrl))
-            throw new IllegalStateException("JIRA API URL is not configured for this server.");
-
-        String url = jiraApiUrl + "issue/" + ticket + "/comment";
-
-        return HttpUtil.sendPostAsStringToJira(jiraBasicAuthTok, url, "{\"body\": \"" + comment + "\"}");
-    }
-
-    /** {@inheritDoc} */
-    @Override public String sendGetToJira(String url) throws IOException {
-        if (isNullOrEmpty(jiraApiUrl))
-            throw new IllegalStateException("JIRA API URL is not configured for this server.");
-
-        return HttpUtil.sendGetToJira(jiraBasicAuthTok, jiraApiUrl + url);
-    }
-
-    /** {@inheritDoc} */
-    @Override public void setJiraApiUrl(String url) {
-        jiraApiUrl = url;
-    }
-
-    /** {@inheritDoc} */
-    @Override public String getJiraApiUrl() {
-        return jiraApiUrl;
     }
 
 
@@ -374,6 +333,11 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @Override public List<Project> getProjects() {
         return sendGetXmlParseJaxb(host + "app/rest/latest/projects", ProjectsList.class).projects();
+    }
+
+    /** {@inheritDoc} */
+    @Override public String gitBranchPrefix() {
+        return gitBranchPrefix;
     }
 
     /** {@inheritDoc} */

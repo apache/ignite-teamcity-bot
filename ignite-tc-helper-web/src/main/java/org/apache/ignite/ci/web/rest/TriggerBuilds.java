@@ -36,6 +36,8 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.conf.ServerIntegrationLinks;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.web.CtxListener;
@@ -124,10 +126,11 @@ public class TriggerBuilds {
             ITcHelper tcHelper = injector.getInstance(ITcHelper.class);
             final ICredentialsProv creds = ICredentialsProv.get(req);
             ITeamcity teamcity = tcHelper.server(srvId, creds);
+            IJiraIntegration jira = injector.getInstance(IJiraIntegrationProvider.class).server(srvId);
 
             IGitHubConnection gh = injector.getInstance(IGitHubConnectionProvider.class).server(srvId);
 
-            return new ServerIntegrationLinks(srvId, gh.gitApiUrl(), teamcity.getJiraApiUrl());
+            return new ServerIntegrationLinks(srvId, gh.gitApiUrl(), jira.getJiraApiUrl());
         }).filter(Objects::nonNull).collect(Collectors.toSet());
     }
 }

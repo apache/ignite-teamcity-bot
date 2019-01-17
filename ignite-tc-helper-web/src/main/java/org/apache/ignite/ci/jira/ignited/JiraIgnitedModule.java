@@ -14,13 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.jira.ignited;
 
-package org.apache.ignite.ci;
+import com.google.inject.AbstractModule;
+import org.apache.ignite.ci.jira.pure.JiraIntegrationModule;
 
 /**
- * Combination of REST data and persisted statistics.
+ *
  */
-@Deprecated
-public interface IAnalyticsEnabledTeamcity extends ITeamcity, ITcAnalytics {
-    public void init(ITeamcity conn);
+public class JiraIgnitedModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        bind(IJiraIgnitedProvider.class).to(JiraIgnitedProvider.class);
+
+        install(new JiraIntegrationModule());
+    }
 }

@@ -35,6 +35,59 @@
             loadData();
         });
 
+        function showTabs() {
+            var index = 'prsCheck_lastOpenedTab';  //  Define friendly index name
+            var dataStore = window.sessionStorage;  //  Define friendly data store name
+            var oldIndex;
+            try {
+                // getter: Fetch previous value
+                oldIndex = dataStore.getItem(index);
+            } catch (e) {
+                // getter: Always default to first tab in error state
+                oldIndex = 0;
+            }
+            $('#tabs').tabs({
+                // The zero-based index of the panel that is active (open)
+                active: oldIndex,
+                // Triggered after a tab has been activated
+                activate: function (event, ui) {
+                    //  Get future value
+                    var newIndex = ui.newTab.parent().children().index(ui.newTab);
+                    //  Set future value
+                    dataStore.setItem(index, newIndex)
+                }
+            });
+        }
+
+        function showServerContribTabs(result) {
+            const processed = new Set();
+            for (let chainAtServer of result) {
+                let serverId = chainAtServer.serverId;
+
+                if (processed.has(serverId))
+                    continue;
+
+                processed.add(serverId);
+
+                let selSrv = findGetParameter("server");
+                if (isDefinedAndFilled(selSrv)) {
+                    if (serverId !== selSrv)
+                        continue;
+                }
+
+                let tabsInsertion = $("#tabs-insertionPoint");
+                let tabId = "tabs-" + serverId;
+                let tabRef = "#" + tabId;
+                tabsInsertion.prepend("<li><a href=\"" + tabRef + "\">" + serverId + "</a></li>");
+
+                tabsInsertion.after("<div id=\"" + tabId + "\">" + "</div>");
+
+                requestTableForServer(serverId, chainAtServer.suiteId, $(tabRef));
+            }
+
+            showTabs();
+        }
+
         function loadData() {
             $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
 
@@ -52,32 +105,7 @@
                     showFormAndSuitesForPrCheck(result);
                     showCommentJiraForm(result);
 
-                    const processed = new Set();
-                    for (let chainAtServer of result) {
-                        let serverId = chainAtServer.serverId;
-
-                        if(processed.has(serverId))
-                            continue;
-
-                        processed.add(serverId);
-
-                        let selSrv = findGetParameter("server");
-                        if (isDefinedAndFilled(selSrv)) {
-                            if (serverId !== selSrv)
-                                continue;
-                        }
-
-                        let tabsInsertion = $("#tabs-insertionPoint");
-                        let tabId = "tabs-" + serverId;
-                        let tabRef = "#" + tabId;
-                        tabsInsertion.prepend("<li><a href=\"" + tabRef + "\">" + serverId + "</a></li>");
-
-                        tabsInsertion.after("<div id=\"" + tabId + "\">" + "</div>");
-
-                        requestTableForServer(serverId, chainAtServer.suiteId, $(tabRef));
-                    }
-
-                    $( "#tabs" ).tabs();
+                    showServerContribTabs(result);
                 },
                 error: showErrInLoadStatus
             });

@@ -19,6 +19,7 @@ package org.apache.ignite.ci.web.model.current;
 
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 
 /**
  *
@@ -57,16 +58,17 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
     /**
      * @param teamcity TeamCity to get info about tokens.
      * @param gitHubConn GitHub integration associated with this server.
+     * @param jiraIntegration
      */
     public void setJavaFlags(IAnalyticsEnabledTeamcity teamcity,
-        IGitHubConnection gitHubConn) {
+        IGitHubConnection gitHubConn, IJiraIntegration jiraIntegration) {
         if (teamcity.isTeamCityTokenAvailable())
             javaFlags |= TEAMCITY_FLAG;
 
         if (gitHubConn.isGitTokenAvailable())
             javaFlags |= GITHUB_FLAG;
 
-        if (teamcity.isJiraTokenAvailable())
+        if (jiraIntegration.isJiraTokenAvailable())
             javaFlags |= JIRA_FLAG;
     }
 }

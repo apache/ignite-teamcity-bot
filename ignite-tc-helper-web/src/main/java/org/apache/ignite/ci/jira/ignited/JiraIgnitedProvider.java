@@ -14,8 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.ignite.ci.jira;
+package org.apache.ignite.ci.jira.ignited;
 
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
@@ -24,19 +23,22 @@ import com.google.inject.Provider;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.util.ExceptionUtil;
 
 /**
- * Class for providing {@link IJiraIntegration} instance for specified Jira
- * server. Instance for each server is cached with defining instance
- * expiration time.
+ *
  */
-public class JiraIntegrationProvider implements IJiraIntegrationProvider {
+public class JiraIgnitedProvider implements IJiraIgnitedProvider {
     /** */
-    @Inject Provider<IJiraIntegration> factory;
+    @Inject IJiraIntegrationProvider pureProv;
 
     /** */
-    private final Cache<String, IJiraIntegration> srvs
+    @Inject Provider<JiraIgnited> factory;
+
+    /** */
+    private final Cache<String, IJiraIgnited> srvs
         = CacheBuilder.newBuilder()
         .maximumSize(100)
         .expireAfterAccess(16, TimeUnit.MINUTES)
@@ -44,14 +46,15 @@ public class JiraIntegrationProvider implements IJiraIntegrationProvider {
         .build();
 
     /** */
-    @Override public IJiraIntegration server(String srvId) {
+    @Override public IJiraIgnited server(String srvId) {
         try {
             return srvs.get(Strings.nullToEmpty(srvId), () -> {
-                IJiraIntegration jiraIntegration = factory.get();
+                IJiraIntegration pure = pureProv.server(srvId);
 
-                jiraIntegration.init(srvId);
+                JiraIgnited ignited = factory.get();
+                ignited.init(pure);
 
-                return jiraIntegration;
+                return ignited;
             });
         }
         catch (ExecutionException e) {

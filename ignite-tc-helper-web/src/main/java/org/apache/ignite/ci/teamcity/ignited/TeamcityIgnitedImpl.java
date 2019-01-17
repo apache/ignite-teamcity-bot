@@ -19,7 +19,22 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
@@ -27,44 +42,34 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.jira.ignited.JiraTicketDao;
-import org.apache.ignite.ci.jira.ignited.JiraTicketSync;
-import org.apache.ignite.ci.jira.Ticket;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
-import org.apache.ignite.ci.teamcity.ignited.mute.MuteDao;
-import org.apache.ignite.ci.teamcity.ignited.mute.MuteSync;
+import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
-import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefSync;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeSync;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
+import org.apache.ignite.ci.teamcity.ignited.mute.MuteDao;
+import org.apache.ignite.ci.teamcity.ignited.mute.MuteSync;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
 
@@ -114,12 +119,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Mute Sync. */
     @Inject private MuteSync muteSync;
 
-    /** Jira ticket DAO. */
-    @Inject private JiraTicketDao jiraTicketDao;
-
-    /** Jira ticket Sync. */
-    @Inject private JiraTicketSync jiraTicketSync;
-
     /** Changes DAO. */
     @Inject private ChangeDao changesDao;
 
@@ -158,7 +157,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         changesDao.init();
         runHistCompactedDao.init();
         muteDao.init();
-        jiraTicketDao.init();
     }
 
     /**
@@ -344,44 +342,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @Override public Set<MuteInfo> getMutes(String projectId, ICredentialsProv creds) {
         muteSync.ensureActualizeMutes(taskName("actualizeMutes"), projectId, srvIdMaskHigh, conn);
-        jiraTicketSync.ensureActualizeJiraTickets(taskName("actualizeJiraTickets"), srvIdMaskHigh, creds, conn);
 
         SortedSet<MuteInfo> mutes = muteDao.getMutes(srvIdMaskHigh);
-        Collection<Ticket> tickets = jiraTicketDao.getTickets(srvIdMaskHigh);
 
-        insertTicketStatus(mutes, tickets);
 
         return mutes;
     }
 
-    /**
-     * Insert ticket status for all mutes, if they have ticket in description.
-     *
-     * @param mutes Mutes.
-     * @param tickets Tickets.
-     */
-    private void insertTicketStatus(SortedSet<MuteInfo> mutes, Collection<Ticket> tickets) {
-        for (MuteInfo mute : mutes) {
-            if (F.isEmpty(mute.assignment.text))
-                continue;
 
-            int pos = mute.assignment.text.indexOf("https://issues.apache.org/jira/browse/");
-
-            if (pos == -1)
-                continue;
-
-            for (Ticket ticket : tickets) {
-                String muteTicket = mute.assignment.text.substring(pos +
-                    "https://issues.apache.org/jira/browse/".length());
-
-                if (ticket.key.equals(muteTicket)) {
-                    mute.ticketStatus = ticket.status();
-
-                    break;
-                }
-            }
-        }
-    }
 
     /** {@inheritDoc} */
     @AutoProfiling
@@ -431,6 +399,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @Override public List<String> getAllProjectsIds() {
         return conn.getProjects().stream().map(Project::id).collect(Collectors.toList());
+    }
+
+    /** {@inheritDoc} */
+    @Override public String gitBranchPrefix() {
+        return conn.gitBranchPrefix();
     }
 
     /** {@inheritDoc} */

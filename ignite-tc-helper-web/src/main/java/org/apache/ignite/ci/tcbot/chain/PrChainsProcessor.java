@@ -24,8 +24,8 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
-import org.apache.ignite.ci.jira.IJiraIntegration;
-import org.apache.ignite.ci.jira.IJiraIntegrationProvider;
+import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
@@ -108,7 +108,7 @@ public class PrChainsProcessor {
 
         IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(srvId);
 
-        res.setJavaFlags(teamcity, gitHubConn);
+        res.setJavaFlags(teamcity, gitHubConn, jiraIntegration);
 
         LatestRebuildMode rebuild;
         if (FullQueryParams.HISTORY.equals(act))
@@ -160,7 +160,7 @@ public class PrChainsProcessor {
             //fail rate reference is always default (master)
             chainStatus.initFromContext(tcIgnited, teamcity, ctx, teamcity, baseBranch);
 
-            chainStatus.initJiraAndGitInfo(jiraIntegration, gitHubConnIgnited);
+            chainStatus.initJiraAndGitInfo(tcIgnited, jiraIntegration, gitHubConnIgnited);
         }
 
         res.addChainOnServer(chainStatus);

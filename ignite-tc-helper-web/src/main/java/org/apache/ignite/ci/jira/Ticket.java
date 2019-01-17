@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.jira;
 
+import com.google.common.base.MoreObjects;
+
 /**
  * See example of GSON here
  * https://issues.apache.org/jira/rest/api/2/issue/IGNITE-123
@@ -32,11 +34,11 @@ public class Ticket {
     public Fields fields;
 
     /**
-     * @param ticketTemplate Ticket name template.
-     * @return Ignite id (like 123 in IGNITE-123).
+     * @param ticketPrefix Ticket name fixed prefix.
+     * @return Ignite ticket Number ignoring project code (like 123 in IGNITE-123).
      */
-    public int igniteId(String ticketTemplate) {
-        return Integer.valueOf(key.substring(ticketTemplate.length()));
+    public int igniteId(String ticketPrefix) {
+        return Integer.valueOf(key.substring(ticketPrefix.length()));
     }
 
     /**
@@ -44,5 +46,22 @@ public class Ticket {
      */
     public String status() {
         return fields.status.name;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("id", id)
+            .add("key", key)
+            .add("fields", fields)
+            .toString();
+    }
+
+    /**
+     * Checks if ticket relates to some Active (In progress/Patch Available) Contribution.
+     */
+    public boolean isActiveContribution() {
+        return Status.PA_NAME.equals(status())
+            || Status.IP_NAME.equals(status());
     }
 }
