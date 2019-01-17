@@ -81,5 +81,8 @@ public interface IJiraIntegration {
 
     String getJiraApiUrl();
 
+    /**
+     * @return {@code True} if JIRA authorization token is available.
+     */
     boolean isJiraTokenAvailable();
 }

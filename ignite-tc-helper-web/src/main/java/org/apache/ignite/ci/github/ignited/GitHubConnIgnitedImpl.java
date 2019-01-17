@@ -110,14 +110,9 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         runActualizePrs(srvId, false);
 
         // schedule full resync later
-        scheduler.invokeLater(this::sheduleResync, 20, TimeUnit.SECONDS);
-    }
-
-    /**
-     *
-     */
-    private void sheduleResync() {
-        scheduler.sheduleNamed(taskName("fullReindex"), this::fullReindex, 60, TimeUnit.MINUTES);
+        scheduler.invokeLater(
+            () -> scheduler.sheduleNamed(taskName("fullReindex"), this::fullReindex, 2, TimeUnit.HOURS),
+            1, TimeUnit.MINUTES);
     }
 
     /**

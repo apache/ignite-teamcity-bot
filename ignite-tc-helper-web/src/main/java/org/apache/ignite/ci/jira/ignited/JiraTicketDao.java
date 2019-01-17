@@ -19,6 +19,7 @@ package org.apache.ignite.ci.jira.ignited;
 
 import com.google.common.base.Preconditions;
 import java.util.Collection;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -89,19 +90,19 @@ public class JiraTicketDao {
 
     /**
      * Save small part of loaded mutes.
-     *
      * @param srvIdMaskHigh Server id mask high.
      * @param chunk Chunk.
      * @param ticketPrefix Ticket name template.
+     * @return number of tickets totally saved.
      */
     @AutoProfiling
-    public void saveChunk(int srvIdMaskHigh, Collection<Ticket> chunk, String ticketPrefix) {
+    public int saveChunk(int srvIdMaskHigh, Collection<Ticket> chunk, String ticketPrefix) {
         Preconditions.checkNotNull(jiraCache, "init() was not called");
 
         if (F.isEmpty(chunk))
-            return;
+            return 0;
 
-        HashMap<Long, TicketCompacted> compactedTickets = new HashMap<>(U.capacity(chunk.size()));
+        Map<Long, TicketCompacted> compactedTickets = new HashMap<>(U.capacity(chunk.size()));
 
         for (Ticket ticket : chunk) {
             long key = ticketToCacheKey(srvIdMaskHigh, ticket.igniteId(ticketPrefix));
@@ -110,6 +111,20 @@ public class JiraTicketDao {
             compactedTickets.put(key, val);
         }
 
-        jiraCache.putAll(compactedTickets);
+        Map<Long, TicketCompacted> dbVal = jiraCache.getAll(compactedTickets.keySet());
+
+        Map<Long, TicketCompacted> ticketsToUpdate = new HashMap<>(U.capacity(chunk.size()));
+
+        compactedTickets.forEach((k, v) -> {
+            TicketCompacted existing = dbVal.get(k);
+
+            if (existing == null || !v.equals(existing))
+                ticketsToUpdate.put(k, v);
+        });
+
+        if(!ticketsToUpdate.isEmpty())
+            jiraCache.putAll(ticketsToUpdate);
+
+        return ticketsToUpdate.size();
     }
 }

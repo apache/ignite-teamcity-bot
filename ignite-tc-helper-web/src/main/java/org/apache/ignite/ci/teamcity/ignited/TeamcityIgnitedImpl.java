@@ -597,7 +597,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      *
      */
     private void sheduleResyncBuildRefs() {
-        scheduler.sheduleNamed(taskName("fullReindex"), this::fullReindex, 120, TimeUnit.MINUTES);
+        scheduler.sheduleNamed(taskName("fullReindex"), this::fullReindex, 2, TimeUnit.HOURS);
     }
 
     /**
