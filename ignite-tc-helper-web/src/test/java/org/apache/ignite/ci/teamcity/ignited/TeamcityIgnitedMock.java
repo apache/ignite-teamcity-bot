@@ -116,6 +116,8 @@ public class TeamcityIgnitedMock {
                     return runHistCompacted;
                 });
 
+        when(tcIgnited.gitBranchPrefix()).thenReturn("ignite-");
+
         return tcIgnited;
     }
 

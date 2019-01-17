@@ -41,6 +41,7 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -77,11 +78,7 @@ public class MockBasedTcBotModule extends AbstractModule {
 
         when(pullReq.getTitle()).thenReturn("");
 
-        Integer prId = IGitHubConnection.convertBranchToId(anyString());
-
-        Preconditions.checkNotNull(prId, "Invalid TC branch name");
-
-        when(gitHubConnIgnited.getPullRequest(prId)).thenReturn(pullReq);
+        when(gitHubConnIgnited.getPullRequest(anyInt())).thenReturn(pullReq);
 
         when(gitHubConnIgnitedProvider.server(anyString())).thenReturn(gitHubConnIgnited);
 
