@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.tcbot.visa;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
 import java.text.DateFormat;
@@ -26,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -44,6 +44,7 @@ import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.jira.Ticket;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
@@ -309,18 +310,24 @@ public class TcBotTriggerAndSignOffService {
 
         if (F.isEmpty(ticketFullName)) {
             try {
-                IGitHubConnIgnited gitHubConn = gitHubConnIgnitedProvider.server(srvId);
+                ticketFullName = prLessTicket(srvId, branchForTc, prov, prefix);
 
-                PullRequest pr = gitHubConn.getPullRequest(branchForTc);
+                PullRequest pr = null;
 
-                ticketFullName = getTicketFullName(pr, prefix);
+                if (Strings.isNullOrEmpty(ticketFullName)) {
+                    pr = findPrForBranch(srvId, branchForTc);
 
-                if (ticketFullName.isEmpty()) {
-                    return "JIRA ticket will not be notified after the tests are completed - " +
-                        "PR title \"" + pr.getTitle() + "\" should starts with \"" + prefix + "NNNNN\"." +
+                    if (pr != null)
+                        ticketFullName = getTicketFullName(pr, prefix);
+                }
+
+                if (Strings.isNullOrEmpty(ticketFullName)) {
+                    return "JIRA ticket will not be notified - " +
+                        "PR title \"" + (pr == null ? "" : pr.getTitle()) + "\" should starts with \"" + prefix + "NNNNN\"." +
                         " Please, rename PR according to the" +
                         " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
-                        "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>.";
+                        "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>" +
+                        " or use branch name according ticket name.";
                 }
             }
             catch (Exception e) {
@@ -357,24 +364,28 @@ public class TcBotTriggerAndSignOffService {
         ICredentialsProv prov) {
         String jiraRes = "";
 
-        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvId);
-
-        String prefix = jiraIntegration.ticketPrefix();
+        String prefix = jiraIgnProv.server(srvId).ticketPrefix();
 
         if (Strings.isNullOrEmpty(ticketFullName)) {
             try {
-                IGitHubConnIgnited gitHubConn = gitHubConnIgnitedProvider.server(srvId);
-                PullRequest pr = gitHubConn.getPullRequest(branchForTc);
+                ticketFullName = prLessTicket(srvId, branchForTc, prov, prefix);
 
-                ticketFullName = getTicketFullName(pr, prefix);
+                PullRequest pr = null;
 
-                if (ticketFullName.isEmpty()) {
+                if (Strings.isNullOrEmpty(ticketFullName)) {
+                    pr = findPrForBranch(srvId, branchForTc);
+
+                    if (pr != null)
+                        ticketFullName = getTicketFullName(pr, prefix);
+                }
+
+                if (Strings.isNullOrEmpty(ticketFullName)) {
                     jiraRes = "JIRA ticket can't be commented - " +
-                        "PR title \"" + pr.getTitle() + "\" should starts with \"" + prefix + "NNNNN\"." +
+                        "PR title \"" + (pr == null ? "" : pr.getTitle()) + "\" should starts with \"" + prefix + "NNNNN\"." +
                         " Please, rename PR according to the" +
                         " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
                         "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>" +
-                        " or enter ticket id in the form.";
+                        " or use branch name according ticket name.";
                 }
             }
             catch (RuntimeException e) {
@@ -403,6 +414,51 @@ public class TcBotTriggerAndSignOffService {
         }
         else
             return new SimpleResult("JIRA wasn't commented." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
+    }
+
+    @Nullable public PullRequest findPrForBranch(
+        @Nullable @QueryParam("serverId") String srvId,
+        @Nullable @QueryParam("branchName") String branchForTc) {
+        Integer prId = IGitHubConnection.convertBranchToId(branchForTc);
+
+        if (prId == null)
+            return null;
+
+        IGitHubConnIgnited gh = gitHubConnIgnitedProvider.server(srvId);
+
+        return gh.getPullRequest(prId);
+    }
+
+    /**
+     * @param srvId Server id.
+     * @param branchForTc Branch for tc.
+     * @param prov Credentials Prov.
+     * @param ticketPrefix Ticket prefix.
+     */
+    @Nullable public String prLessTicket(@Nullable @QueryParam("serverId") String srvId,
+        String branchForTc, ICredentialsProv prov, String ticketPrefix) {
+        return prLessTicket(branchForTc, ticketPrefix, tcIgnitedProv.server(srvId, prov));
+    }
+
+    /**
+     * @param branchForTc Branch for tc.
+     * @param ticketPrefix Ticket prefix.
+     * @param tcIgn Tc ign.
+     */
+    @Nullable public static String prLessTicket(String branchForTc, String ticketPrefix, ITeamcityIgnited tcIgn) {
+        String branchPrefix = tcIgn.gitBranchPrefix();
+
+        if (!branchForTc.startsWith(branchPrefix))
+            return null;
+
+        try {
+            int ticketNum = Integer.parseInt(branchForTc.substring(branchPrefix.length()));
+
+            return ticketPrefix + ticketNum;
+        }
+        catch (NumberFormatException ignored) {
+        }
+        return null;
     }
 
     /**
@@ -489,10 +545,8 @@ public class TcBotTriggerAndSignOffService {
             return buildHist;
 
         Integer prNum = Integer.valueOf(prId);
-        if (prNum < 0) {
+        if (prNum < 0)
             return buildHist; // Don't iterate for other options if PR ID is absent
-        }
-
 
         buildHist = srv.getAllBuildsCompacted(suiteId, branchForTcB(prId));
 
@@ -573,10 +627,11 @@ public class TcBotTriggerAndSignOffService {
 
 
         for (String btId : compositeBuildTypeIds) {
-            List<BuildRefCompacted> forTests = findBuildsForPr(btId, prId, ghConn, teamcity);
+            List<BuildRefCompacted> compBuilds = findBuildsForPr(btId, prId, ghConn, teamcity);
 
-            statuses.add(forTests.isEmpty() ? new ContributionCheckStatus(btId, branchForTcDefault(prId, teamcity)) :
-                contributionStatus(srvId, btId, forTests, teamcity, prId));
+            statuses.add(compBuilds.isEmpty()
+                ? new ContributionCheckStatus(btId, branchForTcDefault(prId, teamcity))
+                : contributionStatus(srvId, btId, compBuilds, teamcity, prId));
         }
 
         return statuses;

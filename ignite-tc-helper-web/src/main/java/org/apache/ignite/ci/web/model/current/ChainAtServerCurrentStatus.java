@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.web.model.current;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -126,7 +127,8 @@ public class ChainAtServerCurrentStatus {
     }
 
     /** */
-    public void initJiraAndGitInfo(IJiraIntegration jiraIntegration, IGitHubConnIgnited gitHubConnIgnited) {
+    public void initJiraAndGitInfo(ITeamcityIgnited tcIgnited,
+        IJiraIntegration jiraIntegration, IGitHubConnIgnited gitHubConnIgnited) {
         Integer prNum = IGitHubConnection.convertBranchToId(branchName);
 
         String prUrl = null;
@@ -135,18 +137,22 @@ public class ChainAtServerCurrentStatus {
 
         String ticketUrl = null;
 
+        String ticketPrefix = jiraIntegration.ticketPrefix();
+
         if (prNum != null) {
             PullRequest pullReq = gitHubConnIgnited.getPullRequest(prNum);
 
             if (pullReq != null && pullReq.getTitle() != null) {
                 prUrl = pullReq.htmlUrl();
 
-                ticketFullName = TcBotTriggerAndSignOffService.getTicketFullName(pullReq, jiraIntegration.ticketPrefix());
-
-                if (!ticketFullName.isEmpty())
-                    ticketUrl = jiraIntegration.generateTicketUrl(ticketFullName);
+                ticketFullName = TcBotTriggerAndSignOffService.getTicketFullName(pullReq, ticketPrefix);
             }
         }
+        else
+            ticketFullName = TcBotTriggerAndSignOffService.prLessTicket(branchName, ticketPrefix, tcIgnited);
+
+        if (!Strings.isNullOrEmpty(ticketFullName))
+            ticketUrl = jiraIntegration.generateTicketUrl(ticketFullName);
 
         setPrInfo(prNum, prUrl);
         setJiraTicketInfo(ticketFullName, ticketUrl);

@@ -96,7 +96,7 @@ function showContributionsTable(result, srvId, suiteId) {
                 "data": "prHtmlUrl",
                 title: "PR Number",
                 "render": function (data, type, row, meta) {
-                    if (type === 'display' && row.prNumber>0) {
+                    if (type === 'display' && row.prNumber > 0) {
                         data = "<a href='" + data + "'>#" + row.prNumber + "</a>";
                     }
 
@@ -256,9 +256,14 @@ function formatContributionDetails(row, srvId) {
         "           </tr>";
 
     //References
-    res += "        <tr>\n" +
-        "            <td>Edit PR: " + "<a href='" + row.prHtmlUrl + "'>#" + row.prNumber + "</a>" + "</td>\n" +
-        "            <td id='viewQueuedBuildsFor" + prId + "'></td>\n" +
+    res += "        <tr>\n";
+
+    if (row.prNumber > 0)
+        res += "            <td>Edit PR: " + "<a href='" + row.prHtmlUrl + "'>#" + row.prNumber + "</a>" + "</td>\n";
+    else
+        res += "            <td></td>\n";
+
+    res += "            <td id='viewQueuedBuildsFor" + prId + "'></td>\n" +
         "            <td></td>\n" +
         "            <td></td>\n" +
         "        </tr>";

@@ -55,7 +55,7 @@ public interface IGitHubConnection {
     /**
      * @return PR id from string "pull/XXXX/head"
      */
-    public @Nullable static Integer convertBranchToId(String branchForTc) {
+    @Nullable public static Integer convertBranchToId(String branchForTc) {
         Integer res = null;
 
         if (Objects.isNull(branchForTc))

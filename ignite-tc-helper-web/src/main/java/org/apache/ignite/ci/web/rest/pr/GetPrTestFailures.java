@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.web.rest.pr;
 
+import com.google.common.base.Preconditions;
 import com.google.inject.Injector;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
@@ -32,6 +33,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -140,7 +142,12 @@ public class GetPrTestFailures {
         PullRequest pr;
 
         try {
-            pr = srv.getPullRequest(branchForTc);
+            Integer prId = IGitHubConnection.convertBranchToId(branchForTc);
+
+            if (prId == null)
+                return "Invalid TC branch name: [" + branchForTc + "]";
+
+            pr = srv.getPullRequest(prId);
         }
         catch (RuntimeException e) {
             return "Exception happened - " + e.getMessage();

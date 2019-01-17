@@ -160,7 +160,7 @@ public class PrChainsProcessor {
             //fail rate reference is always default (master)
             chainStatus.initFromContext(tcIgnited, teamcity, ctx, teamcity, baseBranch);
 
-            chainStatus.initJiraAndGitInfo(jiraIntegration, gitHubConnIgnited);
+            chainStatus.initJiraAndGitInfo(tcIgnited, jiraIntegration, gitHubConnIgnited);
         }
 
         res.addChainOnServer(chainStatus);

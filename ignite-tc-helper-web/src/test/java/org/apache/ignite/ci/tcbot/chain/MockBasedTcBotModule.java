@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.tcbot.chain;
 
+import com.google.common.base.Preconditions;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
@@ -76,7 +77,11 @@ public class MockBasedTcBotModule extends AbstractModule {
 
         when(pullReq.getTitle()).thenReturn("");
 
-        when(gitHubConnIgnited.getPullRequest(anyString())).thenReturn(pullReq);
+        Integer prId = IGitHubConnection.convertBranchToId(anyString());
+
+        Preconditions.checkNotNull(prId, "Invalid TC branch name");
+
+        when(gitHubConnIgnited.getPullRequest(prId)).thenReturn(pullReq);
 
         when(gitHubConnIgnitedProvider.server(anyString())).thenReturn(gitHubConnIgnited);
 
