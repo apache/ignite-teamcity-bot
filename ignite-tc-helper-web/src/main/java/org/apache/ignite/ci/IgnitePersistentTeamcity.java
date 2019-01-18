@@ -98,13 +98,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Nullable
     private String serverId;
 
-    /** cached running builds for branch. */
-    private ConcurrentMap<String, Expirable<List<BuildRef>>> queuedBuilds = new ConcurrentHashMap<>();
-
-    /** cached loads of queued builds for branch. */
-    private ConcurrentMap<String, CompletableFuture<List<BuildRef>>> queuedBuildsFuts = new ConcurrentHashMap<>();
-
-    //todo: not good code to keep it static
+    //todo: remove triggering dependency from getTrackedBranch processing, use TC Bot DB data.
     @Deprecated
     private static long lastTriggerMs = System.currentTimeMillis();
 
@@ -172,71 +166,11 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return serverId;
     }
 
-    @Deprecated
-    private <K, V> CompletableFuture<V> loadAsyncIfAbsentOrExpired(ConcurrentMap<K, Expirable<V>> cache,
-                                                                   K key,
-                                                                   ConcurrentMap<K, CompletableFuture<V>> cachedComputations,
-                                                                   Function<K, CompletableFuture<V>> realLoadFunction,
-                                                                   int maxAgeSecs,
-                                                                   boolean alwaysProvidePersisted) {
-        @Nullable final Expirable<V> persistedVal = cache.get(key);
-
-        if (persistedVal != null && persistedVal.isAgeLessThanSecs(maxAgeSecs))
-            return CompletableFuture.completedFuture(persistedVal.getData());
-
-        AtomicReference<CompletableFuture<V>> submitRef = new AtomicReference<>();
-
-        CompletableFuture<V> loadFut = cachedComputations.computeIfAbsent(key,
-                k -> {
-                    CompletableFuture<V> future = realLoadFunction.apply(k)
-                            .thenApplyAsync(valueLoaded -> {
-                                final Expirable<V> cached = new Expirable<>(valueLoaded);
-
-                                ObjectInterner.internFields(cached);
-
-                                cache.put(k, cached);
-
-                                return valueLoaded;
-                            });
-
-                    submitRef.set(future);
-
-                    return future;
-                }
-        ).thenApply(res -> {
-            CompletableFuture<V> f = submitRef.get();
-
-            if (f != null)
-                cachedComputations.remove(key, f);
-
-            return res;
-        });
-
-        if (alwaysProvidePersisted && persistedVal != null)
-            return CompletableFuture.completedFuture(persistedVal.getData());
-
-        return loadFut;
-    }
-
 
     public static int getTriggerRelCacheValidSecs(int defaultSecs) {
         long msSinceTrigger = System.currentTimeMillis() - lastTriggerMs;
         long secondsSinceTrigger = TimeUnit.MILLISECONDS.toSeconds(msSinceTrigger);
         return Math.min((int)secondsSinceTrigger, defaultSecs);
-    }
-
-    /** {@inheritDoc} */
-    @Override public CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable final String branch) {
-        int defaultSecs = 60;
-        int secondsUseCached = getTriggerRelCacheValidSecs(defaultSecs);
-
-        return loadAsyncIfAbsentOrExpired(
-            queuedBuilds,
-            Strings.nullToEmpty(branch),
-            queuedBuildsFuts,
-            teamcity::getQueuedBuilds,
-            secondsUseCached,
-            secondsUseCached == defaultSecs);
     }
 
     /** {@inheritDoc} */

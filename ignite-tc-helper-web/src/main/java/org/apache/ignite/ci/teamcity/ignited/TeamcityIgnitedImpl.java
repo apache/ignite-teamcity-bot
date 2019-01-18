@@ -44,6 +44,7 @@ import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.tcmodel.conf.Project;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
@@ -338,6 +339,22 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, branchForQuery(branchName));
     }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public List<BuildRefCompacted> getQueuedBuildsCompacted(
+        @Nullable String branchName) {
+        ensureActualizeRequested();
+
+        Integer stateQueuedId = compactor.getStringIdIfPresent(BuildRef.STATE_QUEUED);
+        if (stateQueuedId == null)
+            return Collections.emptyList();
+
+        List<BuildRefCompacted> builds = buildRefDao.getBuildsForBranch(srvIdMaskHigh, branchForQuery(branchName));
+
+        return builds.stream().filter(b -> b.state() == stateQueuedId).collect(Collectors.toList());
+    }
+
 
     /** {@inheritDoc} */
     @Override public Set<MuteInfo> getMutes(String projectId, ICredentialsProv creds) {

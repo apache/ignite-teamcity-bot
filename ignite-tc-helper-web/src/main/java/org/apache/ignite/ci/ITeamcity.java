@@ -52,10 +52,6 @@ public interface ITeamcity extends ITeamcityConn {
     /** Temporary feature toggle: Use New run stat in PR analysis, issue detection. */
     boolean NEW_RUN_STAT = true;
 
-    /**   */
-    @Deprecated
-    CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch);
-
     @Deprecated
     Build getBuild(String href);
 

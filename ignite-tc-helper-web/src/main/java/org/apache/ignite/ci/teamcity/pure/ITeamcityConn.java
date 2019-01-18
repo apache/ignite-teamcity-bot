@@ -36,13 +36,15 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 
 /**
- * Pure Teamcity Connection API for calling methods from REST service: https://confluence.jetbrains.com/display/TCD10/REST+API
+ * Pure Teamcity Connection API for calling methods from REST service: <br>
+ * https://confluence.jetbrains.com/display/TCD10/REST+API
  */
 public interface ITeamcityConn {
     /**
      * @return Internal server ID as string
      */
-    @Nullable public String serverId();
+    @Nullable
+    public String serverId();
 
     /**
      * @return Normalized Host address, ends with '/'.

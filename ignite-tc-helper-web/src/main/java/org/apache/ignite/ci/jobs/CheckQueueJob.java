@@ -26,24 +26,22 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.inject.Inject;
 import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.user.User;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,15 +129,9 @@ public class CheckQueueJob implements Runnable {
             try {
                 checkQueue(srvId, chains);
             }
-            catch (RuntimeException | ExecutionException e) {
+            catch (Exception e) {
                 logger.error("Unable to check queue: " + e.getMessage(), e);
 
-                throw Throwables.propagate(e);
-            }
-            catch (InterruptedException e) {
-                logger.error("Unable to check queue: " + e.getMessage(), e);
-
-                Thread.currentThread().interrupt();
                 throw Throwables.propagate(e);
             }
         }
@@ -155,7 +147,10 @@ public class CheckQueueJob implements Runnable {
     @AutoProfiling
     @MonitoredTask(name = "Check Server Queue", nameExtArgIndex = 0)
     protected String checkQueue(String srvId,
-        List<ChainAtServerTracked> chains) throws ExecutionException, InterruptedException {
+        List<ChainAtServerTracked> chains) {
+
+        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, creds);
+
         ITeamcity teamcity = tcPureProv.server(srvId, creds);
 
         List<Agent> agents = teamcity.agents(true, true);
@@ -177,26 +172,27 @@ public class CheckQueueJob implements Runnable {
         if (free < CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT)
             return "Min agent percent of free agents not met:" + agentStatus;
 
-        logger.info("There are more than half free agents (total={}, free={}).", total, total - running);
+        logger.info("There are more than {}% free agents (total={}, free={}).", CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT,
+            total, total - running);
 
-        List<BuildRef> builds = teamcity.getQueuedBuilds(null).get();
-
-        String selfLogin = creds.getUser(teamcity.serverId());
+        String selfLogin = creds.getUser(srvId);
 
         StringBuilder res = new StringBuilder();
 
         for (ChainAtServerTracked chain : chains) {
-            if(!Objects.equals(chain.serverId, teamcity.serverId()))
+            if(!Objects.equals(chain.serverId, srvId))
                 continue;
 
             boolean trigger = true;
-            for (BuildRef ref : builds) {
-                Build build = teamcity.getBuild(ref.href);
+            List<BuildRefCompacted> buildsForBr = tcIgn.getQueuedBuildsCompacted(chain.branchForRest);
+            for (BuildRefCompacted refComp : buildsForBr) {
+                Integer buildId= refComp.getId();
+                Build build = teamcity.getBuild(buildId);
 
                 User user = build.getTriggered().getUser();
 
                 if (user == null) {
-                    logger.info("Unable to get username for queued build {} (type={}).", ref.getId(), ref.buildTypeId);
+                    logger.info("Unable to get username for queued build {} (type={}).", buildId, build.buildTypeId);
 
                     continue;
                 }
@@ -204,11 +200,11 @@ public class CheckQueueJob implements Runnable {
                 String login = user.username;
 
                 if (selfLogin.equalsIgnoreCase(login)
-                        && Objects.equals(ref.branchName, chain.branchForRest)) {
+                        && Objects.equals(build.branchName, chain.branchForRest)) {
                     final String msg
                             = MessageFormat.format("Queued build {0} was early triggered " +
                             "(user {1}, branch {2}, suite {3})." +
-                            " Will not startIgnite build.", ref.getId(), login, ref.branchName, ref.buildTypeId);
+                            " Will not startIgnite build.", buildId, login, chain.branchForRest, build.buildTypeId);
 
                     logger.info(msg);
 
@@ -248,9 +244,7 @@ public class CheckQueueJob implements Runnable {
 
             startTimes.put(chain, curr);
 
-            ITeamcityIgnited srv = tcIgnitedProv.server(srvId, creds);
-
-            srv.triggerBuild(chain.suiteId, chain.branchForRest, true, false);
+            tcIgn.triggerBuild(chain.suiteId, chain.branchForRest, true, false);
 
             res.append(chain.branchForRest).append(" ").append(chain.suiteId).append(" triggered; ");
         }
