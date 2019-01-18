@@ -81,7 +81,7 @@ public class JiraTicketSync {
      * @param srvId Server internal identification.
      * @param fullResync full or incremental.
      */
-    @MonitoredTask(name = "Actualize Jira", nameExtArgsIndexes = {0})
+    @MonitoredTask(name = "Actualize Jira(srv, full resync)", nameExtArgsIndexes = {0, 1})
     protected String actualizeJiraTickets(String srvId, boolean fullResync) {
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
         IJiraIntegration jira = jiraIntegrationProvider.server(srvId);
@@ -122,6 +122,6 @@ public class JiraTicketSync {
             }
         }
 
-        return "Jira tickets saved " + ticketsSaved + " from" + ticketsProcessed + " for " + srvId;
+        return "Jira tickets saved " + ticketsSaved + " from " + ticketsProcessed + " checked for service " + srvId;
     }
 }
