@@ -30,10 +30,10 @@ public class TicketCompacted {
     /** Id. */
     public long id;
 
-    /** Ticket full name like "IGNITE-123". */
+    /** Ticket number, integer value like 123 from name like "IGNITE-123". */
     public int igniteId;
 
-    /** Fields. */
+    /** Id of string: Fields/status/name, value compacted. */
     public int status;
 
     /**

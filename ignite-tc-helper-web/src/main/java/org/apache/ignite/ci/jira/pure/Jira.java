@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
- *
+ * Implementation of pure JIRA interaction.
  */
 class Jira implements IJiraIntegration {
     /** Logger. */
@@ -51,6 +51,8 @@ class Jira implements IJiraIntegration {
 
     /** URL for JIRA integration. */
     private String jiraApiUrl;
+
+    /** Server id. */
     private String srvId;
 
     /** {@inheritDoc} */
@@ -69,11 +71,6 @@ class Jira implements IJiraIntegration {
         jiraBasicAuthTok = HelperConfig.prepareJiraHttpAuthToken(props);
         jiraApiUrl = props.getProperty(HelperConfig.JIRA_API_URL);
     }
-
-    /**
-     * @return {@code True} if JIRA authorization token is available.
-     */
-    // boolean isJiraTokenAvailable();
 
     /** {@inheritDoc} */
     @Override public String jiraUrl() {

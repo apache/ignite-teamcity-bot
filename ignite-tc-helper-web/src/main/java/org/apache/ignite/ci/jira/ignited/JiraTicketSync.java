@@ -49,8 +49,23 @@ public class JiraTicketSync {
      * @param srvId Server ID
      */
     public void ensureActualizeJiraTickets(String srvId) {
-        scheduler.sheduleNamed(taskName("actualizeJiraTickets", srvId),
-            () -> actualizeJiraTickets(srvId), 15, TimeUnit.MINUTES);
+        scheduler.sheduleNamed(taskName("incrementalSync", srvId),
+            () -> incrementalUpdate(srvId), 15, TimeUnit.MINUTES);
+    }
+
+    /**
+     * @param srvId Server id.
+     */
+    public String incrementalUpdate(String srvId) {
+        String res = actualizeJiraTickets(srvId, false);
+
+        scheduler.invokeLater(() -> {
+                scheduler.sheduleNamed(taskName("fullResync", srvId),
+                    () -> actualizeJiraTickets(srvId, true), 2, TimeUnit.HOURS);
+            },
+            5, TimeUnit.MINUTES);
+
+        return res;
     }
 
     /**
@@ -64,9 +79,10 @@ public class JiraTicketSync {
     }
     /**
      * @param srvId Server internal identification.
+     * @param fullResync full or incremental.
      */
-    @MonitoredTask(name = "Actualize Jira", nameExtArgsIndexes = {0})
-    protected String actualizeJiraTickets(String srvId) {
+    @MonitoredTask(name = "Actualize Jira(srv, full resync)", nameExtArgsIndexes = {0, 1})
+    protected String actualizeJiraTickets(String srvId, boolean fullResync) {
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
         IJiraIntegration jira = jiraIntegrationProvider.server(srvId);
 
@@ -81,26 +97,31 @@ public class JiraTicketSync {
         if (F.isEmpty(page))
             return "Something went wrong - no tickets found. Check jira availability.";
 
-        jiraDao.saveChunk(srvIdMaskHigh, page, jira.ticketPrefix());
+        int ticketsSaved = jiraDao.saveChunk(srvIdMaskHigh, page, jira.ticketPrefix());
 
-        int ticketsSaved = page.size();
+        int ticketsProcessed = page.size();
 
-        while (tickets.nextStart() > 0) {
-            url = baseUrl + "&startAt=" + tickets.nextStart();
+        if (ticketsSaved != 0 || fullResync) {
+            while (tickets.nextStart() > 0) {
+                url = baseUrl + "&startAt=" + tickets.nextStart();
 
-            tickets = jira.getTicketsPage(srvId, url);
+                tickets = jira.getTicketsPage(srvId, url);
 
-            page = tickets.issuesNotNull();
+                page = tickets.issuesNotNull();
 
-            if (F.isEmpty(page))
-                break;
+                if (F.isEmpty(page))
+                    break;
 
-            //todo find not updated chunk and exit
-            jiraDao.saveChunk(srvIdMaskHigh, page, jira.ticketPrefix());
+                int savedNow = jiraDao.saveChunk(srvIdMaskHigh, page, jira.ticketPrefix());
 
-            ticketsSaved += page.size();
+                ticketsSaved += savedNow;
+                ticketsProcessed += page.size();
+
+                if (savedNow == 0 && !fullResync)
+                    break; // find not updated chunk and exit
+            }
         }
 
-        return "Jira tickets saved " + ticketsSaved + " for " + srvId;
+        return "Jira tickets saved " + ticketsSaved + " from " + ticketsProcessed + " checked for service " + srvId;
     }
 }
