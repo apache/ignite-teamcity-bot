@@ -17,33 +17,30 @@
 
 package org.apache.ignite.ci.jobs;
 
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import javax.inject.Inject;
 import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.Triggered;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
+import java.text.MessageFormat;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Trigger build if half of agents are available and there is no self-triggered builds in build queue.
@@ -66,7 +63,7 @@ public class CheckQueueJob implements Runnable {
     @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
 
     /** */
-    @Inject private ITcServerProvider tcPureProv;
+    @Inject private IStringCompactor compactor;
 
     /** */
     private final Map<ChainAtServerTracked, Long> startTimes = new HashMap<>();
@@ -151,9 +148,7 @@ public class CheckQueueJob implements Runnable {
 
         ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, creds);
 
-        ITeamcity teamcity = tcPureProv.server(srvId, creds);
-
-        List<Agent> agents = teamcity.agents(true, true);
+        List<Agent> agents = tcIgn.agents(true, true);
 
         int total = agents.size();
         int running = 0;
@@ -184,10 +179,23 @@ public class CheckQueueJob implements Runnable {
                 continue;
 
             boolean trigger = true;
+
             List<BuildRefCompacted> buildsForBr = tcIgn.getQueuedBuildsCompacted(chain.branchForRest);
+
             for (BuildRefCompacted refComp : buildsForBr) {
-                Integer buildId= refComp.getId();
-                Build build = teamcity.getBuild(buildId);
+                Integer buildId = refComp.getId();
+                if (buildId == null)
+                    continue; // should not occur;
+
+                final FatBuildCompacted fatBuild = tcIgn.getFatBuild(buildId);
+                final Build build = fatBuild.toBuild(compactor);
+                final Triggered triggered = build.getTriggered();
+
+                if (triggered == null) {
+                    logger.info("Unable to get triggering info for queued build {} (type={}).", buildId, build.buildTypeId);
+
+                    continue;
+                }
 
                 User user = build.getTriggered().getUser();
 
@@ -203,7 +211,7 @@ public class CheckQueueJob implements Runnable {
                     final String msg
                             = MessageFormat.format("Queued build {0} was early triggered " +
                             "(user {1}, branch {2}, suite {3})." +
-                            " Will not startIgnite build.", buildId, login, chain.branchForRest, build.buildTypeId);
+                            " Will not start Ignite build.", buildId, login, chain.branchForRest, build.buildTypeId);
 
                     logger.info(msg);
 

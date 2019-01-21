@@ -92,15 +92,6 @@ public interface ITeamcity extends ITeamcityConn {
                 Base64Util.encodeUtf8String(user + ":" + pwd));
     }
 
-    /**
-     * Get list of teamcity agents.
-     *
-     * @param connected Connected flag.
-     * @param authorized Authorized flag.
-     * @return List of teamcity agents.
-     */
-    List<Agent> agents(boolean connected, boolean authorized);
-
     void init(String serverId);
 
     User getUserByUsername(String username);

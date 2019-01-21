@@ -23,6 +23,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
@@ -189,4 +190,14 @@ public interface ITeamcityIgnited {
     List<String> getAllProjectsIds();
 
     String gitBranchPrefix();
+
+
+    /**
+     * Get list of teamcity agents. Never cached, request goes directly to pure TC.
+     *
+     * @param connected Connected flag.
+     * @param authorized Authorized flag.
+     * @return List of teamcity agents.
+     */
+    List<Agent> agents(boolean connected, boolean authorized);
 }

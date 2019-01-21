@@ -43,6 +43,7 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
+import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.conf.Project;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
@@ -421,6 +422,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @Override public String gitBranchPrefix() {
         return conn.gitBranchPrefix();
+    }
+
+    @Override
+    public List<Agent> agents(boolean connected, boolean authorized) {
+        return conn.agents(connected, authorized);
     }
 
     /** {@inheritDoc} */
