@@ -17,22 +17,13 @@
 
 package org.apache.ignite.ci;
 
-import java.util.List;
-import java.util.function.Function;
 import org.apache.ignite.ci.analysis.RunStat;
-import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
-import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
+
+import java.util.function.Function;
 
 @Deprecated
 public interface ITcAnalytics {
-    /**
-     * Return build statistics for default branch provider
-     *
-     * @return map from suite ID to its run statistics
-     */
-    @Deprecated
-    Function<SuiteInBranch, RunStat> getBuildFailureRunStatProvider();
 
     /**
      * @return map from test full name (suite: suite.test) and its branch to its run statistics

@@ -269,12 +269,7 @@ public class IssueDetector {
 
         SuiteInBranch key = new SuiteInBranch(suiteId, normalizeBranch);
 
-        Function<SuiteInBranch, ? extends IRunHistory> provider   =
-            ITeamcity.NEW_RUN_STAT
-                ? tcIgnited::getSuiteRunHist
-                : teamcity.getBuildFailureRunStatProvider();
-
-        IRunHistory runStat = provider.apply(key);
+        IRunHistory runStat = tcIgnited.getSuiteRunHist(key);
 
         if (runStat == null)
             return false;

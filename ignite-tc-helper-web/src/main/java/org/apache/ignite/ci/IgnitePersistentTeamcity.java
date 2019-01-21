@@ -79,9 +79,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Deprecated
     private static final String LOG_CHECK_RESULT = "logCheckResult";
 
-    //todo need separate cache or separate key for 'execution time' because it is placed in statistics
-    private static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
-
     @Inject
     private Ignite ignite;
 
@@ -108,7 +105,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         DbMigrations migrations = new DbMigrations(ignite, conn.serverId());
 
         migrations.dataMigration(
-                buildsFailureRunStatCache(), testRunStatCache(),
+                testRunStatCache(),
                 visasHistStorage.visas());
     }
 
@@ -169,42 +166,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.getBuild(buildId);
     }
 
-    @Deprecated
-    private void registerCriticalBuildProblemInStat(BuildRef build, ProblemOccurrences problems) {
-        boolean criticalFail = problems.getProblemsNonNull().stream().anyMatch(occurrence ->
-            occurrence.isExecutionTimeout()
-                || occurrence.isJvmCrash()
-                || occurrence.isFailureOnMetric()
-                || occurrence.isCompilationError());
-
-        String suiteId = build.suiteId();
-        Integer buildId = build.getId();
-
-        if (!criticalFail)
-            return;
-
-        if (buildId != null && !Strings.isNullOrEmpty(suiteId)) {
-            SuiteInBranch key = new SuiteInBranch(suiteId, normalizeBranch(build.branchName));
-
-            buildsFailureRunStatCache().invoke(key, (entry, arguments) -> {
-                SuiteInBranch suiteInBranch = entry.getKey();
-
-                Integer bId = (Integer)arguments[0];
-
-                RunStat val = entry.getValue();
-
-                if (val == null)
-                    val = new RunStat(suiteInBranch.getSuiteId());
-
-                val.setBuildCriticalError(bId);
-
-                entry.setValue(val);
-
-                return null;
-            }, buildId);
-        }
-    }
-
     /** {@inheritDoc} */
     @Override public Function<TestInBranch, RunStat> getTestRunStatProvider() {
         return key -> key == null ? null : getRunStatForTest(key);
@@ -220,27 +181,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Deprecated
     private IgniteCache<TestInBranch, RunStat> testRunStatCache() {
         return getOrCreateCacheV2(ignCacheNme(TESTS_RUN_STAT));
-    }
-
-    /** {@inheritDoc} */
-    @Override public Function<SuiteInBranch, RunStat> getBuildFailureRunStatProvider() {
-        return key -> key == null ? null : getRunStatForSuite(key);
-    }
-
-
-    @SuppressWarnings("WeakerAccess")
-    @AutoProfiling
-    @GuavaCached(maximumSize = 500, expireAfterAccessSecs = 90, softValues = true)
-    protected RunStat getRunStatForSuite(SuiteInBranch key) {
-        return buildsFailureRunStatCache().get(key);
-    }
-
-    /**
-     * @return cache from suite name to its failure statistics
-     */
-    @Deprecated
-    private IgniteCache<SuiteInBranch, RunStat> buildsFailureRunStatCache() {
-        return getOrCreateCacheV2(ignCacheNme(BUILDS_FAILURE_RUN_STAT));
     }
 
     private IgniteCache<Integer, LogCheckResult> logCheckResultCache() {
@@ -328,16 +268,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public ProblemOccurrences getProblems(int buildId) {
         return teamcity.getProblems(buildId);
-    }
-
-    /** {@inheritDoc} */
-    @Deprecated
-    @Override public ProblemOccurrences getProblemsAndRegisterCritical(BuildRef build) {
-        ProblemOccurrences problems = teamcity.getProblems(build.getId());
-
-        registerCriticalBuildProblemInStat(build, problems);
-
-        return problems;
     }
 
     /** {@inheritDoc} */

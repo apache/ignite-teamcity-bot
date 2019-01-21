@@ -139,12 +139,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         String suiteId = suite.suiteId();
 
-        Function<SuiteInBranch, ? extends IRunHistory> provider =
-            ITeamcity.NEW_RUN_STAT
-                ? tcIgnited::getSuiteRunHist
-                : tcAnalytics.getBuildFailureRunStatProvider();
-
-        initSuiteStat(provider, failRateNormalizedBranch, curBranchNormalized, suiteId);
+        initSuiteStat(tcIgnited, failRateNormalizedBranch, curBranchNormalized, suiteId);
 
         Set<String> collect = suite.lastChangeUsers().collect(Collectors.toSet());
 
@@ -224,16 +219,16 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         // todo implement this logic in suite possibleBlocker = suite.hasPossibleBlocker();
     }
 
-    private void initSuiteStat(Function<SuiteInBranch, ? extends IRunHistory> suiteFailProv,
-        String failRateNormalizedBranch,
-        String curBranchNormalized,
-        String suiteId) {
+    private void initSuiteStat(ITeamcityIgnited tcIgnited,
+                               String failRateNormalizedBranch,
+                               String curBranchNormalized,
+                               String suiteId) {
         if (Strings.isNullOrEmpty(suiteId)  )
             return;
 
         SuiteInBranch key = new SuiteInBranch(suiteId, failRateNormalizedBranch);
 
-        final IRunHistory stat = suiteFailProv.apply(key);
+        final IRunHistory stat = tcIgnited.getSuiteRunHist(key);
 
         if (stat != null) {
             failures = stat.getFailuresCount();
@@ -255,7 +250,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         if (!failRateNormalizedBranch.equals(curBranchNormalized)) {
             SuiteInBranch keyForStripe = new SuiteInBranch(suiteId, curBranchNormalized);
 
-            final IRunHistory statForStripe = suiteFailProv.apply(keyForStripe);
+            final IRunHistory statForStripe = tcIgnited.getSuiteRunHist(keyForStripe);
 
             latestRunsSrc = statForStripe;
             latestRuns = statForStripe != null ? statForStripe.getLatestRunResults() : null;

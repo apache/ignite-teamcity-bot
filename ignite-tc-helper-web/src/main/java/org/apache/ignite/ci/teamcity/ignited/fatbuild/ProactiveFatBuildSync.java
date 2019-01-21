@@ -366,7 +366,7 @@ public class ProactiveFatBuildSync {
             }
 
             if (build.problemOccurrences != null)
-                problems = conn.getProblemsAndRegisterCritical(build).getProblemsNonNull();
+                problems = conn.getProblems(buildId).getProblemsNonNull();
 
             if (build.statisticsRef != null)
                 statistics = conn.getStatistics(buildId);

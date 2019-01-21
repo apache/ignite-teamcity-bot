@@ -131,6 +131,8 @@ public class DbMigrations {
         String BUILDS = "builds";
 
         String BUILD_RESULTS = "buildResults";
+
+        String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
     }
 
     private final Ignite ignite;
@@ -143,7 +145,6 @@ public class DbMigrations {
     }
 
     public void dataMigration(
-            IgniteCache<SuiteInBranch, RunStat> suiteHistCache,
             IgniteCache<TestInBranch, RunStat> testHistCache,
             Cache<CompactContributionKey, List<CompactVisaRequest>> visasCache) {
 
@@ -209,27 +210,6 @@ public class DbMigrations {
 
             oldBuilds.destroy();
         });
-
-        applyMigration("ReplaceKeyTypeOf-" + suiteHistCache.getName(), () -> {
-            int i = 0;
-            int size = suiteHistCache.size();
-
-            for (Cache.Entry<?, RunStat> next : suiteHistCache) {
-                Object key = next.getKey();
-
-                if (key instanceof String) {
-                    SuiteInBranch suiteKey = new SuiteInBranch((String)key, ITeamcity.DEFAULT);
-
-                    suiteHistCache.put(suiteKey, next.getValue());
-                    ((Cache)suiteHistCache).remove(key);
-
-                    System.out.println("Migrating entry " + i + " from " + size + ": " + suiteKey);
-                }
-
-                i++;
-            }
-        });
-
 
         applyMigration("ReplaceKeyTypeOf-" + testHistCache.getName(), () -> {
             int i = 0;
@@ -346,6 +326,7 @@ public class DbMigrations {
         applyDestroyIgnCacheMigration(Old.CALCULATED_STATISTIC);
         applyDestroyIgnCacheMigration(Old.BUILDS);
         applyDestroyIgnCacheMigration(Old.BUILD_RESULTS);
+        applyDestroyIgnCacheMigration(Old.BUILDS_FAILURE_RUN_STAT);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {

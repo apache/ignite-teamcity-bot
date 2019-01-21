@@ -270,14 +270,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
             throw new UncheckedIOException(e);
         }
     }
-
-    /** {@inheritDoc} */
-    @Deprecated
-    @AutoProfiling
-    @Override public ProblemOccurrences getProblemsAndRegisterCritical(BuildRef build) {
-        return getProblems(build.getId());
-    }
-
+ 
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public ProblemOccurrences getProblems(int buildId) {

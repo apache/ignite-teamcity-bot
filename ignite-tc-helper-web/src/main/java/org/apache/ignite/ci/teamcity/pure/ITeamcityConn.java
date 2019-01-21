@@ -104,10 +104,6 @@ public interface ITeamcityConn {
      */
     BuildTypeFull getBuildType(String buildTypeId);
 
-    /** */
-    @Deprecated
-    ProblemOccurrences getProblemsAndRegisterCritical(BuildRef build);
-
     /**
      * @return List of all project available at Teamcity server.
      */

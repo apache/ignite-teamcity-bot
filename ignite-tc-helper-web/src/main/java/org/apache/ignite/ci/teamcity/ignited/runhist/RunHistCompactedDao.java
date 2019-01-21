@@ -63,7 +63,7 @@ public class RunHistCompactedDao {
     private IgniteCache<RunHistKey, RunHistCompacted> testHistCache;
 
     /** Suite history cache. */
-    private IgniteCache<RunHistKey, RunHistCompacted> suiteHistCacheName;
+    private IgniteCache<RunHistKey, RunHistCompacted> suiteHistCache;
 
     /** Build start time. */
     private IgniteCache<Long, Long> buildStartTime;
@@ -87,7 +87,7 @@ public class RunHistCompactedDao {
 
         cfg2.setQueryEntities(Collections.singletonList(new QueryEntity(RunHistKey.class, RunHistCompacted.class)));
 
-        suiteHistCacheName = ignite.getOrCreateCache(cfg2);
+        suiteHistCache = ignite.getOrCreateCache(cfg2);
 
         buildStartTime = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(BUILD_START_TIME_CACHE_NAME));
     }
@@ -148,7 +148,7 @@ public class RunHistCompactedDao {
         if (list.isEmpty())
             return 0;
 
-        return suiteHistCacheName.invoke(histKey, RunHistCompactedDao::processEntry, list);
+        return suiteHistCache.invoke(histKey, RunHistCompactedDao::processEntry, list);
     }
 
     @NotNull public static Integer processEntry(MutableEntry<RunHistKey, RunHistCompacted> entry, Object[] parms) {
@@ -184,7 +184,7 @@ public class RunHistCompactedDao {
         if (key == null)
             return null;
 
-        return suiteHistCacheName.get(key);
+        return suiteHistCache.get(key);
     }
 
     public IRunStat getSuiteRunStatAllBranches(int srvIdMaskHigh, String btId) {
@@ -194,7 +194,7 @@ public class RunHistCompactedDao {
 
         AtomicInteger runs = new AtomicInteger();
         AtomicInteger failures = new AtomicInteger();
-        try (QueryCursor<Cache.Entry<RunHistKey, RunHistCompacted>> qryCursor = suiteHistCacheName.query(
+        try (QueryCursor<Cache.Entry<RunHistKey, RunHistCompacted>> qryCursor = suiteHistCache.query(
             new SqlQuery<RunHistKey, RunHistCompacted>(RunHistCompacted.class, "testOrSuiteName = ? and srvId = ?")
                 .setArgs(testName, srvIdMaskHigh))) {
 
