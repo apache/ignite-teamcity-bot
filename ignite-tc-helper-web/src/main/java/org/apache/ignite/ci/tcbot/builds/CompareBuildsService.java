@@ -17,29 +17,24 @@
 
 package org.apache.ignite.ci.tcbot.builds;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.inject.Inject;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CompareBuildsService {
     /** */
     private static final Logger logger = LoggerFactory.getLogger(CompareBuildsService.class);
 
-    @Inject ITcServerProvider helper;
     @Inject BuildChainProcessor bcp;
     @Inject ITeamcityIgnitedProvider tcIgnitedProv;
     @Inject IStringCompactor compactor;
@@ -51,40 +46,31 @@ public class CompareBuildsService {
      * @return List of build tests.
      */
     public List<String> tests0(String srvId, Integer buildId, ICredentialsProv prov ) {
-        IAnalyticsEnabledTeamcity teamcity = helper.server(srvId, prov);
-
-        String hrefById = ITeamcity.buildHref(buildId);
-        BuildRef buildRef = new BuildRef();
-
-        buildRef.setId(buildId);
-        buildRef.href = hrefById;
-
         ITeamcityIgnited srv = tcIgnitedProv.server(srvId, prov);
 
-        return tests0(teamcity, srv, buildRef, bcp);
+        return tests0(srv, buildId, bcp);
     }
 
     /** */
-    private List<String> tests0(ITeamcity tc, ITeamcityIgnited tcIgnited,
-        BuildRef ref, BuildChainProcessor bcp) {
+    private List<String> tests0(ITeamcityIgnited tcIgnited,
+                                Integer buildId, BuildChainProcessor bcp) {
         List<String> tests = new ArrayList<>();
 
-        Build build = tc.getBuild(ref.href);
+        final FatBuildCompacted fatBuild = tcIgnited.getFatBuild(buildId);
 
-        if (build.isComposite()) {
-            List<BuildRef> deps = build.getSnapshotDependenciesNonNull();
+        if (fatBuild.isComposite()) {
+            int[] deps = fatBuild.snapshotDependencies();
 
-            logger.info("Build {} is composite ({}).", build.getId(), deps.size());
+            logger.info("Build {} is composite ({}).", fatBuild.getId(), deps.length);
 
-            for (BuildRef ref0 : deps)
-                tests.addAll(tests0(tc, tcIgnited, ref0, bcp));
+            for (int ref0 : deps)
+                tests.addAll(tests0(tcIgnited, ref0, bcp));
         }
         else {
-            logger.info("Loading tests for build {}.", build.getId());
+            logger.info("Loading tests for build {}.", fatBuild.getId());
 
-            MultBuildRunCtx buildCtx = new MultBuildRunCtx(build, compactor);
+            MultBuildRunCtx buildCtx = new MultBuildRunCtx(fatBuild.toBuildRef(compactor), compactor);
 
-            final FatBuildCompacted fatBuild = tcIgnited.getFatBuild(build.getId());
             buildCtx.addBuild(bcp.loadChanges(fatBuild, tcIgnited));
 
             for (String testName : buildCtx.tests())
