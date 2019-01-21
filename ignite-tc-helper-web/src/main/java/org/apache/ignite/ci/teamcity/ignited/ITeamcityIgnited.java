@@ -187,9 +187,9 @@ public interface ITeamcityIgnited {
      */
     @Nullable public IRunStat getSuiteRunStatAllBranches(String suiteBuildTypeId);
 
-    List<String> getAllProjectsIds();
+    public List<String> getAllProjectsIds();
 
-    String gitBranchPrefix();
+    public String gitBranchPrefix();
 
 
     /**
@@ -199,5 +199,5 @@ public interface ITeamcityIgnited {
      * @param authorized Authorized flag.
      * @return List of teamcity agents.
      */
-    List<Agent> agents(boolean connected, boolean authorized);
+    public List<Agent> agents(boolean connected, boolean authorized);
 }

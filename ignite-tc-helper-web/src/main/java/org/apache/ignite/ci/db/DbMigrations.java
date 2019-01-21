@@ -133,6 +133,8 @@ public class DbMigrations {
         String BUILD_RESULTS = "buildResults";
 
         String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
+
+        String TESTS_RUN_STAT = "testsRunStat";
     }
 
     private final Ignite ignite;
@@ -144,9 +146,7 @@ public class DbMigrations {
         this.serverId = srvId;
     }
 
-    public void dataMigration(
-            IgniteCache<TestInBranch, RunStat> testHistCache,
-            Cache<CompactContributionKey, List<CompactVisaRequest>> visasCache) {
+    public void dataMigration(Cache<CompactContributionKey, List<CompactVisaRequest>> visasCache) {
 
         doneMigrations = doneMigrationsCache();
 
@@ -209,26 +209,6 @@ public class DbMigrations {
             oldBuilds.clear();
 
             oldBuilds.destroy();
-        });
-
-        applyMigration("ReplaceKeyTypeOf-" + testHistCache.getName(), () -> {
-            int i = 0;
-            int size = testHistCache.size();
-
-            for (Cache.Entry<?, RunStat> next : testHistCache) {
-                Object key = next.getKey();
-
-                if (key instanceof String) {
-                    TestInBranch testKey = new TestInBranch((String)key, ITeamcity.DEFAULT);
-
-                    testHistCache.put(testKey, next.getValue());
-                    ((Cache)testHistCache).remove(key);
-
-                    System.out.println("Migrating entry " + i + " from " + size + ": " + testKey);
-                }
-
-                i++;
-            }
         });
 
         applyRemoveCache(GetTrackedBranchTestResults.ALL_TEST_FAILURES_SUMMARY);
@@ -327,6 +307,7 @@ public class DbMigrations {
         applyDestroyIgnCacheMigration(Old.BUILDS);
         applyDestroyIgnCacheMigration(Old.BUILD_RESULTS);
         applyDestroyIgnCacheMigration(Old.BUILDS_FAILURE_RUN_STAT);
+        applyDestroyIgnCacheMigration(Old.TESTS_RUN_STAT);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {

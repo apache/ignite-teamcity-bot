@@ -399,12 +399,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** {@inheritDoc} */
     @Nullable
+    @AutoProfiling
     @Override public IRunHistory getTestRunHist(TestInBranch testInBranch) {
         return runHistCompactedDao.getTestRunHist(srvIdMaskHigh, testInBranch.name, testInBranch.branch);
     }
 
     /** {@inheritDoc} */
     @Nullable
+    @AutoProfiling
     @Override public IRunHistory getSuiteRunHist(SuiteInBranch suiteInBranch) {
         return runHistCompactedDao.getSuiteRunHist(srvIdMaskHigh, suiteInBranch.getSuiteId(), suiteInBranch.branch);
     }

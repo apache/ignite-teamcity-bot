@@ -28,7 +28,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.ITcAnalytics;
+
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
@@ -122,20 +122,13 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     public Boolean possibleBlocker;
 
     public void initFromContext(ITeamcityIgnited tcIgnited,
-                                @Nonnull final ITeamcity teamcity,
                                 @Nonnull final MultBuildRunCtx suite,
-                                @NotNull final ITcAnalytics tcAnalytics,
                                 @Nullable final String baseBranch) {
 
         name = suite.suiteName();
 
         String failRateNormalizedBranch = normalizeBranch(baseBranch);
         String curBranchNormalized = normalizeBranch(suite.branchName());
-
-        Function<TestInBranch, ? extends IRunHistory> testStatProv =
-            ITeamcity.NEW_RUN_STAT
-                ? tcIgnited::getTestRunHist
-                : tcAnalytics.getTestRunStatProvider();
 
         String suiteId = suite.suiteId();
 
@@ -151,15 +144,15 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         failedTests = suite.failedTests();
         durationPrintable = millisToDurationPrintable(suite.getBuildDuration());
         testsDurationPrintable  = millisToDurationPrintable(suite.getAvgTestsDuration());
-        webToHist = buildWebLink(teamcity, suite);
-        webToHistBaseBranch = buildWebLink(teamcity, suite, baseBranch);
-        webToBuild = buildWebLinkToBuild(teamcity, suite);
+        webToHist = buildWebLink(tcIgnited, suite);
+        webToHistBaseBranch = buildWebLink(tcIgnited, suite, baseBranch);
+        webToBuild = buildWebLinkToBuild(tcIgnited, suite);
 
         List<IMultTestOccurrence> tests = suite.getFailedTests();
         Function<IMultTestOccurrence, Float> function = foccur -> {
             TestInBranch testInBranch = new TestInBranch(foccur.getName(), failRateNormalizedBranch);
 
-            IRunHistory apply = testStatProv.apply(testInBranch);
+            IRunHistory apply = tcIgnited.getTestRunHist(testInBranch);
 
             return apply == null ? 0f : apply.getFailRate();
         };
@@ -169,14 +162,14 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         tests.forEach(occurrence -> {
             final TestFailure failure = new TestFailure();
             failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(), baseBranch);
-            failure.initStat(testStatProv, failRateNormalizedBranch, curBranchNormalized);
+            failure.initStat(tcIgnited, failRateNormalizedBranch, curBranchNormalized);
 
             testFailures.add(failure);
         });
 
         suite.getTopLongRunning().forEach(occurrence -> {
-            final TestFailure failure = createOrrucForLongRun(tcIgnited, suite, tcAnalytics,
-                occurrence, baseBranch, testStatProv);
+            final TestFailure failure = createOrrucForLongRun(tcIgnited, suite,
+                    occurrence, baseBranch);
 
             topLongRunning.add(failure);
         });
@@ -206,14 +199,14 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         suite.getBuildsWithThreadDump().forEach(buildId -> {
             webUrlThreadDump = "/rest/" + GetBuildLog.GET_BUILD_LOG + "/" + GetBuildLog.THREAD_DUMP
-                + "?" + GetBuildLog.SERVER_ID + "=" + teamcity.serverId()
+                + "?" + GetBuildLog.SERVER_ID + "=" + tcIgnited.serverId()
                 + "&" + GetBuildLog.BUILD_NO + "=" + buildId
                 + "&" + GetBuildLog.FILE_IDX + "=" + -1;
         });
 
         runningBuildCount = suite.runningBuildCount();
         queuedBuildCount = suite.queuedBuildCount();
-        serverId = teamcity.serverId();
+        serverId = tcIgnited.serverId();
         this.suiteId = suite.suiteId();
         branchName = branchForLink(suite.branchName());
         // todo implement this logic in suite possibleBlocker = suite.hasPossibleBlocker();
@@ -275,20 +268,16 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     }
 
     @NotNull public static TestFailure createOrrucForLongRun(ITeamcityIgnited tcIgnited,
-        @Nonnull MultBuildRunCtx suite,
-        @Nullable final ITcAnalytics tcAnalytics,
-        final IMultTestOccurrence occurrence,
-        @Nullable final String failRateBranch,
-        Function<TestInBranch, ? extends IRunHistory> supplier) {
+                                                             @Nonnull MultBuildRunCtx suite,
+                                                             final IMultTestOccurrence occurrence,
+                                                             @Nullable final String failRateBranch) {
         final TestFailure failure = new TestFailure();
 
         failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(), failRateBranch);
 
-        if (tcAnalytics != null) {
-            failure.initStat(supplier,
+        failure.initStat(tcIgnited,
                 normalizeBranch(failRateBranch),
                 normalizeBranch(suite.branchName()));
-        }
 
         return failure;
     }
@@ -309,17 +298,17 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         failure.warnings.addAll(logCheckRes.getWarns());
     }
 
-    private static String buildWebLinkToBuild(ITeamcity teamcity, MultBuildRunCtx suite) {
+    private static String buildWebLinkToBuild(ITeamcityIgnited teamcity, MultBuildRunCtx suite) {
         return teamcity.host() + "viewLog.html?buildId=" + Integer.toString(suite.getBuildId());
     }
 
-    private static String buildWebLink(ITeamcity teamcity, MultBuildRunCtx suite) {
+    private static String buildWebLink(ITeamcityIgnited teamcity, MultBuildRunCtx suite) {
         String branchName = suite.branchName();
 
         return buildWebLink(teamcity, suite, branchName);
     }
 
-    @NotNull private static String buildWebLink(ITeamcity teamcity, MultBuildRunCtx suite, String branchName) {
+    @NotNull private static String buildWebLink(ITeamcityIgnited teamcity, MultBuildRunCtx suite, String branchName) {
         final String branch = branchForLink(branchName);
         return teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
             + "&branch=" + escape(branch)

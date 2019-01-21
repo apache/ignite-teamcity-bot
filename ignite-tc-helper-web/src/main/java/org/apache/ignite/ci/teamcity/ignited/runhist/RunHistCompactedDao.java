@@ -28,6 +28,7 @@ import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IRunStat;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -92,6 +93,7 @@ public class RunHistCompactedDao {
         buildStartTime = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(BUILD_START_TIME_CACHE_NAME));
     }
 
+    @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
     public IRunHistory getTestRunHist(int srvIdMaskHigh, String name, @Nullable String branch) {
         RunHistKey key = getKey(srvIdMaskHigh, name, branch);
         if (key == null)
@@ -179,6 +181,7 @@ public class RunHistCompactedDao {
      * @param suiteId Suite id.
      * @param branch Branch.
      */
+    @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
     public IRunHistory getSuiteRunHist(int srvId, String suiteId, @Nullable String branch) {
         RunHistKey key = getKey(srvId, suiteId, branch);
         if (key == null)

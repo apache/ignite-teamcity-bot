@@ -194,9 +194,7 @@ public class BuildChainProcessorTest {
     }
 
     @NotNull public static IAnalyticsEnabledTeamcity tcOldMock() {
-        IAnalyticsEnabledTeamcity teamcity = Mockito.mock(IAnalyticsEnabledTeamcity.class);
-        when(teamcity.getTestRunStatProvider()).thenReturn(Mockito.mock(Function.class));
-        return teamcity;
+        return Mockito.mock(IAnalyticsEnabledTeamcity.class);
     }
 
     @NotNull public ITeamcityIgnited tcIgnitedMock(Map<Integer, FatBuildCompacted> builds) {

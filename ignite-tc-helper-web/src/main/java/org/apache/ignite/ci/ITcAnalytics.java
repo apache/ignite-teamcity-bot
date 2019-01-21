@@ -17,19 +17,7 @@
 
 package org.apache.ignite.ci;
 
-import org.apache.ignite.ci.analysis.RunStat;
-import org.apache.ignite.ci.analysis.TestInBranch;
-
-import java.util.function.Function;
-
 @Deprecated
 public interface ITcAnalytics {
-
-    /**
-     * @return map from test full name (suite: suite.test) and its branch to its run statistics
-     */
-    @Deprecated
-    Function<TestInBranch, RunStat> getTestRunStatProvider();
-
     String getThreadDumpCached(Integer buildId);
 }

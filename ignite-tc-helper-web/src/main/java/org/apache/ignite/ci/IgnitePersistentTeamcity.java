@@ -75,8 +75,6 @@ import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normaliz
 public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITeamcity, ITcAnalytics {
     //V2 caches, 32 parts (V1 caches were 1024 parts)
     @Deprecated
-    private static final String TESTS_RUN_STAT = "testsRunStat";
-    @Deprecated
     private static final String LOG_CHECK_RESULT = "logCheckResult";
 
     @Inject
@@ -104,9 +102,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
         DbMigrations migrations = new DbMigrations(ignite, conn.serverId());
 
-        migrations.dataMigration(
-                testRunStatCache(),
-                visasHistStorage.visas());
+        migrations.dataMigration(visasHistStorage.visas());
     }
 
     /** {@inheritDoc} */
@@ -164,23 +160,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public Build getBuild(int buildId) {
         return teamcity.getBuild(buildId);
-    }
-
-    /** {@inheritDoc} */
-    @Override public Function<TestInBranch, RunStat> getTestRunStatProvider() {
-        return key -> key == null ? null : getRunStatForTest(key);
-    }
-
-    @SuppressWarnings("WeakerAccess")
-    @AutoProfiling
-    @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
-    protected RunStat getRunStatForTest(TestInBranch key) {
-        return testRunStatCache().get(key);
-    }
-
-    @Deprecated
-    private IgniteCache<TestInBranch, RunStat> testRunStatCache() {
-        return getOrCreateCacheV2(ignCacheNme(TESTS_RUN_STAT));
     }
 
     private IgniteCache<Integer, LogCheckResult> logCheckResultCache() {

@@ -31,12 +31,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -323,12 +321,7 @@ public class IssueDetector {
         String name = testFailure.name;
         TestInBranch testInBranch = new TestInBranch(name, normalizeBranch);
 
-        Function<TestInBranch, ? extends IRunHistory> function =
-            ITeamcity.NEW_RUN_STAT
-                ? tcIgnited::getTestRunHist
-                : teamcity.getTestRunStatProvider();
-
-        IRunHistory runStat = function.apply(testInBranch);
+        IRunHistory runStat = tcIgnited.getTestRunHist(testInBranch);
 
         if (runStat == null)
             return false;

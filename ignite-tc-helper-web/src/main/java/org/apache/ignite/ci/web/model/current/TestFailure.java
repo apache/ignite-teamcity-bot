@@ -21,13 +21,11 @@ import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
-import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
@@ -189,19 +187,17 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
     }
 
     /**
-     * @param runStatSupplier Run stat supplier.
+     * @param tcIgnited TC service as Run stat supplier.
      * @param failRateNormalizedBranch Base branch: Fail rate and flakyness detection normalized branch.
      * @param curBranchNormalized Cur branch normalized.
      */
-    public void initStat(@Nullable final Function<TestInBranch, ? extends IRunHistory> runStatSupplier,
-        String failRateNormalizedBranch,
-        String curBranchNormalized) {
-        if (runStatSupplier == null)
-            return;
+    public void initStat(ITeamcityIgnited tcIgnited,
+                         String failRateNormalizedBranch,
+                         String curBranchNormalized) {
 
         TestInBranch testInBranch = new TestInBranch(name, failRateNormalizedBranch);
 
-        final IRunHistory stat = runStatSupplier.apply(testInBranch);
+        final IRunHistory stat = tcIgnited.getTestRunHist(testInBranch);
 
         histBaseBranch.init(stat);
 
@@ -210,7 +206,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         if (!curBranchNormalized.equals(failRateNormalizedBranch)) {
             TestInBranch testInBranchS = new TestInBranch(name, curBranchNormalized);
 
-            statForProblemsDetection = runStatSupplier.apply(testInBranchS);
+            statForProblemsDetection = tcIgnited.getTestRunHist(testInBranchS);
 
             if(statForProblemsDetection!=null) {
                 histCurBranch = new TestHistory();

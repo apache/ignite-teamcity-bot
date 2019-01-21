@@ -49,9 +49,6 @@ public interface ITeamcity extends ITeamcityConn {
     @Deprecated
     long DEFAULT_BUILDS_COUNT = 1000;
 
-    /** Temporary feature toggle: Use New run stat in PR analysis, issue detection. */
-    boolean NEW_RUN_STAT = true;
-
     @NotNull public static String buildHref(int id) {
         return "app/rest/latest/builds/id:" + id;
     }
