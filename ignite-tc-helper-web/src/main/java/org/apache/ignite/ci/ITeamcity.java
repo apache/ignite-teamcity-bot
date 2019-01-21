@@ -52,9 +52,6 @@ public interface ITeamcity extends ITeamcityConn {
     /** Temporary feature toggle: Use New run stat in PR analysis, issue detection. */
     boolean NEW_RUN_STAT = true;
 
-    @Deprecated
-    Build getBuild(String href);
-
     @NotNull public static String buildHref(int id) {
         return "app/rest/latest/builds/id:" + id;
     }

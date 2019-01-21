@@ -44,8 +44,7 @@ import static org.apache.ignite.ci.util.ExceptionUtil.propagateException;
  */
 @XmlRootElement(name = "build")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class Build extends BuildRef implements IVersionedEntity {
-    public static final int LATEST_VERSION = 2;
+public class Build extends BuildRef {
 
     /** Format local. */
     @XmlTransient private static ThreadLocal<SimpleDateFormat> fmtLoc
@@ -67,19 +66,11 @@ public class Build extends BuildRef implements IVersionedEntity {
 
     @XmlElement(name = "statistics") public StatisticsRef statisticsRef;
 
-    @XmlElement(name = "relatedIssues") public RelatedIssuesRef relatedIssuesRef;
-
-    /** Changes not included into build.*/
-    @XmlElement(name = "lastChanges") public ChangesList lastChanges;
-
     /** Changes included into build.*/
     @XmlElement(name = "changes") public ChangesListRef changesRef;
 
     /** Information about build triggering. */
     @XmlElement(name = "triggered") private Triggered triggered;
-
-    @XmlTransient
-    @SuppressWarnings("FieldCanBeLocal") public Integer _version = LATEST_VERSION;
 
     @NotNull public static Build createFakeStub() {
         return new Build();
@@ -154,14 +145,6 @@ public class Build extends BuildRef implements IVersionedEntity {
 
     public BuildType getBuildType() {
         return buildType;
-    }
-
-    @Override public int version() {
-        return _version == null ? 0 : _version;
-    }
-
-    @Override public int latestVersion() {
-        return LATEST_VERSION;
     }
 
     /**

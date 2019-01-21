@@ -81,7 +81,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     //todo need separate cache or separate key for 'execution time' because it is placed in statistics
     private static final String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
-    public static final String BUILDS = "builds";
 
     @Inject
     private Ignite ignite;
@@ -109,7 +108,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         DbMigrations migrations = new DbMigrations(ignite, conn.serverId());
 
         migrations.dataMigration(
-            buildsCache(), this::addBuildOccurrenceToFailuresStat,
                 buildsFailureRunStatCache(), testRunStatCache(),
                 visasHistStorage.visas());
     }
@@ -136,25 +134,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return cache;
     }
 
-    /**
-     * Creates transactional cache with 32 parts.
-     * @param name Cache name.
-     */
-    private <K, V> IgniteCache<K, V> getOrCreateCacheV2Tx(String name) {
-        final IgniteCache<K, V> cache = ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(name));
-
-        cache.enableStatistics(true);
-
-        return cache;
-    }
-
-    /**
-     * @return {@link Build}s cache, 32 parts.
-     */
-    private IgniteCache<String, Build> buildsCache() {
-        return getOrCreateCacheV2(ignCacheNme(BUILDS));
-    }
-
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public List<BuildType> getBuildTypes(String projectId) {
@@ -166,91 +145,10 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return serverId;
     }
 
-
     public static int getTriggerRelCacheValidSecs(int defaultSecs) {
         long msSinceTrigger = System.currentTimeMillis() - lastTriggerMs;
         long secondsSinceTrigger = TimeUnit.MILLISECONDS.toSeconds(msSinceTrigger);
-        return Math.min((int)secondsSinceTrigger, defaultSecs);
-    }
-
-    /** {@inheritDoc} */
-    @Nullable
-    @AutoProfiling
-    @Override public Build getBuild(String href) {
-        final IgniteCache<String, Build> cache = buildsCache();
-
-        @Nullable final Build persistedBuild = cache.get(href);
-
-        int fields = ObjectInterner.internFields(persistedBuild);
-
-        if (persistedBuild != null) {
-            if (!persistedBuild.isOutdatedEntityVersion())
-                return persistedBuild;
-        }
-
-        final Build loaded = realLoadBuild(href);
-        //can't reload, but cached has value
-        if (loaded.isFakeStub() && persistedBuild != null && persistedBuild.isOutdatedEntityVersion()) {
-            persistedBuild._version = persistedBuild.latestVersion();
-            cache.put(href, persistedBuild);
-
-            return persistedBuild;
-        }
-
-        if (loaded.isFakeStub() || loaded.hasFinishDate()) {
-            cache.put(href, loaded);
-
-            addBuildOccurrenceToFailuresStat(loaded);
-        }
-
-        return loaded;
-    }
-
-    private void addBuildOccurrenceToFailuresStat(Build loaded) {
-        if (loaded.isFakeStub())
-            return;
-
-        String suiteId = loaded.suiteId();
-        if (Strings.isNullOrEmpty(suiteId))
-            return;
-
-        SuiteInBranch key = keyForBuild(loaded);
-
-        buildsFailureRunStatCache().invoke(key, (entry, arguments) -> {
-            SuiteInBranch suiteInBranch = entry.getKey();
-
-            Build build = (Build)arguments[0];
-
-            RunStat val = entry.getValue();
-
-            if (val == null)
-                val = new RunStat(suiteInBranch.getSuiteId());
-
-            val.addBuildRun(build);
-
-            entry.setValue(val);
-
-            return null;
-        }, loaded);
-    }
-
-    @NotNull private SuiteInBranch keyForBuild(Build loaded) {
-        return new SuiteInBranch(loaded.suiteId(), normalizeBranch(loaded.branchName));
-    }
-
-    @Deprecated
-    private Build realLoadBuild(String href1) {
-        try {
-            return teamcity.getBuild(href1);
-        }
-        catch (Exception e) {
-            if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                System.err.println("Exception " + e.getClass().getSimpleName() + ": " + e.getMessage());
-                return Build.createFakeStub();// save null result, because persistence may refer to some non-existent build on TC
-            }
-            else
-                throw e;
-        }
+        return Math.min((int) secondsSinceTrigger, defaultSecs);
     }
 
     @NotNull private String ignCacheNme(String cache) {
@@ -340,6 +238,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /**
      * @return cache from suite name to its failure statistics
      */
+    @Deprecated
     private IgniteCache<SuiteInBranch, RunStat> buildsFailureRunStatCache() {
         return getOrCreateCacheV2(ignCacheNme(BUILDS_FAILURE_RUN_STAT));
     }
