@@ -21,12 +21,12 @@ package org.apache.ignite.ci.teamcity.ignited;
  */
 public interface IStringCompactor {
     /**
-     * @param val Value.
+     * @param val Value to be identified as integer.
      */
     public int getStringId(String val);
 
     /**
-     * @param id Id.
+     * @param id Id of string from {@link #getStringId(String)}. Negative value implies <code>null</code>.
      */
     public String getStringFromId(int id);
 

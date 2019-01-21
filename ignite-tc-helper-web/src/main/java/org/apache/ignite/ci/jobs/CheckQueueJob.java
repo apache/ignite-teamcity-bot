@@ -199,8 +199,7 @@ public class CheckQueueJob implements Runnable {
 
                 String login = user.username;
 
-                if (selfLogin.equalsIgnoreCase(login)
-                        && Objects.equals(build.branchName, chain.branchForRest)) {
+                if (selfLogin.equalsIgnoreCase(login)) {
                     final String msg
                             = MessageFormat.format("Queued build {0} was early triggered " +
                             "(user {1}, branch {2}, suite {3})." +
