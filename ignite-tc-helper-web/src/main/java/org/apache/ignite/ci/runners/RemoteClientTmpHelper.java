@@ -29,7 +29,6 @@ import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
@@ -45,9 +44,28 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.jetbrains.annotations.NotNull;
 
+import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao.TEST_HIST_CACHE_NAME;
+
 public class RemoteClientTmpHelper {
     public static   String DUMPS = "dumps";
     private static boolean dumpDict = false;
+
+
+    public static void mainDestroy(String[] args) {
+        int testHist;
+
+        try (Ignite ignite = tcbotServerConnectedClient()) {
+
+            IgniteCache<Object, Object> cache = ignite.cache(TEST_HIST_CACHE_NAME);
+            testHist = cache.size();
+
+            System.err.println("Start destroy operation");
+            cache.destroy();
+            System.err.println("Finish destroy operation");
+        }
+
+        System.err.println("Test hist found " + testHist + "]");
+    }
 
     /**
      * @param args Args.
@@ -55,7 +73,7 @@ public class RemoteClientTmpHelper {
     public static void main(String[] args) {
         int inconsistent;
 
-        try (Ignite ignite = tcbotServer()) {
+        try (Ignite ignite = tcbotServerConnectedClient()) {
             inconsistent = validateBuildIdConsistency(ignite);
         }
 
@@ -125,7 +143,7 @@ public class RemoteClientTmpHelper {
     }
 
     public static void mainExport(String[] args) throws IOException {
-        final Ignite ignite = tcbotServer();
+        final Ignite ignite = tcbotServerConnectedClient();
 
         if (dumpDict) {
             IgniteCache<String, Object> strings = ignite.cache(IgniteStringCompactor.STRINGS_CACHE);
@@ -152,7 +170,7 @@ public class RemoteClientTmpHelper {
         }
     }
 
-    public static Ignite tcbotServer() {
+    public static Ignite tcbotServerConnectedClient() {
         final IgniteConfiguration cfg = new IgniteConfiguration();
 
         setupDisco(cfg);
