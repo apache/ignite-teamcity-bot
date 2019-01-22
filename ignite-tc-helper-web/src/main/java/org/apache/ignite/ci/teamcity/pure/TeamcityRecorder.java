@@ -30,9 +30,6 @@ import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
  *
  */
 public class TeamcityRecorder {
-    /** Urls. */
-    private ConcurrentLinkedQueue<String> urls = new ConcurrentLinkedQueue<>();
-
     /** Lock. */
     private ReentrantLock lock = new ReentrantLock();
 
@@ -44,13 +41,6 @@ public class TeamcityRecorder {
      * @param url Url.
      */
     public InputStream onGet(InputStream inputStream, String url) throws IOException {
-        if (Boolean.valueOf(System.getProperty(TcBotSystemProperties.TEAMCITY_BOT_RECORDER_URLS))) {
-            urls.add(url);
-
-            if (urls.size() > 100)
-                urls.remove();
-        }
-
         if (Boolean.valueOf(System.getProperty(TcBotSystemProperties.TEAMCITY_BOT_RECORDER))) {
             boolean success = false;
 
@@ -75,14 +65,6 @@ public class TeamcityRecorder {
         }
 
         return inputStream;
-    }
-
-    /**
-     *
-     */
-    @Deprecated
-    public List<String> getUrls() {
-        return new ArrayList<>(urls);
     }
 
     /**

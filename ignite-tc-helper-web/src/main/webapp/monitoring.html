@@ -65,16 +65,6 @@
             },
             error: showErrInLoadStatus
         });
-
-        $.ajax({
-            url: "rest/monitoring/urlsUsed",
-            success: function(result) {
-                $("#loadStatus").html("");
-
-                showUrlsUsed(result);
-            },
-            error: showErrInLoadStatus
-        });
     }
 
     /**
@@ -145,24 +135,6 @@
         $("#caches").html(res);
     }
 
-    /**
-     * @param result org.apache.ignite.ci.web.rest.monitoring.UrlUsed
-     */
-    function showUrlsUsed(result) {
-        var res = "<table class='stat'>" ;
-        res += "<tr>";
-        res += "<th>URL</th>";
-        res += "</tr>";
-        for (var i = 0; i < result.length; i++) {
-            var inv = result[i];
-            res += "<tr>";
-            res += "<td>" + inv.url + "</td>";
-            res += "</tr>";
-        }
-        res += "</table>";
-        $("#urlUsed").html(res);
-    }
-
     function resetProfiling() {
         $.ajax({
             url: "rest/monitoring/resetProfiling",
@@ -189,9 +161,6 @@ Tasks Monitoring Data:
 <b>Ignite Caches Data:</b>
 <div id="caches" style="font-family: monospace"></div>
 
-<hr>
-<b>Services URLs used:</b>
-<div id="urlUsed"></div>
 <br>
 <div id="loadStatus"></div>
 <div id="version"></div>

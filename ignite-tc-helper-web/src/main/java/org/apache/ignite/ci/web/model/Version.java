@@ -40,11 +40,7 @@ package org.apache.ignite.ci.web.model;
     public String ignVerFull;
 
     /** TC Bot GitHub Mirror. */
-    @Deprecated
-    public String srcWebUrl = GITHUB_REF;
-
-    /** TC Bot GitHub Mirror. */
-    public String gitHubMirror = srcWebUrl;
+    public String gitHubMirror = GITHUB_REF;
 
     /** TC Bot Source */
     public String apacheGitUrl = "https://gitbox.apache.org/repos/asf/ignite-teamcity-bot.git";

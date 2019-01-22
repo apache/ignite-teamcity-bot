@@ -23,7 +23,6 @@ import org.apache.ignite.cache.CacheMetrics;
 import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.ci.di.AutoProfilingInterceptor;
 import org.apache.ignite.ci.di.MonitoredTaskInterceptor;
-import org.apache.ignite.ci.teamcity.pure.TeamcityRecorder;
 import org.apache.ignite.ci.web.CtxListener;
 
 import javax.annotation.security.PermitAll;
@@ -41,6 +40,7 @@ import org.apache.ignite.ci.web.model.SimpleResult;
 @Path("monitoring")
 @Produces(MediaType.APPLICATION_JSON)
 public class MonitoringService {
+    /** Context. */
     @Context
     private ServletContext ctx;
 
@@ -53,13 +53,13 @@ public class MonitoringService {
         final Collection<MonitoredTaskInterceptor.Invocation> list = instance.getList();
 
         return list.stream().map(invocation -> {
-            final TaskResult result = new TaskResult();
-            result.name = invocation.name();
-            result.start = invocation.start();
-            result.end = invocation.end();
-            result.result = invocation.result();
-            result.count = invocation.count();
-            return result;
+            final TaskResult res = new TaskResult();
+            res.name = invocation.name();
+            res.start = invocation.start();
+            res.end = invocation.end();
+            res.result = invocation.result();
+            res.count = invocation.count();
+            return res;
         }).collect(Collectors.toList());
     }
 
@@ -117,10 +117,9 @@ public class MonitoringService {
                 continue;
             CacheMetrics metrics = cache.metrics();
 
-
             int size = cache.size();
-             float averageGetTime = metrics.getAverageGetTime();
-             float averagePutTime = metrics.getAveragePutTime();
+            float averageGetTime = metrics.getAverageGetTime();
+            float averagePutTime = metrics.getAveragePutTime();
 
             //System.out.println(next + ": " + size + " get " + averageGetTime + " put " + averagePutTime);
 
@@ -129,22 +128,5 @@ public class MonitoringService {
             res.add(new CacheMetricsUi(next, size, affinity.partitions()));
         }
         return res;
-    }
-
-
-    @Deprecated
-    @GET
-    @PermitAll
-    @Path("urlsUsed")
-    public List<UrlUsed> getUrlsUsed() {
-        final TeamcityRecorder recorder = CtxListener.getInjector(ctx).getInstance(TeamcityRecorder.class);
-
-        final List<String> urls = recorder.getUrls();
-
-        return urls.stream().map(s -> {
-            final UrlUsed urlRequested = new UrlUsed();
-            urlRequested.url = s;
-            return urlRequested;
-        }).collect(Collectors.toList());
     }
 }
