@@ -118,7 +118,7 @@ public class TrackedBranchChainsProcessor {
                 if (cnt > 0)
                     runningUpdates.addAndGet(cnt);
 
-                chainStatus.initFromContext(tcIgnited, teamcity, ctx, baseBranchTc);
+                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc);
 
                 return chainStatus;
             })

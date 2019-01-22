@@ -92,7 +92,7 @@ public class GetChainResultsAsHtml {
 
         status.chainName = ctx.suiteName();
 
-        status.initFromContext(tcIgn, teamcity, ctx, failRateBranch);
+        status.initFromContext(tcIgn, ctx, failRateBranch);
 
         res.append(showChainAtServerData(status));
 

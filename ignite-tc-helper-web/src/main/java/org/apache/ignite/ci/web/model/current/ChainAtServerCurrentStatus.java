@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
@@ -156,9 +155,8 @@ public class ChainAtServerCurrentStatus {
     }
 
     public void initFromContext(ITeamcityIgnited tcIgnited,
-                                @Deprecated ITeamcity teamcity,
-                                FullChainRunCtx ctx,
-                                @Nullable String baseBranchTc) {
+        FullChainRunCtx ctx,
+        @Nullable String baseBranchTc) {
         failedTests = 0;
         failedToFinish = 0;
         //todo mode with not failed

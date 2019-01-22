@@ -58,11 +58,10 @@ public interface IJiraIntegration {
     /**
      * Produce wrapper for collection of Jira tickets for given server.
      *
-     * @param srvId Server id.
      * @param url Tickets loading URL and parameters.
      * @return Jira tickets.
      */
-    public Tickets getTicketsPage(@Deprecated String srvId, String url);
+    public Tickets getTicketsPage(String url);
 
     /** */
     public String jiraUrl();

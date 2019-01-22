@@ -29,7 +29,7 @@ import org.apache.ignite.ci.web.model.Visa;
  * Teamcity Bot main interface. This inteface became too huge.
  */
 @Deprecated
-public interface ITcHelper extends ITcServerProvider {
+public interface ITcHelper {
     /** System property to specify: Teamcity helper home. Ignite home will be set to same dir. */
     public String TEAMCITY_HELPER_HOME = "teamcity.helper.home";
 

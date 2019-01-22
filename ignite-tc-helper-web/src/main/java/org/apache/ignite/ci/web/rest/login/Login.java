@@ -23,6 +23,7 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcmodel.user.User;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.pure.ITcLogin;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
@@ -56,10 +57,12 @@ public class Login {
     @Path("primaryServerData")
     @PermitAll
     public ServerDataResponse primaryServerUrl() {
-        ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
+        Injector injector = CtxListener.getInjector(ctx);
+
+        ITcHelper tcHelper = injector.getInstance(ITcHelper.class);
         String srvId = tcHelper.primaryServerId();
-        IAnalyticsEnabledTeamcity srv = tcHelper.server(srvId, null);
-        return new ServerDataResponse(srv.host());
+        String host = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvId, null).host();
+        return new ServerDataResponse(host);
     }
 
     @POST

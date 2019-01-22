@@ -46,9 +46,6 @@ public interface ITeamcity extends ITeamcityConn {
     public String DEFAULT = "<default>";
     public String REFS_HEADS_MASTER = "refs/heads/master";
 
-    @Deprecated
-    long DEFAULT_BUILDS_COUNT = 1000;
-
     CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut);
 
     CompletableFuture<File> downloadBuildLogZip(int id);

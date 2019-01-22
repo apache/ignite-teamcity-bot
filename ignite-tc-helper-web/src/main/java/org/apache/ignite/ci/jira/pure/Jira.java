@@ -83,7 +83,7 @@ class Jira implements IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @Override public Tickets getTicketsPage(String srvId, String url) {
+    @Override public Tickets getTicketsPage(String url) {
         try {
             return new Gson().fromJson(sendGetToJira(url), Tickets.class);
         }

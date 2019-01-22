@@ -35,11 +35,12 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 
-/** */
+/**
+ * Compare builds (by ID) tests' sets.
+ */
 @Path("compare")
 @Produces(MediaType.APPLICATION_JSON)
 public class CompareBuilds {
-
     /** */
     @Context
     private ServletContext ctx;
@@ -83,7 +84,7 @@ public class CompareBuilds {
         return tests;
     }
 
-    /** */
+    /** Compares two builds tests set. */
     @GET
     @Path("tests/cmp")
     @Produces(MediaType.TEXT_PLAIN)

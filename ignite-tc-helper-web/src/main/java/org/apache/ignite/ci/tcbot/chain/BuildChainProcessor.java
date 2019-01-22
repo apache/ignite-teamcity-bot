@@ -367,11 +367,6 @@ public class BuildChainProcessor {
         }
     }
 
-    @Deprecated
-    @NotNull public static String normalizeBranch(@NotNull final BuildRef build) {
-        return RunHistSync.normalizeBranch(build.branchName);
-    }
-
     /**
      * @param buildFut Chain build future.
      * @param mode Mode.

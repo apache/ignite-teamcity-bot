@@ -123,9 +123,6 @@ public class TriggerBuilds {
 
             Injector injector = CtxListener.getInjector(ctx);
 
-            ITcHelper tcHelper = injector.getInstance(ITcHelper.class);
-            final ICredentialsProv creds = ICredentialsProv.get(req);
-            ITeamcity teamcity = tcHelper.server(srvId, creds);
             IJiraIntegration jira = injector.getInstance(IJiraIntegrationProvider.class).server(srvId);
 
             IGitHubConnection gh = injector.getInstance(IGitHubConnectionProvider.class).server(srvId);

@@ -91,7 +91,7 @@ public class JiraTicketSync {
             + "&fields=status&maxResults=100";
 
         String url = baseUrl;
-        Tickets tickets = jira.getTicketsPage(srvId, url);
+        Tickets tickets = jira.getTicketsPage(url);
         Collection<Ticket> page = tickets.issuesNotNull();
 
         if (F.isEmpty(page))
@@ -105,7 +105,7 @@ public class JiraTicketSync {
             while (tickets.nextStart() > 0) {
                 url = baseUrl + "&startAt=" + tickets.nextStart();
 
-                tickets = jira.getTicketsPage(srvId, url);
+                tickets = jira.getTicketsPage(url);
 
                 page = tickets.issuesNotNull();
 

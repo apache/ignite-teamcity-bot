@@ -16,9 +16,16 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.user.ICredentialsProv;
 
+/**
+ * Provides instance of particular cache-based teamcity connection.
+ */
 public interface ITeamcityIgnitedProvider {
-
-    ITeamcityIgnited server(String srvId, ICredentialsProv prov);
+    /**
+     * @param srvId Server id.
+     * @param prov Prov.
+     */
+    public ITeamcityIgnited server(String srvId, @Nullable ICredentialsProv prov);
 }

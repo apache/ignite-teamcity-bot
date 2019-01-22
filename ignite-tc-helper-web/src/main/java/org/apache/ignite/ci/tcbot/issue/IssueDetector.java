@@ -92,9 +92,6 @@ public class IssueDetector {
     @Inject private TrackedBranchChainsProcessor tbProc;
 
     /** Server provider. */
-    @Inject private ITcServerProvider srvProvider;
-
-    /** Server provider. */
     @Inject private ITeamcityIgnitedProvider tcProv;
 
     /** String Compactor. */
@@ -234,8 +231,6 @@ public class IssueDetector {
             if(!creds.hasAccess(next.serverId))
                 continue;
 
-            IAnalyticsEnabledTeamcity teamcity = srvProvider.server(next.serverId, creds);
-
             ITeamcityIgnited tcIgnited = tcProv.server(next.serverId, creds);
 
             for (SuiteCurrentStatus suiteCurrentStatus : next.suites) {
@@ -249,7 +244,7 @@ public class IssueDetector {
                         newIssues++;
                 }
 
-                if(registerSuiteFailIssues(tcIgnited, teamcity, next.serverId, normalizeBranch, suiteCurrentStatus, trackedBranch))
+                if(registerSuiteFailIssues(tcIgnited, next.serverId, normalizeBranch, suiteCurrentStatus, trackedBranch))
                     newIssues++;
             }
         }
@@ -257,11 +252,11 @@ public class IssueDetector {
         return "New issues found " + newIssues;
     }
 
-    private boolean registerSuiteFailIssues(ITeamcityIgnited tcIgnited, IAnalyticsEnabledTeamcity teamcity,
-                                            String srvId,
-                                            String normalizeBranch,
-                                            SuiteCurrentStatus suiteFailure,
-                                            String trackedBranch) {
+    private boolean registerSuiteFailIssues(ITeamcityIgnited tcIgnited,
+        String srvId,
+        String normalizeBranch,
+        SuiteCurrentStatus suiteFailure,
+        String trackedBranch) {
 
         String suiteId = suiteFailure.suiteId;
 

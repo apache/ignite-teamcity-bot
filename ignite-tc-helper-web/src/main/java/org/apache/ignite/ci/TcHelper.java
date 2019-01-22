@@ -40,8 +40,6 @@ public class TcHelper implements ITcHelper {
 
     @Inject private IssuesStorage issuesStorage;
 
-    @Inject private ITcServerProvider serverProvider;
-
     @Inject private IssueDetector detector;
 
     @Inject private UserAndSessionsStorage userAndSessionsStorage;
@@ -73,14 +71,6 @@ public class TcHelper implements ITcHelper {
     }
 
     /** {@inheritDoc} */
-    @Override public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov) {
-        if (stop.get())
-            throw new IllegalStateException("Shutdown");
-
-        return serverProvider.server(srvId, prov);
-    }
-
-    /** {@inheritDoc} */
     @Override public UserAndSessionsStorage users() {
         return userAndSessionsStorage;
     }
@@ -88,8 +78,6 @@ public class TcHelper implements ITcHelper {
     @Override public String primaryServerId() {
         return "apache"; //todo remove
     }
-
-
 
     public void close() {
         if (stop.compareAndSet(false, true))
