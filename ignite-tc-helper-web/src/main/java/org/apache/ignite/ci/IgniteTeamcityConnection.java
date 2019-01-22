@@ -48,7 +48,6 @@ import org.apache.ignite.ci.tcmodel.user.Users;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.util.HttpUtil;
-import org.apache.ignite.ci.util.UrlUtil;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
 import org.jetbrains.annotations.NotNull;
@@ -60,9 +59,7 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.xml.bind.JAXBException;
 import java.io.*;
-import java.text.SimpleDateFormat;
 import java.util.SortedSet;
-import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.*;
@@ -72,7 +69,6 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
@@ -371,7 +367,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public Build getBuild(int buildId) {
-        return getJaxbUsingHref(ITeamcity.buildHref(buildId), Build.class);
+        return getJaxbUsingHref("app/rest/latest/builds/id:" + buildId, Build.class);
     }
 
     /**

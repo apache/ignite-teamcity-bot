@@ -39,6 +39,7 @@ class TcLoginImpl implements ITcLogin {
     @Override public User checkServiceUserAndPassword(String srvId, String username, String pwd) {
         try {
             ITeamcity tcConn = tcFactory.get();
+
             tcConn.init(srvId);
 
             tcConn.setAuthData(username, pwd);

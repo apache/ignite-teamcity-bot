@@ -49,10 +49,6 @@ public interface ITeamcity extends ITeamcityConn {
     @Deprecated
     long DEFAULT_BUILDS_COUNT = 1000;
 
-    @NotNull public static String buildHref(int id) {
-        return "app/rest/latest/builds/id:" + id;
-    }
-
     CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut);
 
     CompletableFuture<File> downloadBuildLogZip(int id);
