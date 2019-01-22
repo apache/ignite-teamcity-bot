@@ -38,7 +38,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
@@ -199,13 +198,8 @@ public class BuildChainProcessor {
         Function<MultBuildRunCtx, Float> function = ctx -> {
             SuiteInBranch key = new SuiteInBranch(ctx.suiteId(), RunHistSync.normalizeBranch(failRateBranch));
 
-            //todo place RunStat into suite context to compare
-            Function<SuiteInBranch, ? extends IRunHistory> provider   =
-                ITeamcity.NEW_RUN_STAT
-                    ? tcIgn::getSuiteRunHist
-                    : teamcity.getBuildFailureRunStatProvider();
-
-            IRunHistory runStat = provider.apply(key);
+            //todo cache RunStat instance into suite context to compare
+            IRunHistory runStat = tcIgn.getSuiteRunHist(key);
 
             if (runStat == null)
                 return 0f;

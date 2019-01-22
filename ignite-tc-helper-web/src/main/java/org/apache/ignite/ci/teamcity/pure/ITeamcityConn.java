@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -36,13 +37,15 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 
 /**
- * Pure Teamcity Connection API for calling methods from REST service: https://confluence.jetbrains.com/display/TCD10/REST+API
+ * Pure Teamcity Connection API for calling methods from REST service: <br>
+ * https://confluence.jetbrains.com/display/TCD10/REST+API
  */
 public interface ITeamcityConn {
     /**
      * @return Internal server ID as string
      */
-    @Nullable public String serverId();
+    @Nullable
+    public String serverId();
 
     /**
      * @return Normalized Host address, ends with '/'.
@@ -101,10 +104,6 @@ public interface ITeamcityConn {
      */
     BuildTypeFull getBuildType(String buildTypeId);
 
-    /** */
-    @Deprecated
-    ProblemOccurrences getProblemsAndRegisterCritical(BuildRef build);
-
     /**
      * @return List of all project available at Teamcity server.
      */
@@ -114,4 +113,13 @@ public interface ITeamcityConn {
      * @return Branch name mandatory prefix for all PR-less contributions, e.g. "ignite-".
      */
     public String gitBranchPrefix();
+
+    /**
+     * Get list of teamcity agents.
+     *
+     * @param connected Connected flag.
+     * @param authorized Authorized flag.
+     * @return List of teamcity agents.
+     */
+    List<Agent> agents(boolean connected, boolean authorized);
 }

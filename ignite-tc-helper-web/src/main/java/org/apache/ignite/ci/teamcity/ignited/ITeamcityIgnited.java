@@ -23,6 +23,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
@@ -57,6 +58,14 @@ public interface ITeamcityIgnited {
     public List<BuildRefCompacted> getAllBuildsCompacted(
             @Nullable String buildTypeId,
             @Nullable String branchName);
+
+    /**
+     * Return queued builds for branch and suite, without relation to its status.
+     *
+     * @param branchName Branch name.
+     * @return list of builds in history, includes all statuses: queued, running, etc
+     */
+    public List<BuildRefCompacted> getQueuedBuildsCompacted(String branchName);
 
     /**
      * @param projectId Project id.
@@ -178,7 +187,17 @@ public interface ITeamcityIgnited {
      */
     @Nullable public IRunStat getSuiteRunStatAllBranches(String suiteBuildTypeId);
 
-    List<String> getAllProjectsIds();
+    public List<String> getAllProjectsIds();
 
-    String gitBranchPrefix();
+    public String gitBranchPrefix();
+
+
+    /**
+     * Get list of teamcity agents. Never cached, request goes directly to pure TC.
+     *
+     * @param connected Connected flag.
+     * @param authorized Authorized flag.
+     * @return List of teamcity agents.
+     */
+    public List<Agent> agents(boolean connected, boolean authorized);
 }

@@ -186,16 +186,9 @@ public class RunStat implements IRunHistory {
         return (long)(1.0 * totalDurationMs / runsWithDuration);
     }
 
+    @Deprecated
     public void addBuildRun(Build build) {
         runs++;
-//        build.lastChanges
-
-        //todo ? add duration from statistics
-        /*
-        if (build.duration != null) {
-            totalDurationMs += testOccurrence.duration;
-            runsWithDuration++;
-        } */
 
         if (!build.isSuccess())
             failures++;

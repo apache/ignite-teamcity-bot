@@ -56,6 +56,7 @@ import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.mute.Mutes;
 import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.ci.tcmodel.result.Triggered;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
@@ -470,6 +471,18 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertEquals(refBuild.buildTypeId(), actBuild.buildTypeId());
         assertEquals(refBuild.getStartDate(), actBuild.getStartDate());
         assertEquals(refBuild.getFinishDate(), actBuild.getFinishDate());
+
+        final Triggered refTrig = refBuild.getTriggered();
+        final Triggered actTrig = actBuild.getTriggered();
+        assertNotNull(refTrig);
+        assertNotNull(actTrig);
+
+        assertNotNull(refTrig.getUser());
+        assertNotNull(actTrig.getUser());
+
+        assertEquals(refTrig.getUser().username, actTrig.getUser().username);
+        assertEquals(refTrig.getBuild().getId(), actTrig.getBuild().getId());
+
         BuildType refBt = refBuild.getBuildType();
         BuildType actBt = actBuild.getBuildType();
         assertEquals(refBt.getName(), actBt.getName());

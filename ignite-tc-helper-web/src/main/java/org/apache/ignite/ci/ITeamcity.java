@@ -49,16 +49,6 @@ public interface ITeamcity extends ITeamcityConn {
     @Deprecated
     long DEFAULT_BUILDS_COUNT = 1000;
 
-    /** Temporary feature toggle: Use New run stat in PR analysis, issue detection. */
-    boolean NEW_RUN_STAT = true;
-
-    /**   */
-    @Deprecated
-    CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch);
-
-    @Deprecated
-    Build getBuild(String href);
-
     @NotNull public static String buildHref(int id) {
         return "app/rest/latest/builds/id:" + id;
     }
@@ -95,15 +85,6 @@ public interface ITeamcity extends ITeamcityConn {
         setAuthToken(
                 Base64Util.encodeUtf8String(user + ":" + pwd));
     }
-
-    /**
-     * Get list of teamcity agents.
-     *
-     * @param connected Connected flag.
-     * @param authorized Authorized flag.
-     * @return List of teamcity agents.
-     */
-    List<Agent> agents(boolean connected, boolean authorized);
 
     void init(String serverId);
 

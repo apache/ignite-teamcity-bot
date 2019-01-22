@@ -28,6 +28,7 @@ import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IRunStat;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -63,7 +64,7 @@ public class RunHistCompactedDao {
     private IgniteCache<RunHistKey, RunHistCompacted> testHistCache;
 
     /** Suite history cache. */
-    private IgniteCache<RunHistKey, RunHistCompacted> suiteHistCacheName;
+    private IgniteCache<RunHistKey, RunHistCompacted> suiteHistCache;
 
     /** Build start time. */
     private IgniteCache<Long, Long> buildStartTime;
@@ -87,11 +88,12 @@ public class RunHistCompactedDao {
 
         cfg2.setQueryEntities(Collections.singletonList(new QueryEntity(RunHistKey.class, RunHistCompacted.class)));
 
-        suiteHistCacheName = ignite.getOrCreateCache(cfg2);
+        suiteHistCache = ignite.getOrCreateCache(cfg2);
 
         buildStartTime = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(BUILD_START_TIME_CACHE_NAME));
     }
 
+    @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
     public IRunHistory getTestRunHist(int srvIdMaskHigh, String name, @Nullable String branch) {
         RunHistKey key = getKey(srvIdMaskHigh, name, branch);
         if (key == null)
@@ -148,7 +150,7 @@ public class RunHistCompactedDao {
         if (list.isEmpty())
             return 0;
 
-        return suiteHistCacheName.invoke(histKey, RunHistCompactedDao::processEntry, list);
+        return suiteHistCache.invoke(histKey, RunHistCompactedDao::processEntry, list);
     }
 
     @NotNull public static Integer processEntry(MutableEntry<RunHistKey, RunHistCompacted> entry, Object[] parms) {
@@ -179,12 +181,13 @@ public class RunHistCompactedDao {
      * @param suiteId Suite id.
      * @param branch Branch.
      */
+    @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
     public IRunHistory getSuiteRunHist(int srvId, String suiteId, @Nullable String branch) {
         RunHistKey key = getKey(srvId, suiteId, branch);
         if (key == null)
             return null;
 
-        return suiteHistCacheName.get(key);
+        return suiteHistCache.get(key);
     }
 
     public IRunStat getSuiteRunStatAllBranches(int srvIdMaskHigh, String btId) {
@@ -194,7 +197,7 @@ public class RunHistCompactedDao {
 
         AtomicInteger runs = new AtomicInteger();
         AtomicInteger failures = new AtomicInteger();
-        try (QueryCursor<Cache.Entry<RunHistKey, RunHistCompacted>> qryCursor = suiteHistCacheName.query(
+        try (QueryCursor<Cache.Entry<RunHistKey, RunHistCompacted>> qryCursor = suiteHistCache.query(
             new SqlQuery<RunHistKey, RunHistCompacted>(RunHistCompacted.class, "testOrSuiteName = ? and srvId = ?")
                 .setArgs(testName, srvIdMaskHigh))) {
 

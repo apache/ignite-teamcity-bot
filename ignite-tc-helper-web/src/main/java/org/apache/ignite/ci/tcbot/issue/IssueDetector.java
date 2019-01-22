@@ -31,12 +31,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -247,7 +245,7 @@ public class IssueDetector {
                 final String trackedBranch = res.getTrackedBranch();
 
                 for (TestFailure testFailure : suiteCurrentStatus.testFailures) {
-                    if(registerTestFailIssues(tcIgnited, teamcity, next.serverId, normalizeBranch, testFailure, trackedBranch))
+                    if(registerTestFailIssues(tcIgnited, next.serverId, normalizeBranch, testFailure, trackedBranch))
                         newIssues++;
                 }
 
@@ -269,12 +267,7 @@ public class IssueDetector {
 
         SuiteInBranch key = new SuiteInBranch(suiteId, normalizeBranch);
 
-        Function<SuiteInBranch, ? extends IRunHistory> provider   =
-            ITeamcity.NEW_RUN_STAT
-                ? tcIgnited::getSuiteRunHist
-                : teamcity.getBuildFailureRunStatProvider();
-
-        IRunHistory runStat = provider.apply(key);
+        IRunHistory runStat = tcIgnited.getSuiteRunHist(key);
 
         if (runStat == null)
             return false;
@@ -319,21 +312,15 @@ public class IssueDetector {
     }
 
     private boolean registerTestFailIssues(ITeamcityIgnited tcIgnited,
-                                           IAnalyticsEnabledTeamcity teamcity,
-                                           String srvId,
-                                           String normalizeBranch,
-                                           TestFailure testFailure,
-                                           String trackedBranch) {
+        String srvId,
+        String normalizeBranch,
+        TestFailure testFailure,
+        String trackedBranch) {
 
         String name = testFailure.name;
         TestInBranch testInBranch = new TestInBranch(name, normalizeBranch);
 
-        Function<TestInBranch, ? extends IRunHistory> function =
-            ITeamcity.NEW_RUN_STAT
-                ? tcIgnited::getTestRunHist
-                : teamcity.getTestRunStatProvider();
-
-        IRunHistory runStat = function.apply(testInBranch);
+        IRunHistory runStat = tcIgnited.getTestRunHist(testInBranch);
 
         if (runStat == null)
             return false;

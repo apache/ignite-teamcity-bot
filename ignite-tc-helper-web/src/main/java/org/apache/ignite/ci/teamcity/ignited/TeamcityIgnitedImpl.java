@@ -43,7 +43,9 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
+import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.conf.Project;
+import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
@@ -340,6 +342,22 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public List<BuildRefCompacted> getQueuedBuildsCompacted(
+        @Nullable String branchName) {
+        ensureActualizeRequested();
+
+        Integer stateQueuedId = compactor.getStringIdIfPresent(BuildRef.STATE_QUEUED);
+        if (stateQueuedId == null)
+            return Collections.emptyList();
+
+        List<BuildRefCompacted> builds = buildRefDao.getBuildsForBranch(srvIdMaskHigh, branchForQuery(branchName));
+
+        return builds.stream().filter(b -> b.state() == stateQueuedId).collect(Collectors.toList());
+    }
+
+
+    /** {@inheritDoc} */
     @Override public Set<MuteInfo> getMutes(String projectId, ICredentialsProv creds) {
         muteSync.ensureActualizeMutes(taskName("actualizeMutes"), projectId, srvIdMaskHigh, conn);
 
@@ -381,12 +399,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** {@inheritDoc} */
     @Nullable
+    @AutoProfiling
     @Override public IRunHistory getTestRunHist(TestInBranch testInBranch) {
         return runHistCompactedDao.getTestRunHist(srvIdMaskHigh, testInBranch.name, testInBranch.branch);
     }
 
     /** {@inheritDoc} */
     @Nullable
+    @AutoProfiling
     @Override public IRunHistory getSuiteRunHist(SuiteInBranch suiteInBranch) {
         return runHistCompactedDao.getSuiteRunHist(srvIdMaskHigh, suiteInBranch.getSuiteId(), suiteInBranch.branch);
     }
@@ -404,6 +424,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** {@inheritDoc} */
     @Override public String gitBranchPrefix() {
         return conn.gitBranchPrefix();
+    }
+
+    @Override
+    public List<Agent> agents(boolean connected, boolean authorized) {
+        return conn.agents(connected, authorized);
     }
 
     /** {@inheritDoc} */

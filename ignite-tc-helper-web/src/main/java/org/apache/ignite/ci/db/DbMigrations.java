@@ -62,8 +62,6 @@ public class DbMigrations {
     private static final Logger logger = LoggerFactory.getLogger(DbMigrations.class);
 
     public static final String DONE_MIGRATIONS = "doneMigrations";
-    @Deprecated
-    private static final String BUILD_RESULTS = "buildResults";
 
     private static final String BUILD_STATISTICS = "buildStatistics";
 
@@ -130,6 +128,13 @@ public class DbMigrations {
 
         String CALCULATED_STATISTIC = "calculatedStatistic";
 
+        String BUILDS = "builds";
+
+        String BUILD_RESULTS = "buildResults";
+
+        String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
+
+        String TESTS_RUN_STAT = "testsRunStat";
     }
 
     private final Ignite ignite;
@@ -141,11 +146,7 @@ public class DbMigrations {
         this.serverId = srvId;
     }
 
-    public void dataMigration(
-        Cache<String, Build> buildCache, Consumer<Build> saveBuildToStat,
-        IgniteCache<SuiteInBranch, RunStat> suiteHistCache,
-        IgniteCache<TestInBranch, RunStat> testHistCache,
-        Cache<CompactContributionKey, List<CompactVisaRequest>> visasCache) {
+    public void dataMigration(Cache<CompactContributionKey, List<CompactVisaRequest>> visasCache) {
 
         doneMigrations = doneMigrationsCache();
 
@@ -202,111 +203,12 @@ public class DbMigrations {
 
         applyMigration("InitialFillLatestRunsV3", () -> {});
 
-        String newBuildsCache = BUILD_RESULTS + "-to-" + IgnitePersistentTeamcity.BUILDS + "V2";
-
-        applyMigration("RemoveStatisticsFromBuildCache", ()->{
-            if(doneMigrations.containsKey(newBuildsCache))
-                return;
-
-            final IgniteCache<Object, Object> cache = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
-            
-            for (Cache.Entry<Object, Object> next : cache) {
-                if(next.getValue() instanceof Statistics) {
-                    System.err.println("Removed incorrect entity: Statistics from build cache");
-                    
-                    cache.remove(next.getKey());
-                }
-            }
-        });
-
-        applyMigration(newBuildsCache, () -> {
-            IgniteCache<String, Build> oldBuilds = ignite.cache(ignCacheNme(BUILD_RESULTS));
-
-            if (oldBuilds == null)
-                return;
-
-            int size = oldBuilds.size();
-            if (size > 0) {
-                int i = 0;
-                for (Cache.Entry<String, Build> entry : oldBuilds) {
-                    System.out.println("Migrating build entry " + i + " from " + size + ": " + entry.getKey());
-
-                    Build val = entry.getValue();
-
-                    if (buildCache.putIfAbsent(entry.getKey(), val))
-                        saveBuildToStat.accept(val);
-
-                    i++;
-                }
-
-                oldBuilds.clear();
-
-                oldBuilds.destroy();
-            }
-        });
-
-        applyMigration("RemoveBuildsWithoutProjectId", () -> {
-            final IgniteCache<Object, Build> cache = ignite.getOrCreateCache(ignCacheNme(BUILD_RESULTS));
-
-            for (Cache.Entry<Object, Build> next : cache) {
-                Build results = next.getValue();
-                //non fake builds but without required data
-                if (results.getId() != null)
-                    if (results.getBuildType() == null || results.getBuildType().getProjectId() == null) {
-                        System.err.println("Removed incorrect entity: Build without filled parameters: " + next);
-
-                        cache.remove(next.getKey());
-                    }
-            }
-        });
-
         applyMigration("Remove-" + RUN_STAT_CACHE, ()->{
             IgniteCache<String, Build> oldBuilds = ignite.getOrCreateCache(ignCacheNme(RUN_STAT_CACHE));
 
             oldBuilds.clear();
 
             oldBuilds.destroy();
-        });
-
-        applyMigration("ReplaceKeyTypeOf-" + suiteHistCache.getName(), () -> {
-            int i = 0;
-            int size = suiteHistCache.size();
-
-            for (Cache.Entry<?, RunStat> next : suiteHistCache) {
-                Object key = next.getKey();
-
-                if (key instanceof String) {
-                    SuiteInBranch suiteKey = new SuiteInBranch((String)key, ITeamcity.DEFAULT);
-
-                    suiteHistCache.put(suiteKey, next.getValue());
-                    ((Cache)suiteHistCache).remove(key);
-
-                    System.out.println("Migrating entry " + i + " from " + size + ": " + suiteKey);
-                }
-
-                i++;
-            }
-        });
-
-
-        applyMigration("ReplaceKeyTypeOf-" + testHistCache.getName(), () -> {
-            int i = 0;
-            int size = testHistCache.size();
-
-            for (Cache.Entry<?, RunStat> next : testHistCache) {
-                Object key = next.getKey();
-
-                if (key instanceof String) {
-                    TestInBranch testKey = new TestInBranch((String)key, ITeamcity.DEFAULT);
-
-                    testHistCache.put(testKey, next.getValue());
-                    ((Cache)testHistCache).remove(key);
-
-                    System.out.println("Migrating entry " + i + " from " + size + ": " + testKey);
-                }
-
-                i++;
-            }
         });
 
         applyRemoveCache(GetTrackedBranchTestResults.ALL_TEST_FAILURES_SUMMARY);
@@ -402,6 +304,10 @@ public class DbMigrations {
         applyDestroyCacheMigration(Old.BUILD_START_TIME_CACHE_NAME2);
 
         applyDestroyIgnCacheMigration(Old.CALCULATED_STATISTIC);
+        applyDestroyIgnCacheMigration(Old.BUILDS);
+        applyDestroyIgnCacheMigration(Old.BUILD_RESULTS);
+        applyDestroyIgnCacheMigration(Old.BUILDS_FAILURE_RUN_STAT);
+        applyDestroyIgnCacheMigration(Old.TESTS_RUN_STAT);
     }
 
     private void applyDestroyIgnCacheMigration(String cacheName) {

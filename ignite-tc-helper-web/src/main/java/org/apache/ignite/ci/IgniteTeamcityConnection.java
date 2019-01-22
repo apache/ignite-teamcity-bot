@@ -272,13 +272,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Deprecated
-    @AutoProfiling
-    @Override public ProblemOccurrences getProblemsAndRegisterCritical(BuildRef build) {
-        return getProblems(build.getId());
-    }
-
-    /** {@inheritDoc} */
     @AutoProfiling
     @Override public ProblemOccurrences getProblems(int buildId) {
         return getJaxbUsingHref("app/rest/latest/problemOccurrences" +
@@ -368,60 +361,11 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return XmlUtil.load(rootElem, reader);
     }
 
-    /**
-     * @param buildTypeId Build type id.
-     * @param branchName Branch name.
-     * @param dfltFilter Default filter.
-     * @param state State.
-     * @param sinceDate Since date.
-     * @param untilDate Until date.
-     * @param sinceBuildId Since build id. Value is ignored if dates filter is present.
-     */
-    @Deprecated
-    private List<BuildRef> getBuildHistory(@Nullable String buildTypeId,
-        @Nullable String branchName,
-        boolean dfltFilter,
-        @Nullable String state,
-        @Nullable Date sinceDate,
-        @Nullable Date untilDate,
-        @Nullable Integer sinceBuildId)  {
-        String btFilter = isNullOrEmpty(buildTypeId) ? "" : ",buildType:" + buildTypeId;
-        String stateFilter = isNullOrEmpty(state) ? "" : (",state:" + state);
-        String branchFilter = isNullOrEmpty(branchName) ? "" :",branch:" + branchName;
-        String sinceDateFilter = sinceDate == null ? "" : ",sinceDate:" + getDateYyyyMmDdTHhMmSsZ(sinceDate);
-        String untilDateFilter = untilDate == null ? "" : ",untilDate:" + getDateYyyyMmDdTHhMmSsZ(untilDate);
-        String buildNoFilter = sinceBuildId != null && sinceDateFilter.isEmpty() && untilDateFilter.isEmpty()
-            ? ",sinceBuild:(id:" + sinceBuildId + ")" : "";
-
-        return sendGetXmlParseJaxb(host + "app/rest/latest/builds"
-            + "?locator="
-            + "defaultFilter:" + dfltFilter
-            + btFilter
-            + stateFilter
-            + branchFilter
-            + buildNoFilter
-            + ",count:" + DEFAULT_BUILDS_COUNT
-            + sinceDateFilter
-            + untilDateFilter, Builds.class).getBuildsNonNull();
-    }
-
-    public String getDateYyyyMmDdTHhMmSsZ(Date date){
-        return new SimpleDateFormat("yyyyMMdd'T'HHmmssZ")
-            .format(date)
-            .replace("+", "%2B");
-    }
-
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public BuildTypeFull getBuildType(String buildTypeId) {
         return sendGetXmlParseJaxb(host + "app/rest/latest/buildTypes/id:" +
             buildTypeId, BuildTypeFull.class);
-    }
-
-    @Override
-    @AutoProfiling
-    public Build getBuild(String href) {
-        return getJaxbUsingHref(href, Build.class);
     }
 
     /** {@inheritDoc} */
@@ -436,40 +380,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
      */
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {
         return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), elem);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    @AutoProfiling public CompletableFuture<List<BuildRef>> getQueuedBuilds(@Nullable String branch) {
-        return supplyAsync(() -> getBuildsInState(null, branch, BuildRef.STATE_QUEUED), executor);
-    }
-
-    @Deprecated
-    private List<BuildRef> getBuildsInState(
-            @Nullable final String projectId,
-            @Nullable final String branch,
-            @Nonnull final String state,
-            @Nullable final Integer sinceBuildId) {
-        List<BuildRef> finished = getBuildHistory(projectId,
-            UrlUtil.escape(branch),
-            false,
-            state,
-            null,
-            null,
-            sinceBuildId);
-        return finished.stream().filter(BuildRef::isNotCancelled).collect(Collectors.toList());
-    }
-
-
-    @SuppressWarnings("WeakerAccess")
-    @AutoProfiling
-    @Deprecated
-    protected List<BuildRef> getBuildsInState(
-            @Nullable final String projectId,
-            @Nullable final String branch,
-            @Nonnull final String state) {
-
-        return getBuildsInState(projectId, branch, state, null);
     }
 
     /** {@inheritDoc} */

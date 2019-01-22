@@ -150,7 +150,7 @@ public class GetBuildTestFailures {
         if (cnt > 0)
             runningUpdates.addAndGet(cnt);
 
-        chainStatus.initFromContext(tcIgnited, teamcity, ctx, teamcity, failRateBranch);
+        chainStatus.initFromContext(tcIgnited, teamcity, ctx, failRateBranch);
 
         res.addChainOnServer(chainStatus);
 

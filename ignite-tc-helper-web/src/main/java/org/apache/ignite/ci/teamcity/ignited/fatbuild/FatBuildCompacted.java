@@ -26,10 +26,12 @@ import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
+import org.apache.ignite.ci.tcmodel.result.Triggered;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
+import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
@@ -106,6 +108,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     @Nullable private int changesIds[];
 
+    @Nullable private TriggeredCompacted triggered;
+
     /** {@inheritDoc} */
     @Override public int version() {
         return _ver;
@@ -166,6 +170,28 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         if (build.isFakeStub())
             setFakeStub(true);
+
+        final Triggered trigXml = build.getTriggered();
+
+        if (trigXml != null) {
+            triggered = new TriggeredCompacted();
+
+            triggered.type = compactor.getStringId(trigXml.getType());
+
+            final User trigXmlUser = trigXml.getUser();
+
+            if (trigXmlUser != null) {
+                triggered.userId = Integer.valueOf(trigXmlUser.id);
+                triggered.userUsername = compactor.getStringId(trigXmlUser.username);
+            } else {
+                triggered.userId = -1;
+                triggered.userUsername = -1;
+            }
+
+            final BuildRef trigBuildRef = trigXml.getBuild();
+
+            triggered.buildId = trigBuildRef != null ? trigBuildRef.getId() : -1;
+        }
     }
 
     public FatBuildCompacted setFakeStub(boolean val) {
@@ -239,6 +265,29 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         res.defaultBranch = getFlag(DEF_BR_F);
         res.composite = getFlag(COMPOSITE_F);
+
+        if (triggered != null) {
+            final Triggered trigXml = new Triggered();
+
+            trigXml.setType(compactor.getStringFromId(triggered.type));
+            trigXml.setDate(res.queuedDate);
+
+            if (triggered.userId > 0) {
+                final User trigUser = new User();
+                trigUser.id = Integer.toString(triggered.userId);
+                trigUser.username = compactor.getStringFromId(triggered.userUsername);
+                trigXml.setUser(trigUser);
+            }
+
+
+            if (triggered.buildId > 0) {
+                final BuildRef trigBuild = new BuildRef();
+                trigBuild.setId(triggered.buildId);
+                trigXml.setBuild(trigBuild);
+            }
+
+            res.setTriggered(trigXml);
+        }
 
     }
 
@@ -482,6 +531,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             .add("problems", problems)
             .add("statistics", statistics)
             .add("changesIds", changesIds)
+            .add("triggered", triggered)
             .toString();
     }
 

@@ -30,7 +30,6 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
@@ -74,8 +73,6 @@ public class RemoteClientTmpHelper {
         IgniteCache<Long, BuildRefCompacted> cacheRef = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
         IgniteCache<Long, FatBuildCompacted> cacheFat = ignite.cache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
 
-        String cacheOldBuild = IgnitePersistentTeamcity.ignCacheNme(IgnitePersistentTeamcity.BUILDS, apacheSrvName);
-        IgniteCache<String, Build> buildCache = ignite.cache(cacheOldBuild);
         cacheRef.forEach(
             entry -> {
                 BuildRefCompacted buildRef = entry.getValue();
@@ -88,15 +85,11 @@ public class RemoteClientTmpHelper {
                     if (fat != null && fat.getId() != buildId) {
                         dumpBuildRef(buildId, buildRef);
                         dumpFatBuild(cacheFat, apache, buildId);
-                        String href = ITeamcity.buildHref(buildId);
-                        Build oldBuild = buildCache.get(href);
-                        if (oldBuild != null)
-                            dumpOldBuild(buildId, href, oldBuild);
 
                         inconsistent.incrementAndGet();
 
                         if(!fat.isOutdatedEntityVersion())
-                            Preconditions.checkState(false, oldBuild);
+                            Preconditions.checkState(false);
                     }
                 }
             }

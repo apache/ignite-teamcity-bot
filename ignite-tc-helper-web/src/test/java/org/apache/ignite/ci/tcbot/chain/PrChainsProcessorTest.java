@@ -130,25 +130,20 @@ public class PrChainsProcessorTest {
 
         assertTrue(containsTestFailure(blockers, TEST_WITH_HISTORY_PASSING_IN_MASTER));
 
-        if (ITeamcity.NEW_RUN_STAT) {
-            assertFalse(containsTestFailure(blockers, TEST_WITH_HISTORY_FAILING_IN_MASTER));
-            assertFalse(containsTestFailure(blockers, TEST_FLAKY_IN_MASTER));
-        }
+        assertFalse(containsTestFailure(blockers, TEST_WITH_HISTORY_FAILING_IN_MASTER));
+        assertFalse(containsTestFailure(blockers, TEST_FLAKY_IN_MASTER));
 
         Optional<TestFailure> testOpt = findBlockerTestFailure(blockers, TEST_WITH_HISTORY_PASSING_IN_MASTER);
         assertTrue(testOpt.isPresent());
 
-        if (ITeamcity.NEW_RUN_STAT) {
-            List<Integer> etalon = new ArrayList<>();
-            for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++)
-                etalon.add(RunStat.RunStatus.RES_OK.getCode());
+        List<Integer> etalon = new ArrayList<>();
+        for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++)
+            etalon.add(RunStat.RunStatus.RES_OK.getCode());
 
-            assertEquals(etalon, testOpt.get().histBaseBranch.latestRuns);
-        }
+        assertEquals(etalon, testOpt.get().histBaseBranch.latestRuns);
 
         assertTrue(containsTestFailure(blockers, TEST_WAS_FIXED_IN_MASTER));
-        if(ITeamcity.NEW_RUN_STAT)
-            assertFalse(containsTestFailure(blockers, TEST_WITH_HISTORY_FAILING_IN_MASTER));
+        assertFalse(containsTestFailure(blockers, TEST_WITH_HISTORY_FAILING_IN_MASTER));
         // otherwise this non-blocker will not be filtered out
 
         assertTrue(containsTestFailure(blockers, TEST_WITH_HISTORY_PASSING_IN_MASTER));

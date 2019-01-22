@@ -23,9 +23,9 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
  * Multiple test occurrence. For single build context - max 1 failure
  */
 public interface IMultTestOccurrence {
-    String getName();
+    public String getName();
 
-    boolean isInvestigated();
+    public boolean isInvestigated();
 
     public int failuresCount();
 

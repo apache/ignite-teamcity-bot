@@ -23,10 +23,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.ITcAnalytics;
+
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
@@ -37,8 +36,6 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
-import org.apache.ignite.ci.analysis.TestInBranch;
-import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
@@ -161,7 +158,6 @@ public class ChainAtServerCurrentStatus {
     public void initFromContext(ITeamcityIgnited tcIgnited,
                                 @Deprecated ITeamcity teamcity,
                                 FullChainRunCtx ctx,
-                                @Deprecated ITcAnalytics tcAnalytics,
                                 @Nullable String baseBranchTc) {
         failedTests = 0;
         failedToFinish = 0;
@@ -172,7 +168,7 @@ public class ChainAtServerCurrentStatus {
             suite -> {
                 final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
 
-                suiteCurStatus.initFromContext(tcIgnited, teamcity, suite, tcAnalytics, baseBranchTc);
+                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc);
 
                 failedTests += suiteCurStatus.failedTests;
                 if (suite.hasAnyBuildProblemExceptTestOrSnapshot() || suite.onlyCancelledBuilds())
@@ -184,8 +180,8 @@ public class ChainAtServerCurrentStatus {
         durationPrintable = ctx.getDurationPrintable();
         testsDurationPrintable = ctx.getTestsDurationPrintable();
         lostInTimeouts = ctx.getLostInTimeoutsPrintable();
-        webToHist = buildWebLink(teamcity, ctx);
-        webToBuild = buildWebLinkToBuild(teamcity, ctx);
+        webToHist = buildWebLink(tcIgnited, ctx);
+        webToBuild = buildWebLinkToBuild(tcIgnited, ctx);
 
         Stream<T2<MultBuildRunCtx, IMultTestOccurrence>> allLongRunning = ctx.suites().flatMap(
             suite -> suite.getTopLongRunning().map(t -> new T2<>(suite, t))
@@ -198,14 +194,7 @@ public class ChainAtServerCurrentStatus {
                 MultBuildRunCtx suite = pairCtxAndOccur.get1();
                 IMultTestOccurrence longRunningOccur = pairCtxAndOccur.get2();
 
-                Function<TestInBranch, ? extends IRunHistory> function =
-                    ITeamcity.NEW_RUN_STAT
-                        ? tcIgnited::getTestRunHist
-                        : tcAnalytics.getTestRunStatProvider();
-
-                TestFailure failure = createOrrucForLongRun(tcIgnited, suite, tcAnalytics, longRunningOccur,
-                    baseBranchTc,
-                    function);
+                TestFailure failure = createOrrucForLongRun(tcIgnited, suite, longRunningOccur, baseBranchTc);
 
                 failure.testName = "[" + suite.suiteName() + "] " + failure.testName; //may be separate field
 
@@ -233,11 +222,11 @@ public class ChainAtServerCurrentStatus {
         );
     }
 
-    private static String buildWebLinkToBuild(ITeamcity teamcity, FullChainRunCtx chain) {
+    private static String buildWebLinkToBuild(ITeamcityIgnited teamcity, FullChainRunCtx chain) {
         return teamcity.host() + "viewLog.html?buildId=" + chain.getSuiteBuildId();
     }
 
-    private static String buildWebLink(ITeamcity teamcity, FullChainRunCtx suite) {
+    private static String buildWebLink(ITeamcityIgnited teamcity, FullChainRunCtx suite) {
         final String branch = branchForLink(suite.branchName());
         return teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
             + "&branch=" + escape(branch)
