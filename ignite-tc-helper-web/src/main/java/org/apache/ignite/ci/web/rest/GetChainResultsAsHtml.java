@@ -86,7 +86,7 @@ public class GetChainResultsAsHtml {
             failRateBranch,
             SyncMode.RELOAD_QUEUED);
 
-        ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(teamcity.serverId(), ctx.branchName());
+        ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(tcIgn.serverId(), ctx.branchName());
 
         ctx.getRunningUpdates().forEach(FutureUtil::getResultSilent);
 

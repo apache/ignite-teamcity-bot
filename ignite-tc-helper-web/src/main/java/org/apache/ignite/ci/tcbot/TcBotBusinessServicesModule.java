@@ -30,8 +30,8 @@ import org.apache.ignite.ci.user.UserAndSessionsStorage;
  * TC Bot self services mapping (without 3rd party integrations configuration.
  */
 public class TcBotBusinessServicesModule extends AbstractModule {
-    @Override
-    protected void configure() {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
         bind(ITcBotConfig.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
         bind(IUserStorage.class).to(UserAndSessionsStorage.class).in(new SingletonScope());
         bind(IIssuesStorage.class).to(IssuesStorage.class).in(new SingletonScope());

@@ -17,28 +17,22 @@
 
 package org.apache.ignite.ci.web;
 
+import com.google.common.base.Preconditions;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 import java.io.IOException;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.QueryParam;
-
-import com.google.common.base.Preconditions;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.IgniteTcBotModule;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.observer.BuildObserver;
+import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.teamcity.pure.TeamcityRecorder;
-import org.apache.ignite.ci.user.ICredentialsProv;
-import org.jetbrains.annotations.Nullable;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 
 /**
  */
@@ -96,10 +90,9 @@ public class CtxListener implements ServletContextListener {
 
         getBackgroundUpdater(ctx).stop();
 
-        TcHelper helper = (TcHelper)getTcHelper(ctx);
-        helper.close();
-
         try {
+
+            injector.getInstance(IssueDetector.class).stop();
             injector.getInstance(TcUpdatePool.class).stop();
             injector.getInstance(BuildObserver.class).stop();
 

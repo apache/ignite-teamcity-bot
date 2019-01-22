@@ -17,8 +17,6 @@
 
 package org.apache.ignite.ci.issue;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.cache.Cache;
@@ -29,6 +27,9 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 
+/**
+ *
+ */
 public class IssuesStorage implements IIssuesStorage {
     public static final String BOT_DETECTED_ISSUES = "botDetectedIssues";
 
@@ -48,19 +49,6 @@ public class IssuesStorage implements IIssuesStorage {
 
     public static IgniteCache<IssueKey, Issue> botDetectedIssuesCache(Ignite ignite) {
         return ignite.getOrCreateCache(TcHelperDb.getCacheV2TxConfig(BOT_DETECTED_ISSUES));
-    }
-
-    public List<Issue> all() {
-        List<Issue> res = new ArrayList<>();
-
-        for (Cache.Entry<IssueKey, Issue> next : cache()) {
-            if (next.getValue().issueKey() == null)
-                continue;
-
-            res.add(next.getValue());
-        }
-
-        return res;
     }
 
     /** {@inheritDoc} */

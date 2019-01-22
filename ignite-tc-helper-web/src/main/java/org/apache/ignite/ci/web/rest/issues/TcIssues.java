@@ -17,15 +17,8 @@
 
 package org.apache.ignite.ci.web.rest.issues;
 
-import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.issue.IssueList;
-import org.apache.ignite.ci.issue.IssuesStorage;
-import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.SimpleResult;
-import org.apache.ignite.ci.web.model.current.UpdateInfo;
-import org.jetbrains.annotations.Nullable;
-
+import com.google.inject.Injector;
+import java.util.stream.Collectors;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -34,6 +27,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import org.apache.ignite.ci.issue.IssueList;
+import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
+import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.model.SimpleResult;
+import org.apache.ignite.ci.web.model.current.UpdateInfo;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -62,15 +61,13 @@ public class TcIssues {
     public IssueList listIssues(@Nullable @QueryParam("branch") String branchOpt,
                                 @Nullable @QueryParam("count") Integer count,
                                 @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        final ITcHelper helper = CtxListener.getTcHelper(ctx);
+        Injector injector = CtxListener.getInjector(ctx);
 
         final String branch = isNullOrEmpty(branchOpt) ? "master" : branchOpt;
 
-        final ICredentialsProv prov = ICredentialsProv.get(req);
+        IIssuesStorage issues = injector.getInstance(IIssuesStorage.class);
 
-        IssuesStorage issues = helper.issues();
-
-        IssueList issueList = new IssueList(issues.all());
+        IssueList issueList = new IssueList(issues.allIssues().collect(Collectors.toList()));
 
         issueList.branch = branch;
 

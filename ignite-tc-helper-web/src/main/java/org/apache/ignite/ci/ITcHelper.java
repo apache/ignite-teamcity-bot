@@ -17,13 +17,8 @@
 
 package org.apache.ignite.ci;
 
-import org.apache.ignite.ci.jira.Tickets;
-import org.apache.ignite.ci.tcbot.issue.IssueDetector;
-import org.apache.ignite.ci.issue.IssuesStorage;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
-import org.apache.ignite.ci.web.model.Visa;
 
 /**
  * Teamcity Bot main interface. This inteface became too huge.
@@ -38,17 +33,16 @@ public interface ITcHelper {
      */
     public String TEAMCITY_BOT_REGIONSIZE = "teamcity.bot.regionsize";
 
-    IssuesStorage issues();
-
-    IssueDetector issueDetector();
-
+    @Deprecated
     UserAndSessionsStorage users();
 
     String primaryServerId();
 
+    @Deprecated
     /** */
     void setServerAuthorizerCreds(ICredentialsProv creds);
 
+    @Deprecated
     /** */
     ICredentialsProv getServerAuthorizerCreds();
 

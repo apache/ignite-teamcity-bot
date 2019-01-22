@@ -20,27 +20,17 @@ package org.apache.ignite.ci;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
-import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.UserAndSessionsStorage;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * TC Bot implementation. To be migrated to smaller injected classes
  */
 @Deprecated
 public class TcHelper implements ITcHelper {
-    /** Stop guard. */
-    private AtomicBoolean stop = new AtomicBoolean();
-
     /** Server authorizer credentials. */
     private ICredentialsProv serverAuthorizerCreds;
-
-    @Inject private IssuesStorage issuesStorage;
-
-    @Inject private IssueDetector detector;
 
     @Inject private UserAndSessionsStorage userAndSessionsStorage;
 
@@ -61,16 +51,6 @@ public class TcHelper implements ITcHelper {
     }
 
     /** {@inheritDoc} */
-    @Override public IssuesStorage issues() {
-        return issuesStorage;
-    }
-
-    /** {@inheritDoc} */
-    @Override public IssueDetector issueDetector() {
-        return detector;
-    }
-
-    /** {@inheritDoc} */
     @Override public UserAndSessionsStorage users() {
         return userAndSessionsStorage;
     }
@@ -78,10 +58,4 @@ public class TcHelper implements ITcHelper {
     @Override public String primaryServerId() {
         return "apache"; //todo remove
     }
-
-    public void close() {
-        if (stop.compareAndSet(false, true))
-            detector.stop();
-    }
-
 }

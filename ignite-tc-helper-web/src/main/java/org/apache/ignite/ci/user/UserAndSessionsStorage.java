@@ -60,11 +60,11 @@ public class UserAndSessionsStorage implements IUserStorage {
         return getIgnite().getOrCreateCache(TcHelperDb.getCacheV2TxConfig(USER_SESSIONS));
     }
 
-    public void putSession(String sessId, UserSession userSession) {
-        sessions().put(sessId, userSession);
+    public void putSession(String sessId, UserSession userSes) {
+        sessions().put(sessId, userSes);
     }
 
-    public TcHelperUser getUser(String username) {
+    @Override @Nullable public TcHelperUser getUser(String username) {
         return users().get(username);
     }
 

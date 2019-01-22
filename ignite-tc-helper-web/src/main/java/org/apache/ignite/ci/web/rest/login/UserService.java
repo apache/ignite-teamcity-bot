@@ -34,6 +34,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
+import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.teamcity.pure.ITcLogin;
@@ -67,19 +68,22 @@ public class UserService {
         if (prov == null)
             return new SimpleResult("");
 
+        Injector injector = CtxListener.getInjector(ctx);
 
-        final ITcHelper helper = CtxListener.getTcHelper(ctx);
-
-        return userMenu(prov, helper);
+        return userMenu(prov,
+            injector.getInstance(IUserStorage.class),
+            injector.getInstance(IssueDetector.class));
     }
 
-    @NotNull public SimpleResult userMenu(ICredentialsProv prov, ITcHelper helper) {
-        final UserAndSessionsStorage users = helper.users();
+    @NotNull public SimpleResult userMenu(ICredentialsProv prov, IUserStorage users, IssueDetector issueDetector) {
         final TcHelperUser user = users.getUser(prov.getPrincipalId());
+
+        if (user == null)
+            return new UserMenuResult("?");
 
         UserMenuResult res = new UserMenuResult(user.getDisplayName());
 
-        res.authorizedState = helper.issueDetector().isAuthorized();
+        res.authorizedState = issueDetector.isAuthorized();
 
         return res;
     }
@@ -89,17 +93,19 @@ public class UserService {
     public SimpleResult setAuthorizedState() {
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        final ITcHelper helper = CtxListener.getTcHelper(ctx);
+        Injector injector = CtxListener.getInjector(ctx);
 
+        IssueDetector issueDetector = injector.getInstance(IssueDetector.class);
+        final ITcHelper helper = injector.getInstance(ITcHelper.class);
         helper.setServerAuthorizerCreds(prov);
 
-        IssueDetector detector = helper.issueDetector();
-
-        detector.startBackgroundCheck(prov);
+        issueDetector.startBackgroundCheck(prov);
 
         CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class).startObserver();
 
-        return userMenu(prov, helper);
+        return userMenu(prov,
+            injector.getInstance(IUserStorage.class),
+            issueDetector);
     }
 
     @GET
@@ -110,8 +116,8 @@ public class UserService {
         Injector injector = CtxListener.getInjector(ctx);
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
 
-        ITcHelper helper = injector.getInstance(ITcHelper.class);
-        final TcHelperUser user = helper.users().getUser(login);
+        IUserStorage users = injector.getInstance(IUserStorage.class);
+        final TcHelperUser user = users.getUser(login);
 
         final TcHelperUserUi tcHelperUserUi = new TcHelperUserUi(user, cfg.getTrackedBranchesIds());
 

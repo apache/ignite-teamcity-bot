@@ -19,11 +19,18 @@ package org.apache.ignite.ci.tcbot.user;
 import org.apache.ignite.ci.user.TcHelperUser;
 
 import java.util.stream.Stream;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Teamcity Bot User and Sessions storage interface.
  */
 public interface IUserStorage {
+    /**
+     * Get user by username.
+     * @param username Username.
+     */
+    @Nullable public TcHelperUser getUser(String username);
+
     /**
      * @return All users in storage stream.
      */
