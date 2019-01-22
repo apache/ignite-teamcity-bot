@@ -146,7 +146,7 @@ public class UserService {
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
         //todo check admin
 
-        final UserAndSessionsStorage users = CtxListener.getTcHelper(ctx).users();
+        final IUserStorage users = CtxListener.getInjector(ctx).getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(login);
 
         user.resetCredentials();
@@ -166,12 +166,12 @@ public class UserService {
         Preconditions.checkState(!Strings.isNullOrEmpty(servicePassword));
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
-        final String currentUserLogin = prov.getPrincipalId();
+        final String currUserLogin = prov.getPrincipalId();
         final Injector injector = CtxListener.getInjector(ctx);
         final ITcLogin tcLogin = injector.getInstance(ITcLogin.class);
 
-        final UserAndSessionsStorage users = CtxListener.getTcHelper(ctx).users();
-        final TcHelperUser user = users.getUser(currentUserLogin);
+        final IUserStorage users = injector.getInstance(IUserStorage.class);
+        final TcHelperUser user = users.getUser(currUserLogin);
 
         //todo check service credentials first
         final User tcAddUser = tcLogin.checkServiceUserAndPassword(serviceId, serviceLogin, servicePassword);
@@ -187,7 +187,7 @@ public class UserService {
 
         user.getCredentialsList().add(credentials);
 
-        users.putUser(currentUserLogin, user);
+        users.putUser(currUserLogin, user);
 
         return new SimpleResult("");
     }
@@ -199,10 +199,9 @@ public class UserService {
         @Nullable @FormParam("fullName") final String fullName,
         Form form) {
 
-        final String currUserLogin = ICredentialsProv.get(req).getPrincipalId();
-        final String login = currUserLogin; //todo check admin Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
+        final String login = ICredentialsProv.get(req).getPrincipalId(); //todo check admin Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
 
-        final UserAndSessionsStorage users = CtxListener.getTcHelper(ctx).users();
+        final IUserStorage users = CtxListener.getInjector(ctx).getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(login);
 
         user.resetNotifications();

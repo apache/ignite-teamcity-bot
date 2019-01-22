@@ -18,11 +18,8 @@
 package org.apache.ignite.ci;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-import javax.inject.Inject;
-import org.apache.ignite.ci.tcbot.issue.IssueDetector;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.user.UserAndSessionsStorage;
 
 /**
  * TC Bot implementation. To be migrated to smaller injected classes
@@ -31,9 +28,6 @@ import org.apache.ignite.ci.user.UserAndSessionsStorage;
 public class TcHelper implements ITcHelper {
     /** Server authorizer credentials. */
     private ICredentialsProv serverAuthorizerCreds;
-
-    @Inject private UserAndSessionsStorage userAndSessionsStorage;
-
 
     /** {@inheritDoc} */
     @Override public void setServerAuthorizerCreds(ICredentialsProv creds) {
@@ -50,12 +44,7 @@ public class TcHelper implements ITcHelper {
         return !Objects.isNull(serverAuthorizerCreds);
     }
 
-    /** {@inheritDoc} */
-    @Override public UserAndSessionsStorage users() {
-        return userAndSessionsStorage;
-    }
-
     @Override public String primaryServerId() {
-        return "apache"; //todo remove
+        return ITcBotConfig.DEFAULT_SERVER_ID; //todo move to method
     }
 }

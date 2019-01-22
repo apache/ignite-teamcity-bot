@@ -18,19 +18,13 @@
 package org.apache.ignite.ci.web.auth;
 
 import com.google.common.base.Throwables;
-import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.user.TcHelperUser;
-import org.apache.ignite.ci.user.UserAndSessionsStorage;
-import org.apache.ignite.ci.user.UserSession;
-import org.apache.ignite.ci.util.Base64Util;
-import org.apache.ignite.ci.util.CryptUtil;
-import org.apache.ignite.ci.util.ExceptionUtil;
-import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.google.inject.Injector;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.StringTokenizer;
 import javax.annotation.security.DenyAll;
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
@@ -43,8 +37,19 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
-import java.lang.reflect.Method;
-import java.util.*;
+import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.tcbot.user.IUserStorage;
+import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.TcHelperUser;
+import org.apache.ignite.ci.user.UserSession;
+import org.apache.ignite.ci.util.Base64Util;
+import org.apache.ignite.ci.util.CryptUtil;
+import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Filters all Jetty request and performs authentication and authorization.
@@ -115,10 +120,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         String tokFull = authStr.substring(TOKEN_SCHEME.length()).trim();
 
-        final UserAndSessionsStorage users = CtxListener.getTcHelper(context).users();
+        Injector injector = CtxListener.getInjector(context);
+        final IUserStorage users = injector.getInstance(IUserStorage.class);
 
         try {
-            users.getIgnite();
+            injector.getInstance(Ignite.class);
         } catch (Exception e) {
             ExceptionUtil.throwIfRest(e);
 
@@ -148,8 +154,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     }
 
     public boolean authenticate(ContainerRequestContext reqCtx,
-                                String tokFull,
-                                UserAndSessionsStorage users) {
+        String tokFull,
+        IUserStorage users) {
 
         final StringTokenizer tokenizer = new StringTokenizer(tokFull, ":");
 
@@ -164,8 +170,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return false;
         }
 
-        if(reqCtx.getUriInfo()!=null)
-            logger.info("[[" + ses.username + "]] "+ reqCtx.getUriInfo().getPath() +" Session:" + sessId + "");
+        if (reqCtx.getUriInfo() != null)
+            logger.info("[[" + ses.username + "]] " + reqCtx.getUriInfo().getPath() + " Session:" + sessId);
 
         TcHelperUser user = users.getUser(ses.username);
         if (user == null) {

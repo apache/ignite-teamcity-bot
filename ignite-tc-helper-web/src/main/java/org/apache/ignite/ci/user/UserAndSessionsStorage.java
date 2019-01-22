@@ -50,8 +50,8 @@ public class UserAndSessionsStorage implements IUserStorage {
         return ignite;
     }
 
-    @Nullable
-    public UserSession getSession(String sessId) {
+    /** {@inheritDoc} */
+    @Nullable public UserSession getSession(String sessId) {
         return sessions().get(sessId);
     }
 
@@ -60,15 +60,18 @@ public class UserAndSessionsStorage implements IUserStorage {
         return getIgnite().getOrCreateCache(TcHelperDb.getCacheV2TxConfig(USER_SESSIONS));
     }
 
-    public void putSession(String sessId, UserSession userSes) {
+    /** {@inheritDoc} */
+    @Override public void putSession(String sessId, UserSession userSes) {
         sessions().put(sessId, userSes);
     }
 
+    /** {@inheritDoc} */
     @Override @Nullable public TcHelperUser getUser(String username) {
         return users().get(username);
     }
 
-    public void putUser(String username, TcHelperUser user) {
+    /** {@inheritDoc} */
+    @Override public void putUser(String username, TcHelperUser user) {
         users().put(username, user);
     }
 

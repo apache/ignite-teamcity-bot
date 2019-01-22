@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.web.rest.tracked;
 
 import java.util.Set;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
@@ -42,7 +43,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
 import static org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
-import static org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl.DEFAULT_SERVER_ID;
+import static org.apache.ignite.ci.tcbot.conf.ITcBotConfig.DEFAULT_SERVER_ID;
 
 @Path(GetTrackedBranchTestResults.TRACKED)
 @Produces(MediaType.APPLICATION_JSON)
@@ -161,6 +162,8 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("projectId") String projectId
     ) {
         ICredentialsProv creds = ICredentialsProv.get(req);
+
+        ITcBotConfig cfg = CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class);
 
         if (F.isEmpty(srvId))
             srvId = DEFAULT_SERVER_ID;

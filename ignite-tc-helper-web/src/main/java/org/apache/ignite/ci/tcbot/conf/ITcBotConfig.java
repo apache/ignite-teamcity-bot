@@ -24,6 +24,9 @@ import org.apache.ignite.ci.conf.BranchesTracked;
  * Teamcity Bot configuration access inteface.
  */
 public interface ITcBotConfig {
+    /** Default server id. */
+    String DEFAULT_SERVER_ID = "apache";
+
     /**
      * @return Tracked branches configuration for TC Bot.
      */

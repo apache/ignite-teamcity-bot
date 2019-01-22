@@ -19,6 +19,7 @@ package org.apache.ignite.ci.tcbot.user;
 import org.apache.ignite.ci.user.TcHelperUser;
 
 import java.util.stream.Stream;
+import org.apache.ignite.ci.user.UserSession;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -31,8 +32,14 @@ public interface IUserStorage {
      */
     @Nullable public TcHelperUser getUser(String username);
 
+    public void putUser(String username, TcHelperUser user);
+
     /**
      * @return All users in storage stream.
      */
     public Stream<TcHelperUser> allUsers();
+
+    @Nullable public UserSession getSession(String id);
+
+    public void putSession(String sessId, UserSession userSes);
 }

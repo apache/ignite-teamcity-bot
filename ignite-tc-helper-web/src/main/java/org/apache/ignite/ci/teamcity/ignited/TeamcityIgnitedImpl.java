@@ -79,8 +79,6 @@ import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
  *
  */
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
-    /** Default server id. */
-    public static final String DEFAULT_SERVER_ID = "apache";
 
     /** Default project id. */
     public static final String DEFAULT_PROJECT_ID = "IgniteTests24Java8";

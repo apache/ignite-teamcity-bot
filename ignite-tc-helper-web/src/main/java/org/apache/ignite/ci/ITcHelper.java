@@ -33,9 +33,6 @@ public interface ITcHelper {
      */
     public String TEAMCITY_BOT_REGIONSIZE = "teamcity.bot.regionsize";
 
-    @Deprecated
-    UserAndSessionsStorage users();
-
     String primaryServerId();
 
     @Deprecated

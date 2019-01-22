@@ -40,11 +40,6 @@ public class CtxListener implements ServletContextListener {
     /** Javax.Injector property code for servlet context. */
     public static final String INJECTOR = "injector";
 
-    @Deprecated
-    public static ITcHelper getTcHelper(ServletContext ctx) {
-        return getInjector(ctx).getInstance(ITcHelper.class);
-    }
-
     public static Injector getInjector(ServletContext ctx) {
         return (Injector)ctx.getAttribute(INJECTOR);
     }

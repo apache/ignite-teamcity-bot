@@ -22,6 +22,7 @@ import com.google.inject.Injector;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.pure.ITcLogin;
@@ -73,12 +74,12 @@ public class Login {
         Preconditions.checkNotNull(username);
         Preconditions.checkNotNull(pwd);
 
-        ITcHelper tcHelper = CtxListener.getTcHelper(ctx);
         final Injector injector = CtxListener.getInjector(ctx);
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
         final ITcLogin tcLogin = injector.getInstance(ITcLogin.class);
-        UserAndSessionsStorage users = tcHelper.users();
+        IUserStorage users = injector.getInstance(IUserStorage.class);
 
+        ITcHelper tcHelper = injector.getInstance(ITcHelper.class);
         String primarySrvId = tcHelper.primaryServerId();
 
         try {
@@ -92,7 +93,7 @@ public class Login {
 
     public LoginResponse doLogin(@FormParam("uname") String username,
                                  @FormParam("psw") String pwd,
-                                 UserAndSessionsStorage users,
+        IUserStorage users,
                                  String primarySrvId,
                                  Collection<String> srvIds,
                                  ITcLogin tcLogin) {
@@ -163,16 +164,17 @@ public class Login {
         return loginRes;
     }
 
-
     private TcHelperUser getOrCreateUser(@FormParam("uname") String username,
-                                         UserAndSessionsStorage users,
-                                         SecureRandom random) {
+        IUserStorage users,
+        SecureRandom random) {
         TcHelperUser user = users.getUser(username);
 
         if (user == null) {
             user = new TcHelperUser();
+
             user.username = username;
-        } else {
+        }
+        else {
             if (user.isOutdatedEntityVersion()) {
                 user.userKeyKcv = null;
                 user._version = TcHelperUser.LATEST_VERSION;
