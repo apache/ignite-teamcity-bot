@@ -44,19 +44,18 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao.TEST_HIST_CACHE_NAME;
+import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao.BUILD_START_TIME_CACHE_NAME;
 
 public class RemoteClientTmpHelper {
-    public static   String DUMPS = "dumps";
+    public static String DUMPS = "dumps";
     private static boolean dumpDict = false;
-
 
     public static void mainDestroy(String[] args) {
         int testHist;
 
         try (Ignite ignite = tcbotServerConnectedClient()) {
-
-            IgniteCache<Object, Object> cache = ignite.cache(TEST_HIST_CACHE_NAME);
+            //and import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao.TEST_HIST_CACHE_NAME
+            IgniteCache<Object, Object> cache = ignite.cache(BUILD_START_TIME_CACHE_NAME);
             testHist = cache.size();
 
             System.err.println("Start destroy operation");
@@ -64,13 +63,13 @@ public class RemoteClientTmpHelper {
             System.err.println("Finish destroy operation");
         }
 
-        System.err.println("Test hist found " + testHist + "]");
+        System.err.println("Test hist found [" + testHist + "]");
     }
 
     /**
      * @param args Args.
      */
-    public static void main(String[] args) {
+    public static void main2(String[] args) {
         int inconsistent;
 
         try (Ignite ignite = tcbotServerConnectedClient()) {
