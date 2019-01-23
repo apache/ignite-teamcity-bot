@@ -37,6 +37,8 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
+import org.apache.ignite.ci.user.TcHelperUser;
+import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.logger.slf4j.Slf4jLogger;
@@ -49,6 +51,15 @@ import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao.
 public class RemoteClientTmpHelper {
     public static String DUMPS = "dumps";
     private static boolean dumpDict = false;
+
+    public static void mainResetUser(String[] args) {
+        try (Ignite ignite = tcbotServerConnectedClient()) {
+            IgniteCache<Object, Object> users = ignite.cache(UserAndSessionsStorage.USERS);
+            TcHelperUser user = (TcHelperUser) users.get("user");
+            user.resetCredentials();
+            users.put(user.username, user);
+        }
+    }
 
     public static void mainDestroy(String[] args) {
         int testHist;
