@@ -17,7 +17,6 @@
 
 package org.apache.ignite.ci;
 
-import java.util.Objects;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.user.ICredentialsProv;
 
@@ -41,7 +40,7 @@ public class TcHelper implements ITcHelper {
 
     /** {@inheritDoc} */
     @Override public boolean isServerAuthorized() {
-        return !Objects.isNull(serverAuthorizerCreds);
+        return serverAuthorizerCreds != null;
     }
 
     @Override public String primaryServerId() {

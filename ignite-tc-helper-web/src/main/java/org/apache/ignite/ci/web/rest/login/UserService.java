@@ -40,7 +40,6 @@ import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.teamcity.pure.ITcLogin;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.TcHelperUser;
-import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.CredentialsUi;
 import org.apache.ignite.ci.web.model.SimpleResult;
@@ -158,12 +157,12 @@ public class UserService {
 
     @POST
     @Path("addService")
-    public SimpleResult addCredentials(@FormParam("serviceId") String serviceId,
-                                       @FormParam("serviceLogin") String serviceLogin,
-                                       @FormParam("servicePassword") String servicePassword) {
-        Preconditions.checkState(!Strings.isNullOrEmpty(serviceId));
-        Preconditions.checkState(!Strings.isNullOrEmpty(serviceLogin));
-        Preconditions.checkState(!Strings.isNullOrEmpty(servicePassword));
+    public SimpleResult addCredentials(@FormParam("serviceId") String svcId,
+                                       @FormParam("serviceLogin") String svcLogin,
+                                       @FormParam("servicePassword") String svcPwd) {
+        Preconditions.checkState(!Strings.isNullOrEmpty(svcId));
+        Preconditions.checkState(!Strings.isNullOrEmpty(svcLogin));
+        Preconditions.checkState(!Strings.isNullOrEmpty(svcPwd));
 
         final ICredentialsProv prov = ICredentialsProv.get(req);
         final String currUserLogin = prov.getPrincipalId();
@@ -174,18 +173,18 @@ public class UserService {
         final TcHelperUser user = users.getUser(currUserLogin);
 
         //todo check service credentials first
-        final User tcAddUser = tcLogin.checkServiceUserAndPassword(serviceId, serviceLogin, servicePassword);
+        final User tcAddUser = tcLogin.checkServiceUserAndPassword(svcId, svcLogin, svcPwd);
 
         if (tcAddUser == null)
             return new SimpleResult("Service rejected credentials/user not found");
 
-        final TcHelperUser.Credentials credentials = new TcHelperUser.Credentials(serviceId, serviceLogin);
+        final TcHelperUser.Credentials creds = new TcHelperUser.Credentials(svcId, svcLogin);
 
-        credentials.setPassword(servicePassword, prov.getUserKey());
+        creds.setPassword(svcPwd, prov.getUserKey());
 
         user.enrichUserData(tcAddUser);
 
-        user.getCredentialsList().add(credentials);
+        user.getCredentialsList().add(creds);
 
         users.putUser(currUserLogin, user);
 

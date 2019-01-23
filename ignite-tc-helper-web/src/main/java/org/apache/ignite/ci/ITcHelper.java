@@ -18,7 +18,6 @@
 package org.apache.ignite.ci;
 
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.user.UserAndSessionsStorage;
 
 /**
  * Teamcity Bot main interface. This inteface became too huge.
