@@ -23,7 +23,7 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
 import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
@@ -95,7 +95,7 @@ public class Ignite2Configurer {
         final DataRegionConfiguration regConf = new DataRegionConfiguration()
             .setPersistenceEnabled(true);
 
-        String regSzGb = System.getProperty(ITcHelper.TEAMCITY_BOT_REGIONSIZE);
+        String regSzGb = System.getProperty(TcBotSystemProperties.TEAMCITY_BOT_REGIONSIZE);
 
         if (regSzGb != null) {
             try {

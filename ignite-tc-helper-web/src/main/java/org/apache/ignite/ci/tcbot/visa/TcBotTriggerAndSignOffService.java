@@ -18,7 +18,6 @@
 package org.apache.ignite.ci.tcbot.visa;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
 import java.text.DateFormat;
@@ -37,7 +36,6 @@ import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.GitHubBranch;
 import org.apache.ignite.ci.github.GitHubUser;
@@ -51,6 +49,7 @@ import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
+import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -126,7 +125,7 @@ public class TcBotTriggerAndSignOffService {
     @Inject IStringCompactor compactor;
 
     /** Helper. */
-    @Inject ITcHelper tcHelper;
+    @Inject ITcBotBgAuth tcBotBgAuth;
 
     @Inject PrChainsProcessor prChainsProcessor;
 
@@ -342,7 +341,7 @@ public class TcBotTriggerAndSignOffService {
 
         buildObserverProvider.get().observe(srvId, prov, ticketFullName, branchForTc, parentSuiteId, builds);
 
-        if (!tcHelper.isServerAuthorized())
+        if (!tcBotBgAuth.isServerAuthorized())
             return "Ask server administrator to authorize the Bot to enable JIRA notifications.";
 
         return "JIRA ticket " + ticketFullName + " will be notified after the tests are completed.";

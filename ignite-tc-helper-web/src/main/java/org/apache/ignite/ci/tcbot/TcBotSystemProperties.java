@@ -21,7 +21,17 @@ package org.apache.ignite.ci.tcbot;
  * Apache Ignite Teamcity Bot properties.
  */
 public class TcBotSystemProperties {
+    /** Dev mode. */
     public static final String DEV_MODE = "DEV_MODE";
 
+    /** Teamcity bot recorder. */
     public static final String TEAMCITY_BOT_RECORDER = "teamcity.bot.recorder";
+
+    /**
+     * Teamcity bot data storage configuration region size in gigabytes. Default is 20% of physical RAM.
+     */
+    public static final String TEAMCITY_BOT_REGIONSIZE = "teamcity.bot.regionsize";
+
+    /** System property to specify: Teamcity helper home. Ignite home will be set to same dir. */
+    public static final String TEAMCITY_HELPER_HOME = "teamcity.helper.home";
 }

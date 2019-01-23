@@ -20,7 +20,7 @@ package org.apache.ignite.ci.observer;
 import java.util.Objects;
 import java.util.Timer;
 import javax.inject.Inject;
-import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
@@ -47,8 +47,7 @@ public class BuildObserver {
     /** Task, which should be done periodically. */
     private ObserverTask observerTask;
 
-    /** Helper. */
-    @Inject private ITcHelper tcHelper;
+    @Inject private ITcBotBgAuth tcBotBgAuth;
 
     /** */
     @Inject private ITeamcityIgnitedProvider teamcityIgnitedProvider;
@@ -115,7 +114,7 @@ public class BuildObserver {
 
         BuildsInfo buildsInfo = observerTask.getInfo(key);
 
-        ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
+        ICredentialsProv creds = tcBotBgAuth.getServerAuthorizerCreds();
 
         ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(key.srvId, creds);
 

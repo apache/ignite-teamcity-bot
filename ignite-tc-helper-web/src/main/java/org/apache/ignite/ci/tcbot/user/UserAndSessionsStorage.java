@@ -15,12 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.user;
+package org.apache.ignite.ci.tcbot.user;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
+import org.apache.ignite.ci.user.TcHelperUser;
+import org.apache.ignite.ci.user.UserSession;
 import org.jetbrains.annotations.Nullable;
 
 import javax.cache.Cache;

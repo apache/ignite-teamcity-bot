@@ -19,15 +19,12 @@ package org.apache.ignite.ci.web.rest.login;
 
 import com.google.common.base.Preconditions;
 import com.google.inject.Injector;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.pure.ITcLogin;
 import org.apache.ignite.ci.user.TcHelperUser;
-import org.apache.ignite.ci.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.util.CryptUtil;
 import org.apache.ignite.ci.web.CtxListener;
@@ -60,8 +57,8 @@ public class Login {
     public ServerDataResponse primaryServerUrl() {
         Injector injector = CtxListener.getInjector(ctx);
 
-        ITcHelper tcHelper = injector.getInstance(ITcHelper.class);
-        String srvId = tcHelper.primaryServerId();
+        ITcBotConfig tcBotCfg = injector.getInstance(ITcBotConfig.class);
+        String srvId = tcBotCfg.primaryServerId();
         String host = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvId, null).host();
         return new ServerDataResponse(host);
     }
@@ -79,8 +76,7 @@ public class Login {
         final ITcLogin tcLogin = injector.getInstance(ITcLogin.class);
         IUserStorage users = injector.getInstance(IUserStorage.class);
 
-        ITcHelper tcHelper = injector.getInstance(ITcHelper.class);
-        String primarySrvId = tcHelper.primaryServerId();
+        String primarySrvId = cfg.primaryServerId();
 
         try {
             return doLogin(username, pwd, users, primarySrvId,

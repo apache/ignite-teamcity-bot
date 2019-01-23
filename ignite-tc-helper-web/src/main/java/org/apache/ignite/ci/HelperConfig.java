@@ -28,6 +28,7 @@ import java.util.Properties;
 import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.conf.PasswordEncoder;
+import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.jetbrains.annotations.NotNull;
@@ -126,7 +127,7 @@ public class HelperConfig {
 
     public static File resolveWorkDir() {
         File workDir = null;
-        String property = System.getProperty(ITcHelper.TEAMCITY_HELPER_HOME);
+        String property = System.getProperty(TcBotSystemProperties.TEAMCITY_HELPER_HOME);
         if (isNullOrEmpty(property)) {
             String conf = ".ignite-teamcity-helper";
             String prop = System.getProperty("user.home");

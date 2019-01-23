@@ -26,8 +26,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.ci.ITcHelper;
-import org.apache.ignite.ci.TcHelper;
 import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.di.cache.GuavaCachedModule;
 import org.apache.ignite.ci.di.scheduler.SchedulerModule;
@@ -76,7 +74,6 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(ObserverTask.class).in(new SingletonScope());
         bind(BuildObserver.class).in(new SingletonScope());
         bind(VisasHistoryStorage.class).in(new SingletonScope());
-        bind(ITcHelper.class).to(TcHelper.class).in(new SingletonScope());
         bind(BackgroundUpdater.class).in(new SingletonScope());
 
         install(new TeamcityIgnitedModule());

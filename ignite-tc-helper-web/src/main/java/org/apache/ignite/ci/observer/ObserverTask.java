@@ -27,11 +27,9 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Inject;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
-import org.apache.ignite.ci.jira.pure.IJiraIntegration;
-import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
+import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
@@ -57,7 +55,7 @@ public class ObserverTask extends TimerTask {
     private static final Logger logger = LoggerFactory.getLogger(ObserverTask.class);
 
     /** Helper. */
-    @Inject private ITcHelper tcHelper;
+    @Inject private ITcBotBgAuth tcBotBgAuth;
 
     /** */
     @Inject private ITeamcityIgnitedProvider teamcityIgnitedProvider;
@@ -154,8 +152,10 @@ public class ObserverTask extends TimerTask {
         observationLock.lock();
 
         try {
-            if (!tcHelper.isServerAuthorized())
+            if (!tcBotBgAuth.isServerAuthorized())
                 return "Server authorization required.";
+
+            ICredentialsProv creds = tcBotBgAuth.getServerAuthorizerCreds();
 
             int checkedBuilds = 0;
             int notFinishedBuilds = 0;
@@ -166,8 +166,7 @@ public class ObserverTask extends TimerTask {
             for (ContributionKey key : infos.keySet()) {
                 BuildsInfo info = infos.get(key);
 
-                ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(info.srvId,
-                    tcHelper.getServerAuthorizerCreds());
+                ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(info.srvId, creds);
 
                 checkedBuilds += info.buildsCount();
 
@@ -190,8 +189,6 @@ public class ObserverTask extends TimerTask {
                 Visa visa = visasHistStorage.getLastVisaRequest(info.getContributionKey()).getResult();
 
                 if (!visa.isSuccess()) {
-                    ICredentialsProv creds = tcHelper.getServerAuthorizerCreds();
-
                     Visa updatedVisa = visaIssuer.notifyJira(info.srvId, creds, info.buildTypeId,
                         info.branchForTc, info.ticket);
 

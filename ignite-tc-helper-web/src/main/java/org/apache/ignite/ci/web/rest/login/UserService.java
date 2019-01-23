@@ -31,7 +31,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Form;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.ci.ITcHelper;
+import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
@@ -95,7 +95,7 @@ public class UserService {
         Injector injector = CtxListener.getInjector(ctx);
 
         IssueDetector issueDetector = injector.getInstance(IssueDetector.class);
-        final ITcHelper helper = injector.getInstance(ITcHelper.class);
+        final ITcBotBgAuth helper = injector.getInstance(ITcBotBgAuth.class);
         helper.setServerAuthorizerCreds(prov);
 
         issueDetector.startBackgroundCheck(prov);

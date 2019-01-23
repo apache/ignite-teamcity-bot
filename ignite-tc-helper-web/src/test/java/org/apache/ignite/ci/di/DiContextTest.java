@@ -23,15 +23,15 @@ import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
+import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerFactory;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import static org.junit.Assert.assertTrue;
@@ -125,10 +125,12 @@ public class DiContextTest {
     }
 
     @Test
-    public void checkSingletonTcHelper() {
+    public void checkSingletonTcConfig() {
         Injector injector = getInjector();
 
-        validateInstanceCachedFor(injector, ITcHelper.class);
+        validateInstanceCachedFor(injector, ITcBotConfig.class);
+
+        validateInstanceCachedFor(injector, ITcBotBgAuth.class);
 
         validateInstanceCachedFor(injector, BuildObserver.class).stop();
     }

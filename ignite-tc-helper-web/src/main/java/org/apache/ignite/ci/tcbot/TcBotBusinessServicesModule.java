@@ -24,7 +24,7 @@ import org.apache.ignite.ci.tcbot.conf.LocalFilesBasedConfig;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
-import org.apache.ignite.ci.user.UserAndSessionsStorage;
+import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
 
 /**
  * TC Bot self services mapping (without 3rd party integrations configuration.
@@ -36,5 +36,6 @@ public class TcBotBusinessServicesModule extends AbstractModule {
         bind(IUserStorage.class).to(UserAndSessionsStorage.class).in(new SingletonScope());
         bind(IIssuesStorage.class).to(IssuesStorage.class).in(new SingletonScope());
         bind(MasterTrendsService.class).in(new SingletonScope());
+        bind(ITcBotBgAuth.class).to(TcBotBgAuthImpl.class).in(new SingletonScope());
     }
 }

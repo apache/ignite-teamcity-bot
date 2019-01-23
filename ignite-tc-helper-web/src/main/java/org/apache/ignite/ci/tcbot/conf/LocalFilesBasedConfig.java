@@ -29,4 +29,8 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
     @Override public BranchesTracked getTrackedBranches() {
         return HelperConfig.getTrackedBranches();
     }
+
+    @Override public String primaryServerId() {
+        return ITcBotConfig.DEFAULT_SERVER_ID;
+    }
 }

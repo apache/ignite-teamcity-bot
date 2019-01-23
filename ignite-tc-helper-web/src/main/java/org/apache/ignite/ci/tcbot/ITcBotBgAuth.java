@@ -14,36 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.ci.tcbot;
 
-package org.apache.ignite.ci;
-
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * TC Bot implementation. To be migrated to smaller injected classes
+ * Server authorization data holder. Saves credentials provided by user in Authorize server.
  */
-@Deprecated
-public class TcHelper implements ITcHelper {
-    /** Server authorizer credentials. */
-    private ICredentialsProv serverAuthorizerCreds;
+public interface ITcBotBgAuth {
+    /** */
+    public void setServerAuthorizerCreds(ICredentialsProv creds);
 
-    /** {@inheritDoc} */
-    @Override public void setServerAuthorizerCreds(ICredentialsProv creds) {
-        this.serverAuthorizerCreds = creds;
-    }
+    /** */
+    @Nullable public ICredentialsProv getServerAuthorizerCreds();
 
-    /** {@inheritDoc} */
-    @Override public ICredentialsProv getServerAuthorizerCreds() {
-        return serverAuthorizerCreds;
-    }
-
-    /** {@inheritDoc} */
-    @Override public boolean isServerAuthorized() {
-        return serverAuthorizerCreds != null;
-    }
-
-    @Override public String primaryServerId() {
-        return ITcBotConfig.DEFAULT_SERVER_ID; //todo move to method
+    /** */
+    public default boolean isServerAuthorized() {
+        return getServerAuthorizerCreds() != null;
     }
 }

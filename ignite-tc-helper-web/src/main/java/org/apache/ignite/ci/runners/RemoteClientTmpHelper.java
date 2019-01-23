@@ -38,7 +38,7 @@ import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.user.TcHelperUser;
-import org.apache.ignite.ci.user.UserAndSessionsStorage;
+import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.logger.slf4j.Slf4jLogger;

@@ -27,6 +27,9 @@ public interface ITcBotConfig {
     /** Default server id. */
     String DEFAULT_SERVER_ID = "apache";
 
+
+    public String primaryServerId();
+
     /**
      * @return Tracked branches configuration for TC Bot.
      */
@@ -45,4 +48,6 @@ public interface ITcBotConfig {
     public default Collection<String> getServerIds() {
         return getTrackedBranches().getServerIds();
     }
+
+
 }

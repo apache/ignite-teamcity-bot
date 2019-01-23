@@ -25,7 +25,6 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.ci.ITcHelper;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.IgniteTcBotModule;
 import org.apache.ignite.ci.di.scheduler.IScheduler;

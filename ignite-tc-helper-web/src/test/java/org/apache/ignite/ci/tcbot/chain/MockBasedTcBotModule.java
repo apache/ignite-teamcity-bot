@@ -98,6 +98,10 @@ public class MockBasedTcBotModule extends AbstractModule {
         bind(ITcServerProvider.class).toInstance(tcSrvOldProv);
 
         bind(ITcBotConfig.class).toInstance(new ITcBotConfig() {
+            @Override public String primaryServerId() {
+                return ITcBotConfig.DEFAULT_SERVER_ID;
+            }
+
             @Override public BranchesTracked getTrackedBranches() {
                 return tracked;
             }
