@@ -19,13 +19,20 @@ package org.apache.ignite.ci.web.rest.tracked;
 
 import com.google.inject.Injector;
 import java.util.Set;
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
+import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
@@ -35,23 +42,13 @@ import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-
-import static org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
 import static org.apache.ignite.ci.tcbot.conf.ITcBotConfig.DEFAULT_SERVER_ID;
+import static org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
 
 @Path(GetTrackedBranchTestResults.TRACKED)
 @Produces(MediaType.APPLICATION_JSON)
 public class GetTrackedBranchTestResults {
     public static final String TRACKED = "tracked";
-    public static final String ALL_TEST_FAILURES_SUMMARY = "AllTestFailuresSummary";
 
     /** Servlet Context. */
     @Context

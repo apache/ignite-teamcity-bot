@@ -38,6 +38,7 @@ import org.apache.ignite.ci.jira.pure.IJiraIntegration;
     public Integer javaFlags = 0;
 
     /** Update required, set by background updater. */
+    @Deprecated
     public boolean updateRequired = false;
 
     /** Running updates is in progress, summary is ready, but it is subject to change */

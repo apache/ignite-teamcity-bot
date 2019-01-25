@@ -36,13 +36,11 @@ import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.hist.BuildsHistory;
-import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -63,56 +61,46 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 @Produces(MediaType.APPLICATION_JSON)
 public class GetBuildTestFailures {
     public static final String BUILD = "build";
-    public static final String TEST_FAILURES_SUMMARY_CACHE_NAME = BUILD + "TestFailuresSummary";
 
+    /** Context. */
     @Context
     private ServletContext ctx;
 
+    /** Request. */
     @Context
     private HttpServletRequest req;
 
     @GET
     @Path("failures/updates")
     public UpdateInfo getTestFailsUpdates(
-        @QueryParam("serverId") String serverId,
+        @QueryParam("serverId") String srvId,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) throws ServiceUnauthorizedException {
-        return new UpdateInfo().copyFrom(getBuildTestFails(serverId, buildId, checkAllLogs));
+        return new UpdateInfo().copyFrom(getBuildTestFailsNoSync(srvId, buildId, checkAllLogs));
     }
 
     @GET
     @Path("failures/txt")
     @Produces(MediaType.TEXT_PLAIN)
     public String getTestFailsText(
-        @QueryParam("serverId") String serverId,
+        @QueryParam("serverId") String srvId,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) throws ServiceUnauthorizedException {
-        return getBuildTestFails(serverId, buildId, checkAllLogs).toString();
+        return getBuildTestFails(srvId, buildId, checkAllLogs).toString();
+    }
+
+    @GET
+    @Path("failuresNoSync")
+    public TestFailuresSummary getBuildTestFailsNoSync(
+        @QueryParam("serverId") String srvId,
+        @QueryParam("buildId") Integer buildId,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+        return collectBuildCtxById(srvId, buildId, checkAllLogs, SyncMode.NONE);
     }
 
     @GET
     @Path("failures")
-    public TestFailuresSummary getBuildTestFails(
-        @QueryParam("serverId") String serverId,
-        @QueryParam("buildId") Integer buildId,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs)
-        throws ServiceUnauthorizedException {
-
-        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(ctx);
-
-        final ICredentialsProv prov = ICredentialsProv.get(req);
-
-        FullQueryParams param = new FullQueryParams();
-        param.setServerId(serverId);
-        param.setBuildId(buildId);
-        param.setCheckAllLogs(checkAllLogs);
-        return updater.get(TEST_FAILURES_SUMMARY_CACHE_NAME, prov, param,
-            (k) -> getBuildTestFailsNoCache(k.getServerId(), k.getBuildId(), k.getCheckAllLogs()), true);
-    }
-
-    @GET
-    @Path("failuresNoCache")
-    @NotNull public TestFailuresSummary getBuildTestFailsNoCache(
+    @NotNull public TestFailuresSummary getBuildTestFails(
         @QueryParam("serverId") String srvId,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {

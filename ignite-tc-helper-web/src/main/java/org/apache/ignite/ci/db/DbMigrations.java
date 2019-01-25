@@ -205,9 +205,6 @@ public class DbMigrations {
             oldBuilds.destroy();
         });
 
-        applyRemoveCache(GetTrackedBranchTestResults.ALL_TEST_FAILURES_SUMMARY);
-
-        applyRemoveCache(GetBuildTestFailures.TEST_FAILURES_SUMMARY_CACHE_NAME);
         applyRemoveCache(Old.CURRENT_PR_FAILURES);
 
         applyDestroyIgnCacheMigration(TEST_OCCURRENCE_FULL);

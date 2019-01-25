@@ -37,7 +37,6 @@ import org.apache.ignite.ci.tcbot.TcBotBusinessServicesModule;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedModule;
 import org.apache.ignite.ci.util.ExceptionUtil;
-import org.apache.ignite.ci.web.BackgroundUpdater;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
@@ -74,7 +73,6 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(ObserverTask.class).in(new SingletonScope());
         bind(BuildObserver.class).in(new SingletonScope());
         bind(VisasHistoryStorage.class).in(new SingletonScope());
-        bind(BackgroundUpdater.class).in(new SingletonScope());
 
         install(new TeamcityIgnitedModule());
         install(new JiraIgnitedModule());
