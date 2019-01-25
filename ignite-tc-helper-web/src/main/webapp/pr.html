@@ -58,6 +58,12 @@ function parmsForRest() {
     if(baseBranchForTc != null) {
         curReqParms += "&baseBranchForTc=" + baseBranchForTc;
     }
+
+    var checkAllLogs = findGetParameter("checkAllLogs");
+    if (checkAllLogs != null) {
+        curReqParms += "&checkAllLogs=" + checkAllLogs;
+    }
+
     return curReqParms;
 }
 

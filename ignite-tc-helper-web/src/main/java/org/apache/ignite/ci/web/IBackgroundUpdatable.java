@@ -20,6 +20,7 @@ package org.apache.ignite.ci.web;
 /**
  *
  */
+@Deprecated
 public interface IBackgroundUpdatable {
     /**
      * Sets flag indicating if update required from HTML interface, new results will be prepared by updater soon

@@ -31,6 +31,7 @@ import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ICredentialsProv;
@@ -116,7 +117,7 @@ public class TrackedBranchProcessorTest {
         TestFailuresSummary failures = tbProc.getTrackedBranchTestFailures(BRACH_NAME,
             false,
             1,
-            mock
+            mock, SyncMode.RELOAD_QUEUED
         );
 
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
