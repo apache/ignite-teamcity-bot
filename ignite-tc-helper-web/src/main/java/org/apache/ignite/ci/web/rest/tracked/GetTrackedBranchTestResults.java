@@ -81,12 +81,7 @@ public class GetTrackedBranchTestResults {
     public TestFailuresSummary getTestFailsResultsNoSync(
             @Nullable @QueryParam("branch") String branch,
             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        ICredentialsProv creds = ICredentialsProv.get(req);
-
-        Injector injector = CtxListener.getInjector(ctx);
-
-        return injector.getInstance(TrackedBranchChainsProcessor.class)
-            .getTrackedBranchTestFailures(branch, checkAllLogs, 1, creds, SyncMode.NONE);
+        return latestBuildResults(branch, checkAllLogs, SyncMode.NONE);
     }
 
     @GET
@@ -95,54 +90,57 @@ public class GetTrackedBranchTestResults {
     public TestFailuresSummary getTestFailsNoCache(
             @Nullable @QueryParam("branch") String branch,
             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+        return latestBuildResults(branch, checkAllLogs, SyncMode.RELOAD_QUEUED);
+    }
+
+    @NotNull public TestFailuresSummary latestBuildResults(
+        @QueryParam("branch") @Nullable String branch,
+        @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
+        SyncMode mode) {
         ICredentialsProv creds = ICredentialsProv.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 
         return injector.getInstance(TrackedBranchChainsProcessor.class)
-            .getTrackedBranchTestFailures(branch, checkAllLogs, 1, creds, SyncMode.RELOAD_QUEUED);
+            .getTrackedBranchTestFailures(branch, checkAllLogs, 1, creds, mode);
     }
 
     @GET
     @Path("mergedUpdates")
-    public UpdateInfo getAllTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull,
-                                             @Nullable @QueryParam("count") Integer cnt,
-                                             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        return new UpdateInfo().copyFrom(getAllTestFails(branchOrNull, cnt, checkAllLogs));
+    public UpdateInfo getAllTestFailsUpdates(@Nullable @QueryParam("branch") String branch,
+        @Nullable @QueryParam("count") Integer cnt,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+        return new UpdateInfo().copyFrom(getAllTestFailsNoSync(branch, cnt, checkAllLogs));
+    }
+
+    @GET
+    @Path("mergedResultsNoSync")
+    public TestFailuresSummary getAllTestFailsNoSync(@Nullable @QueryParam("branch") String branch,
+        @Nullable @QueryParam("count") Integer cnt,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+        return mergedBuildsResults(branch, cnt, checkAllLogs, SyncMode.NONE);
     }
 
     @GET
     @Path("mergedResults")
-    public TestFailuresSummary getAllTestFails(@Nullable @QueryParam("branch") String branchOrNull,
-                                               @Nullable @QueryParam("count") Integer cnt,
-                                               @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        final BackgroundUpdater updater = CtxListener.getBackgroundUpdater(ctx);
-        FullQueryParams fullKey = new FullQueryParams();
-        fullKey.setBranch(branchOrNull);
-        fullKey.setCount(cnt == null ? FullQueryParams.DEFAULT_COUNT : cnt);
-        fullKey.setCheckAllLogs(checkAllLogs != null && checkAllLogs);
-
-        final ICredentialsProv creds = ICredentialsProv.get(req);
-        return updater.get(ALL_TEST_FAILURES_SUMMARY, creds,
-                fullKey,
-                k -> getAllTestFailsNoCache(
-                        k.getBranch(),
-                        k.getCount(),
-                        k.getCheckAllLogs()),
-                false);
+    @NotNull
+    public TestFailuresSummary getAllTestFailsForMergedBuidls(@Nullable @QueryParam("branch") String branchOpt,
+        @QueryParam("count") Integer cnt,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+        return mergedBuildsResults(branchOpt, cnt, checkAllLogs, SyncMode.RELOAD_QUEUED);
     }
 
-    @GET
-    @Path("mergedResultsNoCache")
-    @NotNull
-    public TestFailuresSummary getAllTestFailsNoCache(@Nullable @QueryParam("branch") String branchOpt,
-                                                      @QueryParam("count") Integer cnt,
-                                                      @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        final ICredentialsProv creds = ICredentialsProv.get(req);
+    @NotNull public TestFailuresSummary mergedBuildsResults(
+        @QueryParam("branch") @Nullable String branchOpt,
+        @QueryParam("count") Integer cnt,
+        @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
+        SyncMode mode) {
+        ICredentialsProv creds = ICredentialsProv.get(req);
         int cntLimit = cnt == null ? FullQueryParams.DEFAULT_COUNT : cnt;
-        final TrackedBranchChainsProcessor tbProc = CtxListener.getInjector(ctx).getInstance(TrackedBranchChainsProcessor.class);
+        Injector injector = CtxListener.getInjector(ctx);
 
-        return tbProc.getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, SyncMode.RELOAD_QUEUED);
+        return injector.getInstance(TrackedBranchChainsProcessor.class)
+            .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode);
     }
 
     /**

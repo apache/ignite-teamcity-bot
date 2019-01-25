@@ -80,6 +80,7 @@
         var curFailuresUrl = "rest/tracked/mergedResults" + parmsForRest();
 
         $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait. Loading merged runs may require significant time.");
+        setTimeout(loadPartialData, 3000);
         $.ajax({
             url: curFailuresUrl,
             success: function (result) {
@@ -97,6 +98,39 @@
             error: showErrInLoadStatus
         });
     }
+
+
+    function loadPartialData() {
+        var curFailuresUrl = "rest/tracked/mergedResultsNoSync" + parmsForRest();
+
+        if (g_shownDataHashCodeHex !== "") {
+            return;
+        }
+        $.ajax({
+            url: curFailuresUrl,
+            success: function (result) {
+                if (g_shownDataHashCodeHex !== "") {
+                    return;
+                }
+
+                var validResult = true;
+                for (var i = 0; i < result.servers.length; i++) {
+                    var server = result.servers[i];
+
+                    if (isDefinedAndFilled(server.buildNotFound) && server.buildNotFound) {
+                        validResult = false;
+                        break;
+                    }
+                }
+                if (validResult)
+                    showData(result);
+
+                setTimeout(loadPartialData, 3000);
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
 
     function showData(result) {
         var repMode = "./all.html" + parmsForRest() + "&reportMode=" + true;

@@ -116,6 +116,12 @@ public class GetBuildTestFailures {
         @QueryParam("serverId") String srvId,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+        return collectBuildCtxById(srvId, buildId, checkAllLogs, SyncMode.RELOAD_QUEUED);
+    }
+
+    @NotNull public TestFailuresSummary collectBuildCtxById(@QueryParam("serverId") String srvId,
+        @QueryParam("buildId") Integer buildId,
+        @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs, SyncMode syncMode) {
         final ICredentialsProv prov = ICredentialsProv.get(req);
         final Injector injector = CtxListener.getInjector(ctx);
         ITeamcityIgnitedProvider tcIgnitedProv = injector.getInstance(ITeamcityIgnitedProvider.class);
@@ -142,7 +148,7 @@ public class GetBuildTestFailures {
             procLogs,
             false,
             failRateBranch,
-            SyncMode.RELOAD_QUEUED);
+            syncMode);
 
         final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, ctx.branchName());
 
@@ -153,7 +159,6 @@ public class GetBuildTestFailures {
         chainStatus.initFromContext(tcIgnited, ctx, failRateBranch);
 
         res.addChainOnServer(chainStatus);
-
 
         res.postProcess(runningUpdates.get());
 
