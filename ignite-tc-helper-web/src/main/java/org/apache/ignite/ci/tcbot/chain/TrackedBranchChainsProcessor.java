@@ -64,13 +64,15 @@ public class TrackedBranchChainsProcessor {
         @Nullable String branch,
         @Nullable Boolean checkAllLogs,
         int buildResMergeCnt,
-        ICredentialsProv creds) {
+        ICredentialsProv creds,
+        SyncMode syncMode) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
         final String branchNn = isNullOrEmpty(branch) ? FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME : branch;
-        final BranchTracked tracked = tcBotConfig.getTrackedBranches().getBranchMandatory(branchNn);
         res.setTrackedBranch(branchNn);
+
+        final BranchTracked tracked = tcBotConfig.getTrackedBranches().getBranchMandatory(branchNn);
 
         tracked.chains.stream()
             .filter(chainTracked -> creds.hasAccess(chainTracked.serverId))
@@ -111,7 +113,7 @@ public class TrackedBranchChainsProcessor {
                     logs,
                     includeScheduled,
                     baseBranchTc,
-                    SyncMode.RELOAD_QUEUED
+                    syncMode
                 );
 
                 int cnt = (int)ctx.getRunningUpdates().count();

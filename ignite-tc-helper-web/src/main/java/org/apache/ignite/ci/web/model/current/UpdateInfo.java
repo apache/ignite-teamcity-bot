@@ -37,9 +37,6 @@ import org.apache.ignite.ci.jira.pure.IJiraIntegration;
     /** Flags to use in javascript. */
     public Integer javaFlags = 0;
 
-    /** Update required, set by background updater. */
-    public boolean updateRequired = false;
-
     /** Running updates is in progress, summary is ready, but it is subject to change */
     public int runningUpdates = 0;
 
@@ -47,7 +44,6 @@ import org.apache.ignite.ci.jira.pure.IJiraIntegration;
     public String hashCodeHex;
 
     public UpdateInfo copyFrom(UpdateInfo info) {
-        this.updateRequired = info.updateRequired;
         //todo there is no chance to update running futures if info is cached
         this.runningUpdates = info.runningUpdates;
         this.hashCodeHex = info.hashCodeHex;

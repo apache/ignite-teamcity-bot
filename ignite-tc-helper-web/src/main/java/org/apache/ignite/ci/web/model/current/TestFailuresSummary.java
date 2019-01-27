@@ -20,14 +20,13 @@ package org.apache.ignite.ci.web.model.current;
 import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.ignite.ci.web.IBackgroundUpdatable;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Summary of failures from all servers.
  */
-@SuppressWarnings("WeakerAccess") public class TestFailuresSummary extends UpdateInfo implements IBackgroundUpdatable {
+@SuppressWarnings("WeakerAccess") public class TestFailuresSummary extends UpdateInfo {
     /** Servers (Services) and their chain results. */
     public List<ChainAtServerCurrentStatus> servers = new ArrayList<>();
 
@@ -38,10 +37,6 @@ import org.jetbrains.annotations.Nullable;
 
     /** Tracked branch ID. */
     @Nullable private String trackedBranch;
-
-    @Override public void setUpdateRequired(boolean update) {
-        updateRequired = update;
-    }
 
     public void addChainOnServer(ChainAtServerCurrentStatus chainStatus) {
         servers.add(chainStatus);

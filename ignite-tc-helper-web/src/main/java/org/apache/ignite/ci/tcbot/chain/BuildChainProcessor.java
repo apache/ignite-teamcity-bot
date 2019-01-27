@@ -370,7 +370,7 @@ public class BuildChainProcessor {
     /**
      * @param buildFut Chain build future.
      * @param mode Mode.
-     * @param builds Builds.
+     * @param builds Build futures map.
      * @param teamcityIgnited Teamcity ignited.
      * @return Set of new builds found during this dependencies check round.
      */

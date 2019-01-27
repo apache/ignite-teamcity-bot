@@ -43,10 +43,6 @@ public class CtxListener implements ServletContextListener {
         return (Injector)ctx.getAttribute(INJECTOR);
     }
 
-    public static BackgroundUpdater getBackgroundUpdater(ServletContext ctx) {
-        return getInjector(ctx).getInstance(BackgroundUpdater.class);
-    }
-
     /** {@inheritDoc} */
     @Override public void contextInitialized(ServletContextEvent sctxEvt) {
         initLoggerBridge();
@@ -81,8 +77,6 @@ public class CtxListener implements ServletContextListener {
         final ServletContext ctx = sctxEvt.getServletContext();
 
         Injector injector = getInjector(ctx);
-
-        getBackgroundUpdater(ctx).stop();
 
         try {
 

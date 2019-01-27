@@ -34,7 +34,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -53,9 +52,9 @@ import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
@@ -437,17 +436,19 @@ public class IssueDetector {
 
         ICredentialsProv creds = Preconditions.checkNotNull(backgroundOpsCreds, "Server should be authorized");
 
-        TestFailuresSummary allHist = tbProc.getTrackedBranchTestFailures(
+        tbProc.getTrackedBranchTestFailures(
             brachName,
             false,
             buildsToQry,
-            creds);
+            creds,
+            SyncMode.RELOAD_QUEUED);
 
         TestFailuresSummary failures =
             tbProc.getTrackedBranchTestFailures(brachName,
                 false,
                 1,
-                creds
+                creds,
+                SyncMode.RELOAD_QUEUED
             );
 
         String issResult = registerIssuesAndNotifyLater(failures, backgroundOpsCreds);

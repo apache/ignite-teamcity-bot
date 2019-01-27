@@ -22,7 +22,6 @@ $(document).ready(function() {
     
     $( document ).tooltip();
     loadData();
-     //todo fix setInterval( function() { checkForUpdate(); }, 30000);
 
     $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
 });
@@ -32,17 +31,15 @@ function parmsForRest() {
     var curReqParms = "";
     var buildId = findGetParameter("buildId");
 
-        curReqParms += "?buildId=" + buildId; 
+    curReqParms += "?buildId=" + buildId;
 
     var serverId = findGetParameter("serverId");
-    if(serverId!=null) {
+    if (serverId != null) {
         curReqParms += "&serverId=" + serverId;
     }
 
-
-
     var checkAllLogs = findGetParameter("checkAllLogs");
-    if(checkAllLogs!=null) {
+    if (checkAllLogs != null) {
         curReqParms += "&checkAllLogs=" + checkAllLogs;
     }
     return curReqParms;
@@ -53,17 +50,15 @@ function checkForUpdate() {
 
     $.ajax({
         url: curFailuresUrl,
-        success: function(result) {
-           if (g_shownDataHashCodeHex!=="" && isDefinedAndFilled(result.hashCodeHex)) {
-                if(g_shownDataHashCodeHex===result.hashCodeHex) {
-                    var updRunning = isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0
-                    var fastCheckNeeded = result.updateRequired || updRunning;
-                    var ms = fastCheckNeeded ? 3000 : 30000 ;
-                    
+        success: function (result) {
+            if (g_shownDataHashCodeHex !== "" && isDefinedAndFilled(result.hashCodeHex)) {
+                if (g_shownDataHashCodeHex === result.hashCodeHex) {
+                    var fastCheckNeeded = isDefinedAndFilled(result.runningUpdates) && result.runningUpdates > 0;
+                    var ms = fastCheckNeeded ? 3000 : 30000;
+
                     setTimeout(checkForUpdate, ms);
 
-                    if(!result.updateRequired)
-                        $("#loadStatus").html("");
+                    $("#loadStatus").html("");
                 } else {
                     loadData(); // data changed, show new
                 }
@@ -79,10 +74,11 @@ function loadData() {
     var curFailuresUrl = "rest/build/failures" + parmsForRest();
     
     $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+    setTimeout(loadPartialData, 3000);
     $.ajax({
         url: curFailuresUrl,
-        success: function(result) {
-            if(result.updateRequired || (isDefinedAndFilled(result.runningUpdates) && result.runningUpdates>0)) {
+        success: function (result) {
+            if (isDefinedAndFilled(result.runningUpdates) && result.runningUpdates > 0) {
                 setTimeout(checkForUpdate, 3000);
 
                 $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Updating");
@@ -91,6 +87,37 @@ function loadData() {
             }
             showData(result);
             g_shownDataHashCodeHex = isDefinedAndFilled(result.hashCodeHex) ? result.hashCodeHex : "";
+        },
+        error: showErrInLoadStatus
+    });
+}
+
+function loadPartialData() {
+    var curFailuresUrl = "rest/build/failuresNoSync" + parmsForRest();
+
+    if (g_shownDataHashCodeHex !== "") {
+        return;
+    }
+    $.ajax({
+        url: curFailuresUrl,
+        success: function (result) {
+            if (g_shownDataHashCodeHex !== "") {
+                return;
+            }
+
+            var validResult = true;
+            for (var i = 0; i < result.servers.length; i++) {
+                var server = result.servers[i];
+
+                if (isDefinedAndFilled(server.buildNotFound) && server.buildNotFound) {
+                    validResult = false;
+                    break;
+                }
+            }
+            if (validResult)
+                showData(result);
+
+            setTimeout(loadPartialData, 3000);
         },
         error: showErrInLoadStatus
     });
