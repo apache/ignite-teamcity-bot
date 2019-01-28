@@ -20,16 +20,16 @@ package org.apache.ignite.ci.jira.ignited;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.jira.Tickets;
+import org.apache.ignite.ci.jira.pure.Fields;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.jira.pure.Ticket;
-import org.apache.ignite.ci.jira.Tickets;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
@@ -90,14 +90,14 @@ public class JiraTicketSync {
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
         IJiraIntegration jira = jiraIntegrationProvider.server(srvId);
 
-        List<String> fields = Arrays.stream(Ticket.class.getDeclaredFields())
-            .map(field -> field.getName())
-            .collect(Collectors.toList());
+        String reqFields = Arrays.stream(Fields.class.getDeclaredFields())
+            .map(Field::getName)
+            .collect(Collectors.joining(","));
 
         String projectName = jira.projectName();
         String baseUrl = "search?jql=" + escape("project=" + projectName + " order by updated DESC")
             + "&" +
-            "fields=status" +
+            "fields=" + reqFields +
             "&maxResults=100";
 
         String url = baseUrl;

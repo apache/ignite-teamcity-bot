@@ -525,7 +525,7 @@ public class TcBotTriggerAndSignOffService {
             contribution.tcBranchName = branch;
 
             contribution.prNumber = -ticketId;
-            contribution.prTitle = ""; //todo ticket title
+            contribution.prTitle = ticket.fields.summary;
             contribution.prHtmlUrl = "";
             contribution.prTimeUpdate = ""; //todo ticket updateTime
 

@@ -21,7 +21,9 @@ import com.google.common.base.Objects;
 import org.apache.ignite.ci.jira.pure.Fields;
 import org.apache.ignite.ci.jira.pure.Status;
 import org.apache.ignite.ci.jira.pure.Ticket;
+import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.jetbrains.annotations.Nullable;
 
 /**
  *
@@ -36,7 +38,8 @@ public class TicketCompacted {
     /** Id of string: Fields/status/name, value compacted. */
     public int status;
 
-
+    /** Summary, nullable because of older entries. */
+    @Nullable private StringFieldCompacted summary = new StringFieldCompacted();
 
     /**
      * @param ticket Jira ticket.
@@ -47,6 +50,7 @@ public class TicketCompacted {
         id = ticket.id;
         igniteId = Integer.valueOf(ticket.key.substring(ticketTemplate.length()));
         status = comp.getStringId(ticket.fields.status.name);
+        summary.setValue(ticket.fields.summary);
     }
 
     /**
@@ -60,6 +64,7 @@ public class TicketCompacted {
         ticket.key = ticketPrefix + igniteId;
         ticket.fields = new Fields();
         ticket.fields.status = new Status(comp.getStringFromId(status));
+        ticket.fields.summary = summary != null ? summary.getValue() : null;
 
         return ticket;
     }
@@ -68,19 +73,17 @@ public class TicketCompacted {
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
-
         if (o == null || getClass() != o.getClass())
             return false;
-
         TicketCompacted compacted = (TicketCompacted)o;
-
         return id == compacted.id &&
             igniteId == compacted.igniteId &&
-            status == compacted.status;
+            status == compacted.status &&
+            Objects.equal(summary, compacted.summary);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(id, igniteId, status);
+        return Objects.hashCode(id, igniteId, status, summary);
     }
 }

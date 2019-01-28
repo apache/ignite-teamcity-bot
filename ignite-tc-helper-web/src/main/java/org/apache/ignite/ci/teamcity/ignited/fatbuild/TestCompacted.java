@@ -20,14 +20,11 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
@@ -201,17 +198,9 @@ public class TestCompacted {
             return new String(details, StandardCharsets.UTF_8);
         else if (!flag1 && flag2) {
             try {
-                final ByteArrayInputStream in = new ByteArrayInputStream(details);
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                try (final GZIPInputStream gzi = new GZIPInputStream(in)) {
-                    byte[] outbuf = new byte[details.length];
-                    int len;
-                    while ((len = gzi.read(outbuf, 0, outbuf.length)) != -1)
-                        bos.write(outbuf, 0, len);
-                }
-
-                return new String(bos.toByteArray(), StandardCharsets.UTF_8);
-            } catch (Exception e) {
+                return StringFieldCompacted.unzipToString(details);
+            }
+            catch (Exception e) {
                 logger.error("GZip.uncompress failed: " + e.getMessage(), e);
                 return null;
             }
@@ -243,18 +232,14 @@ public class TestCompacted {
         }
 
         try {
-            final ByteArrayOutputStream out = new ByteArrayOutputStream();
-            try(final GZIPOutputStream gzipOutputStream = new GZIPOutputStream(out)) {
-                gzipOutputStream.write(uncompressed);
-            }
-            gzip = out.toByteArray();
+            gzip = StringFieldCompacted.zipBytes(uncompressed);
         }
         catch (Exception e) {
             logger.error("Snappy.compress failed: " + e.getMessage(), e);
         }
 
-        final int snappyLen = snappy!=null ? snappy.length : -1;
-        final int gzipLen = gzip!=null ? gzip.length : -1;
+        final int snappyLen = snappy != null ? snappy.length : -1;
+        final int gzipLen = gzip != null ? gzip.length : -1;
 
         flags.set(COMPRESS_TYPE_FLAG1, true);
         flags.set(COMPRESS_TYPE_FLAG2, false);
