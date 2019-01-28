@@ -87,6 +87,6 @@ public class BranchesTracked {
     }
 
     public Optional<TcServerConfig> getServer(String name) {
-        return servers.stream().filter(s->name.equals(s.getName())).findAny();
+        return servers.stream().filter(s -> name.equals(s.getName())).findAny();
     }
 }

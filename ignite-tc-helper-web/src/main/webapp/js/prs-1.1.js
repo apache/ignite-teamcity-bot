@@ -17,7 +17,7 @@ function drawTable(srvId, element) {
         "        </table>\n");
 }
 
-function requestTableForServer(srvId, suiteIdIgnored, element) {
+function requestTableForServer(srvId, element) {
 
     let tableId = "serverContributions-" + srvId;
 

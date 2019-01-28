@@ -35,24 +35,22 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
 
     /** {@inheritDoc} */
     @Override public ITcServerConfig getTeamcityConfig(String srvName) {
-        File workDir = HelperConfig.resolveWorkDir();
-
-        String cfgName = HelperConfig.prepareConfigName(srvName);
-
-        Properties props = HelperConfig.loadAuthProperties(workDir, cfgName);
-
-        TcServerConfig cfg = getTrackedBranches().getServer(srvName)
+        return getTrackedBranches().getServer(srvName)
             .orElseGet(() -> {
                 TcServerConfig tcCfg = new TcServerConfig();
 
                 tcCfg.name = srvName;
 
+                File workDir = HelperConfig.resolveWorkDir();
+
+                String cfgName = HelperConfig.prepareConfigName(srvName);
+
+                Properties props = HelperConfig.loadAuthProperties(workDir, cfgName);
+
+                tcCfg.properties(props);
+
                 return tcCfg;
             });
-
-        cfg.properties(props);
-
-        return cfg;
     }
 
     /** {@inheritDoc} */

@@ -61,9 +61,7 @@
 
         function showServerContribTabs(result) {
             const processed = new Set();
-            for (let chainAtServer of result) {
-                let serverId = chainAtServer.serverId;
-
+            for (let serverId of result) {
                 if (processed.has(serverId))
                     continue;
 
@@ -82,7 +80,7 @@
 
                 tabsInsertion.after("<div id=\"" + tabId + "\">" + "</div>");
 
-                requestTableForServer(serverId, chainAtServer.suiteId, $(tabRef));
+                requestTableForServer(serverId, $(tabRef));
             }
 
             showTabs();
@@ -104,7 +102,14 @@
                     showSuitesForTeamCityRunData(result);
                     showFormAndSuitesForPrCheck(result);
                     showCommentJiraForm(result);
+                },
+                error: showErrInLoadStatus
+            });
 
+            $.ajax({
+                url: "rest/branches/getServerIds",
+                success: function(result) {
+                    $("#loadStatus").html("");
                     showServerContribTabs(result);
                 },
                 error: showErrInLoadStatus

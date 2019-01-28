@@ -92,7 +92,7 @@ public class HelperConfig {
                 writer.write(USERNAME + "=" + ENDL);
                 writer.write(ENCODED_PASSWORD + "=" + ENDL);
             }
-            throw new IllegalStateException("Please setup username and encodedPassword in config file [" +
+            throw new IllegalStateException("Please setup parameters for service in config file [" +
                 file.getCanonicalPath() + "]");
         }
         return loadProps(file);

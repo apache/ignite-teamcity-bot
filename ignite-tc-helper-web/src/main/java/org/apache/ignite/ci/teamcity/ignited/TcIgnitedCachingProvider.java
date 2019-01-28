@@ -39,7 +39,8 @@ class TcIgnitedCachingProvider implements ITeamcityIgnitedProvider {
     @Inject
     private ITcServerProvider srvFactory;
 
-    @Inject private ITcBotConfig config;
+    /** Config. */
+    @Inject private ITcBotConfig cfg;
 
     @Inject private Provider<TeamcityIgnitedImpl> provider;
 
@@ -51,8 +52,18 @@ class TcIgnitedCachingProvider implements ITeamcityIgnitedProvider {
             .build();
 
     /** {@inheritDoc} */
+    @Override public boolean hasAccess(String srvId, @Nullable ICredentialsProv prov) {
+        String ref = cfg.getTeamcityConfig(srvId).reference();
+
+        if (!Strings.isNullOrEmpty(ref))
+            return prov.hasAccess(ref);
+
+        return prov.hasAccess(srvId);
+    }
+
+    /** {@inheritDoc} */
     @Override public ITeamcityIgnited server(String srvIdReq, @Nullable ICredentialsProv prov) {
-        ITcServerConfig cfg = config.getTeamcityConfig(srvIdReq);
+        ITcServerConfig cfg = this.cfg.getTeamcityConfig(srvIdReq);
         String ref = cfg.reference();
 
         String realSrvId = !Strings.isNullOrEmpty(ref) && !srvIdReq.equals(ref) ? ref : srvIdReq;

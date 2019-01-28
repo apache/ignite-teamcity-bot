@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.teamcity.ignited;
 
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ICredentialsProv;
 
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class TeamcityIgnitedProviderMock implements ITeamcityIgnitedProvider {
+    /** Compactor. */
     @Inject IStringCompactor compactor;
 
     private Map<String, Map<Integer, FatBuildCompacted>> tcBuildsData = new ConcurrentHashMap<>();
@@ -33,8 +35,13 @@ public class TeamcityIgnitedProviderMock implements ITeamcityIgnitedProvider {
         tcBuildsData.put(srvId, apacheBuilds);
     }
 
-    @Override
-    public ITeamcityIgnited server(String srvId, ICredentialsProv prov) {
+    /** {@inheritDoc} */
+    @Override public boolean hasAccess(String srvId, @Nullable ICredentialsProv prov) {
+        return prov.hasAccess(srvId);
+    }
+
+    /** {@inheritDoc} */
+    @Override public ITeamcityIgnited server(String srvId, ICredentialsProv prov) {
         final Map<Integer, FatBuildCompacted> integerFatBuildCompactedMap = tcBuildsData.get(srvId);
 
         return TeamcityIgnitedMock.getMutableMapTeamcityIgnited(integerFatBuildCompactedMap, compactor);

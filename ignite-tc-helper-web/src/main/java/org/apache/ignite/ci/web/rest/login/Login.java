@@ -79,8 +79,7 @@ public class Login {
         String primarySrvId = cfg.primaryServerId();
 
         try {
-            return doLogin(username, pwd, users, primarySrvId,
-                cfg.getServerIds(), tcLogin);
+            return doLogin(username, pwd, users, primarySrvId, cfg.getServerIds(), tcLogin);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
