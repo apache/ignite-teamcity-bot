@@ -35,7 +35,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
-import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.GitHubBranch;
 import org.apache.ignite.ci.github.GitHubUser;
@@ -312,7 +311,7 @@ public class TcBotTriggerAndSignOffService {
 
         if (F.isEmpty(ticketFullName)) {
             try {
-                ticketFullName = prLessTicket(srvId, branchForTc, prov, prefix);
+                ticketFullName = prLessTicket(srvId, branchForTc, prefix);
 
                 PullRequest pr = null;
 
@@ -370,7 +369,7 @@ public class TcBotTriggerAndSignOffService {
 
         if (Strings.isNullOrEmpty(ticketFullName)) {
             try {
-                ticketFullName = prLessTicket(srvId, branchForTc, prov, prefix);
+                ticketFullName = prLessTicket(srvId, branchForTc, prefix);
 
                 PullRequest pr = null;
 
@@ -434,21 +433,20 @@ public class TcBotTriggerAndSignOffService {
     /**
      * @param srvId Server id.
      * @param branchForTc Branch for tc.
-     * @param prov Credentials Prov.
      * @param ticketPrefix Ticket prefix.
      */
     @Nullable public String prLessTicket(@Nullable @QueryParam("serverId") String srvId,
-        String branchForTc, ICredentialsProv prov, String ticketPrefix) {
-        return prLessTicket(branchForTc, ticketPrefix, tcIgnitedProv.server(srvId, prov));
+        String branchForTc, String ticketPrefix) {
+        return prLessTicket(branchForTc, ticketPrefix, gitHubConnIgnitedProvider.server(srvId));
     }
 
     /**
      * @param branchForTc Branch for tc.
      * @param ticketPrefix Ticket prefix.
-     * @param tcIgn Tc ign.
+     * @param gitHubIgn GitHub connection ign.
      */
-    @Nullable public static String prLessTicket(String branchForTc, String ticketPrefix, ITeamcityIgnited tcIgn) {
-        String branchPrefix = tcIgn.gitBranchPrefix();
+    @Nullable public static String prLessTicket(String branchForTc, String ticketPrefix, IGitHubConnIgnited gitHubIgn) {
+        String branchPrefix = gitHubIgn.gitBranchPrefix();
 
         if (!branchForTc.startsWith(branchPrefix))
             return null;
@@ -471,7 +469,8 @@ public class TcBotTriggerAndSignOffService {
         ICredentialsProv credsProv) {
         IJiraIgnited jiraIntegration = jiraIgnProv.server(srvId);
 
-        List<PullRequest> requests = gitHubConnIgnitedProvider.server(srvId).getPullRequests();
+        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvId);
+        List<PullRequest> requests = gitHubConnIgnited.getPullRequests();
         if (requests == null)
             return null;
 
@@ -511,7 +510,7 @@ public class TcBotTriggerAndSignOffService {
 
         paTickets.forEach(ticket -> {
             int ticketId = ticket.igniteId(jiraIntegration.ticketPrefix());
-            String branch = tcIgn.gitBranchPrefix() + ticketId;
+            String branch = gitHubConnIgnited.gitBranchPrefix() + ticketId;
 
             String defBtForMaster = findDefaultBranchBuildType(srvId);
 
@@ -541,7 +540,7 @@ public class TcBotTriggerAndSignOffService {
     @Nonnull private List<BuildRefCompacted> findBuildsForPr(String suiteId, String prId,
         IGitHubConnIgnited ghConn, ITeamcityIgnited srv) {
 
-        List<BuildRefCompacted> buildHist = srv.getAllBuildsCompacted(suiteId, branchForTcDefault(prId, srv));
+        List<BuildRefCompacted> buildHist = srv.getAllBuildsCompacted(suiteId, branchForTcDefault(prId, ghConn));
 
         if (!buildHist.isEmpty())
             return buildHist;
@@ -573,7 +572,7 @@ public class TcBotTriggerAndSignOffService {
         return Collections.emptyList();
     }
 
-    private String branchForTcDefault(String prId, ITeamcityIgnited srv) {
+    private String branchForTcDefault(String prId, IGitHubConnIgnited srv) {
         Integer prNum = Integer.valueOf(prId);
         if (prNum < 0)
             return srv.gitBranchPrefix() + (-prNum); // Checking "ignite-10930" builds only
@@ -632,8 +631,8 @@ public class TcBotTriggerAndSignOffService {
             List<BuildRefCompacted> compBuilds = findBuildsForPr(btId, prId, ghConn, teamcity);
 
             statuses.add(compBuilds.isEmpty()
-                ? new ContributionCheckStatus(btId, branchForTcDefault(prId, teamcity))
-                : contributionStatus(srvId, btId, compBuilds, teamcity, prId));
+                ? new ContributionCheckStatus(btId, branchForTcDefault(prId, ghConn))
+                : contributionStatus(srvId, btId, compBuilds, teamcity, ghConn, prId));
         }
 
         return statuses;
@@ -658,9 +657,10 @@ public class TcBotTriggerAndSignOffService {
      * @param srvId Server id.
      * @param suiteId Suite id.
      * @param builds Build references.
+     * @param ghConn
      */
     public ContributionCheckStatus contributionStatus(String srvId, String suiteId, List<BuildRefCompacted> builds,
-        ITeamcityIgnited teamcity, String prId) {
+        ITeamcityIgnited teamcity, IGitHubConnIgnited ghConn, String prId) {
         ContributionCheckStatus status = new ContributionCheckStatus();
 
         status.suiteId = suiteId;
@@ -683,7 +683,7 @@ public class TcBotTriggerAndSignOffService {
             status.resolvedBranch = status.branchWithFinishedSuite;
             //todo take into account running/queued
         else
-            status.resolvedBranch = !builds.isEmpty() ? builds.get(0).branchName(compactor) : branchForTcDefault(prId, teamcity);
+            status.resolvedBranch = !builds.isEmpty() ? builds.get(0).branchName(compactor) : branchForTcDefault(prId, ghConn);
 
         String observationsStatus = buildObserverProvider.get().getObservationStatus(new ContributionKey(srvId, status.resolvedBranch));
 

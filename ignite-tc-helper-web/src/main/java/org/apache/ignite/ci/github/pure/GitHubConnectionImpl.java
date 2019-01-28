@@ -35,6 +35,7 @@ import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.util.HttpUtil;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +51,10 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** GitHub authorization token. */
     private String gitAuthTok;
+
+    /** Git branch prefix for seach TC runs in PR-less contributions. */
+    @NotNull
+    private String gitBranchPrefix;
 
     @Nullable public static String parseNextLinkFromLinkRspHeader(String s) {
         String nextLink = null;
@@ -90,6 +95,8 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
         gitAuthTok = (HelperConfig.prepareGithubHttpAuthToken(props));
         gitApiUrl = (props.getProperty(HelperConfig.GIT_API_URL));
+        gitBranchPrefix = props.getProperty(HelperConfig.GIT_BRANCH_PREFIX, "ignite-");
+
     }
 
     /** {@inheritDoc} */
@@ -170,5 +177,10 @@ class GitHubConnectionImpl implements IGitHubConnection {
         catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override public String gitBranchPrefix() {
+        return gitBranchPrefix;
     }
 }

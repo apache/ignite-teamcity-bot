@@ -30,6 +30,7 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
@@ -82,6 +83,10 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     /** {@inheritDoc} */
     @Override public void notifyGit(String url, String body) {
         conn.notifyGit(url, body);
+    }
+
+    @Override public String gitBranchPrefix() {
+        return conn.gitBranchPrefix();
     }
 
     /** {@inheritDoc} */

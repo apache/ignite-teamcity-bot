@@ -42,5 +42,10 @@ public interface IGitHubConnIgnited {
      * @param body Request body.
      * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
      */
-    void notifyGit(String url, String body);
+    public void notifyGit(String url, String body);
+
+    /**
+     *
+     */
+    public String gitBranchPrefix();
 }

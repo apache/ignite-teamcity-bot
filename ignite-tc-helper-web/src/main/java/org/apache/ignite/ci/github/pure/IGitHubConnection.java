@@ -80,4 +80,9 @@ public interface IGitHubConnection {
             return res;
         }
     }
+
+    /**
+     *
+     */
+    public String gitBranchPrefix();
 }

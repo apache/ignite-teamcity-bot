@@ -189,8 +189,6 @@ public interface ITeamcityIgnited {
 
     public List<String> getAllProjectsIds();
 
-    public String gitBranchPrefix();
-
 
     /**
      * Get list of teamcity agents. Never cached, request goes directly to pure TC.

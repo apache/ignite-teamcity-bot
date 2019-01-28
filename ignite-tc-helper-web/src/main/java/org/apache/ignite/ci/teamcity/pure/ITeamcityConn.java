@@ -52,8 +52,15 @@ public interface ITeamcityConn {
      */
     public String host();
 
+    /**
+     * @param buildId Build id.
+     */
     public Build getBuild(int buildId);
 
+    /**
+     * @param fullUrl Full url.
+     * @param nextPage Next page.
+     */
     public List<BuildRef> getBuildRefsPage(String fullUrl, AtomicReference<String> nextPage);
 
     /**
@@ -82,13 +89,25 @@ public interface ITeamcityConn {
      */
     public Build triggerBuild(String buildTypeId, @Nonnull String branchName, boolean cleanRebuild, boolean queueAtTop);
 
-    ProblemOccurrences getProblems(int buildId);
+    /**
+     * @param buildId Build id.
+     */
+    public ProblemOccurrences getProblems(int buildId);
 
-    Statistics getStatistics(int buildId);
+    /**
+     * @param buildId Build id.
+     */
+    public Statistics getStatistics(int buildId);
 
-    ChangesList getChangesList(int buildId);
+    /**
+     * @param buildId Build id.
+     */
+    public ChangesList getChangesList(int buildId);
 
-    Change getChange(int changeId);
+    /**
+     * @param changeId Change id.
+     */
+    public Change getChange(int changeId);
 
     /**
      * List of project suites.
@@ -96,23 +115,18 @@ public interface ITeamcityConn {
      * @param projectId Project id.
      * @return List of buildType's references.
      */
-    List<BuildType> getBuildTypes(String projectId);
+    public List<BuildType> getBuildTypes(String projectId);
 
     /**
      * @param buildTypeId BuildType id.
      * @return BuildType.
      */
-    BuildTypeFull getBuildType(String buildTypeId);
+    public BuildTypeFull getBuildType(String buildTypeId);
 
     /**
      * @return List of all project available at Teamcity server.
      */
-    List<Project> getProjects();
-
-    /**
-     * @return Branch name mandatory prefix for all PR-less contributions, e.g. "ignite-".
-     */
-    public String gitBranchPrefix();
+    public List<Project> getProjects();
 
     /**
      * Get list of teamcity agents.
@@ -121,5 +135,5 @@ public interface ITeamcityConn {
      * @param authorized Authorized flag.
      * @return List of teamcity agents.
      */
-    List<Agent> agents(boolean connected, boolean authorized);
+    public List<Agent> agents(boolean connected, boolean authorized);
 }

@@ -145,7 +145,7 @@ public class ChainAtServerCurrentStatus {
             }
         }
         else
-            ticketFullName = TcBotTriggerAndSignOffService.prLessTicket(branchName, ticketPrefix, tcIgnited);
+            ticketFullName = TcBotTriggerAndSignOffService.prLessTicket(branchName, ticketPrefix, gitHubConnIgnited);
 
         if (!Strings.isNullOrEmpty(ticketFullName))
             ticketUrl = jiraIntegration.generateTicketUrl(ticketFullName);

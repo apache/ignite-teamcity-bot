@@ -229,11 +229,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
         return teamcity.getProjects();
     }
 
-    /** {@inheritDoc} */
-    @Override public String gitBranchPrefix() {
-        return teamcity.gitBranchPrefix();
-    }
-
     @Override public Statistics getStatistics(int buildId) {
         return teamcity.getStatistics(buildId);
     }
