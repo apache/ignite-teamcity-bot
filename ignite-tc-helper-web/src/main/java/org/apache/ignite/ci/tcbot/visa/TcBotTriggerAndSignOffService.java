@@ -512,7 +512,7 @@ public class TcBotTriggerAndSignOffService {
             int ticketId = ticket.igniteId(jiraIntegration.ticketPrefix());
             String branch = gitHubConnIgnited.gitBranchPrefix() + ticketId;
 
-            String defBtForMaster = findDefaultBranchBuildType(srvId);
+            String defBtForMaster = findDefaultBranchBuildType(tcIgn.serverId());
 
             if(tcIgn.getAllBuildsCompacted(defBtForMaster, branch).isEmpty())
                 return; //Skipping contributions without builds
@@ -601,7 +601,7 @@ public class TcBotTriggerAndSignOffService {
 
         IGitHubConnIgnited ghConn = gitHubConnIgnitedProvider.server(srvId);
 
-        String defBtForMaster = findDefaultBranchBuildType(srvId);
+        String defBtForMaster = findDefaultBranchBuildType(teamcity.serverId());
 
         BuildTypeCompacted buildType = Strings.isNullOrEmpty(defBtForMaster)
             ? null
