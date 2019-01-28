@@ -16,6 +16,8 @@
  */
 package org.apache.ignite.ci.tcbot.conf;
 
+import java.io.File;
+import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.di.cache.GuavaCached;
@@ -30,6 +32,16 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
         return HelperConfig.getTrackedBranches();
     }
 
+    /** {@inheritDoc} */
+    @Override public Properties getTeamcityConfig(String srvName) {
+        File workDir = HelperConfig.resolveWorkDir();
+
+        String cfgName = HelperConfig.prepareConfigName(srvName);
+
+        return HelperConfig.loadAuthProperties(workDir, cfgName);
+    }
+
+    /** {@inheritDoc} */
     @Override public String primaryServerId() {
         return ITcBotConfig.DEFAULT_SERVER_ID;
     }

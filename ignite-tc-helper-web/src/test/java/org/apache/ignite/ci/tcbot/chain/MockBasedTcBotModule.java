@@ -20,6 +20,9 @@ package org.apache.ignite.ci.tcbot.chain;
 import com.google.common.base.Preconditions;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
+import java.io.File;
+import java.util.Properties;
+import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.github.PullRequest;
@@ -104,6 +107,15 @@ public class MockBasedTcBotModule extends AbstractModule {
 
             @Override public BranchesTracked getTrackedBranches() {
                 return tracked;
+            }
+
+            /** {@inheritDoc} */
+            @Override public Properties getTeamcityConfig(String srvName) {
+                File workDir = HelperConfig.resolveWorkDir();
+
+                String cfgName = HelperConfig.prepareConfigName(srvName);
+
+                return HelperConfig.loadAuthProperties(workDir, cfgName);
             }
         });
 

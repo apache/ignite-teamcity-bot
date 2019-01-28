@@ -27,6 +27,7 @@ import org.apache.ignite.ci.analysis.LogCheckTask;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.logs.BuildLogStreamChecker;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.agent.AgentsRef;
 import org.apache.ignite.ci.tcmodel.changes.Change;
@@ -99,8 +100,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** Teamcity http connection. */
     @Inject private ITeamcityHttpConnection teamcityHttpConn;
 
+    @Inject private ITcBotConfig config;
 
-    private String configName; //main properties file name
     private String tcName;
 
     /** Build logger processing running. */
@@ -117,11 +118,9 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     public void init(@Nullable String tcName) {
         this.tcName = tcName;
-        final File workDir = HelperConfig.resolveWorkDir();
 
-        this.configName = HelperConfig.prepareConfigName(tcName);
+        final Properties props = config.getTeamcityConfig(tcName);
 
-        final Properties props = HelperConfig.loadAuthProperties(workDir, configName);
         final String hostConf = props.getProperty(HelperConfig.HOST, "https://ci.ignite.apache.org/");
 
         this.host = hostConf.trim() + (hostConf.endsWith("/") ? "" : "/");
@@ -129,7 +128,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
         try {
             if (!Strings.isNullOrEmpty(props.getProperty(HelperConfig.USERNAME))
                     && props.getProperty(HelperConfig.ENCODED_PASSWORD) != null)
-                setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, configName));
+                setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, "TC Config"));
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Failed to set credentials", e);
@@ -137,6 +136,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
         this.gitBranchPrefix = props.getProperty(HelperConfig.GIT_BRANCH_PREFIX, "ignite-");
 
+        final File workDir = HelperConfig.resolveWorkDir();
         final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
 
         logsDir = ensureDirExist(logsDirFile);

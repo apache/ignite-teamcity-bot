@@ -79,10 +79,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     @Nullable
     private String serverId;
 
-    //todo: remove triggering dependency from getTrackedBranch processing, use TC Bot DB data.
-    @Deprecated
-    private static long lastTriggerMs = System.currentTimeMillis();
-
     @Override public void init(ITeamcity conn) {
         this.teamcity = conn;
         this.serverId = conn.serverId();
@@ -123,12 +119,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @Override public String serverId() {
         return serverId;
-    }
-
-    public static int getTriggerRelCacheValidSecs(int defaultSecs) {
-        long msSinceTrigger = System.currentTimeMillis() - lastTriggerMs;
-        long secondsSinceTrigger = TimeUnit.MILLISECONDS.toSeconds(msSinceTrigger);
-        return Math.min((int) secondsSinceTrigger, defaultSecs);
     }
 
     @NotNull private String ignCacheNme(String cache) {
@@ -226,8 +216,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public Build triggerBuild(String buildTypeId, @NotNull String branchName, boolean cleanRebuild, boolean queueAtTop) {
-        lastTriggerMs = System.currentTimeMillis();
-
         return teamcity.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
     }
 

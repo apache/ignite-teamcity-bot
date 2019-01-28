@@ -18,6 +18,7 @@ package org.apache.ignite.ci.tcbot.conf;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Properties;
 import org.apache.ignite.ci.conf.BranchesTracked;
 
 /**
@@ -49,5 +50,5 @@ public interface ITcBotConfig {
         return getTrackedBranches().getServerIds();
     }
 
-
+    public Properties getTeamcityConfig(String srvName);
 }

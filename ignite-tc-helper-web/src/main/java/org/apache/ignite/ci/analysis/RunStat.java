@@ -73,13 +73,6 @@ public class RunStat implements IRunHistory {
         this.name = name;
     }
 
-    private ChangesState changesStatus(Boolean changesExist) {
-        if (changesExist == null)
-            return ChangesState.UNKNOWN;
-
-        return changesExist ? ChangesState.EXIST : ChangesState.NONE;
-    }
-
     public void addTestRunToLatest(TestOccurrence testOccurrence, ChangesState changesState) {
         TestId id = extractFullId(testOccurrence.getId());
         if (id == null) {

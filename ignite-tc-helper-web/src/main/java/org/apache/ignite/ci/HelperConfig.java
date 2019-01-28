@@ -45,8 +45,6 @@ public class HelperConfig {
     public static final String MAIL_PROPS = "mail.auth.properties";
     public static final String HOST = "host";
     public static final String USERNAME = "username";
-    @Deprecated
-    private static final String PASSWORD = "password";
     public static final String ENCODED_PASSWORD = "encoded_password";
 
     /** GitHub authorization token property name. */
@@ -178,25 +176,18 @@ public class HelperConfig {
      * Extract TeamCity authorization token from properties.
      *
      * @param props Properties, where token is placed.
-     * @param configName Configuration name.
+     * @param cfgName Configuration name.
      * @return Null or decoded auth token for Github.
      */
-    @Nullable static String prepareBasicHttpAuthToken(Properties props, String configName) {
-        final String user = getMandatoryProperty(props, USERNAME, configName);
-        String pwd = props.getProperty(PASSWORD);
-        boolean filled = !isNullOrEmpty(pwd);
+    @Nullable static String prepareBasicHttpAuthToken(Properties props, String cfgName) {
+        final String user = getMandatoryProperty(props, USERNAME, cfgName);
 
-        if (!filled) {
-            String enc = props.getProperty(ENCODED_PASSWORD);
+        String enc = props.getProperty(ENCODED_PASSWORD);
 
-            if(!isNullOrEmpty(enc)) {
-                pwd = PasswordEncoder.decode(enc);
-                filled = true;
-            }
-        }
-
-        if (!filled)
+        if (isNullOrEmpty(enc))
             return null;
+
+        String pwd = PasswordEncoder.decode(enc);
 
         return userPwdToToken(user, pwd);
     }
@@ -205,9 +196,9 @@ public class HelperConfig {
         return Base64Util.encodeUtf8String(user + ":" + pwd);
     }
 
-    public static String getMandatoryProperty(Properties props, String key, String configName) {
+    public static String getMandatoryProperty(Properties props, String key, String cfgName) {
         final String user = props.getProperty(key);
-        Preconditions.checkState(!isNullOrEmpty(user), key + " property should be filled in " + configName);
+        Preconditions.checkState(!isNullOrEmpty(user), key + " property should be filled in " + cfgName);
         return user;
     }
 
@@ -233,14 +224,6 @@ public class HelperConfig {
             e.printStackTrace();
             return new Properties();
         }
-    }
-
-
-    @NotNull public static File getLogsDirForServer(@QueryParam("serverId") String serverId) {
-        final File workDir = resolveWorkDir();
-        final String configName = prepareConfigName(serverId);
-        final Properties props = loadAuthProperties(workDir, configName);
-        return resolveLogs(workDir, props);
     }
 
     @NotNull static File resolveLogs(File workDir, Properties props) {
