@@ -18,7 +18,7 @@ package org.apache.ignite.ci.jira.ignited;
 
 import java.io.IOException;
 import java.util.Set;
-import org.apache.ignite.ci.jira.Ticket;
+import org.apache.ignite.ci.jira.pure.Ticket;
 import org.jetbrains.annotations.NotNull;
 
 /**

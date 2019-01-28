@@ -23,10 +23,14 @@ import com.google.gson.Gson;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
+import javax.inject.Inject;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.jira.Tickets;
+import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.util.HttpUtil;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,41 +44,38 @@ class Jira implements IJiraIntegration {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(Jira.class);
 
-    /** */
-    private String jiraUrl;
-
     /** JIRA ticket prefix. */
     @NotNull private String jiraTicketPrefix;
 
     /** JIRA authorization token. */
     private String jiraBasicAuthTok;
 
-    /** URL for JIRA integration. */
-    private String jiraApiUrl;
-
     /** Server id. */
     private String srvId;
+
+    /** Config. */
+    @Inject ITcBotConfig cfg;
 
     /** {@inheritDoc} */
     @Override public void init(String srvId) {
         this.srvId = srvId;
+
+        IJiraServerConfig jiraCfg = cfg.getJiraConfig(srvId);
+
         final File workDir = HelperConfig.resolveWorkDir();
 
         final String cfgName = HelperConfig.prepareConfigName(srvId);
 
         final Properties props = HelperConfig.loadAuthProperties(workDir, cfgName);
 
-        jiraUrl = props.getProperty(HelperConfig.JIRA_URL);
-
         jiraTicketPrefix = props.getProperty(HelperConfig.JIRA_TICKET_TEMPLATE, "IGNITE-");
 
         jiraBasicAuthTok = HelperConfig.prepareJiraHttpAuthToken(props);
-        jiraApiUrl = props.getProperty(HelperConfig.JIRA_API_URL);
     }
 
     /** {@inheritDoc} */
     @Override public String jiraUrl() {
-        return jiraUrl;
+        return cfg.getJiraConfig(srvId).getUrl();
     }
 
     /** {@inheritDoc} */
@@ -99,6 +100,8 @@ class Jira implements IJiraIntegration {
 
     /** {@inheritDoc} */
     @Override public String generateTicketUrl(String ticketFullName) {
+        @Nullable String jiraUrl = jiraUrl();
+
         Preconditions.checkState(!isNullOrEmpty(jiraUrl), "Jira URL is not configured for this server.");
 
         return jiraUrl + "browse/" + ticketFullName;
@@ -113,11 +116,6 @@ class Jira implements IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @Override public String getJiraApiUrl() {
-        return jiraApiUrl;
-    }
-
-    /** {@inheritDoc} */
     @Override public boolean isJiraTokenAvailable() {
         return !Strings.isNullOrEmpty(jiraBasicAuthTok);
     }
@@ -125,26 +123,41 @@ class Jira implements IJiraIntegration {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public String postJiraComment(String ticket, String comment) throws IOException {
-        if (isNullOrEmpty(jiraApiUrl))
-            throw new IllegalStateException("JIRA API URL is not configured for this server.");
+        String jiraApiUrl = restApiUrl();
 
         String url = jiraApiUrl + "issue/" + ticket + "/comment";
 
         return HttpUtil.sendPostAsStringToJira(jiraBasicAuthTok, url, "{\"body\": \"" + comment + "\"}");
     }
 
+    /** {@inheritDoc} */
+    @Override @NotNull public String restApiUrl() {
+        String jiraUrl = jiraUrl();
+
+        if (isNullOrEmpty(jiraUrl))
+            throw new IllegalStateException("JIRA API URL is not configured for this server.");
+
+        StringBuilder apiUrl = new StringBuilder();
+
+        apiUrl.append(jiraUrl);
+        if (!jiraUrl.endsWith("/"))
+            apiUrl.append("/");
+
+        apiUrl.append("rest/api/2/");
+
+        return apiUrl.toString();
+    }
+
     /**
-     * @param url Url.
+     * @param url Url, relative, should not contain any start slashes.
      * @return Response as gson string.
      */
     public String sendGetToJira(String url) throws IOException {
-        if (isNullOrEmpty(jiraApiUrl))
-            throw new IllegalStateException("JIRA API URL is not configured for this server.");
-
-        return HttpUtil.sendGetToJira(jiraBasicAuthTok, jiraApiUrl + url);
+        return HttpUtil.sendGetToJira(jiraBasicAuthTok, restApiUrl() + url);
     }
 
-    public String getServiceId() {
+    /** {@inheritDoc} */
+    @Override public String getServiceId() {
         return srvId;
     }
 }

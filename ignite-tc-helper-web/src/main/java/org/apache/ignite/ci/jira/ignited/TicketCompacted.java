@@ -18,9 +18,9 @@
 package org.apache.ignite.ci.jira.ignited;
 
 import com.google.common.base.Objects;
-import org.apache.ignite.ci.jira.Fields;
-import org.apache.ignite.ci.jira.Status;
-import org.apache.ignite.ci.jira.Ticket;
+import org.apache.ignite.ci.jira.pure.Fields;
+import org.apache.ignite.ci.jira.pure.Status;
+import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
@@ -35,6 +35,8 @@ public class TicketCompacted {
 
     /** Id of string: Fields/status/name, value compacted. */
     public int status;
+
+
 
     /**
      * @param ticket Jira ticket.

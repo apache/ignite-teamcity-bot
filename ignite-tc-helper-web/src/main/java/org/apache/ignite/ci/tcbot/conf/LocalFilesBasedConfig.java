@@ -53,6 +53,25 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
             });
     }
 
+    @Override public IJiraServerConfig getJiraConfig(String srvName) {
+        return getTrackedBranches().getJiraServer(srvName)
+            .orElseGet(() -> {
+                JiraServerConfig jCfg = new JiraServerConfig();
+
+                jCfg.name(srvName);
+
+                File workDir = HelperConfig.resolveWorkDir();
+
+                String cfgName = HelperConfig.prepareConfigName(srvName);
+
+                Properties props = HelperConfig.loadAuthProperties(workDir, cfgName);
+
+                jCfg.properties(props);
+
+                return jCfg;
+            });
+    }
+
     /** {@inheritDoc} */
     @Override public String primaryServerId() {
         String srvId = getTrackedBranches().primaryServerId();

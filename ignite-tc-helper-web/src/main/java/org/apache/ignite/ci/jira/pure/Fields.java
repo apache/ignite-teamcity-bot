@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.jira;
+package org.apache.ignite.ci.jira.pure;
 
 import com.google.common.base.MoreObjects;
 
@@ -26,10 +26,20 @@ public class Fields {
     /** Ticket status. */
     public Status status;
 
-    /** {@inheritDoc} */
+    /** Summary. */
+    public String summary;
+
+    /** Customfield 11050. */
+    public String customfield_11050;
+
+    /** Description. */
+    public String description;
+
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("status", status)
+            .add("summary", summary)
+            .add("customfield_11050", customfield_11050)
             .toString();
     }
 }

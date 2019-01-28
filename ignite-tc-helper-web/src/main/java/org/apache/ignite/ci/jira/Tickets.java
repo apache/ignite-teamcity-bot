@@ -19,6 +19,7 @@ package org.apache.ignite.ci.jira;
 
 import java.util.Collection;
 import java.util.Collections;
+import org.apache.ignite.ci.jira.pure.Ticket;
 
 /**
  * See example of GSON here

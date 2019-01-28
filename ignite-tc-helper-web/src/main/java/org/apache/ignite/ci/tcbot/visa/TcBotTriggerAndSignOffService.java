@@ -42,7 +42,7 @@ import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.ci.jira.Ticket;
+import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
@@ -250,6 +250,7 @@ public class TcBotTriggerAndSignOffService {
      */
     @NotNull public static String getTicketFullName(PullRequest pr, @NotNull String prefix) {
         String ticketId = "";
+
         if (pr.getTitle().toUpperCase().startsWith(prefix)) {
             int beginIdx = prefix.length();
             int endIdx = prefix.length();

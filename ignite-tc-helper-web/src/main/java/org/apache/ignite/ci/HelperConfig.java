@@ -59,9 +59,6 @@ public class HelperConfig {
     /** JIRA authorization token property name. */
     public static final String GIT_API_URL = "git.api_url";
 
-    /** JIRA authorization token property name. */
-    public static final String JIRA_API_URL = "jira.api_url";
-
     /** JIRA URL to build links to tickets. */
     public static final String JIRA_URL = "jira.url";
 

@@ -58,7 +58,7 @@ public interface IJiraIntegration {
     /**
      * Produce wrapper for collection of Jira tickets for given server.
      *
-     * @param url Tickets loading URL and parameters.
+     * @param url Tickets loading URL and parameters, URL is relative, should not contain any start slashes.
      * @return Jira tickets.
      */
     public Tickets getTicketsPage(String url);
@@ -78,7 +78,7 @@ public interface IJiraIntegration {
      */
     public String generateCommentUrl(String ticketFullName, int commentId);
 
-    String getJiraApiUrl();
+    String restApiUrl();
 
     /**
      * @return {@code True} if JIRA authorization token is available.

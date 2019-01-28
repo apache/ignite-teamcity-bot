@@ -50,4 +50,6 @@ public interface ITcBotConfig {
     }
 
     public ITcServerConfig getTeamcityConfig(String srvName);
+
+    public IJiraServerConfig getJiraConfig(String srvName);
 }

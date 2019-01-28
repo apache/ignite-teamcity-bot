@@ -32,8 +32,10 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
+import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
+import org.apache.ignite.ci.tcbot.conf.JiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
@@ -117,9 +119,15 @@ public class MockBasedTcBotModule extends AbstractModule {
 
                 String cfgName = HelperConfig.prepareConfigName(srvName);
 
-                Properties properties = HelperConfig.loadAuthProperties(workDir, cfgName);
+                return new TcServerConfig(srvName, HelperConfig.loadAuthProperties(workDir, cfgName));
+            }
 
-                return new TcServerConfig(srvName, properties);
+            @Override public IJiraServerConfig getJiraConfig(String srvName) {
+                File workDir = HelperConfig.resolveWorkDir();
+
+                String cfgName = HelperConfig.prepareConfigName(srvName);
+
+                return new JiraServerConfig(srvName, HelperConfig.loadAuthProperties(workDir, cfgName));
             }
         });
 

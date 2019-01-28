@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
+import org.apache.ignite.ci.tcbot.conf.JiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 
 /**
@@ -35,6 +36,9 @@ public class BranchesTracked {
 
     /** Additional list Servers to be used for validation of PRs, but not for tracking any branches. */
     private List<TcServerConfig> servers = new ArrayList<>();
+
+    /** JIRA config to be used . */
+    private List<JiraServerConfig> jiraServers = new ArrayList<>();
 
     /**
      * @return list of internal identifiers of branch.
@@ -88,5 +92,9 @@ public class BranchesTracked {
 
     public Optional<TcServerConfig> getServer(String name) {
         return servers.stream().filter(s -> name.equals(s.getName())).findAny();
+    }
+
+    public Optional<JiraServerConfig> getJiraServer(String name) {
+        return jiraServers.stream().filter(s -> name.equals(s.getName())).findAny();
     }
 }
