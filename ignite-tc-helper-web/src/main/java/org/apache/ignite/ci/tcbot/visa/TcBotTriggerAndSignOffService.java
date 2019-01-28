@@ -51,6 +51,7 @@ import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
@@ -128,6 +129,8 @@ public class TcBotTriggerAndSignOffService {
     @Inject ITcBotBgAuth tcBotBgAuth;
 
     @Inject PrChainsProcessor prChainsProcessor;
+
+    @Inject ITcBotConfig cfg;
 
     /** Jackson serializer. */
     private final ObjectMapper objMapper = new ObjectMapper();
@@ -639,7 +642,8 @@ public class TcBotTriggerAndSignOffService {
     @NotNull public String findDefaultBranchBuildType(String srvId) {
         StringBuilder buildTypeId = new StringBuilder();
 
-        HelperConfig.getTrackedBranches().get(DEFAULT_TRACKED_BRANCH_NAME)
+        cfg.getTrackedBranches()
+            .get(DEFAULT_TRACKED_BRANCH_NAME)
             .ifPresent(
                 b -> b.getChainsStream()
                     .filter(c -> Objects.equals(srvId, c.serverId))

@@ -28,7 +28,6 @@ public interface ITcBotConfig {
     /** Default server id. */
     String DEFAULT_SERVER_ID = "apache";
 
-
     public String primaryServerId();
 
     /**
@@ -50,5 +49,5 @@ public interface ITcBotConfig {
         return getTrackedBranches().getServerIds();
     }
 
-    public Properties getTeamcityConfig(String srvName);
+    public ITcServerConfig getTeamcityConfig(String srvName);
 }

@@ -31,7 +31,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.ChainAtServer;
 import org.apache.ignite.ci.tcbot.TcBotGeneralService;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
@@ -76,7 +75,7 @@ public class GetTrackedBranches {
     public Set<ChainAtServer> getSuites(@Nullable @QueryParam("server") String srvId) {
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        return HelperConfig.getTrackedBranches()
+        return CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class).getTrackedBranches()
             .getSuitesUnique()
             .stream()
             .filter(chainAtSrv ->
@@ -86,12 +85,15 @@ public class GetTrackedBranches {
             .collect(Collectors.toSet());
     }
 
+    /**
+     * Return all servers registered in TC Bot config: Both from tracked branches and from
+     */
     @GET
     @Path("getServerIds")
     public Set<String> getServerIds() {
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        return HelperConfig.getTrackedBranches()
+        return CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class)
                 .getServerIds()
                 .stream()
                 .filter(prov::hasAccess)

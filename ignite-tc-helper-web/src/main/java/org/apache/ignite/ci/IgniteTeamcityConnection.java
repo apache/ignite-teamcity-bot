@@ -28,6 +28,7 @@ import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.logs.BuildLogStreamChecker;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.agent.AgentsRef;
 import org.apache.ignite.ci.tcmodel.changes.Change;
@@ -119,7 +120,8 @@ public class IgniteTeamcityConnection implements ITeamcity {
     public void init(@Nullable String tcName) {
         this.tcName = tcName;
 
-        final Properties props = config.getTeamcityConfig(tcName);
+        ITcServerConfig tcCfg = this.config.getTeamcityConfig(tcName);
+        final Properties props = tcCfg.properties();
 
         final String hostConf = props.getProperty(HelperConfig.HOST, "https://ci.ignite.apache.org/");
 

@@ -33,6 +33,8 @@ import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
+import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -110,12 +112,14 @@ public class MockBasedTcBotModule extends AbstractModule {
             }
 
             /** {@inheritDoc} */
-            @Override public Properties getTeamcityConfig(String srvName) {
+            @Override public ITcServerConfig getTeamcityConfig(String srvName) {
                 File workDir = HelperConfig.resolveWorkDir();
 
                 String cfgName = HelperConfig.prepareConfigName(srvName);
 
-                return HelperConfig.loadAuthProperties(workDir, cfgName);
+                Properties properties = HelperConfig.loadAuthProperties(workDir, cfgName);
+
+                return new TcServerConfig(srvName, properties);
             }
         });
 
