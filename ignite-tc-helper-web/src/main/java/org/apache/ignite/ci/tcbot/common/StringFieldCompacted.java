@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import org.jetbrains.annotations.NotNull;
@@ -149,7 +150,7 @@ public class StringFieldCompacted {
             return false;
         StringFieldCompacted compacted = (StringFieldCompacted)o;
         return flag == compacted.flag &&
-            Objects.equal(data, compacted.data);
+            Arrays.equals(data, compacted.data);
     }
 
     /** {@inheritDoc} */
