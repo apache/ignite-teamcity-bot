@@ -20,6 +20,7 @@ import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.jira.pure.Fields;
 
 /**
  *
@@ -32,8 +33,18 @@ public class JiraServerConfig implements IJiraServerConfig {
      */
     private String projectCode;
 
+    /**
+     * Branch ticket template, if specified, tickets maching branches have another identification.
+     * For exaple some ticket having ID {@link #projectCode}-N1 will be commented, but a branch will be identified using
+     * {@link #branchTicketTemplate}N2 with another number of tickets. Search of branches will be performed using
+     * {@link #projectCode}-N1 ticket fields listed in {@link #branchTicketTemplateSearchFields}.
+     */
     private String branchTicketTemplate;
-    /** Branch ticket template search fields, list of JIRA fields IDs to be checked for finding out branch. */
+
+    /**
+     * Branch ticket template search fields, list of JIRA fields IDs to be checked for finding out branch.
+     * Available fields are field names from {@link Fields} class.
+     */
     private ArrayList<String> branchTicketTemplateSearchFields;
 
     private Properties props;

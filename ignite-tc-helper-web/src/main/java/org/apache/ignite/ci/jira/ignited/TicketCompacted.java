@@ -41,16 +41,24 @@ public class TicketCompacted {
     /** Summary, nullable because of older entries. */
     @Nullable private StringFieldCompacted summary = new StringFieldCompacted();
 
+    /** Custom field, to be queriable after persisting in Ignite, nullable because of older entry versions.  */
+    @Nullable private StringFieldCompacted customfield_11050 = new StringFieldCompacted();
+
+    /** Full description, nullable because of older entry versions.  */
+    @Nullable private StringFieldCompacted description = new StringFieldCompacted();
+
     /**
      * @param ticket Jira ticket.
      * @param comp Compactor.
-     * @param ticketTemplate Ticket name template.
+     * @param ticketForCommentPrefix Ticket name prefix.
      */
-    public TicketCompacted(Ticket ticket, IStringCompactor comp, String ticketTemplate) {
+    public TicketCompacted(Ticket ticket, IStringCompactor comp, String ticketForCommentPrefix) {
         id = ticket.id;
-        igniteId = Integer.valueOf(ticket.key.substring(ticketTemplate.length()));
+        igniteId = Integer.valueOf(ticket.key.substring(ticketForCommentPrefix.length()));
         status = comp.getStringId(ticket.fields.status.name);
         summary.setValue(ticket.fields.summary);
+        customfield_11050.setValue(ticket.fields.customfield_11050);
+        description.setValue(ticket.fields.description);
     }
 
     /**
@@ -65,6 +73,8 @@ public class TicketCompacted {
         ticket.fields = new Fields();
         ticket.fields.status = new Status(comp.getStringFromId(status));
         ticket.fields.summary = summary != null ? summary.getValue() : null;
+        ticket.fields.customfield_11050 = customfield_11050 != null ? customfield_11050.getValue() : null;
+        ticket.fields.description = description != null ? description.getValue() : null;
 
         return ticket;
     }
@@ -79,11 +89,13 @@ public class TicketCompacted {
         return id == compacted.id &&
             igniteId == compacted.igniteId &&
             status == compacted.status &&
-            Objects.equal(summary, compacted.summary);
+            Objects.equal(summary, compacted.summary) &&
+            Objects.equal(customfield_11050, compacted.customfield_11050) &&
+            Objects.equal(description, compacted.description);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(id, igniteId, status, summary);
+        return Objects.hashCode(id, igniteId, status, summary, customfield_11050, description);
     }
 }
