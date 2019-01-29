@@ -510,7 +510,8 @@ public class TcBotTriggerAndSignOffService {
         ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, credsProv);
 
         paTickets.forEach(ticket -> {
-            int ticketId = ticket.igniteId(jiraIntegration.ticketPrefix());
+            //todo multiple identification ways.
+            int ticketId = ticket.keyWithoutProject(jiraIntegration.ticketPrefix().replace("-", ""));
             String branch = gitHubConnIgnited.gitBranchPrefix() + ticketId;
 
             String defBtForMaster = findDefaultBranchBuildType(tcIgn.serverId());

@@ -29,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
  *
  */
 public class TicketCompacted {
+    public static final String PROJECT_DELIM = "-";
     /** Id. */
     public long id;
 
@@ -50,11 +51,11 @@ public class TicketCompacted {
     /**
      * @param ticket Jira ticket.
      * @param comp Compactor.
-     * @param ticketForCommentPrefix Ticket name prefix.
+     * @param projectCode project name for commenting jira.
      */
-    public TicketCompacted(Ticket ticket, IStringCompactor comp, String ticketForCommentPrefix) {
+    public TicketCompacted(Ticket ticket, IStringCompactor comp, String projectCode) {
         id = ticket.id;
-        igniteId = Integer.valueOf(ticket.key.substring(ticketForCommentPrefix.length()));
+        igniteId = ticket.keyWithoutProject(projectCode);
         status = comp.getStringId(ticket.fields.status.name);
         summary.setValue(ticket.fields.summary);
         customfield_11050.setValue(ticket.fields.customfield_11050);
@@ -63,13 +64,13 @@ public class TicketCompacted {
 
     /**
      * @param comp Compactor.
-     * @param ticketPrefix Ticket name fixed prefix for the project.
+     * @param projectCode project code for VISA and filtering tasks.
      */
-    public Ticket toTicket(IStringCompactor comp, String ticketPrefix) {
+    public Ticket toTicket(IStringCompactor comp, String projectCode) {
         Ticket ticket = new Ticket();
 
         ticket.id = id;
-        ticket.key = ticketPrefix + igniteId;
+        ticket.key = projectCode + PROJECT_DELIM + igniteId;
         ticket.fields = new Fields();
         ticket.fields.status = new Status(comp.getStringFromId(status));
         ticket.fields.summary = summary != null ? summary.getValue() : null;

@@ -24,4 +24,9 @@ public interface IJiraServerConfig {
      * Return JIRA URL, e.g. https://issues.apache.org/jira/
      */
     public String getUrl();
+
+    /**
+     * JIRA project code for filtering out tickets and for adding VISA (JIRA comments).
+     */
+    public String projectCodeForVisa();
 }

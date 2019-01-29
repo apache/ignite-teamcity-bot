@@ -62,15 +62,15 @@ class JiraIgnited implements IJiraIgnited {
     }
 
     /** {@inheritDoc} */
-    @NotNull @Override public String projectName() {
-        return jira.projectName();
+    @NotNull @Override public String projectCodeForVisa() {
+        return jira.projectCodeForVisa();
     }
 
     /** {@inheritDoc} */
     @Override public Set<Ticket> getTickets() {
         jiraTicketSync.ensureActualizeJiraTickets(srvId);
 
-        return jiraTicketDao.getTickets(srvIdMaskHigh, ticketPrefix());
+        return jiraTicketDao.getTickets(srvIdMaskHigh, projectCodeForVisa());
     }
 
     /** {@inheritDoc} */

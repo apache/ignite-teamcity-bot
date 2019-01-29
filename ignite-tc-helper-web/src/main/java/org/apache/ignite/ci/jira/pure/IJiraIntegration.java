@@ -26,15 +26,14 @@ import org.jetbrains.annotations.NotNull;
  */
 public interface IJiraIntegration {
 
+    @Deprecated
     /** @return JIRA ticket prefix. */
     @NotNull public String ticketPrefix();
 
     /**
      *
      */
-    @NotNull public default String projectName() {
-        return ticketPrefix().replaceAll("-", "");
-    }
+    @NotNull public String projectCodeForVisa();
 
     /**
      * @return Internal identified service ID.

@@ -83,4 +83,15 @@ public class JiraServerConfig implements IJiraServerConfig {
 
         return url;
     }
+
+    /** {@inheritDoc} */
+    @Override public String projectCodeForVisa() {
+        if(Strings.isNullOrEmpty(projectCode) && props!=null) {
+            String ticketPref = props.getProperty(HelperConfig.JIRA_TICKET_TEMPLATE, "IGNITE-");
+
+            return ticketPref.replaceAll("-", "");
+        }
+
+        return projectCode;
+    }
 }

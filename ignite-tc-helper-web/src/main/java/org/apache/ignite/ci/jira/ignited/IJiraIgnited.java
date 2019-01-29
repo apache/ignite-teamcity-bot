@@ -28,12 +28,13 @@ public interface IJiraIgnited {
     /**
      *
      */
+    @Deprecated
     @NotNull public String ticketPrefix();
 
     /**
-     *
+     * JIRA project code for filtering out tickets and for adding VISA (JIRA comments).
      */
-    @NotNull public String projectName();
+    @NotNull public String projectCodeForVisa();
 
 
     /**

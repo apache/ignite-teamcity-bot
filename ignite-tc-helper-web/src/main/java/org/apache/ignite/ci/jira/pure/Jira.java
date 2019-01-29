@@ -45,6 +45,7 @@ class Jira implements IJiraIntegration {
     private static final Logger logger = LoggerFactory.getLogger(Jira.class);
 
     /** JIRA ticket prefix. */
+    @Deprecated
     @NotNull private String jiraTicketPrefix;
 
     /** JIRA authorization token. */
@@ -76,6 +77,11 @@ class Jira implements IJiraIntegration {
     /** {@inheritDoc} */
     @Override public String jiraUrl() {
         return cfg.getJiraConfig(srvId).getUrl();
+    }
+
+    /** {@inheritDoc} */
+    @Override public String projectCodeForVisa() {
+        return cfg.getJiraConfig(srvId).projectCodeForVisa();
     }
 
     /** {@inheritDoc} */
