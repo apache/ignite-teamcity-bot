@@ -94,8 +94,8 @@ public class JiraTicketSync {
             .map(Field::getName)
             .collect(Collectors.joining(","));
 
-        String projectName = jira.projectCodeForVisa();
-        String baseUrl = "search?jql=" + escape("project=" + projectName + " order by updated DESC")
+        String projectCode = jira.projectCodeForVisa();
+        String baseUrl = "search?jql=" + escape("project=" + projectCode + " order by updated DESC")
             + "&" +
             "fields=" + reqFields +
             "&maxResults=100";
@@ -107,7 +107,7 @@ public class JiraTicketSync {
         if (F.isEmpty(page))
             return "Something went wrong - no tickets found. Check jira availability.";
 
-        int ticketsSaved = jiraDao.saveChunk(srvIdMaskHigh, page, jira.projectCodeForVisa());
+        int ticketsSaved = jiraDao.saveChunk(srvIdMaskHigh, page, projectCode);
 
         int ticketsProcessed = page.size();
 
@@ -122,7 +122,7 @@ public class JiraTicketSync {
                 if (F.isEmpty(page))
                     break;
 
-                int savedNow = jiraDao.saveChunk(srvIdMaskHigh, page, jira.projectCodeForVisa());
+                int savedNow = jiraDao.saveChunk(srvIdMaskHigh, page, projectCode);
 
                 ticketsSaved += savedNow;
                 ticketsProcessed += page.size();

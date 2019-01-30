@@ -70,7 +70,7 @@ class JiraIgnited implements IJiraIgnited {
     @Override public Set<Ticket> getTickets() {
         jiraTicketSync.ensureActualizeJiraTickets(srvId);
 
-        return jiraTicketDao.getTickets(srvIdMaskHigh, projectCodeForVisa());
+        return jiraTicketDao.getTickets(srvIdMaskHigh, jira.projectCodeForVisa());
     }
 
     /** {@inheritDoc} */
