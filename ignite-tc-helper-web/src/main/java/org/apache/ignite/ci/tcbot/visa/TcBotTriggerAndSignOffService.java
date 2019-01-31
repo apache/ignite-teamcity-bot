@@ -278,7 +278,10 @@ public class TcBotTriggerAndSignOffService {
      * @param prefix Ticket prefix.
      * @return Branch number or null.
      */
-    @Nullable public static String findFixPrefixedNumber(@NotNull String prTitle, @NotNull String prefix) {
+    @Nullable public static String findFixPrefixedNumber(@Nullable String prTitle, @NotNull String prefix) {
+        if(Strings.isNullOrEmpty(prTitle))
+            return null;
+
         int idxOfBranchNum = prTitle.toUpperCase().indexOf(prefix.toUpperCase());
 
         if (idxOfBranchNum < 0)
@@ -541,13 +544,14 @@ public class TcBotTriggerAndSignOffService {
         ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, credsProv);
 
         paTickets.forEach(ticket -> {
-            //todo multiple identification ways.
-            int ticketId = ticket.keyWithoutProject(jiraIntegration.ticketPrefix().replace("-", ""));
-            String branch = gitHubConnIgnited.gitBranchPrefix() + ticketId;
+            String branch = resolveTcBranch(gitHubConnIgnited, ticket, jiraIntegration.config());
+
+            if (branch == null)
+                return; // nothing to do if branch was not resolved
 
             String defBtForMaster = findDefaultBranchBuildType(tcIgn.serverId());
 
-            if(tcIgn.getAllBuildsCompacted(defBtForMaster, branch).isEmpty())
+            if (tcIgn.getAllBuildsCompacted(defBtForMaster, branch).isEmpty())
                 return; //Skipping contributions without builds
 
             ContributionToCheck contribution = new ContributionToCheck();
@@ -556,7 +560,7 @@ public class TcBotTriggerAndSignOffService {
             contribution.jiraIssueUrl = jiraIntegration.generateTicketUrl( ticket.key);
             contribution.tcBranchName = branch;
 
-            contribution.prNumber = -ticketId;
+            contribution.prNumber = -ticket.keyWithoutProject(jiraIntegration.config().projectCodeForVisa());
             contribution.prTitle = ticket.fields.summary;
             contribution.prHtmlUrl = "";
             contribution.prTimeUpdate = ""; //todo ticket updateTime
@@ -570,6 +574,42 @@ public class TcBotTriggerAndSignOffService {
         return contribsList;
     }
 
+    @Nullable public String resolveTcBranch(IGitHubConnIgnited gitHubConnIgnited,
+        Ticket ticket, IJiraServerConfig jiraCfg) {
+        String branchNumPrefix = jiraCfg.branchNumPrefix();
+
+        if (Strings.isNullOrEmpty(branchNumPrefix)) {
+            //an easy way, no special branch and ticket mappings specified, use project code.
+            int ticketId = ticket.keyWithoutProject(jiraCfg.projectCodeForVisa());
+
+            return gitHubConnIgnited.gitBranchPrefix() + ticketId;
+        }
+
+        String branchJiraIdentification = findFixPrefixedNumber(ticket.fields.summary, branchNumPrefix);
+
+        if (!Strings.isNullOrEmpty(branchJiraIdentification))
+            return convertJiraToGit(branchJiraIdentification, gitHubConnIgnited, branchNumPrefix);
+
+        String branchJiraIdentification2 = findFixPrefixedNumber(ticket.fields.customfield_11050, branchNumPrefix);
+
+        return convertJiraToGit(branchJiraIdentification2, gitHubConnIgnited, branchNumPrefix);
+
+    }
+
+    /**
+     * Converts JIRA notation branch name to actual git branch name. Usually it is just lower-casing, but any mapping may be configured.
+     * @param branchJiraIdentification Branch jira identification.
+     * @param gitHubConnIgnited Git hub connection ignited.
+     * @param branchNumPrefix Branch number prefix.
+     */
+    public String convertJiraToGit(String branchJiraIdentification, IGitHubConnIgnited gitHubConnIgnited,
+        String branchNumPrefix) {
+        if (Strings.isNullOrEmpty(branchJiraIdentification))
+            return null;
+
+        return gitHubConnIgnited.gitBranchPrefix() + branchJiraIdentification.substring(branchNumPrefix.length());
+    }
+
     /**
      * @param tickets Tickets.
      * @param pr Pr.
@@ -577,6 +617,7 @@ public class TcBotTriggerAndSignOffService {
      */
     @Nullable public String determineJiraId(Collection<Ticket> tickets, PullRequest pr, IJiraServerConfig jiraCfg) {
         String branchNumPrefix = jiraCfg.branchNumPrefix();
+
         if (Strings.isNullOrEmpty(branchNumPrefix)) {
             //an easy way, no special branch and ticket mappings specified, use project code.
             String jiraPrefix = jiraCfg.projectCodeForVisa() + TicketCompacted.PROJECT_DELIM;
