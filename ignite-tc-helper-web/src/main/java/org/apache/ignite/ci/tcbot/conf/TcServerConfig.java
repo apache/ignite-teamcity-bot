@@ -16,8 +16,11 @@
  */
 package org.apache.ignite.ci.tcbot.conf;
 
+import com.google.common.base.Strings;
 import java.util.Properties;
 import javax.annotation.Nonnull;
+import org.apache.ignite.ci.HelperConfig;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -31,7 +34,8 @@ public class TcServerConfig implements ITcServerConfig {
     @Nullable String reference;
 
     @Nullable private Properties props;
-
+    /** Host. */
+    @Nullable private String host;
 
     public TcServerConfig() {
 
@@ -57,6 +61,24 @@ public class TcServerConfig implements ITcServerConfig {
     /** {@inheritDoc} */
     @Override public String reference() {
         return reference;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String host() {
+        final String hostConf = hostConfigured().trim();
+
+        return hostConf + (hostConf.endsWith("/") ? "" : "/");
+    }
+
+    /**
+     * Configured value for host.
+     */
+    @NotNull
+    public String hostConfigured() {
+        if (Strings.isNullOrEmpty(host))
+            return props.getProperty(HelperConfig.HOST, "https://ci.ignite.apache.org/");
+
+        return host;
     }
 
     /**

@@ -115,15 +115,13 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    public void init(@Nullable String tcName) {
+    @Override public void init(@Nullable String tcName) {
         this.tcName = tcName;
 
         ITcServerConfig tcCfg = this.config.getTeamcityConfig(tcName);
         final Properties props = tcCfg.properties();
 
-        final String hostConf = props.getProperty(HelperConfig.HOST, "https://ci.ignite.apache.org/");
-
-        this.host = hostConf.trim() + (hostConf.endsWith("/") ? "" : "/");
+        this.host = tcCfg.host();
 
         try {
             if (!Strings.isNullOrEmpty(props.getProperty(HelperConfig.USERNAME))
@@ -151,7 +149,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return basicAuthTok != null;
     }
 
-
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public List<Agent> agents(boolean connected, boolean authorized) {
@@ -178,7 +175,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
                 return file;
             }
-            String url = host + "downloadBuildLog.html" + "?buildId=" + buildIdStr + "&archived=true";
+            String url = host() + "downloadBuildLog.html" + "?buildId=" + buildIdStr + "&archived=true";
 
             try {
                 HttpUtil.sendGetCopyToFile(basicAuthTok, url, file);
@@ -246,7 +243,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
             "    </properties>\n" +
             "</build>";
 
-        String url = host + "app/rest/buildQueue";
+        String url = host() + "app/rest/buildQueue";
 
         try {
             logger.info("Triggering build: buildTypeId={}, branchName={}, cleanRebuild={}, queueAtTop={}",
@@ -318,12 +315,12 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @Override public List<Project> getProjects() {
-        return sendGetXmlParseJaxb(host + "app/rest/latest/projects", ProjectsList.class).projects();
+        return sendGetXmlParseJaxb(host() + "app/rest/latest/projects", ProjectsList.class).projects();
     }
 
     /** {@inheritDoc} */
     @Override public List<BuildType> getBuildTypes(String projectId) {
-        return sendGetXmlParseJaxb(host + "app/rest/latest/projects/" + projectId, Project.class)
+        return sendGetXmlParseJaxb(host() + "app/rest/latest/projects/" + projectId, Project.class)
             .getBuildTypesNonNull();
     }
 
@@ -352,7 +349,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public BuildTypeFull getBuildType(String buildTypeId) {
-        return sendGetXmlParseJaxb(host + "app/rest/latest/buildTypes/id:" +
+        return sendGetXmlParseJaxb(host() + "app/rest/latest/buildTypes/id:" +
             buildTypeId, BuildTypeFull.class);
     }
 
@@ -367,7 +364,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
      * @param elem Element class.
      */
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {
-        return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), elem);
+        return sendGetXmlParseJaxb(host() + (href.startsWith("/") ? href.substring(1) : href), elem);
     }
 
     /** {@inheritDoc} */
@@ -443,7 +440,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @Override public List<BuildRef> getBuildRefsPage(String fullUrl, AtomicReference<String> outNextPage) {
         String relPath = "app/rest/latest/builds?locator=defaultFilter:false";
         String relPathSelected = Strings.isNullOrEmpty(fullUrl) ? relPath : fullUrl;
-        String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
+        String url = host() + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
         Builds builds = sendGetXmlParseJaxb(url, Builds.class);
 
         outNextPage.set(Strings.emptyToNull(builds.nextHref()));
@@ -455,7 +452,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @Override public SortedSet<MuteInfo> getMutesPage(String buildTypeId, String fullUrl, AtomicReference<String> nextPage) {
         String relPath = "app/rest/mutes?locator=project:(id:" + buildTypeId + ')';
         String relPathSelected = Strings.isNullOrEmpty(fullUrl) ? relPath : fullUrl;
-        String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
+        String url = host() + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
 
         Mutes mutes = sendGetXmlParseJaxb(url, Mutes.class);
 
@@ -468,7 +465,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @AutoProfiling
     @Override public TestOccurrencesFull getTestsPage(int buildId, @Nullable String href, boolean testDtls) {
         String relPathSelected = Strings.isNullOrEmpty(href) ? testsStartHref(buildId, testDtls) : href;
-        String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
+        String url = host() + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
         return sendGetXmlParseJaxb(url, TestOccurrencesFull.class);
     }
 

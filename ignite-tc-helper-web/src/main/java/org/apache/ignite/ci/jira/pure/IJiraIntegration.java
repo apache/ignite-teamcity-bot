@@ -63,9 +63,6 @@ public interface IJiraIntegration {
      */
     public Tickets getTicketsPage(String url);
 
-    /** */
-    public String jiraUrl();
-
     /**
      * @param ticketFullName Ticket full name (e.g IGNITE-8331)
      * @return URL which is used as link to Jira ticket with specified name.

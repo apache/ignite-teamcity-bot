@@ -75,13 +75,8 @@ class Jira implements IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @Override public String jiraUrl() {
-        return cfg.getJiraConfig(srvId).getUrl();
-    }
-
-    /** {@inheritDoc} */
     @Override public String projectCodeForVisa() {
-        return cfg.getJiraConfig(srvId).projectCodeForVisa();
+        return config().projectCodeForVisa();
     }
 
     /** {@inheritDoc} */
@@ -106,7 +101,7 @@ class Jira implements IJiraIntegration {
 
     /** {@inheritDoc} */
     @Override public String generateTicketUrl(String ticketFullName) {
-        @Nullable String jiraUrl = jiraUrl();
+        @Nullable String jiraUrl = config().getUrl();
 
         Preconditions.checkState(!isNullOrEmpty(jiraUrl), "Jira URL is not configured for this server.");
 
@@ -143,7 +138,7 @@ class Jira implements IJiraIntegration {
 
     /** {@inheritDoc} */
     @Override @NotNull public String restApiUrl() {
-        String jiraUrl = jiraUrl();
+        String jiraUrl = config().getUrl();
 
         if (isNullOrEmpty(jiraUrl))
             throw new IllegalStateException("JIRA API URL is not configured for this server.");

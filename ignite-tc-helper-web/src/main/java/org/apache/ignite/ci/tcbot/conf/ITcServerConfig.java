@@ -22,10 +22,13 @@ import java.util.Properties;
  * Teamcity Server configuration.
  */
 public interface ITcServerConfig {
+    @Deprecated
     public Properties properties();
 
     /**
      * @return Another TC Server (service) config name to use settings from. Filled only for server aliases.
      */
     public String reference();
+
+    public String host();
 }
