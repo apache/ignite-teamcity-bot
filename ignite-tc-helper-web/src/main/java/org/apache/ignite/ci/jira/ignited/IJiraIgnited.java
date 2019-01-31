@@ -19,6 +19,7 @@ package org.apache.ignite.ci.jira.ignited;
 import java.io.IOException;
 import java.util.Set;
 import org.apache.ignite.ci.jira.pure.Ticket;
+import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -31,10 +32,6 @@ public interface IJiraIgnited {
     @Deprecated
     @NotNull public String ticketPrefix();
 
-    /**
-     * JIRA project code for filtering out tickets and for adding VISA (JIRA comments).
-     */
-    @NotNull public String projectCodeForVisa();
 
 
     /**
@@ -63,4 +60,6 @@ public interface IJiraIgnited {
      * @throws IllegalStateException If can't find URL to the JIRA.
      */
     public String postJiraComment(String ticket, String comment) throws IOException;
+
+    public IJiraServerConfig config();
 }

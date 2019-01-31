@@ -16,6 +16,8 @@
  */
 package org.apache.ignite.ci.tcbot.conf;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Abstract JIRA server config.
  */
@@ -29,4 +31,9 @@ public interface IJiraServerConfig {
      * JIRA project code for filtering out tickets and for adding VISA (JIRA comments).
      */
     public String projectCodeForVisa();
+
+    /**
+     * @return PR name and branch name matching number prefix
+     */
+    @Nullable public String branchNumPrefix();
 }

@@ -21,6 +21,7 @@ import java.util.Set;
 import javax.inject.Inject;
 import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.jetbrains.annotations.NotNull;
 
@@ -61,10 +62,6 @@ class JiraIgnited implements IJiraIgnited {
         return jira.ticketPrefix();
     }
 
-    /** {@inheritDoc} */
-    @NotNull @Override public String projectCodeForVisa() {
-        return jira.projectCodeForVisa();
-    }
 
     /** {@inheritDoc} */
     @Override public Set<Ticket> getTickets() {
@@ -86,5 +83,10 @@ class JiraIgnited implements IJiraIgnited {
     /** {@inheritDoc} */
     @Override public String postJiraComment(String ticket, String comment) throws IOException {
         return jira.postJiraComment(ticket, comment);
+    }
+
+    /** {@inheritDoc} */
+    @Override public IJiraServerConfig config() {
+        return jira.config();
     }
 }

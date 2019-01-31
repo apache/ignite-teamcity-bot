@@ -42,14 +42,15 @@ import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.jira.ignited.TicketCompacted;
 import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
-import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
+import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -112,9 +113,6 @@ public class TcBotTriggerAndSignOffService {
     /** Direct connection to JIRA provider */
     @Inject IJiraIgnitedProvider jiraIgnProv;
 
-    /** Direct connection to JIRA provider */
-    @Inject IJiraIntegrationProvider jiraPureProvider;
-
     /** */
     @Inject private VisasHistoryStorage visasHistStorage;
 
@@ -129,6 +127,7 @@ public class TcBotTriggerAndSignOffService {
 
     @Inject PrChainsProcessor prChainsProcessor;
 
+    /** Config. */
     @Inject ITcBotConfig cfg;
 
     /** Jackson serializer. */
@@ -262,6 +261,39 @@ public class TcBotTriggerAndSignOffService {
         }
 
         return ticketId;
+    }
+
+
+    /**
+     * @param pr Pull Request.
+     * @param prefix Ticket prefix.
+     * @return Branch number or null.
+     */
+    @Nullable public static String findFixPrefixedNumber(PullRequest pr, @NotNull String prefix) {
+
+        return findFixPrefixedNumber(pr.getTitle(), prefix);
+    }
+    /**
+     * @param prTitle Pull Request title prefix or other text to find constant-prefix text.
+     * @param prefix Ticket prefix.
+     * @return Branch number or null.
+     */
+    @Nullable public static String findFixPrefixedNumber(@NotNull String prTitle, @NotNull String prefix) {
+        int idxOfBranchNum = prTitle.toUpperCase().indexOf(prefix.toUpperCase());
+
+        if (idxOfBranchNum < 0)
+            return null;
+
+        int beginIdx = prefix.length() + idxOfBranchNum;
+        int endIdx = beginIdx;
+
+        while (endIdx < prTitle.length() && Character.isDigit(prTitle.charAt(endIdx)))
+            endIdx++;
+
+        if (endIdx == beginIdx)
+            return null;
+
+        return prefix + prTitle.substring(beginIdx, endIdx);
     }
 
     @NotNull public String triggerBuildsAndObserve(
@@ -475,6 +507,9 @@ public class TcBotTriggerAndSignOffService {
         if (requests == null)
             return null;
 
+        Set<Ticket> tickets = jiraIntegration.getTickets();
+
+        List<Ticket> paTickets = tickets.stream().filter(Ticket::isActiveContribution).collect(Collectors.toList());
 
         List<ContributionToCheck> contribsList = requests.stream().map(pr -> {
             ContributionToCheck check = new ContributionToCheck();
@@ -493,19 +528,15 @@ public class TcBotTriggerAndSignOffService {
                 check.prAuthorAvatarUrl = "";
             }
 
-            String prefix = jiraIntegration.ticketPrefix();
-            check.jiraIssueId = Strings.emptyToNull(getTicketFullName(pr, prefix));
+            IJiraServerConfig jiraCfg = jiraIntegration.config();
+
+            check.jiraIssueId = determineJiraId(tickets, pr, jiraCfg);
 
             if (!Strings.isNullOrEmpty(check.jiraIssueId))
                 check.jiraIssueUrl = jiraIntegration.generateTicketUrl(check.jiraIssueId);
 
             return check;
         }).collect(Collectors.toList());
-
-
-        Set<Ticket> tickets = jiraIntegration.getTickets();
-
-        List<Ticket> paTickets = tickets.stream().filter(Ticket::isActiveContribution).collect(Collectors.toList());
 
         ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, credsProv);
 
@@ -537,6 +568,49 @@ public class TcBotTriggerAndSignOffService {
         });
 
         return contribsList;
+    }
+
+    /**
+     * @param tickets Tickets.
+     * @param pr Pr.
+     * @param jiraCfg Jira config.
+     */
+    @Nullable public String determineJiraId(Collection<Ticket> tickets, PullRequest pr, IJiraServerConfig jiraCfg) {
+        String branchNumPrefix = jiraCfg.branchNumPrefix();
+        if (Strings.isNullOrEmpty(branchNumPrefix)) {
+            //an easy way, no special branch and ticket mappings specified, use project code.
+            String jiraPrefix = jiraCfg.projectCodeForVisa() + TicketCompacted.PROJECT_DELIM;
+
+            return findFixPrefixedNumber(pr, jiraPrefix);
+        }
+
+        String prTitle = pr.getTitle();
+
+        String branchNum = findFixPrefixedNumber(prTitle, branchNumPrefix);
+
+        if (branchNum == null) // PR does not mention
+            return null;
+
+        return tickets.stream()
+            .filter(t -> mentionsBranch(branchNum, t))
+            .findFirst()
+            .map(t -> t.key).orElse(null);
+    }
+
+    /**
+     * @param branchName Full branch name in jira.
+     * @param ticket Ticket.
+     */
+    public boolean mentionsBranch(String branchName, Ticket ticket) {
+        String summary = ticket.fields.summary;
+        if (summary != null && summary.contains(branchName))
+            return true;
+
+        String val = ticket.fields.customfield_11050;
+        if (val != null && val.contains(branchName))
+            return true;
+
+        return false;
     }
 
     @Nonnull private List<BuildRefCompacted> findBuildsForPr(String suiteId, String prId,

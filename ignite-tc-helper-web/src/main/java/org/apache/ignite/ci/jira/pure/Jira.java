@@ -127,6 +127,11 @@ class Jira implements IJiraIntegration {
     }
 
     /** {@inheritDoc} */
+    @Override public IJiraServerConfig config() {
+        return cfg.getJiraConfig(srvId);
+    }
+
+    /** {@inheritDoc} */
     @AutoProfiling
     @Override public String postJiraComment(String ticket, String comment) throws IOException {
         String jiraApiUrl = restApiUrl();

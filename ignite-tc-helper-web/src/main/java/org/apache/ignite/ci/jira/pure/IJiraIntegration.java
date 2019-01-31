@@ -19,6 +19,7 @@ package org.apache.ignite.ci.jira.pure;
 
 import java.io.IOException;
 import org.apache.ignite.ci.jira.Tickets;
+import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -83,4 +84,6 @@ public interface IJiraIntegration {
      * @return {@code True} if JIRA authorization token is available.
      */
     boolean isJiraTokenAvailable();
+
+    public IJiraServerConfig config();
 }

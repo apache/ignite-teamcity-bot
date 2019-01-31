@@ -21,11 +21,13 @@ import java.util.ArrayList;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.jira.pure.Fields;
+import org.jetbrains.annotations.Nullable;
 
 /**
  *
  */
 public class JiraServerConfig implements IJiraServerConfig {
+    /** Service (server) Name. */
     private String name;
 
     /**
@@ -34,20 +36,28 @@ public class JiraServerConfig implements IJiraServerConfig {
     private String projectCode;
 
     /**
-     * Branch ticket template, if specified, tickets maching branches have another identification.
+     * Branch number prefix. Optional, if not present {@link #projectCode}-NNNNN is searched.
+     * But if branch has different enumeration, this prefix will be searched instead.
+     * If specified, that meant tickets maching branches have another identification.
      * For exaple some ticket having ID {@link #projectCode}-N1 will be commented, but a branch will be identified using
-     * {@link #branchTicketTemplate}N2 with another number of tickets. Search of branches will be performed using
-     * {@link #projectCode}-N1 ticket fields listed in {@link #branchTicketTemplateSearchFields}.
+     * {@link #branchNumPrefix}N2 with another number.
+     *
+     * Search of branches will be performed using data in JIRA ticket fields for
+     * {@link #projectCode}-N1, fields are listed in {@link #branchNumPrefixSearchFields}.
      */
-    private String branchTicketTemplate;
+    private String branchNumPrefix;
 
     /**
      * Branch ticket template search fields, list of JIRA fields IDs to be checked for finding out branch.
      * Available fields are field names from {@link Fields} class.
      */
-    private ArrayList<String> branchTicketTemplateSearchFields;
+    private ArrayList<String> branchNumPrefixSearchFields;
 
     private Properties props;
+
+    /**
+     * JIRA Server URL. HTTPs is highly recommended.
+     */
     private String url;
 
     public JiraServerConfig() {
@@ -93,5 +103,10 @@ public class JiraServerConfig implements IJiraServerConfig {
         }
 
         return projectCode;
+    }
+
+    /** {@inheritDoc} */
+    @Nullable @Override public String branchNumPrefix() {
+        return Strings.emptyToNull(branchNumPrefix);
     }
 }

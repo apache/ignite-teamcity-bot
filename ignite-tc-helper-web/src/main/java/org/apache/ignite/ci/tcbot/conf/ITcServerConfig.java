@@ -24,5 +24,8 @@ import java.util.Properties;
 public interface ITcServerConfig {
     public Properties properties();
 
+    /**
+     * @return Another TC Server (service) config name to use settings from. Filled only for server aliases.
+     */
     public String reference();
 }
