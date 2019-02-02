@@ -13,6 +13,7 @@
 # IDEA project
 .idea/
 *.iml
+*.ipr
 
 # gradle build files
 .gradle/
