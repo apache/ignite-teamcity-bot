@@ -14,26 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity.ignited;
+package org.apache.ignite.ci.tcbot.conf;
 
-import javax.annotation.Nullable;
-import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
+import java.util.Properties;
 
 /**
- * Provides instance of particular cache-based teamcity connection.
+ * Teamcity Server configuration.
  */
-public interface ITeamcityIgnitedProvider {
-    public boolean hasAccess(String srvId, @Nullable ICredentialsProv prov);
+public interface ITcServerConfig {
+    @Deprecated
+    public Properties properties();
 
     /**
-     * @param srvId Server id.
-     * @param prov Prov.
+     * @return Another TC Server (service) config name to use settings from. Filled only for server aliases.
      */
-    public ITeamcityIgnited server(String srvId, @Nullable ICredentialsProv prov);
+    public String reference();
 
-    default void checkAccess(@Nullable String srvId, ICredentialsProv credsProv) {
-        if (!hasAccess(srvId, credsProv))
-            throw ServiceUnauthorizedException.noCreds(srvId);
-    }
+    public String host();
 }

@@ -15,9 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.jira;
-
-import com.google.common.base.MoreObjects;
+package org.apache.ignite.ci.jira.pure;
 
 /**
  * Status for Jira ticket.

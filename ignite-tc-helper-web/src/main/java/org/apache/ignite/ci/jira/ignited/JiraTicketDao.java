@@ -30,7 +30,8 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.jira.Ticket;
+import org.apache.ignite.ci.di.cache.GuavaCached;
+import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.internal.U;
@@ -60,10 +61,11 @@ public class JiraTicketDao {
 
     /**
      * @param srvIdMaskHigh Server id mask high.
-     * @param ticketPrefix Fixed prefix for JIRA tickets.
+     * @param projectCode project code. WIth delim gives Fixed prefix for JIRA tickets.
      * @return Jira tickets.
      */
-    public Set<Ticket> getTickets(int srvIdMaskHigh, String ticketPrefix) {
+    @GuavaCached(expireAfterWriteSecs = 60, softValues = true)
+    public Set<Ticket> getTickets(int srvIdMaskHigh, String projectCode) {
         Preconditions.checkNotNull(jiraCache, "init() was not called");
         long srvId = (long) srvIdMaskHigh << 32;
 
@@ -71,7 +73,7 @@ public class JiraTicketDao {
 
         for (Cache.Entry<Long, TicketCompacted> entry : jiraCache) {
             if ((entry.getKey() & srvId) == srvId)
-                res.add(entry.getValue().toTicket(compactor, ticketPrefix));
+                res.add(entry.getValue().toTicket(compactor, projectCode));
         }
 
         return res;
@@ -92,11 +94,11 @@ public class JiraTicketDao {
      * Save small part of loaded mutes.
      * @param srvIdMaskHigh Server id mask high.
      * @param chunk Chunk.
-     * @param ticketPrefix Ticket name template.
+     * @param projectCode Project code for contributions listing and for comments.
      * @return number of tickets totally saved.
      */
     @AutoProfiling
-    public int saveChunk(int srvIdMaskHigh, Collection<Ticket> chunk, String ticketPrefix) {
+    public int saveChunk(int srvIdMaskHigh, Collection<Ticket> chunk, String projectCode) {
         Preconditions.checkNotNull(jiraCache, "init() was not called");
 
         if (F.isEmpty(chunk))
@@ -105,8 +107,8 @@ public class JiraTicketDao {
         Map<Long, TicketCompacted> compactedTickets = new HashMap<>(U.capacity(chunk.size()));
 
         for (Ticket ticket : chunk) {
-            long key = ticketToCacheKey(srvIdMaskHigh, ticket.igniteId(ticketPrefix));
-            TicketCompacted val = new TicketCompacted(ticket, compactor, ticketPrefix);
+            long key = ticketToCacheKey(srvIdMaskHigh, ticket.keyWithoutProject(projectCode));
+            TicketCompacted val = new TicketCompacted(ticket, compactor, projectCode);
 
             compactedTickets.put(key, val);
         }

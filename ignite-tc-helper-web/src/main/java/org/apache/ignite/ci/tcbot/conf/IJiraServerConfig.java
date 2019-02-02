@@ -14,26 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity.ignited;
+package org.apache.ignite.ci.tcbot.conf;
 
-import javax.annotation.Nullable;
-import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
+import com.google.common.base.Strings;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Provides instance of particular cache-based teamcity connection.
+ * Abstract JIRA server config.
  */
-public interface ITeamcityIgnitedProvider {
-    public boolean hasAccess(String srvId, @Nullable ICredentialsProv prov);
+public interface IJiraServerConfig {
+    /**
+     * Return JIRA URL, e.g. https://issues.apache.org/jira/
+     */
+    public String getUrl();
 
     /**
-     * @param srvId Server id.
-     * @param prov Prov.
+     * JIRA project code for filtering out tickets and for adding VISA (JIRA comments).
      */
-    public ITeamcityIgnited server(String srvId, @Nullable ICredentialsProv prov);
+    public String projectCodeForVisa();
 
-    default void checkAccess(@Nullable String srvId, ICredentialsProv credsProv) {
-        if (!hasAccess(srvId, credsProv))
-            throw ServiceUnauthorizedException.noCreds(srvId);
+    /**
+     * @return PR name and branch name matching number prefix
+     */
+    @Nullable
+    public String branchNumPrefix();
+
+    @Nullable
+    public String decodedHttpAuthToken();
+
+    /**
+     * @return {@code True} if JIRA authorization token is available.
+     */
+    public default boolean isJiraTokenAvailable() {
+        return !Strings.isNullOrEmpty(decodedHttpAuthToken());
     }
 }

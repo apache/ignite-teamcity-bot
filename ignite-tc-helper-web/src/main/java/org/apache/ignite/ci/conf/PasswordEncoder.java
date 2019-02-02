@@ -89,7 +89,7 @@ public class PasswordEncoder {
         return parseHexBinary(Strings.padStart(Integer.toHexString(length), 2, '0'));
     }
 
-    public static void main(String[] args) {
+    public static void main0(String[] args) {
         String pass = "324aadfe23....";
         String encode = encode(pass);
         System.err.println("Encoded: " +  HelperConfig.GITHUB_AUTH_TOKEN + "=" + encode);
@@ -105,8 +105,12 @@ public class PasswordEncoder {
         Preconditions.checkState(decode.equals(pass));
     }
 
-    public static void main3(String[] args) {
-        String tok = HelperConfig.userPwdToToken("ignitetcbot", "222");
+    public static void main(String[] args) {
+        encodeJiraTok("ignitetcbot", "21313");
+    }
+
+    public static void encodeJiraTok(String user, String pwd) {
+        String tok = HelperConfig.userPwdToToken(user, pwd);
         String encode = encode(tok);
         System.err.println("Encoded: " +  HelperConfig.JIRA_AUTH_TOKEN + "=" + encode);
         String decode = decode(encode);

@@ -17,7 +17,6 @@
 
 package org.apache.ignite.ci.web.rest.pr;
 
-import com.google.common.base.Preconditions;
 import com.google.inject.Injector;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
@@ -142,7 +141,7 @@ public class GetPrTestFailures {
         PullRequest pr;
 
         try {
-            Integer prId = IGitHubConnection.convertBranchToId(branchForTc);
+            Integer prId = IGitHubConnection.convertBranchToPrId(branchForTc);
 
             if (prId == null)
                 return "Invalid TC branch name: [" + branchForTc + "]";

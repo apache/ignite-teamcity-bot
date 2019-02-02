@@ -64,8 +64,7 @@ public class GetBuildLog {
     @PermitAll
     public Response getThreadDump(
         @QueryParam(SERVER_ID) String srvId,
-        @QueryParam(BUILD_NO) Integer buildNo,
-        @Deprecated @QueryParam(FILE_IDX) Integer fileIdx) {
+        @QueryParam(BUILD_NO) Integer buildNo) {
 
         ITcServerProvider helper = CtxListener.getInjector(ctx).getInstance(ITcServerProvider.class);
         ITcAnalytics srv = helper.server(srvId, null);

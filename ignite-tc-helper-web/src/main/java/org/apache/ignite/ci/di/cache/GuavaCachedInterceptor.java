@@ -45,11 +45,15 @@ public class GuavaCachedInterceptor implements MethodInterceptor {
             if(annotation.softValues())
                 builder = builder.softValues();
 
-            if(annotation.maximumSize()>0)
+            if(annotation.maximumSize() > 0)
                 builder = builder.maximumSize(annotation.maximumSize());
 
-            if(annotation.expireAfterAccessSecs()>0)
+            if (annotation.expireAfterAccessSecs() > 0)
                 builder.expireAfterAccess(annotation.expireAfterAccessSecs(), TimeUnit.SECONDS);
+
+            if (annotation.expireAfterWriteSecs() > 0)
+                builder.expireAfterWrite(annotation.expireAfterWriteSecs(), TimeUnit.SECONDS);
+
 
             return builder.build();
         });

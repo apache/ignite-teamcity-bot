@@ -18,15 +18,18 @@
 package org.apache.ignite.ci.jira.ignited;
 
 import com.google.common.base.Objects;
-import org.apache.ignite.ci.jira.Fields;
-import org.apache.ignite.ci.jira.Status;
-import org.apache.ignite.ci.jira.Ticket;
+import org.apache.ignite.ci.jira.pure.Fields;
+import org.apache.ignite.ci.jira.pure.Status;
+import org.apache.ignite.ci.jira.pure.Ticket;
+import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.jetbrains.annotations.Nullable;
 
 /**
  *
  */
 public class TicketCompacted {
+    public static final String PROJECT_DELIM = "-";
     /** Id. */
     public long id;
 
@@ -36,28 +39,43 @@ public class TicketCompacted {
     /** Id of string: Fields/status/name, value compacted. */
     public int status;
 
+    /** Summary, nullable because of older entries. */
+    @Nullable private StringFieldCompacted summary = new StringFieldCompacted();
+
+    /** Custom field, to be queriable after persisting in Ignite, nullable because of older entry versions.  */
+    @Nullable private StringFieldCompacted customfield_11050 = new StringFieldCompacted();
+
+    /** Full description, nullable because of older entry versions.  */
+    @Nullable private StringFieldCompacted description = new StringFieldCompacted();
+
     /**
      * @param ticket Jira ticket.
      * @param comp Compactor.
-     * @param ticketTemplate Ticket name template.
+     * @param projectCode project name for commenting jira.
      */
-    public TicketCompacted(Ticket ticket, IStringCompactor comp, String ticketTemplate) {
+    public TicketCompacted(Ticket ticket, IStringCompactor comp, String projectCode) {
         id = ticket.id;
-        igniteId = Integer.valueOf(ticket.key.substring(ticketTemplate.length()));
+        igniteId = ticket.keyWithoutProject(projectCode);
         status = comp.getStringId(ticket.fields.status.name);
+        summary.setValue(ticket.fields.summary);
+        customfield_11050.setValue(ticket.fields.customfield_11050);
+        description.setValue(ticket.fields.description);
     }
 
     /**
      * @param comp Compactor.
-     * @param ticketPrefix Ticket name fixed prefix for the project.
+     * @param projectCode project code for VISA and filtering tasks.
      */
-    public Ticket toTicket(IStringCompactor comp, String ticketPrefix) {
+    public Ticket toTicket(IStringCompactor comp, String projectCode) {
         Ticket ticket = new Ticket();
 
         ticket.id = id;
-        ticket.key = ticketPrefix + igniteId;
+        ticket.key = projectCode + PROJECT_DELIM + igniteId;
         ticket.fields = new Fields();
         ticket.fields.status = new Status(comp.getStringFromId(status));
+        ticket.fields.summary = summary != null ? summary.getValue() : null;
+        ticket.fields.customfield_11050 = customfield_11050 != null ? customfield_11050.getValue() : null;
+        ticket.fields.description = description != null ? description.getValue() : null;
 
         return ticket;
     }
@@ -74,11 +92,14 @@ public class TicketCompacted {
 
         return id == compacted.id &&
             igniteId == compacted.igniteId &&
-            status == compacted.status;
+            status == compacted.status &&
+            Objects.equal(summary, compacted.summary) &&
+            Objects.equal(customfield_11050, compacted.customfield_11050) &&
+            Objects.equal(description, compacted.description);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(id, igniteId, status);
+        return Objects.hashCode(id, igniteId, status, summary, customfield_11050, description);
     }
 }

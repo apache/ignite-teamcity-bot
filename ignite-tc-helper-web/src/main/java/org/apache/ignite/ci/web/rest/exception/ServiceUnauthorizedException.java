@@ -32,8 +32,8 @@ public class ServiceUnauthorizedException extends RuntimeException
     public ServiceUnauthorizedException() {
     }
 
-    public static ServiceUnauthorizedException noCreds(String serverId) {
-        return new ServiceUnauthorizedException("Service [" + serverId + "] is not available for current user");
+    public static ServiceUnauthorizedException noCreds(String srvId) {
+        return new ServiceUnauthorizedException("Service [" + srvId + "] is not available for current user");
     }
 
     @Override

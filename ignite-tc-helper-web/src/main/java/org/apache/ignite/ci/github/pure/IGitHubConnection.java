@@ -19,14 +19,17 @@ package org.apache.ignite.ci.github.pure;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
+
+import com.google.common.base.Strings;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.jetbrains.annotations.Nullable;
 
 /**
  *
  */
 public interface IGitHubConnection {
-    void init(String srvId);
+    void init(String srvCode);
 
     /** */
     PullRequest getPullRequest(Integer id);
@@ -55,7 +58,7 @@ public interface IGitHubConnection {
     /**
      * @return PR id from string "pull/XXXX/head"
      */
-    @Nullable public static Integer convertBranchToId(String branchForTc) {
+    @Nullable public static Integer convertBranchToPrId(String branchForTc) {
         Integer res = null;
 
         if (Objects.isNull(branchForTc))
@@ -73,11 +76,8 @@ public interface IGitHubConnection {
             }
         }
 
-        try {
-            res = Integer.parseInt(id);
-        }
-        finally {
-            return res;
-        }
+        return Strings.isNullOrEmpty(id) ? null : Integer.parseInt(id);
     }
+
+    IGitHubConfig config();
 }

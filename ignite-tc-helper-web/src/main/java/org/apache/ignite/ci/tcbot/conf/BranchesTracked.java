@@ -15,10 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.conf;
+package org.apache.ignite.ci.tcbot.conf;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
+
+import org.apache.ignite.ci.conf.BranchTracked;
+import org.apache.ignite.ci.conf.ChainAtServer;
 
 /**
  * Config file for tracked branches.
@@ -27,6 +32,18 @@ public class BranchesTracked {
     /** Branches. */
     private List<BranchTracked> branches = new ArrayList<>();
 
+    /** Primary server ID. */
+    @Nullable private String primaryServerCode;
+
+    /** Additional list Servers to be used for validation of PRs, but not for tracking any branches. */
+    private List<TcServerConfig> tcServers = new ArrayList<>();
+
+    /** JIRA config to be used . */
+    private List<JiraServerConfig> jiraServers = new ArrayList<>();
+
+    /** JIRA config to be used . */
+    private List<GitHubConfig> gitHubConfigs = new ArrayList<>();
+
     /**
      * @return list of internal identifiers of branch.
      */
@@ -34,6 +51,9 @@ public class BranchesTracked {
         return branches.stream().map(BranchTracked::getId).collect(Collectors.toList());
     }
 
+    /**
+     * Get Unique suites involved into tracked branches
+     */
     public Set<ChainAtServer> getSuitesUnique() {
         return branches.stream()
             .flatMap(BranchTracked::getChainsStream)
@@ -49,8 +69,17 @@ public class BranchesTracked {
         return get(branch).orElseThrow(() -> new RuntimeException("Branch not found: " + branch));
     }
 
+    /**
+     *
+     */
     public Set<String> getServerIds() {
-        return branches.stream().flatMap(BranchTracked::getChainsStream).map(ChainAtServer::getServerId).collect(Collectors.toSet());
+        Stream<String> srvsInTracked = branches.stream()
+            .flatMap(BranchTracked::getChainsStream)
+            .map(ChainAtServer::getServerId);
+
+        return Stream.concat(srvsInTracked,
+            tcServers.stream().map(TcServerConfig::getCode))
+            .collect(Collectors.toSet());
     }
 
     public List<BranchTracked> getBranches() {
@@ -59,5 +88,24 @@ public class BranchesTracked {
 
     public void addBranch(BranchTracked branch) {
         branches.add(branch);
+    }
+
+    /**
+     * @return Primary server code.
+     */
+    @Nullable public String primaryServerCode() {
+        return primaryServerCode;
+    }
+
+    Optional<TcServerConfig> getTcConfig(String code) {
+        return tcServers.stream().filter(s -> code.equals(s.getCode())).findAny();
+    }
+
+    Optional<JiraServerConfig> getJiraConfig(String code) {
+        return jiraServers.stream().filter(s -> code.equals(s.getCode())).findAny();
+    }
+
+    public Optional<GitHubConfig> getGitHubConfig(String code) {
+        return gitHubConfigs.stream().filter(s -> code.equals(s.getCode())).findAny();
     }
 }

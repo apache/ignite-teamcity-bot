@@ -19,22 +19,13 @@ package org.apache.ignite.ci.jira.pure;
 
 import java.io.IOException;
 import org.apache.ignite.ci.jira.Tickets;
+import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Reperesents methods to provide interaction with Jira servers.
  */
 public interface IJiraIntegration {
-
-    /** @return JIRA ticket prefix. */
-    @NotNull public String ticketPrefix();
-
-    /**
-     *
-     */
-    @NotNull public default String projectName() {
-        return ticketPrefix().replaceAll("-", "");
-    }
 
     /**
      * @return Internal identified service ID.
@@ -58,13 +49,10 @@ public interface IJiraIntegration {
     /**
      * Produce wrapper for collection of Jira tickets for given server.
      *
-     * @param url Tickets loading URL and parameters.
+     * @param url Tickets loading URL and parameters, URL is relative, should not contain any start slashes.
      * @return Jira tickets.
      */
     public Tickets getTicketsPage(String url);
-
-    /** */
-    public String jiraUrl();
 
     /**
      * @param ticketFullName Ticket full name (e.g IGNITE-8331)
@@ -78,10 +66,8 @@ public interface IJiraIntegration {
      */
     public String generateCommentUrl(String ticketFullName, int commentId);
 
-    String getJiraApiUrl();
+    String restApiUrl();
 
-    /**
-     * @return {@code True} if JIRA authorization token is available.
-     */
-    boolean isJiraTokenAvailable();
+
+    public IJiraServerConfig config();
 }

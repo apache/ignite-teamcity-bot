@@ -34,10 +34,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -50,6 +54,11 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** GitHub authorization token. */
     private String gitAuthTok;
+
+    @Inject
+    ITcBotConfig config;
+
+    private String srvCode;
 
     @Nullable public static String parseNextLinkFromLinkRspHeader(String s) {
         String nextLink = null;
@@ -81,15 +90,18 @@ class GitHubConnectionImpl implements IGitHubConnection {
     }
 
     /** {@inheritDoc} */
-    @Override public void init(String srvId) {
+    @Override
+    public void init(String srvCode) {
+        this.srvCode = srvCode;
         final File workDir = HelperConfig.resolveWorkDir();
 
-        String cfgName = HelperConfig.prepareConfigName(srvId);
+        String cfgName = HelperConfig.prepareConfigName(srvCode);
 
         final Properties props = HelperConfig.loadAuthProperties(workDir, cfgName);
 
-        gitAuthTok = (HelperConfig.prepareGithubHttpAuthToken(props));
-        gitApiUrl = (props.getProperty(HelperConfig.GIT_API_URL));
+        gitAuthTok = HelperConfig.prepareGithubHttpAuthToken(props);
+        gitApiUrl = props.getProperty(HelperConfig.GIT_API_URL);
+
     }
 
     /** {@inheritDoc} */
@@ -170,5 +182,10 @@ class GitHubConnectionImpl implements IGitHubConnection {
         catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override  public IGitHubConfig config() {
+        return config.getGitConfig(srvCode);
     }
 }

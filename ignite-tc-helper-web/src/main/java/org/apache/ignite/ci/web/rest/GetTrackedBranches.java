@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.web.rest;
 
 import com.google.common.base.Strings;
+import com.google.inject.Injector;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -31,10 +32,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.ChainAtServer;
 import org.apache.ignite.ci.tcbot.TcBotGeneralService;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.Version;
@@ -76,7 +77,9 @@ public class GetTrackedBranches {
     public Set<ChainAtServer> getSuites(@Nullable @QueryParam("server") String srvId) {
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        return HelperConfig.getTrackedBranches()
+        Injector injector = CtxListener.getInjector(ctx);
+        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        return cfg.getTrackedBranches()
             .getSuitesUnique()
             .stream()
             .filter(chainAtSrv ->
@@ -86,16 +89,26 @@ public class GetTrackedBranches {
             .collect(Collectors.toSet());
     }
 
+    /**
+     * Return all servers registered in TC Bot config: Both from tracked branches and from
+     */
     @GET
     @Path("getServerIds")
     public Set<String> getServerIds() {
         final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        return HelperConfig.getTrackedBranches()
-                .getServerIds()
-                .stream()
-                .filter(prov::hasAccess)
-                .collect(Collectors.toSet());
+        Injector injector = CtxListener.getInjector(ctx);
+        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+
+        ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
+        return cfg.getServerIds()
+            .stream()
+            .filter(srvId ->
+            {
+                return tcProv.hasAccess(srvId, prov);
+
+            })
+            .collect(Collectors.toSet());
     }
 
 }

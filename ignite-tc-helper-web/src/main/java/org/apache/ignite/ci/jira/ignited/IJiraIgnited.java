@@ -18,24 +18,13 @@ package org.apache.ignite.ci.jira.ignited;
 
 import java.io.IOException;
 import java.util.Set;
-import org.apache.ignite.ci.jira.Ticket;
-import org.jetbrains.annotations.NotNull;
+import org.apache.ignite.ci.jira.pure.Ticket;
+import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 
 /**
  *
  */
 public interface IJiraIgnited {
-    /**
-     *
-     */
-    @NotNull public String ticketPrefix();
-
-    /**
-     *
-     */
-    @NotNull public String projectName();
-
-
     /**
      * @return Jira tickets.
      */
@@ -62,4 +51,6 @@ public interface IJiraIgnited {
      * @throws IllegalStateException If can't find URL to the JIRA.
      */
     public String postJiraComment(String ticket, String comment) throws IOException;
+
+    public IJiraServerConfig config();
 }

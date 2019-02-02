@@ -19,10 +19,10 @@ package org.apache.ignite.ci.jira.ignited;
 import java.io.IOException;
 import java.util.Set;
 import javax.inject.Inject;
-import org.apache.ignite.ci.jira.Ticket;
+import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.jetbrains.annotations.NotNull;
 
 /**
  *
@@ -56,21 +56,12 @@ class JiraIgnited implements IJiraIgnited {
         jiraTicketDao.init();
     }
 
-    /** {@inheritDoc} */
-    @Override public String ticketPrefix() {
-        return jira.ticketPrefix();
-    }
-
-    /** {@inheritDoc} */
-    @NotNull @Override public String projectName() {
-        return jira.projectName();
-    }
 
     /** {@inheritDoc} */
     @Override public Set<Ticket> getTickets() {
         jiraTicketSync.ensureActualizeJiraTickets(srvId);
 
-        return jiraTicketDao.getTickets(srvIdMaskHigh, ticketPrefix());
+        return jiraTicketDao.getTickets(srvIdMaskHigh, jira.config().projectCodeForVisa());
     }
 
     /** {@inheritDoc} */
@@ -86,5 +77,10 @@ class JiraIgnited implements IJiraIgnited {
     /** {@inheritDoc} */
     @Override public String postJiraComment(String ticket, String comment) throws IOException {
         return jira.postJiraComment(ticket, comment);
+    }
+
+    /** {@inheritDoc} */
+    @Override public IJiraServerConfig config() {
+        return jira.config();
     }
 }

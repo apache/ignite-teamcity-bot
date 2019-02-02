@@ -58,7 +58,7 @@ public class Login {
         Injector injector = CtxListener.getInjector(ctx);
 
         ITcBotConfig tcBotCfg = injector.getInstance(ITcBotConfig.class);
-        String srvId = tcBotCfg.primaryServerId();
+        String srvId = tcBotCfg.primaryServerCode();
         String host = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvId, null).host();
         return new ServerDataResponse(host);
     }
@@ -76,11 +76,10 @@ public class Login {
         final ITcLogin tcLogin = injector.getInstance(ITcLogin.class);
         IUserStorage users = injector.getInstance(IUserStorage.class);
 
-        String primarySrvId = cfg.primaryServerId();
+        String primarySrvCode = cfg.primaryServerCode();
 
         try {
-            return doLogin(username, pwd, users, primarySrvId,
-                cfg.getServerIds(), tcLogin);
+            return doLogin(username, pwd, users, primarySrvCode, cfg.getServerIds(), tcLogin);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;

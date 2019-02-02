@@ -419,11 +419,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return conn.getProjects().stream().map(Project::id).collect(Collectors.toList());
     }
 
-    /** {@inheritDoc} */
-    @Override public String gitBranchPrefix() {
-        return conn.gitBranchPrefix();
-    }
-
     @Override
     public List<Agent> agents(boolean connected, boolean authorized) {
         return conn.agents(connected, authorized);

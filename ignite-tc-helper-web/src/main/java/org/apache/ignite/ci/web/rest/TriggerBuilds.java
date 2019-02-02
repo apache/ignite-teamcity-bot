@@ -125,7 +125,7 @@ public class TriggerBuilds {
 
             IGitHubConnection gh = injector.getInstance(IGitHubConnectionProvider.class).server(srvId);
 
-            return new ServerIntegrationLinks(srvId, gh.gitApiUrl(), jira.getJiraApiUrl());
+            return new ServerIntegrationLinks(srvId, gh.gitApiUrl(), jira.restApiUrl());
         }).filter(Objects::nonNull).collect(Collectors.toSet());
     }
 }

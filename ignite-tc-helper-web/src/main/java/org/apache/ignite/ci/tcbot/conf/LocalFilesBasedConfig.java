@@ -16,8 +16,10 @@
  */
 package org.apache.ignite.ci.tcbot.conf;
 
+import com.google.common.base.Strings;
+import java.io.File;
+import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 
 /**
@@ -25,12 +27,56 @@ import org.apache.ignite.ci.di.cache.GuavaCached;
  */
 public class LocalFilesBasedConfig implements ITcBotConfig {
     /** {@inheritDoc} */
-    @GuavaCached(softValues = true, expireAfterAccessSecs = 3 * 60)
+    @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)
     @Override public BranchesTracked getTrackedBranches() {
         return HelperConfig.getTrackedBranches();
     }
 
-    @Override public String primaryServerId() {
-        return ITcBotConfig.DEFAULT_SERVER_ID;
+    /** {@inheritDoc} */
+    @Override public ITcServerConfig getTeamcityConfig(String srvCode) {
+        return getTrackedBranches().getTcConfig(srvCode)
+            .orElseGet(() -> {
+                TcServerConfig tcCfg = new TcServerConfig();
+
+                tcCfg.code(srvCode);
+
+                Properties props = loadOldAuthProps(srvCode);
+
+                tcCfg.properties(props);
+
+                return tcCfg;
+            });
     }
+
+    @Override public IJiraServerConfig getJiraConfig(String srvCode) {
+        return getTrackedBranches().getJiraConfig(srvCode)
+            .orElseGet(() -> new JiraServerConfig()
+                    .code(srvCode)
+                    .properties(loadOldAuthProps(srvCode)));
+    }
+
+    @Override
+    public IGitHubConfig getGitConfig(String srvCode) {
+        return getTrackedBranches().getGitHubConfig(srvCode)
+                .orElseGet(() -> new GitHubConfig()
+                        .code(srvCode)
+                        .properties(loadOldAuthProps(srvCode)));
+    }
+
+    /** {@inheritDoc} */
+    @Override public String primaryServerCode() {
+        String srvCode = getTrackedBranches().primaryServerCode();
+
+        return Strings.isNullOrEmpty(srvCode) ? ITcBotConfig.DEFAULT_SERVER_CODE : srvCode;
+    }
+
+
+    private Properties loadOldAuthProps(String srvCode) {
+        File workDir = HelperConfig.resolveWorkDir();
+
+        String cfgName = HelperConfig.prepareConfigName(srvCode);
+
+        return HelperConfig.loadAuthProperties(workDir, cfgName);
+    }
+
 }

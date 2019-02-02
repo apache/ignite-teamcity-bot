@@ -1,4 +1,10 @@
 {
+  "primaryServerCode": "apache",
+  "tcServers": [
+  ],
+  "jiraServers": [
+    {}
+  ],
   "branches": [
     {
       "id": "master",

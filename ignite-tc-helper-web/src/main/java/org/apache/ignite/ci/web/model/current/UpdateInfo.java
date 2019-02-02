@@ -64,7 +64,7 @@ import org.apache.ignite.ci.jira.pure.IJiraIntegration;
         if (gitHubConn.isGitTokenAvailable())
             javaFlags |= GITHUB_FLAG;
 
-        if (jiraIntegration.isJiraTokenAvailable())
+        if (jiraIntegration.config().isJiraTokenAvailable())
             javaFlags |= JIRA_FLAG;
     }
 }

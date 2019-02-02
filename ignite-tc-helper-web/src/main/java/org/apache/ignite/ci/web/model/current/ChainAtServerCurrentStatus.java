@@ -33,16 +33,14 @@ import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
-import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
+import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 
 import static org.apache.ignite.ci.util.UrlUtil.escape;
-import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchForLink;
-import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOccurForLogConsumer;
-import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOrrucForLongRun;
+import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.*;
 
 /**
  * Represent Run All chain results/ or RunAll+latest re-runs.
@@ -51,7 +49,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOr
  */
 @SuppressWarnings({"WeakerAccess", "PublicField"})
 public class ChainAtServerCurrentStatus {
-    /** {@link BuildType#name} */
+    /** {@link BuildType#getName()} */
     public String chainName;
 
     /** Server ID. */
@@ -123,29 +121,31 @@ public class ChainAtServerCurrentStatus {
     }
 
     /** */
-    public void initJiraAndGitInfo(ITeamcityIgnited tcIgnited,
-        IJiraIntegration jiraIntegration, IGitHubConnIgnited gitHubConnIgnited) {
-        Integer prNum = IGitHubConnection.convertBranchToId(branchName);
-
-        String prUrl = null;
+    public void initJiraAndGitInfo(BranchTicketMatcher ticketMatcher,
+                                   IJiraIntegration jiraIntegration,
+                                   IGitHubConnIgnited gitHubConnIgnited) {
 
         String ticketFullName = null;
+        try {
+            ticketFullName = ticketMatcher
+                    .resolveTicketFromBranch(jiraIntegration.getServiceId(),
+                            null,
+                            branchName);
+        } catch (BranchTicketMatcher.TicketNotFoundException ignore) {
+        }
 
+        Integer prNum = IGitHubConnection.convertBranchToPrId(branchName);
+
+        String prUrl = null;
         String ticketUrl = null;
-
-        String ticketPrefix = jiraIntegration.ticketPrefix();
 
         if (prNum != null) {
             PullRequest pullReq = gitHubConnIgnited.getPullRequest(prNum);
 
             if (pullReq != null && pullReq.getTitle() != null) {
                 prUrl = pullReq.htmlUrl();
-
-                ticketFullName = TcBotTriggerAndSignOffService.getTicketFullName(pullReq, ticketPrefix);
             }
         }
-        else
-            ticketFullName = TcBotTriggerAndSignOffService.prLessTicket(branchName, ticketPrefix, tcIgnited);
 
         if (!Strings.isNullOrEmpty(ticketFullName))
             ticketUrl = jiraIntegration.generateTicketUrl(ticketFullName);

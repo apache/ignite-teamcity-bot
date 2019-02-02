@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.web.rest.visa;
 
+import com.google.inject.Injector;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -34,6 +35,7 @@ import org.apache.ignite.ci.tcbot.visa.ContributionToCheck;
 import org.apache.ignite.ci.tcbot.visa.CurrentVisaStatus;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.tcbot.visa.VisaStatus;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.ContributionKey;
@@ -82,11 +84,11 @@ public class TcBotVisaService {
     public List<ContributionToCheck> contributions(@Nullable @QueryParam("serverId") String srvId) {
         ICredentialsProv credsProv = ICredentialsProv.get(req);
 
-        if (!credsProv.hasAccess(srvId))
-            throw ServiceUnauthorizedException.noCreds(srvId);
+        Injector injector = CtxListener.getInjector(ctx);
 
-        return CtxListener.getInjector(ctx)
-            .getInstance(TcBotTriggerAndSignOffService.class).getContributionsToCheck(srvId, credsProv);
+        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvId, credsProv);
+
+        return injector.getInstance(TcBotTriggerAndSignOffService.class).getContributionsToCheck(srvId, credsProv);
     }
 
     @GET
@@ -94,11 +96,12 @@ public class TcBotVisaService {
     public Set<ContributionCheckStatus> contributionStatus(@Nullable @QueryParam("serverId") String srvId,
         @QueryParam("prId") String prId) {
         ICredentialsProv prov = ICredentialsProv.get(req);
-        if (!prov.hasAccess(srvId))
-            throw ServiceUnauthorizedException.noCreds(srvId);
 
-        return CtxListener.getInjector(ctx)
-            .getInstance(TcBotTriggerAndSignOffService.class).contributionStatuses(srvId, prov, prId);
+        Injector injector = CtxListener.getInjector(ctx);
+
+        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvId, prov);
+
+        return injector.getInstance(TcBotTriggerAndSignOffService.class).contributionStatuses(srvId, prov, prId);
     }
 
     @GET

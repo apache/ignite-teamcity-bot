@@ -42,7 +42,6 @@ import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.ignite.ci.tcbot.conf.ITcBotConfig.DEFAULT_SERVER_ID;
 import static org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
 
 @Path(GetTrackedBranchTestResults.TRACKED)
@@ -156,7 +155,7 @@ public class GetTrackedBranchTestResults {
         ITcBotConfig cfg = CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class);
 
         if (F.isEmpty(srvId))
-            srvId = DEFAULT_SERVER_ID;
+            srvId = cfg.primaryServerCode();
 
         if (F.isEmpty(projectId))
             projectId = DEFAULT_PROJECT_ID;

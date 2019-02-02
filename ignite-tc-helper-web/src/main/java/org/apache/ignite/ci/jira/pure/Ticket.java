@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.jira;
+package org.apache.ignite.ci.jira.pure;
 
 import com.google.common.base.MoreObjects;
+import org.apache.ignite.ci.jira.ignited.TicketCompacted;
 
 /**
  * See example of GSON here
@@ -34,10 +35,12 @@ public class Ticket {
     public Fields fields;
 
     /**
-     * @param ticketPrefix Ticket name fixed prefix.
+     * @param projectCode JIRA project code to be removed from ticket key.
      * @return Ignite ticket Number ignoring project code (like 123 in IGNITE-123).
      */
-    public int igniteId(String ticketPrefix) {
+    public int keyWithoutProject(String projectCode) {
+        String ticketPrefix = projectCode + TicketCompacted.PROJECT_DELIM;
+
         return Integer.valueOf(key.substring(ticketPrefix.length()));
     }
 

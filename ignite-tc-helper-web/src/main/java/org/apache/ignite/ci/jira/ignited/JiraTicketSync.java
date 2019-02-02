@@ -17,15 +17,19 @@
 
 package org.apache.ignite.ci.jira.ignited;
 
+import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.jira.Tickets;
+import org.apache.ignite.ci.jira.pure.Fields;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
-import org.apache.ignite.ci.jira.Ticket;
-import org.apache.ignite.ci.jira.Tickets;
+import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
@@ -86,9 +90,15 @@ public class JiraTicketSync {
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
         IJiraIntegration jira = jiraIntegrationProvider.server(srvId);
 
-        String projectName = jira.projectName();
-        String baseUrl = "search?jql=" + escape("project=" + projectName + " order by updated DESC")
-            + "&fields=status&maxResults=100";
+        String reqFields = Arrays.stream(Fields.class.getDeclaredFields())
+            .map(Field::getName)
+            .collect(Collectors.joining(","));
+
+        String projectCode = jira.config().projectCodeForVisa();
+        String baseUrl = "search?jql=" + escape("project=" + projectCode + " order by updated DESC")
+            + "&" +
+            "fields=" + reqFields +
+            "&maxResults=100";
 
         String url = baseUrl;
         Tickets tickets = jira.getTicketsPage(url);
@@ -97,7 +107,7 @@ public class JiraTicketSync {
         if (F.isEmpty(page))
             return "Something went wrong - no tickets found. Check jira availability.";
 
-        int ticketsSaved = jiraDao.saveChunk(srvIdMaskHigh, page, jira.ticketPrefix());
+        int ticketsSaved = jiraDao.saveChunk(srvIdMaskHigh, page, projectCode);
 
         int ticketsProcessed = page.size();
 
@@ -112,7 +122,7 @@ public class JiraTicketSync {
                 if (F.isEmpty(page))
                     break;
 
-                int savedNow = jiraDao.saveChunk(srvIdMaskHigh, page, jira.ticketPrefix());
+                int savedNow = jiraDao.saveChunk(srvIdMaskHigh, page, projectCode);
 
                 ticketsSaved += savedNow;
                 ticketsProcessed += page.size();

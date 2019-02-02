@@ -27,6 +27,8 @@ import org.apache.ignite.ci.analysis.LogCheckTask;
 import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.logs.BuildLogStreamChecker;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.agent.AgentsRef;
 import org.apache.ignite.ci.tcmodel.changes.Change;
@@ -99,44 +101,35 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** Teamcity http connection. */
     @Inject private ITeamcityHttpConnection teamcityHttpConn;
 
+    @Inject private ITcBotConfig config;
 
-    private String configName; //main properties file name
     private String tcName;
 
     /** Build logger processing running. */
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
-
-    /** Git branch prefix for seach TC runs in PR-less contributions. */
-    @NotNull
-    private String gitBranchPrefix;
 
     public Executor getExecutor() {
         return executor;
     }
 
     /** {@inheritDoc} */
-    public void init(@Nullable String tcName) {
+    @Override public void init(@Nullable String tcName) {
         this.tcName = tcName;
-        final File workDir = HelperConfig.resolveWorkDir();
 
-        this.configName = HelperConfig.prepareConfigName(tcName);
+        ITcServerConfig tcCfg = this.config.getTeamcityConfig(tcName);
+        final Properties props = tcCfg.properties();
 
-        final Properties props = HelperConfig.loadAuthProperties(workDir, configName);
-        final String hostConf = props.getProperty(HelperConfig.HOST, "https://ci.ignite.apache.org/");
-
-        this.host = hostConf.trim() + (hostConf.endsWith("/") ? "" : "/");
+        this.host = tcCfg.host();
 
         try {
             if (!Strings.isNullOrEmpty(props.getProperty(HelperConfig.USERNAME))
                     && props.getProperty(HelperConfig.ENCODED_PASSWORD) != null)
-                setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, configName));
+                setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, "TC Config"));
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Failed to set credentials", e);
         }
-
-        this.gitBranchPrefix = props.getProperty(HelperConfig.GIT_BRANCH_PREFIX, "ignite-");
-
+        final File workDir = HelperConfig.resolveWorkDir();
         final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
 
         logsDir = ensureDirExist(logsDirFile);
@@ -153,7 +146,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @Override public boolean isTeamCityTokenAvailable() {
         return basicAuthTok != null;
     }
-
 
     /** {@inheritDoc} */
     @AutoProfiling
@@ -181,7 +173,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
                 return file;
             }
-            String url = host + "downloadBuildLog.html" + "?buildId=" + buildIdStr + "&archived=true";
+            String url = host() + "downloadBuildLog.html" + "?buildId=" + buildIdStr + "&archived=true";
 
             try {
                 HttpUtil.sendGetCopyToFile(basicAuthTok, url, file);
@@ -249,7 +241,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
             "    </properties>\n" +
             "</build>";
 
-        String url = host + "app/rest/buildQueue";
+        String url = host() + "app/rest/buildQueue";
 
         try {
             logger.info("Triggering build: buildTypeId={}, branchName={}, cleanRebuild={}, queueAtTop={}",
@@ -321,17 +313,12 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @Override public List<Project> getProjects() {
-        return sendGetXmlParseJaxb(host + "app/rest/latest/projects", ProjectsList.class).projects();
-    }
-
-    /** {@inheritDoc} */
-    @Override public String gitBranchPrefix() {
-        return gitBranchPrefix;
+        return sendGetXmlParseJaxb(host() + "app/rest/latest/projects", ProjectsList.class).projects();
     }
 
     /** {@inheritDoc} */
     @Override public List<BuildType> getBuildTypes(String projectId) {
-        return sendGetXmlParseJaxb(host + "app/rest/latest/projects/" + projectId, Project.class)
+        return sendGetXmlParseJaxb(host() + "app/rest/latest/projects/" + projectId, Project.class)
             .getBuildTypesNonNull();
     }
 
@@ -360,7 +347,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public BuildTypeFull getBuildType(String buildTypeId) {
-        return sendGetXmlParseJaxb(host + "app/rest/latest/buildTypes/id:" +
+        return sendGetXmlParseJaxb(host() + "app/rest/latest/buildTypes/id:" +
             buildTypeId, BuildTypeFull.class);
     }
 
@@ -375,7 +362,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
      * @param elem Element class.
      */
     private <T> T getJaxbUsingHref(String href, Class<T> elem) {
-        return sendGetXmlParseJaxb(host + (href.startsWith("/") ? href.substring(1) : href), elem);
+        return sendGetXmlParseJaxb(host() + (href.startsWith("/") ? href.substring(1) : href), elem);
     }
 
     /** {@inheritDoc} */
@@ -451,7 +438,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @Override public List<BuildRef> getBuildRefsPage(String fullUrl, AtomicReference<String> outNextPage) {
         String relPath = "app/rest/latest/builds?locator=defaultFilter:false";
         String relPathSelected = Strings.isNullOrEmpty(fullUrl) ? relPath : fullUrl;
-        String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
+        String url = host() + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
         Builds builds = sendGetXmlParseJaxb(url, Builds.class);
 
         outNextPage.set(Strings.emptyToNull(builds.nextHref()));
@@ -463,7 +450,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @Override public SortedSet<MuteInfo> getMutesPage(String buildTypeId, String fullUrl, AtomicReference<String> nextPage) {
         String relPath = "app/rest/mutes?locator=project:(id:" + buildTypeId + ')';
         String relPathSelected = Strings.isNullOrEmpty(fullUrl) ? relPath : fullUrl;
-        String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
+        String url = host() + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
 
         Mutes mutes = sendGetXmlParseJaxb(url, Mutes.class);
 
@@ -476,7 +463,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @AutoProfiling
     @Override public TestOccurrencesFull getTestsPage(int buildId, @Nullable String href, boolean testDtls) {
         String relPathSelected = Strings.isNullOrEmpty(href) ? testsStartHref(buildId, testDtls) : href;
-        String url = host + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
+        String url = host() + (relPathSelected.startsWith("/") ? relPathSelected.substring(1) : relPathSelected);
         return sendGetXmlParseJaxb(url, TestOccurrencesFull.class);
     }
 

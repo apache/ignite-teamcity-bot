@@ -16,17 +16,17 @@
  */
 package org.apache.ignite.ci.github.ignited;
 
-import com.google.common.base.Preconditions;
 import java.util.List;
-import javax.annotation.Nullable;
-import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
+import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 
 /**
  *
  */
 public interface IGitHubConnIgnited {
+    IGitHubConfig config();
+
     /**
      * @return list of open pull requests
      */
@@ -40,7 +40,12 @@ public interface IGitHubConnIgnited {
      *
      * @param url Url.
      * @param body Request body.
-     * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
      */
-    void notifyGit(String url, String body);
+    public void notifyGit(String url, String body);
+
+    /**
+     * Prefix to be added to git branch instead of {@link IJiraServerConfig#branchNumPrefix()}.
+     * Usually it is a lower case of JIRA branch mention, e.. JIRA branch num is 'IGNITE-', and git is 'ignite-'
+     */
+    public String gitBranchPrefix();
 }
