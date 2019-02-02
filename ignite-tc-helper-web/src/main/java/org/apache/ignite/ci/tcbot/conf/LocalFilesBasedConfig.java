@@ -20,7 +20,6 @@ import com.google.common.base.Strings;
 import java.io.File;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.conf.BranchesTracked;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 
 /**
@@ -28,14 +27,14 @@ import org.apache.ignite.ci.di.cache.GuavaCached;
  */
 public class LocalFilesBasedConfig implements ITcBotConfig {
     /** {@inheritDoc} */
-    @GuavaCached(softValues = true, expireAfterAccessSecs = 3 * 60)
+    @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)
     @Override public BranchesTracked getTrackedBranches() {
         return HelperConfig.getTrackedBranches();
     }
 
     /** {@inheritDoc} */
     @Override public ITcServerConfig getTeamcityConfig(String srvCode) {
-        return getTrackedBranches().getServer(srvCode)
+        return getTrackedBranches().getTcConfig(srvCode)
             .orElseGet(() -> {
                 TcServerConfig tcCfg = new TcServerConfig();
 
@@ -50,18 +49,18 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
     }
 
     @Override public IJiraServerConfig getJiraConfig(String srvCode) {
-        return getTrackedBranches().getJiraServer(srvCode)
-            .orElseGet(() -> {
-                JiraServerConfig jCfg = new JiraServerConfig();
+        return getTrackedBranches().getJiraConfig(srvCode)
+            .orElseGet(() -> new JiraServerConfig()
+                    .code(srvCode)
+                    .properties(loadOldAuthProps(srvCode)));
+    }
 
-                jCfg.code(srvCode);
-
-                Properties props = loadOldAuthProps(srvCode);
-
-                jCfg.properties(props);
-
-                return jCfg;
-            });
+    @Override
+    public IGitHubConfig getGitConfig(String srvCode) {
+        return getTrackedBranches().getGitHubConfig(srvCode)
+                .orElseGet(() -> new GitHubConfig()
+                        .code(srvCode)
+                        .properties(loadOldAuthProps(srvCode)));
     }
 
     /** {@inheritDoc} */

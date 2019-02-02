@@ -42,7 +42,6 @@ import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.ci.jira.ignited.TicketCompacted;
 import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
@@ -110,8 +109,8 @@ public class TcBotTriggerAndSignOffService {
     /** TC ignited provider. */
     @Inject ITeamcityIgnitedProvider tcIgnitedProv;
 
-    /** Direct connection to JIRA provider */
-    @Inject IJiraIgnitedProvider jiraIgnProv;
+    /** JIRA provider */
+    @Inject private IJiraIgnitedProvider jiraIgnProv;
 
     /** */
     @Inject private VisasHistoryStorage visasHistStorage;
@@ -129,6 +128,8 @@ public class TcBotTriggerAndSignOffService {
 
     /** Config. */
     @Inject ITcBotConfig cfg;
+
+    @Inject BranchTicketMatcher ticketMatcher;
 
     /** Jackson serializer. */
     private final ObjectMapper objMapper = new ObjectMapper();
@@ -242,62 +243,7 @@ public class TcBotTriggerAndSignOffService {
         }
     }
 
-    /**
-     * @param pr Pull Request.
-     * @param prefix Ticket prefix.
-     * @return JIRA ticket full name or empty string.
-     */
-    @NotNull public static String getTicketFullName(PullRequest pr, @NotNull String prefix) {
-        String ticketId = "";
 
-        if (pr.getTitle().toUpperCase().startsWith(prefix)) {
-            int beginIdx = prefix.length();
-            int endIdx = prefix.length();
-
-            while (endIdx < pr.getTitle().length() && Character.isDigit(pr.getTitle().charAt(endIdx)))
-                endIdx++;
-
-            ticketId = prefix + pr.getTitle().substring(beginIdx, endIdx);
-        }
-
-        return ticketId;
-    }
-
-
-    /**
-     * @param pr Pull Request.
-     * @param prefix Ticket prefix.
-     * @return Branch number or null.
-     */
-    @Nullable public static String findFixPrefixedNumber(PullRequest pr, @NotNull String prefix) {
-
-        return findFixPrefixedNumber(pr.getTitle(), prefix);
-    }
-    /**
-     * @param prTitle Pull Request title prefix or other text to find constant-prefix text.
-     * @param prefix Ticket prefix.
-     * @return Branch number or null.
-     */
-    @Nullable public static String findFixPrefixedNumber(@Nullable String prTitle, @NotNull String prefix) {
-        if(Strings.isNullOrEmpty(prTitle))
-            return null;
-
-        int idxOfBranchNum = prTitle.toUpperCase().indexOf(prefix.toUpperCase());
-
-        if (idxOfBranchNum < 0)
-            return null;
-
-        int beginIdx = prefix.length() + idxOfBranchNum;
-        int endIdx = beginIdx;
-
-        while (endIdx < prTitle.length() && Character.isDigit(prTitle.charAt(endIdx)))
-            endIdx++;
-
-        if (endIdx == beginIdx)
-            return null;
-
-        return prefix + prTitle.substring(beginIdx, endIdx);
-    }
 
     @NotNull public String triggerBuildsAndObserve(
         @Nullable String srvId,
@@ -341,40 +287,13 @@ public class TcBotTriggerAndSignOffService {
         String parentSuiteId,
         Build... builds
     ) {
-        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvId);
-
-        String prefix = jiraIntegration.ticketPrefix();
-
-        if (F.isEmpty(ticketFullName)) {
-            try {
-                ticketFullName = prLessTicket(srvId, branchForTc, prefix);
-
-                PullRequest pr = null;
-
-                if (Strings.isNullOrEmpty(ticketFullName)) {
-                    pr = findPrForBranch(srvId, branchForTc);
-
-                    if (pr != null)
-                        ticketFullName = getTicketFullName(pr, prefix);
-                }
-
-                if (Strings.isNullOrEmpty(ticketFullName)) {
-                    return "JIRA ticket will not be notified - " +
-                        "PR title \"" + (pr == null ? "" : pr.getTitle()) + "\" should starts with \"" + prefix + "NNNNN\"." +
-                        " Please, rename PR according to the" +
-                        " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
-                        "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>" +
-                        " or use branch name according ticket name.";
-                }
-            }
-            catch (Exception e) {
-                return "JIRA ticket will not be notified after the tests are completed - " +
-                    "exception happened when server tried to get ticket ID from Pull Request [errMsg=" +
-                    e.getMessage() + ']';
-            }
-        } else {
-            //todo remove once every ticket is with Ignite prefix
-            ticketFullName = ticketFullName.toUpperCase().startsWith(prefix) ? ticketFullName : prefix + ticketFullName;
+        try {
+            ticketFullName = ticketMatcher.resolveTicketFromBranch(srvId, ticketFullName, branchForTc);
+        } catch (BranchTicketMatcher.TicketNotFoundException e) {
+            logger.info("", e);
+            return "JIRA ticket will not be notified after the tests are completed - " +
+                    "exception happened when server tried to get ticket ID from Pull Request [errMsg="
+                    + e.getMessage();
         }
 
         buildObserverProvider.get().observe(srvId, prov, ticketFullName, branchForTc, parentSuiteId, builds);
@@ -399,102 +318,28 @@ public class TcBotTriggerAndSignOffService {
         @QueryParam("suiteId") @Nullable String suiteId,
         @QueryParam("ticketId") @Nullable String ticketFullName,
         ICredentialsProv prov) {
-        String jiraRes = "";
 
-        String prefix = jiraIgnProv.server(srvId).ticketPrefix();
-
-        if (Strings.isNullOrEmpty(ticketFullName)) {
-            try {
-                ticketFullName = prLessTicket(srvId, branchForTc, prefix);
-
-                PullRequest pr = null;
-
-                if (Strings.isNullOrEmpty(ticketFullName)) {
-                    pr = findPrForBranch(srvId, branchForTc);
-
-                    if (pr != null)
-                        ticketFullName = getTicketFullName(pr, prefix);
-                }
-
-                if (Strings.isNullOrEmpty(ticketFullName)) {
-                    jiraRes = "JIRA ticket can't be commented - " +
-                        "PR title \"" + (pr == null ? "" : pr.getTitle()) + "\" should starts with \"" + prefix + "NNNNN\"." +
-                        " Please, rename PR according to the" +
-                        " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
-                        "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>" +
-                        " or use branch name according ticket name.";
-                }
-            }
-            catch (RuntimeException e) {
-                jiraRes = "Exception happened when server tried to get ticket ID from Pull Request - " + e.getMessage();
-            }
-        } else {
-            //todo remove once every ticket is with IGnite prefix
-            ticketFullName = ticketFullName.toUpperCase().startsWith(prefix) ? ticketFullName : prefix + ticketFullName;
+        try {
+            ticketFullName = ticketMatcher.resolveTicketFromBranch(srvId, ticketFullName, branchForTc);
+        } catch (BranchTicketMatcher.TicketNotFoundException e) {
+            logger.info("", e);
+            return new SimpleResult("JIRA wasn't commented.<br>" + e.getMessage());
         }
 
-        if (!Strings.isNullOrEmpty(ticketFullName)) {
-            BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticketFullName, branchForTc, suiteId);
+        BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticketFullName, branchForTc, suiteId);
 
-            VisaRequest lastVisaReq = visasHistStorage.getLastVisaRequest(buildsInfo.getContributionKey());
+        VisaRequest lastVisaReq = visasHistStorage.getLastVisaRequest(buildsInfo.getContributionKey());
 
-            if (Objects.nonNull(lastVisaReq) && lastVisaReq.isObserving())
-                return new SimpleResult("Jira wasn't commented." +
+        if (Objects.nonNull(lastVisaReq) && lastVisaReq.isObserving())
+            return new SimpleResult("Jira wasn't commented." +
                     " \"Re-run possible blockers & Comment JIRA\" was triggered for current branch." +
                     " Wait for the end or cancel exsiting observing.");
 
-            Visa visa = notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName);
+        Visa visa = notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName);
 
-            visasHistStorage.put(new VisaRequest(buildsInfo).setResult(visa));
+        visasHistStorage.put(new VisaRequest(buildsInfo).setResult(visa));
 
-            return new SimpleResult(visa.status);
-        }
-        else
-            return new SimpleResult("JIRA wasn't commented." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
-    }
-
-    @Nullable public PullRequest findPrForBranch(
-        @Nullable @QueryParam("serverId") String srvId,
-        @Nullable @QueryParam("branchName") String branchForTc) {
-        Integer prId = IGitHubConnection.convertBranchToId(branchForTc);
-
-        if (prId == null)
-            return null;
-
-        IGitHubConnIgnited gh = gitHubConnIgnitedProvider.server(srvId);
-
-        return gh.getPullRequest(prId);
-    }
-
-    /**
-     * @param srvId Server id.
-     * @param branchForTc Branch for tc.
-     * @param ticketPrefix Ticket prefix.
-     */
-    @Nullable public String prLessTicket(@Nullable @QueryParam("serverId") String srvId,
-        String branchForTc, String ticketPrefix) {
-        return prLessTicket(branchForTc, ticketPrefix, gitHubConnIgnitedProvider.server(srvId));
-    }
-
-    /**
-     * @param branchForTc Branch for tc.
-     * @param ticketPrefix Ticket prefix.
-     * @param gitHubIgn GitHub connection ign.
-     */
-    @Nullable public static String prLessTicket(String branchForTc, String ticketPrefix, IGitHubConnIgnited gitHubIgn) {
-        String branchPrefix = gitHubIgn.gitBranchPrefix();
-
-        if (!branchForTc.startsWith(branchPrefix))
-            return null;
-
-        try {
-            int ticketNum = Integer.parseInt(branchForTc.substring(branchPrefix.length()));
-
-            return ticketPrefix + ticketNum;
-        }
-        catch (NumberFormatException ignored) {
-        }
-        return null;
+        return new SimpleResult(visa.status);
     }
 
     /**
@@ -533,7 +378,7 @@ public class TcBotTriggerAndSignOffService {
 
             IJiraServerConfig jiraCfg = jiraIntegration.config();
 
-            check.jiraIssueId = determineJiraId(tickets, pr, jiraCfg);
+            check.jiraIssueId = ticketMatcher.determineJiraId(tickets, pr, jiraCfg);
 
             if (!Strings.isNullOrEmpty(check.jiraIssueId))
                 check.jiraIssueUrl = jiraIntegration.generateTicketUrl(check.jiraIssueId);
@@ -544,7 +389,7 @@ public class TcBotTriggerAndSignOffService {
         ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, credsProv);
 
         paTickets.forEach(ticket -> {
-            String branch = resolveTcBranch(gitHubConnIgnited, ticket, jiraIntegration.config());
+            String branch = ticketMatcher.resolveTcBranch(gitHubConnIgnited, ticket, jiraIntegration.config());
 
             if (branch == null)
                 return; // nothing to do if branch was not resolved
@@ -574,85 +419,6 @@ public class TcBotTriggerAndSignOffService {
         return contribsList;
     }
 
-    @Nullable public String resolveTcBranch(IGitHubConnIgnited gitHubConnIgnited,
-        Ticket ticket, IJiraServerConfig jiraCfg) {
-        String branchNumPrefix = jiraCfg.branchNumPrefix();
-
-        if (Strings.isNullOrEmpty(branchNumPrefix)) {
-            //an easy way, no special branch and ticket mappings specified, use project code.
-            int ticketId = ticket.keyWithoutProject(jiraCfg.projectCodeForVisa());
-
-            return gitHubConnIgnited.gitBranchPrefix() + ticketId;
-        }
-
-        String branchJiraIdentification = findFixPrefixedNumber(ticket.fields.summary, branchNumPrefix);
-
-        if (!Strings.isNullOrEmpty(branchJiraIdentification))
-            return convertJiraToGit(branchJiraIdentification, gitHubConnIgnited, branchNumPrefix);
-
-        String branchJiraIdentification2 = findFixPrefixedNumber(ticket.fields.customfield_11050, branchNumPrefix);
-
-        return convertJiraToGit(branchJiraIdentification2, gitHubConnIgnited, branchNumPrefix);
-
-    }
-
-    /**
-     * Converts JIRA notation branch name to actual git branch name. Usually it is just lower-casing, but any mapping may be configured.
-     * @param branchJiraIdentification Branch jira identification.
-     * @param gitHubConnIgnited Git hub connection ignited.
-     * @param branchNumPrefix Branch number prefix.
-     */
-    public String convertJiraToGit(String branchJiraIdentification, IGitHubConnIgnited gitHubConnIgnited,
-        String branchNumPrefix) {
-        if (Strings.isNullOrEmpty(branchJiraIdentification))
-            return null;
-
-        return gitHubConnIgnited.gitBranchPrefix() + branchJiraIdentification.substring(branchNumPrefix.length());
-    }
-
-    /**
-     * @param tickets Tickets.
-     * @param pr Pr.
-     * @param jiraCfg Jira config.
-     */
-    @Nullable public String determineJiraId(Collection<Ticket> tickets, PullRequest pr, IJiraServerConfig jiraCfg) {
-        String branchNumPrefix = jiraCfg.branchNumPrefix();
-
-        if (Strings.isNullOrEmpty(branchNumPrefix)) {
-            //an easy way, no special branch and ticket mappings specified, use project code.
-            String jiraPrefix = jiraCfg.projectCodeForVisa() + TicketCompacted.PROJECT_DELIM;
-
-            return findFixPrefixedNumber(pr, jiraPrefix);
-        }
-
-        String prTitle = pr.getTitle();
-
-        String branchNum = findFixPrefixedNumber(prTitle, branchNumPrefix);
-
-        if (branchNum == null) // PR does not mention
-            return null;
-
-        return tickets.stream()
-            .filter(t -> mentionsBranch(branchNum, t))
-            .findFirst()
-            .map(t -> t.key).orElse(null);
-    }
-
-    /**
-     * @param branchName Full branch name in jira.
-     * @param ticket Ticket.
-     */
-    public boolean mentionsBranch(String branchName, Ticket ticket) {
-        String summary = ticket.fields.summary;
-        if (summary != null && summary.contains(branchName))
-            return true;
-
-        String val = ticket.fields.customfield_11050;
-        if (val != null && val.contains(branchName))
-            return true;
-
-        return false;
-    }
 
     @Nonnull private List<BuildRefCompacted> findBuildsForPr(String suiteId, String prId,
         IGitHubConnIgnited ghConn, ITeamcityIgnited srv) {
@@ -999,5 +765,4 @@ public class TcBotTriggerAndSignOffService {
 
         return xmlEscapeText(res.toString());
     }
-
 }

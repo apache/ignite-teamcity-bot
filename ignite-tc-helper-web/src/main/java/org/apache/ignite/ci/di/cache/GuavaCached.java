@@ -45,4 +45,6 @@ public @interface GuavaCached {
     boolean cacheNegativeNumbersRval() default true;
 
     long expireAfterAccessSecs() default -1;
+
+    long expireAfterWriteSecs() default -1;
 }

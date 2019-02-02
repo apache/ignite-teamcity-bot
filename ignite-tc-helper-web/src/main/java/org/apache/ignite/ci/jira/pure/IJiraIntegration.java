@@ -27,15 +27,6 @@ import org.jetbrains.annotations.NotNull;
  */
 public interface IJiraIntegration {
 
-    @Deprecated
-    /** @return JIRA ticket prefix. */
-    @NotNull public String ticketPrefix();
-
-    /**
-     *
-     */
-    @NotNull public String projectCodeForVisa();
-
     /**
      * @return Internal identified service ID.
      */
@@ -77,10 +68,6 @@ public interface IJiraIntegration {
 
     String restApiUrl();
 
-    /**
-     * @return {@code True} if JIRA authorization token is available.
-     */
-    boolean isJiraTokenAvailable();
 
     public IJiraServerConfig config();
 }

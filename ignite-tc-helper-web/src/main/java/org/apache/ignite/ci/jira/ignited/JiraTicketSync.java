@@ -94,7 +94,7 @@ public class JiraTicketSync {
             .map(Field::getName)
             .collect(Collectors.joining(","));
 
-        String projectCode = jira.projectCodeForVisa();
+        String projectCode = jira.config().projectCodeForVisa();
         String baseUrl = "search?jql=" + escape("project=" + projectCode + " order by updated DESC")
             + "&" +
             "fields=" + reqFields +

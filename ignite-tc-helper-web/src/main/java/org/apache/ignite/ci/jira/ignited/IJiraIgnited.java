@@ -27,14 +27,6 @@ import org.jetbrains.annotations.NotNull;
  */
 public interface IJiraIgnited {
     /**
-     *
-     */
-    @Deprecated
-    @NotNull public String ticketPrefix();
-
-
-
-    /**
      * @return Jira tickets.
      */
     public Set<Ticket> getTickets();

@@ -44,13 +44,6 @@ class Jira implements IJiraIntegration {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(Jira.class);
 
-    /** JIRA ticket prefix. */
-    @Deprecated
-    @NotNull private String jiraTicketPrefix;
-
-    /** JIRA authorization token. */
-    private String jiraBasicAuthTok;
-
     /** Server id. */
     private String srvId;
 
@@ -61,27 +54,6 @@ class Jira implements IJiraIntegration {
     @Override public void init(String srvId) {
         this.srvId = srvId;
 
-        IJiraServerConfig jiraCfg = cfg.getJiraConfig(srvId);
-
-        final File workDir = HelperConfig.resolveWorkDir();
-
-        final String cfgName = HelperConfig.prepareConfigName(srvId);
-
-        final Properties props = HelperConfig.loadAuthProperties(workDir, cfgName);
-
-        jiraTicketPrefix = props.getProperty(HelperConfig.JIRA_TICKET_TEMPLATE, "IGNITE-");
-
-        jiraBasicAuthTok = HelperConfig.prepareJiraHttpAuthToken(props);
-    }
-
-    /** {@inheritDoc} */
-    @Override public String projectCodeForVisa() {
-        return config().projectCodeForVisa();
-    }
-
-    /** {@inheritDoc} */
-    @Override public String ticketPrefix() {
-        return jiraTicketPrefix;
     }
 
     /** {@inheritDoc} */
@@ -117,11 +89,6 @@ class Jira implements IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @Override public boolean isJiraTokenAvailable() {
-        return !Strings.isNullOrEmpty(jiraBasicAuthTok);
-    }
-
-    /** {@inheritDoc} */
     @Override public IJiraServerConfig config() {
         return cfg.getJiraConfig(srvId);
     }
@@ -133,7 +100,7 @@ class Jira implements IJiraIntegration {
 
         String url = jiraApiUrl + "issue/" + ticket + "/comment";
 
-        return HttpUtil.sendPostAsStringToJira(jiraBasicAuthTok, url, "{\"body\": \"" + comment + "\"}");
+        return HttpUtil.sendPostAsStringToJira(config().decodedHttpAuthToken(), url, "{\"body\": \"" + comment + "\"}");
     }
 
     /** {@inheritDoc} */
@@ -159,7 +126,7 @@ class Jira implements IJiraIntegration {
      * @return Response as gson string.
      */
     public String sendGetToJira(String url) throws IOException {
-        return HttpUtil.sendGetToJira(jiraBasicAuthTok, restApiUrl() + url);
+        return HttpUtil.sendGetToJira(config().decodedHttpAuthToken(), restApiUrl() + url);
     }
 
     /** {@inheritDoc} */

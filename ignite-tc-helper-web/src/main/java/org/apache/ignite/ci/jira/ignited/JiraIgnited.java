@@ -23,7 +23,6 @@ import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.jetbrains.annotations.NotNull;
 
 /**
  *
@@ -57,17 +56,12 @@ class JiraIgnited implements IJiraIgnited {
         jiraTicketDao.init();
     }
 
-    /** {@inheritDoc} */
-    @Override public String ticketPrefix() {
-        return jira.ticketPrefix();
-    }
-
 
     /** {@inheritDoc} */
     @Override public Set<Ticket> getTickets() {
         jiraTicketSync.ensureActualizeJiraTickets(srvId);
 
-        return jiraTicketDao.getTickets(srvIdMaskHigh, jira.projectCodeForVisa());
+        return jiraTicketDao.getTickets(srvIdMaskHigh, jira.config().projectCodeForVisa());
     }
 
     /** {@inheritDoc} */

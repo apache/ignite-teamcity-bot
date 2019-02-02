@@ -20,8 +20,11 @@ import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.jira.pure.Fields;
 import org.jetbrains.annotations.Nullable;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  *
@@ -56,6 +59,11 @@ public class JiraServerConfig implements IJiraServerConfig {
     private Properties props;
 
     /**
+     * JIRA Auth token to access, use {@link org.apache.ignite.ci.conf.PasswordEncoder#encodeJiraTok(String, String)}
+     */
+    private String authTok;
+
+    /**
      * JIRA Server URL. HTTPs is highly recommended.
      */
     private String url;
@@ -75,15 +83,19 @@ public class JiraServerConfig implements IJiraServerConfig {
     /**
      * @param props Properties.
      */
-    public void properties(Properties props) {
+    public JiraServerConfig properties(Properties props) {
         this.props = props;
+
+        return this;
     }
 
     /**
      * @param code Name.
      */
-    public void code(String code) {
+    public JiraServerConfig code(String code) {
         this.code = code;
+
+        return this;
     }
 
     /** {@inheritDoc} */
@@ -108,5 +120,25 @@ public class JiraServerConfig implements IJiraServerConfig {
     /** {@inheritDoc} */
     @Nullable @Override public String branchNumPrefix() {
         return Strings.emptyToNull(branchNumPrefix);
+    }
+
+    /**
+     * Extracts JIRA basic authorization token from properties.
+     *
+     * @return Null or decoded auth token for Github.
+     */
+    @Nullable
+    @Override
+    public String decodedHttpAuthToken() {
+        String tok;
+        if (Strings.isNullOrEmpty(authTok) && props != null)
+            tok = props.getProperty(HelperConfig.JIRA_AUTH_TOKEN);
+        else
+            tok = authTok;
+
+        if (isNullOrEmpty(tok))
+            return null;
+
+        return PasswordEncoder.decode(tok);
     }
 }

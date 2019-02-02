@@ -15,12 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.conf;
+package org.apache.ignite.ci.tcbot.conf;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
+
+import org.apache.ignite.ci.conf.BranchTracked;
+import org.apache.ignite.ci.conf.ChainAtServer;
+import org.apache.ignite.ci.tcbot.conf.GitHubConfig;
 import org.apache.ignite.ci.tcbot.conf.JiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 
@@ -39,6 +43,9 @@ public class BranchesTracked {
 
     /** JIRA config to be used . */
     private List<JiraServerConfig> jiraServers = new ArrayList<>();
+
+    /** JIRA config to be used . */
+    private List<GitHubConfig> gitHubConfigs = new ArrayList<>();
 
     /**
      * @return list of internal identifiers of branch.
@@ -93,11 +100,15 @@ public class BranchesTracked {
         return primaryServerCode;
     }
 
-    public Optional<TcServerConfig> getServer(String code) {
+    Optional<TcServerConfig> getTcConfig(String code) {
         return tcServers.stream().filter(s -> code.equals(s.getCode())).findAny();
     }
 
-    public Optional<JiraServerConfig> getJiraServer(String code) {
+    Optional<JiraServerConfig> getJiraConfig(String code) {
         return jiraServers.stream().filter(s -> code.equals(s.getCode())).findAny();
+    }
+
+    public Optional<GitHubConfig> getGitHubConfig(String code) {
+        return gitHubConfigs.stream().filter(s -> code.equals(s.getCode())).findAny();
     }
 }

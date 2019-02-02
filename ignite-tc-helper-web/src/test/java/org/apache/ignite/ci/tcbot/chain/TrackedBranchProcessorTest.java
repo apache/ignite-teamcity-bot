@@ -27,7 +27,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.conf.BranchTracked;
-import org.apache.ignite.ci.conf.BranchesTracked;
+import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;

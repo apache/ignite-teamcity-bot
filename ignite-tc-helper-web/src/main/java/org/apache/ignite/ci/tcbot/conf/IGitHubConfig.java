@@ -16,36 +16,10 @@
  */
 package org.apache.ignite.ci.tcbot.conf;
 
-import com.google.common.base.Strings;
-import org.jetbrains.annotations.Nullable;
-
 /**
- * Abstract JIRA server config.
+ *
  */
-public interface IJiraServerConfig {
-    /**
-     * Return JIRA URL, e.g. https://issues.apache.org/jira/
-     */
-    public String getUrl();
-
-    /**
-     * JIRA project code for filtering out tickets and for adding VISA (JIRA comments).
-     */
-    public String projectCodeForVisa();
-
-    /**
-     * @return PR name and branch name matching number prefix
-     */
-    @Nullable
-    public String branchNumPrefix();
-
-    @Nullable
-    public String decodedHttpAuthToken();
-
-    /**
-     * @return {@code True} if JIRA authorization token is available.
-     */
-    public default boolean isJiraTokenAvailable() {
-        return !Strings.isNullOrEmpty(decodedHttpAuthToken());
-    }
+public interface IGitHubConfig {
+    /** Git branch prefix for search TC runs in PR-less contributions. */
+    public String gitBranchPrefix();
 }

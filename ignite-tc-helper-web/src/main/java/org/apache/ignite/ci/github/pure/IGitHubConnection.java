@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
  *
  */
 public interface IGitHubConnection {
-    void init(String srvId);
+    void init(String srvCode);
 
     /** */
     PullRequest getPullRequest(Integer id);
@@ -55,7 +55,7 @@ public interface IGitHubConnection {
     /**
      * @return PR id from string "pull/XXXX/head"
      */
-    @Nullable public static Integer convertBranchToId(String branchForTc) {
+    @Nullable public static Integer convertBranchToPrId(String branchForTc) {
         Integer res = null;
 
         if (Objects.isNull(branchForTc))
@@ -73,12 +73,7 @@ public interface IGitHubConnection {
             }
         }
 
-        try {
-            res = Integer.parseInt(id);
-        }
-        finally {
-            return res;
-        }
+        return id == null ? null : Integer.parseInt(id);
     }
 
     /**

@@ -20,10 +20,11 @@ package org.apache.ignite.ci.tcbot.chain;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import java.io.File;
+import java.util.Properties;
 
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.conf.BranchesTracked;
+import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
@@ -31,11 +32,7 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
-import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
-import org.apache.ignite.ci.tcbot.conf.JiraServerConfig;
-import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
+import org.apache.ignite.ci.tcbot.conf.*;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -114,19 +111,24 @@ public class MockBasedTcBotModule extends AbstractModule {
 
             /** {@inheritDoc} */
             @Override public ITcServerConfig getTeamcityConfig(String srvCode) {
-                File workDir = HelperConfig.resolveWorkDir();
-
-                String cfgName = HelperConfig.prepareConfigName(srvCode);
-
-                return new TcServerConfig(srvCode, HelperConfig.loadAuthProperties(workDir, cfgName));
+                return new TcServerConfig(srvCode, loadOldProps(srvCode));
             }
 
             @Override public IJiraServerConfig getJiraConfig(String srvCode) {
+                return new JiraServerConfig(srvCode, loadOldProps(srvCode));
+            }
+
+            @Override
+            public IGitHubConfig getGitConfig(String srvCode) {
+                return new GitHubConfig(srvCode, loadOldProps(srvCode));
+            }
+
+            private Properties loadOldProps(String srvCode) {
                 File workDir = HelperConfig.resolveWorkDir();
 
                 String cfgName = HelperConfig.prepareConfigName(srvCode);
 
-                return new JiraServerConfig(srvCode, HelperConfig.loadAuthProperties(workDir, cfgName));
+                return HelperConfig.loadAuthProperties(workDir, cfgName);
             }
         });
 

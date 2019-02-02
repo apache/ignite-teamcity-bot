@@ -25,8 +25,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Properties;
-import javax.ws.rs.QueryParam;
-import org.apache.ignite.ci.conf.BranchesTracked;
+
+import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
 import org.apache.ignite.ci.util.Base64Util;
