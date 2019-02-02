@@ -34,9 +34,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.util.HttpUtil;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -186,6 +186,11 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** {@inheritDoc} */
     @Override public String gitBranchPrefix() {
-        return config.getGitConfig(srvCode).gitBranchPrefix();
+        return config().gitBranchPrefix();
+    }
+
+    /** {@inheritDoc} */
+    @Override  public IGitHubConfig config() {
+        return config.getGitConfig(srvCode);
     }
 }

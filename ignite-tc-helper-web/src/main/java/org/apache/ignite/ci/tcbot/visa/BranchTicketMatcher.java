@@ -20,10 +20,8 @@ package org.apache.ignite.ci.tcbot.visa;
 import com.google.common.base.Strings;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.jira.ignited.TicketCompacted;
 import org.apache.ignite.ci.jira.pure.Ticket;
@@ -37,7 +35,6 @@ import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.Set;
 
 public class BranchTicketMatcher {
     /** Config. */
@@ -50,40 +47,40 @@ public class BranchTicketMatcher {
     @Inject private IJiraIgnitedProvider jiraIgnProv;
 
     @Nullable
-    public String resolveTcBranch(IGitHubConnIgnited gitHubConnIgnited,
-                                  Ticket ticket, IJiraServerConfig jiraCfg) {
+    public String resolveTcBranchForPrLess(Ticket ticket,
+                                           IJiraServerConfig jiraCfg,
+                                           IGitHubConfig gitHubConfig) {
         String branchNumPrefix = jiraCfg.branchNumPrefix();
 
         if (Strings.isNullOrEmpty(branchNumPrefix)) {
             //an easy way, no special branch and ticket mappings specified, use project code.
             int ticketId = ticket.keyWithoutProject(jiraCfg.projectCodeForVisa());
 
-            return gitHubConnIgnited.gitBranchPrefix() + ticketId;
+            return gitHubConfig.gitBranchPrefix() + ticketId;
         }
 
-        String branchJiraIdentification = findFixPrefixedNumber(ticket.fields.summary, branchNumPrefix);
+        String branchJiraIdentification = findFixPrefixedNoInValues(branchNumPrefix,
+                ticket.key,
+                ticket.fields.summary,
+                ticket.fields.customfield_11050);
 
-        if (!Strings.isNullOrEmpty(branchJiraIdentification))
-            return convertJiraToGit(branchJiraIdentification, gitHubConnIgnited, branchNumPrefix);
-
-        String branchJiraIdentification2 = findFixPrefixedNumber(ticket.fields.customfield_11050, branchNumPrefix);
-
-        return convertJiraToGit(branchJiraIdentification2, gitHubConnIgnited, branchNumPrefix);
+        return convertJiraToGit(branchJiraIdentification, branchNumPrefix, gitHubConfig);
 
     }
 
     /**
      * Converts JIRA notation branch name to actual git branch name. Usually it is just lower-casing, but any mapping may be configured.
      * @param branchJiraIdentification Branch jira identification.
-     * @param gitHubConnIgnited Git hub connection ignited.
      * @param branchNumPrefix Branch number prefix.
+     * @param gitHubConfig GH connection config.
      */
-    public String convertJiraToGit(String branchJiraIdentification, IGitHubConnIgnited gitHubConnIgnited,
-                                   String branchNumPrefix) {
+    private String convertJiraToGit(String branchJiraIdentification,
+                                    String branchNumPrefix,
+                                    IGitHubConfig gitHubConfig) {
         if (Strings.isNullOrEmpty(branchJiraIdentification))
             return null;
 
-        return gitHubConnIgnited.gitBranchPrefix() + branchJiraIdentification.substring(branchNumPrefix.length());
+        return gitHubConfig.gitBranchPrefix() + branchJiraIdentification.substring(branchNumPrefix.length());
     }
 
     /**
@@ -91,7 +88,7 @@ public class BranchTicketMatcher {
      * @param pr Pr.
      * @param jiraCfg Jira config.
      */
-    @Nullable public String determineJiraId(Collection<Ticket> tickets, PullRequest pr, IJiraServerConfig jiraCfg) {
+    @Nullable public String resolveTicketIdForPrBasedContrib(Collection<Ticket> tickets, PullRequest pr, IJiraServerConfig jiraCfg) {
         String branchNumPrefix = jiraCfg.branchNumPrefix();
 
         if (Strings.isNullOrEmpty(branchNumPrefix)) {
@@ -143,7 +140,7 @@ public class BranchTicketMatcher {
      * @param branchName Full branch name in jira.
      * @param ticket Ticket.
      */
-    public boolean mentionsBranch(String branchName, Ticket ticket) {
+    private boolean mentionsBranch(String branchName, Ticket ticket) {
         String summary = ticket.fields.summary;
         if (summary != null && summary.contains(branchName))
             return true;
@@ -156,16 +153,27 @@ public class BranchTicketMatcher {
     }
 
 
+    @Nullable
+    private String findFixPrefixedNoInValues(@NotNull String prefix, String... values) {
+        for (String value : values) {
+            String fixPrefixedNumber = findFixPrefixedNumber(value, prefix);
+
+            if (fixPrefixedNumber != null)
+                return fixPrefixedNumber;
+        }
+        return null;
+    }
     /**
-     * @param prTitle Pull Request title prefix or other text to find constant-prefix text.
+     * @param value Pull Request/Ticket title prefix or other text to find constant-prefix text.
      * @param prefix Ticket prefix.
      * @return Branch number or null.
      */
-    @Nullable public static String findFixPrefixedNumber(@Nullable String prTitle, @NotNull String prefix) {
-        if(Strings.isNullOrEmpty(prTitle))
+    @Nullable
+    private String findFixPrefixedNumber(@Nullable String value, @NotNull String prefix) {
+        if(Strings.isNullOrEmpty(value))
             return null;
 
-        int idxOfBranchNum = prTitle.toUpperCase().indexOf(prefix.toUpperCase());
+        int idxOfBranchNum = value.toUpperCase().indexOf(prefix.toUpperCase());
 
         if (idxOfBranchNum < 0)
             return null;
@@ -173,21 +181,21 @@ public class BranchTicketMatcher {
         int beginIdx = prefix.length() + idxOfBranchNum;
         int endIdx = beginIdx;
 
-        while (endIdx < prTitle.length() && Character.isDigit(prTitle.charAt(endIdx)))
+        while (endIdx < value.length() && Character.isDigit(value.charAt(endIdx)))
             endIdx++;
 
         if (endIdx == beginIdx)
             return null;
 
-        return prefix + prTitle.substring(beginIdx, endIdx);
+        return prefix + value.substring(beginIdx, endIdx);
     }
 
     public static class TicketNotFoundException extends Exception {
-        public TicketNotFoundException(String msg) {
+        TicketNotFoundException(String msg) {
             super(msg);
         }
 
-        public TicketNotFoundException(String msg, Exception e) {
+        TicketNotFoundException(String msg, Exception e) {
             super(msg, e);
         }
     }
@@ -206,8 +214,8 @@ public class BranchTicketMatcher {
         try {
             String branchNumPrefix = jiraCfg.branchNumPrefix();
 
-            ticketPrefix = Strings.isNullOrEmpty(branchNumPrefix) ?
-                    jiraCfg.projectCodeForVisa() + TicketCompacted.PROJECT_DELIM
+            ticketPrefix = Strings.isNullOrEmpty(branchNumPrefix)
+                    ? jiraCfg.projectCodeForVisa() + TicketCompacted.PROJECT_DELIM
                     : branchNumPrefix;
 
             String prLessTicket = prLessTicket(branchForTc, ticketPrefix, gitConfig);
@@ -227,16 +235,16 @@ public class BranchTicketMatcher {
 
             pr = findPrForBranch(srvCode, branchForTc);
             if (pr != null) {
+                String jiraPrefixInPr = findFixPrefixedNumber(pr.getTitle(), ticketPrefix);
+
                 String ticketFromPr;
                 if (Strings.isNullOrEmpty(branchNumPrefix)) {
                     //Default, simple case, branch name matching gives us a ticket
-                    ticketFromPr = findFixPrefixedNumber(pr.getTitle(), ticketPrefix);
+                    ticketFromPr = jiraPrefixInPr;
                 } else {
-                    String jiraBranchNum = findFixPrefixedNumber(pr.getTitle(), branchNumPrefix);
-
-                    ticketFromPr = Strings.isNullOrEmpty(jiraBranchNum)
+                    ticketFromPr = Strings.isNullOrEmpty(jiraPrefixInPr)
                             ? null
-                            : findTicketMentions(srvCode, jiraBranchNum);
+                            : findTicketMentions(srvCode, jiraPrefixInPr);
                 }
 
                 if (!Strings.isNullOrEmpty(ticketFromPr))
@@ -254,7 +262,8 @@ public class BranchTicketMatcher {
                 " or use branch name according ticket name.");
     }
 
-    @Nullable public PullRequest findPrForBranch(
+    @Nullable
+    private PullRequest findPrForBranch(
             @Nullable @QueryParam("serverId") String srvId,
             @Nullable @QueryParam("branchName") String branchForTc) {
         Integer prId = IGitHubConnection.convertBranchToPrId(branchForTc);

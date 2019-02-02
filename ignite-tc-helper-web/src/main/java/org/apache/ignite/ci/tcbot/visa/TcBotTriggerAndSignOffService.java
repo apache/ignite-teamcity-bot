@@ -41,7 +41,6 @@ import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
-import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
@@ -378,7 +377,7 @@ public class TcBotTriggerAndSignOffService {
 
             IJiraServerConfig jiraCfg = jiraIntegration.config();
 
-            check.jiraIssueId = ticketMatcher.determineJiraId(tickets, pr, jiraCfg);
+            check.jiraIssueId = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, pr, jiraCfg);
 
             if (!Strings.isNullOrEmpty(check.jiraIssueId))
                 check.jiraIssueUrl = jiraIntegration.generateTicketUrl(check.jiraIssueId);
@@ -389,7 +388,9 @@ public class TcBotTriggerAndSignOffService {
         ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, credsProv);
 
         paTickets.forEach(ticket -> {
-            String branch = ticketMatcher.resolveTcBranch(gitHubConnIgnited, ticket, jiraIntegration.config());
+            String branch = ticketMatcher.resolveTcBranchForPrLess(ticket,
+                    jiraIntegration.config(),
+                    gitHubConnIgnited.config());
 
             if (branch == null)
                 return; // nothing to do if branch was not resolved

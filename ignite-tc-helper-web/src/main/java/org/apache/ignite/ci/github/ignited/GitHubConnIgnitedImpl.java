@@ -37,6 +37,7 @@ import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -85,8 +86,14 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         conn.notifyGit(url, body);
     }
 
+    /** {@inheritDoc} */
     @Override public String gitBranchPrefix() {
-        return conn.gitBranchPrefix();
+        return config().gitBranchPrefix();
+    }
+    /** {@inheritDoc} */
+    @Override
+    public IGitHubConfig config() {
+        return conn.config();
     }
 
     /** {@inheritDoc} */

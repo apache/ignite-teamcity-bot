@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.base.Strings;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -82,4 +83,6 @@ public interface IGitHubConnection {
      *
      */
     public String gitBranchPrefix();
+
+    IGitHubConfig config();
 }

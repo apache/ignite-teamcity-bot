@@ -18,12 +18,15 @@ package org.apache.ignite.ci.github.ignited;
 
 import java.util.List;
 import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 
 /**
  *
  */
 public interface IGitHubConnIgnited {
+    IGitHubConfig config();
+
     /**
      * @return list of open pull requests
      */
