@@ -78,6 +78,8 @@ public class HttpUtil {
         final Stopwatch started = Stopwatch.createStarted();
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection)obj.openConnection();
+        con.setConnectTimeout(60000); //todo make configurable
+        con.setReadTimeout(60000);
 
         con.setRequestProperty("Authorization", "Basic " + basicAuthTok);
         con.setRequestProperty("Connection", "Keep-Alive");
