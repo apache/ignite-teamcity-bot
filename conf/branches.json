@@ -1,9 +1,20 @@
 {
   "primaryServerCode": "apache",
   "tcServers": [
+
   ],
   "jiraServers": [
-    {}
+    {
+      /* Server code will be referenced in all tracked branches, URLs, etc */
+      "code": "apache",
+      /* JIRA project code for commenting tickets. Default project is "IGNITE". */
+      "projectCode": "IGNITE",
+      "branchNumPrefix": "IGNITE-",
+      /* JIRA Url, HTTPs is highly recommended because of Basic Auth used. */
+      "url": "https://issues.apache.org/jira/",
+      /** JIRA Auth token to access, use PasswordEncoder#encodeJiraTok to get from clear username/password */
+      "authTok": "" //todo specify
+    }
   ],
   "branches": [
     {
