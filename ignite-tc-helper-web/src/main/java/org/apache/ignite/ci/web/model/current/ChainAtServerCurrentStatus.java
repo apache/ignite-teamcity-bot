@@ -133,7 +133,7 @@ public class ChainAtServerCurrentStatus {
         try {
             ticketFullName = ticketMatcher
                     .resolveTicketFromBranch(jiraIntegration.getServiceId(),
-                            ticketFullName,
+                            null,
                             branchName);
         } catch (BranchTicketMatcher.TicketNotFoundException ignore) {
         }

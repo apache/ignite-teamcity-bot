@@ -19,6 +19,8 @@ package org.apache.ignite.ci.github.pure;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
+
+import com.google.common.base.Strings;
 import org.apache.ignite.ci.github.PullRequest;
 import org.jetbrains.annotations.Nullable;
 
@@ -73,7 +75,7 @@ public interface IGitHubConnection {
             }
         }
 
-        return id == null ? null : Integer.parseInt(id);
+        return Strings.isNullOrEmpty(id) ? null : Integer.parseInt(id);
     }
 
     /**

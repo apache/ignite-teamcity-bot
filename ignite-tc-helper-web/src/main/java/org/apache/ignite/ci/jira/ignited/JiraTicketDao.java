@@ -30,6 +30,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.internal.util.typedef.F;
@@ -63,6 +64,7 @@ public class JiraTicketDao {
      * @param projectCode project code. WIth delim gives Fixed prefix for JIRA tickets.
      * @return Jira tickets.
      */
+    @GuavaCached(expireAfterWriteSecs = 60, softValues = true)
     public Set<Ticket> getTickets(int srvIdMaskHigh, String projectCode) {
         Preconditions.checkNotNull(jiraCache, "init() was not called");
         long srvId = (long) srvIdMaskHigh << 32;

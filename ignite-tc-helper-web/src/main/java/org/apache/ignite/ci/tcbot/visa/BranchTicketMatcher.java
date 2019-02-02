@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.tcbot.visa;
 
 import com.google.common.base.Strings;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
@@ -35,7 +36,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
 import java.util.Collection;
-import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public class BranchTicketMatcher {
@@ -97,7 +98,7 @@ public class BranchTicketMatcher {
             //an easy way, no special branch and ticket mappings specified, use project code.
             String jiraPrefix = jiraCfg.projectCodeForVisa() + TicketCompacted.PROJECT_DELIM;
 
-            return findFixPrefixedNumber(pr, jiraPrefix);
+            return findFixPrefixedNumber(pr.getTitle(), jiraPrefix);
         }
 
         String prTitle = pr.getTitle();
@@ -110,11 +111,32 @@ public class BranchTicketMatcher {
         return findTicketMentions(tickets, branchNum);
     }
 
-    private String findTicketMentions(Collection<Ticket> tickets, String branchNum) {
+    @SuppressWarnings("WeakerAccess")
+    @GuavaCached(maximumSize = 3000, expireAfterWriteSecs = 60, cacheNullRval = true)
+    protected String findTicketMentions(String srvCode, @Nullable String branchNum) {
+        return findTicketMentions(jiraIgnProv.server(srvCode).getTickets(), branchNum);
+    }
+
+    @Nullable private String findTicketMentions(Collection<Ticket> tickets, @Nullable String branchNum) {
+        if (Strings.isNullOrEmpty(branchNum))
+            return null;
+
+        return tickets.stream()
+                .map(t -> t.key)
+                .filter(k -> Objects.equals(k, branchNum))
+                .findFirst()
+                .orElseGet(() -> findTicketMentionsInSupplementaryFields(tickets, branchNum));
+    }
+
+    @Nullable private String findTicketMentionsInSupplementaryFields(Collection<Ticket> tickets, String branchNum) {
+        if (Strings.isNullOrEmpty(branchNum))
+            return null;
+
         return tickets.stream()
                 .filter(t -> mentionsBranch(branchNum, t))
                 .findFirst()
-                .map(t -> t.key).orElse(null);
+                .map(t -> t.key)
+                .orElse(null);
     }
 
     /**
@@ -134,15 +156,6 @@ public class BranchTicketMatcher {
     }
 
 
-    /**
-     * @param pr Pull Request.
-     * @param prefix Ticket prefix.
-     * @return Branch number or null.
-     */
-    @Nullable public static String findFixPrefixedNumber(PullRequest pr, @NotNull String prefix) {
-
-        return findFixPrefixedNumber(pr.getTitle(), prefix);
-    }
     /**
      * @param prTitle Pull Request title prefix or other text to find constant-prefix text.
      * @param prefix Ticket prefix.
@@ -179,6 +192,7 @@ public class BranchTicketMatcher {
         }
     }
 
+
     public String resolveTicketFromBranch(String srvCode, String ticketFullName, String branchForTc) throws TicketNotFoundException {
         if(!Strings.isNullOrEmpty(ticketFullName))
             return ticketFullName; //old code probably not needed now; ticketFullName = ticketFullName.toUpperCase().startsWith(prefix) ? ticketFullName : prefix + ticketFullName;
@@ -186,9 +200,9 @@ public class BranchTicketMatcher {
         IJiraServerConfig jiraCfg = cfg.getJiraConfig(srvCode);
         IGitHubConfig gitConfig = cfg.getGitConfig(srvCode);
 
-        PullRequest pr = null; // filled only when special PR found
+        PullRequest pr; // filled only when special PR found
 
-        String ticketPrefix = null;
+        String ticketPrefix;
         try {
             String branchNumPrefix = jiraCfg.branchNumPrefix();
 
@@ -197,68 +211,47 @@ public class BranchTicketMatcher {
                     : branchNumPrefix;
 
             String prLessTicket = prLessTicket(branchForTc, ticketPrefix, gitConfig);
+            if (!Strings.isNullOrEmpty(prLessTicket)) {
+                if (Strings.isNullOrEmpty(branchNumPrefix)) {
+                    //Default, simple case
 
-            if (Strings.isNullOrEmpty(branchNumPrefix)) {
-                //Default, simple case, branch name matching gives us a ticket
-                if (!Strings.isNullOrEmpty(prLessTicket))
                     return prLessTicket; //find out PRless ticket,
+                } else {
+                    // PR less ticket only mentioned in real ticket
+                    String ticket = findTicketMentions(srvCode, prLessTicket);
 
-                //Default, simple case, just use PR name
-                pr = findPrForBranch(srvCode, branchForTc);
-
-                if (pr != null)
-                    ticketFullName = getTicketFullName(pr, ticketPrefix);
-            } else {
-                // PR less ticket only mentioned in real ticket
-                Set<Ticket> tickets = jiraIgnProv.server(srvCode).getTickets();
-                String ticket = findTicketMentions(tickets, prLessTicket);
-
-                if(!Strings.isNullOrEmpty(ticket))
-                    return ticket;
-
-                pr = findPrForBranch(srvCode, branchForTc);
-
-                if (pr != null) {
-                    String jiraBranchNum = findFixPrefixedNumber(pr, branchNumPrefix);
-
-                    ticketFullName = findTicketMentions(tickets, jiraBranchNum);
+                    if (!Strings.isNullOrEmpty(ticket))
+                        return ticket; // found real JIRA ticket for comment
                 }
+            }
+
+            pr = findPrForBranch(srvCode, branchForTc);
+            if (pr != null) {
+                String ticketFromPr;
+                if (Strings.isNullOrEmpty(branchNumPrefix)) {
+                    //Default, simple case, branch name matching gives us a ticket
+                    ticketFromPr = findFixPrefixedNumber(pr.getTitle(), ticketPrefix);
+                } else {
+                    String jiraBranchNum = findFixPrefixedNumber(pr.getTitle(), branchNumPrefix);
+
+                    ticketFromPr = Strings.isNullOrEmpty(jiraBranchNum)
+                            ? null
+                            : findTicketMentions(srvCode, jiraBranchNum);
+                }
+
+                if (!Strings.isNullOrEmpty(ticketFromPr))
+                    return ticketFromPr; // found real JIRA ticket for comment
             }
         } catch (Exception e) {
             throw new TicketNotFoundException("Exception happened when server tried to get ticket ID from Pull Request - " + e.getMessage(), e);
         }
 
-        if (Strings.isNullOrEmpty(ticketFullName)) {
-            throw new TicketNotFoundException("JIRA ticket can't be found - " +
-                    "PR title \"" + (pr == null ? "" : pr.getTitle()) + "\" should starts with \"" + ticketPrefix + "NNNNN\"." +
-                    " Please, rename PR according to the" +
-                    " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
-                    "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>" +
-                    " or use branch name according ticket name.");
-        }
-
-        return ticketFullName;
-    }
-
-    /**
-     * @param pr Pull Request.
-     * @param prefix Ticket prefix.
-     * @return JIRA ticket full name or empty string.
-     */
-    @NotNull public static String getTicketFullName(PullRequest pr, @NotNull String prefix) {
-        String ticketId = "";
-
-        if (pr.getTitle().toUpperCase().startsWith(prefix)) {
-            int beginIdx = prefix.length();
-            int endIdx = prefix.length();
-
-            while (endIdx < pr.getTitle().length() && Character.isDigit(pr.getTitle().charAt(endIdx)))
-                endIdx++;
-
-            ticketId = prefix + pr.getTitle().substring(beginIdx, endIdx);
-        }
-
-        return ticketId;
+        throw new TicketNotFoundException("JIRA ticket can't be found - " +
+                "PR title \"" + (pr == null ? "" : pr.getTitle()) + "\" should starts with \"" + ticketPrefix + "NNNNN\"." +
+                " Please, rename PR according to the" +
+                " <a href='https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute" +
+                "#HowtoContribute-1.CreateGitHubpull-request'>contributing guide</a>" +
+                " or use branch name according ticket name.");
     }
 
     @Nullable public PullRequest findPrForBranch(
