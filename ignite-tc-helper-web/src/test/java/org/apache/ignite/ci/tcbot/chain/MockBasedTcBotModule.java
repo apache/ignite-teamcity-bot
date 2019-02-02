@@ -17,11 +17,10 @@
 
 package org.apache.ignite.ci.tcbot.chain;
 
-import com.google.common.base.Preconditions;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import java.io.File;
-import java.util.Properties;
+
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.conf.BranchesTracked;
@@ -105,8 +104,8 @@ public class MockBasedTcBotModule extends AbstractModule {
         bind(ITcServerProvider.class).toInstance(tcSrvOldProv);
 
         bind(ITcBotConfig.class).toInstance(new ITcBotConfig() {
-            @Override public String primaryServerId() {
-                return ITcBotConfig.DEFAULT_SERVER_ID;
+            @Override public String primaryServerCode() {
+                return ITcBotConfig.DEFAULT_SERVER_CODE;
             }
 
             @Override public BranchesTracked getTrackedBranches() {
@@ -114,20 +113,20 @@ public class MockBasedTcBotModule extends AbstractModule {
             }
 
             /** {@inheritDoc} */
-            @Override public ITcServerConfig getTeamcityConfig(String srvName) {
+            @Override public ITcServerConfig getTeamcityConfig(String srvCode) {
                 File workDir = HelperConfig.resolveWorkDir();
 
-                String cfgName = HelperConfig.prepareConfigName(srvName);
+                String cfgName = HelperConfig.prepareConfigName(srvCode);
 
-                return new TcServerConfig(srvName, HelperConfig.loadAuthProperties(workDir, cfgName));
+                return new TcServerConfig(srvCode, HelperConfig.loadAuthProperties(workDir, cfgName));
             }
 
-            @Override public IJiraServerConfig getJiraConfig(String srvName) {
+            @Override public IJiraServerConfig getJiraConfig(String srvCode) {
                 File workDir = HelperConfig.resolveWorkDir();
 
-                String cfgName = HelperConfig.prepareConfigName(srvName);
+                String cfgName = HelperConfig.prepareConfigName(srvCode);
 
-                return new JiraServerConfig(srvName, HelperConfig.loadAuthProperties(workDir, cfgName));
+                return new JiraServerConfig(srvCode, HelperConfig.loadAuthProperties(workDir, cfgName));
             }
         });
 

@@ -28,10 +28,10 @@ import org.jetbrains.annotations.Nullable;
  */
 public class JiraServerConfig implements IJiraServerConfig {
     /** Service (server) Name. */
-    private String name;
+    private String code;
 
     /**
-     * Tickets for commenting in JIRA and finding out PA tickets.
+     * Tickets for commenting in JIRA and finding out PA tickets. Default project is "IGNITE".
      */
     private String projectCode;
 
@@ -63,13 +63,13 @@ public class JiraServerConfig implements IJiraServerConfig {
     public JiraServerConfig() {
     }
 
-    public JiraServerConfig(String name, Properties props) {
-        this.name = name;
+    public JiraServerConfig(String code, Properties props) {
+        this.code = code;
         this.props = props;
     }
 
-    public String getName() {
-        return name;
+    public String getCode() {
+        return code;
     }
 
     /**
@@ -80,10 +80,10 @@ public class JiraServerConfig implements IJiraServerConfig {
     }
 
     /**
-     * @param name Name.
+     * @param code Name.
      */
-    public void name(String name) {
-        this.name = name;
+    public void code(String code) {
+        this.code = code;
     }
 
     /** {@inheritDoc} */

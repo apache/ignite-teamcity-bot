@@ -34,18 +34,14 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
     }
 
     /** {@inheritDoc} */
-    @Override public ITcServerConfig getTeamcityConfig(String srvName) {
-        return getTrackedBranches().getServer(srvName)
+    @Override public ITcServerConfig getTeamcityConfig(String srvCode) {
+        return getTrackedBranches().getServer(srvCode)
             .orElseGet(() -> {
                 TcServerConfig tcCfg = new TcServerConfig();
 
-                tcCfg.name = srvName;
+                tcCfg.code(srvCode);
 
-                File workDir = HelperConfig.resolveWorkDir();
-
-                String cfgName = HelperConfig.prepareConfigName(srvName);
-
-                Properties props = HelperConfig.loadAuthProperties(workDir, cfgName);
+                Properties props = loadOldAuthProps(srvCode);
 
                 tcCfg.properties(props);
 
@@ -53,18 +49,14 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
             });
     }
 
-    @Override public IJiraServerConfig getJiraConfig(String srvName) {
-        return getTrackedBranches().getJiraServer(srvName)
+    @Override public IJiraServerConfig getJiraConfig(String srvCode) {
+        return getTrackedBranches().getJiraServer(srvCode)
             .orElseGet(() -> {
                 JiraServerConfig jCfg = new JiraServerConfig();
 
-                jCfg.name(srvName);
+                jCfg.code(srvCode);
 
-                File workDir = HelperConfig.resolveWorkDir();
-
-                String cfgName = HelperConfig.prepareConfigName(srvName);
-
-                Properties props = HelperConfig.loadAuthProperties(workDir, cfgName);
+                Properties props = loadOldAuthProps(srvCode);
 
                 jCfg.properties(props);
 
@@ -73,9 +65,19 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
     }
 
     /** {@inheritDoc} */
-    @Override public String primaryServerId() {
-        String srvId = getTrackedBranches().primaryServerId();
+    @Override public String primaryServerCode() {
+        String srvCode = getTrackedBranches().primaryServerCode();
 
-        return Strings.isNullOrEmpty(srvId) ? ITcBotConfig.DEFAULT_SERVER_ID : srvId;
+        return Strings.isNullOrEmpty(srvCode) ? ITcBotConfig.DEFAULT_SERVER_CODE : srvCode;
     }
+
+
+    private Properties loadOldAuthProps(String srvCode) {
+        File workDir = HelperConfig.resolveWorkDir();
+
+        String cfgName = HelperConfig.prepareConfigName(srvCode);
+
+        return HelperConfig.loadAuthProperties(workDir, cfgName);
+    }
+
 }

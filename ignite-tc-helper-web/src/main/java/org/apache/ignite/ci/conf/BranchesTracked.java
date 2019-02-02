@@ -32,10 +32,10 @@ public class BranchesTracked {
     private List<BranchTracked> branches = new ArrayList<>();
 
     /** Primary server ID. */
-    @Nullable private String primaryServerId;
+    @Nullable private String primaryServerCode;
 
     /** Additional list Servers to be used for validation of PRs, but not for tracking any branches. */
-    private List<TcServerConfig> servers = new ArrayList<>();
+    private List<TcServerConfig> tcServers = new ArrayList<>();
 
     /** JIRA config to be used . */
     private List<JiraServerConfig> jiraServers = new ArrayList<>();
@@ -74,7 +74,7 @@ public class BranchesTracked {
             .map(ChainAtServer::getServerId);
 
         return Stream.concat(srvsInTracked,
-            servers.stream().map(TcServerConfig::getName))
+            tcServers.stream().map(TcServerConfig::getCode))
             .collect(Collectors.toSet());
     }
 
@@ -86,15 +86,18 @@ public class BranchesTracked {
         branches.add(branch);
     }
 
-    @Nullable public String primaryServerId() {
-        return primaryServerId;
+    /**
+     * @return Primary server code.
+     */
+    @Nullable public String primaryServerCode() {
+        return primaryServerCode;
     }
 
-    public Optional<TcServerConfig> getServer(String name) {
-        return servers.stream().filter(s -> name.equals(s.getName())).findAny();
+    public Optional<TcServerConfig> getServer(String code) {
+        return tcServers.stream().filter(s -> code.equals(s.getCode())).findAny();
     }
 
-    public Optional<JiraServerConfig> getJiraServer(String name) {
-        return jiraServers.stream().filter(s -> name.equals(s.getName())).findAny();
+    public Optional<JiraServerConfig> getJiraServer(String code) {
+        return jiraServers.stream().filter(s -> code.equals(s.getCode())).findAny();
     }
 }

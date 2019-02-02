@@ -25,10 +25,10 @@ import org.apache.ignite.ci.conf.BranchesTracked;
  * Teamcity Bot configuration access inteface.
  */
 public interface ITcBotConfig {
-    /** Default server id. */
-    String DEFAULT_SERVER_ID = "apache";
+    /** Default server code. */
+    String DEFAULT_SERVER_CODE = "apache";
 
-    public String primaryServerId();
+    public String primaryServerCode();
 
     /**
      * @return Tracked branches configuration for TC Bot.
@@ -49,7 +49,7 @@ public interface ITcBotConfig {
         return getTrackedBranches().getServerIds();
     }
 
-    public ITcServerConfig getTeamcityConfig(String srvName);
+    public ITcServerConfig getTeamcityConfig(String srvCode);
 
-    public IJiraServerConfig getJiraConfig(String srvName);
+    public IJiraServerConfig getJiraConfig(String srvCode);
 }

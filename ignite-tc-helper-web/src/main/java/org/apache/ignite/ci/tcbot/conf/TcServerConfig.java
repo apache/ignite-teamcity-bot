@@ -27,13 +27,17 @@ import org.jetbrains.annotations.Nullable;
  * Teamcity connection configuration or reference to another config.
  */
 public class TcServerConfig implements ITcServerConfig {
+    private static final String DEFAULT_HOST = "https://ci.ignite.apache.org/";
+
     /** TC server name. */
-    @Nonnull String name;
+    @Nonnull private String code;
 
     /** Name of server this config points to. This config is just an alias for TC Server. */
-    @Nullable String reference;
+    @Nullable
+    private String reference;
 
     @Nullable private Properties props;
+
     /** Host. */
     @Nullable private String host;
 
@@ -41,13 +45,13 @@ public class TcServerConfig implements ITcServerConfig {
 
     }
 
-    public TcServerConfig(String name, Properties properties) {
-        this.name = name;
+    public TcServerConfig(String code, Properties properties) {
+        this.code = code;
         this.props = properties;
     }
 
-    public String getName() {
-        return name;
+    public String getCode() {
+        return code;
     }
 
     /** {@inheritDoc} */
@@ -74,9 +78,13 @@ public class TcServerConfig implements ITcServerConfig {
      * Configured value for host.
      */
     @NotNull
-    public String hostConfigured() {
-        if (Strings.isNullOrEmpty(host))
-            return props.getProperty(HelperConfig.HOST, "https://ci.ignite.apache.org/");
+    private String hostConfigured() {
+        if (Strings.isNullOrEmpty(host)) {
+            if (props != null)
+                return props.getProperty(HelperConfig.HOST, DEFAULT_HOST);
+        } else {
+            return DEFAULT_HOST;
+        }
 
         return host;
     }
@@ -86,5 +94,9 @@ public class TcServerConfig implements ITcServerConfig {
      */
     public void properties(Properties props) {
         this.props = props;
+    }
+
+    public void code(String srvCode) {
+        this.code = srvCode;
     }
 }
