@@ -6,14 +6,14 @@ This tool intended to monitor [Apache Ignite Teamcity](https://ci.ignite.apache.
 
 TC tool should help to avoid new failures introduction into master and provide ways of its early detection.
 
-Major use cases are following:
+Major use cases are the following:
 * Continuous monitoring of master and/or release branch
 * Check branch/PR changes to new failures
 * MCTGA Bot for slack and for email notifications.
 
 This tool is available on [https://mtcga.gridgain.com/](https://mtcga.gridgain.com/) - requires apache CI credentials.
 
-Should you have any questions please contact Ignite Developers at dev@ignite.apache.org or dpavlov@apache.org
+Should you have any questions, please contact Ignite Developers at dev@ignite.apache.org or dpavlov@apache.org
 
 ## Development
 ### Project setup
@@ -24,7 +24,7 @@ In can be changed with org.apache.ignite.ci.tcbot.TcBotSystemProperties.TEAMCITY
 
 Examples of configs can be found in [conf](conf) directory. 
 Main config file is [conf/branches.json](conf/branches.json). This file needs to be placed to work directory, (under user home by default).
-Extra setup is required using security-sensitive information using PasswordEncoder. No Teamcity credentials is required because TC bot asks users to enter creds.
+Extra setup is required using security-sensitive information using PasswordEncoder. No TeamCity credentials are required because TC bot asks users to enter creds.
 
 ### Code inspections, styles and abbreviation rules.
 [Code style](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines) is inherited from Apache Ignite.
@@ -34,7 +34,7 @@ Please install following components for development using IntelliJ IDEA
 * Configure [IDEA Codestyle](https://cwiki.apache.org/confluence/display/IGNITE/Coding+Guidelines#CodingGuidelines-A.ConfigureIntelliJIDEAcodestyle)
 
 ### Build
-Build can be done using following commands
+A build can be done using following commands
 - gradle clean
 - gradle build
 
@@ -49,10 +49,17 @@ Resulting distribution can be found in projectRoot\jetty-launcher\build\distribu
 Distribution will contain start script in \bin folder.
 
 ### Internal Design
-Apache Ignite TC Bot interacts with several data sources to find out current state and defails of contribution.
+Main bot logic is placed in [ignite-tc-helper-web](ignite-tc-helper-web) module. 
+[jetty-launcher](jetty-launcher) is an application module to start bot in production.
 
-<img src='https://docs.google.com/drawings/d/e/2PACX-1vTbvhVlSrpo-KA8V5jTL5ogRrpsx_21ByzviOps58-Yw8gV3qz9buS3nEBJvxXZdJWzUZryQjscfiCs/pub?w=976&h=627'>
+Apache Ignite TC Bot interacts with several data sources to find out current state and details of contribution.
 
-Teamcity Bot Components and its interactions
+<img src="https://docs.google.com/drawings/d/e/2PACX-1vTbvhVlSrpo-KA8V5jTL5ogRrpsx_21ByzviOps58-Yw8gV3qz9buS3nEBJvxXZdJWzUZryQjscfiCs/pub?w=488&amp;h=313">
+
+TeamCity Bot Components and its interactions
 
 <img src="https://docs.google.com/drawings/d/e/2PACX-1vQM6tH6-pb6C_JGjNG41sUBJP72CVpNqeBHIQdgaGYL4rGoYfZtywwzVB1JKF1Kk8haXUVl_IORI6NQ/pub?w=1356&h=733">
+
+Static content is placed in [webapp](ignite-tc-helper-web/src/main/webapp).
+TC Bot services can be found in [tcbot](ignite-tc-helper-web/src/main/java/org/apache/ignite/ci/tcbot). 
+TC Bot integrations are placed in corresponding subpackages in [ci](ignite-tc-helper-web/src/main/java/org/apache/ignite/ci).
