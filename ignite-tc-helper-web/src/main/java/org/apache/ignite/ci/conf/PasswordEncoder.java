@@ -72,8 +72,8 @@ public class PasswordEncoder {
 
     @NotNull private static SecretKeySpec k() {
         int reqBytes = 128 / 8;
-        String pattern = "Ignite";
-        byte[] raw = Strings.repeat(pattern, reqBytes / pattern.length() + 1).substring(0, reqBytes).getBytes();
+        String ptrn = "Ignite";
+        byte[] raw = Strings.repeat(ptrn, reqBytes / ptrn.length() + 1).substring(0, reqBytes).getBytes();
         return new SecretKeySpec(raw, "AES");
     }
 

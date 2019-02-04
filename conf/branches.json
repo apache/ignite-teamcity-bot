@@ -9,7 +9,8 @@
       "code": "apache",
       /* JIRA project code for commenting tickets. Default project is "IGNITE". */
       "projectCode": "IGNITE",
-      "branchNumPrefix": "IGNITE-",
+      /* Following prefix is to be specified only if it is necessary to separate project code and branches markup in tickets. */
+      // "branchNumPrefix": "IGNITE-",
       /* JIRA Url, HTTPs is highly recommended because of Basic Auth used. */
       "url": "https://issues.apache.org/jira/",
       /** JIRA Auth token to access, use PasswordEncoder#encodeJiraTok to get from clear username/password */
