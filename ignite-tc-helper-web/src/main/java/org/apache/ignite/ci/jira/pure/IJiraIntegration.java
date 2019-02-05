@@ -20,22 +20,15 @@ package org.apache.ignite.ci.jira.pure;
 import java.io.IOException;
 import org.apache.ignite.ci.jira.Tickets;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Reperesents methods to provide interaction with Jira servers.
  */
 public interface IJiraIntegration {
-
     /**
      * @return Internal identified service ID.
      */
     public void init(String srvId);
-
-    /**
-     * @return Internal identified service ID.
-     */
-    public String getServiceId();
 
     /**
      * @param ticket JIRA ticket full name. E.g 'IGNITE-5555'.

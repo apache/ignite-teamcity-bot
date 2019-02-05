@@ -44,10 +44,13 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.Project;
@@ -92,6 +95,7 @@ import static junit.framework.TestCase.assertTrue;
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
 import static org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.STRINGS_CACHE;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -161,10 +165,10 @@ public class IgnitedTcInMemoryIntegrationTest {
             (invocationOnMock) -> {
                 String url = invocationOnMock.getArgument(1);
 
-                if (url.contains("/app/rest/latest/builds?locator=defaultFilter:false,count:1000,start:1000"))
+                if (url.contains("app/rest/latest/builds?locator=defaultFilter:false,count:1000,start:1000"))
                     return getClass().getResourceAsStream("/buildHistoryMasterPage2.xml");
 
-                if (url.contains("/app/rest/latest/builds?locator=defaultFilter:false"))
+                if (url.contains("app/rest/latest/builds?locator=defaultFilter:false"))
                     return getClass().getResourceAsStream("/buildHistoryMaster.xml");
 
                 throw new FileNotFoundException(url);
@@ -216,10 +220,10 @@ public class IgnitedTcInMemoryIntegrationTest {
         when(http.sendGet(anyString(), anyString())).thenAnswer(
             (invocationOnMock) -> {
                 String url = invocationOnMock.getArgument(1);
-                if (url.contains("/app/rest/latest/builds?locator=defaultFilter:false,count:1000,start:1000"))
+                if (url.contains("app/rest/latest/builds?locator=defaultFilter:false,count:1000,start:1000"))
                     return getClass().getResourceAsStream("/buildHistoryMasterPage2.xml");
 
-                if (url.contains("/app/rest/latest/builds?locator=defaultFilter:false"))
+                if (url.contains("app/rest/latest/builds?locator=defaultFilter:false"))
                     return getClass().getResourceAsStream("/buildHistoryMaster.xml");
 
                 if (url.contains("app/rest/latest/projects/" + projectId))
@@ -709,6 +713,15 @@ public class IgnitedTcInMemoryIntegrationTest {
 
             final IJiraIntegrationProvider jiraProv = Mockito.mock(IJiraIntegrationProvider.class);
             bind(IJiraIntegrationProvider.class).toInstance(jiraProv);
+
+            ITcBotConfig cfg = Mockito.mock(ITcBotConfig.class);
+
+            ITcServerConfig tcCfg = mock(ITcServerConfig.class);
+            when(tcCfg.logsDirectory()).thenReturn("logs");
+            when(tcCfg.host()).thenReturn("http://ci.ignite.apache.org/");
+            when(cfg.getTeamcityConfig(anyString())).thenReturn(tcCfg);
+
+            bind(ITcBotConfig.class).toInstance(cfg);
         }
     }
 }

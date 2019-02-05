@@ -19,26 +19,29 @@ package org.apache.ignite.ci.tcbot.chain;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
+import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
+import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
-import org.apache.ignite.ci.jira.pure.IJiraIntegration;
-import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
+import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
+import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
-import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
-import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
@@ -47,31 +50,27 @@ import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.Nullable;
 
-import javax.inject.Inject;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
 /**
  * Process pull request/untracked branch chain at particular server.
  */
 public class PrChainsProcessor {
     /** Build chain processor. */
-    @Inject BuildChainProcessor buildChainProcessor;
+    @Inject private BuildChainProcessor buildChainProcessor;
 
     /** Tc server provider. */
-    @Inject ITcServerProvider tcSrvProvider;
+    @Inject private ITcServerProvider tcSrvProvider;
 
     /** Tc server provider. */
-    @Inject ITeamcityIgnitedProvider tcIgnitedProvider;
+    @Inject private ITeamcityIgnitedProvider tcIgnitedProvider;
 
     /** Git hub connection provider. */
-    @Inject IGitHubConnectionProvider gitHubConnProvider;
+    @Inject private IGitHubConnectionProvider gitHubConnProvider;
 
     /** */
-    @Inject IGitHubConnIgnitedProvider gitHubConnIgnitedProvider;
+    @Inject private IGitHubConnIgnitedProvider gitHubConnIgnitedProvider;
 
     /** */
-    @Inject IJiraIntegrationProvider jiraIntegrationProvider;
+    @Inject private IJiraIgnitedProvider jiraIgnProv;
 
     @Inject private BranchTicketMatcher ticketMatcher;
 
@@ -109,7 +108,7 @@ public class PrChainsProcessor {
 
         IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvId);
 
-        IJiraIntegration jiraIntegration = jiraIntegrationProvider.server(srvId);
+        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvId);
 
         res.setJavaFlags(teamcity, gitHubConn, jiraIntegration);
 

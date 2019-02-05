@@ -32,6 +32,7 @@ import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -122,13 +123,13 @@ public class ChainAtServerCurrentStatus {
 
     /** */
     public void initJiraAndGitInfo(BranchTicketMatcher ticketMatcher,
-                                   IJiraIntegration jiraIntegration,
+                                   IJiraIgnited jiraIntegration,
                                    IGitHubConnIgnited gitHubConnIgnited) {
 
         String ticketFullName = null;
         try {
             ticketFullName = ticketMatcher
-                    .resolveTicketFromBranch(jiraIntegration.getServiceId(),
+                    .resolveTicketFromBranch(jiraIntegration.config().getCode(),
                             null,
                             branchName);
         } catch (BranchTicketMatcher.TicketNotFoundException ignore) {
@@ -142,9 +143,8 @@ public class ChainAtServerCurrentStatus {
         if (prNum != null) {
             PullRequest pullReq = gitHubConnIgnited.getPullRequest(prNum);
 
-            if (pullReq != null && pullReq.getTitle() != null) {
+            if (pullReq != null && pullReq.getTitle() != null)
                 prUrl = pullReq.htmlUrl();
-            }
         }
 
         if (!Strings.isNullOrEmpty(ticketFullName))

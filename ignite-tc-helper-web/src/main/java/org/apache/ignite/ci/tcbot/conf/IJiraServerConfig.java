@@ -24,6 +24,11 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface IJiraServerConfig {
     /**
+     * @return Service ID or server code, internally identified, any string configured.
+     */
+    public String getCode();
+
+    /**
      * Return JIRA URL, e.g. https://issues.apache.org/jira/
      */
     public String getUrl();
@@ -36,11 +41,9 @@ public interface IJiraServerConfig {
     /**
      * @return PR name and branch name matching number prefix
      */
-    @Nullable
-    public String branchNumPrefix();
+    @Nullable public String branchNumPrefix();
 
-    @Nullable
-    public String decodedHttpAuthToken();
+    @Nullable public String decodedHttpAuthToken();
 
     /**
      * @return {@code True} if JIRA authorization token is available.
@@ -48,4 +51,5 @@ public interface IJiraServerConfig {
     public default boolean isJiraTokenAvailable() {
         return !Strings.isNullOrEmpty(decodedHttpAuthToken());
     }
+
 }

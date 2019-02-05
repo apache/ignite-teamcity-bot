@@ -76,7 +76,8 @@ public class JiraServerConfig implements IJiraServerConfig {
         this.props = props;
     }
 
-    public String getCode() {
+    /** {@inheritDoc} */
+    @Override public String getCode() {
         return code;
     }
 

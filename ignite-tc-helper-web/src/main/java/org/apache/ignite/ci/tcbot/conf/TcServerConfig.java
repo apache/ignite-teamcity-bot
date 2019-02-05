@@ -41,6 +41,9 @@ public class TcServerConfig implements ITcServerConfig {
     /** Host. */
     @Nullable private String host;
 
+    /** Downloaded build logs relative path. */
+    @Nullable private String logsDir;
+
     public TcServerConfig() {
 
     }
@@ -74,18 +77,31 @@ public class TcServerConfig implements ITcServerConfig {
         return hostConf + (hostConf.endsWith("/") ? "" : "/");
     }
 
+    /** {@inheritDoc} */
+    @Override public String logsDirectory() {
+        String dfltLogs = (Strings.isNullOrEmpty(getCode()) ? "" : code + "_") + "logs";
+
+        if (!Strings.isNullOrEmpty(logsDir))
+            return logsDir;
+
+        return props != null
+            ? props.getProperty(HelperConfig.LOGS, dfltLogs)
+            : dfltLogs;
+
+    }
+
     /**
      * Configured value for host.
      */
     @NotNull
     private String hostConfigured() {
-        if (Strings.isNullOrEmpty(host)) {
-            return props != null
-                ? props.getProperty(HelperConfig.HOST, DEFAULT_HOST)
-                : DEFAULT_HOST;
-        }
+        if (!Strings.isNullOrEmpty(host))
+            return host;
 
-        return host;
+        return props != null
+            ? props.getProperty(HelperConfig.HOST, DEFAULT_HOST)
+            : DEFAULT_HOST;
+
     }
 
     /**

@@ -17,6 +17,8 @@
 package org.apache.ignite.ci.tcbot.conf;
 
 import java.util.Properties;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Teamcity Server configuration.
@@ -28,7 +30,9 @@ public interface ITcServerConfig {
     /**
      * @return Another TC Server (service) config name to use settings from. Filled only for server aliases.
      */
-    public String reference();
+    @Nullable public String reference();
 
-    public String host();
+    @NotNull public String host();
+
+    @NotNull public String logsDirectory();
 }

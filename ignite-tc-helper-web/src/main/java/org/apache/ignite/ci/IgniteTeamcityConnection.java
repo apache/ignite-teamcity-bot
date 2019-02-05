@@ -121,20 +121,25 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
         this.host = tcCfg.host();
 
-        try {
-            if (!Strings.isNullOrEmpty(props.getProperty(HelperConfig.USERNAME))
+        if (props != null) {
+            try {
+                if (!Strings.isNullOrEmpty(props.getProperty(HelperConfig.USERNAME))
                     && props.getProperty(HelperConfig.ENCODED_PASSWORD) != null)
-                setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, "TC Config"));
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Failed to set credentials", e);
+                    setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, "TC Config"));
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                logger.error("Failed to set credentials", e);
+            }
         }
-        final File workDir = HelperConfig.resolveWorkDir();
-        final File logsDirFile = HelperConfig.resolveLogs(workDir, props);
+
+        final File logsDirFile = HelperConfig.resolveLogs(
+            HelperConfig.resolveWorkDir(),
+            tcCfg.logsDirectory());
 
         logsDir = ensureDirExist(logsDirFile);
 
-        this.executor =  MoreExecutors.directExecutor();
+        this.executor = MoreExecutors.directExecutor();
     }
 
     /** {@inheritDoc} */

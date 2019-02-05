@@ -124,9 +124,4 @@ class Jira implements IJiraIntegration {
     public String sendGetToJira(String url) throws IOException {
         return HttpUtil.sendGetToJira(config().decodedHttpAuthToken(), restApiUrl() + url);
     }
-
-    /** {@inheritDoc} */
-    @Override public String getServiceId() {
-        return srvId;
-    }
 }

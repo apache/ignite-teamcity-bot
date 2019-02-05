@@ -37,8 +37,8 @@ class JiraIgnited implements IJiraIgnited {
     /** Jira ticket Sync. */
     @Inject private JiraTicketSync jiraTicketSync;
 
-    /** Server id. */
-    private String srvId;
+    /** Server internal ID to bind services. */
+    private String srvCode;
 
     /** Server id mask high. */
     private int srvIdMaskHigh;
@@ -49,9 +49,9 @@ class JiraIgnited implements IJiraIgnited {
     public void init(IJiraIntegration jira) {
         this.jira = jira;
 
-        srvId = jira.getServiceId();
+        srvCode = jira.config().getCode();
 
-        srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
+        srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvCode);
 
         jiraTicketDao.init();
     }
@@ -59,7 +59,7 @@ class JiraIgnited implements IJiraIgnited {
 
     /** {@inheritDoc} */
     @Override public Set<Ticket> getTickets() {
-        jiraTicketSync.ensureActualizeJiraTickets(srvId);
+        jiraTicketSync.ensureActualizeJiraTickets(srvCode);
 
         return jiraTicketDao.getTickets(srvIdMaskHigh, jira.config().projectCodeForVisa());
     }

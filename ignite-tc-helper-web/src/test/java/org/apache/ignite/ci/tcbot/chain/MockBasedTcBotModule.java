@@ -24,6 +24,8 @@ import java.util.Properties;
 
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
+import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
@@ -46,6 +48,7 @@ import org.mockito.Mockito;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -71,25 +74,10 @@ public class MockBasedTcBotModule extends AbstractModule {
         bind(IGitHubConnectionProvider.class).toInstance(ghProv);
         when(ghProv.server(anyString())).thenReturn(Mockito.mock(IGitHubConnection.class));
 
-        final IGitHubConnIgnitedProvider gitHubConnIgnitedProvider = Mockito.mock(IGitHubConnIgnitedProvider.class);
+        mockGitHub();
 
-        bind(IGitHubConnIgnitedProvider.class).toInstance(gitHubConnIgnitedProvider);
-
-        IGitHubConnIgnited gitHubConnIgnited = Mockito.mock(IGitHubConnIgnited.class);
-
-        PullRequest pullReq = Mockito.mock(PullRequest.class);
-
-        when(pullReq.getTitle()).thenReturn("");
-
-        when(gitHubConnIgnited.getPullRequest(anyInt())).thenReturn(pullReq);
-
-        when(gitHubConnIgnitedProvider.server(anyString())).thenReturn(gitHubConnIgnited);
-
-        final IJiraIntegrationProvider jiraProv = Mockito.mock(IJiraIntegrationProvider.class);
-
-        bind(IJiraIntegrationProvider.class).toInstance(jiraProv);
-
-        when(jiraProv.server(anyString())).thenReturn(Mockito.mock(IJiraIntegration.class));
+        IJiraServerConfig jiraCfg = mock(IJiraServerConfig.class);
+        mockJira(jiraCfg);
 
         bind(ITeamcityIgnitedProvider.class).to(TeamcityIgnitedProviderMock.class).in(new SingletonScope());
 
@@ -115,11 +103,10 @@ public class MockBasedTcBotModule extends AbstractModule {
             }
 
             @Override public IJiraServerConfig getJiraConfig(String srvCode) {
-                return new JiraServerConfig(srvCode, loadOldProps(srvCode));
+                return jiraCfg;
             }
 
-            @Override
-            public IGitHubConfig getGitConfig(String srvCode) {
+            @Override public IGitHubConfig getGitConfig(String srvCode) {
                 return new GitHubConfig(srvCode, loadOldProps(srvCode));
             }
 
@@ -136,5 +123,43 @@ public class MockBasedTcBotModule extends AbstractModule {
         bind(IUserStorage.class).toInstance(Mockito.mock(IUserStorage.class));
 
         super.configure();
+    }
+
+    private void mockGitHub() {
+        final IGitHubConnIgnitedProvider gitHubConnIgnitedProvider = Mockito.mock(IGitHubConnIgnitedProvider.class);
+
+        bind(IGitHubConnIgnitedProvider.class).toInstance(gitHubConnIgnitedProvider);
+
+        IGitHubConnIgnited gitHubConnIgnited = Mockito.mock(IGitHubConnIgnited.class);
+
+        PullRequest pullReq = Mockito.mock(PullRequest.class);
+
+        when(pullReq.getTitle()).thenReturn("");
+
+        when(gitHubConnIgnited.getPullRequest(anyInt())).thenReturn(pullReq);
+
+        when(gitHubConnIgnitedProvider.server(anyString())).thenReturn(gitHubConnIgnited);
+    }
+
+    /**
+     *
+     * @param jiraCfg JIRA config.
+     */
+    private void mockJira(IJiraServerConfig jiraCfg) {
+        final IJiraIntegrationProvider jiraProv = Mockito.mock(IJiraIntegrationProvider.class);
+
+        bind(IJiraIntegrationProvider.class).toInstance(jiraProv);
+
+        when(jiraProv.server(anyString())).thenReturn(Mockito.mock(IJiraIntegration.class));
+
+        final IJiraIgnitedProvider jiraIgnProv = Mockito.mock(IJiraIgnitedProvider.class);
+
+        bind(IJiraIgnitedProvider.class).toInstance(jiraIgnProv);
+
+        IJiraIgnited jiraIgn = Mockito.mock(IJiraIgnited.class);
+
+        when(jiraIgn.config()).thenReturn(jiraCfg);
+
+        when(jiraIgnProv.server(anyString())).thenReturn(jiraIgn);
     }
 }

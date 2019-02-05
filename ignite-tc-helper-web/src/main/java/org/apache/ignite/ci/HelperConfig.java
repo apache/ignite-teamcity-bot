@@ -224,8 +224,7 @@ public class HelperConfig {
         }
     }
 
-    @NotNull static File resolveLogs(File workDir, Properties props) {
-        final String logsProp = props.getProperty(LOGS, "logs");
+    @NotNull static File resolveLogs(File workDir, String logsProp) {
         final File logsDirFileConfigured = new File(logsProp);
         return logsDirFileConfigured.isAbsolute() ? logsDirFileConfigured : new File(workDir, logsProp);
     }

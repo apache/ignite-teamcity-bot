@@ -33,6 +33,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class BuildHistoryEmulator {
     private ArrayList<BuildRef> sharedState;
 
+    @SuppressWarnings("AssignmentOrReturnOfFieldWithMutableType")
     public BuildHistoryEmulator(ArrayList<BuildRef> sharedState) {
         this.sharedState = sharedState;
     }
@@ -41,7 +42,7 @@ public class BuildHistoryEmulator {
      * @param url Url.
      */
     @Nullable public InputStream handleUrl(String url) throws JAXBException {
-        if (!url.contains("/app/rest/latest/builds?locator=defaultFilter:false"))
+        if (!url.contains("app/rest/latest/builds?locator=defaultFilter:false"))
             return null;
 
         int cnt = getIntFromLocator(url, "count:", 100);
@@ -73,13 +74,11 @@ public class BuildHistoryEmulator {
         Builds builds = new Builds();
         builds.count(returnNow);
         if (nextStart > 0) {
-            StringBuffer buf = new StringBuffer();
-            buf.append("/app/rest/latest/builds?locator=defaultFilter:false,count:");
-            buf.append(cnt);
-            buf.append(",start:");
-            buf.append(nextStart);
-
-            builds.nextHref(buf.toString());
+            String buf = "app/rest/latest/builds?locator=defaultFilter:false,count:" +
+                cnt +
+                ",start:" +
+                nextStart;
+            builds.nextHref(buf);
         }
 
         return builds;
@@ -103,6 +102,5 @@ public class BuildHistoryEmulator {
             return def;
 
         return Integer.parseInt(cntStr.substring(prefix.length()));
-
     }
 }
