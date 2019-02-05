@@ -1,7 +1,11 @@
 {
   "primaryServerCode": "apache",
   "tcServers": [
-
+    {
+      "code": "public",
+      "reference": "apache"
+      // reference to another TC server to be used instead.
+    }
   ],
   "jiraServers": [
     {

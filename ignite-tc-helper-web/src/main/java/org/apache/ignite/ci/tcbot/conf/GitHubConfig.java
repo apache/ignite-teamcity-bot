@@ -31,10 +31,11 @@ public class GitHubConfig implements IGitHubConfig {
      */
     private String code;
 
+    /** */
     private String apiUrl;
 
+    /** */
     private String branchPrefix;
-
 
     private Properties props;
 
@@ -69,14 +70,12 @@ public class GitHubConfig implements IGitHubConfig {
         return this;
     }
 
-    @Override
-    public String gitBranchPrefix() {
+    /** {@inheritDoc} */
+    @Override public String gitBranchPrefix() {
         if (Strings.isNullOrEmpty(branchPrefix)) {
-            if (props != null) {
-                return props.getProperty(HelperConfig.GIT_BRANCH_PREFIX, DEFAULT_BRANCH_PREFIX);
-            } else {
-                return DEFAULT_BRANCH_PREFIX;
-            }
+            return props != null
+                ? props.getProperty(HelperConfig.GIT_BRANCH_PREFIX, DEFAULT_BRANCH_PREFIX)
+                : DEFAULT_BRANCH_PREFIX;
         }
         return branchPrefix;
     }

@@ -36,6 +36,9 @@ import javax.ws.rs.QueryParam;
 import java.util.Collection;
 import java.util.Objects;
 
+/**
+ *
+ */
 public class BranchTicketMatcher {
     /** Config. */
     @Inject private ITcBotConfig cfg;
@@ -46,25 +49,24 @@ public class BranchTicketMatcher {
     /** JIRA provider */
     @Inject private IJiraIgnitedProvider jiraIgnProv;
 
-    @Nullable
-    public String resolveTcBranchForPrLess(Ticket ticket,
-                                           IJiraServerConfig jiraCfg,
-                                           IGitHubConfig gitHubConfig) {
+    @Nullable public String resolveTcBranchForPrLess(Ticket ticket,
+        IJiraServerConfig jiraCfg,
+        IGitHubConfig gitHubCfg) {
         String branchNumPrefix = jiraCfg.branchNumPrefix();
 
         if (Strings.isNullOrEmpty(branchNumPrefix)) {
             //an easy way, no special branch and ticket mappings specified, use project code.
             int ticketId = ticket.keyWithoutProject(jiraCfg.projectCodeForVisa());
 
-            return gitHubConfig.gitBranchPrefix() + ticketId;
+            return gitHubCfg.gitBranchPrefix() + ticketId;
         }
 
         String branchJiraIdentification = findFixPrefixedNoInValues(branchNumPrefix,
-                ticket.key,
-                ticket.fields.summary,
-                ticket.fields.customfield_11050);
+            ticket.key,
+            ticket.fields.summary,
+            ticket.fields.customfield_11050);
 
-        return convertJiraToGit(branchJiraIdentification, branchNumPrefix, gitHubConfig);
+        return convertJiraToGit(branchJiraIdentification, branchNumPrefix, gitHubCfg);
 
     }
 
@@ -72,15 +74,15 @@ public class BranchTicketMatcher {
      * Converts JIRA notation branch name to actual git branch name. Usually it is just lower-casing, but any mapping may be configured.
      * @param branchJiraIdentification Branch jira identification.
      * @param branchNumPrefix Branch number prefix.
-     * @param gitHubConfig GH connection config.
+     * @param gitHubCfg GH connection config.
      */
     private String convertJiraToGit(String branchJiraIdentification,
                                     String branchNumPrefix,
-                                    IGitHubConfig gitHubConfig) {
+                                    IGitHubConfig gitHubCfg) {
         if (Strings.isNullOrEmpty(branchJiraIdentification))
             return null;
 
-        return gitHubConfig.gitBranchPrefix() + branchJiraIdentification.substring(branchNumPrefix.length());
+        return gitHubCfg.gitBranchPrefix() + branchJiraIdentification.substring(branchNumPrefix.length());
     }
 
     /**
@@ -108,12 +110,20 @@ public class BranchTicketMatcher {
         return findTicketMentions(tickets, branchNum);
     }
 
+    /**
+     * @param srvCode Server code.
+     * @param branchNum Branch number to be checked.
+     */
     @SuppressWarnings("WeakerAccess")
     @GuavaCached(maximumSize = 3000, expireAfterWriteSecs = 60, cacheNullRval = true)
     protected String findTicketMentions(String srvCode, @Nullable String branchNum) {
         return findTicketMentions(jiraIgnProv.server(srvCode).getTickets(), branchNum);
     }
 
+    /**
+     * @param tickets Tickets.
+     * @param branchNum Branch number to be checked.
+     */
     @Nullable private String findTicketMentions(Collection<Ticket> tickets, @Nullable String branchNum) {
         if (Strings.isNullOrEmpty(branchNum))
             return null;
@@ -125,6 +135,10 @@ public class BranchTicketMatcher {
                 .orElseGet(() -> findTicketMentionsInSupplementaryFields(tickets, branchNum));
     }
 
+    /**
+     * @param tickets Tickets.
+     * @param branchNum Branch number to be checked.
+     */
     @Nullable private String findTicketMentionsInSupplementaryFields(Collection<Ticket> tickets, String branchNum) {
         if (Strings.isNullOrEmpty(branchNum))
             return null;
@@ -153,27 +167,25 @@ public class BranchTicketMatcher {
     }
 
 
-    @Nullable
-    private String findFixPrefixedNoInValues(@NotNull String prefix, String... values) {
+    @Nullable  private String findFixPrefixedNoInValues(@NotNull String prefix, String... values) {
         for (String value : values) {
-            String fixPrefixedNumber = findFixPrefixedNumber(value, prefix);
+            String fixPrefixedNum = findFixPrefixedNumber(value, prefix);
 
-            if (fixPrefixedNumber != null)
-                return fixPrefixedNumber;
+            if (fixPrefixedNum != null)
+                return fixPrefixedNum;
         }
         return null;
     }
     /**
-     * @param value Pull Request/Ticket title prefix or other text to find constant-prefix text.
+     * @param val Pull Request/Ticket title prefix or other text to find constant-prefix text.
      * @param prefix Ticket prefix.
      * @return Branch number or null.
      */
-    @Nullable
-    private String findFixPrefixedNumber(@Nullable String value, @NotNull String prefix) {
-        if(Strings.isNullOrEmpty(value))
+    @Nullable private String findFixPrefixedNumber(@Nullable String val, @NotNull String prefix) {
+        if(Strings.isNullOrEmpty(val))
             return null;
 
-        int idxOfBranchNum = value.toUpperCase().indexOf(prefix.toUpperCase());
+        int idxOfBranchNum = val.toUpperCase().indexOf(prefix.toUpperCase());
 
         if (idxOfBranchNum < 0)
             return null;
@@ -181,15 +193,18 @@ public class BranchTicketMatcher {
         int beginIdx = prefix.length() + idxOfBranchNum;
         int endIdx = beginIdx;
 
-        while (endIdx < value.length() && Character.isDigit(value.charAt(endIdx)))
+        while (endIdx < val.length() && Character.isDigit(val.charAt(endIdx)))
             endIdx++;
 
         if (endIdx == beginIdx)
             return null;
 
-        return prefix + value.substring(beginIdx, endIdx);
+        return prefix + val.substring(beginIdx, endIdx);
     }
 
+    /**
+     *
+     */
     public static class TicketNotFoundException extends Exception {
         TicketNotFoundException(String msg) {
             super(msg);
@@ -206,7 +221,7 @@ public class BranchTicketMatcher {
             return ticketFullName; //old code probably not needed now; ticketFullName = ticketFullName.toUpperCase().startsWith(prefix) ? ticketFullName : prefix + ticketFullName;
 
         IJiraServerConfig jiraCfg = cfg.getJiraConfig(srvCode);
-        IGitHubConfig gitConfig = cfg.getGitConfig(srvCode);
+        IGitHubConfig gitCfg = cfg.getGitConfig(srvCode);
 
         PullRequest pr; // filled only when special PR found
 
@@ -218,7 +233,7 @@ public class BranchTicketMatcher {
                     ? jiraCfg.projectCodeForVisa() + TicketCompacted.PROJECT_DELIM
                     : branchNumPrefix;
 
-            String prLessTicket = prLessTicket(branchForTc, ticketPrefix, gitConfig);
+            String prLessTicket = prLessTicket(branchForTc, ticketPrefix, gitCfg);
             if (!Strings.isNullOrEmpty(prLessTicket)) {
                 if (Strings.isNullOrEmpty(branchNumPrefix)) {
                     //Default, simple case
@@ -262,8 +277,7 @@ public class BranchTicketMatcher {
                 " or use branch name according ticket name.");
     }
 
-    @Nullable
-    private PullRequest findPrForBranch(
+    @Nullable private PullRequest findPrForBranch(
             @Nullable @QueryParam("serverId") String srvId,
             @Nullable @QueryParam("branchName") String branchForTc) {
         Integer prId = IGitHubConnection.convertBranchToPrId(branchForTc);
@@ -281,10 +295,9 @@ public class BranchTicketMatcher {
      * @param ticketPrefix JIRA Ticket prefix.
      * @param gitHubIgn GitHub connection ign.
      */
-    @Nullable
-    private static String prLessTicket(String branchForTc,
-                                       String ticketPrefix,
-                                       IGitHubConfig gitHubIgn) {
+    @Nullable private static String prLessTicket(String branchForTc,
+        String ticketPrefix,
+        IGitHubConfig gitHubIgn) {
         String branchPrefix = gitHubIgn.gitBranchPrefix();
 
         if (!branchForTc.startsWith(branchPrefix))
@@ -297,6 +310,7 @@ public class BranchTicketMatcher {
         }
         catch (NumberFormatException ignored) {
         }
+
         return null;
     }
 }

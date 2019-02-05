@@ -90,8 +90,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         return config().gitBranchPrefix();
     }
     /** {@inheritDoc} */
-    @Override
-    public IGitHubConfig config() {
+    @Override public IGitHubConfig config() {
         return conn.config();
     }
 

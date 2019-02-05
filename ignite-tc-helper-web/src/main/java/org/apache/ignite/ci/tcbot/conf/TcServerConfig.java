@@ -80,10 +80,9 @@ public class TcServerConfig implements ITcServerConfig {
     @NotNull
     private String hostConfigured() {
         if (Strings.isNullOrEmpty(host)) {
-            if (props != null)
-                return props.getProperty(HelperConfig.HOST, DEFAULT_HOST);
-        } else {
-            return DEFAULT_HOST;
+            return props != null
+                ? props.getProperty(HelperConfig.HOST, DEFAULT_HOST)
+                : DEFAULT_HOST;
         }
 
         return host;
