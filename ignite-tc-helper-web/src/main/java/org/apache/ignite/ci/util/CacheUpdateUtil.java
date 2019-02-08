@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import javax.annotation.Nullable;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.analysis.Expirable;
 
 /**
  * Cache reloading from real source stuff
