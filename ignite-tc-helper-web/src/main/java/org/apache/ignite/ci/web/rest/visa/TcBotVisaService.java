@@ -76,46 +76,46 @@ public class TcBotVisaService {
     }
 
     /**
-     * @param srvId Server id.
+     * @param srvCode Server id.
      * @return Contribution list for PRs and branches can be checked by TC bot.
      */
     @GET
     @Path("contributions")
-    public List<ContributionToCheck> contributions(@Nullable @QueryParam("serverId") String srvId) {
+    public List<ContributionToCheck> contributions(@Nullable @QueryParam("serverId") String srvCode) {
         ICredentialsProv credsProv = ICredentialsProv.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvId, credsProv);
+        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, credsProv);
 
-        return injector.getInstance(TcBotTriggerAndSignOffService.class).getContributionsToCheck(srvId, credsProv);
+        return injector.getInstance(TcBotTriggerAndSignOffService.class).getContributionsToCheck(srvCode, credsProv);
     }
 
     @GET
     @Path("contributionStatus")
-    public Set<ContributionCheckStatus> contributionStatus(@Nullable @QueryParam("serverId") String srvId,
+    public Set<ContributionCheckStatus> contributionStatus(@Nullable @QueryParam("serverId") String srvCode,
         @QueryParam("prId") String prId) {
         ICredentialsProv prov = ICredentialsProv.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvId, prov);
+        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
 
-        return injector.getInstance(TcBotTriggerAndSignOffService.class).contributionStatuses(srvId, prov, prId);
+        return injector.getInstance(TcBotTriggerAndSignOffService.class).contributionStatuses(srvCode, prov, prId);
     }
 
     @GET
     @Path("visaStatus")
-    public CurrentVisaStatus currentVisaStatus(@Nullable @QueryParam("serverId") String srvId,
+    public CurrentVisaStatus currentVisaStatus(@Nullable @QueryParam("serverId") String srvCode,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @QueryParam("tcBranch") String tcBranch) {
+        Injector injector = CtxListener.getInjector(ctx);
+
         ICredentialsProv prov = ICredentialsProv.get(req);
-        if (!prov.hasAccess(srvId))
-            throw ServiceUnauthorizedException.noCreds(srvId);
 
-        TcBotTriggerAndSignOffService instance = CtxListener.getInjector(ctx)
-            .getInstance(TcBotTriggerAndSignOffService.class);
+        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
 
-        return instance.currentVisaStatus(srvId, prov, suiteId, tcBranch);
+        return injector.getInstance(TcBotTriggerAndSignOffService.class)
+            .currentVisaStatus(srvCode, prov, suiteId, tcBranch);
     }
 }

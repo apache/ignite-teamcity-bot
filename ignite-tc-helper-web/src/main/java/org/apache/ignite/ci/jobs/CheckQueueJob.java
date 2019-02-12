@@ -276,9 +276,9 @@ public class CheckQueueJob implements Runnable {
             for (ChainAtServerTracked chain : branchTracked.getChains()) {
                 String srv = chain.serverId;
 
-                if (!creds.hasAccess(srv)) {
+                if (!tcIgnitedProv.hasAccess(srv, creds)) {
                     logger.warn("Background operations credentials does not grant access to server \"{}\"," +
-                            " build queue trigger will not work.", srv);
+                        " build queue trigger will not work.", srv);
 
                     continue;
                 }

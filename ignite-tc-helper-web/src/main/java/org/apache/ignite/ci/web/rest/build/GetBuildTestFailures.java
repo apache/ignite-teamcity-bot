@@ -21,6 +21,8 @@ import com.google.common.collect.BiMap;
 import java.text.ParseException;
 
 import com.google.inject.Injector;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
@@ -107,7 +109,7 @@ public class GetBuildTestFailures {
         return collectBuildCtxById(srvId, buildId, checkAllLogs, SyncMode.RELOAD_QUEUED);
     }
 
-    @NotNull public TestFailuresSummary collectBuildCtxById(@QueryParam("serverId") String srvId,
+    @NotNull public TestFailuresSummary collectBuildCtxById(@QueryParam("serverId") String srvCode,
         @QueryParam("buildId") Integer buildId,
         @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs, SyncMode syncMode) {
         final ICredentialsProv prov = ICredentialsProv.get(req);
@@ -119,11 +121,10 @@ public class GetBuildTestFailures {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
-        if(!prov.hasAccess(srvId))
-            throw ServiceUnauthorizedException.noCreds(srvId);
+        tcIgnitedProv.checkAccess(srvCode, prov);
 
-        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, prov);
-        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, prov);
+        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvCode, prov);
+        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCode, prov);
 
         String failRateBranch = ITeamcity.DEFAULT;
 
@@ -138,7 +139,7 @@ public class GetBuildTestFailures {
             failRateBranch,
             syncMode);
 
-        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, ctx.branchName());
+        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvCode, ctx.branchName());
 
         int cnt = (int) ctx.getRunningUpdates().count();
         if (cnt > 0)
@@ -159,7 +160,7 @@ public class GetBuildTestFailures {
      * @param buildId Build id.
      * @param isValid Is valid.
      * @param field Field.
-     * @param serverId Server.
+     * @param srvIdOpt Server code (optional)
      */
     @GET
     @Path("condition")
@@ -167,45 +168,55 @@ public class GetBuildTestFailures {
         @QueryParam("buildId") Integer buildId,
         @QueryParam("isValid") Boolean isValid,
         @QueryParam("field") String field,
-        @QueryParam("serverId") String serverId) {
-        String srvId = isNullOrEmpty(serverId) ? "apache" : serverId;
+        @QueryParam("serverId") String srvIdOpt) {
+        Injector injector = CtxListener.getInjector(ctx);
+
+        String srvCode = isNullOrEmpty(srvIdOpt)
+            ? injector.getInstance(ITcBotConfig.class).primaryServerCode()
+            : srvIdOpt;
 
         if (buildId == null || isValid == null)
             return null;
 
-        final ICredentialsProv prov = ICredentialsProv.get(req);
+        ITeamcityIgnitedProvider tcIgnitedProv = injector.getInstance(ITeamcityIgnitedProvider.class);
 
-        if (!prov.hasAccess(srvId))
-            throw ServiceUnauthorizedException.noCreds(srvId);
+        ICredentialsProv prov = ICredentialsProv.get(req);
 
-        ITeamcityIgnitedProvider tcIgnitedProv = CtxListener.getInjector(ctx)
-            .getInstance(ITeamcityIgnitedProvider.class);
+        tcIgnitedProv.checkAccess(srvCode, prov);
 
-        ITeamcityIgnited ignited = tcIgnitedProv.server(srvId, prov);
+        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCode, prov);
 
         BiMap<String, String> problemNames = BuildStatisticsSummary.fullProblemNames;
 
         BuildCondition buildCond =
             new BuildCondition(buildId, prov.getPrincipalId(), isValid, problemNames.getOrDefault(field, field));
 
-        return ignited.setBuildCondition(buildCond);
+        return tcIgn.setBuildCondition(buildCond);
     }
 
+    /**
+     * @param srvCode Server id.
+     * @param buildType Build type.
+     * @param branch Branch.
+     * @param sinceDate Since date.
+     * @param untilDate Until date.
+     * @param skipTests Skip tests.
+     */
     @GET
     @Path("history")
     public BuildsHistory getBuildsHistory(
-        @Nullable @QueryParam("server") String srvId,
+        @Nullable @QueryParam("server") String srvCode,
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("sinceDate") String sinceDate,
         @Nullable @QueryParam("untilDate") String untilDate,
         @Nullable @QueryParam("skipTests") String skipTests)  throws ParseException {
 
-        final Injector injector = CtxListener.getInjector(ctx);
+        Injector injector = CtxListener.getInjector(ctx);
 
         BuildsHistory.Builder builder = new BuildsHistory.Builder()
             .branch(branch)
-            .server(srvId)
+            .server(srvCode)
             .buildType(buildType)
             .sinceDate(sinceDate)
             .untilDate(untilDate);
@@ -215,10 +226,9 @@ public class GetBuildTestFailures {
 
         BuildsHistory buildsHist = builder.build(injector);
 
-        final ICredentialsProv prov = ICredentialsProv.get(req);
+        ICredentialsProv prov = ICredentialsProv.get(req);
 
-        if (!prov.hasAccess(srvId))
-            throw ServiceUnauthorizedException.noCreds(srvId);
+        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
 
         buildsHist.initialize(prov);
 

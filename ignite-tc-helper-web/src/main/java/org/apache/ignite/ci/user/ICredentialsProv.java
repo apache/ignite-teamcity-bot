@@ -22,27 +22,28 @@ import com.google.common.base.Strings;
 import javax.servlet.http.HttpServletRequest;
 
 public interface ICredentialsProv {
-    String _KEY = ICredentialsProv.class.getName();
+    /** Key for context attribute. */
+    public String _KEY = ICredentialsProv.class.getName();
 
     //note it will not work for PermitAll Methods
-    static ICredentialsProv get(HttpServletRequest req) {
+    public static ICredentialsProv get(HttpServletRequest req) {
         return (ICredentialsProv) req.getAttribute(_KEY);
     }
 
     /**
      * Gets username for particular service
-     * @param srv Server Id.
+     * @param srvCode Server Id.
      */
-    public String getUser(String srv);
+    public String getUser(String srvCode);
 
     /**
      * Gets password for particular service
-     * @param srv Server Id.
+     * @param srvCode Server Id.
      */
-    public String getPassword(String srv);
+    public String getPassword(String srvCode);
 
-    default boolean hasAccess(String srvId) {
-        return !Strings.isNullOrEmpty(getUser(srvId)) && !Strings.isNullOrEmpty(getPassword(srvId));
+    default boolean hasAccess(String srvCode) {
+        return !Strings.isNullOrEmpty(getUser(srvCode)) && !Strings.isNullOrEmpty(getPassword(srvCode));
     }
 
     String getPrincipalId();

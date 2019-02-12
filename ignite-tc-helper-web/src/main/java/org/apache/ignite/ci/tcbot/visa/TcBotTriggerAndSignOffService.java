@@ -600,11 +600,11 @@ public class TcBotTriggerAndSignOffService {
         return teamcity.host() + "viewQueued.html?itemId=" + ref.id();
     }
 
-    public CurrentVisaStatus currentVisaStatus(String srvId, ICredentialsProv prov, String buildTypeId, String tcBranch) {
+    public CurrentVisaStatus currentVisaStatus(String srvCode, ICredentialsProv prov, String buildTypeId, String tcBranch) {
         CurrentVisaStatus status = new CurrentVisaStatus();
 
         List<SuiteCurrentStatus> suitesStatuses
-            = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, tcBranch, srvId, prov, SyncMode.NONE);
+            = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, tcBranch, srvCode, prov, SyncMode.NONE);
 
         if (suitesStatuses == null)
             return status;

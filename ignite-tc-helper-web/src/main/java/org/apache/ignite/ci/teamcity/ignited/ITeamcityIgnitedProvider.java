@@ -24,16 +24,16 @@ import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
  * Provides instance of particular cache-based teamcity connection.
  */
 public interface ITeamcityIgnitedProvider {
-    public boolean hasAccess(String srvId, @Nullable ICredentialsProv prov);
+    public boolean hasAccess(String srvCode, @Nullable ICredentialsProv prov);
 
     /**
-     * @param srvId Server id.
+     * @param srvCode Server id.
      * @param prov Prov.
      */
-    public ITeamcityIgnited server(String srvId, @Nullable ICredentialsProv prov);
+    public ITeamcityIgnited server(String srvCode, @Nullable ICredentialsProv prov);
 
-    default void checkAccess(@Nullable String srvId, ICredentialsProv credsProv) {
-        if (!hasAccess(srvId, credsProv))
-            throw ServiceUnauthorizedException.noCreds(srvId);
+    default void checkAccess(@Nullable String srvCode, ICredentialsProv credsProv) {
+        if (!hasAccess(srvCode, credsProv))
+            throw ServiceUnauthorizedException.noCreds(srvCode);
     }
 }

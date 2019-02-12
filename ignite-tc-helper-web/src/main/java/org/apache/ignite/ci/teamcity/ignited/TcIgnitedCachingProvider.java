@@ -52,37 +52,37 @@ class TcIgnitedCachingProvider implements ITeamcityIgnitedProvider {
             .build();
 
     /** {@inheritDoc} */
-    @Override public boolean hasAccess(String srvId, @Nullable ICredentialsProv prov) {
-        String ref = cfg.getTeamcityConfig(srvId).reference();
+    @Override public boolean hasAccess(String srvCode, @Nullable ICredentialsProv prov) {
+        String ref = cfg.getTeamcityConfig(srvCode).reference();
 
         if (!Strings.isNullOrEmpty(ref))
             return prov.hasAccess(ref);
 
-        return prov.hasAccess(srvId);
+        return prov.hasAccess(srvCode);
     }
 
     /** {@inheritDoc} */
-    @Override public ITeamcityIgnited server(String srvIdReq, @Nullable ICredentialsProv prov) {
-        ITcServerConfig cfg = this.cfg.getTeamcityConfig(srvIdReq);
+    @Override public ITeamcityIgnited server(String srvCode, @Nullable ICredentialsProv prov) {
+        ITcServerConfig cfg = this.cfg.getTeamcityConfig(srvCode);
         String ref = cfg.reference();
 
-        String realSrvId = !Strings.isNullOrEmpty(ref) && !srvIdReq.equals(ref) ? ref : srvIdReq;
+        String realSrvCode = !Strings.isNullOrEmpty(ref) && !srvCode.equals(ref) ? ref : srvCode;
 
-        String fullKey = Strings.nullToEmpty(prov == null ? null : prov.getUser(realSrvId)) + ":" + Strings.nullToEmpty(realSrvId);
+        String fullKey = Strings.nullToEmpty(prov == null ? null : prov.getUser(realSrvCode)) + ":" + Strings.nullToEmpty(realSrvCode);
 
         try {
             return srvs.get(fullKey, () -> {
-                ITeamcity tcRealConn = srvFactory.server(realSrvId, prov);
+                ITeamcity tcRealConn = srvFactory.server(realSrvCode, prov);
 
                 if (prov != null) {
-                    final String user = prov.getUser(realSrvId);
-                    final String pwd = prov.getPassword(realSrvId);
+                    final String user = prov.getUser(realSrvCode);
+                    final String pwd = prov.getPassword(realSrvCode);
                     tcRealConn.setAuthData(user, pwd);
                 }
 
                 TeamcityIgnitedImpl impl = provider.get();
 
-                impl.init(realSrvId, tcRealConn);
+                impl.init(realSrvCode, tcRealConn);
 
                 return impl;
             });

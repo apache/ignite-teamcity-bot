@@ -227,10 +227,12 @@ public class IssueDetector {
         int newIssues = 0;
 
         for (ChainAtServerCurrentStatus next : res.servers) {
-            if(!creds.hasAccess(next.serverId))
+            String srvId = next.serverId;
+
+            if(!tcProv.hasAccess(srvId, creds))
                 continue;
 
-            ITeamcityIgnited tcIgnited = tcProv.server(next.serverId, creds);
+            ITeamcityIgnited tcIgnited = tcProv.server(srvId, creds);
 
             for (SuiteCurrentStatus suiteCurrentStatus : next.suites) {
 
@@ -239,11 +241,11 @@ public class IssueDetector {
                 final String trackedBranch = res.getTrackedBranch();
 
                 for (TestFailure testFailure : suiteCurrentStatus.testFailures) {
-                    if(registerTestFailIssues(tcIgnited, next.serverId, normalizeBranch, testFailure, trackedBranch))
+                    if(registerTestFailIssues(tcIgnited, srvId, normalizeBranch, testFailure, trackedBranch))
                         newIssues++;
                 }
 
-                if(registerSuiteFailIssues(tcIgnited, next.serverId, normalizeBranch, suiteCurrentStatus, trackedBranch))
+                if(registerSuiteFailIssues(tcIgnited, srvId, normalizeBranch, suiteCurrentStatus, trackedBranch))
                     newIssues++;
             }
         }

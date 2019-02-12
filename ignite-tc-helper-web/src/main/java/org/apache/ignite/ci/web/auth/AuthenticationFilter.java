@@ -217,16 +217,16 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     @NotNull
     private ICredentialsProv createCredsProv(TcHelperUser user, byte[] userKey) {
         return new ICredentialsProv() {
-            @Override public String getUser(String srv) {
-                TcHelperUser.Credentials creds = user.getCredentials(srv);
+            @Override public String getUser(String srvCode) {
+                TcHelperUser.Credentials creds = user.getCredentials(srvCode);
                 if (creds == null)
                     return null;
 
                 return creds.getUsername();
             }
 
-            @Override public String getPassword(String srv) {
-                TcHelperUser.Credentials creds = user.getCredentials(srv);
+            @Override public String getPassword(String srvCode) {
+                TcHelperUser.Credentials creds = user.getCredentials(srvCode);
                 if (creds == null)
                     return null;
 
@@ -243,7 +243,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
                     if (Throwables.getCausalChain(e).stream().anyMatch(t -> t instanceof BadPaddingException)) {
                         throw new ServiceUnauthorizedException("Invalid credentials stored for " +
-                                creds.getUsername() + " for service [" + srv + "]");
+                                creds.getUsername() + " for service [" + srvCode + "]");
                     }
 
                     return null;

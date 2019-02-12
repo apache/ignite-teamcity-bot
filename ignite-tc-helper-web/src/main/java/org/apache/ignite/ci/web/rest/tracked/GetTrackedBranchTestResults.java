@@ -31,6 +31,7 @@ import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
@@ -140,31 +141,31 @@ public class GetTrackedBranchTestResults {
     }
 
     /**
-     * @param srvId Server id.
+     * @param srvCode Server id.
      * @param projectId Project id.
      * @return Mutes for given server-project pair.
      */
     @GET
     @Path("mutes")
     public Set<MuteInfo> mutes(
-        @Nullable @QueryParam("serverId") String srvId,
+        @Nullable @QueryParam("serverId") String srvCode,
         @Nullable @QueryParam("projectId") String projectId
     ) {
         ICredentialsProv creds = ICredentialsProv.get(req);
 
-        ITcBotConfig cfg = CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class);
+        Injector injector = CtxListener.getInjector(ctx);
+        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
 
-        if (F.isEmpty(srvId))
-            srvId = cfg.primaryServerCode();
+        if (F.isEmpty(srvCode))
+            srvCode = cfg.primaryServerCode();
 
         if (F.isEmpty(projectId))
             projectId = DEFAULT_PROJECT_ID;
 
-        if (!creds.hasAccess(srvId))
-            throw ServiceUnauthorizedException.noCreds(srvId);
+        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, creds);
 
-        return CtxListener.getInjector(ctx)
+        return injector
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .getMutes(srvId, projectId, creds);
+            .getMutes(srvCode, projectId, creds);
     }
 }

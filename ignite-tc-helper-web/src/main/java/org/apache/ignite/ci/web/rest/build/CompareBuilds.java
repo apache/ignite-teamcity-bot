@@ -30,6 +30,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.tcbot.builds.CompareBuildsService;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.util.Diff;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
@@ -116,14 +117,13 @@ public class CompareBuilds {
     }
 
     /** */
-    private List<String> tests(String srv, Integer buildId) {
+    private List<String> tests(String srvCode, Integer buildId) {
         Injector injector = CtxListener.getInjector(ctx);
-        CompareBuildsService compareBuildsSvc = injector.getInstance(CompareBuildsService.class);
-        final ICredentialsProv prov = ICredentialsProv.get(req);
 
-        if (!prov.hasAccess(srv))
-            throw ServiceUnauthorizedException.noCreds(srv);
+        ICredentialsProv prov = ICredentialsProv.get(req);
 
-        return compareBuildsSvc.tests0(srv, buildId, prov);
+        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
+
+        return injector.getInstance(CompareBuildsService.class).tests0(srvCode, buildId, prov);
     }
 }

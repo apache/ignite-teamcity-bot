@@ -79,13 +79,15 @@ public class GetTrackedBranches {
 
         Injector injector = CtxListener.getInjector(ctx);
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        ITeamcityIgnitedProvider tcIgnProv = injector.getInstance(ITeamcityIgnitedProvider.class);
+
         return cfg.getTrackedBranches()
             .getSuitesUnique()
             .stream()
             .filter(chainAtSrv ->
                 Strings.isNullOrEmpty(srvId)
                     || srvId.equals(chainAtSrv.serverId))
-            .filter(chainAtServer -> prov.hasAccess(chainAtServer.serverId))
+            .filter(chainAtServer -> tcIgnProv.hasAccess(chainAtServer.serverId, prov))
             .collect(Collectors.toSet());
     }
 

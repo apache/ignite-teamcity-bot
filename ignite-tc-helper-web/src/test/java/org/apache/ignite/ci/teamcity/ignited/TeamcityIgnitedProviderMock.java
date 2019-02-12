@@ -36,13 +36,13 @@ public class TeamcityIgnitedProviderMock implements ITeamcityIgnitedProvider {
     }
 
     /** {@inheritDoc} */
-    @Override public boolean hasAccess(String srvId, @Nullable ICredentialsProv prov) {
-        return prov.hasAccess(srvId);
+    @Override public boolean hasAccess(String srvCode, @Nullable ICredentialsProv prov) {
+        return prov.hasAccess(srvCode);
     }
 
     /** {@inheritDoc} */
-    @Override public ITeamcityIgnited server(String srvId, ICredentialsProv prov) {
-        final Map<Integer, FatBuildCompacted> integerFatBuildCompactedMap = tcBuildsData.get(srvId);
+    @Override public ITeamcityIgnited server(String srvCode, ICredentialsProv prov) {
+        final Map<Integer, FatBuildCompacted> integerFatBuildCompactedMap = tcBuildsData.get(srvCode);
 
         return TeamcityIgnitedMock.getMutableMapTeamcityIgnited(integerFatBuildCompactedMap, compactor);
     }
