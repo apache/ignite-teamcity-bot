@@ -75,7 +75,7 @@ public class TrackedBranchChainsProcessor {
         final BranchTracked tracked = tcBotConfig.getTrackedBranches().getBranchMandatory(branchNn);
 
         tracked.chains.stream()
-            .filter(chainTracked -> creds.hasAccess(chainTracked.serverId))
+            .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverId, creds))
             .map(chainTracked -> {
                 final String srvId = chainTracked.serverId;
 
@@ -148,7 +148,7 @@ public class TrackedBranchChainsProcessor {
         final BranchTracked tracked = tcBotConfig.getTrackedBranches().getBranchMandatory(branchNn);
 
         tracked.chains.stream()
-            .filter(chainTracked -> creds.hasAccess(chainTracked.serverId))
+            .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverId, creds))
             .map(chainTracked -> {
                 final String srvId = chainTracked.serverId;
 

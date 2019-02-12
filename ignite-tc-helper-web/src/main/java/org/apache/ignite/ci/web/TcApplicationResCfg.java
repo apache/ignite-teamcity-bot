@@ -21,7 +21,6 @@ import org.apache.ignite.ci.web.auth.AuthenticationFilter;
 import org.apache.ignite.ci.web.rest.exception.ExeptionsTraceLogger;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
-import org.glassfish.jersey.filter.LoggingFilter;
 import org.glassfish.jersey.logging.LoggingFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 

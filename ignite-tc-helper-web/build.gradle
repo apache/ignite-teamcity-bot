@@ -49,10 +49,14 @@ dependencies {
     compile group: 'org.eclipse.jetty', name: 'jetty-webapp', version: jettyVer
 
     // problematic    def jerseyVer = '2.27'
-    def jerseyVer = '2.25.1'
+    // Newer version is  def jerseyVer = '2.28';  Current:    def jerseyVer = '2.25.1'
+    def jerseyVer = '2.28'
     compile group: 'org.glassfish.jersey.containers', name: 'jersey-container-servlet-core', version: jerseyVer
 
     compile group: 'org.glassfish.jersey.core', name: 'jersey-client', version: jerseyVer
+    //
+    compile group: 'org.glassfish.jersey.inject', name: 'jersey-hk2', version:  jerseyVer
+
     compile group: 'org.glassfish.jersey.media', name: 'jersey-media-json-jackson', version: jerseyVer
     compile group: 'org.glassfish.jersey.media', name: 'jersey-media-multipart', version: jerseyVer
 
@@ -83,5 +87,15 @@ processResources {
 
         // Minify every file here
     }
+}
 
+test {
+    // set JVM arguments for the test JVM(s)
+    jvmArgs "-XX:+IgnoreUnrecognizedVMOptions",
+        "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
+        "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED",
+        "--add-exports=java.management/com.sun.jmx.mbeanserver=ALL-UNNAMED",
+        "--add-exports=jdk.internal.jvmstat/sun.jvmstat.monitor=ALL-UNNAMED",
+        "--add-exports=java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED",
+        "--illegal-access=permit"
 }

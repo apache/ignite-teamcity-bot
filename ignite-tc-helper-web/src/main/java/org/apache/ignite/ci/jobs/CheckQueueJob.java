@@ -26,7 +26,6 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import jersey.repackaged.com.google.common.base.Throwables;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -42,6 +41,7 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.util.ExceptionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -135,7 +135,7 @@ public class CheckQueueJob implements Runnable {
             catch (Exception e) {
                 logger.error("Unable to check queue: " + e.getMessage(), e);
 
-                throw Throwables.propagate(e);
+                throw ExceptionUtil.propagateException(e);
             }
         }
 
