@@ -25,7 +25,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.ci.github.pure.GitHubConnectionImpl;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertEquals;

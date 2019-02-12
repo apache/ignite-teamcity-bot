@@ -44,7 +44,6 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;

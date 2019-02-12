@@ -18,6 +18,10 @@
 package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.common.base.Preconditions;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
@@ -25,11 +29,6 @@ import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.jetbrains.annotations.NotNull;
 import org.mockito.Mockito;
-
-import java.util.Comparator;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import org.mockito.stubbing.Answer;
 
 import static org.mockito.ArgumentMatchers.any;

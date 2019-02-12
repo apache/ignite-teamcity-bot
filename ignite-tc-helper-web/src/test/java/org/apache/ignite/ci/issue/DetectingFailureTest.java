@@ -25,7 +25,10 @@ import org.junit.Test;
 
 import static org.apache.ignite.ci.analysis.RunStat.ChangesState.UNKNOWN;
 import static org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence.STATUS_SUCCESS;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Issue detection test

@@ -17,13 +17,12 @@
 
 package org.apache.ignite.ci.teamcity.ignited;
 
-import javax.annotation.Nullable;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.user.ICredentialsProv;
-
-import javax.inject.Inject;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.user.ICredentialsProv;
 
 public class TeamcityIgnitedProviderMock implements ITeamcityIgnitedProvider {
     /** Compactor. */
