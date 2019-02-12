@@ -40,8 +40,6 @@ import org.apache.ignite.ci.web.model.CompactContributionKey;
 import org.apache.ignite.ci.web.model.CompactVisa;
 import org.apache.ignite.ci.web.model.CompactVisaRequest;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
-import org.apache.ignite.ci.web.rest.build.GetBuildTestFailures;
-import org.apache.ignite.ci.web.rest.tracked.GetTrackedBranchTestResults;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,17 +106,16 @@ public class DbMigrations {
         String TEST_REFS = "testRefs";
         String ISSUES_USAGES_LIST = "issuesUsagesList";
 
-        /** Cache name.*/
+        /** Cache name. */
         String TEST_HIST_CACHE_NAME = "testRunHistV0";
-        String TEST_HIST_CACHE_NAME2 ="teamcityTestRunHistV0";
+        String TEST_HIST_CACHE_NAME2 = "teamcityTestRunHistV0";
 
         /** Build Start time Cache name. */
         String BUILD_START_TIME_CACHE_NAME = "buildStartTimeV0";
         String BUILD_START_TIME_CACHE_NAME2 = "teamcityBuildStartTimeV0";
 
-        /** Cache name.*/
+        /** Cache name. */
         String SUITE_HIST_CACHE_NAME = "teamcitySuiteRunHistV0";
-
 
         String CALCULATED_STATISTIC = "calculatedStatistic";
 
@@ -195,9 +192,10 @@ public class DbMigrations {
             }
         });
 
-        applyMigration("InitialFillLatestRunsV3", () -> {});
+        applyMigration("InitialFillLatestRunsV3", () -> {
+        });
 
-        applyMigration("Remove-" + RUN_STAT_CACHE, ()->{
+        applyMigration("Remove-" + RUN_STAT_CACHE, () -> {
             IgniteCache<String, Build> oldBuilds = ignite.getOrCreateCache(ignCacheNme(RUN_STAT_CACHE));
 
             oldBuilds.clear();
@@ -321,7 +319,7 @@ public class DbMigrations {
         return ignite.getOrCreateCache(ignCacheNme(name));
     }
 
-    private <K,V> void v1tov2cacheMigrate(String deprecatedCache, Cache<K, V> newCache) {
+    private <K, V> void v1tov2cacheMigrate(String deprecatedCache, Cache<K, V> newCache) {
         String cacheNme = ignCacheNme(deprecatedCache);
         IgniteCache<K, V> tests = ignite.cache(cacheNme);
 
