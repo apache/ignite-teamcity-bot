@@ -95,7 +95,7 @@ public class LogCheckResult implements IVersionedEntity {
         testLogCheckResult.forEach(
             (t, logCheckResult) -> {
                 List<String> warns = logCheckResult.getWarns();
-                if(warns.isEmpty())
+                if (warns.isEmpty())
                     return;
 
                 sb.append(t).append("   :\n");
@@ -107,7 +107,6 @@ public class LogCheckResult implements IVersionedEntity {
 
         return sb.toString();
     }
-
 
     public Map<String, TestLogCheckResult> getTestLogCheckResult() {
         return Collections.unmodifiableMap(testLogCheckResult);

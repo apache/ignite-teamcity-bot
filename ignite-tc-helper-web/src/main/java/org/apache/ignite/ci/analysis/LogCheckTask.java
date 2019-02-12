@@ -52,7 +52,7 @@ public class LogCheckTask {
 
         if (isIncompleteSuite)
             logCheckRes.setLastThreadDump(threadDumpCp.getLastThreadDump());
-        else if(logCheckRes.hasProblem(JAVA_LEVEL_DEADLOCK))
+        else if (logCheckRes.hasProblem(JAVA_LEVEL_DEADLOCK))
             logCheckRes.setLastThreadDump(threadDumpCp.getLastThreadDump());
 
         this.result = logCheckRes;

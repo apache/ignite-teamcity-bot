@@ -22,6 +22,7 @@ package org.apache.ignite.ci.analysis;
  */
 public interface IVersionedEntity {
     int version();
+
     int latestVersion();
 
     default <V extends IVersionedEntity> boolean isOutdatedEntityVersion() {

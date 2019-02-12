@@ -43,8 +43,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Run configuration execution results loaded from different API URLs.
- * Includes tests and problem occurrences; if logs processing is done also contains last started test
+ * Run configuration execution results loaded from different API URLs. Includes tests and problem occurrences; if logs
+ * processing is done also contains last started test
  */
 public class MultBuildRunCtx implements ISuiteResults {
     /** Cancelled. */
@@ -84,7 +84,6 @@ public class MultBuildRunCtx implements ISuiteResults {
     public Stream<Integer> getBuildsWithThreadDump() {
         return buildsStream().map(SingleBuildRunCtx::getBuildIdIfHasThreadDump).filter(Objects::nonNull);
     }
-
 
     public Stream<Map<String, TestLogCheckResult>> getLogsCheckResults() {
         return buildsStream().map(SingleBuildRunCtx::getTestLogCheckResult).filter(Objects::nonNull);
@@ -243,7 +242,6 @@ public class MultBuildRunCtx implements ISuiteResults {
         }
     }
 
-
     public Stream<Map.Entry<String, Long>> getTopLogConsumers() {
         Map<String, Long> logSizeBytes = new HashMap<>();
 
@@ -264,7 +262,7 @@ public class MultBuildRunCtx implements ISuiteResults {
 
         Comparator<Map.Entry<String, Long>> comparing = Comparator.comparing(Map.Entry::getValue);
 
-        return CollectionUtil.top(logSizeBytes.entrySet().stream(), 3 ,comparing).stream();
+        return CollectionUtil.top(logSizeBytes.entrySet().stream(), 3, comparing).stream();
     }
 
     public Stream<? extends IMultTestOccurrence> getTopLongRunning() {
@@ -286,14 +284,13 @@ public class MultBuildRunCtx implements ISuiteResults {
             saveToMap(res, singleBuildRunCtx.getFailedNotMutedTests());
         });
 
-
         return new ArrayList<>(res.values());
     }
 
     public void saveToMap(Map<Integer, TestCompactedMult> res, Stream<TestCompacted> tests) {
         tests.forEach(testCompacted -> {
             res.computeIfAbsent(testCompacted.testName(), k -> new TestCompactedMult(compactor))
-                    .add(testCompacted);
+                .add(testCompacted);
         });
     }
 
@@ -314,13 +311,13 @@ public class MultBuildRunCtx implements ISuiteResults {
      */
     @Nullable public Long getBuildDuration() {
         final OptionalDouble average = buildsStream()
-                .map(SingleBuildRunCtx::getBuildDuration)
-                .filter(Objects::nonNull)
-                .mapToLong(l->l)
-                .average();
+            .map(SingleBuildRunCtx::getBuildDuration)
+            .filter(Objects::nonNull)
+            .mapToLong(l -> l)
+            .average();
 
-        if(average.isPresent())
-            return (long) average.getAsDouble();
+        if (average.isPresent())
+            return (long)average.getAsDouble();
 
         return null;
     }
@@ -367,7 +364,6 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().findFirst().map(SingleBuildRunCtx::projectId).orElse(null);
     }
 
-
     public void setRunningBuildCount(int runningBuildCount) {
         this.runningBuildCount = runningBuildCount;
     }
@@ -393,19 +389,18 @@ public class MultBuildRunCtx implements ISuiteResults {
      */
     public Stream<String> lastChangeUsers() {
         return buildsStream()
-                .flatMap(k -> k.getChanges().stream())
-                .filter(ChangeCompacted::hasUsername)
-                .map(change -> {
-                    final String tcUserFullName = change.tcUserFullName(compactor);
+            .flatMap(k -> k.getChanges().stream())
+            .filter(ChangeCompacted::hasUsername)
+            .map(change -> {
+                final String tcUserFullName = change.tcUserFullName(compactor);
 
-                    final String vcsUsername = change.vcsUsername(compactor);
+                final String vcsUsername = change.vcsUsername(compactor);
 
-                    if (Strings.isNullOrEmpty(tcUserFullName))
-                        return vcsUsername;
+                if (Strings.isNullOrEmpty(tcUserFullName))
+                    return vcsUsername;
 
-
-                    return vcsUsername + " [" + tcUserFullName + "]";
-                });
+                return vcsUsername + " [" + tcUserFullName + "]";
+            });
     }
 
     Stream<? extends Future<?>> getFutures() {

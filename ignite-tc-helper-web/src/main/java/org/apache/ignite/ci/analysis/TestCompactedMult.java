@@ -73,8 +73,8 @@ public class TestCompactedMult implements IMultTestOccurrence {
     /** {@inheritDoc} */
     @Override public Iterable<TestOccurrenceFull> getOccurrences() {
         return occurrences.stream()
-                .map(testCompacted -> testCompacted.toTestOccurrence(compactor, 0))
-                .collect(Collectors.toList());
+            .map(testCompacted -> testCompacted.toTestOccurrence(compactor, 0))
+            .collect(Collectors.toList());
     }
 
     public void add(TestCompacted next) {

@@ -19,8 +19,11 @@ package org.apache.ignite.ci.analysis;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
@@ -55,7 +58,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
      * @param compactor Compactor.
      */
     public SingleBuildRunCtx(FatBuildCompacted buildCompacted,
-                             IStringCompactor compactor) {
+        IStringCompactor compactor) {
         this.buildCompacted = buildCompacted;
         this.compactor = compactor;
     }
@@ -156,12 +159,11 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     public List<TestOccurrenceFull> getTests() {
-        if(isComposite())
+        if (isComposite())
             return Collections.emptyList();
 
         return buildCompacted.getTestOcurrences(compactor).getTests();
     }
-
 
     @Nonnull Stream<? extends Future<?>> getFutures() {
         return logCheckResFut == null ? Stream.empty() : Stream.of((Future<?>)logCheckResFut);
@@ -174,7 +176,6 @@ public class SingleBuildRunCtx implements ISuiteResults {
     public String getBranch() {
         return compactor.getStringFromId(buildCompacted.branchName());
     }
-
 
     /**
      * @return Names of not muted or ignored test failed for non composite build

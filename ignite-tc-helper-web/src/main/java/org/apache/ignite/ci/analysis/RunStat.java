@@ -19,13 +19,16 @@ package org.apache.ignite.ci.analysis;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-
-import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.issue.EventTemplate;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
@@ -61,7 +64,6 @@ public class RunStat implements IRunHistory {
      * Name: Key in run stat cache
      */
     private String name;
-
 
     @Nullable
     SortedMap<TestId, RunInfo> latestRuns;
@@ -141,18 +143,13 @@ public class RunStat implements IRunHistory {
         return name;
     }
 
-
-
-   @Override public int getFailuresAllHist() {
+    @Override public int getFailuresAllHist() {
         return failures;
     }
 
-   @Override public int getRunsAllHist() {
+    @Override public int getRunsAllHist() {
         return runs;
     }
-
-
-
 
     @Override public int getFailuresCount() {
         if (latestRuns == null)
@@ -196,6 +193,7 @@ public class RunStat implements IRunHistory {
 
     /**
      * Sets build status as having critical failure
+     *
      * @param buildId Build id.
      */
     public void setBuildCriticalError(Integer buildId) {
@@ -269,7 +267,8 @@ public class RunStat implements IRunHistory {
     }
 
     @Nullable
-    private static TestId checkTemplateAtPos(int[] template, int centralEvtBuild, List<Map.Entry<TestId, RunInfo>> histAsArr,
+    private static TestId checkTemplateAtPos(int[] template, int centralEvtBuild,
+        List<Map.Entry<TestId, RunInfo>> histAsArr,
         int idx) {
         for (int tIdx = 0; tIdx < template.length; tIdx++) {
             RunInfo curStatus = histAsArr.get(idx + tIdx).getValue();
@@ -320,7 +319,6 @@ public class RunStat implements IRunHistory {
         return "Test seems to be flaky: " +
             "changed its status [" + statusChange + "/" + latestRuns.size() + "] without code modifications";
     }
-
 
     /**
      * Status of run.
