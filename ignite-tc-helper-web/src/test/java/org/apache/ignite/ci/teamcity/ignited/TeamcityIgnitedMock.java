@@ -38,7 +38,8 @@ import static org.mockito.Mockito.when;
 
 public class TeamcityIgnitedMock {
     @NotNull
-    public static ITeamcityIgnited getMutableMapTeamcityIgnited(Map<Integer, FatBuildCompacted> builds, IStringCompactor c) {
+    public static ITeamcityIgnited getMutableMapTeamcityIgnited(Map<Integer, FatBuildCompacted> builds,
+        IStringCompactor c) {
         ITeamcityIgnited tcIgnited = Mockito.mock(ITeamcityIgnited.class);
         Map<RunHistKey, RunHistCompacted> histCache = new ConcurrentHashMap<>();
         final int srvId = 0;
@@ -84,47 +85,48 @@ public class TeamcityIgnitedMock {
             });
 
         when(tcIgnited.getTestRunHist(any(TestInBranch.class)))
-                .thenAnswer((inv) -> {
-                    final TestInBranch t = inv.getArgument(0);
-                    final String name = t.name;
-                    final String branch = t.branch;
+            .thenAnswer((inv) -> {
+                final TestInBranch t = inv.getArgument(0);
+                final String name = t.name;
+                final String branch = t.branch;
 
-                   // System.out.println("Search history " + name + " in " + branch + ": " );
+                // System.out.println("Search history " + name + " in " + branch + ": " );
 
-                    if (histCache.isEmpty()) {
-                        synchronized (histCache) {
-                            if (histCache.isEmpty())
-                                initHistory(c, histCache, builds, srvId);
-                        }
+                if (histCache.isEmpty()) {
+                    synchronized (histCache) {
+                        if (histCache.isEmpty())
+                            initHistory(c, histCache, builds, srvId);
                     }
+                }
 
-                    final Integer tstName = c.getStringIdIfPresent(name);
-                    if (tstName == null)
-                        return null;
+                final Integer tstName = c.getStringIdIfPresent(name);
+                if (tstName == null)
+                    return null;
 
-                    final Integer branchId = c.getStringIdIfPresent(branch);
-                    if (branchId == null)
-                        return null;
+                final Integer branchId = c.getStringIdIfPresent(branch);
+                if (branchId == null)
+                    return null;
 
-                    final RunHistKey key = new RunHistKey(srvId, tstName, branchId);
+                final RunHistKey key = new RunHistKey(srvId, tstName, branchId);
 
-                    final RunHistCompacted runHistCompacted = histCache.get(key);
+                final RunHistCompacted runHistCompacted = histCache.get(key);
 
-                    System.out.println("Test history " + name + " in " + branch + " => " + runHistCompacted);
+                System.out.println("Test history " + name + " in " + branch + " => " + runHistCompacted);
 
-                    return runHistCompacted;
-                });
+                return runHistCompacted;
+            });
 
         // when(tcIgnited.gitBranchPrefix()).thenReturn("ignite-");
 
         return tcIgnited;
     }
 
-    public static void initHistory(IStringCompactor c, Map<RunHistKey, RunHistCompacted> resHistCache, Map<Integer, FatBuildCompacted> builds, int srvId) {
+    public static void initHistory(IStringCompactor c, Map<RunHistKey, RunHistCompacted> resHistCache,
+        Map<Integer, FatBuildCompacted> builds, int srvId) {
         Map<RunHistKey, RunHistCompacted> histCache = new ConcurrentHashMap<>();
 
         for (FatBuildCompacted build : builds.values()) {
-            if(!build.isFinished(c))
+            if (!build.isFinished(c))
                 continue;
 
             build.getAllTests().forEach(t -> {

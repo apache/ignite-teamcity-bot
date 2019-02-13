@@ -22,6 +22,8 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
+import java.io.File;
+import java.io.IOException;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
 import org.apache.ignite.configuration.DataRegionConfiguration;
@@ -31,14 +33,11 @@ import org.apache.ignite.configuration.WALMode;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-
 public class Ignite2Configurer {
     public static void configLogger(File workDir, String subdir) {
-        LoggerContext logCtx = (LoggerContext) LoggerFactory.getILoggerFactory();
+        LoggerContext logCtx = (LoggerContext)LoggerFactory.getILoggerFactory();
 
-        PatternLayoutEncoder logEncoder  = new PatternLayoutEncoder();
+        PatternLayoutEncoder logEncoder = new PatternLayoutEncoder();
         logEncoder.setContext(logCtx);
         logEncoder.setPattern("%-12date{YYYY-MM-dd HH:mm:ss.SSS} %-5level [%t] - %msg%n");
         logEncoder.start();
@@ -51,7 +50,6 @@ public class Ignite2Configurer {
 
         final File logs = new File(workDir, subdir);
         HelperConfig.ensureDirExist(logs);
-
 
         TimeBasedRollingPolicy logFilePolicy = new TimeBasedRollingPolicy();
         logFilePolicy.setContext(logCtx);
@@ -112,7 +110,8 @@ public class Ignite2Configurer {
 
                 LoggerFactory.getLogger(Ignite2Configurer.class).error("Unable to setup region", e);
             }
-        } else {
+        }
+        else {
             String msg = "Using default size of region.";
             LoggerFactory.getLogger(Ignite2Configurer.class).info(msg);
             System.out.println(msg);
@@ -122,10 +121,10 @@ public class Ignite2Configurer {
 
     static DataStorageConfiguration getDataStorageConfiguration(DataRegionConfiguration regConf) {
         return new DataStorageConfiguration()
-                .setWalMode(WALMode.LOG_ONLY)
-                .setWalHistorySize(1)
-                .setCheckpointFrequency(5 * 60 * 1000)
-                .setWriteThrottlingEnabled(true)
-                .setDefaultDataRegionConfiguration(regConf);
+            .setWalMode(WALMode.LOG_ONLY)
+            .setWalHistorySize(1)
+            .setCheckpointFrequency(5 * 60 * 1000)
+            .setWriteThrottlingEnabled(true)
+            .setDefaultDataRegionConfiguration(regConf);
     }
 }

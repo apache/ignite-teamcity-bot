@@ -56,8 +56,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Setup TC bot context with Ignited services mocks:
- * - TC: {@link TeamcityIgnitedProviderMock}
+ * Setup TC bot context with Ignited services mocks: - TC: {@link TeamcityIgnitedProviderMock}
  */
 public class MockBasedTcBotModule extends AbstractModule {
     private BranchesTracked tracked = new BranchesTracked();
@@ -146,7 +145,6 @@ public class MockBasedTcBotModule extends AbstractModule {
     }
 
     /**
-     *
      * @param jiraCfg JIRA config.
      */
     private void mockJira(IJiraServerConfig jiraCfg) {

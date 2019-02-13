@@ -122,7 +122,6 @@ public class DetectingFailureTest {
         assertEquals(firstFailedBuildId, buildId.intValue());
     }
 
-
     @Test
     public void detectNewContributedTestFailure() {
         RunStat statWithHist = new RunStat("");
@@ -154,7 +153,6 @@ public class DetectingFailureTest {
         assertEquals(firstFailedBuildId, buildId.intValue());
     }
 
-
     @Test
     public void detectSuiteFailureIsOnlyOnce() {
         RunStat stat = new RunStat("");
@@ -181,7 +179,6 @@ public class DetectingFailureTest {
 
         assertNotNull(buildId);
         assertEquals(firstFailedBuildId, buildId.intValue());
-
 
         for (int i = 0; i < 4; i++)
             stat.setBuildCriticalError(timedOutBuildCnt + firstFailedBuildId + i);

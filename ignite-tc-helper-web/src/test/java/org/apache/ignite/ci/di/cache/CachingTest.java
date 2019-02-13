@@ -52,9 +52,8 @@ public class CachingTest {
             assertEquals(400, instance.toStringMtdCalls.get());
         }
 
-
         for (int i = 0; i < 100; i++)
-            instance.parseInt(Integer.toString(i%10));
+            instance.parseInt(Integer.toString(i % 10));
 
         assertEquals(10, instance.parseIntMtdCalls.get());
 
@@ -83,7 +82,6 @@ public class CachingTest {
                 return null;
             return Integer.toString(i);
         }
-
 
         @GuavaCached(cacheNegativeNumbersRval = false)
         public int parseInt(String val) {

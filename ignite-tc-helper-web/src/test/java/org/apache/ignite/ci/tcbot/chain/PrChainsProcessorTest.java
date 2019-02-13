@@ -57,8 +57,8 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
- * Unit test for {@link PrChainsProcessor} and blockers detection.
- * Emulates builds using Mockito. Does not start an Ignite node.
+ * Unit test for {@link PrChainsProcessor} and blockers detection. Emulates builds using Mockito. Does not start an
+ * Ignite node.
  */
 public class PrChainsProcessorTest {
     public static final String SRV_ID = "apache";
@@ -102,7 +102,7 @@ public class PrChainsProcessorTest {
     /** */
     @Before
     public void initBuilds() {
-        final TeamcityIgnitedProviderMock instance = (TeamcityIgnitedProviderMock) injector.getInstance(ITeamcityIgnitedProvider.class);
+        final TeamcityIgnitedProviderMock instance = (TeamcityIgnitedProviderMock)injector.getInstance(ITeamcityIgnitedProvider.class);
         instance.addServer(SRV_ID, apacheBuilds);
     }
 
@@ -117,7 +117,7 @@ public class PrChainsProcessorTest {
 
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
         final List<SuiteCurrentStatus> blockers = prcp.getBlockersSuitesStatuses(btId,
-                branch, SRV_ID, mock(ICredentialsProv.class));
+            branch, SRV_ID, mock(ICredentialsProv.class));
 
         System.out.println(blockers);
         assertNotNull(blockers);
@@ -186,7 +186,7 @@ public class PrChainsProcessorTest {
     public Optional<TestFailure> findBlockerTestFailure(List<SuiteCurrentStatus> blockers, String name) {
         Optional<SuiteCurrentStatus> suiteOpt = blockers.stream().filter(containsTestFail(name)).findAny();
 
-        return suiteOpt.flatMap(suite->suite.testFailures.stream().filter(tf -> name.equals(tf.name)).findAny());
+        return suiteOpt.flatMap(suite -> suite.testFailures.stream().filter(tf -> name.equals(tf.name)).findAny());
     }
 
     /**
@@ -240,7 +240,7 @@ public class PrChainsProcessorTest {
 
         for (int i = 0; i < 10; i++) {
             final FatBuildCompacted successfull =
-                createFatBuild(c, CACHE_1, "some-exotic-branch", i+7777, 100020, true)
+                createFatBuild(c, CACHE_1, "some-exotic-branch", i + 7777, 100020, true)
                     .addTests(c,
                         Lists.newArrayList(
                             createPassingTest(1L, TEST_WITHOUT_HISTORY),
@@ -305,7 +305,7 @@ public class PrChainsProcessorTest {
 
         final FatBuildCompacted cancelledBuild = new FatBuildCompacted(c, build);
 
-        cancelledBuild.snapshotDependencies(new int[]{buildBuild.id()});
+        cancelledBuild.snapshotDependencies(new int[] {buildBuild.id()});
 
         final int id = 1000;
 
@@ -338,8 +338,6 @@ public class PrChainsProcessorTest {
         addBuildsToEmulatedStor(buildBuild, cache9, chain);
     }
 
-
-
     /**
      * Adds builds into emulated storage.
      *
@@ -349,7 +347,7 @@ public class PrChainsProcessorTest {
         for (FatBuildCompacted build : builds) {
             final FatBuildCompacted oldB = apacheBuilds.put(build.id(), build);
 
-            Preconditions.checkState(oldB==null);
+            Preconditions.checkState(oldB == null);
         }
     }
 
@@ -375,7 +373,7 @@ public class PrChainsProcessorTest {
     }
 
     @NotNull
-    public  FatBuildCompacted createFailedBuild(IStringCompactor c, String btId, String branch, int id, long ageMs) {
+    public FatBuildCompacted createFailedBuild(IStringCompactor c, String btId, String branch, int id, long ageMs) {
         return createFatBuild(c, btId, branch, id, ageMs, false);
     }
 
@@ -430,7 +428,7 @@ public class PrChainsProcessorTest {
                 cache8.changes(new int[] {i}); //change which failed this test
 
             final FatBuildCompacted chain =
-                createFailedBuild(c, btId, branch, 1220+i, 100000)
+                createFailedBuild(c, btId, branch, 1220 + i, 100000)
                     .snapshotDependencies(new int[] {cache8.id()});
 
             addBuildsToEmulatedStor(buildBuild, cache8, chain);

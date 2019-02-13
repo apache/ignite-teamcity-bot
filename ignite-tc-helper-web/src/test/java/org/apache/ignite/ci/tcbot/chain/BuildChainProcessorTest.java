@@ -202,7 +202,7 @@ public class BuildChainProcessorTest {
 
     @NotNull public ITeamcityIgnited tcIgnitedMock(Map<Integer, FatBuildCompacted> builds) {
         return TeamcityIgnitedMock.getMutableMapTeamcityIgnited(builds,
-                injector.getInstance(IStringCompactor.class));
+            injector.getInstance(IStringCompactor.class));
     }
 
     @NotNull public static FatBuildCompacted testFatBuild(IStringCompactor c, int id, String bt) {

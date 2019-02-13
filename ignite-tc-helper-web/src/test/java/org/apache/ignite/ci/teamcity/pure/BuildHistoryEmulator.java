@@ -60,7 +60,7 @@ public class BuildHistoryEmulator {
             nextStart = start + returnNow;
 
         Builds builds = createBuilds(cnt, returnNow, nextStart);
-        List<BuildRef> buildsList  = new ArrayList<>();
+        List<BuildRef> buildsList = new ArrayList<>();
 
         for (int i = start; i < start + returnNow; i++)
             buildsList.add(sharedState.get(i));
@@ -98,7 +98,7 @@ public class BuildHistoryEmulator {
 
         String cntStr = m.group(0);
 
-        if(cntStr == null)
+        if (cntStr == null)
             return def;
 
         return Integer.parseInt(cntStr.substring(prefix.length()));

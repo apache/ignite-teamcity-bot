@@ -32,7 +32,7 @@ public class BuildKeyUnitTest {
     public void testKeyTransformations() {
         int apache = ITeamcityIgnited.serverIdToInt("apache");
 
-        for (int i = 0; i < 10000000; i+=132) {
+        for (int i = 0; i < 10000000; i += 132) {
             int buildId = 2264667 + i;
             long cacheKey = FatBuildDao.buildIdToCacheKey(apache, buildId);
 

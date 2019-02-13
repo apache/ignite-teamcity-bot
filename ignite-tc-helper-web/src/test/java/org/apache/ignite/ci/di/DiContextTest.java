@@ -72,8 +72,8 @@ public class DiContextTest {
         Injector injector = getInjector();
 
         TcUpdatePool pool = injector.getInstance(TcUpdatePool.class);
-        Preconditions.checkState(pool == injector.getInstance((Class<?>) TcUpdatePool.class),
-                "Instance not cached for type " + TcUpdatePool.class);
+        Preconditions.checkState(pool == injector.getInstance((Class<?>)TcUpdatePool.class),
+            "Instance not cached for type " + TcUpdatePool.class);
 
         pool.stop();
     }
@@ -81,7 +81,7 @@ public class DiContextTest {
     private <T> T validateInstanceCachedFor(Injector injector, Class<T> type) {
         final T firstInstance = injector.getInstance(type);
         Preconditions.checkState(firstInstance == injector.getInstance(type),
-                "Instance not cached for type " + type);
+            "Instance not cached for type " + type);
 
         return firstInstance;
     }
@@ -104,8 +104,8 @@ public class DiContextTest {
             if (fullParametrized.equals(next.name()))
                 foundPar = true;
 
-            if (MonitorTest.TASK_NME .equals(next.name()))
-                found  = true;
+            if (MonitorTest.TASK_NME.equals(next.name()))
+                found = true;
         }
 
         assertTrue(foundPar);
@@ -116,12 +116,13 @@ public class DiContextTest {
 
         public static final String TASK_NME = "test";
 
-        @MonitoredTask(name = TASK_NME, nameExtArgIndex=0)
-        public void doSmth(String parameter) {}
-
+        @MonitoredTask(name = TASK_NME, nameExtArgIndex = 0)
+        public void doSmth(String parameter) {
+        }
 
         @MonitoredTask(name = TASK_NME)
-        public void doSmth() {}
+        public void doSmth() {
+        }
     }
 
     @Test

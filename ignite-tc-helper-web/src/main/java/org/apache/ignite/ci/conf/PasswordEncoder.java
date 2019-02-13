@@ -19,12 +19,10 @@ package org.apache.ignite.ci.conf;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-
 import java.security.SecureRandom;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
-
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.util.CryptUtil;
 import org.jetbrains.annotations.NotNull;
@@ -54,7 +52,7 @@ public class PasswordEncoder {
         SecureRandom random = new SecureRandom();
         byte[] pref = random.generateSeed(PREF_LEN);
         byte[] suffix = random.generateSeed(POSTF_LEN);
-        int length = bytes.length + CHAR ;
+        int length = bytes.length + CHAR;
         if ((length & ~0xFF) != 0)
             throw new IllegalStateException();
         byte[] len = get1bLen(length);
@@ -92,7 +90,7 @@ public class PasswordEncoder {
     public static void main0(String[] args) {
         String pass = "324aadfe23....";
         String encode = encode(pass);
-        System.err.println("Encoded: " +  HelperConfig.GITHUB_AUTH_TOKEN + "=" + encode);
+        System.err.println("Encoded: " + HelperConfig.GITHUB_AUTH_TOKEN + "=" + encode);
         String decode = decode(encode);
         Preconditions.checkState(decode.equals(pass));
     }
@@ -100,7 +98,7 @@ public class PasswordEncoder {
     public static void main1(String[] args) {
         String pass = "mmm";
         String encode = encode(pass);
-        System.err.println("Encoded: " +  HelperConfig.ENCODED_PASSWORD + "=" + encode);
+        System.err.println("Encoded: " + HelperConfig.ENCODED_PASSWORD + "=" + encode);
         String decode = decode(encode);
         Preconditions.checkState(decode.equals(pass));
     }
@@ -112,7 +110,7 @@ public class PasswordEncoder {
     public static void encodeJiraTok(String user, String pwd) {
         String tok = HelperConfig.userPwdToToken(user, pwd);
         String encode = encode(tok);
-        System.err.println("Encoded: " +  HelperConfig.JIRA_AUTH_TOKEN + "=" + encode);
+        System.err.println("Encoded: " + HelperConfig.JIRA_AUTH_TOKEN + "=" + encode);
         String decode = decode(encode);
         Preconditions.checkState(decode.equals(tok));
     }

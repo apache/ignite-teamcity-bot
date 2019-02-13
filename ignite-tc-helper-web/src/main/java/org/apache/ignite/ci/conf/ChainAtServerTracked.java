@@ -18,7 +18,6 @@
 package org.apache.ignite.ci.conf;
 
 import com.google.common.base.Strings;
-
 import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nonnull;
@@ -43,7 +42,6 @@ public class ChainAtServerTracked extends ChainAtServer {
 
     /** Automatic build triggering quiet period in minutes. */
     @Nullable private Integer triggerBuildQuietPeriod;
-
 
     /** @return {@link #suiteId} */
     @Nonnull public String getSuiteIdMandatory() {

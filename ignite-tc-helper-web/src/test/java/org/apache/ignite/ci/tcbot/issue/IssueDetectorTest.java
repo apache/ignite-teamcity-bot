@@ -60,7 +60,6 @@ public class IssueDetectorTest {
     /** Builds emulated storage. */
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
 
-
     /** Config Branches tracked. */
     private BranchesTracked branchesTracked = new BranchesTracked();
     /**
@@ -84,7 +83,6 @@ public class IssueDetectorTest {
 
         return chain;
     }
-
 
     @Test
     public void testDetector() throws IOException {

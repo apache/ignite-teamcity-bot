@@ -17,6 +17,13 @@
 
 package org.apache.ignite.ci.db;
 
+import java.io.File;
+import java.util.Collection;
+import java.util.Objects;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.HelperConfig;
@@ -30,21 +37,14 @@ import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.logger.slf4j.Slf4jLogger;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
-import java.util.Collection;
-import java.util.Objects;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-
-public class Ignite1Init  {
+public class Ignite1Init {
     private static boolean clientMode;
 
     /**
      * Reference to Ignite init future.
      */
     private AtomicReference<Future<Ignite>> igniteFutureRef =
-            new AtomicReference<>();
+        new AtomicReference<>();
 
     /**
      * Internally initialized field with instance.
@@ -66,7 +66,6 @@ public class Ignite1Init  {
         return ignite;
     }
 
-
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Ignition Start")
     @AutoProfiling
@@ -86,7 +85,6 @@ public class Ignite1Init  {
         return "Started, topVer " + ignite.cluster().topologyVersion();
     }
 
-
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Ignite Activate")
     @AutoProfiling
@@ -103,10 +101,10 @@ public class Ignite1Init  {
 
         final Collection<BaselineNode> baselineNodes = ignite.cluster().currentBaselineTopology();
         final String str
-                = Objects.requireNonNull(baselineNodes)
-                .stream()
-                .map(BaselineNode::consistentId)
-                .collect(Collectors.toList()).toString();
+            = Objects.requireNonNull(baselineNodes)
+            .stream()
+            .map(BaselineNode::consistentId)
+            .collect(Collectors.toList()).toString();
 
         return "Activated, BLT=" + str;
     }
@@ -141,16 +139,16 @@ public class Ignite1Init  {
         return startIgnite();
     }
 
-
     public Future<Ignite> getIgniteFuture() {
         final FutureTask<Ignite> futureTask = new FutureTask<>(this::init);
 
-        if(igniteFutureRef.compareAndSet(null, futureTask)) {
+        if (igniteFutureRef.compareAndSet(null, futureTask)) {
             final Thread thread = new Thread(futureTask, "ignite-1-init-thread");
             thread.start();
 
             return futureTask;
-        } else
+        }
+        else
             return igniteFutureRef.get();
     }
 }

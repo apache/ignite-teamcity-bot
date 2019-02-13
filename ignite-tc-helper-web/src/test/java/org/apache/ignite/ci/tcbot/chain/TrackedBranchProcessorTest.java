@@ -75,7 +75,7 @@ public class TrackedBranchProcessorTest {
     /** */
     @Before
     public void initBuilds() {
-        final TeamcityIgnitedProviderMock instance = (TeamcityIgnitedProviderMock) injector.getInstance(ITeamcityIgnitedProvider.class);
+        final TeamcityIgnitedProviderMock instance = (TeamcityIgnitedProviderMock)injector.getInstance(ITeamcityIgnitedProvider.class);
         instance.addServer(SRV_ID, apacheBuilds);
     }
 
@@ -156,7 +156,7 @@ public class TrackedBranchProcessorTest {
     }
 
     public Optional<TestFailure> findTestFailure(SuiteCurrentStatus suiteFails, String name) {
-        return suiteFails.testFailures.stream().filter(tf -> tf.name.equals(name)) .findAny();
+        return suiteFails.testFailures.stream().filter(tf -> tf.name.equals(name)).findAny();
     }
 
 }

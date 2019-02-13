@@ -49,7 +49,7 @@ public class DiffTest {
     @Test
     public void testDuplicates() {
         Diff<String> diff =
-            new Diff<>( Arrays.asList("A", "A", "B", "D", "D"), Arrays.asList("A", "B", "B", "D", "E", "E", "F"));
+            new Diff<>(Arrays.asList("A", "A", "B", "D", "D"), Arrays.asList("A", "B", "B", "D", "E", "E", "F"));
 
         Assert.assertArrayEquals(new String[] {"B", "E", "E", "F"}, diff.added().toArray());
         Assert.assertArrayEquals(new String[] {"A", "D"}, diff.removed().toArray());
