@@ -56,22 +56,22 @@ public class JiraTicketSync {
     @Inject IJiraIntegrationProvider jiraIntegrationProvider;
 
     /**
-     * @param srvId Server ID
+     * @param srvCode Server ID
      */
-    public void ensureActualizeJiraTickets(String srvId) {
-        scheduler.sheduleNamed(taskName("incrementalSync", srvId),
-            () -> incrementalUpdate(srvId), 15, TimeUnit.MINUTES);
+    public void ensureActualizeJiraTickets(String srvCode) {
+        scheduler.sheduleNamed(taskName("incrementalSync", srvCode),
+            () -> incrementalUpdate(srvCode), 15, TimeUnit.MINUTES);
     }
 
     /**
-     * @param srvId Server id.
+     * @param srvCode Server id.
      */
-    public String incrementalUpdate(String srvId) {
-        String res = actualizeJiraTickets(srvId, false);
+    public String incrementalUpdate(String srvCode) {
+        String res = actualizeJiraTickets(srvCode, false);
 
         scheduler.invokeLater(() -> {
-                scheduler.sheduleNamed(taskName("fullResync", srvId),
-                    () -> actualizeJiraTickets(srvId, true), 2, TimeUnit.HOURS);
+                scheduler.sheduleNamed(taskName("fullResync", srvCode),
+                    () -> actualizeJiraTickets(srvCode, true), 3, TimeUnit.HOURS);
             },
             5, TimeUnit.MINUTES);
 
@@ -80,22 +80,22 @@ public class JiraTicketSync {
 
     /**
      * @param taskName Task name.
-     * @param srvId Service ID
+     * @param srvCode Service ID
      * @return Task name concatenated with server name.
      */
     @NotNull
-    private String taskName(String taskName, String srvId) {
-        return JiraTicketSync.class.getSimpleName() + "." + taskName + "." + srvId;
+    private String taskName(String taskName, String srvCode) {
+        return JiraTicketSync.class.getSimpleName() + "." + taskName + "." + srvCode;
     }
 
     /**
-     * @param srvId Server internal identification.
+     * @param srvCode Server internal identification.
      * @param fullResync full or incremental.
      */
     @MonitoredTask(name = "Actualize Jira(srv, full resync)", nameExtArgsIndexes = {0, 1})
-    protected String actualizeJiraTickets(String srvId, boolean fullResync) {
-        int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
-        IJiraIntegration jira = jiraIntegrationProvider.server(srvId);
+    protected String actualizeJiraTickets(String srvCode, boolean fullResync) {
+        int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvCode);
+        IJiraIntegration jira = jiraIntegrationProvider.server(srvCode);
 
         String reqFields = Arrays.stream(Fields.class.getDeclaredFields())
             .map(Field::getName)
@@ -144,6 +144,6 @@ public class JiraTicketSync {
             }
         }
 
-        return "Jira tickets saved " + ticketsSaved + " from " + ticketsProcessed + " checked for service " + srvId;
+        return "Jira tickets saved " + ticketsSaved + " from " + ticketsProcessed + " checked for service " + srvCode;
     }
 }
