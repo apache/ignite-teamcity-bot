@@ -19,8 +19,8 @@ package org.apache.ignite.ci.jira.ignited;
 import java.io.IOException;
 import java.util.Set;
 import javax.inject.Inject;
-import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
+import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 
@@ -55,7 +55,6 @@ class JiraIgnited implements IJiraIgnited {
 
         jiraTicketDao.init();
     }
-
 
     /** {@inheritDoc} */
     @Override public Set<Ticket> getTickets() {

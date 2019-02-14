@@ -42,7 +42,6 @@ public interface IJiraIgnited {
      */
     public String generateTicketUrl(String id);
 
-
     /**
      * @param ticket JIRA ticket full name. E.g 'IGNITE-5555'.
      * @param comment Comment to be placed in the ticket conversation.

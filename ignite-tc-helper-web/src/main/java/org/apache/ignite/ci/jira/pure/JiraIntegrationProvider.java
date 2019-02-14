@@ -24,14 +24,11 @@ import com.google.inject.Provider;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
-import org.apache.ignite.ci.jira.pure.IJiraIntegration;
-import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.util.ExceptionUtil;
 
 /**
- * Class for providing {@link IJiraIntegration} instance for specified Jira
- * server. Instance for each server is cached with defining instance
- * expiration time.
+ * Class for providing {@link IJiraIntegration} instance for specified Jira server. Instance for each server is cached
+ * with defining instance expiration time.
  */
 class JiraIntegrationProvider implements IJiraIntegrationProvider {
     /** */

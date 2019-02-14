@@ -42,10 +42,10 @@ public class TicketCompacted {
     /** Summary, nullable because of older entries. */
     @Nullable private StringFieldCompacted summary = new StringFieldCompacted();
 
-    /** Custom field, to be queriable after persisting in Ignite, nullable because of older entry versions.  */
+    /** Custom field, to be queriable after persisting in Ignite, nullable because of older entry versions. */
     @Nullable private StringFieldCompacted customfield_11050 = new StringFieldCompacted();
 
-    /** Full description, nullable because of older entry versions.  */
+    /** Full description, nullable because of older entry versions. */
     @Nullable private StringFieldCompacted description = new StringFieldCompacted();
 
     /**

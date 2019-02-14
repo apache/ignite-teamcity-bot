@@ -21,8 +21,7 @@ import com.google.common.base.MoreObjects;
 import org.apache.ignite.ci.jira.ignited.TicketCompacted;
 
 /**
- * See example of GSON here
- * https://issues.apache.org/jira/rest/api/2/issue/IGNITE-123
+ * See example of GSON here https://issues.apache.org/jira/rest/api/2/issue/IGNITE-123
  */
 public class Ticket {
     /** Id. */

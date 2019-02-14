@@ -22,8 +22,7 @@ import java.util.Collections;
 import org.apache.ignite.ci.jira.pure.Ticket;
 
 /**
- * See example of GSON here
- * https://issues.apache.org/jira/rest/api/2/search?jql=project%20=%20IGNITE%20order%20by%20updated%20DESC&fields=status
+ * See example of GSON here https://issues.apache.org/jira/rest/api/2/search?jql=project%20=%20IGNITE%20order%20by%20updated%20DESC&fields=status
  */
 @SuppressWarnings("PublicField")
 public class Tickets {

@@ -19,9 +19,9 @@ package org.apache.ignite.ci.jira.ignited;
 
 import com.google.common.base.Preconditions;
 import java.util.Collection;
-import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import javax.cache.Cache;
 import javax.inject.Inject;
@@ -67,7 +67,7 @@ public class JiraTicketDao {
     @GuavaCached(expireAfterWriteSecs = 60, softValues = true)
     public Set<Ticket> getTickets(int srvIdMaskHigh, String projectCode) {
         Preconditions.checkNotNull(jiraCache, "init() was not called");
-        long srvId = (long) srvIdMaskHigh << 32;
+        long srvId = (long)srvIdMaskHigh << 32;
 
         Set<Ticket> res = new HashSet<>();
 
@@ -87,11 +87,12 @@ public class JiraTicketDao {
      * @return Key from server-project pair.
      */
     public static long ticketToCacheKey(int srvIdMaskHigh, int igniteId) {
-        return (long) igniteId | (long) srvIdMaskHigh << 32;
+        return (long)igniteId | (long)srvIdMaskHigh << 32;
     }
 
     /**
      * Save small part of loaded mutes.
+     *
      * @param srvIdMaskHigh Server id mask high.
      * @param chunk Chunk.
      * @param projectCode Project code for contributions listing and for comments.
@@ -124,7 +125,7 @@ public class JiraTicketDao {
                 ticketsToUpdate.put(k, v);
         });
 
-        if(!ticketsToUpdate.isEmpty())
+        if (!ticketsToUpdate.isEmpty())
             jiraCache.putAll(ticketsToUpdate);
 
         return ticketsToUpdate.size();

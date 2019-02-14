@@ -87,6 +87,7 @@ public class JiraTicketSync {
     private String taskName(String taskName, String srvId) {
         return JiraTicketSync.class.getSimpleName() + "." + taskName + "." + srvId;
     }
+
     /**
      * @param srvId Server internal identification.
      * @param fullResync full or incremental.
@@ -106,7 +107,6 @@ public class JiraTicketSync {
             + "&" +
             "fields=" + reqFields +
             "&maxResults=100";
-
 
         String url = baseUrl;
 
