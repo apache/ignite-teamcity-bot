@@ -111,11 +111,13 @@ public class MonitoredTaskInterceptor implements MethodInterceptor {
             res = invocation.proceed();
 
             return res;
-        } catch (Throwable t) {
+        }
+        catch (Throwable t) {
             res = t;
 
             throw t;
-        } finally {
+        }
+        finally {
             monitoredInvoke.saveEnd(System.currentTimeMillis(), res);
         }
     }
@@ -126,8 +128,7 @@ public class MonitoredTaskInterceptor implements MethodInterceptor {
         final String cls = invocationMtd.getDeclaringClass().getSimpleName();
         final String mtd = invocationMtd.getName();
 
-
-        StringBuilder fullKey= new StringBuilder();
+        StringBuilder fullKey = new StringBuilder();
 
         final MonitoredTask annotation = invocationMtd.getAnnotation(MonitoredTask.class);
         if (annotation != null) {

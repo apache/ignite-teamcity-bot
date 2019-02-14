@@ -18,15 +18,20 @@ package org.apache.ignite.ci.di.scheduler;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 class TcBotScheduler implements IScheduler {
     public static final int POOL_SIZE = 16;
@@ -85,7 +90,8 @@ class TcBotScheduler implements IScheduler {
                 Runnable runnable = task.runIfNeeded();
                 if (runnable != null)
                     run.incrementAndGet();
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 logger.error("Background task [" + s + "] execution failure: " + e.getMessage(), e);
                 problems.add(e);
             }
@@ -99,7 +105,7 @@ class TcBotScheduler implements IScheduler {
         if (executorSvc != null) {
             executorSvc.shutdown();
             try {
-                if(!executorSvc.awaitTermination(10, TimeUnit.SECONDS))
+                if (!executorSvc.awaitTermination(10, TimeUnit.SECONDS))
                     executorSvc.shutdownNow();
             }
             catch (InterruptedException e) {

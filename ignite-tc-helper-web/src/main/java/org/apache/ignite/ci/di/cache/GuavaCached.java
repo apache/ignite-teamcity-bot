@@ -38,9 +38,9 @@ public @interface GuavaCached {
      */
     boolean cacheNullRval() default true;
 
-
     /**
-     * Cache negative number values as valid return value. For caching Ignite entries it is always require to set this parameter.
+     * Cache negative number values as valid return value. For caching Ignite entries it is always require to set this
+     * parameter.
      */
     boolean cacheNegativeNumbersRval() default true;
 

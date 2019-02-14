@@ -42,10 +42,10 @@ public class GuavaCachedInterceptor implements MethodInterceptor {
         Cache<List, Optional> cache = caches.computeIfAbsent(cacheId(invocation), k -> {
             CacheBuilder builder = CacheBuilder.newBuilder();
 
-            if(annotation.softValues())
+            if (annotation.softValues())
                 builder = builder.softValues();
 
-            if(annotation.maximumSize() > 0)
+            if (annotation.maximumSize() > 0)
                 builder = builder.maximumSize(annotation.maximumSize());
 
             if (annotation.expireAfterAccessSecs() > 0)
@@ -53,7 +53,6 @@ public class GuavaCachedInterceptor implements MethodInterceptor {
 
             if (annotation.expireAfterWriteSecs() > 0)
                 builder.expireAfterWrite(annotation.expireAfterWriteSecs(), TimeUnit.SECONDS);
-
 
             return builder.build();
         });

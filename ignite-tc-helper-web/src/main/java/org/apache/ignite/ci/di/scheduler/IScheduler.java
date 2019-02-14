@@ -21,15 +21,12 @@ import java.util.concurrent.TimeUnit;
 
 public interface IScheduler {
     /**
-     * Creates and executes a one-shot action that becomes enabled
-     * after the given delay.
+     * Creates and executes a one-shot action that becomes enabled after the given delay.
      *
      * @param cmd the task to execute.
      * @param delay the time from now to delay execution.
      * @param unit the time unit of the delay parameter.
-     *
-     * @throws RejectedExecutionException if the task cannot be
-     *         scheduled for execution
+     * @throws RejectedExecutionException if the task cannot be scheduled for execution
      * @throws NullPointerException if command is null
      */
     public void invokeLater(Runnable cmd, long delay, TimeUnit unit);

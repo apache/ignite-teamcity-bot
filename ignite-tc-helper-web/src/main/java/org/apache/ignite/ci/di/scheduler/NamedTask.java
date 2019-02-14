@@ -38,7 +38,7 @@ class NamedTask {
     private volatile long resValidityMs = 0;
 
     enum Status {
-        CREATED, RUNNING, COMPLETED ;
+        CREATED, RUNNING, COMPLETED;
     }
 
     public NamedTask(String name) {

@@ -54,14 +54,16 @@ public class IgniteTcBotModule extends AbstractModule {
         configProfiling();
         configTaskMonitor();
 
-        bind(Ignite.class).toProvider((Provider<Ignite>) () -> {
+        bind(Ignite.class).toProvider((Provider<Ignite>)() -> {
             Preconditions.checkNotNull(igniteFut, "Ignite future is not yet initialized");
 
             try {
                 return igniteFut.get(10, TimeUnit.SECONDS);
-            } catch (TimeoutException e) {
+            }
+            catch (TimeoutException e) {
                 throw new ServiceStartingException(e);
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 e.printStackTrace();
 
                 throw ExceptionUtil.propagateException(e);
@@ -85,19 +87,18 @@ public class IgniteTcBotModule extends AbstractModule {
         AutoProfilingInterceptor profilingInterceptor = new AutoProfilingInterceptor();
 
         bindInterceptor(Matchers.any(),
-                Matchers.annotatedWith(AutoProfiling.class),
-                profilingInterceptor);
+            Matchers.annotatedWith(AutoProfiling.class),
+            profilingInterceptor);
 
         bind(AutoProfilingInterceptor.class).toInstance(profilingInterceptor);
     }
-
 
     private void configTaskMonitor() {
         MonitoredTaskInterceptor profilingInterceptor = new MonitoredTaskInterceptor();
 
         bindInterceptor(Matchers.any(),
-                Matchers.annotatedWith(MonitoredTask.class),
-                profilingInterceptor);
+            Matchers.annotatedWith(MonitoredTask.class),
+            profilingInterceptor);
 
         bind(MonitoredTaskInterceptor.class).toInstance(profilingInterceptor);
     }

@@ -17,19 +17,15 @@
 package org.apache.ignite.ci.di;
 
 import com.google.common.base.Stopwatch;
-import org.aopalliance.intercept.MethodInterceptor;
-import org.aopalliance.intercept.MethodInvocation;
-
-import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import org.aopalliance.intercept.MethodInterceptor;
+import org.aopalliance.intercept.MethodInvocation;
 
 public class AutoProfilingInterceptor implements MethodInterceptor {
     private final ConcurrentMap<String, Invocation> totalTime = new ConcurrentHashMap<>();
@@ -74,7 +70,8 @@ public class AutoProfilingInterceptor implements MethodInterceptor {
         Stopwatch started = Stopwatch.createStarted();
         try {
             return invocation.proceed();
-        } finally {
+        }
+        finally {
             long elapsed = started.elapsed(TimeUnit.NANOSECONDS);
 
             String fullKey = cls + "." + mtd;
