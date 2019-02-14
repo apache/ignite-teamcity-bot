@@ -51,7 +51,7 @@ public class PullRequest implements IVersionedEntity {
     /** Pull Request statuses URL. */
     @SerializedName("statuses_url") private String statusesUrl;
 
-    @SerializedName("user")  private GitHubUser gitHubUser;
+    @SerializedName("user") private GitHubUser gitHubUser;
 
     @SerializedName("head") private GitHubBranch head;
 

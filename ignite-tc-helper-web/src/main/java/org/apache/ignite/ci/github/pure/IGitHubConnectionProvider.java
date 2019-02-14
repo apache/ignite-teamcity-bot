@@ -19,7 +19,6 @@ package org.apache.ignite.ci.github.pure;
 public interface IGitHubConnectionProvider {
     /**
      * @param srvId Server id.
-     *
      */
     public IGitHubConnection server(String srvId);
 }

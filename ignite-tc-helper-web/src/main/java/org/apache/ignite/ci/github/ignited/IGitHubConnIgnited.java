@@ -44,8 +44,8 @@ public interface IGitHubConnIgnited {
     public void notifyGit(String url, String body);
 
     /**
-     * Prefix to be added to git branch instead of {@link IJiraServerConfig#branchNumPrefix()}.
-     * Usually it is a lower case of JIRA branch mention, e.. JIRA branch num is 'IGNITE-', and git is 'ignite-'
+     * Prefix to be added to git branch instead of {@link IJiraServerConfig#branchNumPrefix()}. Usually it is a lower
+     * case of JIRA branch mention, e.. JIRA branch num is 'IGNITE-', and git is 'ignite-'
      */
     public String gitBranchPrefix();
 }
