@@ -154,23 +154,6 @@ public class HelperConfig {
     }
 
     /**
-     * Extract JIRA basic authorization token from properties.
-     *
-     * @param props Properties, where token is placed.
-     * @return Null or decoded auth token for Github.
-     */
-    @Nullable public static String prepareJiraHttpAuthToken(Properties props) {
-        String tok = props.getProperty(JIRA_AUTH_TOKEN);
-
-        if (isNullOrEmpty(tok))
-            return null;
-
-        tok = PasswordEncoder.decode(tok);
-
-        return tok;
-    }
-
-    /**
      * Extract TeamCity authorization token from properties.
      *
      * @param props Properties, where token is placed.
