@@ -19,6 +19,8 @@ package org.apache.ignite.ci.tcbot.conf;
 import com.google.common.base.Strings;
 import org.jetbrains.annotations.Nullable;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 /**
  * Abstract JIRA server config.
  */
@@ -50,6 +52,24 @@ public interface IJiraServerConfig {
      */
     public default boolean isJiraTokenAvailable() {
         return !Strings.isNullOrEmpty(decodedHttpAuthToken());
+    }
+
+
+    public default String restApiUrl() {
+        String jiraUrl = getUrl();
+
+        if (isNullOrEmpty(jiraUrl))
+            throw new IllegalStateException("JIRA API URL is not configured for this server.");
+
+        StringBuilder apiUrl = new StringBuilder();
+
+        apiUrl.append(jiraUrl);
+        if (!jiraUrl.endsWith("/"))
+            apiUrl.append("/");
+
+        apiUrl.append("rest/api/2/");
+
+        return apiUrl.toString();
     }
 
 }

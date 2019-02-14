@@ -59,8 +59,8 @@ public interface IJiraIntegration {
      */
     public String generateCommentUrl(String ticketFullName, int commentId);
 
-    String restApiUrl();
-
-
+    /**
+     *
+     */
     public IJiraServerConfig config();
 }

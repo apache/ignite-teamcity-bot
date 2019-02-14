@@ -36,6 +36,8 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
+import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
@@ -111,24 +113,25 @@ public class TriggerBuilds {
 
     @GET
     @Path("integrationUrls")
-    public Set<ServerIntegrationLinks> getIntegrationUrls(@NotNull @QueryParam("serverIds") String srvIds) {
+    public Set<ServerIntegrationLinks> getIntegrationUrls(@NotNull @QueryParam("serverIds") String srvCodes) {
         ICredentialsProv prov = ICredentialsProv.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 
+        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
         ITeamcityIgnitedProvider tcIgnProv = injector.getInstance(ITeamcityIgnitedProvider.class);
 
-        String[] srvIds0 = srvIds.split(",");
+        String[] srvCodesArr = srvCodes.split(",");
 
-        return Arrays.stream(srvIds0).map(srvId -> {
-            if (!tcIgnProv.hasAccess(srvId, prov))
+        return Arrays.stream(srvCodesArr).map(srvCode -> {
+            if (!tcIgnProv.hasAccess(srvCode, prov))
                 return null;
 
-            IJiraIntegration jira = injector.getInstance(IJiraIntegrationProvider.class).server(srvId);
+            IGitHubConnection gh = injector.getInstance(IGitHubConnectionProvider.class).server(srvCode);
 
-            IGitHubConnection gh = injector.getInstance(IGitHubConnectionProvider.class).server(srvId);
+            IJiraServerConfig jiraCfg = cfg.getJiraConfig(srvCode);
 
-            return new ServerIntegrationLinks(srvId, gh.gitApiUrl(), jira.restApiUrl());
+            return new ServerIntegrationLinks(srvCode, gh.gitApiUrl(), jiraCfg.restApiUrl());
         }).filter(Objects::nonNull).collect(Collectors.toSet());
     }
 }

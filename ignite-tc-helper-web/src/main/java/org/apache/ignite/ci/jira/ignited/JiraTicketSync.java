@@ -30,9 +30,12 @@ import org.apache.ignite.ci.jira.pure.Fields;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.jira.pure.Ticket;
+import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 
@@ -40,6 +43,9 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
  * Sync serving requests for all JIRA servers.
  */
 public class JiraTicketSync {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(JiraTicketSync.class);
+
     /** Scheduler. */
     @Inject private IScheduler scheduler;
 
@@ -94,18 +100,23 @@ public class JiraTicketSync {
             .map(Field::getName)
             .collect(Collectors.joining(","));
 
-        String projectCode = jira.config().projectCodeForVisa();
+        IJiraServerConfig cfg = jira.config();
+        String projectCode = cfg.projectCodeForVisa();
         String baseUrl = "search?jql=" + escape("project=" + projectCode + " order by updated DESC")
             + "&" +
             "fields=" + reqFields +
             "&maxResults=100";
 
+
         String url = baseUrl;
+
+        logger.info("Requesting JIRA tickets using URL " + url + ("\n" + cfg.restApiUrl() + url));
         Tickets tickets = jira.getTicketsPage(url);
         Collection<Ticket> page = tickets.issuesNotNull();
 
         if (F.isEmpty(page))
-            return "Something went wrong - no tickets found. Check jira availability.";
+            return "Something went wrong - no tickets found. Check jira availability: " +
+                "[project=" + projectCode + ", url=" + url + "]";
 
         int ticketsSaved = jiraDao.saveChunk(srvIdMaskHigh, page, projectCode);
 
@@ -115,6 +126,7 @@ public class JiraTicketSync {
             while (tickets.nextStart() > 0) {
                 url = baseUrl + "&startAt=" + tickets.nextStart();
 
+                logger.info("Requesting JIRA tickets using URL " + url + ("\n" + cfg.restApiUrl() + url));
                 tickets = jira.getTicketsPage(url);
 
                 page = tickets.issuesNotNull();
