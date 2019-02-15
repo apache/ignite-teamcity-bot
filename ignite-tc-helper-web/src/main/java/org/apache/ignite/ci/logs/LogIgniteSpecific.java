@@ -30,11 +30,11 @@ public class LogIgniteSpecific implements ILogProductSpecific {
 
     /** {@inheritDoc} */
     @Override public boolean isTestStarting(String line) {
-       return line.contains(STARTING_TEST) && line.contains(TEST_NAME_END);
+        return line.contains(STARTING_TEST) && line.contains(TEST_NAME_END);
     }
 
     /** {@inheritDoc} */
     @Override public boolean isTestStopping(String line) {
-        return  line.contains(STOPPING_TEST);
+        return line.contains(STOPPING_TEST);
     }
 }

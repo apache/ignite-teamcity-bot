@@ -23,10 +23,9 @@ import com.ullink.slack.simpleslackapi.SlackSession;
 import com.ullink.slack.simpleslackapi.SlackUser;
 import com.ullink.slack.simpleslackapi.impl.SlackSessionFactory;
 import com.ullink.slack.simpleslackapi.replies.SlackMessageReply;
-import org.apache.ignite.ci.HelperConfig;
-
 import java.io.IOException;
 import java.util.Properties;
+import org.apache.ignite.ci.HelperConfig;
 
 /**
  *
@@ -34,14 +33,14 @@ import java.util.Properties;
 public class SlackSender {
     public static boolean sendMessage(String addr, String msg) throws IOException {
         Properties cfgProps = HelperConfig.loadEmailSettings();
-        String authTok = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.SLACK_AUTH_TOKEN, HelperConfig. MAIL_PROPS);
+        String authTok = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.SLACK_AUTH_TOKEN, HelperConfig.MAIL_PROPS);
 
         SlackSession ses = SlackSessionFactory.createWebSocketSlackSession(authTok);
 
         ses.connect();
 
         try {
-            if(addr.startsWith("#")) {
+            if (addr.startsWith("#")) {
                 String ch = addr.substring(1);
 
                 SlackChannel slackCh = ses.findChannelByName(ch);
@@ -54,7 +53,7 @@ public class SlackSender {
 
                 SlackMessageHandle<SlackMessageReply> handle = ses.sendMessage(slackCh, msg);
 
-                System.out.println("Message to channel " + addr + " "  + msg + "; acked: " + handle.isAcked());
+                System.out.println("Message to channel " + addr + " " + msg + "; acked: " + handle.isAcked());
             }
             else {
                 SlackUser user = ses.findUserByUserName(addr); //make sure bot is a member of the user.
@@ -67,7 +66,7 @@ public class SlackSender {
 
                 SlackMessageHandle<SlackMessageReply> handle = ses.sendMessageToUser(user, msg, null);
 
-                System.out.println("Message to user " + addr + " "  + msg + "; acked: " + handle.isAcked());
+                System.out.println("Message to user " + addr + " " + msg + "; acked: " + handle.isAcked());
 
             }
         }

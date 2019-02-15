@@ -17,11 +17,17 @@
 
 package org.apache.ignite.ci.mail;
 
-import javax.mail.*;
+import java.util.Properties;
+import javax.mail.Authenticator;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
-import java.util.Properties;
 import javax.mail.internet.MimeMultipart;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.PasswordEncoder;
@@ -44,7 +50,7 @@ public class EmailSender {
 
     public static void sendEmail(String to, String subject, String html, String plainText) {
         Properties cfgProps = HelperConfig.loadEmailSettings();
-        String from = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.USERNAME, HelperConfig. MAIL_PROPS);
+        String from = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.USERNAME, HelperConfig.MAIL_PROPS);
         String enc = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.ENCODED_PASSWORD, HelperConfig.MAIL_PROPS);
 
         String pwd = PasswordEncoder.decode(enc);
@@ -52,7 +58,7 @@ public class EmailSender {
         Properties props = new Properties();
         props.put("mail.smtp.host", "smtp.gmail.com");
         props.put("mail.smtp.socketFactory.port", "465");
-        props.put("mail.smtp.socketFactory.class",  "javax.net.ssl.SSLSocketFactory");
+        props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.port", "465");
 
@@ -61,11 +67,11 @@ public class EmailSender {
         // Get the default Session object.
 
         Session ses = Session.getInstance(props,
-                new Authenticator() {
-                    @Override protected PasswordAuthentication getPasswordAuthentication() {
-                        return new PasswordAuthentication(from, pwd);
-                    }
-                });
+            new Authenticator() {
+                @Override protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(from, pwd);
+                }
+            });
         try {
             // Create a default MimeMessage object.
             MimeMessage msg = new MimeMessage(ses);

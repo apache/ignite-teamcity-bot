@@ -38,11 +38,9 @@ public class TestLogHandler implements ILineHandler {
     private static final String TEST_NAME_END = " <<<";
     private static final String ENDL = String.format("%n");
 
-    private static final ILogProductSpecific logSpecific =new LogIgniteSpecific();
+    private static final ILogProductSpecific logSpecific = new LogIgniteSpecific();
     public static final TestLogCheckResult FAKE_RESULT = new TestLogCheckResult();
     private final List<String> curTestLog = new ArrayList<>();
-
-
 
     private String currentTestName = null;
     private File workFolder;
@@ -66,7 +64,6 @@ public class TestLogHandler implements ILineHandler {
             }
             String startTest = line.substring(line.indexOf(STARTING_TEST) + STARTING_TEST.length(), line.indexOf(TEST_NAME_END));
 
-
             this.currentTestName = startTest;
         }
         else if (currentTestName != null && logSpecific.isTestStopping(line)) {
@@ -77,7 +74,7 @@ public class TestLogHandler implements ILineHandler {
         if (currentTestName == null)
             return;
 
-        if(SAVE_LOG_STAT)
+        if (SAVE_LOG_STAT)
             curTest().addLineStat(line);
 
         if (LogMsgToWarn.needWarn(line))

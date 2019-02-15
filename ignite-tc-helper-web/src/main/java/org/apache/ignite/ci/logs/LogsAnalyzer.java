@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.NotThreadSafe;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +55,8 @@ public class LogsAnalyzer implements Function<File, File> {
         }
         catch (IOException e) {
             throw new UncheckedIOException(e);
-        } finally {
+        }
+        finally {
             lineHandlersList.forEach(this::closeSilent);
         }
         return file;

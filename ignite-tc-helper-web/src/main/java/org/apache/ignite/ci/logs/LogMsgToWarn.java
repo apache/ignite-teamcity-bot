@@ -24,8 +24,8 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
  *
  */
 //todo make non static
-    //todo include test name
-    //todo add NPE
+//todo include test name
+//todo add NPE
 public class LogMsgToWarn {
 
     private static final String JAVA_LEVEL_DEADLOCK_TXT = " Java-level deadlock:";
@@ -38,7 +38,7 @@ public class LogMsgToWarn {
 
     @Nullable
     public static String getProblemCode(String line) {
-        if(line.contains(JAVA_LEVEL_DEADLOCK_TXT))
+        if (line.contains(JAVA_LEVEL_DEADLOCK_TXT))
             return ProblemOccurrence.JAVA_LEVEL_DEADLOCK;
 
         return null;
