@@ -25,8 +25,7 @@ import java.util.Objects;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 /**
- * Representation of {@link BuildsInfo} with compacted properties for more
- * effective cache storing.
+ * Representation of {@link BuildsInfo} with compacted properties for more effective cache storing.
  */
 public class CompactBuildsInfo {
     /** */
@@ -49,7 +48,6 @@ public class CompactBuildsInfo {
 
     /** Builds. */
     private final List<Integer> builds = new ArrayList<>();
-
 
     /** */
     public CompactBuildsInfo() {

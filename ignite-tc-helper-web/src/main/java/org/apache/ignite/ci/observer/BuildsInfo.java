@@ -32,9 +32,8 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.ContributionKey;
 
 /**
- * Represents parameters to determine context of observed builds, list of build IDs
- * which were requested for observing and provides methods to check status of
- * observed builds.
+ * Represents parameters to determine context of observed builds, list of build IDs which were requested for observing
+ * and provides methods to check status of observed builds.
  */
 public class BuildsInfo {
     /** Shows that all rerunned builds finished successfully. */
@@ -44,8 +43,7 @@ public class BuildsInfo {
     public static final String RUNNING_STATUS = "running";
 
     /**
-     * Shows that one or more rerunned builds were cancelled or have UNKNOWN
-     * status on TC for some other reasons.
+     * Shows that one or more rerunned builds were cancelled or have UNKNOWN status on TC for some other reasons.
      */
     public static final String CANCELLED_STATUS = "cancelled";
 
@@ -105,9 +103,7 @@ public class BuildsInfo {
     /**
      * @param teamcity Teamcity.
      * @param strCompactor {@link IStringCompactor} instance.
-     *
-     * @return One of {@link #FINISHED_STATUS}, {@link #CANCELLED_STATUS} or
-     * {@link #RUNNING_STATUS} statuses.
+     * @return One of {@link #FINISHED_STATUS}, {@link #CANCELLED_STATUS} or {@link #RUNNING_STATUS} statuses.
      */
     public String getStatus(ITeamcityIgnited teamcity, IStringCompactor strCompactor) {
         boolean isFinished = true;
@@ -144,14 +140,14 @@ public class BuildsInfo {
     /**
      * Return builds count.
      */
-    public int buildsCount(){
+    public int buildsCount() {
         return builds.size();
     }
 
     /**
      * Return finished builds count.
      */
-    public int finishedBuildsCount(ITeamcityIgnited teamcity, IStringCompactor strCompactor){
+    public int finishedBuildsCount(ITeamcityIgnited teamcity, IStringCompactor strCompactor) {
         int finishedCnt = 0;
 
         for (Integer id : builds) {

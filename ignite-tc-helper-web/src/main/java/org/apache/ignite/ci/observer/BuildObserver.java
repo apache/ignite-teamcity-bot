@@ -31,8 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@link BuildObserver} provides opportunity for scheduled run of
- * {@link ObserverTask} and controlling existing and new observations.
+ * {@link BuildObserver} provides opportunity for scheduled run of {@link ObserverTask} and controlling existing and new
+ * observations.
  */
 public class BuildObserver {
     /** Logger. */
@@ -76,11 +76,9 @@ public class BuildObserver {
     }
 
     /**
-     * {@link ObserverTask} will stop tracking status of observation for
-     * specified {@link ContributionKey}.
+     * {@link ObserverTask} will stop tracking status of observation for specified {@link ContributionKey}.
      *
-     * @return {@code true} if observation which is connected with specified
-     * {@link ContributionKey} was stopped.
+     * @return {@code true} if observation which is connected with specified {@link ContributionKey} was stopped.
      */
     public boolean stopObservation(ContributionKey key) {
         try {
