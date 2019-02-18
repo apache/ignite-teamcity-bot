@@ -323,10 +323,10 @@ function formatContributionDetails(row, srvId) {
 
                 let select = $("#selectChain_" + prId);
 
-                select.change(function() {
-                    let pr = prs.get(prId),
-                        selectedOption = $("#selectChain_" + prId + " option:selected").text(),
-                        buildIsCompleted = select.val() === 'true';
+                select.change(function () {
+                    let pr = prs.get(prId);
+                    let selectedOption = $("#selectChain_" + prId + " option:selected").text();
+                    let buildIsCompleted = select.val() === 'true';
 
                     showContributionStatus(pr.get(selectedOption), prId, row, srvId, selectedOption, buildIsCompleted);
                 });
@@ -364,6 +364,14 @@ function repaintLater(srvId) {
     }, 3000);
 }
 
+/**
+ *
+ * @param status contribution status related to selected run-configuration.
+ * @param prId
+ * @param row
+ * @param srvId
+ * @param suiteIdSelected
+ */
 function showContributionStatus(status, prId, row, srvId, suiteIdSelected) {
     let tdForPr = $('#showResultFor' + prId);
 

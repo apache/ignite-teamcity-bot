@@ -21,7 +21,7 @@ import java.util.List;
 
 /**
  * Status of contribution check details returned from server. UI model for displaying detailed {@link
- * ContributionToCheck} status.
+ * ContributionToCheck} status in relation to particular Run Configuration.
  */
 @SuppressWarnings("PublicField") public class ContributionCheckStatus {
     /** Queued builds. */

@@ -41,13 +41,14 @@ import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
-import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
+import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
+import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
@@ -358,6 +359,9 @@ public class TcBotTriggerAndSignOffService {
 
         List<Ticket> paTickets = tickets.stream().filter(Ticket::isActiveContribution).collect(Collectors.toList());
 
+        IJiraServerConfig jiraCfg = jiraIntegration.config();
+        IGitHubConfig ghCfg = gitHubConnIgnited.config();
+
         List<ContributionToCheck> contribsList = requests.stream().map(pr -> {
             ContributionToCheck check = new ContributionToCheck();
             check.prNumber = pr.getNumber();
@@ -375,8 +379,6 @@ public class TcBotTriggerAndSignOffService {
                 check.prAuthorAvatarUrl = "";
             }
 
-            IJiraServerConfig jiraCfg = jiraIntegration.config();
-
             check.jiraIssueId = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, pr, jiraCfg);
 
             if (!Strings.isNullOrEmpty(check.jiraIssueId))
@@ -389,10 +391,10 @@ public class TcBotTriggerAndSignOffService {
 
         paTickets.forEach(ticket -> {
             String branch = ticketMatcher.resolveTcBranchForPrLess(ticket,
-                    jiraIntegration.config(),
-                    gitHubConnIgnited.config());
+                jiraCfg,
+                ghCfg);
 
-            if (branch == null)
+            if (Strings.isNullOrEmpty(branch))
                 return; // nothing to do if branch was not resolved
 
             String defBtForMaster = findDefaultBranchBuildType(tcIgn.serverId());
@@ -406,7 +408,17 @@ public class TcBotTriggerAndSignOffService {
             contribution.jiraIssueUrl = jiraIntegration.generateTicketUrl( ticket.key);
             contribution.tcBranchName = branch;
 
-            contribution.prNumber = -ticket.keyWithoutProject(jiraIntegration.config().projectCodeForVisa());
+            if(branch.startsWith(ghCfg.gitBranchPrefix())) {
+                String branchTc = branch.substring(ghCfg.gitBranchPrefix().length());
+
+                try {
+                    contribution.prNumber = - Integer.valueOf(branchTc);
+                }
+                catch (NumberFormatException e) {
+                    logger.error("PR less contribution has invalid branch name", e);
+                }
+            }
+
             contribution.prTitle = ticket.fields.summary;
             contribution.prHtmlUrl = "";
             contribution.prTimeUpdate = ""; //todo ticket updateTime
@@ -420,8 +432,17 @@ public class TcBotTriggerAndSignOffService {
         return contribsList;
     }
 
-    @Nonnull private List<BuildRefCompacted> findBuildsForPr(String suiteId, String prId,
-        IGitHubConnIgnited ghConn, ITeamcityIgnited srv) {
+    /**
+     * @param suiteId Suite id.
+     * @param prId Pr id from {@link ContributionToCheck#prNumber}. Negative value imples branch number for PR-less.
+     * @param ghConn Gh connection.
+     * @param srv TC Server connection.
+     */
+    @Nonnull
+    private List<BuildRefCompacted> findBuildsForPr(String suiteId,
+        String prId,
+        IGitHubConnIgnited ghConn,
+        ITeamcityIgnited srv) {
 
         List<BuildRefCompacted> buildHist = srv.getAllBuildsCompacted(suiteId, branchForTcDefault(prId, ghConn));
 
@@ -455,6 +476,10 @@ public class TcBotTriggerAndSignOffService {
         return Collections.emptyList();
     }
 
+    /**
+     * @param prId Pr id from {@link ContributionToCheck#prNumber}. Negative value imples branch number to be used for PR-less contributions.
+     * @param srv Github integration.
+     */
     private String branchForTcDefault(String prId, IGitHubConnIgnited srv) {
         Integer prNum = Integer.valueOf(prId);
         if (prNum < 0)
@@ -474,7 +499,7 @@ public class TcBotTriggerAndSignOffService {
     /**
      * @param srvId Server id.
      * @param prov Prov.
-     * @param prId Pr id.
+     * @param prId Pr id from {@link ContributionToCheck#prNumber}. Negative value imples branch number (with appropriate prefix from GH config).
      */
     public Set<ContributionCheckStatus> contributionStatuses(String srvId, ICredentialsProv prov,
         String prId) {
@@ -540,7 +565,7 @@ public class TcBotTriggerAndSignOffService {
      * @param srvId Server id.
      * @param suiteId Suite id.
      * @param builds Build references.
-     * @param ghConn
+     * @param ghConn GitHub integration.
      */
     public ContributionCheckStatus contributionStatus(String srvId, String suiteId, List<BuildRefCompacted> builds,
         ITeamcityIgnited teamcity, IGitHubConnIgnited ghConn, String prId) {
