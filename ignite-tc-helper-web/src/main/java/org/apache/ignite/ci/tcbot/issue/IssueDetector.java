@@ -74,7 +74,7 @@ public class IssueDetector {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(IssueDetector.class);
 
-    /**Slack prefix, using this for email address will switch notifier to slack (if configured). */
+    /** Slack prefix, using this for email address will switch notifier to slack (if configured). */
     private static final String SLACK = "slack:";
 
     @Inject private IIssuesStorage issuesStorage;
@@ -102,7 +102,6 @@ public class IssueDetector {
     /** Send notification guard. */
     private final AtomicBoolean sndNotificationGuard = new AtomicBoolean();
 
-
     private String registerIssuesAndNotifyLater(TestFailuresSummary res,
         ICredentialsProv creds) {
 
@@ -117,16 +116,17 @@ public class IssueDetector {
         return newIssues;
     }
 
-
     private void sendNewNotifications() {
         try {
             sendNewNotificationsEx();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             System.err.println("Fail to sent notifications");
             e.printStackTrace();
 
             logger.error("Failed to send notification", e.getMessage());
-        } finally {
+        }
+        finally {
             sndNotificationGuard.set(false);
         }
     }
@@ -138,9 +138,9 @@ public class IssueDetector {
         List<TcHelperUser> userForPossibleNotifications = new ArrayList<>();
 
         userStorage.allUsers()
-                .filter(TcHelperUser::hasEmail)
-                .filter(TcHelperUser::hasSubscriptions)
-                .forEach(userForPossibleNotifications::add);
+            .filter(TcHelperUser::hasEmail)
+            .filter(TcHelperUser::hasSubscriptions)
+            .forEach(userForPossibleNotifications::add);
 
         String slackCh = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
 
@@ -185,13 +185,13 @@ public class IssueDetector {
                 }
             });
 
-        if(toBeSent.isEmpty())
+        if (toBeSent.isEmpty())
             return "Noting to notify, " + issuesChecked + " issues checked";
 
         StringBuilder res = new StringBuilder();
         Collection<Notification> values = toBeSent.values();
         for (Notification next : values) {
-            if(next.addr.startsWith(SLACK)) {
+            if (next.addr.startsWith(SLACK)) {
                 String slackUser = next.addr.substring(SLACK.length());
 
                 List<String> messages = next.toSlackMarkup();
@@ -203,7 +203,8 @@ public class IssueDetector {
                     if (!snd)
                         break;
                 }
-            } else {
+            }
+            else {
                 String builds = next.buildIdToIssue.keySet().toString();
                 String subj = "[MTCGA]: " + next.countIssues() + " new failures in builds " + builds + " needs to be handled";
 
@@ -229,7 +230,7 @@ public class IssueDetector {
         for (ChainAtServerCurrentStatus next : res.servers) {
             String srvId = next.serverId;
 
-            if(!tcProv.hasAccess(srvId, creds))
+            if (!tcProv.hasAccess(srvId, creds))
                 continue;
 
             ITeamcityIgnited tcIgnited = tcProv.server(srvId, creds);
@@ -241,11 +242,11 @@ public class IssueDetector {
                 final String trackedBranch = res.getTrackedBranch();
 
                 for (TestFailure testFailure : suiteCurrentStatus.testFailures) {
-                    if(registerTestFailIssues(tcIgnited, srvId, normalizeBranch, testFailure, trackedBranch))
+                    if (registerTestFailIssues(tcIgnited, srvId, normalizeBranch, testFailure, trackedBranch))
                         newIssues++;
                 }
 
-                if(registerSuiteFailIssues(tcIgnited, srvId, normalizeBranch, suiteCurrentStatus, trackedBranch))
+                if (registerSuiteFailIssues(tcIgnited, srvId, normalizeBranch, suiteCurrentStatus, trackedBranch))
                     newIssues++;
             }
         }
@@ -303,7 +304,7 @@ public class IssueDetector {
 
         for (ChangeCompacted next : allChanges) {
             issue.addChange(next.vcsUsername(compactor),
-                    teamcity.host() + "viewModification.html?modId=" + next.id());
+                teamcity.host() + "viewModification.html?modId=" + next.id());
         }
     }
 
@@ -338,10 +339,11 @@ public class IssueDetector {
                 if (!Strings.isNullOrEmpty(flakyComments)) {
                     if (runStat.detectTemplate(EventTemplates.newFailureForFlakyTest) == null) {
                         logger.info("Skipping registering new issue for test fail:" +
-                                " Test seems to be flaky " + name + ": " + flakyComments);
+                            " Test seems to be flaky " + name + ": " + flakyComments);
 
                         firstFailedBuildId = null;
-                    } else
+                    }
+                    else
                         displayType = "New stable failure of a flaky test";
                 }
             }
@@ -427,7 +429,6 @@ public class IssueDetector {
     }
 
     /**
-     *
      * @param brachName
      */
     @AutoProfiling

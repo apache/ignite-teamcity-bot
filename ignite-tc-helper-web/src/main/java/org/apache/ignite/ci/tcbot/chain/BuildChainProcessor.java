@@ -77,8 +77,8 @@ public class BuildChainProcessor {
     @Inject private IStringCompactor compactor;
 
     /**
-     * Collects data about all long-running tests (run time more than one minute) across all suites in RunAll chain
-     * in master branch.
+     * Collects data about all long-running tests (run time more than one minute) across all suites in RunAll chain in
+     * master branch.
      *
      * @param teamcityIgnited interface to TC bot database.
      * @param entryPoints
@@ -278,7 +278,7 @@ public class BuildChainProcessor {
      * @return Full context.
      */
     public SingleBuildRunCtx loadChanges(@Nonnull FatBuildCompacted buildCompacted,
-                                                  ITeamcityIgnited tcIgnited) {
+        ITeamcityIgnited tcIgnited) {
         SingleBuildRunCtx ctx = new SingleBuildRunCtx(buildCompacted, compactor);
 
         ctx.setChanges(tcIgnited.getAllChanges(buildCompacted.changes()));
@@ -299,8 +299,8 @@ public class BuildChainProcessor {
             return completed(builds);
 
         Optional<FatBuildCompacted> maxIdBuildOpt = builds.stream()
-                .filter(b -> b.branchName() >= 0)
-                .max(Comparator.comparing(BuildRefCompacted::id));
+            .filter(b -> b.branchName() >= 0)
+            .max(Comparator.comparing(BuildRefCompacted::id));
         if (!maxIdBuildOpt.isPresent())
             return completed(builds);
 
@@ -341,18 +341,18 @@ public class BuildChainProcessor {
             final List<BuildRefCompacted> runAllBuilds = teamcityIgnited.getAllBuildsCompacted(outCtx.buildTypeId(), outCtx.branchName());
 
             long cntRunning = runAllBuilds
-                    .stream()
-                    .filter(r -> r.isNotCancelled(compactor))
-                    .filter(r -> r.isRunning(compactor)).count();
+                .stream()
+                .filter(r -> r.isNotCancelled(compactor))
+                .filter(r -> r.isRunning(compactor)).count();
 
-            outCtx.setRunningBuildCount((int) cntRunning);
+            outCtx.setRunningBuildCount((int)cntRunning);
 
-            long cntQueued =  runAllBuilds
-                    .stream()
-                    .filter(r -> r.isNotCancelled(compactor))
-                    .filter(r -> r.isQueued(compactor)).count();
+            long cntQueued = runAllBuilds
+                .stream()
+                .filter(r -> r.isNotCancelled(compactor))
+                .filter(r -> r.isQueued(compactor)).count();
 
-            outCtx.setQueuedBuildCount((int) cntQueued);
+            outCtx.setQueuedBuildCount((int)cntQueued);
         }
     }
 
@@ -362,7 +362,7 @@ public class BuildChainProcessor {
         ProcessLogsMode procLog) {
         for (SingleBuildRunCtx ctx : outCtx.getBuilds()) {
             if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
-                    || procLog == ProcessLogsMode.ALL)
+                || procLog == ProcessLogsMode.ALL)
                 ctx.setLogCheckResFut(teamcity.analyzeBuildLog(ctx.buildId(), ctx));
         }
     }
@@ -398,7 +398,6 @@ public class BuildChainProcessor {
 
         return tcUpdatePool.getService().submit(() -> teamcityIgnited.getFatBuild(id, mode));
     }
-
 
     private List<Future<FatBuildCompacted>> completed(List<FatBuildCompacted> builds) {
         return builds.stream().map(Futures::immediateFuture).collect(Collectors.toList());

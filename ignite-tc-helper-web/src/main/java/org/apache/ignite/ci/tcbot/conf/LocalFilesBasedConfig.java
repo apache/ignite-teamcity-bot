@@ -51,16 +51,16 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
     @Override public IJiraServerConfig getJiraConfig(String srvCode) {
         return getTrackedBranches().getJiraConfig(srvCode)
             .orElseGet(() -> new JiraServerConfig()
-                    .code(srvCode)
-                    .properties(loadOldAuthProps(srvCode)));
+                .code(srvCode)
+                .properties(loadOldAuthProps(srvCode)));
     }
 
     @Override
     public IGitHubConfig getGitConfig(String srvCode) {
         return getTrackedBranches().getGitHubConfig(srvCode)
-                .orElseGet(() -> new GitHubConfig()
-                        .code(srvCode)
-                        .properties(loadOldAuthProps(srvCode)));
+            .orElseGet(() -> new GitHubConfig()
+                .code(srvCode)
+                .properties(loadOldAuthProps(srvCode)));
     }
 
     /** {@inheritDoc} */
@@ -69,7 +69,6 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
 
         return Strings.isNullOrEmpty(srvCode) ? ITcBotConfig.DEFAULT_SERVER_CODE : srvCode;
     }
-
 
     private Properties loadOldAuthProps(String srvCode) {
         File workDir = HelperConfig.resolveWorkDir();

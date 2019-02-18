@@ -54,7 +54,6 @@ public interface IJiraServerConfig {
         return !Strings.isNullOrEmpty(decodedHttpAuthToken());
     }
 
-
     public default String restApiUrl() {
         String jiraUrl = getUrl();
 

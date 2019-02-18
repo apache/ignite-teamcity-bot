@@ -20,7 +20,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Inject;
-
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;

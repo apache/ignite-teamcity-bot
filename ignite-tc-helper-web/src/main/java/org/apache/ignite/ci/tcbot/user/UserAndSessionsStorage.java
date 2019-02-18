@@ -17,19 +17,17 @@
 
 package org.apache.ignite.ci.tcbot.user;
 
-import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.tcbot.user.IUserStorage;
-import org.apache.ignite.ci.user.TcHelperUser;
-import org.apache.ignite.ci.user.UserSession;
-import org.jetbrains.annotations.Nullable;
-
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCache;
+import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.user.TcHelperUser;
+import org.apache.ignite.ci.user.UserSession;
+import org.jetbrains.annotations.Nullable;
 
 public class UserAndSessionsStorage implements IUserStorage {
     public static final String USERS = "users";
@@ -56,7 +54,6 @@ public class UserAndSessionsStorage implements IUserStorage {
     @Nullable public UserSession getSession(String sessId) {
         return sessions().get(sessId);
     }
-
 
     private IgniteCache<String, UserSession> sessions() {
         return getIgnite().getOrCreateCache(TcHelperDb.getCacheV2TxConfig(USER_SESSIONS));

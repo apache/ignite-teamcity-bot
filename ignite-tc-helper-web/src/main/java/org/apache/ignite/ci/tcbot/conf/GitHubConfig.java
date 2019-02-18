@@ -17,9 +17,8 @@
 package org.apache.ignite.ci.tcbot.conf;
 
 import com.google.common.base.Strings;
-import org.apache.ignite.ci.HelperConfig;
-
 import java.util.Properties;
+import org.apache.ignite.ci.HelperConfig;
 
 /**
  *
@@ -38,7 +37,6 @@ public class GitHubConfig implements IGitHubConfig {
     private String branchPrefix;
 
     private Properties props;
-
 
     public GitHubConfig() {
     }

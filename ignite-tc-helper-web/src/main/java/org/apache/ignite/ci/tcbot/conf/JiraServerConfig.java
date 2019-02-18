@@ -22,6 +22,7 @@ import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.jira.pure.Fields;
+import org.apache.ignite.ci.jira.pure.Ticket;
 import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -39,22 +40,16 @@ public class JiraServerConfig implements IJiraServerConfig {
     private String projectCode;
 
     /**
-     * Branch number prefix. Optional, if not present {@link #projectCode}-NNNNN is searched.
-     * But if branch has different enumeration, this prefix will be searched instead.
-     * If specified, that meant tickets maching branches have another identification.
+     * Branch number prefix. Optional, if not present {@link #projectCode}-NNNNN is searched.<br>
+     * But if branch has different enumeration, this prefix will be searched instead.<br>
+     * If specified, that meant tickets maching branches have another identification.<br>
      * For exaple some ticket having ID {@link #projectCode}-N1 will be commented, but a branch will be identified using
-     * {@link #branchNumPrefix}N2 with another number.
+     * {@link #branchNumPrefix}N2 with another number.<br><br>
      *
      * Search of branches will be performed using data in JIRA ticket fields for
-     * {@link #projectCode}-N1, fields are listed in {@link #branchNumPrefixSearchFields}.
+     * {@link #projectCode}-N1, fields are listed in {@link Ticket} class.
      */
     private String branchNumPrefix;
-
-    /**
-     * Branch ticket template search fields, list of JIRA fields IDs to be checked for finding out branch.
-     * Available fields are field names from {@link Fields} class.
-     */
-    private ArrayList<String> branchNumPrefixSearchFields;
 
     private Properties props;
 
@@ -109,7 +104,7 @@ public class JiraServerConfig implements IJiraServerConfig {
 
     /** {@inheritDoc} */
     @Override public String projectCodeForVisa() {
-        if(Strings.isNullOrEmpty(projectCode) && props!=null) {
+        if (Strings.isNullOrEmpty(projectCode) && props != null) {
             String ticketPref = props.getProperty(HelperConfig.JIRA_TICKET_TEMPLATE, "IGNITE-");
 
             return ticketPref.replaceAll("-", "");

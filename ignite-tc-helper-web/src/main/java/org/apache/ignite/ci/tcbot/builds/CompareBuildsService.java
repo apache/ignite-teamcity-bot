@@ -17,6 +17,9 @@
 
 package org.apache.ignite.ci.tcbot.builds;
 
+import java.util.ArrayList;
+import java.util.List;
+import javax.inject.Inject;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -26,10 +29,6 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
 
 public class CompareBuildsService {
     /** */
@@ -45,7 +44,7 @@ public class CompareBuildsService {
      * @param prov Credentials provider.
      * @return List of build tests.
      */
-    public List<String> tests0(String srvId, Integer buildId, ICredentialsProv prov ) {
+    public List<String> tests0(String srvId, Integer buildId, ICredentialsProv prov) {
         ITeamcityIgnited srv = tcIgnitedProv.server(srvId, prov);
 
         return tests0(srv, buildId, bcp);
@@ -53,7 +52,7 @@ public class CompareBuildsService {
 
     /** */
     private List<String> tests0(ITeamcityIgnited tcIgnited,
-                                Integer buildId, BuildChainProcessor bcp) {
+        Integer buildId, BuildChainProcessor bcp) {
         List<String> tests = new ArrayList<>();
 
         FatBuildCompacted fatBuild = tcIgnited.getFatBuild(buildId);
@@ -80,9 +79,9 @@ public class CompareBuildsService {
         return tests;
     }
 
-
     /**
      * Get rid from suite name.
+     *
      * @param testFullName Test full name.
      * @return Test name.
      */

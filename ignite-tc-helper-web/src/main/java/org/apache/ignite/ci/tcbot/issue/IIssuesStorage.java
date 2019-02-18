@@ -26,7 +26,6 @@ public interface IIssuesStorage {
      * Determines if the storage contains an entry for the specified issue key.
      *
      * @param issueKey Issue to be checked.
-     *
      * @return true if issue
      */
     public boolean containsIssueKey(IssueKey issueKey);

@@ -133,7 +133,7 @@ public class StringFieldCompacted {
             flag + ")");
     }
 
-    public static byte[] zipBytes(byte[] uncompressed ) throws IOException {
+    public static byte[] zipBytes(byte[] uncompressed) throws IOException {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         try (final GZIPOutputStream gzipOutputStream = new GZIPOutputStream(out)) {
             gzipOutputStream.write(uncompressed);

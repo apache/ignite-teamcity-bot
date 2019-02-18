@@ -17,8 +17,12 @@
 
 package org.apache.ignite.ci.tcbot.issue;
 
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.util.TimeUtil;
 import org.apache.ignite.ci.web.model.Version;
@@ -27,17 +31,16 @@ import static org.apache.ignite.ci.web.model.Version.GITHUB_REF;
 
 public class Notification {
     private static final String DETECTED_ISSUE = "I've detected some new issue on TeamCity to be handled. " +
-            "You are more than welcomed to help.";
+        "You are more than welcomed to help.";
 
     private static final String IF_YOUR_CHANGES = "If your changes can lead to this failure(s): " +
-            "We're grateful that you were a volunteer to make the contribution to this project, " +
-            "but things change and you may no longer be able to finalize your contribution.";
+        "We're grateful that you were a volunteer to make the contribution to this project, " +
+        "but things change and you may no longer be able to finalize your contribution.";
 
     private static final String YOUR_ACTION = "Could you respond to this email and indicate if you wish to continue and fix test failures" +
-            " or step down and some committer may revert you commit. ";
+        " or step down and some committer may revert you commit. ";
 
     private static final String HTC_REF = "https://cwiki.apache.org/confluence/display/IGNITE/How+to+Contribute";
-
 
     String addr;
     Long ts;
@@ -79,7 +82,6 @@ public class Notification {
         return sb.toString();
     }
 
-
     public String toPlainText() {
         StringBuilder sb = new StringBuilder();
 
@@ -99,7 +101,6 @@ public class Notification {
             sb.append("\n");
         }
 
-
         sb.append(messageTailPlainText());
 
         return sb.toString();
@@ -107,36 +108,35 @@ public class Notification {
 
     private String messageHeaderHtml() {
         return "Hi Igniters,<br><br>" +
-                " " + DETECTED_ISSUE + "<br><br>" +
-                " " + IF_YOUR_CHANGES + "<br>" +
-                " " + YOUR_ACTION + "<br><br>";
+            " " + DETECTED_ISSUE + "<br><br>" +
+            " " + IF_YOUR_CHANGES + "<br>" +
+            " " + YOUR_ACTION + "<br><br>";
     }
 
     private String messageHeaderPlainText() {
         return "Hi Igniters,\n\n" +
-                " " + DETECTED_ISSUE + "\n\n" +
-                " " + IF_YOUR_CHANGES + "\n" +
-                " " + YOUR_ACTION + "\n\n";
+            " " + DETECTED_ISSUE + "\n\n" +
+            " " + IF_YOUR_CHANGES + "\n" +
+            " " + YOUR_ACTION + "\n\n";
     }
 
-
     private String messageTailPlainText() {
-        return  "\t - Here's a reminder of what contributors were agreed to do " +
-                HTC_REF + " \n" +
-                "\t - Should you have any questions please contact " + Version.DEFAULT_CONTACT + " \n\n" +
-                "Best Regards,\n" +
-                "Apache Ignite TeamCity Bot \n" +
-                GITHUB_REF + "\n" +
-                "Notification generated at " + TimeUtil.timestampToDateTimePrintable(ts) + " \n";
+        return "\t - Here's a reminder of what contributors were agreed to do " +
+            HTC_REF + " \n" +
+            "\t - Should you have any questions please contact " + Version.DEFAULT_CONTACT + " \n\n" +
+            "Best Regards,\n" +
+            "Apache Ignite TeamCity Bot \n" +
+            GITHUB_REF + "\n" +
+            "Notification generated at " + TimeUtil.timestampToDateTimePrintable(ts) + " \n";
     }
 
     private String messageTailHtml() {
         return "<ul><li>Here's a reminder of what contributors were agreed to do " +
-                "<a href='" + HTC_REF + "'>How to Contribute</a>." + "</li>" +
-                "<li>Should you have any questions please contact " + Version.DEFAULT_CONTACT + " </li></ul><br>" +
-                "Best Regards,<br>" +
-                "<a href='" + GITHUB_REF + "'>Apache Ignite TeamCity Bot<a><br>" +
-                "Notification generated at " + TimeUtil.timestampToDateTimePrintable(ts) + "<br>";
+            "<a href='" + HTC_REF + "'>How to Contribute</a>." + "</li>" +
+            "<li>Should you have any questions please contact " + Version.DEFAULT_CONTACT + " </li></ul><br>" +
+            "Best Regards,<br>" +
+            "<a href='" + GITHUB_REF + "'>Apache Ignite TeamCity Bot<a><br>" +
+            "Notification generated at " + TimeUtil.timestampToDateTimePrintable(ts) + "<br>";
     }
 
     public String countIssues() {

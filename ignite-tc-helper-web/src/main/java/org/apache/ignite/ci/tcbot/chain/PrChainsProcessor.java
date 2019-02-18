@@ -186,8 +186,8 @@ public class PrChainsProcessor {
         return getBlockersSuitesStatuses(buildTypeId, branchForTc, srvId, prov, SyncMode.RELOAD_QUEUED);
     }
 
-
-    @Nullable public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
+    @Nullable
+    public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
         ICredentialsProv prov, SyncMode queued) {
         List<SuiteCurrentStatus> res = new ArrayList<>();
 
