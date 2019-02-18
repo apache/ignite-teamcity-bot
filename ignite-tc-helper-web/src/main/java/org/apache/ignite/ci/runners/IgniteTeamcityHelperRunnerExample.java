@@ -15,19 +15,14 @@
  * limitations under the License.
  */
 
-package  org.apache.ignite.ci.runners;
+package org.apache.ignite.ci.runners;
 
-import com.google.common.base.Throwables;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
-
 import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
@@ -94,7 +89,6 @@ public class IgniteTeamcityHelperRunnerExample {
             duplicates.forEach((k, v) -> {
                 System.err.println(k + "\t" + v);
             });
-            ;
         }
     }
 
@@ -134,22 +128,4 @@ public class IgniteTeamcityHelperRunnerExample {
                 System.err.println("Incorrect configuration for dependency from [" + next.bt().getName() + "]");
         }
     }
-
-    private static <T> List<T> getFuturesResults(List<? extends Future<T>> fileFutList) {
-        return fileFutList.stream().map(IgniteTeamcityHelperRunnerExample::getFutureResult).collect(Collectors.toList());
-    }
-
-    private static <T> T getFutureResult(Future<T> fut) {
-        try {
-            return fut.get();
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw Throwables.propagate(e);
-        }
-        catch (ExecutionException e) {
-            throw Throwables.propagate(e.getCause());
-        }
-    }
-
 }

@@ -19,13 +19,21 @@ package org.apache.ignite.ci.runners;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.io.Writer;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.function.Predicate;
 import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.teamcity.pure.TcConnectionStaticLinker;
-
-import java.io.*;
-import java.util.*;
-import java.util.function.Predicate;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
@@ -118,7 +126,7 @@ public class GenerateStatusHtml {
         HtmlBuilder builder = new HtmlBuilder(writer);
 
         String tabAllId = "all";
-        Iterable<String> tabs =   Lists.newArrayList(tabAllId) ;
+        Iterable<String> tabs = Lists.newArrayList(tabAllId);
         if (groupByResponsible) {
             builder.line("<div id=\"tabs\">");
 
@@ -136,12 +144,10 @@ public class GenerateStatusHtml {
 
             builder.line("Private TC status");
 
-            writeBuildsTable(branchesPriv, privStatuses, builder,
-                    buildId -> true);
+            writeBuildsTable(branchesPriv, privStatuses, builder, buildId -> true);
 
             builder.line("<br><br>Public TC status");
-            writeBuildsTable(branchesPub, pubStatus, builder,
-                    buildId -> true);
+            writeBuildsTable(branchesPub, pubStatus, builder, buildId -> true);
 
             builder.line("</div>");
 
@@ -174,7 +180,6 @@ public class GenerateStatusHtml {
         writer.write(str + ENDL);
     }
 
-
     private static TreeSet<String> allRespPersons(Map privResp, Map pubResp) {
         TreeSet<String> respPerson = new TreeSet<>();
 
@@ -195,7 +200,7 @@ public class GenerateStatusHtml {
             "  <link rel=\"stylesheet\" href=\"https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css\">\n" +
             "  <script src=\"https://code.jquery.com/jquery-1.12.4.js\"></script>\n" +
             "  <script src=\"https://code.jquery.com/ui/1.12.1/jquery-ui.js\"></script>\n");
-        if(groupByResponsible) {
+        if (groupByResponsible) {
             writer.write("  <script>\n");
 
             writer.write("$( function() {\n" +
@@ -234,7 +239,7 @@ public class GenerateStatusHtml {
                 "table tr:nth-child(even) td{\n" +
                 "}" +
                 "    </style>" +
-            "</head>");
+                "</head>");
     }
 
     private static void writeBuildsTable(
@@ -252,7 +257,7 @@ public class GenerateStatusHtml {
         hdr.end("tr");
 
         for (Map.Entry<String, SuiteStatus> suiteStatusEntry : projectStatus.suiteIdToStatusUrl.entrySet()) {
-            if(!includeBuildId.test(suiteStatusEntry.getValue().suiteId))
+            if (!includeBuildId.test(suiteStatusEntry.getValue().suiteId))
                 continue;
 
             final HtmlBuilder row = tbl.start("tr");
@@ -264,7 +269,7 @@ public class GenerateStatusHtml {
             for (Branch branch : branches) {
                 BuildStatusHref statusHref = branches1.branchIdToStatusUrl.get(branch.idForRest);
                 HtmlBuilder cell = row.start("td");
-                cell.line("<a href='" + statusHref.hrefToBuild + "'>" );
+                cell.line("<a href='" + statusHref.hrefToBuild + "'>");
                 cell.line("<img src='" + statusHref.statusImageSrc + "'/>");
                 cell.line("</a>");
                 cell.end("td");

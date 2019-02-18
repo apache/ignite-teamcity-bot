@@ -22,7 +22,6 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssuesStorage;
-import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
 
 /**
  * Utility class for local connection to TC helper DB (server) and any manipulations with data needed.
@@ -49,19 +48,15 @@ public class ClientTmpHelper {
     public static void main0(String[] args) {
         Ignite ignite = TcHelperDb.startClient();
 
-        //ignite.cache(IgnitePersistentTeamcity.ISSUES).clear();
-        //ignite.cache(UserAndSessionsStorage.USERS).destroy();
-        Object dpavlov = ignite.cache(UserAndSessionsStorage.USERS).get("dpavlov");
-
         IgniteCache<Object, Object> cache = ignite.cache(IssuesStorage.BOT_DETECTED_ISSUES);
 
         cache.forEach(
-            issue->{
+            issue -> {
                 Object key = issue.getKey();
-                Issue value = (Issue)issue.getValue();
-                 // value.addressNotified.clear();
+                Issue val = (Issue)issue.getValue();
+                // val.addressNotified.clear();
 
-                cache.put(key, value);
+                cache.put(key, val);
             }
         );
 

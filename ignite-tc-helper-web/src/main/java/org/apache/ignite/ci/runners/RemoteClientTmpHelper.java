@@ -29,16 +29,16 @@ import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.apache.ignite.ci.user.TcHelperUser;
-import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.logger.slf4j.Slf4jLogger;
@@ -48,6 +48,9 @@ import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao.BUILD_START_TIME_CACHE_NAME;
 
+/**
+ * Utility class for connecting to a remote server.
+ */
 public class RemoteClientTmpHelper {
     public static String DUMPS = "dumps";
     private static boolean dumpDict = false;
@@ -55,7 +58,7 @@ public class RemoteClientTmpHelper {
     public static void mainResetUser(String[] args) {
         try (Ignite ignite = tcbotServerConnectedClient()) {
             IgniteCache<Object, Object> users = ignite.cache(UserAndSessionsStorage.USERS);
-            TcHelperUser user = (TcHelperUser) users.get("user");
+            TcHelperUser user = (TcHelperUser)users.get("user");
             user.resetCredentials();
             users.put(user.username, user);
         }
@@ -116,7 +119,7 @@ public class RemoteClientTmpHelper {
 
                         inconsistent.incrementAndGet();
 
-                        if(!fat.isOutdatedEntityVersion())
+                        if (!fat.isOutdatedEntityVersion())
                             Preconditions.checkState(false);
                     }
                 }
@@ -192,7 +195,7 @@ public class RemoteClientTmpHelper {
         return Ignition.start(cfg);
     }
 
-    public static void dumpBuildRef(IgniteCache<Long, BuildRefCompacted> cache, int apache, int id) throws IOException {
+    public static void dumpBuildRef(IgniteCache<Long, BuildRefCompacted> cache, int apache, int id) {
         long l = BuildRefDao.buildIdToCacheKey(apache, id);
         BuildRefCompacted compacted = cache.get(l);
         dumpBuildRef(id, compacted);
