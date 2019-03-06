@@ -257,6 +257,7 @@ public class TcBotTriggerAndSignOffService {
 
         String[] suiteIds = Objects.requireNonNull(suiteIdList).split(",");
 
+        //todo consult if there are change differences here https://ci.ignite.apache.org/app/rest/changes?locator=buildType:(id:IgniteTests24Java8_Cache7),pending:true,branch:pull%2F6224%2Fhead
         Build[] builds = new Build[suiteIds.length];
 
         for (int i = 0; i < suiteIds.length; i++)
