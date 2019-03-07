@@ -14,37 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github;
 
-import com.google.common.base.Objects;
+package org.apache.ignite.ci.tcbot.trigger;
 
-public class GitHubBranch {
-    private String label;
-    private String ref;
-    private String sha;
+import org.apache.ignite.ci.web.model.SimpleResult;
 
-    /** {@inheritDoc} */
-    @Override public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-        GitHubBranch branch = (GitHubBranch)o;
-        return Objects.equal(label, branch.label) &&
-            Objects.equal(ref, branch.ref) &&
-            Objects.equal(sha, branch.sha);
-    }
-
-    /** {@inheritDoc} */
-    @Override public int hashCode() {
-        return Objects.hashCode(label, ref, sha);
-    }
-
-    public String ref() {
-        return ref;
-    }
-
-    public String sha() {
-        return sha;
+public class TriggerResult extends SimpleResult {
+    public TriggerResult(String result) {
+        super(result);
     }
 }

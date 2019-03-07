@@ -38,6 +38,7 @@ import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.trigger.TriggerResult;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
@@ -62,14 +63,15 @@ public class TriggerBuilds {
 
     @GET
     @Path("trigger")
-    public SimpleResult triggerBuilds(
+    public TriggerResult triggerBuilds(
         @Nullable @QueryParam("serverId") String srvCode,
         @Nullable @QueryParam("branchName") String branchForTc,
         @Nonnull @QueryParam("parentSuiteId") String parentSuiteId,
         @Nonnull @QueryParam("suiteIdList") String suiteIdList,
         @Nullable @QueryParam("top") Boolean top,
         @Nullable @QueryParam("observe") Boolean observe,
-        @Nullable @QueryParam("ticketId") String ticketId
+        @Nullable @QueryParam("ticketId") String ticketId,
+        @Nullable @QueryParam("prNum") String prNum
     ) {
         ICredentialsProv prov = ICredentialsProv.get(req);
         Injector injector = CtxListener.getInjector(ctx);
@@ -77,13 +79,13 @@ public class TriggerBuilds {
         injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
 
         if (isNullOrEmpty(suiteIdList))
-            return new SimpleResult("Error: nothing to run.");
+            return new TriggerResult("Error: nothing to run.");
 
         String jiraRes = injector
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .triggerBuildsAndObserve(srvCode, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId, prov);
+            .triggerBuildsAndObserve(srvCode, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId, prNum, prov);
 
-        return new SimpleResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
+        return new TriggerResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
 
     /**

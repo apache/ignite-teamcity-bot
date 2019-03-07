@@ -122,6 +122,7 @@ public class TcBotTriggerAndSignOffService {
     /** Helper. */
     @Inject ITcBotBgAuth tcBotBgAuth;
 
+    /** PR chain processor. */
     @Inject PrChainsProcessor prChainsProcessor;
 
     /** Config. */
@@ -250,20 +251,40 @@ public class TcBotTriggerAndSignOffService {
         @Nullable Boolean top,
         @Nullable Boolean observe,
         @Nullable String ticketId,
-        ICredentialsProv prov) {
+        @Nullable String prNum,
+        @Nullable ICredentialsProv prov) {
         String jiraRes = "";
 
-        final ITeamcityIgnited teamcity = tcIgnitedProv.server(srvId, prov);
+        ITeamcityIgnited teamcity = tcIgnitedProv.server(srvId, prov);
+
+        IGitHubConnIgnited ghIgn = gitHubConnIgnitedProvider.server(srvId);
+
+        if(!Strings.isNullOrEmpty(prNum)) {
+            try {
+                PullRequest pr = ghIgn.getPullRequest(Integer.parseInt(prNum));
+
+                if(pr!=null) {
+                    String shaShort = pr.lastCommitShaShort();
+
+                    if(shaShort!=null)
+                         jiraRes = "Actual commit: " + shaShort + ". ";
+                }
+            }
+            catch (NumberFormatException e) {
+                logger.error("PR & TC state checking failed" , e);
+            }
+        }
 
         String[] suiteIds = Objects.requireNonNull(suiteIdList).split(",");
 
+        //todo consult if there are change differences here https://ci.ignite.apache.org/app/rest/changes?locator=buildType:(id:IgniteTests24Java8_Cache7),pending:true,branch:pull%2F6224%2Fhead
         Build[] builds = new Build[suiteIds.length];
 
         for (int i = 0; i < suiteIds.length; i++)
             builds[i] = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top);
 
         if (observe != null && observe)
-            jiraRes = observeJira(srvId, branchForTc, ticketId, prov, parentSuiteId, builds);
+            jiraRes += observeJira(srvId, branchForTc, ticketId, prov, parentSuiteId, builds);
 
         return jiraRes;
     }
@@ -366,6 +387,7 @@ public class TcBotTriggerAndSignOffService {
             check.prNumber = pr.getNumber();
             check.prTitle = pr.getTitle();
             check.prHtmlUrl = pr.htmlUrl();
+            check.prHeadCommit = pr.lastCommitShaShort();
             check.prTimeUpdate = pr.getTimeUpdate();
 
             GitHubUser user = pr.gitHubUser();
@@ -420,6 +442,7 @@ public class TcBotTriggerAndSignOffService {
 
             contribution.prTitle = ticket.fields.summary;
             contribution.prHtmlUrl = "";
+            contribution.prHeadCommit = "";
             contribution.prTimeUpdate = ""; //todo ticket updateTime
 
             contribution.prAuthor = "";

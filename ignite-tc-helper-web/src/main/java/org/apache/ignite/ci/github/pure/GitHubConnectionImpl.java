@@ -89,8 +89,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
     }
 
     /** {@inheritDoc} */
-    @Override
-    public void init(String srvCode) {
+    @Override public void init(String srvCode) {
         this.srvCode = srvCode;
         final File workDir = HelperConfig.resolveWorkDir();
 

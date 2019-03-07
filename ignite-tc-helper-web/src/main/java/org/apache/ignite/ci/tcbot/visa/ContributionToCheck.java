@@ -38,6 +38,9 @@ package org.apache.ignite.ci.tcbot.visa;
     /** Pr html url. */
     public String prHtmlUrl;
 
+    /** Pr head commit hash (first 7 hexes). */
+    public String prHeadCommit;
+
     /** Branch Name for team city */
     public String tcBranchName;
 
