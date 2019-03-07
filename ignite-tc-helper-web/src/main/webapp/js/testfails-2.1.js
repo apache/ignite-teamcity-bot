@@ -89,7 +89,10 @@ function showChainResultsWithSettings(result, settings) {
 }
 
 
-//@param server - see org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus
+/**
+ * @param server - see org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus Java Class.
+ * @param settings - see Settings JavaScript class.
+ */
 function showChainCurrentStatusData(server, settings) {
     if(!isDefinedAndFilled(server))
         return;
@@ -179,12 +182,12 @@ function showChainCurrentStatusData(server, settings) {
         mInfo += "Trigger failed " + cntFailed + " builds";
         mInfo += " <a href='javascript:void(0);' ";
         mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", " +
-            "\"" + suitesFailedList + "\", \"" + server.branchName + "\", false, false)' ";
+            "\"" + suitesFailedList + "\", \"" + server.branchName + "\", false, false, null, \"" + server.prNum + "\")' ";
         mInfo += " title='trigger builds'>in queue</a> ";
 
         mInfo += " <a href='javascript:void(0);' ";
         mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", " +
-            "\"" + suitesFailedList + "\", \"" + server.branchName + "\", true, false)' ";
+            "\"" + suitesFailedList + "\", \"" + server.branchName + "\", true, false, null, \"" + server.prNum + "\")' ";
         mInfo += " title='trigger builds'>on top</a><br>";
     }
 
@@ -246,10 +249,11 @@ function showChainCurrentStatusData(server, settings) {
         }
 
         res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", \"" +
-            blockersList + "\", \"" + server.branchName + "\", false, false)'> Re-run possible blockers</button><br>";
+            blockersList + "\", \"" + server.branchName + "\", false, false, null,  \"" + + server.prNum + "\")'> " +
+            "Re-run possible blockers</button><br>";
 
         res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", \"" +
-            blockersList + "\", \"" + server.branchName + "\", false, true)'> " +
+            blockersList + "\", \"" + server.branchName + "\", false, true, null, \"" + + server.prNum +"\")'> " +
             "Re-run possible blockers & Comment JIRA</button><br>";
     }
 
@@ -269,9 +273,9 @@ function showChainCurrentStatusData(server, settings) {
     res += addBlockersData(server, settings);
 
     for (var m = 0; m < server.suites.length; m++) {
-        var suite1 = server.suites[m];
+        var subSuite = server.suites[m];
 
-        res += showSuiteData(suite1, settings);
+        res += showSuiteData(subSuite, settings, server.prNum);
     }
 
     res += "<tr><td colspan='4'>&nbsp;</td></tr>";
@@ -300,7 +304,7 @@ function addBlockersData(server, settings) {
         suite = suiteWithCriticalFailuresOnly(suite);
 
         if (suite != null)
-            blockers += showSuiteData(suite, settings);
+            blockers += showSuiteData(suite, settings, server.prNum);
     }
 
     if (blockers === "") {
@@ -400,13 +404,14 @@ function notifyGit() {
     });
 }
 
-function triggerBuilds(serverId, parentSuiteId, suiteIdList, branchName, top, observe, ticketId) {
+function triggerBuilds(serverId, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum) {
     var queueAtTop = isDefinedAndFilled(top) && top;
     var observeJira = isDefinedAndFilled(observe) && observe;
     var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
     ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? ticketId : null;
+    prNum = (isDefinedAndFilled(prNum) && prNum.length > 0) ? prNum : null;
 
     var triggerConfirm = $("#triggerConfirm");
 
@@ -449,6 +454,9 @@ function triggerBuilds(serverId, parentSuiteId, suiteIdList, branchName, top, ob
     } else
         sendGetRequest();
 
+    /**
+     * See org.apache.ignite.ci.web.rest.TriggerBuilds#triggerBuilds
+     */
     function sendGetRequest() {
         $.ajax({
             url: 'rest/build/trigger',
@@ -459,7 +467,8 @@ function triggerBuilds(serverId, parentSuiteId, suiteIdList, branchName, top, ob
                 "suiteIdList": suiteIdList,
                 "top": queueAtTop,
                 "observe": observeJira,
-                "ticketId": ticketId
+                "ticketId": ticketId,
+                "prNum": prNum
             },
             success: successDialog,
             error: showErrInLoadStatus
@@ -581,11 +590,12 @@ function commentJira(serverId, branchName, parentSuiteId, ticketId) {
 /**
  * Create html string with table rows, containing suite data.
  *
- * @param suite - see SuiteCurrentStatus Java class.
+ * @param suite - see org.apache.ignite.ci.web.model.current.SuiteCurrentStatus Java class.
  * @param settings - see Settings JavaScript class.
+ * @param prNum - PR shown, used by triggering.
  * @returns {string} Table rows with suite data.
  */
-function showSuiteData(suite, settings) {
+function showSuiteData(suite, settings, prNum) {
     var moreInfoTxt = "";
 
     if (isDefinedAndFilled(suite.userCommits) && suite.userCommits !== "") {
@@ -651,12 +661,12 @@ function showSuiteData(suite, settings) {
         mInfo += " Trigger build: ";
         mInfo += "<a href='javascript:void(0);' ";
         mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", null, \"" +
-            suite.suiteId + "\", \"" + suite.branchName + "\", false, false)' ";
+            suite.suiteId + "\", \"" + suite.branchName + "\", false, false, null, \"" + prNum + "\")' ";
         mInfo += " title='trigger build' >queue</a> ";
 
         mInfo += "<a href='javascript:void(0);' ";
         mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", null, \"" +
-            suite.suiteId + "\", \"" + suite.branchName + "\", true, false)' ";
+            suite.suiteId + "\", \"" + suite.branchName + "\", true, false, null, \"" + prNum + "\")' ";
         mInfo += " title='trigger build at top of queue'>top</a><br>";
     }
 
