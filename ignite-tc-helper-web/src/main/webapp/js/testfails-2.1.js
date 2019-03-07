@@ -244,7 +244,7 @@ function showChainCurrentStatusData(server, settings) {
                 if (blockersList.length !== 0)
                     blockersList += ",";
 
-                blockersList += suite.suiteId;
+                blockersList += suite0.suiteId;
             }
         }
 

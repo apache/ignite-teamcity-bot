@@ -250,10 +250,30 @@ public class TcBotTriggerAndSignOffService {
         @Nullable Boolean top,
         @Nullable Boolean observe,
         @Nullable String ticketId,
-        ICredentialsProv prov) {
+        @Nullable String prNum,
+        @Nullable ICredentialsProv prov) {
         String jiraRes = "";
 
-        final ITeamcityIgnited teamcity = tcIgnitedProv.server(srvId, prov);
+        ITeamcityIgnited teamcity = tcIgnitedProv.server(srvId, prov);
+
+        IGitHubConnIgnited ghIgn = gitHubConnIgnitedProvider.server(srvId);
+
+        if(!Strings.isNullOrEmpty(prNum)) {
+            try {
+                PullRequest pr = ghIgn.getPullRequest(Integer.parseInt(prNum));
+
+                String sha = pr.head().sha();
+
+                if(!Strings.isNullOrEmpty(sha)) {
+                    String shaShort = sha.substring(0, 7);
+
+                    jiraRes = "Actual commit: " + shaShort + ". ";
+                }
+            }
+            catch (NumberFormatException e) {
+                logger.error("PR & TC state checking failed" , e);
+            }
+        }
 
         String[] suiteIds = Objects.requireNonNull(suiteIdList).split(",");
 
@@ -264,7 +284,7 @@ public class TcBotTriggerAndSignOffService {
             builds[i] = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top);
 
         if (observe != null && observe)
-            jiraRes = observeJira(srvId, branchForTc, ticketId, prov, parentSuiteId, builds);
+            jiraRes += observeJira(srvId, branchForTc, ticketId, prov, parentSuiteId, builds);
 
         return jiraRes;
     }

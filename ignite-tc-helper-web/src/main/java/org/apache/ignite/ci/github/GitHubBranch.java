@@ -43,4 +43,8 @@ public class GitHubBranch {
     public String ref() {
         return ref;
     }
+
+    public String sha() {
+        return sha;
+    }
 }

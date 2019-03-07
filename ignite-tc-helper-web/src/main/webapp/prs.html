@@ -180,7 +180,8 @@
             var branchName = fields.namedItem("branchForTc").value;
             var ticketId = fields.namedItem("ticketId").value;
 
-            triggerBuilds(srvId, suiteId, branchName, false, trigCase !== "tests", ticketId)
+            //todo prNum
+            triggerBuilds(srvId, suiteId, branchName, false, trigCase !== "tests", ticketId);
         }
 
         /**

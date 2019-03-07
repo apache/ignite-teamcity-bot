@@ -25,7 +25,10 @@ import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
  *
  */
 public interface IGitHubConnIgnited {
-    IGitHubConfig config();
+    /**
+     * @return Config of GH project.
+     */
+    public IGitHubConfig config();
 
     /**
      * @return list of open pull requests
