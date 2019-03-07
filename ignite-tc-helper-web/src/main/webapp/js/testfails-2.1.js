@@ -89,7 +89,7 @@ function showChainResultsWithSettings(result, settings) {
 }
 
 
-//@param server - see ChainAtServerCurrentStatus
+//@param server - see org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus
 function showChainCurrentStatusData(server, settings) {
     if(!isDefinedAndFilled(server))
         return;
@@ -232,12 +232,12 @@ function showChainCurrentStatusData(server, settings) {
 
         var blockersList = "";
 
-        for (var k = 0; k < server.suites.length; k++) {
-            var suite = server.suites[k];
+        for (var l = 0; l < server.suites.length; l++) {
+            var suite0 = server.suites[l];
 
-            suite = suiteWithCriticalFailuresOnly(suite);
+            var suiteOrNull = suiteWithCriticalFailuresOnly(suite0);
 
-            if (suite != null) {
+            if (suiteOrNull != null) {
                 if (blockersList.length !== 0)
                     blockersList += ",";
 
@@ -268,10 +268,10 @@ function showChainCurrentStatusData(server, settings) {
 
     res += addBlockersData(server, settings);
 
-    for (var l = 0; l < server.suites.length; l++) {
-        var suite = server.suites[l];
+    for (var m = 0; m < server.suites.length; m++) {
+        var suite1 = server.suites[m];
 
-        res += showSuiteData(suite, settings);
+        res += showSuiteData(suite1, settings);
     }
 
     res += "<tr><td colspan='4'>&nbsp;</td></tr>";
