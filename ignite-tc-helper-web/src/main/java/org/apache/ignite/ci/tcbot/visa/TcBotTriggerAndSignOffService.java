@@ -60,6 +60,7 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.ContributionKey;
@@ -604,9 +605,33 @@ public class TcBotTriggerAndSignOffService {
 
             status.suiteIsFinished = !buildRefCompacted.isCancelled(compactor);
             status.branchWithFinishedSuite = buildRefCompacted.branchName(compactor);
+
+            FatBuildCompacted fatBuild = teamcity.getFatBuild(buildRefCompacted.id(), SyncMode.NONE);
+
+            int changeMax = -1;
+            int[] changes = fatBuild.changes();
+            for (int i = 0; i < changes.length; i++) {
+                int change = changes[i];
+                if (change > changeMax)
+                    changeMax = change;
+            }
+
+            if (changeMax > 0) {
+                final Collection<ChangeCompacted> allChanges = teamcity.getAllChanges(new int[] {changeMax});
+                allChanges.stream().findAny().ifPresent(
+                    compacted -> {
+                        String commit = compacted.commitFullVersion();
+                        if (!Strings.isNullOrEmpty(commit)) {
+                            status.finishedSuiteCommit
+                                = commit.substring(0, PullRequest.INCLUDE_SHORT_VER).toLowerCase();
+                        }
+                    }
+                );
+            }
         }
         else {
             status.branchWithFinishedSuite = null;
+            status.finishedSuiteCommit = null;
             status.suiteIsFinished = false;
         }
 

@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- *
+ * Composed data from {@link Build} and other classes, compressed for storage.
  */
 @Persisted
 public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEntity {

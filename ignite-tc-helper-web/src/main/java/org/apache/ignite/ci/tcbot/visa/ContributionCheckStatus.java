@@ -36,6 +36,9 @@ import java.util.List;
     /** Branch with finished/cancelled suite results, null if suite is running or in case there was no run suite at all. */
     public String branchWithFinishedSuite;
 
+    /** Finished suite commit hash short. */
+    public String finishedSuiteCommit;
+
     /** Suite finished for brach {@link #branchWithFinishedSuite}. Determines trigger button color. */
     public Boolean suiteIsFinished;
 
