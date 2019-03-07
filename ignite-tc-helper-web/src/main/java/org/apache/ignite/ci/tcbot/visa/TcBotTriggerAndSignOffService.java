@@ -122,6 +122,7 @@ public class TcBotTriggerAndSignOffService {
     /** Helper. */
     @Inject ITcBotBgAuth tcBotBgAuth;
 
+    /** PR chain processor. */
     @Inject PrChainsProcessor prChainsProcessor;
 
     /** Config. */
@@ -262,12 +263,11 @@ public class TcBotTriggerAndSignOffService {
             try {
                 PullRequest pr = ghIgn.getPullRequest(Integer.parseInt(prNum));
 
-                String sha = pr.head().sha();
+                if(pr!=null) {
+                    String shaShort = pr.lastCommitShaShort();
 
-                if(!Strings.isNullOrEmpty(sha)) {
-                    String shaShort = sha.substring(0, 7);
-
-                    jiraRes = "Actual commit: " + shaShort + ". ";
+                    if(shaShort!=null)
+                         jiraRes = "Actual commit: " + shaShort + ". ";
                 }
             }
             catch (NumberFormatException e) {
@@ -387,6 +387,7 @@ public class TcBotTriggerAndSignOffService {
             check.prNumber = pr.getNumber();
             check.prTitle = pr.getTitle();
             check.prHtmlUrl = pr.htmlUrl();
+            check.prHeadCommit = pr.lastCommitShaShort();
             check.prTimeUpdate = pr.getTimeUpdate();
 
             GitHubUser user = pr.gitHubUser();
@@ -441,6 +442,7 @@ public class TcBotTriggerAndSignOffService {
 
             contribution.prTitle = ticket.fields.summary;
             contribution.prHtmlUrl = "";
+            contribution.prHeadCommit = "";
             contribution.prTimeUpdate = ""; //todo ticket updateTime
 
             contribution.prAuthor = "";

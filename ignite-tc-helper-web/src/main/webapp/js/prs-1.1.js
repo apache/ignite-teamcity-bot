@@ -114,6 +114,10 @@ function showContributionsTable(result, srvId, suiteId) {
                 "render": function (data, type, row, meta) {
                     if (type === 'display' && row.prNumber > 0) {
                         data = "<a href='" + data + "'>#" + row.prNumber + "</a>";
+
+                        if (type === 'display' && isDefinedAndFilled(row.prHeadCommit)) {
+                            data += " (" + row.prHeadCommit + ")";
+                        }
                     }
 
                     return data;
