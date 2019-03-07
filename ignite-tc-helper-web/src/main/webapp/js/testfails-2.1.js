@@ -232,8 +232,8 @@ function showChainCurrentStatusData(server, settings) {
 
         var blockersList = "";
 
-        for (var i = 0; i < server.suites.length; i++) {
-            var suite = server.suites[i];
+        for (var k = 0; k < server.suites.length; k++) {
+            var suite = server.suites[k];
 
             suite = suiteWithCriticalFailuresOnly(suite);
 
@@ -268,8 +268,8 @@ function showChainCurrentStatusData(server, settings) {
 
     res += addBlockersData(server, settings);
 
-    for (var i = 0; i < server.suites.length; i++) {
-        var suite = server.suites[i];
+    for (var l = 0; l < server.suites.length; l++) {
+        var suite = server.suites[l];
 
         res += showSuiteData(suite, settings);
     }
