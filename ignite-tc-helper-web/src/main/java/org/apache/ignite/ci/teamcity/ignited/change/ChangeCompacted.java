@@ -142,4 +142,11 @@ public class ChangeCompacted implements IVersionedEntity {
     @Override public int hashCode() {
         return Objects.hashCode(_ver, id, vcsUsername, tcUserId, tcUserUsername, tcUserFullname, version, date);
     }
+
+    /**
+     *
+     */
+    public String commitFullVersion() {
+        return DatatypeConverter.printHexBinary(version);
+    }
 }

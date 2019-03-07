@@ -31,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 @Persisted
 public class PullRequest implements IVersionedEntity {
     public static final String OPEN = "open";
+    public static final int INCLUDE_SHORT_VER = 7;
     /** Latest version. */
     private static final int LATEST_VERSION = 7;
 
@@ -162,6 +163,6 @@ public class PullRequest implements IVersionedEntity {
     @Nullable public String lastCommitShaShort() {
         String sha = head().sha();
 
-        return Strings.isNullOrEmpty(sha) ? null : sha.substring(0, 7);
+        return Strings.isNullOrEmpty(sha) ? null : sha.substring(0, INCLUDE_SHORT_VER);
     }
 }
