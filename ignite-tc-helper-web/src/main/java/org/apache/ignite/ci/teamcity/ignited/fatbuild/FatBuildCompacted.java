@@ -17,9 +17,16 @@
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -32,19 +39,15 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.tcmodel.user.User;
+import org.apache.ignite.ci.tcmodel.vcs.Revision;
+import org.apache.ignite.ci.tcmodel.vcs.Revisions;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.change.RevisionCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Composed data from {@link Build} and other classes, compressed for storage.
@@ -109,6 +112,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     @Nullable private int changesIds[];
 
     @Nullable private TriggeredCompacted triggered;
+
+    @Nullable private RevisionCompacted revisions[];
 
     /** {@inheritDoc} */
     @Override public int version() {
@@ -191,6 +196,15 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             final BuildRef trigBuildRef = trigXml.getBuild();
 
             triggered.buildId = trigBuildRef != null ? trigBuildRef.getId() : -1;
+        }
+
+        Revisions revisions = build.getRevisions();
+        if(revisions!=null) {
+            this.revisions = revisions.revisions()
+                .stream()
+                .filter(b -> b.version() != null)
+                .map(revision -> new RevisionCompacted(compactor, revision))
+                .toArray(RevisionCompacted[]::new);
         }
     }
 
@@ -289,6 +303,16 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             res.setTriggered(trigXml);
         }
 
+        if (revisions != null) {
+            List<RevisionCompacted> revs = Arrays.asList(revisions);
+            res.setRevisions(revs.stream().map(rev->{
+                Revision revision = new Revision();
+
+                revision.version(rev.commitFullVersion());
+
+                return revision;
+            }).collect(Collectors.toList()));
+        }
     }
 
     /**
@@ -377,18 +401,23 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             queuedDate == that.queuedDate &&
             projectId == that.projectId &&
             name == that.name &&
-            Objects.equal(tests, that.tests) &&
-            Objects.equal(snapshotDeps, that.snapshotDeps) &&
-            Objects.equal(flags, that.flags) &&
-                Objects.equal(problems, that.problems) &&
-                Objects.equal(statistics, that.statistics)
-                && Objects.equal(changesIds, that.changesIds);
+            Objects.equals(tests, that.tests) &&
+            Arrays.equals(snapshotDeps, that.snapshotDeps) &&
+            Objects.equals(flags, that.flags) &&
+            Objects.equals(problems, that.problems) &&
+            Objects.equals(statistics, that.statistics) &&
+            Arrays.equals(changesIds, that.changesIds) &&
+            Objects.equals(triggered, that.triggered) &&
+            Arrays.equals(revisions, that.revisions);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests,
-                snapshotDeps, flags, problems, statistics, changesIds);
+        int res = Objects.hash(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests, flags, problems, statistics, triggered);
+        res = 31 * res + Arrays.hashCode(snapshotDeps);
+        res = 31 * res + Arrays.hashCode(changesIds);
+        res = 31 * res + Arrays.hashCode(revisions);
+        return res;
     }
 
     /**

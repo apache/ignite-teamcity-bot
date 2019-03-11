@@ -30,9 +30,33 @@ public class Revision {
     @XmlAttribute(name = "version")
     private String version;
 
-    @XmlAttribute(name = "vcs-root-id")
+    @XmlAttribute(name = "vcsBranchName")
     private String vcsBranchName;
 
     @XmlElement(name = "vcs-root-instance")
     private VcsRootInstance vcsRootInstance;
+
+    public Revision() {
+    }
+
+    /**
+     *
+     */
+    public String version() {
+        return version;
+    }
+
+    /**
+     *
+     */
+    public String vcsBranchName() {
+        return vcsBranchName;
+    }
+
+    /**
+     * @param ver Version.
+     */
+    public void version(String ver) {
+        this.version = ver;
+    }
 }

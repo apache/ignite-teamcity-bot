@@ -32,8 +32,10 @@ import javax.xml.bind.annotation.XmlTransient;
 import org.apache.ignite.ci.tcmodel.changes.ChangesListRef;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.ci.tcmodel.vcs.Revision;
 import org.apache.ignite.ci.tcmodel.vcs.Revisions;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.ci.util.ExceptionUtil.propagateException;
 
@@ -171,7 +173,18 @@ public class Build extends BuildRef {
         snapshotDependencies = dependencies;
     }
 
-    public Revisions getRevisions() {
+    /**
+     *
+     */
+    @Nullable public Revisions getRevisions() {
         return revisions;
+    }
+
+    /**
+     * @param revisions Revisions.
+     */
+    public void setRevisions(List<Revision> revisions) {
+        this.revisions = new Revisions();
+        this.revisions.revisions(revisions);
     }
 }
