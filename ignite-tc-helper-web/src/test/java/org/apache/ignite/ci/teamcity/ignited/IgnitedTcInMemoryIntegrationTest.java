@@ -63,6 +63,7 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
+import org.apache.ignite.ci.tcmodel.vcs.Revisions;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
@@ -513,6 +514,12 @@ public class IgnitedTcInMemoryIntegrationTest {
         int[] ch = buildCompacted.changes();
 
         assertEquals(6, ch.length);
+
+        final Revisions refRevisions = refBuild.getRevisions();
+        final Revisions actRevisions = actBuild.getRevisions();
+        assertNotNull(refRevisions);
+        assertNotNull(actRevisions);
+
     }
 
     private void saveTmpFile(Object obj, String name) throws IOException, JAXBException {
