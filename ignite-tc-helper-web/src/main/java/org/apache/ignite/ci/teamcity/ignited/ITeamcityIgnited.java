@@ -207,14 +207,17 @@ public interface ITeamcityIgnited {
     @Nullable
     public default String getLatestCommitVersion(FatBuildCompacted build) {
         List<RevisionCompacted> revisions = build.revisions();
-        Optional<String> any = revisions.stream()
-            .map(RevisionCompacted::commitFullVersion)
-            .filter(s -> !Strings.isNullOrEmpty(s))
-            .findAny();
+        if (revisions != null) {
+            Optional<String> any = revisions.stream()
+                .map(RevisionCompacted::commitFullVersion)
+                .filter(s -> !Strings.isNullOrEmpty(s))
+                .findAny();
 
-        if (any.isPresent())
-            return any.get(); // Not so good for several VCS roots, probably should use collection here and concatenate.
+            if (any.isPresent())
+                return any.get(); // Not so good for several VCS roots, probably should use collection here and concatenate.
+        }
 
+        //fallback version of commit hash extraction
         int changeMax = -1;
         int[] changes = build.changes();
         for (int i = 0; i < changes.length; i++) {
