@@ -38,6 +38,7 @@ import org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.configuration.IgniteConfiguration;
@@ -64,20 +65,28 @@ public class RemoteClientTmpHelper {
         }
     }
 
-    public static void mainDestroy(String[] args) {
+    public static void mainDestroyTestHist(String[] args) {
         int testHist;
+        int buildStartTimes;
 
         try (Ignite ignite = tcbotServerConnectedClient()) {
-            //and import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao.TEST_HIST_CACHE_NAME
-            IgniteCache<Object, Object> cache = ignite.cache(BUILD_START_TIME_CACHE_NAME);
-            testHist = cache.size();
+            IgniteCache<Object, Object> cacheHistEntries = ignite.cache(RunHistCompactedDao.TEST_HIST_CACHE_NAME);
+            testHist = cacheHistEntries.size();
 
-            System.err.println("Start destroy operation");
-            cache.destroy();
+            System.err.println("Start destroy() operation for hist entries");
+            cacheHistEntries.destroy();
+            System.err.println("Finish destroy() operation");
+
+            IgniteCache<Object, Object> cacheStartTimes = ignite.cache(BUILD_START_TIME_CACHE_NAME);
+
+            buildStartTimes = cacheStartTimes.size();
+
+            System.err.println("Start destroy operation for build start times flag");
+            cacheStartTimes.destroy();
             System.err.println("Finish destroy operation");
         }
 
-        System.err.println("Test hist found [" + testHist + "]");
+        System.err.println("Test hist entries destroyed [" + testHist + "] for [" + buildStartTimes + "] builds");
     }
 
     /**
