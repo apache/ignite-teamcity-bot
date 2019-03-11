@@ -56,6 +56,17 @@ public class RemoteClientTmpHelper {
     public static String DUMPS = "dumps";
     private static boolean dumpDict = false;
 
+
+    /**
+     * @param args Args.
+     */
+    public static void main(String[] args) {
+        System.err.println("Please insert option of main");
+    }
+
+    /**
+     * @param args Args.
+     */
     public static void mainResetUser(String[] args) {
         try (Ignite ignite = tcbotServerConnectedClient()) {
             IgniteCache<Object, Object> users = ignite.cache(UserAndSessionsStorage.USERS);
@@ -64,6 +75,25 @@ public class RemoteClientTmpHelper {
             users.put(user.username, user);
         }
     }
+
+    /**
+     * @param args Args.
+     */
+    public static void mainDestroyAllFatBuilds(String[] args) {
+        int fatBuildsCnt;
+        try (Ignite ignite = tcbotServerConnectedClient()) {
+            IgniteCache<Object, Object> cacheHistEntries = ignite.cache(    FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
+            fatBuildsCnt = cacheHistEntries.size();
+
+            System.err.println("Start destroy() operation for fat builds: " + fatBuildsCnt);
+            cacheHistEntries.destroy();
+            System.err.println("Finish destroy() operation");
+
+        }
+
+        System.err.println("Test hist entries destroyed: [" + fatBuildsCnt + "] builds");
+    }
+
 
     public static void mainDestroyTestHist(String[] args) {
         int testHist;
