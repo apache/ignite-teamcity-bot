@@ -16,13 +16,13 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+import com.google.common.base.Strings;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
-import jdk.internal.joptsimple.internal.Strings;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
