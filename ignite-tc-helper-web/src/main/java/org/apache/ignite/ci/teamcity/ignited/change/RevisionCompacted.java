@@ -17,6 +17,8 @@
 package org.apache.ignite.ci.teamcity.ignited.change;
 
 import com.google.common.base.Strings;
+import java.util.Arrays;
+import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.xml.bind.DatatypeConverter;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
@@ -117,5 +119,26 @@ public class RevisionCompacted implements IVersionedEntity {
             return "";
 
         return DatatypeConverter.printHexBinary(version).toLowerCase();
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        RevisionCompacted compacted = (RevisionCompacted)o;
+        return _ver == compacted._ver &&
+            vcsBranchName == compacted.vcsBranchName &&
+            vcsRootId == compacted.vcsRootId &&
+            vcsRootInstanceId == compacted.vcsRootInstanceId &&
+            Arrays.equals(version, compacted.version);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        int res = Objects.hash(_ver, vcsBranchName, vcsRootId, vcsRootInstanceId);
+        res = 31 * res + Arrays.hashCode(version);
+        return res;
     }
 }

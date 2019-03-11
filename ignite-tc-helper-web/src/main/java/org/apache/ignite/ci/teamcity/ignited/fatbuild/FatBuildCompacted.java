@@ -545,6 +545,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return snapshotDeps.clone();
     }
 
+    /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("_", super.toString())
@@ -561,6 +562,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             .add("statistics", statistics)
             .add("changesIds", changesIds)
             .add("triggered", triggered)
+            .add("revisions", revisions)
             .toString();
     }
 
@@ -601,4 +603,14 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return this;
     }
 
+    /**
+     * @return revisions list or null if revisions was not reported by TC/for older build versions in DB.
+     */
+    @Nullable
+    public List<RevisionCompacted> revisions() {
+        if (revisions == null)
+            return null;
+
+        return Collections.unmodifiableList(Arrays.asList(revisions));
+    }
 }

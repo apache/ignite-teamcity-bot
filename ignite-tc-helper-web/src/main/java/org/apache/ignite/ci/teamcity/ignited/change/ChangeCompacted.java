@@ -16,8 +16,9 @@
  */
 package org.apache.ignite.ci.teamcity.ignited.change;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Strings;
+import java.util.Arrays;
+import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.xml.bind.DatatypeConverter;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
@@ -135,12 +136,14 @@ public class ChangeCompacted implements IVersionedEntity {
             tcUserUsername == compacted.tcUserUsername &&
             tcUserFullname == compacted.tcUserFullname &&
             date == compacted.date &&
-            Objects.equal(version, compacted.version);
+            Arrays.equals(version, compacted.version);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(_ver, id, vcsUsername, tcUserId, tcUserUsername, tcUserFullname, version, date);
+        int result = Objects.hash(_ver, id, vcsUsername, tcUserId, tcUserUsername, tcUserFullname, date);
+        result = 31 * result + Arrays.hashCode(version);
+        return result;
     }
 
     /**
