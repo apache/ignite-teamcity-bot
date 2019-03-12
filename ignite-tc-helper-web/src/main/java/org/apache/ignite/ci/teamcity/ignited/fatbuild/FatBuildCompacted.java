@@ -305,8 +305,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         }
 
         if (revisions != null) {
-            List<RevisionCompacted> revs = Arrays.asList(revisions);
-            res.setRevisions(revs.stream().map(revComp -> {
+            res.setRevisions(Arrays.stream(revisions).map(revComp -> {
                 Revision revision = new Revision()
                     .version(revComp.commitFullVersion())
                     .vcsBranchName(revComp.vcsBranchName(compactor));
