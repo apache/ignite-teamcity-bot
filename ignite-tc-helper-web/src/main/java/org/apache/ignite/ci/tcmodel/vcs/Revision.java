@@ -56,7 +56,28 @@ public class Revision {
     /**
      * @param ver Version.
      */
-    public void version(String ver) {
+    public Revision version(String ver) {
         this.version = ver;
+
+        return this;
+    }
+
+    /**
+     *
+     */
+    public VcsRootInstance vcsRootInstance() {
+        return vcsRootInstance;
+    }
+
+    public Revision vcsBranchName(String vcsBranchName) {
+        this.vcsBranchName = vcsBranchName;
+
+        return this;
+    }
+
+    public Revision vcsRootInstance(VcsRootInstance vcsRootInstance) {
+        this.vcsRootInstance = vcsRootInstance;
+
+        return this;
     }
 }

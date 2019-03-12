@@ -525,6 +525,13 @@ public class IgnitedTcInMemoryIntegrationTest {
         Set<String> actVersions = actRevisions.revisions().stream().map(Revision::version).collect(Collectors.toSet());
 
         assertEquals(refVersions, actVersions);
+
+        Revision refRev0 = refRevisions.revisions().get(0);
+        Revision actRev0 = actRevisions.revisions().get(0);
+
+        assertEquals(refRev0.vcsBranchName(), actRev0.vcsBranchName());
+        assertEquals(refRev0.vcsRootInstance().id(), actRev0.vcsRootInstance().id());
+        assertEquals(refRev0.vcsRootInstance().vcsRootId(), actRev0.vcsRootInstance().vcsRootId());
     }
 
     private void saveTmpFile(Object obj, String name) throws IOException, JAXBException {

@@ -31,4 +31,24 @@ public class VcsRootInstance {
 
     @XmlAttribute(name = "vcs-root-id")
     private String vcsRootId;
+
+    public Integer id() {
+        return id;
+    }
+
+    public String vcsRootId() {
+        return vcsRootId;
+    }
+
+    public VcsRootInstance id(Integer id) {
+        this.id = id;
+
+        return this;
+    }
+
+    public VcsRootInstance vcsRootId(String vcsRootId) {
+        this.vcsRootId = vcsRootId;
+
+        return this;
+    }
 }

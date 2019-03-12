@@ -24,6 +24,7 @@ import javax.xml.bind.DatatypeConverter;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.vcs.Revision;
+import org.apache.ignite.ci.tcmodel.vcs.VcsRootInstance;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.slf4j.Logger;
@@ -56,28 +57,18 @@ public class RevisionCompacted implements IVersionedEntity {
     /** Vcs root instance id. */
     private int vcsRootInstanceId = -1;
 
+    /**
+     * @param compactor Compactor.
+     * @param revision Revision.
+     */
     public RevisionCompacted(IStringCompactor compactor, Revision revision) {
-/*
-        try {
-            id = Integer.parseInt(version);
+        VcsRootInstance vcsRootInstance = revision.vcsRootInstance();
+        if (vcsRootInstance != null) {
+            vcsRootId = compactor.getStringId(vcsRootInstance.vcsRootId());
+            vcsRootInstanceId = vcsRootInstance.id() != null ? vcsRootInstance.id() : -1;
         }
-        catch (NumberFormatException e) {
-            logger.error("Change ID parse failed " + change.id + ":" + e.getMessage(), e);
-        }
-        vcsRootId = compactor.getStringId(revision.vcs());
+        vcsBranchName = compactor.getStringId(revision.vcsBranchName());
 
-        if (change.user != null) {
-            try {
-                tcUserId = Integer.parseInt(change.user.id);
-            }
-            catch (NumberFormatException e) {
-                logger.error("TC User id parse failed " + change.user.id + ":" + e.getMessage(), e);
-            }
-            tcUserUsername = compactor.getStringId(change.user.username);
-            tcUserFullname = compactor.getStringId(change.user.name);
-        }
-*/
-//todo
         String ver = revision.version();
 
         if (!Strings.isNullOrEmpty(ver)) {
@@ -109,6 +100,10 @@ public class RevisionCompacted implements IVersionedEntity {
 
     public String vcsRootId(IStringCompactor compactor) {
         return compactor.getStringFromId(vcsRootId);
+    }
+
+    public Integer vcsRootInstanceId() {
+        return vcsRootInstanceId < 0 ? null : vcsRootInstanceId;
     }
 
     /**

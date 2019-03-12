@@ -41,6 +41,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.vcs.Revision;
 import org.apache.ignite.ci.tcmodel.vcs.Revisions;
+import org.apache.ignite.ci.tcmodel.vcs.VcsRootInstance;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.change.RevisionCompacted;
@@ -305,12 +306,21 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         if (revisions != null) {
             List<RevisionCompacted> revs = Arrays.asList(revisions);
-            res.setRevisions(revs.stream().map(rev->{
-                Revision revision = new Revision();
+            res.setRevisions(revs.stream().map(revComp -> {
+                Revision revision = new Revision()
+                    .version(revComp.commitFullVersion())
+                    .vcsBranchName(revComp.vcsBranchName(compactor));
 
-                revision.version(rev.commitFullVersion());
+                String vcsRootId = revComp.vcsRootId(compactor);
+                Integer vcsRootInstanceId = revComp.vcsRootInstanceId();
 
-                return revision;
+                if (vcsRootId == null && vcsRootInstanceId == null)
+                    return revision;
+
+                return revision.vcsRootInstance(
+                    new VcsRootInstance()
+                        .id(vcsRootInstanceId)
+                        .vcsRootId(vcsRootId));
             }).collect(Collectors.toList()));
         }
     }
