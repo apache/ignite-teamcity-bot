@@ -63,6 +63,8 @@ import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
+import org.apache.ignite.ci.tcmodel.vcs.Revision;
+import org.apache.ignite.ci.tcmodel.vcs.Revisions;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
@@ -513,6 +515,23 @@ public class IgnitedTcInMemoryIntegrationTest {
         int[] ch = buildCompacted.changes();
 
         assertEquals(6, ch.length);
+
+        final Revisions refRevisions = refBuild.getRevisions();
+        final Revisions actRevisions = actBuild.getRevisions();
+        assertNotNull(refRevisions);
+        assertNotNull(actRevisions);
+
+        Set<String> refVersions = refRevisions.revisions().stream().map(Revision::version).collect(Collectors.toSet());
+        Set<String> actVersions = actRevisions.revisions().stream().map(Revision::version).collect(Collectors.toSet());
+
+        assertEquals(refVersions, actVersions);
+
+        Revision refRev0 = refRevisions.revisions().get(0);
+        Revision actRev0 = actRevisions.revisions().get(0);
+
+        assertEquals(refRev0.vcsBranchName(), actRev0.vcsBranchName());
+        assertEquals(refRev0.vcsRootInstance().id(), actRev0.vcsRootInstance().id());
+        assertEquals(refRev0.vcsRootInstance().vcsRootId(), actRev0.vcsRootInstance().vcsRootId());
     }
 
     private void saveTmpFile(Object obj, String name) throws IOException, JAXBException {

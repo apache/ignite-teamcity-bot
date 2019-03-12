@@ -29,13 +29,13 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
-import org.apache.ignite.ci.analysis.IVersionedEntity;
-import org.apache.ignite.ci.tcmodel.changes.ChangesList;
 import org.apache.ignite.ci.tcmodel.changes.ChangesListRef;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-
+import org.apache.ignite.ci.tcmodel.vcs.Revision;
+import org.apache.ignite.ci.tcmodel.vcs.Revisions;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.ci.util.ExceptionUtil.propagateException;
 
@@ -70,6 +70,8 @@ public class Build extends BuildRef {
 
     /** Information about build triggering. */
     @XmlElement(name = "triggered") private Triggered triggered;
+
+    @XmlElement(name = "revisions") private Revisions revisions;
 
     @NotNull public static Build createFakeStub() {
         return new Build();
@@ -169,5 +171,20 @@ public class Build extends BuildRef {
 
     public void snapshotDependencies(List<BuildRef> dependencies) {
         snapshotDependencies = dependencies;
+    }
+
+    /**
+     *
+     */
+    @Nullable public Revisions getRevisions() {
+        return revisions;
+    }
+
+    /**
+     * @param revisions Revisions.
+     */
+    public void setRevisions(List<Revision> revisions) {
+        this.revisions = new Revisions();
+        this.revisions.revisions(revisions);
     }
 }

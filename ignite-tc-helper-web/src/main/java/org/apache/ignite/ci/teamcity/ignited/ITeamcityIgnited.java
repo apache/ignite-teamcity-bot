@@ -16,9 +16,11 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+import com.google.common.base.Strings;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
@@ -30,6 +32,7 @@ import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.change.RevisionCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.jetbrains.annotations.NotNull;
@@ -197,4 +200,37 @@ public interface ITeamcityIgnited {
      * @return List of teamcity agents.
      */
     public List<Agent> agents(boolean connected, boolean authorized);
+
+    /**
+     * @param build Build.
+     */
+    @Nullable
+    public default String getLatestCommitVersion(FatBuildCompacted build) {
+        List<RevisionCompacted> revisions = build.revisions();
+        if (revisions != null) {
+            Optional<String> any = revisions.stream()
+                .map(RevisionCompacted::commitFullVersion)
+                .filter(s -> !Strings.isNullOrEmpty(s))
+                .findAny();
+
+            if (any.isPresent())
+                return any.get(); // Not so good for several VCS roots, probably should use collection here and concatenate.
+        }
+
+        //fallback version of commit hash extraction
+        int changeMax = -1;
+        int[] changes = build.changes();
+        for (int i = 0; i < changes.length; i++) {
+            int change = changes[i];
+            if (change > changeMax)
+                changeMax = change;
+        }
+
+        if (changeMax > 0) {
+            final Collection<ChangeCompacted> allChanges = getAllChanges(new int[] {changeMax});
+            return allChanges.stream().findAny().map(ChangeCompacted::commitFullVersion).orElse(null);
+        }
+
+        return null;
+    }
 }

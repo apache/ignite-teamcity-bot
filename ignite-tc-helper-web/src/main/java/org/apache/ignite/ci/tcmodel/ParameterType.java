@@ -44,7 +44,6 @@ import javax.xml.bind.annotation.XmlType;
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "parameterType")
 public class ParameterType {
-
     @XmlAttribute(name = "rawValue")
     protected String rawValue;
 
