@@ -18,11 +18,12 @@
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Objects;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
@@ -289,13 +290,15 @@ public class TestCompacted {
             duration == compacted.duration &&
             testId == compacted.testId &&
             actualBuildId == compacted.actualBuildId &&
-            Objects.equal(flags, compacted.flags) &&
-            Objects.equal(details, compacted.details);
+            Objects.equals(flags, compacted.flags) &&
+            Arrays.equals(details, compacted.details);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(idInBuild, name, status, duration, flags, testId, actualBuildId, details);
+        int res = Objects.hash(idInBuild, name, status, duration, flags, testId, actualBuildId);
+        res = 31 * res + Arrays.hashCode(details);
+        return res;
     }
 
     public boolean isFailedButNotMuted(IStringCompactor compactor) {

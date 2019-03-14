@@ -18,9 +18,9 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.analysis.RunStat;
@@ -160,12 +160,12 @@ public class InvocationData {
         InvocationData data = (InvocationData)o;
         return allHistRuns == data.allHistRuns &&
             allHistFailures == data.allHistFailures &&
-            Objects.equal(invocationMap, data.invocationMap);
+            Objects.equals(invocationMap, data.invocationMap);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(allHistRuns, allHistFailures, invocationMap);
+        return Objects.hash(allHistRuns, allHistFailures, invocationMap);
     }
 
     /**

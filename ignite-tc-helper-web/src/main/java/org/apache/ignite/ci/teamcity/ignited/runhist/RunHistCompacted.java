@@ -18,8 +18,8 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
@@ -207,11 +207,11 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
             return false;
         RunHistCompacted compacted = (RunHistCompacted)o;
         return _ver == compacted._ver &&
-            Objects.equal(data, compacted.data);
+            Objects.equals(data, compacted.data);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(_ver, data);
+        return Objects.hash(_ver, data);
     }
 }

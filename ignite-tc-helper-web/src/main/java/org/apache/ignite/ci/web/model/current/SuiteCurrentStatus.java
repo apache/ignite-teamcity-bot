@@ -17,12 +17,12 @@
 
 package org.apache.ignite.ci.web.model.current;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -325,41 +325,40 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
+        if (!super.equals(o))
+            return false;
         SuiteCurrentStatus status = (SuiteCurrentStatus)o;
-        return Objects.equal(name, status.name) &&
-            Objects.equal(result, status.result) &&
-            Objects.equal(hasCriticalProblem, status.hasCriticalProblem) &&
-            Objects.equal(webToHist, status.webToHist) &&
-            Objects.equal(webToHistBaseBranch, status.webToHistBaseBranch) &&
-            Objects.equal(webToBuild, status.webToBuild) &&
-            Objects.equal(testFailures, status.testFailures) &&
-            Objects.equal(topLongRunning, status.topLongRunning) &&
-            Objects.equal(webUrlThreadDump, status.webUrlThreadDump) &&
-            Objects.equal(runningBuildCount, status.runningBuildCount) &&
-            Objects.equal(queuedBuildCount, status.queuedBuildCount) &&
-            Objects.equal(serverId, status.serverId) &&
-            Objects.equal(suiteId, status.suiteId) &&
-            Objects.equal(branchName, status.branchName) &&
-            Objects.equal(failures, status.failures) &&
-            Objects.equal(runs, status.runs) &&
-            Objects.equal(failureRate, status.failureRate) &&
-            Objects.equal(failsAllHist, status.failsAllHist) &&
-            Objects.equal(criticalFails, status.criticalFails) &&
-            Objects.equal(userCommits, status.userCommits) &&
-            Objects.equal(failedTests, status.failedTests) &&
-            Objects.equal(durationPrintable, status.durationPrintable) &&
-            Objects.equal(testsDurationPrintable, status.testsDurationPrintable) &&
-            Objects.equal(lostInTimeouts, status.lostInTimeouts) &&
-            Objects.equal(warnOnly, status.warnOnly);
+        return Objects.equals(name, status.name) &&
+            Objects.equals(result, status.result) &&
+            Objects.equals(hasCriticalProblem, status.hasCriticalProblem) &&
+            Objects.equals(webToHist, status.webToHist) &&
+            Objects.equals(webToHistBaseBranch, status.webToHistBaseBranch) &&
+            Objects.equals(webToBuild, status.webToBuild) &&
+            Objects.equals(testFailures, status.testFailures) &&
+            Objects.equals(topLongRunning, status.topLongRunning) &&
+            Objects.equals(warnOnly, status.warnOnly) &&
+            Objects.equals(logConsumers, status.logConsumers) &&
+            Objects.equals(webUrlThreadDump, status.webUrlThreadDump) &&
+            Objects.equals(runningBuildCount, status.runningBuildCount) &&
+            Objects.equals(queuedBuildCount, status.queuedBuildCount) &&
+            Objects.equals(serverId, status.serverId) &&
+            Objects.equals(suiteId, status.suiteId) &&
+            Objects.equals(branchName, status.branchName) &&
+            Objects.equals(failsAllHist, status.failsAllHist) &&
+            Objects.equals(criticalFails, status.criticalFails) &&
+            Objects.equals(latestRuns, status.latestRuns) &&
+            Objects.equals(userCommits, status.userCommits) &&
+            Objects.equals(failedTests, status.failedTests) &&
+            Objects.equals(durationPrintable, status.durationPrintable) &&
+            Objects.equals(testsDurationPrintable, status.testsDurationPrintable) &&
+            Objects.equals(lostInTimeouts, status.lostInTimeouts) &&
+            Objects.equals(problemRef, status.problemRef) &&
+            Objects.equals(possibleBlocker, status.possibleBlocker);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(name, result, hasCriticalProblem, webToHist, webToHistBaseBranch, webToBuild, testFailures,
-            topLongRunning, webUrlThreadDump, runningBuildCount, queuedBuildCount, serverId,
-            suiteId, branchName, failures, runs, failureRate,
-            failsAllHist, criticalFails, userCommits, failedTests, durationPrintable, testsDurationPrintable,
-            lostInTimeouts, warnOnly);
+        return Objects.hash(super.hashCode(), name, result, hasCriticalProblem, webToHist, webToHistBaseBranch, webToBuild, testFailures, topLongRunning, warnOnly, logConsumers, webUrlThreadDump, runningBuildCount, queuedBuildCount, serverId, suiteId, branchName, failsAllHist, criticalFails, latestRuns, userCommits, failedTests, durationPrintable, testsDurationPrintable, lostInTimeouts, problemRef, possibleBlocker);
     }
 
     /** {@inheritDoc} */

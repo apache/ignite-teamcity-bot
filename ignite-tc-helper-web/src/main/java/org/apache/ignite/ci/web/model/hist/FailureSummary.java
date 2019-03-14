@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.model.hist;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
@@ -40,13 +40,14 @@ public class FailureSummary {
         if (o == null || getClass() != o.getClass())
             return false;
         FailureSummary summary = (FailureSummary)o;
-        return Objects.equal(failures, summary.failures) &&
-            Objects.equal(runs, summary.runs) &&
-            Objects.equal(failureRate, summary.failureRate);
+
+        return Objects.equals(failures, summary.failures) &&
+            Objects.equals(runs, summary.runs) &&
+            Objects.equals(failureRate, summary.failureRate);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(failures, runs, failureRate);
+        return Objects.hash(failures, runs, failureRate);
     }
 }

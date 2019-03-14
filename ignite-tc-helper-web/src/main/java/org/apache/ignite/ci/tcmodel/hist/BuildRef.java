@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.tcmodel.hist;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -121,23 +121,29 @@ public class BuildRef extends AbstractRef {
 
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        BuildRef buildRef = (BuildRef) o;
-        return Objects.equal(id, buildRef.id) &&
-                Objects.equal(buildTypeId, buildRef.buildTypeId) &&
-                Objects.equal(branchName, buildRef.branchName) &&
-                Objects.equal(status, buildRef.status) &&
-                Objects.equal(state, buildRef.state) &&
-                Objects.equal(buildNumber, buildRef.buildNumber) &&
-                Objects.equal(defaultBranch, buildRef.defaultBranch) &&
-                Objects.equal(composite, buildRef.composite) &&
-                Objects.equal(webUrl, buildRef.webUrl);
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+
+        BuildRef ref = (BuildRef)o;
+
+        return Objects.equals(id, ref.id) &&
+            Objects.equals(buildTypeId, ref.buildTypeId) &&
+            Objects.equals(branchName, ref.branchName) &&
+            Objects.equals(status, ref.status) &&
+            Objects.equals(state, ref.state) &&
+            Objects.equals(buildNumber, ref.buildNumber) &&
+            Objects.equals(defaultBranch, ref.defaultBranch) &&
+            Objects.equals(composite, ref.composite) &&
+            Objects.equals(failedToStart, ref.failedToStart) &&
+            Objects.equals(webUrl, ref.webUrl);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(id, buildTypeId, branchName, status, state, buildNumber, defaultBranch, composite, webUrl);
+        return Objects.hash(id, buildTypeId, branchName, status, state, buildNumber, defaultBranch, composite,
+            failedToStart, webUrl);
     }
 
     /** {@inheritDoc} */

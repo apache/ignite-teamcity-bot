@@ -17,15 +17,14 @@
 
 package org.apache.ignite.ci.web.model.current;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
@@ -33,7 +32,6 @@ import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
-import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
@@ -41,7 +39,9 @@ import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 
 import static org.apache.ignite.ci.util.UrlUtil.escape;
-import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.*;
+import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchForLink;
+import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOccurForLogConsumer;
+import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOrrucForLongRun;
 
 /**
  * Represent Run All chain results/ or RunAll+latest re-runs.
@@ -245,27 +245,31 @@ public class ChainAtServerCurrentStatus {
         if (o == null || getClass() != o.getClass())
             return false;
         ChainAtServerCurrentStatus status = (ChainAtServerCurrentStatus)o;
-        return Objects.equal(chainName, status.chainName) &&
-            Objects.equal(serverId, status.serverId) &&
-            Objects.equal(branchName, status.branchName) &&
-            Objects.equal(webToHist, status.webToHist) &&
-            Objects.equal(webToBuild, status.webToBuild) &&
-            Objects.equal(suites, status.suites) &&
-            Objects.equal(failedTests, status.failedTests) &&
-            Objects.equal(failedToFinish, status.failedToFinish) &&
-            Objects.equal(durationPrintable, status.durationPrintable) &&
-            Objects.equal(testsDurationPrintable, status.testsDurationPrintable) &&
-            Objects.equal(lostInTimeouts, status.lostInTimeouts) &&
-            Objects.equal(logConsumers, status.logConsumers) &&
-            Objects.equal(topLongRunning, status.topLongRunning) &&
-            Objects.equal(buildNotFound, status.buildNotFound);
+        return buildNotFound == status.buildNotFound &&
+            Objects.equals(chainName, status.chainName) &&
+            Objects.equals(serverId, status.serverId) &&
+            Objects.equals(branchName, status.branchName) &&
+            Objects.equals(webToHist, status.webToHist) &&
+            Objects.equals(webToBuild, status.webToBuild) &&
+            Objects.equals(ticketFullName, status.ticketFullName) &&
+            Objects.equals(webToTicket, status.webToTicket) &&
+            Objects.equals(prNum, status.prNum) &&
+            Objects.equals(webToPr, status.webToPr) &&
+            Objects.equals(suites, status.suites) &&
+            Objects.equals(failedTests, status.failedTests) &&
+            Objects.equals(failedToFinish, status.failedToFinish) &&
+            Objects.equals(durationPrintable, status.durationPrintable) &&
+            Objects.equals(testsDurationPrintable, status.testsDurationPrintable) &&
+            Objects.equals(lostInTimeouts, status.lostInTimeouts) &&
+            Objects.equals(topLongRunning, status.topLongRunning) &&
+            Objects.equals(logConsumers, status.logConsumers) &&
+            Objects.equals(baseBranchForTc, status.baseBranchForTc);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(chainName, serverId, branchName, webToHist, webToBuild, suites,
-            failedTests, failedToFinish, durationPrintable, testsDurationPrintable,
-            lostInTimeouts, logConsumers, topLongRunning, buildNotFound);
+        return Objects.hash(chainName, serverId, branchName, webToHist, webToBuild, ticketFullName, webToTicket, prNum,
+            webToPr, suites, failedTests, failedToFinish, durationPrintable, testsDurationPrintable, lostInTimeouts, topLongRunning, logConsumers, buildNotFound, baseBranchForTc);
     }
 
     public void setBuildNotFound(boolean buildNotFound) {

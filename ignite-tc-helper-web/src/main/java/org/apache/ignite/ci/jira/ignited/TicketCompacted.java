@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.jira.ignited;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 import org.apache.ignite.ci.jira.pure.Fields;
 import org.apache.ignite.ci.jira.pure.Status;
 import org.apache.ignite.ci.jira.pure.Ticket;
@@ -93,13 +93,13 @@ public class TicketCompacted {
         return id == compacted.id &&
             igniteId == compacted.igniteId &&
             status == compacted.status &&
-            Objects.equal(summary, compacted.summary) &&
-            Objects.equal(customfield_11050, compacted.customfield_11050) &&
-            Objects.equal(description, compacted.description);
+            Objects.equals(summary, compacted.summary) &&
+            Objects.equals(customfield_11050, compacted.customfield_11050) &&
+            Objects.equals(description, compacted.description);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(id, igniteId, status, summary, customfield_11050, description);
+        return Objects.hash(id, igniteId, status, summary, customfield_11050, description);
     }
 }
