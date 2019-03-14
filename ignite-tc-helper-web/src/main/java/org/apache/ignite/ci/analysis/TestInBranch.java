@@ -18,10 +18,8 @@
 package org.apache.ignite.ci.analysis;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-import org.apache.ignite.ci.db.Persisted;
+import java.util.Objects;
 
-@Persisted
 public class TestInBranch implements Comparable<TestInBranch> {
     public String name;
 
@@ -32,6 +30,7 @@ public class TestInBranch implements Comparable<TestInBranch> {
         this.branch = branch;
     }
 
+    /** {@inheritDoc} */
     @Override public int compareTo(TestInBranch o) {
         int runConfCompare = name.compareTo(o.name);
         if (runConfCompare != 0)
@@ -39,20 +38,26 @@ public class TestInBranch implements Comparable<TestInBranch> {
         return branch.compareTo(o.branch);
     }
 
+    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
+
         if (o == null || getClass() != o.getClass())
             return false;
+
         TestInBranch branch1 = (TestInBranch)o;
-        return Objects.equal(name, branch1.name) &&
-            Objects.equal(branch, branch1.branch);
+
+        return Objects.equals(name, branch1.name) &&
+            Objects.equals(branch, branch1.branch);
     }
 
+    /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(name, branch);
+        return Objects.hash(name, branch);
     }
 
+    /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("name", name)

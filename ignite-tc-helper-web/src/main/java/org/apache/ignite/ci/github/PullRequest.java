@@ -18,9 +18,9 @@
 package org.apache.ignite.ci.github;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.google.gson.annotations.SerializedName;
+import java.util.Objects;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.jetbrains.annotations.Nullable;
@@ -30,9 +30,13 @@ import org.jetbrains.annotations.Nullable;
  */
 @Persisted
 public class PullRequest implements IVersionedEntity {
+    /** Open status. */
     public static final String OPEN = "open";
+
+    /** Symbols count to include to short commit version. */
     public static final int INCLUDE_SHORT_VER = 7;
-    /** Latest version. */
+
+    /** Entitiy current (latest) version. */
     private static final int LATEST_VERSION = 7;
 
     /** Entity version. */
@@ -132,22 +136,24 @@ public class PullRequest implements IVersionedEntity {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
+
         PullRequest req = (PullRequest)o;
+
         return num == req.num &&
-            Objects.equal(_ver, req._ver) &&
-            Objects.equal(state, req.state) &&
-            Objects.equal(title, req.title) &&
-            Objects.equal(htmlUrl, req.htmlUrl) &&
-            Objects.equal(updatedAt, req.updatedAt) &&
-            Objects.equal(statusesUrl, req.statusesUrl) &&
-            Objects.equal(gitHubUser, req.gitHubUser) &&
-            Objects.equal(base, req.base) &&
-            Objects.equal(head, req.head);
+            Objects.equals(_ver, req._ver) &&
+            Objects.equals(state, req.state) &&
+            Objects.equals(title, req.title) &&
+            Objects.equals(htmlUrl, req.htmlUrl) &&
+            Objects.equals(updatedAt, req.updatedAt) &&
+            Objects.equals(statusesUrl, req.statusesUrl) &&
+            Objects.equals(gitHubUser, req.gitHubUser) &&
+            Objects.equals(head, req.head) &&
+            Objects.equals(base, req.base);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(_ver, num, state, title, htmlUrl, updatedAt, statusesUrl, gitHubUser, base, head);
+        return Objects.hash(_ver, num, state, title, htmlUrl, updatedAt, statusesUrl, gitHubUser, head, base);
     }
 
     /** {@inheritDoc} */

@@ -16,8 +16,8 @@
  */
 package org.apache.ignite.ci.github;
 
-import com.google.common.base.Objects;
 import com.google.gson.annotations.SerializedName;
+import java.util.Objects;
 
 public class GitHubUser {
     @SerializedName("login") private String login;
@@ -45,12 +45,12 @@ public class GitHubUser {
         if (o == null || getClass() != o.getClass())
             return false;
         GitHubUser user = (GitHubUser)o;
-        return Objects.equal(login, user.login) &&
-            Objects.equal(avatarUrl, user.avatarUrl);
+        return Objects.equals(login, user.login) &&
+            Objects.equals(avatarUrl, user.avatarUrl);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(login, avatarUrl);
+        return Objects.hash(login, avatarUrl);
     }
 }
