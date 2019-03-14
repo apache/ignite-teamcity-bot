@@ -17,8 +17,8 @@
 
 package org.apache.ignite.ci.web.model.hist;
 
-import com.google.common.base.Objects;
 import java.util.List;
+import java.util.Objects;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 
@@ -62,14 +62,14 @@ public class TestHistory {
         if (o == null || getClass() != o.getClass())
             return false;
         TestHistory hist = (TestHistory)o;
-
-        return Objects.equal(allTime, hist.allTime) &&
-            Objects.equal(recent, hist.recent) &&
-            Objects.equal(latestRuns, hist.latestRuns);
+        return Objects.equals(allTime, hist.allTime) &&
+            Objects.equals(recent, hist.recent) &&
+            Objects.equals(latestRuns, hist.latestRuns) &&
+            Objects.equals(flakyComments, hist.flakyComments);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(allTime, recent, latestRuns);
+        return Objects.hash(allTime, recent, latestRuns, flakyComments);
     }
 }

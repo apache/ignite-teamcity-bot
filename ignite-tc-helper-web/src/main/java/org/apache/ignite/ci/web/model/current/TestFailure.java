@@ -17,10 +17,10 @@
 
 package org.apache.ignite.ci.web.model.current;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
@@ -253,25 +253,25 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
             return false;
         TestFailure failure = (TestFailure)o;
         return investigated == failure.investigated &&
-            Objects.equal(name, failure.name) &&
-            Objects.equal(suiteName, failure.suiteName) &&
-            Objects.equal(testName, failure.testName) &&
-            Objects.equal(curFailures, failure.curFailures) &&
-            Objects.equal(webUrl, failure.webUrl) &&
-            Objects.equal(webIssueUrl, failure.webIssueUrl) &&
-            Objects.equal(webIssueText, failure.webIssueText) &&
-            Objects.equal(durationPrintable, failure.durationPrintable) &&
-            Objects.equal(warnings, failure.warnings) &&
-            Objects.equal(histBaseBranch, failure.histBaseBranch) &&
-            Objects.equal(histCurBranch, failure.histCurBranch)&&
-            Objects.equal(webUrlBaseBranch, failure.webUrlBaseBranch)  ;
+            Objects.equals(name, failure.name) &&
+            Objects.equals(suiteName, failure.suiteName) &&
+            Objects.equals(testName, failure.testName) &&
+            Objects.equals(curFailures, failure.curFailures) &&
+            Objects.equals(webUrl, failure.webUrl) &&
+            Objects.equals(webIssueUrl, failure.webIssueUrl) &&
+            Objects.equals(webIssueText, failure.webIssueText) &&
+            Objects.equals(durationPrintable, failure.durationPrintable) &&
+            Objects.equals(warnings, failure.warnings) &&
+            Objects.equals(problemRef, failure.problemRef) &&
+            Objects.equals(histCurBranch, failure.histCurBranch) &&
+            Objects.equals(histBaseBranch, failure.histBaseBranch) &&
+            Objects.equals(webUrlBaseBranch, failure.webUrlBaseBranch);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(name, suiteName, testName, curFailures,
-            webUrl, webIssueUrl, webIssueText, investigated, durationPrintable, warnings, histBaseBranch, histCurBranch,
-            webUrlBaseBranch);
+        return Objects.hash(name, suiteName, testName, curFailures, webUrl, webIssueUrl, webIssueText, investigated,
+            durationPrintable, warnings, problemRef, histCurBranch, histBaseBranch, webUrlBaseBranch);
     }
 
     /** {@inheritDoc} */

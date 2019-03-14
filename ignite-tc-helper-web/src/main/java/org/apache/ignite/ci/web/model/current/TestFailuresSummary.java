@@ -17,9 +17,9 @@
 
 package org.apache.ignite.ci.web.model.current;
 
-import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.jetbrains.annotations.Nullable;
 
@@ -62,20 +62,22 @@ import org.jetbrains.annotations.Nullable;
         hashCodeHex = Integer.toHexString(U.safeAbs(hashCode()));
     }
 
+    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
         TestFailuresSummary summary = (TestFailuresSummary)o;
-        return Objects.equal(servers, summary.servers) &&
-            Objects.equal(failedTests, summary.failedTests) &&
-            Objects.equal(failedToFinish, summary.failedToFinish);
-        //todo add tracked branch to equals
+        return Objects.equals(servers, summary.servers) &&
+            Objects.equals(failedTests, summary.failedTests) &&
+            Objects.equals(failedToFinish, summary.failedToFinish) &&
+            Objects.equals(trackedBranch, summary.trackedBranch);
     }
 
+    /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(servers, failedTests, failedToFinish);
+        return Objects.hash(servers, failedTests, failedToFinish, trackedBranch);
     }
 
     /** {@inheritDoc} */

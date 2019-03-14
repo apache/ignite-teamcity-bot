@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web.rest.parms;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
+import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.ws.rs.QueryParam;
 import org.jetbrains.annotations.Nullable;
@@ -122,25 +122,25 @@ public class FullQueryParams {
         if (o == null || getClass() != o.getClass())
             return false;
 
-        FullQueryParams param = (FullQueryParams)o;
+        FullQueryParams params = (FullQueryParams)o;
 
-        return Objects.equal(branch, param.branch) &&
-            Objects.equal(serverId, param.serverId) &&
-            Objects.equal(suiteId, param.suiteId) &&
-            Objects.equal(branchForTc, param.branchForTc) &&
-            Objects.equal(action, param.action) &&
-            Objects.equal(count, param.count) &&
-            Objects.equal(checkAllLogs, param.checkAllLogs) &&
-            Objects.equal(buildId, param.buildId) &&
-            Objects.equal(projectId, param.projectId) &&
-            Objects.equal(testName, param.testName) &&
-            Objects.equal(baseBranchForTc, param.baseBranchForTc);
+        return Objects.equals(branch, params.branch) &&
+            Objects.equals(serverId, params.serverId) &&
+            Objects.equals(suiteId, params.suiteId) &&
+            Objects.equals(branchForTc, params.branchForTc) &&
+            Objects.equals(action, params.action) &&
+            Objects.equals(count, params.count) &&
+            Objects.equals(checkAllLogs, params.checkAllLogs) &&
+            Objects.equals(buildId, params.buildId) &&
+            Objects.equals(baseBranchForTc, params.baseBranchForTc) &&
+            Objects.equals(projectId, params.projectId) &&
+            Objects.equals(testName, params.testName);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hashCode(branch, serverId, suiteId, branchForTc, action, count, checkAllLogs, buildId,
-            baseBranchForTc, testName, projectId);
+        return Objects.hash(branch, serverId, suiteId, branchForTc, action, count, checkAllLogs, buildId,
+            baseBranchForTc, projectId, testName);
     }
 
     public void setBranch(@Nullable String branch) {
