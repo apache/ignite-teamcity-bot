@@ -596,7 +596,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         }
 
         return new Invocation(getId())
-            .withStatus((byte)failCode)
+            .withStatus(failCode)
             .withStartDate(getStartDateTs())
             .withChanges(changes());
     }
@@ -615,8 +615,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     /**
      * @return revisions list or null if revisions was not reported by TC/for older build versions in DB.
      */
-    @Nullable
-    public List<RevisionCompacted> revisions() {
+    @Nullable public List<RevisionCompacted> revisions() {
         if (revisions == null)
             return null;
 

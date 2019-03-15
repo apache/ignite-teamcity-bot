@@ -46,61 +46,56 @@ public class ParametersCompacted {
         keys = new GridIntList(size);
         values = new GridIntList(size);
         for (Property next : ref) {
-            final String name = next.name();
+            String name = next.name();
             if (Strings.isNullOrEmpty(name))
                 continue;
 
-            final String value = next.getValue();
-            if (Strings.isNullOrEmpty(value))
+            String strVal = next.getValue();
+            if (Strings.isNullOrEmpty(strVal))
                 continue;
-            final int val = compactor.getStringId(value);
-            final int stringId = compactor.getStringId(name);
 
-            keys.add(stringId);
+            int val = compactor.getStringId(strVal);
+            int strId = compactor.getStringId(name);
+
+            keys.add(strId);
             values.add(val);
         }
     }
 
     public Parameters toParameters(IStringCompactor compactor) {
-        List<Property> properties = null;
+        List<Property> props = null;
 
-        if (keys.size() > 0) {
-            properties = new ArrayList<>();
+        if (!keys.isEmpty()) {
+            props = new ArrayList<>();
 
             final int size = keys.size();
 
             for (int i = 0; i < size && i < values.size(); i++) {
                 final int nameid = keys.get(i);
                 String name = compactor.getStringFromId(nameid);
-                String value = compactor.getStringFromId(values.get(i));
+                String val = compactor.getStringFromId(values.get(i));
 
-                properties.add(new Property(name, value));
+                props.add(new Property(name, val));
             }
         }
 
-        return new Parameters(properties);
+        return new Parameters(props);
     }
 
-    public int findPropertyStringId(int propertyCode) {
-        int value = -1;
+    public int findPropertyStringId(int propCode) {
+        if (keys == null)
+            return -1;
 
-        if (keys != null) {
-            final int size = keys.size();
+        final int size = keys.size();
 
-            for (int i = 0; i < size; i++) {
-                final int nameid = keys.get(i);
+        for (int i = 0; i < size; i++) {
+            int nameid = keys.get(i);
 
-                if (nameid != propertyCode)
-                    continue;
-
-                if (i >= values.size())
-                    break;
-
-                value = values.get(i);
-            }
+            if (nameid == propCode)
+                return i < values.size() ? values.get(i) : -1;
         }
 
-        return value;
+        return -1;
     }
 
     /** {@inheritDoc} */

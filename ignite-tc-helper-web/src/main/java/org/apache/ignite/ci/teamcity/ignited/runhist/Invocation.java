@@ -36,11 +36,13 @@ public class Invocation {
 
     /** Build id. */
     private int buildId;
+
     /** Status: An integer (actually byte) code from RunStat.RunStatus */
     private byte status;
 
     /** Change present: 0 - no changes, 1 - changes present, 2- unknown */
     private byte changePresent;
+
     /** Build Start date as timestamp. */
     private long startDate;
 

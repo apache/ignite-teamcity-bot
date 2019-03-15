@@ -142,10 +142,10 @@ public class BuildTypeDao {
      */
     public List<BuildTypeCompacted> compositeBuildTypesCompacted(int srvIdMaskHigh, @Nullable String projectId) {
         final int nameId = compactor.getStringId("buildConfigurationType");
-        final int valueId = compactor.getStringId("COMPOSITE");
+        final int valId = compactor.getStringId("COMPOSITE");
 
         return buildTypesCompactedStream(srvIdMaskHigh, projectId)
-            .filter(bt -> bt.settings().findPropertyStringId(nameId) == valueId)
+            .filter(bt -> bt.settings().findPropertyStringId(nameId) == valId)
             .collect(Collectors.toList());
     }
 

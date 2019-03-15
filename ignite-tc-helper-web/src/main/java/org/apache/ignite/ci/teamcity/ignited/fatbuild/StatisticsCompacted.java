@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.Strings;
+import java.util.List;
 import org.apache.ignite.ci.tcmodel.conf.bt.Property;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -25,8 +26,6 @@ import org.apache.ignite.internal.util.GridIntList;
 import org.apache.ignite.internal.util.GridLongList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 public class StatisticsCompacted {
     /** Logger. */
@@ -39,32 +38,32 @@ public class StatisticsCompacted {
     }
 
     public StatisticsCompacted(IStringCompactor compactor, Statistics statistics) {
-        final List<Property> properties = statistics.properties();
-        final int size = properties.size();
+        final List<Property> props = statistics.properties();
+        final int size = props.size();
         keys = new GridIntList(size);
         values = new GridLongList(size);
-        int idx = 0;
-        for (Property next : properties) {
+
+        for (Property next : props) {
             final String name = next.name();
             if (Strings.isNullOrEmpty(name))
                 continue;
 
-            final String value = next.getValue();
-            if (Strings.isNullOrEmpty(value))
+            final String valStr = next.getValue();
+            if (Strings.isNullOrEmpty(valStr))
                 continue;
+
             final long val;
             try {
-                val = Long.parseLong(value);
+                val = Long.parseLong(valStr);
             } catch (Exception e) {
                 logger.error("Statistics value is not numeric " + name + " skipped " + e.getMessage(), e);
                 continue;
             }
 
-            final int stringId = compactor.getStringId(name);
+            final int strId = compactor.getStringId(name);
 
-            keys.add(stringId);
+            keys.add(strId);
             values.add(val);
-            idx++;
         }
     }
 
@@ -73,29 +72,26 @@ public class StatisticsCompacted {
         if (buildDurationId == null)
             return null;
 
-        long value = findPropertyValue(buildDurationId);
+        long val = findPropertyValue(buildDurationId);
 
-        if (value < 0) return null;
+        if (val < 0) return null;
 
-        return value;
+        return val;
     }
 
-    private long findPropertyValue(int propertyCode) {
+    private long findPropertyValue(int propCode) {
+        if (keys == null)
+            return -1L;
+
         final int size = keys.size();
 
-        long value = -1;
         for (int i = 0; i < size; i++) {
             final int nameid = keys.get(i);
 
-            if (nameid != propertyCode)
-                continue;
-
-            if (i >= values.size())
-                break;
-
-            value = values.get(i);
+            if (nameid == propCode)
+                return i < values.size() ? values.get(i) : -1;
         }
 
-        return value;
+        return -1L;
     }
 }
