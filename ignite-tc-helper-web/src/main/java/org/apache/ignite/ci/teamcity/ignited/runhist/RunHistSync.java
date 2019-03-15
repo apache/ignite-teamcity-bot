@@ -34,9 +34,9 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.jetbrains.annotations.NotNull;
@@ -142,7 +142,7 @@ public class RunHistSync {
         }
     }
 
-    @MonitoredTask(name="Save Builds To History(srv, runner)", nameExtArgsIndexes = {0,1})
+    @MonitoredTask(name = "Save Builds To History(srv, runner)", nameExtArgsIndexes = {0, 1})
     @SuppressWarnings("WeakerAccess")
     protected String saveBuildToHistory(String srvName, int ldrToActivate) {
         Map<RunHistKey, List<Invocation>> testsSaveThisRun;
@@ -157,7 +157,7 @@ public class RunHistSync {
             testsSaveThisRun = syncTask.takeTests();
         }
 
-        if(buildsSaveThisRun.isEmpty() && testsSaveThisRun.isEmpty())
+        if (buildsSaveThisRun.isEmpty() && testsSaveThisRun.isEmpty())
             return "Nothing to sync";
 
         return saveInvocationsMap(buildsSaveThisRun, testsSaveThisRun);
@@ -259,7 +259,7 @@ public class RunHistSync {
 
     @NotNull
     private String taskName(String taskName, String srvName) {
-        return RunHistSync.class.getSimpleName() +"." + taskName + "." + srvName;
+        return RunHistSync.class.getSimpleName() + "." + taskName + "." + srvName;
     }
 
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
@@ -279,7 +279,7 @@ public class RunHistSync {
 
             if (buildsIdsToLoad.size() >= 50) {
                 totalAskedToLoad += buildsIdsToLoad.size();
-                scheduleHistLoad(srvId,  buildsIdsToLoad);
+                scheduleHistLoad(srvId, buildsIdsToLoad);
                 buildsIdsToLoad.clear();
             }
             buildsIdsToLoad.add(buildId);
@@ -341,7 +341,7 @@ public class RunHistSync {
         }
 
         private Map<RunHistKey, List<Invocation>> takeTests() {
-            Map<RunHistKey, List<Invocation>> saveThisRun  = tests;
+            Map<RunHistKey, List<Invocation>> saveThisRun = tests;
 
             tests = new HashMap<>();
             testCnt.set(0);

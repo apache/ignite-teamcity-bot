@@ -43,7 +43,8 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     /** Data. */
     private InvocationData data = new InvocationData();
 
-    public RunHistCompacted() {}
+    public RunHistCompacted() {
+    }
 
     public RunHistCompacted(RunHistKey ignored) {
 
@@ -123,7 +124,6 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
         return data.addInvocation(inv);
     }
 
-
     private static int[] concatArr(int[] arr1, int[] arr2) {
         int[] arr1and2 = new int[arr1.length + arr2.length];
         System.arraycopy(arr1, 0, arr1and2, 0, arr1.length);
@@ -134,7 +134,7 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
 
     @Nullable
     public Integer detectTemplate(EventTemplate t) {
-        if (data  == null)
+        if (data == null)
             return null;
 
         int centralEvtBuild = t.beforeEvent().length;
@@ -145,7 +145,6 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
         assert centralEvtBuild >= 0;
 
         List<Invocation> histAsArr = data.invocations().collect(Collectors.toList());
-
 
         if (histAsArr.size() < template.length)
             return null;
@@ -194,9 +193,9 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("failRate", getFailPercentPrintable())
-                .add("data", data)
-                .toString();
+            .add("failRate", getFailPercentPrintable())
+            .add("data", data)
+            .toString();
     }
 
     /** {@inheritDoc} */

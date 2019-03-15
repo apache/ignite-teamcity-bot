@@ -20,18 +20,21 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 import com.google.common.base.MoreObjects;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.analysis.RunStat;
-
-import java.util.Map;
-import java.util.TreeMap;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ *
+ */
 public class InvocationData {
-    public static final int MAX_DAYS = 30;
+    /** Max days to keep test invocatoin data in run statistics: affects Bot Visa. */
+    public static final int MAX_DAYS = 21;
     /** Muted. */
     public static final int MUTED = RunStat.RunStatus.RES_MUTED_FAILURE.getCode();
     /** Failure. */
@@ -114,9 +117,9 @@ public class InvocationData {
      */
     public int notMutedRunsCount() {
         return (int)
-                invocations()
-                        .filter(invocation -> invocation.status() != MUTED)
-                        .count();
+            invocations()
+                .filter(invocation -> invocation.status() != MUTED)
+                .count();
     }
 
     /**
@@ -145,10 +148,10 @@ public class InvocationData {
     /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("allHistRuns", allHistRuns)
-                .add("allHistFailures", allHistFailures)
-                .add("invocationMap", invocationMap)
-                .toString();
+            .add("allHistRuns", allHistRuns)
+            .add("allHistFailures", allHistFailures)
+            .add("invocationMap", invocationMap)
+            .toString();
     }
 
     /** {@inheritDoc} */

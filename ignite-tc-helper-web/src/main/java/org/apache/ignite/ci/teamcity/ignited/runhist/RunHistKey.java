@@ -48,12 +48,14 @@ public class RunHistKey {
 
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        RunHistKey histKey = (RunHistKey) o;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        RunHistKey histKey = (RunHistKey)o;
         return srvId == histKey.srvId &&
-                testOrSuiteName == histKey.testOrSuiteName &&
-                branch == histKey.branch;
+            testOrSuiteName == histKey.testOrSuiteName &&
+            branch == histKey.branch;
     }
 
     /** {@inheritDoc} */

@@ -17,10 +17,13 @@
 
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.cache.Cache;
 import javax.cache.processor.MutableEntry;
+import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.QueryEntity;
@@ -33,10 +36,6 @@ import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IRunStat;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.configuration.CacheConfiguration;
-
-import javax.inject.Inject;
-import javax.inject.Provider;
-import java.util.Collections;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,9 +51,8 @@ public class RunHistCompactedDao {
     /** Build Start time Cache name. */
     public static final String BUILD_START_TIME_CACHE_NAME = "teamcityBuildStartTime";
 
-    /** Suites history Cache name.*/
+    /** Suites history Cache name. */
     public static final String SUITE_HIST_CACHE_NAME = "teamcitySuiteRunHist";
-
 
     /** Ignite provider. */
     @Inject
@@ -75,7 +73,7 @@ public class RunHistCompactedDao {
     /**
      * Initialize
      */
-    public void init () {
+    public void init() {
         Ignite ignite = igniteProvider.get();
 
         final CacheConfiguration<RunHistKey, RunHistCompacted> cfg = TcHelperDb.getCacheV2Config(TEST_HIST_CACHE_NAME);
@@ -143,7 +141,6 @@ public class RunHistCompactedDao {
 
         return testHistCache.invoke(histKey, RunHistCompactedDao::processEntry, list);
     }
-
 
     @AutoProfiling
     public Integer addSuiteInvocations(RunHistKey histKey, List<Invocation> list) {

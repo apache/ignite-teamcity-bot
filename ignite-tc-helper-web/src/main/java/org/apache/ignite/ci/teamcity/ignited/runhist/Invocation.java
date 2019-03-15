@@ -59,7 +59,7 @@ public class Invocation {
         Preconditions.checkState(failCode < 128);
         Preconditions.checkState(failCode >= 0);
 
-        this.status = (byte) failCode;
+        this.status = (byte)failCode;
 
         return this;
     }
