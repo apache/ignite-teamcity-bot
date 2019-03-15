@@ -33,6 +33,7 @@ import org.apache.ignite.ci.issue.EventTemplate;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
+import org.apache.ignite.ci.teamcity.ignited.runhist.ChangesState;
 import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.ci.analysis.RunStat.RunStatus.RES_CRITICAL_FAILURE;
@@ -360,16 +361,6 @@ public class RunStat implements IRunHistory {
         public static RunStatus byCode(int code) {
             return holder.get(code);
         }
-    }
-
-    /** Changes state for run. */
-    public enum ChangesState {
-        /** Unknown number of changes for run. */
-        UNKNOWN,
-        /** Run without changes. */
-        NONE,
-        /** Run with changes. */
-        EXIST
     }
 
     /**

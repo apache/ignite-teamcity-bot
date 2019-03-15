@@ -20,15 +20,18 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import org.apache.ignite.ci.analysis.RunStat;
 
 /**
  * Run history element: invocation of build or test.
  */
 public class Invocation {
-    /** Change not filled. */
+    /** VCS Change not filled. */
     public static final int CHANGE_NOT_FILLED = 2;
+
+    /** VCS Change present. */
     public static final int CHANGE_PRESENT = 1;
+
+    /** No changes in VCS. */
     public static final int NO_CHANGES = 0;
 
     /** Build id. */
@@ -41,6 +44,10 @@ public class Invocation {
     /** Build Start date as timestamp. */
     private long startDate;
 
+    /**
+     * Creates invocation.
+     * @param buildId Build id.
+     */
     public Invocation(Integer buildId) {
         this.buildId = buildId;
         this.changePresent = CHANGE_NOT_FILLED;
@@ -84,13 +91,13 @@ public class Invocation {
         return this;
     }
 
-    public RunStat.ChangesState changesState() {
+    public ChangesState changesState() {
         if (changePresent == NO_CHANGES)
-            return RunStat.ChangesState.NONE;
+            return ChangesState.NONE;
         else if (changePresent == CHANGE_PRESENT)
-            return RunStat.ChangesState.EXIST;
+            return ChangesState.EXIST;
         else
-            return RunStat.ChangesState.UNKNOWN;
+            return ChangesState.UNKNOWN;
     }
 
     public boolean isFailure() {

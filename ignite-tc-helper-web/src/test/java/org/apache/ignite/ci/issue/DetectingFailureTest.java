@@ -17,13 +17,14 @@
 
 package org.apache.ignite.ci.issue;
 
+import org.apache.ignite.ci.teamcity.ignited.runhist.ChangesState;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import static org.apache.ignite.ci.analysis.RunStat.ChangesState.UNKNOWN;
+import static org.apache.ignite.ci.teamcity.ignited.runhist.ChangesState.UNKNOWN;
 import static org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence.STATUS_SUCCESS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -105,7 +106,7 @@ public class DetectingFailureTest {
         for (int i = 0; i < 50; i++) {
             occurrence.status = ints[i] == 0 ? Build.STATUS_SUCCESS : "FAILURE";
 
-            stat.addTestRunToLatest(occurrence.setId(fakeTestId(100 + i)), RunStat.ChangesState.NONE);
+            stat.addTestRunToLatest(occurrence.setId(fakeTestId(100 + i)), ChangesState.NONE);
         }
 
         occurrence.status = "FAILED";

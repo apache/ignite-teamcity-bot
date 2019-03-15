@@ -97,8 +97,8 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
         for (Invocation cur : latestRuns) {
             if (prev != null && cur != null) {
                 if (prev.status() != cur.status()
-                    && cur.changesState() == RunStat.ChangesState.NONE
-                    && prev.changesState() != RunStat.ChangesState.UNKNOWN)
+                    && cur.changesState() == ChangesState.NONE
+                    && prev.changesState() != ChangesState.UNKNOWN)
                     statusChange++;
             }
             prev = cur;
