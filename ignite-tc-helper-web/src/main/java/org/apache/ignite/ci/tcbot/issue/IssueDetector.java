@@ -47,6 +47,7 @@ import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -61,7 +62,6 @@ import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -159,7 +159,7 @@ public class IssueDetector {
             .forEach(issue -> {
                 List<String> addrs = new ArrayList<>();
 
-                if (slackCh != null && FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME.equals(issue.trackedBranchName))
+                if (slackCh != null && TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME.equals(issue.trackedBranchName))
                     addrs.add(SLACK + "#" + slackCh);
 
                 for (TcHelperUser next : userForPossibleNotifications) {

@@ -35,4 +35,9 @@ public interface ITcServerConfig {
     @NotNull public String host();
 
     @NotNull public String logsDirectory();
+
+    /**
+     * @return
+     */
+    @NotNull public String defaultTrackedBranch();
 }

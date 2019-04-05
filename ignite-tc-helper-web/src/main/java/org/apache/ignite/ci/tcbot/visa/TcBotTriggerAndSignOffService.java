@@ -51,6 +51,7 @@ import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
@@ -81,7 +82,7 @@ import static org.apache.ignite.ci.observer.BuildsInfo.CANCELLED_STATUS;
 import static org.apache.ignite.ci.observer.BuildsInfo.FINISHED_STATUS;
 import static org.apache.ignite.ci.observer.BuildsInfo.RUNNING_STATUS;
 import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
-import static org.apache.ignite.ci.web.rest.parms.FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME;
+import static org.apache.ignite.ci.tcbot.conf.TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME;
 
 /**
  * TC Bot Visa Facade. Provides method for TC Bot Visa obtaining. Contains features for adding comment to the ticket
@@ -572,8 +573,11 @@ public class TcBotTriggerAndSignOffService {
     @NotNull public String findDefaultBranchBuildType(String srvId) {
         StringBuilder buildTypeId = new StringBuilder();
 
+        ITcServerConfig tcCfg = cfg.getTeamcityConfig(srvId);
+        String trBranch = tcCfg.defaultTrackedBranch();
+
         cfg.getTrackedBranches()
-            .get(DEFAULT_TRACKED_BRANCH_NAME)
+            .get(trBranch)
             .ifPresent(
                 b -> b.getChainsStream()
                     .filter(c -> Objects.equals(srvId, c.serverId))

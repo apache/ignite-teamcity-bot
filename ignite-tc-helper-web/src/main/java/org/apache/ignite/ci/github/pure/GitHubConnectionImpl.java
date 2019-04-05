@@ -141,7 +141,10 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** {@inheritDoc} */
     @Override public String gitApiUrl() {
-        return gitApiUrl;
+        if (gitApiUrl == null)
+            return null;
+
+        return gitApiUrl.endsWith("/") ? gitApiUrl : gitApiUrl + "/";
     }
 
     /** {@inheritDoc} */
@@ -150,7 +153,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
         @Nullable AtomicReference<String> outLinkNext) {
         Preconditions.checkState(!isNullOrEmpty(gitApiUrl), "Git API URL is not configured for this server.");
 
-        String url = fullUrl != null ? fullUrl : gitApiUrl + "pulls?sort=updated&direction=desc";
+        String url = fullUrl != null ? fullUrl : gitApiUrl() + "pulls?sort=updated&direction=desc";
 
         HashMap<String, String> rspHeaders = new HashMap<>();
         if (outLinkNext != null) {

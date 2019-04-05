@@ -27,7 +27,6 @@ import org.jetbrains.annotations.Nullable;
  * Contains maximum combination of query parameters
  */
 public class FullQueryParams {
-    public static final String DEFAULT_TRACKED_BRANCH_NAME = "master";
 
     //see definitions in Index.html javascript
     public static final String HISTORY = "History";
