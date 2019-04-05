@@ -27,6 +27,7 @@ import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
@@ -35,7 +36,6 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.long_running.FullLRTestsSummary;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -68,7 +68,7 @@ public class TrackedBranchChainsProcessor {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
-        final String branchNn = isNullOrEmpty(branch) ? FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME : branch;
+        final String branchNn = isNullOrEmpty(branch) ? TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
         res.setTrackedBranch(branchNn);
 
         final BranchTracked tracked = tcBotConfig.getTrackedBranches().getBranchMandatory(branchNn);
@@ -143,7 +143,7 @@ public class TrackedBranchChainsProcessor {
         ICredentialsProv creds) {
         FullLRTestsSummary summary = new FullLRTestsSummary();
 
-        final String branchNn = isNullOrEmpty(branch) ? FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME : branch;
+        final String branchNn = isNullOrEmpty(branch) ? TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
         final BranchTracked tracked = tcBotConfig.getTrackedBranches().getBranchMandatory(branchNn);
 
         tracked.chains.stream()

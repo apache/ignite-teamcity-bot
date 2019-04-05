@@ -27,6 +27,7 @@ import org.jetbrains.annotations.Nullable;
  * Teamcity connection configuration or reference to another config.
  */
 public class TcServerConfig implements ITcServerConfig {
+    public static final String DEFAULT_TRACKED_BRANCH_NAME = "master";
     private static final String DEFAULT_HOST = "https://ci.ignite.apache.org/";
 
     /** TC server name. */
@@ -43,6 +44,9 @@ public class TcServerConfig implements ITcServerConfig {
 
     /** Downloaded build logs relative path. */
     @Nullable private String logsDir;
+
+    /** Default tracked branch. */
+    @Nullable private String defaultTrackedBranch;
 
     public TcServerConfig() {
 
@@ -101,7 +105,16 @@ public class TcServerConfig implements ITcServerConfig {
         return props != null
             ? props.getProperty(HelperConfig.HOST, DEFAULT_HOST)
             : DEFAULT_HOST;
+    }
 
+    /**
+     * @return tracked branch name to be used for this server for PRs check
+     */
+    @Override @NotNull public String defaultTrackedBranch() {
+        if (!Strings.isNullOrEmpty(defaultTrackedBranch))
+            return defaultTrackedBranch;
+
+        return DEFAULT_TRACKED_BRANCH_NAME;
     }
 
     /**

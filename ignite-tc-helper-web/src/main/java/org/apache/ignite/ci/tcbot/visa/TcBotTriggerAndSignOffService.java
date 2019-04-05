@@ -51,6 +51,7 @@ import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
@@ -81,7 +82,6 @@ import static org.apache.ignite.ci.observer.BuildsInfo.CANCELLED_STATUS;
 import static org.apache.ignite.ci.observer.BuildsInfo.FINISHED_STATUS;
 import static org.apache.ignite.ci.observer.BuildsInfo.RUNNING_STATUS;
 import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
-import static org.apache.ignite.ci.web.rest.parms.FullQueryParams.DEFAULT_TRACKED_BRANCH_NAME;
 
 /**
  * TC Bot Visa Facade. Provides method for TC Bot Visa obtaining. Contains features for adding comment to the ticket
@@ -363,14 +363,14 @@ public class TcBotTriggerAndSignOffService {
     }
 
     /**
-     * @param srvId Server id.
+     * @param srvIdOrAlias Server id.
      * @param credsProv Credentials
      */
-    public List<ContributionToCheck> getContributionsToCheck(String srvId,
+    public List<ContributionToCheck> getContributionsToCheck(String srvIdOrAlias,
         ICredentialsProv credsProv) {
-        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvId);
+        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvIdOrAlias);
 
-        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvId);
+        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvIdOrAlias);
         List<PullRequest> requests = gitHubConnIgnited.getPullRequests();
         if (requests == null)
             return null;
@@ -408,7 +408,7 @@ public class TcBotTriggerAndSignOffService {
             return check;
         }).collect(Collectors.toList());
 
-        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, credsProv);
+        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvIdOrAlias, credsProv);
 
         paTickets.forEach(ticket -> {
             String branch = ticketMatcher.resolveTcBranchForPrLess(ticket,
@@ -418,7 +418,7 @@ public class TcBotTriggerAndSignOffService {
             if (Strings.isNullOrEmpty(branch))
                 return; // nothing to do if branch was not resolved
 
-            String defBtForMaster = findDefaultBranchBuildType(tcIgn.serverId());
+            String defBtForMaster = findDefaultBuildType(srvIdOrAlias);
 
             if (tcIgn.getAllBuildsCompacted(defBtForMaster, branch).isEmpty())
                 return; //Skipping contributions without builds
@@ -533,7 +533,27 @@ public class TcBotTriggerAndSignOffService {
 
         IGitHubConnIgnited ghConn = gitHubConnIgnitedProvider.server(srvId);
 
-        String defBtForMaster = findDefaultBranchBuildType(teamcity.serverId());
+        List<String> compositeBuildTypeIds = findApplicableBuildTypes(srvId, teamcity);
+
+        for (String btId : compositeBuildTypeIds) {
+            List<BuildRefCompacted> compBuilds = findBuildsForPr(btId, prId, ghConn, teamcity);
+
+            statuses.add(compBuilds.isEmpty()
+                ? new ContributionCheckStatus(btId, branchForTcDefault(prId, ghConn))
+                : contributionStatus(srvId, btId, compBuilds, teamcity, ghConn, prId));
+        }
+
+        return statuses;
+    }
+
+    /**
+     *
+     * @param srvIdOrAlias TC server ID or reference to it.
+     * @param teamcity Teamcity.
+     * @return list of build types which may be taken for
+     */
+    public List<String> findApplicableBuildTypes(String srvIdOrAlias, ITeamcityIgnited teamcity) {
+        String defBtForMaster = findDefaultBuildType(srvIdOrAlias);
 
         BuildTypeCompacted buildType = Strings.isNullOrEmpty(defBtForMaster)
             ? null
@@ -557,26 +577,26 @@ public class TcBotTriggerAndSignOffService {
             if (!Strings.isNullOrEmpty(defBtForMaster))
                 compositeBuildTypeIds.add(defBtForMaster);
         }
-
-        for (String btId : compositeBuildTypeIds) {
-            List<BuildRefCompacted> compBuilds = findBuildsForPr(btId, prId, ghConn, teamcity);
-
-            statuses.add(compBuilds.isEmpty()
-                ? new ContributionCheckStatus(btId, branchForTcDefault(prId, ghConn))
-                : contributionStatus(srvId, btId, compBuilds, teamcity, ghConn, prId));
-        }
-
-        return statuses;
+        return compositeBuildTypeIds;
     }
 
-    @NotNull public String findDefaultBranchBuildType(String srvId) {
+    /**
+     * @param srvIdOrAlias Server id. May be weak reference to TC
+     * @return Some build type included into tracked branches with default branch.
+     */
+    @NotNull public String findDefaultBuildType(String srvIdOrAlias) {
         StringBuilder buildTypeId = new StringBuilder();
 
+        ITcServerConfig tcCfg = cfg.getTeamcityConfig(srvIdOrAlias);
+        String trBranch = tcCfg.defaultTrackedBranch();
+
+        String realTcId = Strings.isNullOrEmpty(tcCfg.reference()) ? srvIdOrAlias : tcCfg.reference();
+
         cfg.getTrackedBranches()
-            .get(DEFAULT_TRACKED_BRANCH_NAME)
+            .get(trBranch)
             .ifPresent(
                 b -> b.getChainsStream()
-                    .filter(c -> Objects.equals(srvId, c.serverId))
+                    .filter(c -> Objects.equals(realTcId, c.serverId))
                     .filter(c -> c.branchForRest.equals(ITeamcity.DEFAULT))
                     .findFirst()
                     .ifPresent(ch -> buildTypeId.append(ch.suiteId)));
