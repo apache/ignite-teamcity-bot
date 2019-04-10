@@ -83,15 +83,14 @@ public class TcServerConfig implements ITcServerConfig {
 
     /** {@inheritDoc} */
     @Override public String logsDirectory() {
-        String dfltLogs = (Strings.isNullOrEmpty(getCode()) ? "" : code + "_") + "logs";
-
         if (!Strings.isNullOrEmpty(logsDir))
             return logsDir;
+
+        String dfltLogs = (Strings.isNullOrEmpty(getCode()) ? "" : code + "_") + "logs";
 
         return props != null
             ? props.getProperty(HelperConfig.LOGS, dfltLogs)
             : dfltLogs;
-
     }
 
     /**

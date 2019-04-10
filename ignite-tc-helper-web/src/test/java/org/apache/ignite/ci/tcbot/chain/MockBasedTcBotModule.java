@@ -110,7 +110,7 @@ public class MockBasedTcBotModule extends AbstractModule {
             }
 
             @Override public IGitHubConfig getGitConfig(String srvCode) {
-                return new GitHubConfig(srvCode, loadOldProps(srvCode));
+                return new GitHubConfig().code(srvCode).properties(loadOldProps(srvCode));
             }
 
             private Properties loadOldProps(String srvCode) {

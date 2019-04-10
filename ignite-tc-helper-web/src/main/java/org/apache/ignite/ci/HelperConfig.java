@@ -56,7 +56,7 @@ public class HelperConfig {
     /** JIRA authorization token property name. */
     public static final String JIRA_AUTH_TOKEN = "jira.auth_token";
 
-    /** JIRA authorization token property name. */
+    /** Github API url for the project. */
     public static final String GIT_API_URL = "git.api_url";
 
     /** JIRA URL to build links to tickets. */
@@ -134,23 +134,6 @@ public class HelperConfig {
             workDir = new File(property);
 
         return ensureDirExist(workDir);
-    }
-
-    /**
-     * Extract GitHub authorization token from properties.
-     *
-     * @param props Properties, where token is placed.
-     * @return Null or decoded auth token for Github.
-     */
-    @Nullable public static String prepareGithubHttpAuthToken(Properties props) {
-        String tok = props.getProperty(GITHUB_AUTH_TOKEN);
-
-        if (isNullOrEmpty(tok))
-            return null;
-
-        tok = PasswordEncoder.decode(tok);
-
-        return tok;
     }
 
     /**

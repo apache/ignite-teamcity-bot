@@ -48,6 +48,7 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
             });
     }
 
+    /** {@inheritDoc} */
     @Override public IJiraServerConfig getJiraConfig(String srvCode) {
         return getTrackedBranches().getJiraConfig(srvCode)
             .orElseGet(() -> new JiraServerConfig()
@@ -55,8 +56,8 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
                 .properties(loadOldAuthProps(srvCode)));
     }
 
-    @Override
-    public IGitHubConfig getGitConfig(String srvCode) {
+    /** {@inheritDoc} */
+    @Override public IGitHubConfig getGitConfig(String srvCode) {
         return getTrackedBranches().getGitHubConfig(srvCode)
             .orElseGet(() -> new GitHubConfig()
                 .code(srvCode)

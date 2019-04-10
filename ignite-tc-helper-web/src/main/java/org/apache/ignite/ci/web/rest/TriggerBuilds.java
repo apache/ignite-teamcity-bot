@@ -133,7 +133,7 @@ public class TriggerBuilds {
 
             IJiraServerConfig jiraCfg = cfg.getJiraConfig(srvCode);
 
-            return new ServerIntegrationLinks(srvCode, gh.gitApiUrl(), jiraCfg.restApiUrl());
+            return new ServerIntegrationLinks(srvCode, gh.config().gitApiUrl(), jiraCfg.restApiUrl());
         }).filter(Objects::nonNull).collect(Collectors.toSet());
     }
 }

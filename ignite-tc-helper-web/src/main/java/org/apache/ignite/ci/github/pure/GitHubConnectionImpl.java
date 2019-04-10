@@ -48,20 +48,19 @@ class GitHubConnectionImpl implements IGitHubConnection {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(GitHubConnectionImpl.class);
 
-    /** URL for git integration. */
-    private String gitApiUrl;
-
-    /** GitHub authorization token. */
-    private String gitAuthTok;
-
+    /** Config. */
     @Inject
-    ITcBotConfig config;
+    private ITcBotConfig cfg;
 
+    /** Service (server) code. */
     private String srvCode;
 
-    @Nullable public static String parseNextLinkFromLinkRspHeader(String s) {
+    /**
+     * @param linkRspHdrVal Value of Link response HTTP header.
+     */
+    @Nullable public static String parseNextLinkFromLinkRspHeader(String linkRspHdrVal) {
         String nextLink = null;
-        StringTokenizer tokenizer = new StringTokenizer(s, ",");
+        StringTokenizer tokenizer = new StringTokenizer(linkRspHdrVal, ",");
         for (; tokenizer.hasMoreTokens(); ) {
             String tok = tokenizer.nextToken();
 
@@ -97,19 +96,18 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
         final Properties props = HelperConfig.loadAuthProperties(workDir, cfgName);
 
-        gitAuthTok = HelperConfig.prepareGithubHttpAuthToken(props);
-        gitApiUrl = props.getProperty(HelperConfig.GIT_API_URL);
-
     }
 
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public PullRequest getPullRequest(Integer id) {
+        String gitApiUrl = config().gitApiUrl();
+
         Preconditions.checkState(!isNullOrEmpty(gitApiUrl), "Git API URL is not configured for this server.");
 
         String pr = gitApiUrl + "pulls/" + id;
 
-        try (InputStream is = HttpUtil.sendGetToGit(gitAuthTok, pr, null)) {
+        try (InputStream is = HttpUtil.sendGetToGit(gitAuthTok(), pr, null)) {
             InputStreamReader reader = new InputStreamReader(is);
 
             return new Gson().fromJson(reader, PullRequest.class);
@@ -123,7 +121,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
     @AutoProfiling
     @Override public boolean notifyGit(String url, String body) {
         try {
-            HttpUtil.sendPostAsStringToGit(gitAuthTok, url, body);
+            HttpUtil.sendPostAsStringToGit(gitAuthTok(), url, body);
 
             return true;
         }
@@ -136,24 +134,25 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** {@inheritDoc} */
     @Override public boolean isGitTokenAvailable() {
-        return gitAuthTok != null;
+        return gitAuthTok() != null;
     }
 
-    /** {@inheritDoc} */
-    @Override public String gitApiUrl() {
-        if (gitApiUrl == null)
-            return null;
-
-        return gitApiUrl.endsWith("/") ? gitApiUrl : gitApiUrl + "/";
+    /**
+     * @return cleartext token or null
+     */
+    @Nullable private String gitAuthTok() {
+        return config().gitAuthTok();
     }
 
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public List<PullRequest> getPullRequests(@Nullable String fullUrl,
         @Nullable AtomicReference<String> outLinkNext) {
+        String gitApiUrl = config().gitApiUrl();
+
         Preconditions.checkState(!isNullOrEmpty(gitApiUrl), "Git API URL is not configured for this server.");
 
-        String url = fullUrl != null ? fullUrl : gitApiUrl() + "pulls?sort=updated&direction=desc";
+        String url = fullUrl != null ? fullUrl : gitApiUrl + "pulls?sort=updated&direction=desc";
 
         HashMap<String, String> rspHeaders = new HashMap<>();
         if (outLinkNext != null) {
@@ -161,7 +160,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
             rspHeaders.put("Link", null); // requesting header
         }
 
-        try (InputStream stream = HttpUtil.sendGetToGit(gitAuthTok, url, rspHeaders)) {
+        try (InputStream stream = HttpUtil.sendGetToGit(gitAuthTok(), url, rspHeaders)) {
             InputStreamReader reader = new InputStreamReader(stream);
             Type listType = new TypeToken<ArrayList<PullRequest>>() {
             }.getType();
@@ -187,6 +186,6 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** {@inheritDoc} */
     @Override public IGitHubConfig config() {
-        return config.getGitConfig(srvCode);
+        return cfg.getGitConfig(srvCode);
     }
 }

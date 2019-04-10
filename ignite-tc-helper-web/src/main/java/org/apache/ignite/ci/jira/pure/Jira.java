@@ -40,15 +40,14 @@ class Jira implements IJiraIntegration {
     private static final Logger logger = LoggerFactory.getLogger(Jira.class);
 
     /** Server id. */
-    private String srvId;
+    private String srvCode;
 
     /** Config. */
     @Inject ITcBotConfig cfg;
 
     /** {@inheritDoc} */
-    @Override public void init(String srvId) {
-        this.srvId = srvId;
-
+    @Override public void init(String srvCode) {
+        this.srvCode = srvCode;
     }
 
     /** {@inheritDoc} */
@@ -85,7 +84,7 @@ class Jira implements IJiraIntegration {
 
     /** {@inheritDoc} */
     @Override public IJiraServerConfig config() {
-        return cfg.getJiraConfig(srvId);
+        return cfg.getJiraConfig(srvCode);
     }
 
     /** {@inheritDoc} */

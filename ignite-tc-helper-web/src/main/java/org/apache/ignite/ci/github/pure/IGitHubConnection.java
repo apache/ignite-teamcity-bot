@@ -47,11 +47,6 @@ public interface IGitHubConnection {
      */
     boolean isGitTokenAvailable();
 
-    /**
-     * @return URL for git integration.
-     */
-    String gitApiUrl();
-
     List<PullRequest> getPullRequests(@Nullable String fullUrl, @Nullable AtomicReference<String> outLinkNext);
 
     /**

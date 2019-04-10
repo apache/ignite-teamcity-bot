@@ -26,9 +26,9 @@ import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
  */
 public interface IJiraIntegration {
     /**
-     * @return Internal identified service ID.
+     * @param srvCode Internal identification service code.
      */
-    public void init(String srvId);
+    public void init(String srvCode);
 
     /**
      * @param ticket JIRA ticket full name. E.g 'IGNITE-5555'.

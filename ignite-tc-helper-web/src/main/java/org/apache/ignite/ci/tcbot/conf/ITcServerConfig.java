@@ -34,6 +34,9 @@ public interface ITcServerConfig {
 
     @NotNull public String host();
 
+    /**
+     * @return Directory for downloading build logs (will contain ZIP files).
+     */
     @NotNull public String logsDirectory();
 
     /**
