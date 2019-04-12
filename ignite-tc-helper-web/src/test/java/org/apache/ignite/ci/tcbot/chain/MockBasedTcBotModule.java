@@ -102,7 +102,7 @@ public class MockBasedTcBotModule extends AbstractModule {
 
             /** {@inheritDoc} */
             @Override public ITcServerConfig getTeamcityConfig(String srvCode) {
-                return new TcServerConfig(srvCode, loadOldProps(srvCode));
+                return new TcServerConfig().code(srvCode).properties(loadOldProps(srvCode));
             }
 
             @Override public IJiraServerConfig getJiraConfig(String srvCode) {

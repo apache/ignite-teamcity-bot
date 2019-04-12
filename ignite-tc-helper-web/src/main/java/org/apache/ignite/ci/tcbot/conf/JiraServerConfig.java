@@ -117,15 +117,13 @@ public class JiraServerConfig implements IJiraServerConfig {
         return Strings.emptyToNull(branchNumPrefix);
     }
 
-    /**
-     * Extracts JIRA basic authorization token from properties.
-     *
-     * @return Null or decoded auth token for Github.
-     */
+
+    /** {@inheritDoc} */
     @Nullable
     @Override
     public String decodedHttpAuthToken() {
         String tok;
+
         if (Strings.isNullOrEmpty(authTok) && props != null)
             tok = props.getProperty(HelperConfig.JIRA_AUTH_TOKEN);
         else

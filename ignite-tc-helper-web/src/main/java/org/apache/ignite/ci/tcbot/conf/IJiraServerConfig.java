@@ -45,6 +45,11 @@ public interface IJiraServerConfig {
      */
     @Nullable public String branchNumPrefix();
 
+    /**
+     * Extracted JIRA basic authorization token from properties.
+     *
+     * @return Null or decoded auth token for JIRA.
+     */
     @Nullable public String decodedHttpAuthToken();
 
     /**

@@ -101,7 +101,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** Teamcity http connection. */
     @Inject private ITeamcityHttpConnection teamcityHttpConn;
 
-    @Inject private ITcBotConfig config;
+    @Inject private ITcBotConfig cfg;
 
     private String tcName;
 
@@ -116,7 +116,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     @Override public void init(@Nullable String tcName) {
         this.tcName = tcName;
 
-        ITcServerConfig tcCfg = this.config.getTeamcityConfig(tcName);
+        ITcServerConfig tcCfg = this.cfg.getTeamcityConfig(tcName);
         final Properties props = tcCfg.properties();
 
         this.host = tcCfg.host();

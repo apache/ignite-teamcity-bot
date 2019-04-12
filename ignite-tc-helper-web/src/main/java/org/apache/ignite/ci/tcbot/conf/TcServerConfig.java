@@ -45,19 +45,14 @@ public class TcServerConfig implements ITcServerConfig {
     /** Downloaded build logs relative path. */
     @Nullable private String logsDir;
 
-    /** Default tracked branch. */
+    /** Default tracked branch name in internal identification of TC bot. */
     @Nullable private String defaultTrackedBranch;
 
     public TcServerConfig() {
 
     }
 
-    public TcServerConfig(String code, Properties properties) {
-        this.code = code;
-        this.props = properties;
-    }
-
-    public String getCode() {
+    @NotNull public String getCode() {
         return code;
     }
 
@@ -119,11 +114,15 @@ public class TcServerConfig implements ITcServerConfig {
     /**
      * @param props Properties.
      */
-    public void properties(Properties props) {
+    public TcServerConfig properties(Properties props) {
         this.props = props;
+
+        return this;
     }
 
-    public void code(String srvCode) {
+    public TcServerConfig code(String srvCode) {
         this.code = srvCode;
+
+        return this;
     }
 }
