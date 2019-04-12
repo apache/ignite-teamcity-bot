@@ -24,14 +24,14 @@ import org.jetbrains.annotations.Nullable;
  * Teamcity Server configuration.
  */
 public interface ITcServerConfig {
-    @Deprecated
-    public Properties properties();
-
     /**
      * @return Another TC Server (service) config name to use settings from. Filled only for server aliases.
      */
     @Nullable public String reference();
 
+    /**
+     * @return Normalized Host address, ends with '/'.
+     */
     @NotNull public String host();
 
     @NotNull public String logsDirectory();
