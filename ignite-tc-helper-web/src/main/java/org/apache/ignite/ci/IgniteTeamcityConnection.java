@@ -105,8 +105,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return executor;
     }
 
-    /** {@inheritDoc} */
-    @Override public void init(@Nullable String srvCode) {
+    public void init(@Nullable String srvCode) {
         this.srvCode = srvCode;
 
         this.executor = MoreExecutors.directExecutor();
