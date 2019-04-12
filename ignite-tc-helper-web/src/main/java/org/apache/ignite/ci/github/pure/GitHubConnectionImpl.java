@@ -19,7 +19,6 @@ package org.apache.ignite.ci.github.pure;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -28,11 +27,9 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
-import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
@@ -90,12 +87,6 @@ class GitHubConnectionImpl implements IGitHubConnection {
     /** {@inheritDoc} */
     @Override public void init(String srvCode) {
         this.srvCode = srvCode;
-        final File workDir = HelperConfig.resolveWorkDir();
-
-        String cfgName = HelperConfig.prepareConfigName(srvCode);
-
-        final Properties props = HelperConfig.loadAuthProperties(workDir, cfgName);
-
     }
 
     /** {@inheritDoc} */
@@ -107,7 +98,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
         String pr = gitApiUrl + "pulls/" + id;
 
-        try (InputStream is = HttpUtil.sendGetToGit(gitAuthTok(), pr, null)) {
+        try (InputStream is = HttpUtil.sendGetToGit(config().gitAuthTok(), pr, null)) {
             InputStreamReader reader = new InputStreamReader(is);
 
             return new Gson().fromJson(reader, PullRequest.class);
@@ -121,7 +112,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
     @AutoProfiling
     @Override public boolean notifyGit(String url, String body) {
         try {
-            HttpUtil.sendPostAsStringToGit(gitAuthTok(), url, body);
+            HttpUtil.sendPostAsStringToGit(config().gitAuthTok(), url, body);
 
             return true;
         }
@@ -134,14 +125,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** {@inheritDoc} */
     @Override public boolean isGitTokenAvailable() {
-        return gitAuthTok() != null;
-    }
-
-    /**
-     * @return cleartext token or null
-     */
-    @Nullable private String gitAuthTok() {
-        return config().gitAuthTok();
+        return config().gitAuthTok() != null;
     }
 
     /** {@inheritDoc} */
@@ -160,7 +144,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
             rspHeaders.put("Link", null); // requesting header
         }
 
-        try (InputStream stream = HttpUtil.sendGetToGit(gitAuthTok(), url, rspHeaders)) {
+        try (InputStream stream = HttpUtil.sendGetToGit(config().gitAuthTok(), url, rspHeaders)) {
             InputStreamReader reader = new InputStreamReader(stream);
             Type listType = new TypeToken<ArrayList<PullRequest>>() {
             }.getType();
