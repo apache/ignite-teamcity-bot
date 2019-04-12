@@ -363,14 +363,14 @@ public class TcBotTriggerAndSignOffService {
     }
 
     /**
-     * @param srvIdOrAlias Server id.
+     * @param srvCodeOrAlias Server id.
      * @param credsProv Credentials
      */
-    public List<ContributionToCheck> getContributionsToCheck(String srvIdOrAlias,
+    public List<ContributionToCheck> getContributionsToCheck(String srvCodeOrAlias,
         ICredentialsProv credsProv) {
-        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvIdOrAlias);
+        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCodeOrAlias);
 
-        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvIdOrAlias);
+        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
         List<PullRequest> requests = gitHubConnIgnited.getPullRequests();
         if (requests == null)
             return null;
@@ -408,7 +408,7 @@ public class TcBotTriggerAndSignOffService {
             return check;
         }).collect(Collectors.toList());
 
-        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvIdOrAlias, credsProv);
+        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCodeOrAlias, credsProv);
 
         paTickets.forEach(ticket -> {
             String branch = ticketMatcher.resolveTcBranchForPrLess(ticket,
@@ -418,7 +418,7 @@ public class TcBotTriggerAndSignOffService {
             if (Strings.isNullOrEmpty(branch))
                 return; // nothing to do if branch was not resolved
 
-            String defBtForMaster = findDefaultBuildType(srvIdOrAlias);
+            String defBtForMaster = findDefaultBuildType(srvCodeOrAlias);
 
             if (tcIgn.getAllBuildsCompacted(defBtForMaster, branch).isEmpty())
                 return; //Skipping contributions without builds

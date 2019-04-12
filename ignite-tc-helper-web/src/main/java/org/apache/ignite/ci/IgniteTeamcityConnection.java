@@ -112,11 +112,10 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return executor;
     }
 
-    /** {@inheritDoc} */
-    @Override public void init(@Nullable String tcName) {
-        this.tcName = tcName;
+    public void init(@Nullable String srvCode) {
+        this.tcName = srvCode;
 
-        ITcServerConfig tcCfg = this.cfg.getTeamcityConfig(tcName);
+        ITcServerConfig tcCfg = this.cfg.getTeamcityConfig(srvCode);
         final Properties props = tcCfg.properties();
 
         this.host = tcCfg.host();

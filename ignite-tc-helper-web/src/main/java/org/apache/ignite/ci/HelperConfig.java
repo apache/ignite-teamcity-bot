@@ -21,14 +21,12 @@ import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Properties;
-
-import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
+import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.jetbrains.annotations.NotNull;
@@ -83,16 +81,11 @@ public class HelperConfig {
 
     private static Properties loadAuthPropertiesX(File workDir, String cfgFileName) throws IOException {
         File file = new File(workDir, cfgFileName);
-        if (!(file.exists())) {
 
-            try (FileWriter writer = new FileWriter(file)) {
-                writer.write(HOST + "=" + "http://ci.ignite.apache.org/" + ENDL);
-                writer.write(USERNAME + "=" + ENDL);
-                writer.write(ENCODED_PASSWORD + "=" + ENDL);
-            }
-            throw new IllegalStateException("Please setup parameters for service in config file [" +
-                file.getCanonicalPath() + "]");
-        }
+        Preconditions.checkState(file.exists(),
+            "Please setup parameters for service in config file [branches.json]. " +
+                "See conf directory for examples");
+
         return loadProps(file);
     }
 
@@ -144,7 +137,8 @@ public class HelperConfig {
      * @return Null or decoded auth token for Github.
      */
     @Nullable static String prepareBasicHttpAuthToken(Properties props, String cfgName) {
-        final String user = getMandatoryProperty(props, USERNAME, cfgName);
+        final String user = props.getProperty(USERNAME);
+        Preconditions.checkState(!isNullOrEmpty(user), USERNAME + " property should be filled in " + cfgName);
 
         String enc = props.getProperty(ENCODED_PASSWORD);
 
@@ -170,9 +164,10 @@ public class HelperConfig {
         final File workDir = resolveWorkDir();
         final File file = new File(workDir, "branches.json");
 
-        try(final FileReader json = new FileReader(file)) {
+        try (FileReader json = new FileReader(file)) {
             return new Gson().fromJson(json, BranchesTracked.class);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw ExceptionUtil.propagateException(e);
         }
     }

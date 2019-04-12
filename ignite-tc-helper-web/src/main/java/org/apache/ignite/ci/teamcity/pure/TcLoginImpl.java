@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.teamcity.pure;
 
 import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.slf4j.Logger;
@@ -33,12 +34,12 @@ class TcLoginImpl implements ITcLogin {
     private static final Logger logger = LoggerFactory.getLogger(TcLoginImpl.class);
 
     /** Teamcity connection non-caching factory. */
-    @Inject private Provider<ITeamcity> tcFactory;
+    @Inject private Provider<IgniteTeamcityConnection> tcFactory;
 
     /** {@inheritDoc} */
     @Override public User checkServiceUserAndPassword(String srvId, String username, String pwd) {
         try {
-            ITeamcity tcConn = tcFactory.get();
+            IgniteTeamcityConnection tcConn = tcFactory.get();
 
             tcConn.init(srvId);
 

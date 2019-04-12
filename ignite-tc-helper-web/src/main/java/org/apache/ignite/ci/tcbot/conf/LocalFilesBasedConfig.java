@@ -71,7 +71,8 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
         return Strings.isNullOrEmpty(srvCode) ? ITcBotConfig.DEFAULT_SERVER_CODE : srvCode;
     }
 
-    private Properties loadOldAuthProps(String srvCode) {
+    @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)
+    protected Properties loadOldAuthProps(String srvCode) {
         File workDir = HelperConfig.resolveWorkDir();
 
         String cfgName = HelperConfig.prepareConfigName(srvCode);

@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 import java.io.IOException;
 import javax.inject.Inject;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.jira.Tickets;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
@@ -83,6 +84,7 @@ class Jira implements IJiraIntegration {
     }
 
     /** {@inheritDoc} */
+    @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)
     @Override public IJiraServerConfig config() {
         return cfg.getJiraConfig(srvCode);
     }

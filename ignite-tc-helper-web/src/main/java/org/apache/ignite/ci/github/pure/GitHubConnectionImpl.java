@@ -31,6 +31,7 @@ import java.util.StringTokenizer;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
@@ -169,6 +170,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
     }
 
     /** {@inheritDoc} */
+    @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)
     @Override public IGitHubConfig config() {
         return cfg.getGitConfig(srvCode);
     }
