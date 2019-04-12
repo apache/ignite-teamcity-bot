@@ -63,7 +63,12 @@ public class Ticket {
      * Checks if ticket relates to some Active (In progress/Patch Available) Contribution.
      */
     public boolean isActiveContribution() {
-        return Status.PA_NAME.equals(status())
-            || Status.IP_NAME.equals(status());
+        String status = status();
+
+        return Status.PA_NAME.equals(status)
+            || Status.IP_NAME.equals(status)
+            || Status.OPEN_NAME.equals(status)
+            || Status.BACKLOG_NAME.equals(status)
+            || Status.REOPENED_NAME.equals(status);
     }
 }
