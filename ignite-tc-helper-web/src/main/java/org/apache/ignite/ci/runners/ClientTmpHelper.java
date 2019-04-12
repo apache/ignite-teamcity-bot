@@ -23,6 +23,7 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssuesStorage;
+import org.apache.ignite.ci.jira.ignited.JiraTicketDao;
 
 /**
  * Utility class for local connection to TC helper DB (server) and any manipulations with data needed.
@@ -69,6 +70,19 @@ public class ClientTmpHelper {
         Ignite ignite = TcHelperDb.startClient();
 
         IgniteCache<Object, Object> cache = ignite.cache(IGitHubConnIgnited.GIT_HUB_PR);
+
+        cache.clear();
+        ignite.close();
+    }
+
+    public static void main(String[] args) {
+        mainDeleteTickets(args);
+    }
+
+    public static void mainDeleteTickets(String[] args) {
+        Ignite ignite = TcHelperDb.startClient();
+
+        IgniteCache<Object, Object> cache = ignite.cache(JiraTicketDao.TEAMCITY_JIRA_TICKET_CACHE_NAME);
 
         cache.clear();
         ignite.close();
