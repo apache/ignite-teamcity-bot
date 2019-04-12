@@ -42,7 +42,6 @@ import java.util.concurrent.ExecutorService;
  * https://confluence.jetbrains.com/display/TCD10/REST+API
  */
 public interface ITeamcity extends ITeamcityConn {
-
     public String DEFAULT = "<default>";
     public String REFS_HEADS_MASTER = "refs/heads/master";
 

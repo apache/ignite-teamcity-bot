@@ -37,13 +37,4 @@ public class UrlUtil {
             return val;
         }
     }
-
-    public static String escapeOrB64(String val) {
-        if (Strings.nullToEmpty(val).contains("/")) {
-            String idForRestEncoded = Base64Util.encodeUtf8String(val);
-            return "($base64:" + idForRestEncoded + ")";
-        }
-        else
-            return escape(val);
-    }
 }

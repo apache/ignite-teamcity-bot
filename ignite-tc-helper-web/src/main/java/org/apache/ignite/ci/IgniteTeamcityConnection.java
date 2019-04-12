@@ -63,7 +63,6 @@ import javax.xml.bind.JAXBException;
 import java.io.*;
 import java.util.SortedSet;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -89,12 +88,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** Executor. */
     private Executor executor;
 
-    /** Logs directory. */
-    private File logsDir;
-
-    /** Normalized Host address, ends with '/'. */
-    private String host;
-
     /** TeamCity authorization token. */
     private String basicAuthTok;
 
@@ -103,7 +96,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     @Inject private ITcBotConfig cfg;
 
-    private String tcName;
+    private String srvCode;
 
     /** Build logger processing running. */
     private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
@@ -112,33 +105,15 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return executor;
     }
 
-    public void init(@Nullable String srvCode) {
-        this.tcName = srvCode;
-
-        ITcServerConfig tcCfg = this.cfg.getTeamcityConfig(srvCode);
-        final Properties props = tcCfg.properties();
-
-        this.host = tcCfg.host();
-
-        if (props != null) {
-            try {
-                if (!Strings.isNullOrEmpty(props.getProperty(HelperConfig.USERNAME))
-                    && props.getProperty(HelperConfig.ENCODED_PASSWORD) != null)
-                    setAuthToken(HelperConfig.prepareBasicHttpAuthToken(props, "TC Config"));
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-                logger.error("Failed to set credentials", e);
-            }
-        }
-
-        final File logsDirFile = HelperConfig.resolveLogs(
-            HelperConfig.resolveWorkDir(),
-            tcCfg.logsDirectory());
-
-        logsDir = ensureDirExist(logsDirFile);
+    /** {@inheritDoc} */
+    @Override public void init(@Nullable String srvCode) {
+        this.srvCode = srvCode;
 
         this.executor = MoreExecutors.directExecutor();
+    }
+
+    public ITcServerConfig config() {
+        return cfg.getTeamcityConfig(this.srvCode );
     }
 
     /** {@inheritDoc} */
@@ -169,7 +144,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
         boolean archive = true;
         Supplier<File> supplier = () -> {
             String buildIdStr = Integer.toString(buildId);
-            final File buildDir = ensureDirExist(new File(logsDir, "buildId" + buildIdStr));
+            final File buildDir = ensureDirExist(new File(logsDir(), "buildId" + buildIdStr));
             final File file = new File(buildDir,
                 "build.log" + (archive ? ".zip" : ""));
             if (file.exists() && file.canRead() && file.length() > 0) {
@@ -189,6 +164,14 @@ public class IgniteTeamcityConnection implements ITeamcity {
         };
 
         return supplyAsync(supplier, executor);
+    }
+
+    private File logsDir() {
+        File logsDirFile = HelperConfig.resolveLogs(
+                HelperConfig.resolveWorkDir(),
+                config().logsDirectory());
+
+        return ensureDirExist(logsDirFile);
     }
 
     @AutoProfiling
@@ -312,7 +295,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
      * @return Normalized Host address, ends with '/'.
      */
     @Override public String host() {
-        return host;
+        return config().host();
     }
 
     /** {@inheritDoc} */
@@ -371,7 +354,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     /** {@inheritDoc} */
     @Override public String serverId() {
-        return tcName;
+        return srvCode;
     }
 
     private CompletableFuture<LogCheckTask> checkBuildLogNoCache(int buildId, ISuiteResults ctx) {

@@ -89,8 +89,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Max build id diff to enforce reload during incremental refresh. */
     public static final int MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN = 3000;
 
-    /** Server id. */
-    private String srvName;
+    /** Server (service) code. */
+    private String srvCode;
 
     /** Pure HTTP Connection API. */
     private ITeamcityConn conn;
@@ -146,11 +146,13 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Server ID mask for cache Entries. */
     private int srvIdMaskHigh;
 
-    public void init(String srvId, ITeamcityConn conn) {
-        this.srvName = srvId;
+    public void init(ITeamcityConn conn) {
+        String srvCode = conn.serverId();
+
+        this.srvCode = srvCode;
         this.conn = conn;
 
-        srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
+        srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvCode);
         buildRefDao.init(); //todo init somehow in auto
         buildConditionDao.init();
         fatBuildDao.init();
@@ -165,12 +167,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      */
     @NotNull
     private String taskName(String taskName) {
-        return ITeamcityIgnited.class.getSimpleName() +"." + taskName + "." + srvName;
+        return ITeamcityIgnited.class.getSimpleName() +"." + taskName + "." + srvCode;
     }
 
     /** {@inheritDoc} */
     @Override public String serverId() {
-        return srvName;
+        return srvCode;
     }
 
     /** {@inheritDoc} */
@@ -456,14 +458,14 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      * Enables scheduleing for build refs/builds/history sync
      */
     public void ensureActualizeRequested() {
-        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), () -> actualizeRecentBuildRefs(srvName), 2, TimeUnit.MINUTES);
+        scheduler.sheduleNamed(taskName("actualizeRecentBuildRefs"), () -> actualizeRecentBuildRefs(srvCode), 2, TimeUnit.MINUTES);
 
         buildRefSync.ensureActualizeRequested();
 
         // schedule find missing later
-        fatBuildSync.ensureActualizationRequested(srvName, conn);
+        fatBuildSync.ensureActualizationRequested(srvCode, conn);
 
-        runHistSync.invokeLaterFindMissingHistory(srvName);
+        runHistSync.invokeLaterFindMissingHistory(srvCode);
     }
 
     /** {@inheritDoc} */
@@ -471,7 +473,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
 
         //todo may add additional parameter: load builds into DB in sync/async fashion
-        buildRefSync.runActualizeBuildRefs(srvName, false, Sets.newHashSet(build.getId()), conn);
+        buildRefSync.runActualizeBuildRefs(srvCode, false, Sets.newHashSet(build.getId()), conn);
 
         return build;
     }
@@ -565,7 +567,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     String actualizeRecentBuildRefs() {
-        return actualizeRecentBuildRefs(srvName);
+        return actualizeRecentBuildRefs(srvCode);
     }
 
     /**
@@ -595,12 +597,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         //schedule direct reload for Fat Builds for all queued too-old builds
         fatBuildSync.scheduleBuildsLoad(conn, directUpload);
 
-        buildRefSync.runActualizeBuildRefs(srvName, false, paginateUntil, conn);
+        buildRefSync.runActualizeBuildRefs(srvCode, false, paginateUntil, conn);
 
         int freshButNotFoundByBuildsRefsScan = paginateUntil.size();
         if (!paginateUntil.isEmpty()) {
             //some builds may stuck in the queued or running, enforce loading now
-            fatBuildSync.doLoadBuilds(-1, srvName, conn, paginateUntil);
+            fatBuildSync.doLoadBuilds(-1, srvCode, conn, paginateUntil);
         }
 
         // schedule full resync later
@@ -622,6 +624,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      *
      */
     void fullReindex() {
-        buildRefSync.runActualizeBuildRefs(srvName, true, null, conn);
+        buildRefSync.runActualizeBuildRefs(srvCode, true, null, conn);
     }
 }

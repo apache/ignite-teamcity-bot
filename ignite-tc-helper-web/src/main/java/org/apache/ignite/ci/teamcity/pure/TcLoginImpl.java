@@ -47,15 +47,6 @@ class TcLoginImpl implements ITcLogin {
 
             final User tcUser = tcConn.getUserByUsername(username);
 
-                /*
-                final List<UserRef> usersRefs = users.getUsersRefs();
-
-                for (UserRef next : usersRefs) {
-                    if (next.username.equals(username)) {
-                        System.err.println("Found ");
-                    }
-                }*/
-
             if (tcUser != null)
                 logger.info("TC user returned: " + tcUser);
 

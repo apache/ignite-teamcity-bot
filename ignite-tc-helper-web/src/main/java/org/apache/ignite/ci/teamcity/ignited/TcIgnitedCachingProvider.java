@@ -75,14 +75,15 @@ class TcIgnitedCachingProvider implements ITeamcityIgnitedProvider {
                 ITeamcity tcRealConn = srvFactory.server(realSrvCode, prov);
 
                 if (prov != null) {
-                    final String user = prov.getUser(realSrvCode);
-                    final String pwd = prov.getPassword(realSrvCode);
+                    String user = prov.getUser(realSrvCode);
+                    String pwd = prov.getPassword(realSrvCode);
+
                     tcRealConn.setAuthData(user, pwd);
                 }
 
                 TeamcityIgnitedImpl impl = provider.get();
 
-                impl.init(realSrvCode, tcRealConn);
+                impl.init(tcRealConn);
 
                 return impl;
             });

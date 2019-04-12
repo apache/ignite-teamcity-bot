@@ -57,14 +57,6 @@ public class TcServerConfig implements ITcServerConfig {
     }
 
     /** {@inheritDoc} */
-    @Override public Properties properties() {
-        if (props == null)
-            return new Properties();
-
-        return props;
-    }
-
-    /** {@inheritDoc} */
     @Override public String reference() {
         return reference;
     }
