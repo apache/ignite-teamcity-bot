@@ -20,18 +20,19 @@ import com.google.common.base.Strings;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.ignite.ci.github.GitHubBranchShort;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.jetbrains.annotations.Nullable;
 
 /**
- *
+ * GitHub pure connection
  */
 public interface IGitHubConnection {
-    void init(String srvCode);
+    public void init(String srvCode);
 
     /** */
-    PullRequest getPullRequest(Integer id);
+    public PullRequest getPullRequest(Integer id);
 
     /**
      * Send POST request with given body.
@@ -40,14 +41,19 @@ public interface IGitHubConnection {
      * @param body Request body.
      * @return {@code True} - if GitHub was notified. {@code False} - otherwise.
      */
-    boolean notifyGit(String url, String body);
+    public boolean notifyGit(String url, String body);
 
     /**
-     * @return {@code True} if GitHub authorization token is available.
+     * @param fullUrl Full url - null for first page, not null for next page.
+     * @param outLinkNext Out link for return next page full url.
      */
-    boolean isGitTokenAvailable();
+    public List<PullRequest> getPullRequestsPage(@Nullable String fullUrl, @Nullable AtomicReference<String> outLinkNext);
 
-    List<PullRequest> getPullRequests(@Nullable String fullUrl, @Nullable AtomicReference<String> outLinkNext);
+    /**
+     * @param fullUrl Full url - null for first page, not null for next page.
+     * @param outLinkNext Out link for return next page full url.
+     */
+    public List<GitHubBranchShort> getBranchesPage(@Nullable String fullUrl, @Nullable AtomicReference<String> outLinkNext);
 
     /**
      * @return PR id from string "pull/XXXX/head"
@@ -73,5 +79,8 @@ public interface IGitHubConnection {
         return Strings.isNullOrEmpty(id) ? null : Integer.parseInt(id);
     }
 
-    IGitHubConfig config();
+    /**
+     *
+     */
+    public IGitHubConfig config();
 }

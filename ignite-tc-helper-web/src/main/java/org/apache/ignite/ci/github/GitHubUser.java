@@ -18,7 +18,9 @@ package org.apache.ignite.ci.github;
 
 import com.google.gson.annotations.SerializedName;
 import java.util.Objects;
+import org.apache.ignite.ci.db.Persisted;
 
+@Persisted
 public class GitHubUser {
     @SerializedName("login") private String login;
     @SerializedName("avatar_url") private String avatarUrl;

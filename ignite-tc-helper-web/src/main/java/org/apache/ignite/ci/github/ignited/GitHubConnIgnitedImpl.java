@@ -34,6 +34,8 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.github.GitHubBranchKey;
+import org.apache.ignite.ci.github.GitHubBranchShort;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
@@ -62,10 +64,14 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     @Inject IScheduler scheduler;
 
     /** Server ID mask for cache Entries. */
-    private long srvIdMaskHigh;
+    private int srvIdMaskHigh;
 
     /** PPs cache. */
     private IgniteCache<Long, PullRequest> prCache;
+
+
+    /** PPs cache. */
+    private IgniteCache<GitHubBranchKey, GitHubBranchShort> branchCache;
 
     /**
      * @param conn Connection.
@@ -79,7 +85,9 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
 
         srvIdMaskHigh = Math.abs(srvCode.hashCode());
 
-        prCache = igniteProvider.get().getOrCreateCache(TcHelperDb.getCache8PartsConfig(GIT_HUB_PR));
+        Ignite ignite = igniteProvider.get();
+        prCache = ignite.getOrCreateCache(TcHelperDb.getCache8PartsConfig(GIT_HUB_PR));
+        branchCache = ignite.getOrCreateCache(TcHelperDb.getCache8PartsConfig(GIT_HUB_BRANCHES));
     }
 
     /** {@inheritDoc} */
@@ -114,6 +122,22 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
             .filter(entry -> PullRequest.OPEN.equals(entry.getValue().getState()))
             .map(javax.cache.Cache.Entry::getValue)
             .collect(Collectors.toList());
+    }
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    @Override public List<String> getBranches() {
+        scheduler.sheduleNamed(taskName("actualizeBranches"), this::actualizeBranches, 2, TimeUnit.HOURS);
+
+        return StreamSupport.stream(branchCache.spliterator(), false)
+            .filter(entry -> entry.getKey().srvId() == srvIdMaskHigh)
+            .map(javax.cache.Cache.Entry::getKey)
+            .map(GitHubBranchKey::branchName)
+            .collect(Collectors.toList());
+    }
+
+    private void actualizeBranches() {
+        runActualizeBranches(srvCode, true);
     }
 
     /**
@@ -151,16 +175,16 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     protected String runActualizePrs(String srvId, boolean fullReindex) {
         AtomicReference<String> outLinkNext = new AtomicReference<>();
 
-        List<PullRequest> ghData = conn.getPullRequests(null, outLinkNext);
+        List<PullRequest> ghData = conn.getPullRequestsPage(null, outLinkNext);
 
         Set<Integer> actualPrs = new HashSet<>();
 
-        int cntSaved = saveChunk(ghData);
+        int cntSaved = savePrsChunk(ghData);
         int totalChecked = ghData.size();
         while (outLinkNext.get() != null) {
             String nextPageUrl = outLinkNext.get();
-            ghData = conn.getPullRequests(nextPageUrl, outLinkNext);
-            int savedThisChunk = saveChunk(ghData);
+            ghData = conn.getPullRequestsPage(nextPageUrl, outLinkNext);
+            int savedThisChunk = savePrsChunk(ghData);
             cntSaved += savedThisChunk;
             totalChecked += ghData.size();
 
@@ -195,7 +219,10 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         return "PRs updated for " + srvId + ": " + cnt + " from " + prCache.size();
     }
 
-    private int saveChunk(List<PullRequest> ghData) {
+    /**
+     * @param ghData GitHub data to save.
+     */
+    private int savePrsChunk(List<PullRequest> ghData) {
         Set<Long> ids = ghData.stream().map(PullRequest::getNumber)
             .map(this::prNumberToCacheKey)
             .collect(Collectors.toSet());
@@ -212,12 +239,83 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         }
 
         int size = entriesToPut.size();
+
         if (size != 0)
             prCache.putAll(entriesToPut);
+
         return size;
     }
 
-    private long prNumberToCacheKey(int prNumber) {
-        return (long)prNumber | srvIdMaskHigh << 32;
+    private long prNumberToCacheKey(int prNum) {
+        return (long)prNum | (long)srvIdMaskHigh << 32;
     }
+
+
+    /**
+     * @param srvId Server id.
+     * @param fullReindex Reindex all open PRs
+     */
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    @MonitoredTask(name = "Actualize GitHub Branches(srv, full resync)", nameExtArgsIndexes = {0, 1})
+    @AutoProfiling
+    protected String runActualizeBranches(String srvId, boolean fullReindex) {
+        AtomicReference<String> outLinkNext = new AtomicReference<>();
+
+        List<GitHubBranchShort> ghData = conn.getBranchesPage(null, outLinkNext);
+
+        Set<Integer> actualPrs = new HashSet<>();
+
+        int cntSaved = saveBranchesChunk(ghData);
+        int totalChecked = ghData.size();
+        while (outLinkNext.get() != null) {
+            String nextPageUrl = outLinkNext.get();
+            ghData = conn.getBranchesPage(nextPageUrl, outLinkNext);
+            int savedThisChunk = saveBranchesChunk(ghData);
+            cntSaved += savedThisChunk;
+            totalChecked += ghData.size();
+
+            if (!fullReindex && savedThisChunk == 0)
+                break;
+        }
+
+        if (fullReindex)
+            refreshOutdatedPrs(srvId, actualPrs);
+
+        return "Entries saved " + cntSaved + " Branches checked " + totalChecked;
+    }
+
+
+    /**
+     * @param ghData GitHub data to save.
+     */
+    private int saveBranchesChunk(List<GitHubBranchShort> ghData) {
+        Set<GitHubBranchKey> ids = ghData.stream()
+            .map(this::branchToKey)
+            .collect(Collectors.toSet());
+
+        Map<GitHubBranchKey, GitHubBranchShort> existingEntries = branchCache.getAll(ids);
+        Map<GitHubBranchKey, GitHubBranchShort> entriesToPut = new TreeMap<>();
+
+        for (GitHubBranchShort next : ghData) {
+            GitHubBranchKey cacheKey = branchToKey(next);
+            GitHubBranchShort prPersisted = existingEntries.get(cacheKey);
+
+            if (prPersisted == null || !prPersisted.equals(next))
+                entriesToPut.put(cacheKey, next);
+        }
+
+        int size = entriesToPut.size();
+
+        if (size != 0)
+            branchCache.putAll(entriesToPut);
+
+        return size;
+    }
+
+    private GitHubBranchKey branchToKey(GitHubBranchShort b) {
+        GitHubBranchKey key = new GitHubBranchKey();
+        key.branchName(b.name()).srvId(srvIdMaskHigh);
+        return key;
+    }
+
 }

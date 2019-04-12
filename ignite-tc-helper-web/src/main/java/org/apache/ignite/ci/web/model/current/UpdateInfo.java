@@ -62,7 +62,7 @@ import org.apache.ignite.ci.jira.pure.IJiraIntegration;
         if (teamcity.isTeamCityTokenAvailable())
             javaFlags |= TEAMCITY_FLAG;
 
-        if (gitHubConn.isGitTokenAvailable())
+        if (gitHubConn.config().isGitTokenAvailable())
             javaFlags |= GITHUB_FLAG;
 
         if (jiraIntegration.config().isJiraTokenAvailable())

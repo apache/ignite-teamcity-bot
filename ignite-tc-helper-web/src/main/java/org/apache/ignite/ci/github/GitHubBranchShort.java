@@ -14,39 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.conf;
+package org.apache.ignite.ci.github;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.util.Objects;
+import org.apache.ignite.ci.db.Persisted;
 
 /**
  *
  */
-public interface IGitHubConfig {
-    /**
-     * @return server (service) code.
-     */
-    public String code();
+@Persisted
+public class GitHubBranchShort {
+    /** Name. */
+    String name;
+    /** Commit. */
+    GitHubCommit commit;
 
-    /** Git branch prefix for search ticket-related TC runs in PR-less contributions. */
-    @Nonnull
-    public String gitBranchPrefix();
+    public String name() {
+        return name;
+    }
 
-    /**
-     * Extracts and returns GitHub authorization token from properties.
-     *
-     * @return Null or decoded auth token for Github.
-     */
-    @Nullable
-    public String gitAuthTok();
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        GitHubBranchShort aShort = (GitHubBranchShort)o;
+        return Objects.equals(name, aShort.name) &&
+            Objects.equals(commit, aShort.commit);
+    }
 
-    /**
-     * @return GitHub Api URL, if specified always ends with '/'
-     */
-    @Nullable
-    public String gitApiUrl();
-
-    default boolean isGitTokenAvailable() {
-        return gitAuthTok() != null;
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hash(name, commit);
     }
 }

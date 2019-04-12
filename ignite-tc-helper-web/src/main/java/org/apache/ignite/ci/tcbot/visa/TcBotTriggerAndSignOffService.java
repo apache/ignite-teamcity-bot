@@ -378,7 +378,9 @@ public class TcBotTriggerAndSignOffService {
 
         Set<Ticket> tickets = jiraIntegration.getTickets();
 
-        List<Ticket> paTickets = tickets.stream().filter(Ticket::isActiveContribution).collect(Collectors.toList());
+        List<String> branches = gitHubConnIgnited.getBranches();
+
+        List<Ticket> activeTickets = tickets.stream().filter(Ticket::isActiveContribution).collect(Collectors.toList());
 
         IJiraServerConfig jiraCfg = jiraIntegration.config();
         IGitHubConfig ghCfg = gitHubConnIgnited.config();
@@ -411,7 +413,7 @@ public class TcBotTriggerAndSignOffService {
 
         ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCodeOrAlias, credsProv);
 
-        paTickets.forEach(ticket -> {
+        activeTickets.forEach(ticket -> {
             String branch = ticketMatcher.resolveTcBranchForPrLess(ticket,
                 jiraCfg,
                 ghCfg);
@@ -421,7 +423,8 @@ public class TcBotTriggerAndSignOffService {
 
             String defBtForMaster = findDefaultBuildType(srvCodeOrAlias);
 
-            if (tcIgn.getAllBuildsCompacted(defBtForMaster, branch).isEmpty())
+            if (!branches.contains(branch)
+                && tcIgn.getAllBuildsCompacted(defBtForMaster, branch).isEmpty())
                 return; //Skipping contributions without builds
 
             ContributionToCheck contribution = new ContributionToCheck();

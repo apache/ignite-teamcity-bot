@@ -73,7 +73,6 @@ public interface ITeamcity extends ITeamcityConn {
      */
     boolean isTeamCityTokenAvailable();
 
-
     default void setAuthData(String user, String pwd) {
         setAuthToken(
                 Base64Util.encodeUtf8String(user + ":" + pwd));
