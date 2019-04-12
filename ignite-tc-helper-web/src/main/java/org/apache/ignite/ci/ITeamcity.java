@@ -79,7 +79,5 @@ public interface ITeamcity extends ITeamcityConn {
                 Base64Util.encodeUtf8String(user + ":" + pwd));
     }
 
-
     User getUserByUsername(String username);
-
 }

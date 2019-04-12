@@ -87,6 +87,8 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** {@inheritDoc} */
     @Override public void init(String srvCode) {
+        Preconditions.checkState(this.srvCode == null, "Server re-init is not supported");
+
         this.srvCode = srvCode;
     }
 
@@ -170,8 +172,9 @@ class GitHubConnectionImpl implements IGitHubConnection {
     }
 
     /** {@inheritDoc} */
-    @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)
     @Override public IGitHubConfig config() {
+        Preconditions.checkNotNull(srvCode);
+
         return cfg.getGitConfig(srvCode);
     }
 }

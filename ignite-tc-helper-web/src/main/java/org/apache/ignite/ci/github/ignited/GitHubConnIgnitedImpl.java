@@ -38,16 +38,19 @@ import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
-    /** Cache name. */
-    public static final String GIT_HUB_PR = "gitHubPr";
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(GitHubConnIgnitedImpl.class);
+
 
     /** Server id. */
-    private String srvId;
+    private String srvCode;
 
     /** Pure HTTP Connection API. */
     private IGitHubConnection conn;
@@ -64,11 +67,17 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     /** PPs cache. */
     private IgniteCache<Long, PullRequest> prCache;
 
-    public void init(String srvId, IGitHubConnection conn) {
-        this.srvId = srvId;
+    /**
+     * @param conn Connection.
+     */
+    public void init(IGitHubConnection conn) {
         this.conn = conn;
+        srvCode = conn.config().code();
 
-        srvIdMaskHigh = Math.abs(srvId.hashCode());
+        logger.info("Init of GitHub server: srvCode=" + srvCode+ ", API Url=" +
+            config().gitApiUrl() + " " +   config().code());
+
+        srvIdMaskHigh = Math.abs(srvCode.hashCode());
 
         prCache = igniteProvider.get().getOrCreateCache(TcHelperDb.getCache8PartsConfig(GIT_HUB_PR));
     }
@@ -113,11 +122,11 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
      */
     @NotNull
     private String taskName(String taskName) {
-        return IGitHubConnIgnited.class.getSimpleName() + "." + taskName + "." + srvId;
+        return IGitHubConnIgnited.class.getSimpleName() + "." + taskName + "." + srvCode;
     }
 
     private void actualizePrs() {
-        runActualizePrs(srvId, false);
+        runActualizePrs(srvCode, false);
 
         // schedule full resync later
         scheduler.invokeLater(
@@ -129,7 +138,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
      *
      */
     private void fullReindex() {
-        runActualizePrs(srvId, true);
+        runActualizePrs(srvCode, true);
     }
 
     /**

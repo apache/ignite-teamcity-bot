@@ -21,6 +21,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * <b>Note: </b> this cachind annotation ignores object called, may be used only for siglenton-scope classes.
+ */
 @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.METHOD)
 public @interface GuavaCached {
     /**

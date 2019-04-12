@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.github.pure;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -26,7 +27,8 @@ import javax.inject.Provider;
 import org.apache.ignite.ci.util.ExceptionUtil;
 
 class GitHubCachingProvider implements IGitHubConnectionProvider {
-    @Inject Provider<IGitHubConnection> factory;
+    @Inject private Provider<IGitHubConnection> factory;
+
     private final Cache<String, IGitHubConnection> srvs
         = CacheBuilder.newBuilder()
         .maximumSize(100)
@@ -35,11 +37,15 @@ class GitHubCachingProvider implements IGitHubConnectionProvider {
         .build();
 
     /** {@inheritDoc} */
-    @Override public IGitHubConnection server(String srvId) {
+    @Override public IGitHubConnection server(String srvCode) {
         try {
-            return srvs.get(Strings.nullToEmpty(srvId), () -> {
+            return srvs.get(Strings.nullToEmpty(srvCode), () -> {
                 IGitHubConnection conn = factory.get();
-                conn.init(srvId);
+
+                conn.init(srvCode);
+
+                Preconditions.checkState(conn.config().code().equals(srvCode));
+
                 return conn;
             });
         }

@@ -84,7 +84,6 @@ class Jira implements IJiraIntegration {
     }
 
     /** {@inheritDoc} */
-    @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)
     @Override public IJiraServerConfig config() {
         return cfg.getJiraConfig(srvCode);
     }

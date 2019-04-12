@@ -104,6 +104,10 @@ public class GitHubConfig implements IGitHubConfig {
 
     }
 
+    @Override public String code() {
+        return code;
+    }
+
     /**
      * @return Github API url configured, probably without ending slash.
      */

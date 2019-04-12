@@ -20,6 +20,7 @@ package org.apache.ignite.ci.runners;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssuesStorage;
 
@@ -30,7 +31,7 @@ public class ClientTmpHelper {
     /**
      * @param args Args.
      */
-    public static void main(String[] args) {
+    public static void mainConsistCheck(String[] args) {
         int inconsistent;
         try (Ignite ignite = TcHelperDb.startClient()) {
             RemoteClientTmpHelper.DUMPS = "dumpsLocal";
@@ -60,6 +61,16 @@ public class ClientTmpHelper {
             }
         );
 
+        ignite.close();
+    }
+
+
+    public static void mainDeletePRs(String[] args) {
+        Ignite ignite = TcHelperDb.startClient();
+
+        IgniteCache<Object, Object> cache = ignite.cache(IGitHubConnIgnited.GIT_HUB_PR);
+
+        cache.clear();
         ignite.close();
     }
 }

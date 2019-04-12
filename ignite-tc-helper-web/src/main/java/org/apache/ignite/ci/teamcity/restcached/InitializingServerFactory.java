@@ -20,7 +20,6 @@ import com.google.common.base.Strings;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.web.TcUpdatePool;
 

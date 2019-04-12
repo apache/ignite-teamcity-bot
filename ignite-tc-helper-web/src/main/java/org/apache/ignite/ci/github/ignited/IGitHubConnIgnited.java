@@ -25,6 +25,9 @@ import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
  *
  */
 public interface IGitHubConnIgnited {
+    /** Cache name. */
+    public static final String GIT_HUB_PR = "gitHubPr";
+
     /**
      * @return Config of GH project.
      */

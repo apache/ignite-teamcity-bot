@@ -23,6 +23,11 @@ import javax.annotation.Nullable;
  *
  */
 public interface IGitHubConfig {
+    /**
+     * @return server (service) code.
+     */
+    public String code();
+
     /** Git branch prefix for search ticket-related TC runs in PR-less contributions. */
     @Nonnull
     public String gitBranchPrefix();

@@ -16,8 +16,10 @@
  */
 package org.apache.ignite.ci.tcbot.conf;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.io.File;
+import java.util.Objects;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.di.cache.GuavaCached;
@@ -58,10 +60,14 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
 
     /** {@inheritDoc} */
     @Override public IGitHubConfig getGitConfig(String srvCode) {
-        return getTrackedBranches().getGitHubConfig(srvCode)
+        GitHubConfig cfg = getTrackedBranches().getGitHubConfig(srvCode)
             .orElseGet(() -> new GitHubConfig()
                 .code(srvCode)
                 .properties(loadOldAuthProps(srvCode)));
+
+        Preconditions.checkState(Objects.equals(cfg.code(), srvCode));
+
+        return cfg;
     }
 
     /** {@inheritDoc} */

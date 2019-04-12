@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.tcbot.visa;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
 import java.text.DateFormat;
@@ -520,27 +521,29 @@ public class TcBotTriggerAndSignOffService {
     }
 
     /**
-     * @param srvId Server id.
+     * @param srvCode Server (service) internal code.
      * @param prov Prov.
      * @param prId Pr id from {@link ContributionToCheck#prNumber}. Negative value imples branch number (with
      * appropriate prefix from GH config).
      */
-    public Set<ContributionCheckStatus> contributionStatuses(String srvId, ICredentialsProv prov,
+    public Set<ContributionCheckStatus> contributionStatuses(String srvCode, ICredentialsProv prov,
         String prId) {
         Set<ContributionCheckStatus> statuses = new LinkedHashSet<>();
 
-        ITeamcityIgnited teamcity = tcIgnitedProv.server(srvId, prov);
+        ITeamcityIgnited teamcity = tcIgnitedProv.server(srvCode, prov);
 
-        IGitHubConnIgnited ghConn = gitHubConnIgnitedProvider.server(srvId);
+        IGitHubConnIgnited ghConn = gitHubConnIgnitedProvider.server(srvCode);
 
-        List<String> compositeBuildTypeIds = findApplicableBuildTypes(srvId, teamcity);
+        Preconditions.checkState(ghConn.config().code().equals(srvCode));
+
+        List<String> compositeBuildTypeIds = findApplicableBuildTypes(srvCode, teamcity);
 
         for (String btId : compositeBuildTypeIds) {
             List<BuildRefCompacted> compBuilds = findBuildsForPr(btId, prId, ghConn, teamcity);
 
             statuses.add(compBuilds.isEmpty()
                 ? new ContributionCheckStatus(btId, branchForTcDefault(prId, ghConn))
-                : contributionStatus(srvId, btId, compBuilds, teamcity, ghConn, prId));
+                : contributionStatus(srvCode, btId, compBuilds, teamcity, ghConn, prId));
         }
 
         return statuses;

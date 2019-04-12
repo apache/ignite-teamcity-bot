@@ -43,12 +43,12 @@ class JiraIntegrationProvider implements IJiraIntegrationProvider {
         .build();
 
     /** */
-    @Override public IJiraIntegration server(String srvId) {
+    @Override public IJiraIntegration server(String srvCode) {
         try {
-            return srvs.get(Strings.nullToEmpty(srvId), () -> {
+            return srvs.get(Strings.nullToEmpty(srvCode), () -> {
                 IJiraIntegration jiraIntegration = factory.get();
 
-                jiraIntegration.init(srvId);
+                jiraIntegration.init(srvCode);
 
                 return jiraIntegration;
             });
