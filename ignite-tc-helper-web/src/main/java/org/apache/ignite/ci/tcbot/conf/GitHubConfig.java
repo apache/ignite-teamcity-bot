@@ -29,15 +29,14 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  */
 public class GitHubConfig implements IGitHubConfig {
     public static final String DEFAULT_BRANCH_PREFIX = "ignite-";
-    /**
-     * Service (server) Name.
-     */
+
+    /** Service (server) code. */
     private String code;
 
     /** GitHub Api URL */
     private String apiUrl;
 
-    /** */
+    /** Branch prefix for ticket related feature branches. */
     private String branchPrefix;
 
     /**
@@ -98,14 +97,18 @@ public class GitHubConfig implements IGitHubConfig {
     @Override public String gitApiUrl() {
         String gitApiUrl = getGitApiConfigured();
 
+        if (isNullOrEmpty(gitApiUrl))
+            return gitApiUrl;
+
         return gitApiUrl.endsWith("/") ? gitApiUrl : gitApiUrl + "/";
 
     }
 
     /**
-     *
+     * @return Github API url configured, probably without ending slash.
      */
-    @Nullable public String getGitApiConfigured() {
+    @Nullable
+    public String getGitApiConfigured() {
         if (!Strings.isNullOrEmpty(apiUrl))
             return apiUrl;
 

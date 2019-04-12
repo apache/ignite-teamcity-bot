@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
  *
  */
 public interface IGitHubConfig {
-    /** Git branch prefix for search TC runs in PR-less contributions. */
+    /** Git branch prefix for search ticket-related TC runs in PR-less contributions. */
     @Nonnull
     public String gitBranchPrefix();
 
@@ -35,5 +35,9 @@ public interface IGitHubConfig {
     @Nullable
     public String gitAuthTok();
 
+    /**
+     * @return GitHub Api URL, if specified always ends with '/'
+     */
+    @Nullable
     public String gitApiUrl();
 }
