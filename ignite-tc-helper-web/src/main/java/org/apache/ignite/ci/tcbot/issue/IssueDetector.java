@@ -159,11 +159,14 @@ public class IssueDetector {
             .forEach(issue -> {
                 List<String> addrs = new ArrayList<>();
 
-                if (slackCh != null && TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME.equals(issue.trackedBranchName))
+                final String srvCode = issue.issueKey().server;
+                final String defaultTracked = cfg.getTeamcityConfig(srvCode).defaultTrackedBranch();
+
+                if (slackCh != null && defaultTracked.equals(issue.trackedBranchName))
                     addrs.add(SLACK + "#" + slackCh);
 
                 for (TcHelperUser next : userForPossibleNotifications) {
-                    if (next.getCredentials(issue.issueKey().server) != null) {
+                    if (next.getCredentials(srvCode) != null) {
                         if (next.isSubscribed(issue.trackedBranchName)) {
                             logger.info("User " + next + " is candidate for notification " + next.email
                                 + " for " + issue);
