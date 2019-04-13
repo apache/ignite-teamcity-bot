@@ -356,47 +356,58 @@ public class TcBotTriggerAndSignOffService {
         IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCodeOrAlias);
 
         IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
-        List<PullRequest> requests = gitHubConnIgnited.getPullRequests();
-        if (requests == null)
-            return null;
+
+        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCodeOrAlias, credsProv);
+
+        List<PullRequest> prs = gitHubConnIgnited.getPullRequests();
 
         Set<Ticket> tickets = jiraIntegration.getTickets();
-
-        List<String> branches = gitHubConnIgnited.getBranches();
-
-        List<Ticket> activeTickets = tickets.stream().filter(Ticket::isActiveContribution).collect(Collectors.toList());
 
         IJiraServerConfig jiraCfg = jiraIntegration.config();
         IGitHubConfig ghCfg = gitHubConnIgnited.config();
 
-        List<ContributionToCheck> contribsList = requests.stream().map(pr -> {
-            ContributionToCheck check = new ContributionToCheck();
-            check.prNumber = pr.getNumber();
-            check.prTitle = pr.getTitle();
-            check.prHtmlUrl = pr.htmlUrl();
-            check.prHeadCommit = pr.lastCommitShaShort();
-            check.prTimeUpdate = pr.getTimeUpdate();
+        String defBtForTcServ = findDefaultBuildType(srvCodeOrAlias);
 
-            GitHubUser user = pr.gitHubUser();
-            if (user != null) {
-                check.prAuthor = user.login();
-                check.prAuthorAvatarUrl = user.avatarUrl();
-            }
-            else {
-                check.prAuthor = "";
-                check.prAuthorAvatarUrl = "";
-            }
+        List<ContributionToCheck> contribsList = new ArrayList<>();
 
-            check.jiraIssueId = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, pr, jiraCfg);
+        if (prs != null) {
+            prs.forEach(pr -> {
+                ContributionToCheck c = new ContributionToCheck();
 
-            if (!Strings.isNullOrEmpty(check.jiraIssueId)
-                    && jiraCfg.getUrl() != null)
-                check.jiraIssueUrl = jiraIntegration.generateTicketUrl(check.jiraIssueId);
+                c.prNumber = pr.getNumber();
+                c.prTitle = pr.getTitle();
+                c.prHtmlUrl = pr.htmlUrl();
+                c.prHeadCommit = pr.lastCommitShaShort();
+                c.prTimeUpdate = pr.getTimeUpdate();
 
-            return check;
-        }).collect(Collectors.toList());
+                GitHubUser user = pr.gitHubUser();
+                if (user != null) {
+                    c.prAuthor = user.login();
+                    c.prAuthorAvatarUrl = user.avatarUrl();
+                } else {
+                    c.prAuthor = "";
+                    c.prAuthorAvatarUrl = "";
+                }
 
-        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCodeOrAlias, credsProv);
+                c.jiraIssueId = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, pr, jiraCfg);
+
+                if (!Strings.isNullOrEmpty(c.jiraIssueId)
+                        && jiraCfg.getUrl() != null)
+                    c.jiraIssueUrl = jiraIntegration.generateTicketUrl(c.jiraIssueId);
+
+                findBuildsForPr(defBtForTcServ, Integer.toString(pr.getNumber()), gitHubConnIgnited, tcIgn)
+                        .stream()
+                        .map(buildRefCompacted -> buildRefCompacted.branchName(compactor))
+                        .findAny()
+                        .ifPresent(bName -> c.tcBranchName = bName);
+
+                contribsList.add(c);
+            });
+        }
+
+        List<String> branches = gitHubConnIgnited.getBranches();
+
+        List<Ticket> activeTickets = tickets.stream().filter(Ticket::isActiveContribution).collect(Collectors.toList());
 
         activeTickets.forEach(ticket -> {
             String branch = ticketMatcher.resolveTcBranchForPrLess(ticket,
@@ -406,10 +417,9 @@ public class TcBotTriggerAndSignOffService {
             if (Strings.isNullOrEmpty(branch))
                 return; // nothing to do if branch was not resolved
 
-            String defBtForMaster = findDefaultBuildType(srvCodeOrAlias);
 
             if (!branches.contains(branch)
-                && tcIgn.getAllBuildsCompacted(defBtForMaster, branch).isEmpty())
+                && tcIgn.getAllBuildsCompacted(defBtForTcServ, branch).isEmpty())
                 return; //Skipping contributions without builds
 
             ContributionToCheck contribution = new ContributionToCheck();
@@ -592,7 +602,8 @@ public class TcBotTriggerAndSignOffService {
      * @param srvIdOrAlias Server id. May be weak reference to TC
      * @return Some build type included into tracked branches with default branch.
      */
-    @NotNull public String findDefaultBuildType(String srvIdOrAlias) {
+    @NotNull
+    private String findDefaultBuildType(String srvIdOrAlias) {
         StringBuilder buildTypeId = new StringBuilder();
 
         ITcServerConfig tcCfg = cfg.getTeamcityConfig(srvIdOrAlias);
