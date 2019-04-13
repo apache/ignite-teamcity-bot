@@ -18,9 +18,8 @@
 package org.apache.ignite.ci.web.model.current;
 
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
-import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 
 /**
  *
@@ -58,7 +57,8 @@ import org.apache.ignite.ci.jira.pure.IJiraIntegration;
      * @param jiraIntegration JIRA Integration
      */
     public void setJavaFlags(IAnalyticsEnabledTeamcity teamcity,
-        IGitHubConnection gitHubConn, IJiraIgnited jiraIntegration) {
+                             IGitHubConnIgnited gitHubConn,
+                             IJiraIgnited jiraIntegration) {
         if (teamcity.isTeamCityTokenAvailable())
             javaFlags |= TEAMCITY_FLAG;
 

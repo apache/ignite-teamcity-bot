@@ -77,7 +77,8 @@ public class MockBasedTcBotModule extends AbstractModule {
         bind(IGitHubConnectionProvider.class).toInstance(ghProv);
         when(ghProv.server(anyString())).thenReturn(Mockito.mock(IGitHubConnection.class));
 
-        mockGitHub();
+        final IGitHubConfig ghCfg = mock(IGitHubConfig.class);
+        mockGitHub(ghCfg);
 
         IJiraServerConfig jiraCfg = mock(IJiraServerConfig.class);
         mockJira(jiraCfg);
@@ -110,7 +111,7 @@ public class MockBasedTcBotModule extends AbstractModule {
             }
 
             @Override public IGitHubConfig getGitConfig(String srvCode) {
-                return new GitHubConfig().code(srvCode).properties(loadOldProps(srvCode));
+                return ghCfg;
             }
 
             private Properties loadOldProps(String srvCode) {
@@ -128,7 +129,7 @@ public class MockBasedTcBotModule extends AbstractModule {
         super.configure();
     }
 
-    private void mockGitHub() {
+    private void mockGitHub(IGitHubConfig ghCfg) {
         final IGitHubConnIgnitedProvider gitHubConnIgnitedProvider = Mockito.mock(IGitHubConnIgnitedProvider.class);
 
         bind(IGitHubConnIgnitedProvider.class).toInstance(gitHubConnIgnitedProvider);
@@ -142,6 +143,8 @@ public class MockBasedTcBotModule extends AbstractModule {
         when(gitHubConnIgnited.getPullRequest(anyInt())).thenReturn(pullReq);
 
         when(gitHubConnIgnitedProvider.server(anyString())).thenReturn(gitHubConnIgnited);
+
+        when(gitHubConnIgnited.config()).thenReturn(ghCfg);
     }
 
     /**

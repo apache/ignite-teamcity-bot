@@ -104,13 +104,11 @@ public class PrChainsProcessor {
         IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvCode, creds);
         ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCode, creds);
 
-        IGitHubConnection gitHubConn = gitHubConnProvider.server(srvCode);
-
         IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCode);
 
         IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCode);
 
-        res.setJavaFlags(teamcity, gitHubConn, jiraIntegration);
+        res.setJavaFlags(teamcity, gitHubConnIgnited, jiraIntegration);
 
         LatestRebuildMode rebuild;
         if (FullQueryParams.HISTORY.equals(act))
