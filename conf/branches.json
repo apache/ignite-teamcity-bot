@@ -1,6 +1,7 @@
 {
   // Default server (service) code, internal identification
   "primaryServerCode": "apache",
+  /**/
   "tcServers": [
     {
       //code of current server
@@ -10,6 +11,7 @@
       "reference": "apache"
     }
   ],
+  /* Set of JIRA servers/projects configured */
   "jiraServers": [
     {
       /* Server code will be referenced in all tracked branches, URLs, etc */
@@ -22,6 +24,22 @@
       "url": "https://issues.apache.org/jira/",
       /** JIRA Auth token to access, use PasswordEncoder#encodeJiraTok to get from clear username/password */
       "authTok": "" //todo specify
+    }
+  ],
+  /* Set of GitHub services configured */
+  "gitHubConfigs": [
+    {
+      "code": "apache",
+      /* More for preffering branches gives branch for PR to be default branch for triggering builds on TC. */
+      "preferBranches": false,
+
+      /*
+      Git Auth token encoded to access non-public GitHub repos, use {@link org.apache.ignite.ci.conf.PasswordEncoder#encodeJiraTok
+       to set up value in a config. For public GitHub repos token gives more velocity
+       */
+      "authTok": "",
+      //todo specify token
+      "apiUrl": "https://api.github.com/repos/apache/ignite/"
     }
   ],
   "branches": [

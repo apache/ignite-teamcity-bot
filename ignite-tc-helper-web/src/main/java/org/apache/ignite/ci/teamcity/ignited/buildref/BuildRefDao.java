@@ -140,9 +140,9 @@ public class BuildRefDao {
      * @param bracnhNameQry Bracnh name query.
      */
     @AutoProfiling
-    @NotNull public List<BuildRefCompacted> findBuildsInHistoryCompacted(int srvId,
-                                                       @Nullable String buildTypeId,
-                                                       List<String> bracnhNameQry) {
+    @NotNull public List<BuildRefCompacted> getAllBuildsCompacted(int srvId,
+                                                                  @Nullable String buildTypeId,
+                                                                  List<String> bracnhNameQry) {
 
         Integer buildTypeIdId = compactor.getStringIdIfPresent(buildTypeId);
         if (buildTypeIdId == null)
@@ -178,12 +178,12 @@ public class BuildRefDao {
 
     /**
      * @param srvId Server id.
-     * @param bracnhNamesQry Branch names.
+     * @param branchNamesQry Branch name(s).
      */
     @AutoProfiling
-    @GuavaCached(softValues = true, maximumSize = 1000, expireAfterAccessSecs = 60)
-    public List<BuildRefCompacted> getBuildsForBranch(int srvId, List<String> bracnhNamesQry) {
-        Set<Integer> branchIds = bracnhNamesQry.stream().map(str -> compactor.getStringIdIfPresent(str))
+    @GuavaCached(softValues = true, maximumSize = 10000, expireAfterWriteSecs = 90)
+    public List<BuildRefCompacted> getBuildsForBranch(int srvId, List<String> branchNamesQry) {
+        Set<Integer> branchIds = branchNamesQry.stream().map(str -> compactor.getStringIdIfPresent(str))
             .filter(Objects::nonNull).collect(Collectors.toSet());
 
         List<BuildRefCompacted> list = new ArrayList<>();
@@ -194,7 +194,7 @@ public class BuildRefDao {
         return list;
     }
 
-    public void fillBuilds(int srvId, Integer branchNameId, List<BuildRefCompacted> list) {
+    private void fillBuilds(int srvId, Integer branchNameId, List<BuildRefCompacted> list) {
         try (QueryCursor<Cache.Entry<Long, BuildRefCompacted>> qryCursor  = buildRefsCache.query(
             new SqlQuery<Long, BuildRefCompacted>(BuildRefCompacted.class, "branchName = ?")
                 .setArgs(branchNameId))) {

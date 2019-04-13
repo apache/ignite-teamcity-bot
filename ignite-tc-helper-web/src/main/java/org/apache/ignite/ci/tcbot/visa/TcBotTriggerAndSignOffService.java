@@ -21,21 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.annotation.Nonnull;
-import javax.inject.Inject;
-import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.GitHubBranch;
 import org.apache.ignite.ci.github.GitHubUser;
@@ -55,20 +40,12 @@ import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.ci.teamcity.ignited.*;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.model.ContributionKey;
-import org.apache.ignite.ci.web.model.JiraCommentResponse;
-import org.apache.ignite.ci.web.model.SimpleResult;
-import org.apache.ignite.ci.web.model.Visa;
-import org.apache.ignite.ci.web.model.VisaRequest;
+import org.apache.ignite.ci.web.model.*;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
@@ -79,9 +56,16 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.ignite.ci.observer.BuildsInfo.CANCELLED_STATUS;
-import static org.apache.ignite.ci.observer.BuildsInfo.FINISHED_STATUS;
-import static org.apache.ignite.ci.observer.BuildsInfo.RUNNING_STATUS;
+import javax.annotation.Nonnull;
+import javax.inject.Inject;
+import javax.ws.rs.QueryParam;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.apache.ignite.ci.observer.BuildsInfo.*;
 import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
 
 /**
@@ -405,7 +389,8 @@ public class TcBotTriggerAndSignOffService {
 
             check.jiraIssueId = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, pr, jiraCfg);
 
-            if (!Strings.isNullOrEmpty(check.jiraIssueId))
+            if (!Strings.isNullOrEmpty(check.jiraIssueId)
+                    && jiraCfg.getUrl() != null)
                 check.jiraIssueUrl = jiraIntegration.generateTicketUrl(check.jiraIssueId);
 
             return check;
@@ -470,7 +455,8 @@ public class TcBotTriggerAndSignOffService {
         IGitHubConnIgnited ghConn,
         ITeamcityIgnited srv) {
 
-        List<BuildRefCompacted> buildHist = srv.getAllBuildsCompacted(suiteId, branchForTcDefault(prId, ghConn));
+        List<BuildRefCompacted> buildHist = srv.getAllBuildsCompacted(suiteId,
+                branchForTcDefault(prId, ghConn));
 
         if (!buildHist.isEmpty())
             return buildHist;
@@ -484,33 +470,49 @@ public class TcBotTriggerAndSignOffService {
         if (!buildHist.isEmpty())
             return buildHist;
 
+        String bracnhToCheck =
+                ghConn.config().isPreferBranches()
+                        ? branchForTcA(prId) // for prefer branches mode it was already checked in default
+                        : getPrBranch(ghConn, prNum);
+
+        if (bracnhToCheck == null)
+            return Collections.emptyList();
+
+        buildHist = srv.getAllBuildsCompacted(suiteId, bracnhToCheck);
+
+        return buildHist;
+    }
+
+    @Nullable
+    private String getPrBranch(IGitHubConnIgnited ghConn, Integer prNum) {
         PullRequest pr = ghConn.getPullRequest(prNum);
 
-        if (pr != null) {
-            GitHubBranch head = pr.head();
+        if (pr == null)
+            return null;
 
-            if (head != null) {
-                String ref = head.ref();
+        GitHubBranch head = pr.head();
 
-                buildHist = srv.getAllBuildsCompacted(suiteId, ref);
+        if (head == null)
+            return null;
 
-                if (!buildHist.isEmpty())
-                    return buildHist;
-            }
-        }
-
-        return Collections.emptyList();
+        return head.ref();
     }
 
     /**
      * @param prId Pr id from {@link ContributionToCheck#prNumber}. Negative value imples branch number to be used for
      * PR-less contributions.
-     * @param srv Github integration.
+     * @param ghConn Github integration.
      */
-    private String branchForTcDefault(String prId, IGitHubConnIgnited srv) {
+    private String branchForTcDefault(String prId, IGitHubConnIgnited ghConn) {
         Integer prNum = Integer.valueOf(prId);
         if (prNum < 0)
-            return srv.gitBranchPrefix() + (-prNum); // Checking "ignite-10930" builds only
+            return ghConn.gitBranchPrefix() + (-prNum); // Checking "ignite-10930" builds only
+
+        if (ghConn.config().isPreferBranches()) {
+            String ref = getPrBranch(ghConn, prNum);
+            if (ref != null)
+                return ref;
+        }
 
         return branchForTcA(prId);
     }
@@ -542,11 +544,11 @@ public class TcBotTriggerAndSignOffService {
         List<String> compositeBuildTypeIds = findApplicableBuildTypes(srvCode, teamcity);
 
         for (String btId : compositeBuildTypeIds) {
-            List<BuildRefCompacted> compBuilds = findBuildsForPr(btId, prId, ghConn, teamcity);
+            List<BuildRefCompacted> buildsForBt = findBuildsForPr(btId, prId, ghConn, teamcity);
 
-            statuses.add(compBuilds.isEmpty()
+            statuses.add(buildsForBt.isEmpty()
                 ? new ContributionCheckStatus(btId, branchForTcDefault(prId, ghConn))
-                : contributionStatus(srvCode, btId, compBuilds, teamcity, ghConn, prId));
+                : contributionStatus(srvCode, btId, buildsForBt, teamcity, ghConn, prId));
         }
 
         return statuses;
