@@ -16,10 +16,37 @@
  */
 package org.apache.ignite.ci.tcbot.conf;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 /**
  *
  */
 public interface IGitHubConfig {
-    /** Git branch prefix for search TC runs in PR-less contributions. */
+    /**
+     * @return server (service) code.
+     */
+    public String code();
+
+    /** Git branch prefix for search ticket-related TC runs in PR-less contributions. */
+    @Nonnull
     public String gitBranchPrefix();
+
+    /**
+     * Extracts and returns GitHub authorization token from properties.
+     *
+     * @return Null or decoded auth token for Github.
+     */
+    @Nullable
+    public String gitAuthTok();
+
+    /**
+     * @return GitHub Api URL, if specified always ends with '/'
+     */
+    @Nullable
+    public String gitApiUrl();
+
+    default boolean isGitTokenAvailable() {
+        return gitAuthTok() != null;
+    }
 }

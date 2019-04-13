@@ -25,6 +25,12 @@ import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
  *
  */
 public interface IGitHubConnIgnited {
+    /** Cache name for storing GitHub Prs. */
+    public static final String GIT_HUB_PR = "gitHubPr";
+
+    /** Cache name for storing GitHub Branches. */
+    public static final String GIT_HUB_BRANCHES = "gitHubBranch";
+
     /**
      * @return Config of GH project.
      */
@@ -37,6 +43,9 @@ public interface IGitHubConnIgnited {
 
     /** */
     public PullRequest getPullRequest(int prNum);
+
+    /** {@inheritDoc} */
+    public List<String> getBranches();
 
     /**
      * Send POST request with given body.

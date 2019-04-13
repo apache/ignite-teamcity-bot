@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.tcbot.visa;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
 import java.text.DateFormat;
@@ -363,21 +364,23 @@ public class TcBotTriggerAndSignOffService {
     }
 
     /**
-     * @param srvIdOrAlias Server id.
+     * @param srvCodeOrAlias Server id.
      * @param credsProv Credentials
      */
-    public List<ContributionToCheck> getContributionsToCheck(String srvIdOrAlias,
+    public List<ContributionToCheck> getContributionsToCheck(String srvCodeOrAlias,
         ICredentialsProv credsProv) {
-        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvIdOrAlias);
+        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCodeOrAlias);
 
-        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvIdOrAlias);
+        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
         List<PullRequest> requests = gitHubConnIgnited.getPullRequests();
         if (requests == null)
             return null;
 
         Set<Ticket> tickets = jiraIntegration.getTickets();
 
-        List<Ticket> paTickets = tickets.stream().filter(Ticket::isActiveContribution).collect(Collectors.toList());
+        List<String> branches = gitHubConnIgnited.getBranches();
+
+        List<Ticket> activeTickets = tickets.stream().filter(Ticket::isActiveContribution).collect(Collectors.toList());
 
         IJiraServerConfig jiraCfg = jiraIntegration.config();
         IGitHubConfig ghCfg = gitHubConnIgnited.config();
@@ -408,9 +411,9 @@ public class TcBotTriggerAndSignOffService {
             return check;
         }).collect(Collectors.toList());
 
-        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvIdOrAlias, credsProv);
+        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCodeOrAlias, credsProv);
 
-        paTickets.forEach(ticket -> {
+        activeTickets.forEach(ticket -> {
             String branch = ticketMatcher.resolveTcBranchForPrLess(ticket,
                 jiraCfg,
                 ghCfg);
@@ -418,9 +421,10 @@ public class TcBotTriggerAndSignOffService {
             if (Strings.isNullOrEmpty(branch))
                 return; // nothing to do if branch was not resolved
 
-            String defBtForMaster = findDefaultBuildType(srvIdOrAlias);
+            String defBtForMaster = findDefaultBuildType(srvCodeOrAlias);
 
-            if (tcIgn.getAllBuildsCompacted(defBtForMaster, branch).isEmpty())
+            if (!branches.contains(branch)
+                && tcIgn.getAllBuildsCompacted(defBtForMaster, branch).isEmpty())
                 return; //Skipping contributions without builds
 
             ContributionToCheck contribution = new ContributionToCheck();
@@ -520,27 +524,29 @@ public class TcBotTriggerAndSignOffService {
     }
 
     /**
-     * @param srvId Server id.
+     * @param srvCode Server (service) internal code.
      * @param prov Prov.
      * @param prId Pr id from {@link ContributionToCheck#prNumber}. Negative value imples branch number (with
      * appropriate prefix from GH config).
      */
-    public Set<ContributionCheckStatus> contributionStatuses(String srvId, ICredentialsProv prov,
+    public Set<ContributionCheckStatus> contributionStatuses(String srvCode, ICredentialsProv prov,
         String prId) {
         Set<ContributionCheckStatus> statuses = new LinkedHashSet<>();
 
-        ITeamcityIgnited teamcity = tcIgnitedProv.server(srvId, prov);
+        ITeamcityIgnited teamcity = tcIgnitedProv.server(srvCode, prov);
 
-        IGitHubConnIgnited ghConn = gitHubConnIgnitedProvider.server(srvId);
+        IGitHubConnIgnited ghConn = gitHubConnIgnitedProvider.server(srvCode);
 
-        List<String> compositeBuildTypeIds = findApplicableBuildTypes(srvId, teamcity);
+        Preconditions.checkState(ghConn.config().code().equals(srvCode));
+
+        List<String> compositeBuildTypeIds = findApplicableBuildTypes(srvCode, teamcity);
 
         for (String btId : compositeBuildTypeIds) {
             List<BuildRefCompacted> compBuilds = findBuildsForPr(btId, prId, ghConn, teamcity);
 
             statuses.add(compBuilds.isEmpty()
                 ? new ContributionCheckStatus(btId, branchForTcDefault(prId, ghConn))
-                : contributionStatus(srvId, btId, compBuilds, teamcity, ghConn, prId));
+                : contributionStatus(srvCode, btId, compBuilds, teamcity, ghConn, prId));
         }
 
         return statuses;

@@ -21,14 +21,12 @@ import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Properties;
-
-import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
+import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.ci.util.Base64Util;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.jetbrains.annotations.NotNull;
@@ -56,7 +54,7 @@ public class HelperConfig {
     /** JIRA authorization token property name. */
     public static final String JIRA_AUTH_TOKEN = "jira.auth_token";
 
-    /** JIRA authorization token property name. */
+    /** Github API url for the project. */
     public static final String GIT_API_URL = "git.api_url";
 
     /** JIRA URL to build links to tickets. */
@@ -83,16 +81,11 @@ public class HelperConfig {
 
     private static Properties loadAuthPropertiesX(File workDir, String cfgFileName) throws IOException {
         File file = new File(workDir, cfgFileName);
-        if (!(file.exists())) {
 
-            try (FileWriter writer = new FileWriter(file)) {
-                writer.write(HOST + "=" + "http://ci.ignite.apache.org/" + ENDL);
-                writer.write(USERNAME + "=" + ENDL);
-                writer.write(ENCODED_PASSWORD + "=" + ENDL);
-            }
-            throw new IllegalStateException("Please setup parameters for service in config file [" +
-                file.getCanonicalPath() + "]");
-        }
+        Preconditions.checkState(file.exists(),
+            "Please setup parameters for service in config file [branches.json]. " +
+                "See conf directory for examples");
+
         return loadProps(file);
     }
 
@@ -136,43 +129,6 @@ public class HelperConfig {
         return ensureDirExist(workDir);
     }
 
-    /**
-     * Extract GitHub authorization token from properties.
-     *
-     * @param props Properties, where token is placed.
-     * @return Null or decoded auth token for Github.
-     */
-    @Nullable public static String prepareGithubHttpAuthToken(Properties props) {
-        String tok = props.getProperty(GITHUB_AUTH_TOKEN);
-
-        if (isNullOrEmpty(tok))
-            return null;
-
-        tok = PasswordEncoder.decode(tok);
-
-        return tok;
-    }
-
-    /**
-     * Extract TeamCity authorization token from properties.
-     *
-     * @param props Properties, where token is placed.
-     * @param cfgName Configuration name.
-     * @return Null or decoded auth token for Github.
-     */
-    @Nullable static String prepareBasicHttpAuthToken(Properties props, String cfgName) {
-        final String user = getMandatoryProperty(props, USERNAME, cfgName);
-
-        String enc = props.getProperty(ENCODED_PASSWORD);
-
-        if (isNullOrEmpty(enc))
-            return null;
-
-        String pwd = PasswordEncoder.decode(enc);
-
-        return userPwdToToken(user, pwd);
-    }
-
     @NotNull public static String userPwdToToken(String user, String pwd) {
         return Base64Util.encodeUtf8String(user + ":" + pwd);
     }
@@ -187,9 +143,10 @@ public class HelperConfig {
         final File workDir = resolveWorkDir();
         final File file = new File(workDir, "branches.json");
 
-        try(final FileReader json = new FileReader(file)) {
+        try (FileReader json = new FileReader(file)) {
             return new Gson().fromJson(json, BranchesTracked.class);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw ExceptionUtil.propagateException(e);
         }
     }

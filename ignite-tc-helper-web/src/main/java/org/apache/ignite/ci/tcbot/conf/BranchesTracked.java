@@ -109,6 +109,6 @@ public class BranchesTracked {
     }
 
     public Optional<GitHubConfig> getGitHubConfig(String code) {
-        return gitHubConfigs.stream().filter(s -> code.equals(s.getCode())).findAny();
+        return gitHubConfigs.stream().filter(s -> code.equals(s.code())).findAny();
     }
 }

@@ -17,11 +17,9 @@
 package org.apache.ignite.ci.tcbot.conf;
 
 import com.google.common.base.Strings;
-import java.util.ArrayList;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.PasswordEncoder;
-import org.apache.ignite.ci.jira.pure.Fields;
 import org.apache.ignite.ci.jira.pure.Ticket;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,7 +52,8 @@ public class JiraServerConfig implements IJiraServerConfig {
     private Properties props;
 
     /**
-     * JIRA Auth token to access, use {@link org.apache.ignite.ci.conf.PasswordEncoder#encodeJiraTok(String, String)}
+     * JIRA Auth token encoded to access JIRA, use {@link org.apache.ignite.ci.conf.PasswordEncoder#encodeJiraTok(String,
+     * String)} to set up value in a config.
      */
     private String authTok;
 
@@ -118,15 +117,13 @@ public class JiraServerConfig implements IJiraServerConfig {
         return Strings.emptyToNull(branchNumPrefix);
     }
 
-    /**
-     * Extracts JIRA basic authorization token from properties.
-     *
-     * @return Null or decoded auth token for Github.
-     */
+
+    /** {@inheritDoc} */
     @Nullable
     @Override
     public String decodedHttpAuthToken() {
         String tok;
+
         if (Strings.isNullOrEmpty(authTok) && props != null)
             tok = props.getProperty(HelperConfig.JIRA_AUTH_TOKEN);
         else

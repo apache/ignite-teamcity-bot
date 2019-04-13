@@ -19,8 +19,6 @@ package org.apache.ignite.ci.jira.pure;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
-import java.io.IOException;
-import javax.inject.Inject;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.jira.Tickets;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
@@ -29,6 +27,9 @@ import org.apache.ignite.ci.util.HttpUtil;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
+import java.io.IOException;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -40,15 +41,14 @@ class Jira implements IJiraIntegration {
     private static final Logger logger = LoggerFactory.getLogger(Jira.class);
 
     /** Server id. */
-    private String srvId;
+    private String srvCode;
 
     /** Config. */
     @Inject ITcBotConfig cfg;
 
     /** {@inheritDoc} */
-    @Override public void init(String srvId) {
-        this.srvId = srvId;
-
+    @Override public void init(String srvCode) {
+        this.srvCode = srvCode;
     }
 
     /** {@inheritDoc} */
@@ -85,7 +85,7 @@ class Jira implements IJiraIntegration {
 
     /** {@inheritDoc} */
     @Override public IJiraServerConfig config() {
-        return cfg.getJiraConfig(srvId);
+        return cfg.getJiraConfig(srvCode);
     }
 
     /** {@inheritDoc} */

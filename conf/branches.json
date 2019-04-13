@@ -1,10 +1,13 @@
 {
+  // Default server (service) code, internal identification
   "primaryServerCode": "apache",
   "tcServers": [
     {
+      //code of current server
       "code": "public",
+
+      // reference to another TC server service code to be used instead.
       "reference": "apache"
-      // reference to another TC server to be used instead.
     }
   ],
   "jiraServers": [

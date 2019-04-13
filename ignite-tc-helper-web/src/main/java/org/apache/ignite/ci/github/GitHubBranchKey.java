@@ -16,42 +16,58 @@
  */
 package org.apache.ignite.ci.github;
 
+import com.google.common.base.Strings;
 import java.util.Objects;
 import org.apache.ignite.ci.db.Persisted;
+import org.jetbrains.annotations.NotNull;
 
 @Persisted
-public class GitHubBranch {
-    /** Label. */
-    private String label;
+public class GitHubBranchKey implements Comparable<GitHubBranchKey> {
+    int srvId;
+    String branchName;
 
-    /** Branch name. */
-    private String ref;
-
-    /** Sha of latest commit. */
-    private String sha;
-
-    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        GitHubBranch branch = (GitHubBranch)o;
-        return Objects.equals(label, branch.label) &&
-            Objects.equals(ref, branch.ref) &&
-            Objects.equals(sha, branch.sha);
+        GitHubBranchKey key = (GitHubBranchKey)o;
+        return srvId == key.srvId &&
+            Objects.equals(branchName, key.branchName);
+    }
+
+    @Override public int hashCode() {
+        return Objects.hash(srvId, branchName);
+    }
+
+    public GitHubBranchKey branchName(String name) {
+        this.branchName = name;
+
+        return this;
+    }
+
+    public GitHubBranchKey srvId(int high) {
+        this.srvId = high;
+
+        return this;
+    }
+
+    /** */
+    public int srvId() {
+        return srvId;
+    }
+
+    /** */
+    public String branchName() {
+        return branchName;
     }
 
     /** {@inheritDoc} */
-    @Override public int hashCode() {
-        return Objects.hash(label, ref, sha);
-    }
+    @Override public int compareTo(@NotNull GitHubBranchKey o) {
+        int compare = Integer.compare(srvId, o.srvId());
+        if (compare != 0)
+            return compare;
 
-    public String ref() {
-        return ref;
-    }
-
-    public String sha() {
-        return sha;
+        return Strings.nullToEmpty(branchName).compareTo(o.branchName());
     }
 }

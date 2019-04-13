@@ -19,8 +19,19 @@ package org.apache.ignite.ci.jira.pure;
 
 /**
  * Status for Jira ticket.
+ *
+ * "Closed" "Open" "Backlog" "Resolved" "In Progress" "Pending" "Patch Available" "Reopened" "Patch Reviewed"
  */
 public class Status {
+    /** Open status name. */
+    public static final String OPEN_NAME = "Open";
+
+    /** Reopened status name. */
+    public static final String REOPENED_NAME = "Reopened";
+
+    /** Backlog status name. */
+    public static final String BACKLOG_NAME = "Backlog";
+
     /** Patch Available status name. */
     public static final String PA_NAME = "Patch Available";
 

@@ -26,6 +26,7 @@ public interface ITcBotConfig {
     /** Default server code. */
     String DEFAULT_SERVER_CODE = "apache";
 
+    /** */
     public String primaryServerCode();
 
     /**

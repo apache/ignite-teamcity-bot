@@ -21,7 +21,7 @@ package org.apache.ignite.ci.jira.ignited;
  */
 public interface IJiraIgnitedProvider {
     /**
-     * @param srvId Server id.
+     * @param srvCode Server (service) code, internal identification.
      */
-    public IJiraIgnited server(String srvId);
+    public IJiraIgnited server(String srvCode);
 }

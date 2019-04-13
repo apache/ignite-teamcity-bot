@@ -94,7 +94,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** Teamcity http connection. */
     @Inject private ITeamcityHttpConnection teamcityHttpConn;
 
-    @Inject private ITcBotConfig config;
+    @Inject private ITcBotConfig cfg;
 
     private String srvCode;
 
@@ -105,15 +105,14 @@ public class IgniteTeamcityConnection implements ITeamcity {
         return executor;
     }
 
-    /** {@inheritDoc} */
-    @Override public void init(@Nullable String srvCode) {
+    public void init(@Nullable String srvCode) {
         this.srvCode = srvCode;
 
         this.executor = MoreExecutors.directExecutor();
     }
 
     public ITcServerConfig config() {
-        return this.config.getTeamcityConfig(this.srvCode );
+        return cfg.getTeamcityConfig(this.srvCode);
     }
 
     /** {@inheritDoc} */

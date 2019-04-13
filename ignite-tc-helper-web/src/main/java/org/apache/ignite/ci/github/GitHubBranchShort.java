@@ -14,34 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.conf;
+package org.apache.ignite.ci.github;
 
-import java.util.Properties;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import java.util.Objects;
+import org.apache.ignite.ci.db.Persisted;
 
 /**
- * Teamcity Server configuration.
+ *
  */
-public interface ITcServerConfig {
-    /**
-     * @return Another TC Server (service) config name to use settings from. Filled only for server aliases.
-     */
-    @Nullable public String reference();
+@Persisted
+public class GitHubBranchShort {
+    /** Name. */
+    String name;
+    /** Commit. */
+    GitHubCommit commit;
 
-    /**
-     * @return Normalized Host address, ends with '/'.
-     */
-    @NotNull public String host();
+    public String name() {
+        return name;
+    }
 
-    /**
-     * @return Directory for downloading build logs (will contain ZIP files).
-     */
-    @NotNull public String logsDirectory();
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        GitHubBranchShort aShort = (GitHubBranchShort)o;
+        return Objects.equals(name, aShort.name) &&
+            Objects.equals(commit, aShort.commit);
+    }
 
-    /**
-     * @return
-     */
-    @NotNull public String defaultTrackedBranch();
-
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hash(name, commit);
+    }
 }

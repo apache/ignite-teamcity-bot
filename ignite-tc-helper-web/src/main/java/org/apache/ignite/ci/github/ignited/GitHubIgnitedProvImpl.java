@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.github.ignited;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -39,12 +40,17 @@ class GitHubIgnitedProvImpl implements IGitHubConnIgnitedProvider {
         .build();
 
     /** {@inheritDoc} */
-    @Override public IGitHubConnIgnited server(String srvId) {
+    @Override public IGitHubConnIgnited server(String srvCode) {
         try {
-            return srvs.get(Strings.nullToEmpty(srvId), () -> {
-                IGitHubConnection srv = pureConnProv.server(srvId);
+            return srvs.get(Strings.nullToEmpty(srvCode), () -> {
+                IGitHubConnection srv = pureConnProv.server(srvCode);
+
+                Preconditions.checkState(srv.config().code().equals(srvCode));
+
                 GitHubConnIgnitedImpl ignited = ignitedProvider.get();
-                ignited.init(srvId, srv);
+                ignited.init(srv);
+
+                Preconditions.checkState(ignited.config().code().equals(srvCode));
                 return ignited;
             });
         }

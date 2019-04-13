@@ -20,7 +20,7 @@ import com.google.common.base.Strings;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.ci.IgniteTeamcityConnection;
 import org.apache.ignite.ci.web.TcUpdatePool;
 
  class InitializingServerFactory implements ITcServerFactory {
@@ -28,14 +28,14 @@ import org.apache.ignite.ci.web.TcUpdatePool;
     Provider<IAnalyticsEnabledTeamcity> tcPersistProv;
 
     @Inject
-    Provider<ITeamcity> tcConnProv;
+    Provider<IgniteTeamcityConnection> tcConnProv;
 
     @Inject
     private TcUpdatePool tcUpdatePool;
 
     /** {@inheritDoc} */
     @Override public IAnalyticsEnabledTeamcity createServer(String srvId) {
-        ITeamcity tcConn = tcConnProv.get();
+        IgniteTeamcityConnection tcConn = tcConnProv.get();
         tcConn.init(Strings.emptyToNull(srvId));
 
         IAnalyticsEnabledTeamcity instance = tcPersistProv.get();

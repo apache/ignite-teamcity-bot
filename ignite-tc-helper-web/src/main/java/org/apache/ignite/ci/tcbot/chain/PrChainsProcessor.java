@@ -76,7 +76,7 @@ public class PrChainsProcessor {
 
     /**
      * @param creds Credentials.
-     * @param srvId Server id.
+     * @param srvCode Server id.
      * @param suiteId Suite id.
      * @param branchForTc Branch name in TC identification.
      * @param act Action.
@@ -89,7 +89,7 @@ public class PrChainsProcessor {
     @AutoProfiling
     public TestFailuresSummary getTestFailuresSummary(
         ICredentialsProv creds,
-        String srvId,
+        String srvCode,
         String suiteId,
         String branchForTc,
         String act,
@@ -101,14 +101,14 @@ public class PrChainsProcessor {
         final AtomicInteger runningUpdates = new AtomicInteger();
 
         //using here non persistent TC allows to skip update statistic
-        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, creds);
-        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvId, creds);
+        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvCode, creds);
+        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCode, creds);
 
-        IGitHubConnection gitHubConn = gitHubConnProvider.server(srvId);
+        IGitHubConnection gitHubConn = gitHubConnProvider.server(srvCode);
 
-        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvId);
+        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCode);
 
-        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvId);
+        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCode);
 
         res.setJavaFlags(teamcity, gitHubConn, jiraIntegration);
 

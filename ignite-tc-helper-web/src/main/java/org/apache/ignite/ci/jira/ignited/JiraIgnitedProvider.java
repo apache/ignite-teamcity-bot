@@ -46,10 +46,10 @@ public class JiraIgnitedProvider implements IJiraIgnitedProvider {
         .build();
 
     /** */
-    @Override public IJiraIgnited server(String srvId) {
+    @Override public IJiraIgnited server(String srvCode) {
         try {
-            return srvs.get(Strings.nullToEmpty(srvId), () -> {
-                IJiraIntegration pure = pureProv.server(srvId);
+            return srvs.get(Strings.nullToEmpty(srvCode), () -> {
+                IJiraIntegration pure = pureProv.server(srvCode);
 
                 JiraIgnited ignited = factory.get();
                 ignited.init(pure);

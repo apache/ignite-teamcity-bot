@@ -89,11 +89,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public void init(String srvId) {
-        throw new UnsupportedOperationException();
-    }
-
-    /** {@inheritDoc} */
     @Override public User getUserByUsername(String username) {
         return teamcity.getUserByUsername(username);
     }

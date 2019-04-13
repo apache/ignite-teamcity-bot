@@ -16,8 +16,10 @@
  */
 package org.apache.ignite.ci.tcbot.conf;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.io.File;
+import java.util.Objects;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.di.cache.GuavaCached;
@@ -48,6 +50,7 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
             });
     }
 
+    /** {@inheritDoc} */
     @Override public IJiraServerConfig getJiraConfig(String srvCode) {
         return getTrackedBranches().getJiraConfig(srvCode)
             .orElseGet(() -> new JiraServerConfig()
@@ -55,12 +58,16 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
                 .properties(loadOldAuthProps(srvCode)));
     }
 
-    @Override
-    public IGitHubConfig getGitConfig(String srvCode) {
-        return getTrackedBranches().getGitHubConfig(srvCode)
+    /** {@inheritDoc} */
+    @Override public IGitHubConfig getGitConfig(String srvCode) {
+        GitHubConfig cfg = getTrackedBranches().getGitHubConfig(srvCode)
             .orElseGet(() -> new GitHubConfig()
                 .code(srvCode)
                 .properties(loadOldAuthProps(srvCode)));
+
+        Preconditions.checkState(Objects.equals(cfg.code(), srvCode));
+
+        return cfg;
     }
 
     /** {@inheritDoc} */
@@ -70,7 +77,8 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
         return Strings.isNullOrEmpty(srvCode) ? ITcBotConfig.DEFAULT_SERVER_CODE : srvCode;
     }
 
-    private Properties loadOldAuthProps(String srvCode) {
+    @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)
+    protected Properties loadOldAuthProps(String srvCode) {
         File workDir = HelperConfig.resolveWorkDir();
 
         String cfgName = HelperConfig.prepareConfigName(srvCode);
