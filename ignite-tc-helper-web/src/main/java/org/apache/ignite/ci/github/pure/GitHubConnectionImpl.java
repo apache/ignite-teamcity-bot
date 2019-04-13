@@ -17,19 +17,9 @@
 package org.apache.ignite.ci.github.pure;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UncheckedIOException;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.StringTokenizer;
-import java.util.concurrent.atomic.AtomicReference;
-import javax.inject.Inject;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.GitHubBranchShort;
 import org.apache.ignite.ci.github.PullRequest;
@@ -40,6 +30,21 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import javax.inject.Inject;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.StringTokenizer;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -53,6 +58,8 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** Service (server) code. */
     private String srvCode;
+
+    private static AtomicLong lastRq = new AtomicLong();
 
     /**
      * @param linkRspHdrVal Value of Link response HTTP header.
@@ -100,7 +107,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
         String pr = gitApiUrl + "pulls/" + id;
 
-        try (InputStream is = HttpUtil.sendGetToGit(config().gitAuthTok(), pr, null)) {
+        try (InputStream is = sendGetToGit(pr, null)) {
             InputStreamReader reader = new InputStreamReader(is);
 
             return new Gson().fromJson(reader, PullRequest.class);
@@ -155,24 +162,22 @@ class GitHubConnectionImpl implements IGitHubConnection {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public List<GitHubBranchShort> getBranchesPage(@Nullable String fullUrl,
-        @Nullable AtomicReference<String> outLinkNext) {
+                                                             @Nonnull AtomicReference<String> outLinkNext) {
         String url = fullUrl != null ? fullUrl : getApiUrlMandatory() + "branches";
 
         HashMap<String, String> rspHeaders = new HashMap<>();
-        if (outLinkNext != null) {
-            outLinkNext.set(null);
-            rspHeaders.put("Link", null); // requesting header
-        }
+        outLinkNext.set(null);
+        rspHeaders.put("Link", null); // requesting header
 
         TypeToken<ArrayList<GitHubBranchShort>> tok = new TypeToken<ArrayList<GitHubBranchShort>>() {
         };
 
-        return this. readOnePage(outLinkNext, url, rspHeaders, tok);
+        return this.readOnePage(outLinkNext, url, rspHeaders, tok);
     }
 
     public <T> List<T> readOnePage(@Nullable AtomicReference<String> outLinkNext,
         String url, HashMap<String, String> rspHeaders, TypeToken<ArrayList<T>> typeTok) {
-        try (InputStream stream = HttpUtil.sendGetToGit(config().gitAuthTok(), url, rspHeaders)) {
+        try (InputStream stream = sendGetToGit(url, rspHeaders)) {
             InputStreamReader reader = new InputStreamReader(stream);
             List<T> list = new Gson().fromJson(reader, typeTok.getType());
             String link = rspHeaders.get("Link");
@@ -180,7 +185,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
             if (link != null) {
                 String nextLink = parseNextLinkFromLinkRspHeader(link);
 
-                if (nextLink != null)
+                if (nextLink != null && outLinkNext != null)
                     outLinkNext.set(nextLink);
             }
 
@@ -191,6 +196,40 @@ class GitHubConnectionImpl implements IGitHubConnection {
         catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+
+    protected InputStream sendGetToGit(String url, HashMap<String, String> rspHeaders) throws IOException {
+        final String tok = config().gitAuthTok();
+
+        velocityControl(tok);
+
+        return HttpUtil.sendGetToGit(tok, url, rspHeaders);
+    }
+
+    //https://developer.github.com/v3/#rate-limiting
+    @AutoProfiling
+    protected void velocityControl(String tok) {
+        final int reqPerHour = Strings.isNullOrEmpty(tok) ? 60 : 5000;
+        final long nanosInHour = Duration.ofHours(1).toNanos();
+        final long waitBeforeNextReq = nanosInHour / reqPerHour;
+
+        boolean win;
+        do {
+            final long lastRq = this.lastRq.get();
+
+            final long curNs = System.nanoTime();
+
+            if (lastRq != 0) {
+                final long nanosPassed = curNs - lastRq;
+                final long nsWait = waitBeforeNextReq - nanosPassed;
+
+                if (nsWait > 0)
+                    LockSupport.parkNanos(nsWait);
+            }
+
+            win = this.lastRq.compareAndSet(lastRq, curNs);
+        } while (!win);
     }
 
     /** {@inheritDoc} */

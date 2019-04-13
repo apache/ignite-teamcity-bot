@@ -25,6 +25,8 @@ import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.jetbrains.annotations.Nullable;
 
+import javax.annotation.Nonnull;
+
 /**
  * GitHub pure connection
  */
@@ -53,7 +55,7 @@ public interface IGitHubConnection {
      * @param fullUrl Full url - null for first page, not null for next page.
      * @param outLinkNext Out link for return next page full url.
      */
-    public List<GitHubBranchShort> getBranchesPage(@Nullable String fullUrl, @Nullable AtomicReference<String> outLinkNext);
+    public List<GitHubBranchShort> getBranchesPage(@Nullable String fullUrl, @Nonnull AtomicReference<String> outLinkNext);
 
     /**
      * @return PR id from string "pull/XXXX/head"
