@@ -21,6 +21,7 @@ import java.util.Properties;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.conf.PasswordEncoder;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -46,6 +47,13 @@ public class GitHubConfig implements IGitHubConfig {
     private String authTok;
 
     private Properties props;
+
+    /**
+     * Prefer branches contributions. If null or false then PRs have priority.
+     * If set to true that means branch scanning preformed more often, and default triggering option is branch.
+     */
+    @Nullable
+    private Boolean preferBranches;
 
     public GitHubConfig() {
     }
@@ -73,6 +81,7 @@ public class GitHubConfig implements IGitHubConfig {
     }
 
     /** {@inheritDoc} */
+    @NotNull
     @Override public String gitBranchPrefix() {
         if (!Strings.isNullOrEmpty(branchPrefix))
             return branchPrefix;
@@ -104,6 +113,11 @@ public class GitHubConfig implements IGitHubConfig {
 
     }
 
+    @Override
+    public boolean isPreferBranches() {
+        return Boolean.TRUE.equals(preferBranches);
+    }
+
     @Override public String code() {
         return code;
     }
@@ -132,6 +146,5 @@ public class GitHubConfig implements IGitHubConfig {
         return props != null
             ? props.getProperty(HelperConfig.GITHUB_AUTH_TOKEN)
             : null;
-
     }
 }

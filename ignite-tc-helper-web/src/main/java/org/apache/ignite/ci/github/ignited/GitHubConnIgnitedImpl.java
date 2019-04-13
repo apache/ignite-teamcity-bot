@@ -127,7 +127,11 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public List<String> getBranches() {
-        scheduler.sheduleNamed(taskName("actualizeBranches"), this::actualizeBranches, 2, TimeUnit.HOURS);
+        final int rescanIntervalMins = config().isPreferBranches() ? 5 : 120;
+
+        scheduler.sheduleNamed(taskName("actualizeBranches"),
+                this::actualizeBranches,
+                rescanIntervalMins, TimeUnit.MINUTES);
 
         return StreamSupport.stream(branchCache.spliterator(), false)
             .filter(entry -> entry.getKey().srvId() == srvIdMaskHigh)

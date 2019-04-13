@@ -41,7 +41,10 @@ package org.apache.ignite.ci.tcbot.visa;
     /** Pr head commit hash (first 7 hexes). */
     public String prHeadCommit;
 
-    /** Branch Name for team city */
+    /**
+     * Branch Name for Team City. Always a branch for PR_less contribution,
+     * for PRs filled only if there are builds found for TC.
+     */
     public String tcBranchName;
 
     /** JIRA issue without server URL, but with project name */

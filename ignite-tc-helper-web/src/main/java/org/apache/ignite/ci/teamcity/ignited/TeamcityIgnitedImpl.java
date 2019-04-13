@@ -19,17 +19,8 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.SortedSet;
+
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -88,6 +79,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** Max build id diff to enforce reload during incremental refresh. */
     public static final int MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN = 3000;
+
+    private static final List<String> DEFAULT_SYNONYMS
+            = Collections.unmodifiableList(
+                    Lists.newArrayList(ITeamcity.DEFAULT, ITeamcity.REFS_HEADS_MASTER, "master"));
 
     /** Server (service) code. */
     private String srvCode;
@@ -338,7 +333,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             @Nullable String branchName) {
         ensureActualizeRequested();
 
-        return buildRefDao.findBuildsInHistoryCompacted(srvIdMaskHigh, buildTypeId, branchForQuery(branchName));
+        return buildRefDao.getAllBuildsCompacted(srvIdMaskHigh, buildTypeId, branchForQuery(branchName));
     }
 
     /** {@inheritDoc} */
@@ -449,7 +444,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     public List<String> branchForQuery(@Nullable String branchName) {
         if (ITeamcity.DEFAULT.equals(branchName))
-            return Lists.newArrayList(branchName, ITeamcity.REFS_HEADS_MASTER, "master");
+            return DEFAULT_SYNONYMS;
         else
             return Collections.singletonList(branchName);
     }

@@ -49,4 +49,6 @@ public interface IGitHubConfig {
     default boolean isGitTokenAvailable() {
         return gitAuthTok() != null;
     }
+
+    boolean isPreferBranches();
 }
