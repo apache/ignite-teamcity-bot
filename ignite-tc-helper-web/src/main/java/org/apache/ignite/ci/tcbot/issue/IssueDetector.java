@@ -413,9 +413,7 @@ public class IssueDetector {
     private void checkFailures() {
         List<String> ids = cfg.getTrackedBranchesIds();
 
-        for (Iterator<String> iter = ids.iterator(); iter.hasNext(); ) {
-            String tbranchName = iter.next();
-
+        for (String tbranchName : ids) {
             try {
                 checkFailuresEx(tbranchName);
             }

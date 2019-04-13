@@ -32,6 +32,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+
+import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServer;
 import org.apache.ignite.ci.tcbot.TcBotGeneralService;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
@@ -63,23 +65,32 @@ public class GetTrackedBranches {
 
     @GET
     @Path("getIds")
-    public List<String> getIds() {
-        return CtxListener.getInjector(ctx).getInstance(ITcBotConfig.class).getTrackedBranchesIds();
+    public List<String> getIdsIfAccessible() {
+        ICredentialsProv prov = ICredentialsProv.get(req);
+        Injector injector = CtxListener.getInjector(ctx);
+        ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
+
+        return cfg.getTrackedBranches().getBranches()
+                .stream()
+                .filter(bt ->
+                        bt.getChains().stream().anyMatch(chain-> tcProv.hasAccess(chain.serverId, prov)))
+                .map(BranchTracked::getId)
+                .collect(Collectors.toList());
     }
 
     /**
      * Return all suites involved into tracked branches.
      *
-     * @param srvId Optional service ID to additiona filtering of chains.
+     * @param srvId Optional service ID to additional filtering of chains.
      */
     @GET
     @Path("suites")
     public Set<ChainAtServer> getSuites(@Nullable @QueryParam("server") String srvId) {
-        final ICredentialsProv prov = ICredentialsProv.get(req);
-
+        ICredentialsProv prov = ICredentialsProv.get(req);
         Injector injector = CtxListener.getInjector(ctx);
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
-        ITeamcityIgnitedProvider tcIgnProv = injector.getInstance(ITeamcityIgnitedProvider.class);
+        ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
 
         return cfg.getTrackedBranches()
             .getSuitesUnique()
@@ -87,7 +98,7 @@ public class GetTrackedBranches {
             .filter(chainAtSrv ->
                 Strings.isNullOrEmpty(srvId)
                     || srvId.equals(chainAtSrv.serverId))
-            .filter(chainAtServer -> tcIgnProv.hasAccess(chainAtServer.serverId, prov))
+            .filter(chainAtServer -> tcProv.hasAccess(chainAtServer.serverId, prov))
             .collect(Collectors.toSet());
     }
 
@@ -97,19 +108,14 @@ public class GetTrackedBranches {
     @GET
     @Path("getServerIds")
     public Set<String> getServerIds() {
-        final ICredentialsProv prov = ICredentialsProv.get(req);
-
+        ICredentialsProv prov = ICredentialsProv.get(req);
         Injector injector = CtxListener.getInjector(ctx);
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
-
         ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
+
         return cfg.getServerIds()
             .stream()
-            .filter(srvId ->
-            {
-                return tcProv.hasAccess(srvId, prov);
-
-            })
+            .filter(srvId -> tcProv.hasAccess(srvId, prov))
             .collect(Collectors.toSet());
     }
 
