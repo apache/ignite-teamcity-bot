@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -169,7 +170,7 @@ public class RemoteClientTmpHelper {
     }
 
     public static void dumpOldBuild(int buildId, String href, Build fatBuild) {
-        try (FileWriter writer = new FileWriter(new File(dumpsDir(), "BuildOld" + buildId + ".txt"))) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(dumpsDir(), "BuildOld" + buildId + ".txt")))) {
             writer.write("<!--" + href + "-->\n");
             writer.write(XmlUtil.save(fatBuild));
         }
