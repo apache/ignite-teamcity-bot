@@ -49,8 +49,8 @@ public class GitHubConfig implements IGitHubConfig {
     private Properties props;
 
     /**
-     * Prefer branches contributions. If null or false then PRs have priority.
-     * If set to true that means branch scanning preformed more often, and default triggering option is branch.
+     * Prefer branches contributions. If null or false then PRs have priority. If set to true that means branch scanning
+     * preformed more often, and default triggering option is branch.
      */
     @Nullable
     private Boolean preferBranches;
@@ -100,7 +100,7 @@ public class GitHubConfig implements IGitHubConfig {
             return null;
 
         return PasswordEncoder.decode(encAuth);
-}
+    }
 
     /** {@inheritDoc} */
     @Override public String gitApiUrl() {
@@ -113,11 +113,12 @@ public class GitHubConfig implements IGitHubConfig {
 
     }
 
-    @Override
-    public boolean isPreferBranches() {
+    /** {@inheritDoc} */
+    @Override public boolean isPreferBranches() {
         return Boolean.TRUE.equals(preferBranches);
     }
 
+    /** {@inheritDoc} */
     @Override public String code() {
         return code;
     }

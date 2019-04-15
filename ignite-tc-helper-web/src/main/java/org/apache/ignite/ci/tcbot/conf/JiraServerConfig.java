@@ -38,14 +38,13 @@ public class JiraServerConfig implements IJiraServerConfig {
     private String projectCode;
 
     /**
-     * Branch number prefix. Optional, if not present {@link #projectCode}-NNNNN is searched.<br>
-     * But if branch has different enumeration, this prefix will be searched instead.<br>
-     * If specified, that meant tickets maching branches have another identification.<br>
-     * For exaple some ticket having ID {@link #projectCode}-N1 will be commented, but a branch will be identified using
-     * {@link #branchNumPrefix}N2 with another number.<br><br>
+     * Branch number prefix. Optional, if not present {@link #projectCode}-NNNNN is searched.<br> But if branch has
+     * different enumeration, this prefix will be searched instead.<br> If specified, that meant tickets maching
+     * branches have another identification.<br> For exaple some ticket having ID {@link #projectCode}-N1 will be
+     * commented, but a branch will be identified using {@link #branchNumPrefix}N2 with another number.<br><br>
      *
-     * Search of branches will be performed using data in JIRA ticket fields for
-     * {@link #projectCode}-N1, fields are listed in {@link Ticket} class.
+     * Search of branches will be performed using data in JIRA ticket fields for {@link #projectCode}-N1, fields are
+     * listed in {@link Ticket} class.
      */
     private String branchNumPrefix;
 
@@ -116,7 +115,6 @@ public class JiraServerConfig implements IJiraServerConfig {
     @Nullable @Override public String branchNumPrefix() {
         return Strings.emptyToNull(branchNumPrefix);
     }
-
 
     /** {@inheritDoc} */
     @Nullable

@@ -16,7 +16,6 @@
  */
 package org.apache.ignite.ci.tcbot.conf;
 
-import java.util.Properties;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
