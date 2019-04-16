@@ -725,7 +725,7 @@ public class TcBotTriggerAndSignOffService {
      *
      * @param srvId TC Server ID to take information about token from.
      * @param prov Credentials.
-     * @param buildTypeId Suite name.
+     * @param buildTypeId Build type ID, for which visa was ordered.
      * @param branchForTc Branch for TeamCity.
      * @param ticket JIRA ticket full name. E.g. IGNITE-5555
      * @return {@link Visa} instance.
@@ -791,18 +791,20 @@ public class TcBotTriggerAndSignOffService {
     /**
      * @param suites Suite Current Status.
      * @param webUrl Build URL.
+     * @param buildTypeId Build type ID, for which visa was ordered.
+     * @param tcIgnited TC service.
      * @return Comment, which should be sent to the JIRA ticket.
      */
     private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl, String buildTypeId,
         ITeamcityIgnited tcIgnited) {
         BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
 
-        String suiteName = (bt != null ? bt.name(compactor) : buildTypeId);
+        String suiteNameUsedForVisa = (bt != null ? bt.name(compactor) : buildTypeId);
 
         StringBuilder res = new StringBuilder();
 
         for (SuiteCurrentStatus suite : suites) {
-            res.append("{color:#d04437}").append(suite.name).append("{color}");
+            res.append("{color:#d04437}").append(jiraEscText(suite.name)).append("{color}");
             res.append(" [[tests ").append(suite.failedTests);
 
             if (suite.result != null && !suite.result.isEmpty())
@@ -814,9 +816,9 @@ public class TcBotTriggerAndSignOffService {
                 res.append("* ");
 
                 if (failure.suiteName != null && failure.testName != null)
-                    res.append(failure.suiteName).append(": ").append(failure.testName);
+                    res.append(failure.suiteName).append(": ").append(jiraEscText(failure.testName));
                 else
-                    res.append(failure.name);
+                    res.append(jiraEscText(failure.name));
 
                 FailureSummary recent = failure.histBaseBranch.recent;
 
@@ -838,17 +840,28 @@ public class TcBotTriggerAndSignOffService {
         }
 
         if (res.length() > 0) {
-            res.insert(0, "{panel:title=" + suiteName + ": Possible Blockers|" +
+            res.insert(0, "{panel:title=" + jiraEscText(suiteNameUsedForVisa) + ": Possible Blockers|" +
                 "borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}\\n")
                 .append("{panel}");
         }
         else {
-            res.append("{panel:title=").append(suiteName).append(": No blockers found!|")
+            res.append("{panel:title=").append(jiraEscText(suiteNameUsedForVisa)).append(": No blockers found!|")
                 .append("borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
         }
 
-        res.append("\\n").append("[TeamCity *").append(suiteName).append("* Results|").append(webUrl).append(']');
+        res.append("\\n").append("[TeamCity *").append(jiraEscText(suiteNameUsedForVisa)).append("* Results|").append(webUrl).append(']');
 
         return xmlEscapeText(res.toString());
+    }
+
+    /**
+     * Escapes text for JIRA.
+     * @param txt Txt.
+     */
+    private String jiraEscText(String txt) {
+        if(Strings.isNullOrEmpty(txt))
+            return "";
+
+        return txt.replaceAll("\\|", "/");
     }
 }

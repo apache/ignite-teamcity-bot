@@ -53,7 +53,7 @@ public class BuildsInfo {
     /** Server id. */
     public final String srvId;
 
-    /** Build type id. */
+    /** Build type id, for which build/observation/visa was ordered. */
     public String buildTypeId;
 
     /** Branch name. */
