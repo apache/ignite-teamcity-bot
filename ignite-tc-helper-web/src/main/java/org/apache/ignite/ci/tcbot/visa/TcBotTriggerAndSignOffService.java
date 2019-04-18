@@ -816,7 +816,7 @@ public class TcBotTriggerAndSignOffService {
                 res.append("* ");
 
                 if (failure.suiteName != null && failure.testName != null)
-                    res.append(failure.suiteName).append(": ").append(jiraEscText(failure.testName));
+                    res.append(jiraEscText(failure.suiteName)).append(": ").append(jiraEscText(failure.testName));
                 else
                     res.append(jiraEscText(failure.name));
 
