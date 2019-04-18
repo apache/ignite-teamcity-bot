@@ -57,8 +57,8 @@ import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
      * @param jiraIntegration JIRA Integration
      */
     public void setJavaFlags(IAnalyticsEnabledTeamcity teamcity,
-                             IGitHubConnIgnited gitHubConn,
-                             IJiraIgnited jiraIntegration) {
+        IGitHubConnIgnited gitHubConn,
+        IJiraIgnited jiraIntegration) {
         if (teamcity.isTeamCityTokenAvailable())
             javaFlags |= TEAMCITY_FLAG;
 

@@ -28,7 +28,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
@@ -57,7 +56,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Suite Run Result (filled if failed): Summary of build problems, count of tests, etc. */
     public String result;
 
-    /** Has critical problem: Timeout, JMV Crash, Compilation Error or Failure on Metric*/
+    /** Has critical problem: Timeout, JMV Crash, Compilation Error or Failure on Metric */
     @Nullable public Boolean hasCriticalProblem;
 
     /** Web Href. to suite runs history */
@@ -112,7 +111,6 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Timed out builds average time. */
     public String lostInTimeouts;
 
-
     /**
      * Advisory mark there is problem in this suite.
      */
@@ -122,8 +120,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     public Boolean possibleBlocker;
 
     public void initFromContext(ITeamcityIgnited tcIgnited,
-                                @Nonnull final MultBuildRunCtx suite,
-                                @Nullable final String baseBranch) {
+        @Nonnull final MultBuildRunCtx suite,
+        @Nullable final String baseBranch) {
 
         name = suite.suiteName();
 
@@ -143,7 +141,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         hasCriticalProblem = suite.hasCriticalProblem();
         failedTests = suite.failedTests();
         durationPrintable = millisToDurationPrintable(suite.getBuildDuration());
-        testsDurationPrintable  = millisToDurationPrintable(suite.getAvgTestsDuration());
+        testsDurationPrintable = millisToDurationPrintable(suite.getAvgTestsDuration());
         webToHist = buildWebLink(tcIgnited, suite);
         webToHistBaseBranch = buildWebLink(tcIgnited, suite, baseBranch);
         webToBuild = buildWebLinkToBuild(tcIgnited, suite);
@@ -169,7 +167,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         suite.getTopLongRunning().forEach(occurrence -> {
             final TestFailure failure = createOrrucForLongRun(tcIgnited, suite,
-                    occurrence, baseBranch);
+                occurrence, baseBranch);
 
             topLongRunning.add(failure);
         });
@@ -213,10 +211,10 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     }
 
     private void initSuiteStat(ITeamcityIgnited tcIgnited,
-                               String failRateNormalizedBranch,
-                               String curBranchNormalized,
-                               String suiteId) {
-        if (Strings.isNullOrEmpty(suiteId)  )
+        String failRateNormalizedBranch,
+        String curBranchNormalized,
+        String suiteId) {
+        if (Strings.isNullOrEmpty(suiteId))
             return;
 
         SuiteInBranch key = new SuiteInBranch(suiteId, failRateNormalizedBranch);
@@ -247,7 +245,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
             latestRunsSrc = statForStripe;
             latestRuns = statForStripe != null ? statForStripe.getLatestRunResults() : null;
-        } else
+        }
+        else
             latestRunsSrc = stat;
 
         if (latestRunsSrc != null) {
@@ -268,16 +267,16 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     }
 
     @NotNull public static TestFailure createOrrucForLongRun(ITeamcityIgnited tcIgnited,
-                                                             @Nonnull MultBuildRunCtx suite,
-                                                             final IMultTestOccurrence occurrence,
-                                                             @Nullable final String failRateBranch) {
+        @Nonnull MultBuildRunCtx suite,
+        final IMultTestOccurrence occurrence,
+        @Nullable final String failRateBranch) {
         final TestFailure failure = new TestFailure();
 
         failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(), failRateBranch);
 
         failure.initStat(tcIgnited,
-                normalizeBranch(failRateBranch),
-                normalizeBranch(suite.branchName()));
+            normalizeBranch(failRateBranch),
+            normalizeBranch(suite.branchName()));
 
         return failure;
     }

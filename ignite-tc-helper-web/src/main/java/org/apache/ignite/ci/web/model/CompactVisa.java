@@ -21,8 +21,7 @@ import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Representation of {@link Visa} with compacted properties for more
- * effective cache storing.
+ * Representation of {@link Visa} with compacted properties for more effective cache storing.
  */
 public class CompactVisa {
     /** */

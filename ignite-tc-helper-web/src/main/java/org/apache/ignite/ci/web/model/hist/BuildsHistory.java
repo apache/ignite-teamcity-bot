@@ -20,6 +20,22 @@ package org.apache.ignite.ci.web.model.hist;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
+import java.io.UncheckedIOException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -30,25 +46,12 @@ import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UncheckedIOException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
-
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
- * Presents statistic for all valid builds and merged failed unmuted tests in
- * specified time interval. Statistics and tests are stored in
- * {@link #buildsStatistics} and {@link #mergedTestsBySuites} properties
- * respectively. Builder pattern is used for instance creation.
- * Default values: <br>skipTests = false,<br>projectId="IgniteTests24Java8",
+ * Presents statistic for all valid builds and merged failed unmuted tests in specified time interval. Statistics and
+ * tests are stored in {@link #buildsStatistics} and {@link #mergedTestsBySuites} properties respectively. Builder
+ * pattern is used for instance creation. Default values: <br>skipTests = false,<br>projectId="IgniteTests24Java8",
  * <br>srvId="apache", <br>buildTypeId="IgniteTests24Java8_RunAll",
  * <br>branchName="refs/heads/master".
  */
@@ -91,10 +94,9 @@ public class BuildsHistory {
 
     @Inject private IStringCompactor compactor;
 
-
     /**
-     * Initialize {@link #mergedTestsBySuites} and {@link #buildsStatistics}
-     * properties using builds which satisfy properties setted by Builder.
+     * Initialize {@link #mergedTestsBySuites} and {@link #buildsStatistics} properties using builds which satisfy
+     * properties setted by Builder.
      *
      * @param prov Credentials.
      */
@@ -109,7 +111,7 @@ public class BuildsHistory {
             .collect(Collectors.toList());
 
         Map<Integer, Boolean> buildIdsWithConditions = finishedBuildsIds.stream()
-            .collect(Collectors.toMap(v -> v, ignitedTeamcity::buildIsValid,  (e1, e2) -> e1, LinkedHashMap::new));
+            .collect(Collectors.toMap(v -> v, ignitedTeamcity::buildIsValid, (e1, e2) -> e1, LinkedHashMap::new));
 
         initStatistics(ignitedTeamcity, buildIdsWithConditions);
 
@@ -126,8 +128,8 @@ public class BuildsHistory {
     }
 
     /**
-     * Initialize {@link #buildsStatistics} property with list of {@link BuildStatisticsSummary}
-     * produced for each valid build.
+     * Initialize {@link #buildsStatistics} property with list of {@link BuildStatisticsSummary} produced for each valid
+     * build.
      *
      * @param ignited {@link ITeamcityIgnited} instance.
      * @param buildIdsWithConditions Build ID -> build validation flag.
@@ -171,8 +173,8 @@ public class BuildsHistory {
     }
 
     /**
-     * Initialize {@link #mergedTestsBySuites} property by unique failed tests
-     * which occured in specified date interval.
+     * Initialize {@link #mergedTestsBySuites} property by unique failed tests which occured in specified date
+     * interval.
      *
      * @param buildIds list of valid builds.
      * @param buildIdsWithConditions Build ID -> build validation flag.
@@ -182,7 +184,7 @@ public class BuildsHistory {
 
         for (BuildStatisticsSummary buildStat : buildsStatistics) {
             Boolean valid = buildIdsWithConditions.get(buildStat.buildId);
-            if(!Boolean.TRUE.equals(valid))
+            if (!Boolean.TRUE.equals(valid))
                 continue;
 
             buildStat.failedTests().forEach((btId, map) -> {
@@ -286,8 +288,7 @@ public class BuildsHistory {
         }
 
         /**
-         * @param sinceDate left border of date interval form which builds
-         * will be presented.
+         * @param sinceDate left border of date interval form which builds will be presented.
          */
         public Builder sinceDate(String sinceDate) throws ParseException {
             if (!isNullOrEmpty(sinceDate))
@@ -297,8 +298,7 @@ public class BuildsHistory {
         }
 
         /**
-         * @param untilDate right border of date interval form which builds
-         * will be presented.
+         * @param untilDate right border of date interval form which builds will be presented.
          */
         public Builder untilDate(String untilDate) throws ParseException {
             if (!isNullOrEmpty(untilDate))
@@ -313,7 +313,6 @@ public class BuildsHistory {
 
             return this;
         }
-
 
         /**
          * @param injector Guice instance for dependency injection.

@@ -35,8 +35,8 @@ import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.VisaRequest;
 
 /**
- * Storage which contains {@link VisaRequest} identified by
- * {@link CompactContributionKey}, and stored in order of addition.
+ * Storage which contains {@link VisaRequest} identified by {@link CompactContributionKey}, and stored in order of
+ * addition.
  */
 public class VisasHistoryStorage {
     /** Cache name. */
@@ -86,7 +86,6 @@ public class VisasHistoryStorage {
 
     /**
      * @param key {@link ContributionKey} instance.
-     *
      * @return list of all {@link VisaRequest} for specified key.
      */
     public List<VisaRequest> getVisaRequests(ContributionKey key) {
@@ -102,7 +101,6 @@ public class VisasHistoryStorage {
 
     /**
      * @param key {@link ContributionKey} instance.
-     *
      * @return Last added {@link VisaRequest} for specified key.
      */
     public VisaRequest getLastVisaRequest(ContributionKey key) {
@@ -117,7 +115,6 @@ public class VisasHistoryStorage {
     /**
      * @param key {@link ContributionKey} instance.
      * @param updater {@link Consumer<VisaRequest>} which will be applied to last Visa request for specified key.
-     *
      * @return <code>True</code> if specified key exists.
      */
     public boolean updateLastVisaRequest(ContributionKey key, Consumer<VisaRequest> updater) {
@@ -161,7 +158,7 @@ public class VisasHistoryStorage {
     }
 
     /**
-     *  @return Collection of all {@link VisaRequest} for every stored key.
+     * @return Collection of all {@link VisaRequest} for every stored key.
      */
     public Collection<VisaRequest> getVisas() {
         List<VisaRequest> res = new ArrayList<>();

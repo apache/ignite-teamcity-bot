@@ -21,9 +21,8 @@ import org.apache.ignite.ci.observer.BuildsInfo;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Representation of visa request from TC Bot. Visa request can be with
- * additional builds to rerun and without them. So it is used for tracking
- * rerunned builds status and storing resulting visa.
+ * Representation of visa request from TC Bot. Visa request can be with additional builds to rerun and without them. So
+ * it is used for tracking rerunned builds status and storing resulting visa.
  */
 public class VisaRequest {
     /** Common information to determine visa request */
@@ -33,8 +32,8 @@ public class VisaRequest {
     private Visa visa;
 
     /**
-     * Flag which is used to show that some outer services monitor the status
-     * of rerunned builds which are not finished yet.
+     * Flag which is used to show that some outer services monitor the status of rerunned builds which are not finished
+     * yet.
      */
     private boolean isObserving;
 

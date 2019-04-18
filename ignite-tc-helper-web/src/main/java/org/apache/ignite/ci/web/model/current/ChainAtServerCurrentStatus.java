@@ -18,6 +18,13 @@
 package org.apache.ignite.ci.web.model.current;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
@@ -31,12 +38,10 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 
-import javax.annotation.Nullable;
-import java.util.*;
-import java.util.stream.Stream;
-
 import static org.apache.ignite.ci.util.UrlUtil.escape;
-import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.*;
+import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchForLink;
+import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOccurForLogConsumer;
+import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOrrucForLongRun;
 
 /**
  * Represent Run All chain results/ or RunAll+latest re-runs.
@@ -118,16 +123,17 @@ public class ChainAtServerCurrentStatus {
 
     /** */
     public void initJiraAndGitInfo(BranchTicketMatcher ticketMatcher,
-                                   IJiraIgnited jiraIntegration,
-                                   IGitHubConnIgnited gitHubConnIgnited) {
+        IJiraIgnited jiraIntegration,
+        IGitHubConnIgnited gitHubConnIgnited) {
 
         String ticketFullName = null;
         try {
             ticketFullName = ticketMatcher
-                    .resolveTicketFromBranch(jiraIntegration.config().getCode(),
-                            null,
-                            branchName);
-        } catch (BranchTicketMatcher.TicketNotFoundException ignore) {
+                .resolveTicketFromBranch(jiraIntegration.config().getCode(),
+                    null,
+                    branchName);
+        }
+        catch (BranchTicketMatcher.TicketNotFoundException ignore) {
         }
 
         Integer prNum = IGitHubConnection.convertBranchToPrId(branchName);

@@ -38,7 +38,10 @@ import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.internal.util.typedef.T2;
 
-import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.*;
+import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.TC_EXECUTION_TIMEOUT;
+import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.TC_EXIT_CODE;
+import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.TC_JVM_CRASH;
+import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.TC_OOME;
 
 /**
  * Summary of build statistics.
@@ -84,8 +87,10 @@ public class BuildStatisticsSummary {
     /** Is fake stub. */
     public boolean isFakeStub;
 
-    /** Failed tests: Map from build type string ID ->
-     *           Map of test name (full) string ID -> (test refrenence, to count of failures). */
+    /**
+     * Failed tests: Map from build type string ID -> Map of test name (full) string ID -> (test refrenence, to count of
+     * failures).
+     */
     private Map<Integer, Map<Integer, T2<Long, Integer>>> failedTests = new HashMap<>();
 
     /** Is valid. */
@@ -176,6 +181,7 @@ public class BuildStatisticsSummary {
 
         return snapshotDependencies;
     }
+
     /**
      * Builds without status "Success".
      */
@@ -187,6 +193,7 @@ public class BuildStatisticsSummary {
 
     /**
      * BuildType problems count (EXECUTION TIMEOUT, JVM CRASH, OOMe, EXIT CODE, TOTAL PROBLEMS COUNT).
+     *
      * @param problems
      */
     public Map<String, Long> getBuildTypeProblemsCount(

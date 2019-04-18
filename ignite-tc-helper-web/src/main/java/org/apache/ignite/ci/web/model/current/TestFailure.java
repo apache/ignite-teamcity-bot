@@ -54,8 +54,8 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
     @Nullable public String testName;
 
     /**
-     * Current filtered failures count, Usually 1 for get current (latest),
-     * may indicate several failures for history (merged recent runs).
+     * Current filtered failures count, Usually 1 for get current (latest), may indicate several failures for history
+     * (merged recent runs).
      */
     public Integer curFailures;
 
@@ -84,7 +84,6 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
      * This history is created only for PR/Branch failures, it contains data from the base branch (e.g. master).
      */
     @NotNull public TestHistory histBaseBranch = new TestHistory();
-
 
     /** Link to test history for current branch. */
     @Nullable public String webUrlBaseBranch;
@@ -192,8 +191,8 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
      * @param curBranchNormalized Cur branch normalized.
      */
     public void initStat(ITeamcityIgnited tcIgnited,
-                         String failRateNormalizedBranch,
-                         String curBranchNormalized) {
+        String failRateNormalizedBranch,
+        String curBranchNormalized) {
 
         TestInBranch testInBranch = new TestInBranch(name, failRateNormalizedBranch);
 
@@ -208,12 +207,13 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 
             statForProblemsDetection = tcIgnited.getTestRunHist(testInBranchS);
 
-            if(statForProblemsDetection!=null) {
+            if (statForProblemsDetection != null) {
                 histCurBranch = new TestHistory();
 
                 histCurBranch.init(statForProblemsDetection);
             }
-        } else
+        }
+        else
             statForProblemsDetection = stat;
 
         if (statForProblemsDetection != null) {
@@ -276,6 +276,6 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return "\t" +  name + "\n";
+        return "\t" + name + "\n";
     }
 }

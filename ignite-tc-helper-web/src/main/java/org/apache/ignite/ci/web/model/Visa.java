@@ -20,9 +20,8 @@ package org.apache.ignite.ci.web.model;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Representation of TC Bot visa - comment in apache Jira ticket conversation
- * which shows a list of tests which probably failed because of committed
- * changes(blockers) based on TC Run-All results.
+ * Representation of TC Bot visa - comment in apache Jira ticket conversation which shows a list of tests which probably
+ * failed because of committed changes(blockers) based on TC Run-All results.
  */
 public class Visa {
     /** Determines Visa with no results and info. */
