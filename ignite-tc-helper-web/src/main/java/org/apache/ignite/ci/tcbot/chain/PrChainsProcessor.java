@@ -171,7 +171,7 @@ public class PrChainsProcessor {
     }
 
     /**
-     * @param buildTypeId Suite name.
+     * @param buildTypeId  Build type ID, for which visa was ordered.
      * @param branchForTc Branch for TeamCity.
      * @param srvId Server id.
      * @param prov Credentials.

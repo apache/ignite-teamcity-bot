@@ -145,7 +145,7 @@ public interface ITeamcityIgnited {
     /**
      * Returns IDs of N. most recent builds in build history.
      *
-     * @param btId Bt id.
+     * @param btId Build type ID.
      * @param branchForTc Branch for tc.
      * @param cnt Count.
      */

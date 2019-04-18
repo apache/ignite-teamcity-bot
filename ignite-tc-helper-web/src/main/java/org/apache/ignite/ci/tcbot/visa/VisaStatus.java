@@ -44,7 +44,7 @@ public class VisaStatus {
     /** */
     @Nullable public String cancelUrl;
 
-    /** */
+    /** Build type ID, for which visa was ordered. */
     @Nullable public String buildTypeId;
 
     /** */
