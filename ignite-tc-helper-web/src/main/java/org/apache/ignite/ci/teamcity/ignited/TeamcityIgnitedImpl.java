@@ -16,11 +16,19 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.SortedSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -490,12 +498,18 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
      * @return build start date or null if build is fake stub or start date is not specified.
      */
     @SuppressWarnings("WeakerAccess")
+    @Nullable public Date getBuildStartDate(int buildId) {
+        final Long buildStartTime = getBuildStartTs(buildId);
+
+        return buildStartTime != null ? new Date(buildStartTime) : null;
+    }
+
     @GuavaCached(maximumSize = 2000, cacheNullRval = false)
     @AutoProfiling
-    @Nullable public Date getBuildStartDate(int buildId) {
-        final Long buildStartTime = runHistCompactedDao.getBuildStartTime(srvIdMaskHigh, buildId);
+    public Long getBuildStartTs(int buildId) {
+        Long buildStartTime = runHistCompactedDao.getBuildStartTime(srvIdMaskHigh, buildId);
         if (buildStartTime != null)
-            return new Date(buildStartTime);
+            return buildStartTime;
 
         String msg = "Loading build [" + buildId + "] start date";
 
@@ -508,7 +522,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (highBuild == null || highBuild.isFakeStub())
             return null;
 
-        return highBuild.getStartDate();
+        long ts = highBuild.getStartDateTs();
+
+        return ts > 0 ? ts : null;
     }
 
     /** {@inheritDoc} */

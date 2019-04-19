@@ -128,6 +128,12 @@ public interface ITeamcityIgnited {
     public boolean setBuildCondition(BuildCondition cond);
 
     /**
+     * @param buildId Build id.
+     * @return  build start timestamp or null.
+     */
+    public Long getBuildStartTs(int buildId);
+
+    /**
      * @param id Id.
      */
     public default FatBuildCompacted getFatBuild(int id) {
