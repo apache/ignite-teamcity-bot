@@ -34,6 +34,7 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
@@ -166,7 +167,12 @@ public class RunHistSync {
     @AutoProfiling
     @NotNull protected String saveInvocationsMap(
         Map<RunHistKey, List<Invocation>> buildsSaveThisRun,
-        Map<RunHistKey, List<Invocation>> saveThisRun) {
+        Map<RunHistKey, List<Invocation>> testsSaveThisRun) {
+
+        if (Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)))
+            if (testsSaveThisRun.size() > 100)
+                histDao.disableWal();
+
         Set<Integer> confirmedNewBuild = new HashSet<>();
         Set<Integer> confirmedDuplicate = new HashSet<>();
 
@@ -174,7 +180,7 @@ public class RunHistSync {
         AtomicInteger duplicateOrExpired = new AtomicInteger();
         AtomicInteger cntSuiteInvocations = new AtomicInteger();
 
-        saveThisRun.forEach(
+        testsSaveThisRun.forEach(
             (histKey, invocationList) -> {
                 saveInvocationList(confirmedNewBuild,
                     confirmedDuplicate,
@@ -206,7 +212,7 @@ public class RunHistSync {
             }
         );
 
-        String res = "History test entries: " + saveThisRun.size() + " processed " + cntTestInvocations.get()
+        String res = "History test entries: " + testsSaveThisRun.size() + " processed " + cntTestInvocations.get()
             + " invocations saved to DB " + duplicateOrExpired.get() + " duplicates/expired";
 
         System.out.println(Thread.currentThread().getName() + ":" + res);

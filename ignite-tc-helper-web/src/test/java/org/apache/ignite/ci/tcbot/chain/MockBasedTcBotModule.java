@@ -33,11 +33,11 @@ import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
-import org.apache.ignite.ci.tcbot.conf.GitHubConfig;
 import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
+import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
 import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
@@ -112,6 +112,10 @@ public class MockBasedTcBotModule extends AbstractModule {
 
             @Override public IGitHubConfig getGitConfig(String srvCode) {
                 return ghCfg;
+            }
+
+            @Override public NotificationsConfig notifications() {
+                return new NotificationsConfig();
             }
 
             private Properties loadOldProps(String srvCode) {

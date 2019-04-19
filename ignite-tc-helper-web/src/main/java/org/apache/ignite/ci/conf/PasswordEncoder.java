@@ -95,15 +95,23 @@ public class PasswordEncoder {
         Preconditions.checkState(decode.equals(pass));
     }
 
-    public static void main1(String[] args) {
-        String pass = "mmm";
+    public static void mainEncodeEmailPassword(String[] args) {
+        String pass = "Enter Password Here";
         String encode = encode(pass);
-        System.err.println("Encoded: " + HelperConfig.ENCODED_PASSWORD + "=" + encode);
+        System.err.println("\"notifications\": {\n" +
+            "    \"email\": {\n" +
+            "      \"pwd\": \"" + encode+ "\",\n" +
+            "    }\n" +
+            "  } ");
         String decode = decode(encode);
         Preconditions.checkState(decode.equals(pass));
     }
 
     public static void main(String[] args) {
+        mainEncodeEmailPassword(args);
+    }
+
+    public static void main1(String[] args) {
         encodeJiraTok("ignitetcbot", "21313");
     }
 

@@ -29,6 +29,7 @@ import org.apache.ignite.ci.conf.BranchTracked;
 import org.apache.ignite.ci.conf.ChainAtServer;
 
 /**
+ * TC Bot main JSON config file, Historically.
  * Config file for tracked branches.
  */
 public class BranchesTracked {
@@ -46,6 +47,9 @@ public class BranchesTracked {
 
     /** JIRA config to be used . */
     private List<GitHubConfig> gitHubConfigs = new ArrayList<>();
+
+    /** Notifications settings & tokens. */
+    private NotificationsConfig notifications = new NotificationsConfig();
 
     /**
      * @return list of internal identifiers of branch.
@@ -110,5 +114,10 @@ public class BranchesTracked {
 
     public Optional<GitHubConfig> getGitHubConfig(String code) {
         return gitHubConfigs.stream().filter(s -> code.equals(s.code())).findAny();
+    }
+
+    @Nullable
+    public NotificationsConfig notifications() {
+        return notifications;
     }
 }
