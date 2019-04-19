@@ -42,6 +42,12 @@
       "apiUrl": "https://api.github.com/repos/apache/ignite/"
     }
   ],
+  "notifications": {
+
+    /**  */
+    "emailUsername": "ignitetcbot@gmail.com",
+    ""
+  },
   "branches": [
     {
       "id": "master",

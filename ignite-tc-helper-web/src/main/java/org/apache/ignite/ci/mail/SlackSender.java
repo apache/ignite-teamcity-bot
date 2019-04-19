@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.mail;
 
+import com.google.common.base.Preconditions;
 import com.ullink.slack.simpleslackapi.SlackChannel;
 import com.ullink.slack.simpleslackapi.SlackMessageHandle;
 import com.ullink.slack.simpleslackapi.SlackSession;
@@ -24,16 +25,19 @@ import com.ullink.slack.simpleslackapi.SlackUser;
 import com.ullink.slack.simpleslackapi.impl.SlackSessionFactory;
 import com.ullink.slack.simpleslackapi.replies.SlackMessageReply;
 import java.io.IOException;
-import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  *
  */
 public class SlackSender {
-    public static boolean sendMessage(String addr, String msg) throws IOException {
-        Properties cfgProps = HelperConfig.loadEmailSettings();
-        String authTok = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.SLACK_AUTH_TOKEN, HelperConfig.MAIL_PROPS);
+    public static boolean sendMessage(String addr, String msg,
+        NotificationsConfig cfg) throws IOException {
+        String authTok = cfg.slackAuthToken();
+        Preconditions.checkState(!isNullOrEmpty(authTok),  "notifications:\"{}\" property should be filled in branches.json");
 
         SlackSession ses = SlackSessionFactory.createWebSocketSlackSession(authTok);
 

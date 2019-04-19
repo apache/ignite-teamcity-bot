@@ -24,7 +24,7 @@ import java.util.List;
  */
 public interface ITcBotConfig {
     /** Default server code. */
-    String DEFAULT_SERVER_CODE = "apache";
+    public String DEFAULT_SERVER_CODE = "apache";
 
     /** */
     public String primaryServerCode();
@@ -53,4 +53,9 @@ public interface ITcBotConfig {
     public IJiraServerConfig getJiraConfig(String srvCode);
 
     public IGitHubConfig getGitConfig(String srvCode);
+
+    /**
+     * @return notification settings config.
+     */
+    public NotificationsConfig notifications();
 }

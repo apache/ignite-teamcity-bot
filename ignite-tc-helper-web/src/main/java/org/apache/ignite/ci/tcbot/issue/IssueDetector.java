@@ -200,7 +200,7 @@ public class IssueDetector {
                 List<String> messages = next.toSlackMarkup();
 
                 for (String msg : messages) {
-                    final boolean snd = SlackSender.sendMessage(slackUser, msg);
+                    final boolean snd = SlackSender.sendMessage(slackUser, msg, cfg.notifications());
 
                     res.append("Send ").append(slackUser).append(": ").append(snd);
                     if (!snd)

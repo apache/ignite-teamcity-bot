@@ -71,6 +71,20 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
     }
 
     /** {@inheritDoc} */
+    @Override public NotificationsConfig notifications() {
+        NotificationsConfig notifications = getTrackedBranches().notifications();
+        if (notifications != null && !notifications.isEmpty())
+            return notifications;
+
+        Properties cfgProps = HelperConfig.loadEmailSettings();
+        final String authTok = cfgProps.getProperty(HelperConfig.SLACK_AUTH_TOKEN);
+
+        NotificationsConfig cfg = new NotificationsConfig();
+        cfg.slackAuthTok = authTok;
+        return notifications;
+    }
+
+    /** {@inheritDoc} */
     @Override public String primaryServerCode() {
         String srvCode = getTrackedBranches().primaryServerCode();
 
