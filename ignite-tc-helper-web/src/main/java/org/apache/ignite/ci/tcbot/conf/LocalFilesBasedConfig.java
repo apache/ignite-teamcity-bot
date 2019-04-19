@@ -76,12 +76,7 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
         if (notifications != null && !notifications.isEmpty())
             return notifications;
 
-        Properties cfgProps = HelperConfig.loadEmailSettings();
-        final String authTok = cfgProps.getProperty(HelperConfig.SLACK_AUTH_TOKEN);
-
-        NotificationsConfig cfg = new NotificationsConfig();
-        cfg.slackAuthTok = authTok;
-        return notifications;
+        return NotificationsConfig.backwardConfig();
     }
 
     /** {@inheritDoc} */

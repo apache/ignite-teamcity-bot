@@ -47,6 +47,7 @@ import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
 import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
@@ -191,6 +192,8 @@ public class IssueDetector {
         if (toBeSent.isEmpty())
             return "Noting to notify, " + issuesChecked + " issues checked";
 
+        NotificationsConfig notifications = cfg.notifications();
+
         StringBuilder res = new StringBuilder();
         Collection<Notification> values = toBeSent.values();
         for (Notification next : values) {
@@ -200,7 +203,7 @@ public class IssueDetector {
                 List<String> messages = next.toSlackMarkup();
 
                 for (String msg : messages) {
-                    final boolean snd = SlackSender.sendMessage(slackUser, msg, cfg.notifications());
+                    final boolean snd = SlackSender.sendMessage(slackUser, msg, notifications);
 
                     res.append("Send ").append(slackUser).append(": ").append(snd);
                     if (!snd)
@@ -211,7 +214,7 @@ public class IssueDetector {
                 String builds = next.buildIdToIssue.keySet().toString();
                 String subj = "[MTCGA]: " + next.countIssues() + " new failures in builds " + builds + " needs to be handled";
 
-                EmailSender.sendEmail(next.addr, subj, next.toHtml(), next.toPlainText());
+                EmailSender.sendEmail(next.addr, subj, next.toHtml(), next.toPlainText(), notifications);
                 res.append("Send ").append(next.addr).append(" subject: ").append(subj);
             }
         }

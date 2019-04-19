@@ -43,10 +43,14 @@
     }
   ],
   "notifications": {
-
-    /**  */
-    "emailUsername": "ignitetcbot@gmail.com",
-    ""
+    /* Email sending settings, only smtp.gmail.com is now supported. */
+    "email": {
+      /* Username, equal to from: field */
+      "username": "ignitetcbot@gmail.com",
+      /** Email password encoded using Password Encoder.  */
+      //todo specify password
+      "pwd": "",
+    }
   },
   "branches": [
     {

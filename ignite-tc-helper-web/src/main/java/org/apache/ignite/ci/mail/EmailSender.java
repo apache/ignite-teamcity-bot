@@ -29,31 +29,20 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
-import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.conf.PasswordEncoder;
+import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
 
 /**
  * Class for sending email with configured credentials.
  */
 public class EmailSender {
-    public static void main(String[] args) {
+    public static boolean sendEmail(String to, String subject, String html, String plainText,
+        NotificationsConfig notifications) {
 
-        // Recipient's email ID needs to be mentioned.
-        String to = "dpavlov.spb@gmail.com";
+        String user = notifications.emailUsernameMandatory();
 
-        String html = "<p>This is actual message</p>";
+        String from = user;
 
-        String subject = "This is the Subject Line!";
-
-        sendEmail(to, subject, html, "This is actual message.");
-    }
-
-    public static void sendEmail(String to, String subject, String html, String plainText) {
-        Properties cfgProps = HelperConfig.loadEmailSettings();
-        String from = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.USERNAME, HelperConfig.MAIL_PROPS);
-        String enc = HelperConfig.getMandatoryProperty(cfgProps, HelperConfig.ENCODED_PASSWORD, HelperConfig.MAIL_PROPS);
-
-        String pwd = PasswordEncoder.decode(enc);
+        final String pwd = notifications.emailPasswordClearMandatory();
 
         Properties props = new Properties();
         props.put("mail.smtp.host", "smtp.gmail.com");
@@ -62,16 +51,13 @@ public class EmailSender {
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.port", "465");
 
-        // Sender's email ID needs to be mentioned
-        // Setup mail getOrCreateCreds
-        // Get the default Session object.
-
         Session ses = Session.getInstance(props,
             new Authenticator() {
                 @Override protected PasswordAuthentication getPasswordAuthentication() {
-                    return new PasswordAuthentication(from, pwd);
+                    return new PasswordAuthentication(user, pwd);
                 }
             });
+
         try {
             // Create a default MimeMessage object.
             MimeMessage msg = new MimeMessage(ses);
@@ -102,9 +88,12 @@ public class EmailSender {
             Transport.send(msg);
 
             System.out.println("Sent message successfully to [" + to + "]...");
+
+            return true;
         }
         catch (MessagingException mex) {
             mex.printStackTrace();
         }
+        return false;
     }
 }

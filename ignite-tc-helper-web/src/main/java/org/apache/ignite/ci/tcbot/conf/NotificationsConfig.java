@@ -17,23 +17,43 @@
 
 package org.apache.ignite.ci.tcbot.conf;
 
-import jdk.internal.joptsimple.internal.Strings;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import java.util.Properties;
+import javax.annotation.Nonnull;
+import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.ci.conf.PasswordEncoder;
+import org.jetbrains.annotations.NotNull;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  * Notifications Config
  */
 public class NotificationsConfig {
-    /** Email to send notifications from. */
-    String emailUsername;
-    /** Email password. */
-    String emailPwd;
+    /** Email. */
+    private EmailSettings email = new EmailSettings();
 
     /** Slack auth token. Not encoded using Password encoder */
-    String slackAuthTok;
+    private String slackAuthTok;
+
+    @NotNull public static NotificationsConfig backwardConfig() {
+        Properties cfgProps = HelperConfig.loadEmailSettings();
+
+        NotificationsConfig cfg = new NotificationsConfig();
+
+        cfg.slackAuthTok = cfgProps.getProperty(HelperConfig.SLACK_AUTH_TOKEN);
+
+        cfg.email.username(cfgProps.getProperty(HelperConfig.USERNAME));
+
+        cfg.email.password(cfgProps.getProperty(HelperConfig.ENCODED_PASSWORD));
+
+        return cfg;
+    }
 
     public boolean isEmpty() {
-        return Strings.isNullOrEmpty(emailUsername)
-            && Strings.isNullOrEmpty(emailPwd)
+        return (email == null || Strings.isNullOrEmpty(email.username()))
+            && (email == null || Strings.isNullOrEmpty(email.password()))
             && Strings.isNullOrEmpty(slackAuthTok);
     }
 
@@ -45,21 +65,29 @@ public class NotificationsConfig {
      * @return Email to send notifications from.
      */
     public String emailUsername() {
-        return emailUsername;
+        return email == null ? null : email.username();
+    }
+
+    public String emailUsernameMandatory() {
+        String username = emailUsername();
+
+        Preconditions.checkState(!isNullOrEmpty(username),
+            "notifications/email/username property should be filled in branches.json");
+
+        return username;
     }
 
 
     /**
      * @return Email password.
      */
-    public String emailPassword() {
-        return emailPwd;
-    }
+    @Nonnull
+    public String emailPasswordClearMandatory() {
+        Preconditions.checkNotNull(email,
+            "notifications/email/pwd property should be filled in branches.json");
+        Preconditions.checkState(!isNullOrEmpty(email.password()),
+            "notifications/email/pwd property should be filled in branches.json");
 
-    /**
-     * @param emailPwd New email password.
-     */
-    public void emailPassword(String emailPwd) {
-        this.emailPwd = emailPwd;
+        return PasswordEncoder.decode(email.password());
     }
 }
