@@ -49,8 +49,16 @@
       "username": "ignitetcbot@gmail.com",
       /** Email password encoded using Password Encoder.  */
       //todo specify password
-      "pwd": "",
-    }
+      "pwd": ""
+    },
+    "channels": [
+      {
+        email: "dev@ignite.apache.org",
+        subscribed: [
+          "master"
+        ]
+      }
+    ]
   },
   "branches": [
     {

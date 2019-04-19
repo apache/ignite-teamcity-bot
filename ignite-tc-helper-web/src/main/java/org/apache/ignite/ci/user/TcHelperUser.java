@@ -19,18 +19,22 @@ package org.apache.ignite.ci.user;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
+import org.apache.ignite.ci.tcbot.conf.INotificationChannel;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.util.CryptUtil;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
 @Persisted
-public class TcHelperUser implements IVersionedEntity {
+public class TcHelperUser implements IVersionedEntity, INotificationChannel {
     public static final int LATEST_VERSION = 2;
     @SuppressWarnings("FieldCanBeLocal")
     public Integer _version = LATEST_VERSION;
@@ -52,34 +56,37 @@ public class TcHelperUser implements IVersionedEntity {
 
     public Set<String> additionalEmails = new LinkedHashSet<>();
 
+    /** Subscribed to all failures in following tracked branches. */
     @Nullable private Set<String> subscribedToAllFailures;
 
-    @Override
-    public int version() {
+    /** {@inheritDoc} */
+    @Override public int version() {
         return _version == null ? 0 : _version;
     }
 
-    @Override
-    public int latestVersion() {
+    /** {@inheritDoc} */
+    @Override public int latestVersion() {
         return LATEST_VERSION;
     }
 
-    public Credentials getOrCreateCreds(String serverId) {
-        Credentials next = getCredentials(serverId);
+    public Credentials getOrCreateCreds(String srvId) {
+        Credentials next = getCredentials(srvId);
 
         if (next != null)
             return next;
 
         Credentials creds = new Credentials();
-        creds.serverId = serverId;
+        creds.serverId = srvId;
 
         getCredentialsList().add(creds);
 
         return creds;
     }
 
-    @Nullable
-    public Credentials getCredentials(String srvId) {
+    /**
+     * @param srvId Server id.
+     */
+    @Nullable public Credentials getCredentials(String srvId) {
         for (Credentials next : getCredentialsList()) {
             if (next.serverId.equals(srvId))
                 return next;
@@ -122,8 +129,14 @@ public class TcHelperUser implements IVersionedEntity {
         salt = null;
     }
 
-    public boolean isSubscribed(String trackedBranchId) {
+    /** {@inheritDoc} */
+    @Override public boolean isSubscribed(String trackedBranchId) {
         return subscribedToAllFailures != null && subscribedToAllFailures.contains(trackedBranchId);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isServerAllowed(String srvCode) {
+        return getCredentials(srvCode) != null;
     }
 
     public void resetNotifications() {

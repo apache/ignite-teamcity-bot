@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -33,7 +32,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Inject;
 import javax.inject.Provider;
-import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -46,9 +44,9 @@ import org.apache.ignite.ci.jobs.CheckQueueJob;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
+import org.apache.ignite.ci.tcbot.conf.INotificationChannel;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
-import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -136,14 +134,14 @@ public class IssueDetector {
     @AutoProfiling
     @MonitoredTask(name = "Send Notifications")
     protected String sendNewNotificationsEx() throws IOException {
-        List<TcHelperUser> userForPossibleNotifications = new ArrayList<>();
+        List<INotificationChannel> channels = new ArrayList<>();
 
         userStorage.allUsers()
             .filter(TcHelperUser::hasEmail)
             .filter(TcHelperUser::hasSubscriptions)
-            .forEach(userForPossibleNotifications::add);
+            .forEach(channels::add);
 
-        String slackCh = HelperConfig.loadEmailSettings().getProperty(HelperConfig.SLACK_CHANNEL);
+        channels.addAll(cfg.notifications().channels());
 
         Map<String, Notification> toBeSent = new HashMap<>();
 
@@ -161,21 +159,22 @@ public class IssueDetector {
                 List<String> addrs = new ArrayList<>();
 
                 final String srvCode = issue.issueKey().server;
-                final String defaultTracked = cfg.getTeamcityConfig(srvCode).defaultTrackedBranch();
 
-                if (slackCh != null && defaultTracked.equals(issue.trackedBranchName))
-                    addrs.add(SLACK + "#" + slackCh);
+                channels.stream()
+                    .filter(ch -> ch.isServerAllowed(srvCode))
+                    .filter(ch -> ch.isSubscribed(issue.trackedBranchName))
+                    .forEach(channel -> {
+                        String email = channel.email();
+                        String slack = channel.slack();
+                        logger.info("User/channel " + channel + " is candidate for notification " + email
+                            + " , " + slack + "for " + issue);
 
-                for (TcHelperUser next : userForPossibleNotifications) {
-                    if (next.getCredentials(srvCode) != null) {
-                        if (next.isSubscribed(issue.trackedBranchName)) {
-                            logger.info("User " + next + " is candidate for notification " + next.email
-                                + " for " + issue);
+                        if (!Strings.isNullOrEmpty(email))
+                            addrs.add(email);
 
-                            addrs.add(next.email);
-                        }
-                    }
-                }
+                        if (!Strings.isNullOrEmpty(slack))
+                            addrs.add(SLACK + slack);
+                    });
 
                 for (String nextAddr : addrs) {
                     if (issuesStorage.setNotified(issue.issueKey, nextAddr)) {

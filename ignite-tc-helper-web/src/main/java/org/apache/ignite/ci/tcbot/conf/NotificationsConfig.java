@@ -19,6 +19,10 @@ package org.apache.ignite.ci.tcbot.conf;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.HelperConfig;
@@ -37,6 +41,9 @@ public class NotificationsConfig {
     /** Slack auth token. Not encoded using Password encoder */
     private String slackAuthTok;
 
+    /** Channels to send notifications to. */
+    private List<NotificationChannel> channels = new ArrayList<>();
+
     @NotNull public static NotificationsConfig backwardConfig() {
         Properties cfgProps = HelperConfig.loadEmailSettings();
 
@@ -48,6 +55,13 @@ public class NotificationsConfig {
 
         cfg.email.password(cfgProps.getProperty(HelperConfig.ENCODED_PASSWORD));
 
+        String slackCh = cfgProps.getProperty(HelperConfig.SLACK_CHANNEL);
+        if (!Strings.isNullOrEmpty(slackCh)) {
+            NotificationChannel ch = new NotificationChannel();
+            ch.slack("#" + slackCh);
+            ch.subscribe(TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME);
+            cfg.channels.add(ch);
+        }
         return cfg;
     }
 
@@ -77,7 +91,6 @@ public class NotificationsConfig {
         return username;
     }
 
-
     /**
      * @return Email password.
      */
@@ -89,5 +102,12 @@ public class NotificationsConfig {
             "notifications/email/pwd property should be filled in branches.json");
 
         return PasswordEncoder.decode(email.password());
+    }
+
+    public Collection<NotificationChannel> channels() {
+        if (channels == null)
+            return Collections.emptyList();
+
+        return channels;
     }
 }

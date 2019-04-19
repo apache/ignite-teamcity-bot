@@ -66,6 +66,7 @@ public class HelperConfig {
 
     /** Slack authorization token property name. */
     public static final String SLACK_AUTH_TOKEN = "slack.auth_token";
+    @Deprecated
     public static final String SLACK_CHANNEL = "slack.channel";
     public static final String LOGS = "logs";
     public static final String ENDL = String.format("%n");
