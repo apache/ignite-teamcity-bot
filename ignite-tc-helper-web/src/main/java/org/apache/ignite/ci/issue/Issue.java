@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import org.apache.ignite.ci.db.Persisted;
+import org.apache.ignite.ci.util.TimeUtil;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -152,8 +153,12 @@ public class Issue {
         return displayName;
     }
 
+    /** {@inheritDoc} */
     @Override public String toString() {
+        String tsStart = buildStartTs == null ? null : TimeUtil.timestampToDateTimePrintable(buildStartTs);
+        String tsDetect = detectedTs == null ? null : TimeUtil.timestampToDateTimePrintable(detectedTs);
         return MoreObjects.toStringHelper(this)
+            .add("type", type)
             .add("displayType", displayType)
             .add("trackedBranchName", trackedBranchName)
             .add("issueKey", issueKey)
@@ -161,7 +166,8 @@ public class Issue {
             .add("addressNotified", addressNotified)
             .add("webUrl", webUrl)
             .add("displayName", displayName)
-            .add("detectedTs", detectedTs)
+            .add("buildStartTs", tsStart)
+            .add("detectedTs", tsDetect)
             .toString();
     }
 
