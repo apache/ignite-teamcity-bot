@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.IgniteCluster;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.SqlQuery;
@@ -215,5 +216,16 @@ public class RunHistCompactedDao {
                 return failures.get();
             }
         };
+    }
+
+    public void disableWal() {
+        IgniteCluster cluster = igniteProvider.get().cluster();
+        if(!cluster.isWalEnabled(testHistCache.getName()))
+            return;
+
+        System.err.println("Too much test entries to be saved, disabling WAL");
+
+        cluster.disableWal(testHistCache.getName());
+        cluster.disableWal(suiteHistCache.getName());
     }
 }

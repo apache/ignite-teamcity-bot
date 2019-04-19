@@ -16,6 +16,8 @@
  */
 package org.apache.ignite.ci.tcbot.conf;
 
+import javax.annotation.Nullable;
+
 /**
  *
  */
@@ -24,7 +26,9 @@ public interface INotificationChannel {
 
     public boolean isServerAllowed(String srvCode);
 
-    String email();
+    @Nullable
+    public String email();
 
+    @Nullable
     public String slack();
 }

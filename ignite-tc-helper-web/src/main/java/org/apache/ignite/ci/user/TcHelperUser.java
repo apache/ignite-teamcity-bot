@@ -139,6 +139,16 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
         return getCredentials(srvCode) != null;
     }
 
+    /** {@inheritDoc} */
+    @Override public String email() {
+        return email;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String slack() {
+        return null;
+    }
+
     public void resetNotifications() {
         if (subscribedToAllFailures != null)
             subscribedToAllFailures.clear();
