@@ -40,6 +40,7 @@ import org.apache.ignite.ci.issue.EventTemplate;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
+import org.apache.ignite.ci.issue.IssueType;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
@@ -284,11 +285,11 @@ public class IssueDetector {
             if (issuesStorage.containsIssueKey(issueKey))
                 return false; //duplicate
 
-            Issue issue = new Issue(issueKey);
+            Issue issue = new Issue(issueKey, IssueType.newCriticalFailure);
             issue.trackedBranchName = trackedBranch;
             issue.displayName = suiteFailure.name;
             issue.webUrl = suiteFailure.webToHist;
-            issue.displayType = "New Critical Failure";
+            issue.buildStartTs = tcIgnited.getBuildStartTs(issueKey.buildId);
 
             locateChanges(tcIgnited, firstFailedBuildId, issue);
 
@@ -327,18 +328,18 @@ public class IssueDetector {
         if (runStat == null)
             return false;
 
-        String displayType = null;
+        IssueType type = null;
 
         Integer firstFailedBuildId = runStat.detectTemplate(EventTemplates.newContributedTestFailure);
 
         if (firstFailedBuildId != null)
-            displayType = "Recently contributed test failed";
+            type = IssueType.newContributedTestFailure;
 
         if (firstFailedBuildId == null) {
             firstFailedBuildId = runStat.detectTemplate(EventTemplates.newFailure);
 
             if (firstFailedBuildId != null) {
-                displayType = "New test failure";
+                type = IssueType.newFailure;
                 final String flakyComments = runStat.getFlakyComments();
 
                 if (!Strings.isNullOrEmpty(flakyComments)) {
@@ -349,12 +350,15 @@ public class IssueDetector {
                         firstFailedBuildId = null;
                     }
                     else
-                        displayType = "New stable failure of a flaky test";
+                        type = IssueType.newFailureForFlakyTest;
                 }
             }
         }
 
         if (firstFailedBuildId == null)
+            return false;
+
+        if (type == null)
             return false;
 
         int buildId = firstFailedBuildId;
@@ -364,11 +368,10 @@ public class IssueDetector {
         if (issuesStorage.containsIssueKey(issueKey))
             return false; //duplicate
 
-        Issue issue = new Issue(issueKey);
+        Issue issue = new Issue(issueKey, type);
         issue.trackedBranchName = trackedBranch;
         issue.displayName = testFailure.testName;
         issue.webUrl = testFailure.webUrl;
-        issue.displayType = displayType;
 
         locateChanges(tcIgnited, buildId, issue);
 

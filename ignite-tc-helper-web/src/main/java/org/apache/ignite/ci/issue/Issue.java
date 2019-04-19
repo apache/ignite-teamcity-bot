@@ -18,7 +18,11 @@
 package org.apache.ignite.ci.issue;
 
 import com.google.common.base.MoreObjects;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import org.apache.ignite.ci.db.Persisted;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,7 +32,12 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("WeakerAccess")
 @Persisted
 public class Issue {
-    public String displayType;
+    /** Type. Null of older versions of issue */
+    @Nullable
+    private String type;
+
+    /** Display type. for issue. Kept for backward compatibilty with older records without type code. */
+    private String displayType;
 
     @Nullable
     public String trackedBranchName;
@@ -45,11 +54,14 @@ public class Issue {
     @Nullable
     public String displayName;
 
+    @Nullable public Long buildStartTs;
     @Nullable public Long detectedTs;
 
-    public Issue(IssueKey issueKey) {
+    public Issue(IssueKey issueKey, IssueType type) {
         this.issueKey = issueKey;
         this.detectedTs = System.currentTimeMillis();
+        this.type = type.code();
+        this.displayType = type.displayName();
     }
 
     public void addChange(String username, String webUrl) {
