@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Properties;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Strings.isNullOrEmpty;

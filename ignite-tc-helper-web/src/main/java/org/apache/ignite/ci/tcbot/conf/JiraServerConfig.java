@@ -19,7 +19,6 @@ package org.apache.ignite.ci.tcbot.conf;
 import com.google.common.base.Strings;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.jira.pure.Ticket;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,7 +50,7 @@ public class JiraServerConfig implements IJiraServerConfig {
     private Properties props;
 
     /**
-     * JIRA Auth token encoded to access JIRA, use {@link org.apache.ignite.ci.conf.PasswordEncoder#encodeJiraTok(String,
+     * JIRA Auth token encoded to access JIRA, use {@link PasswordEncoder#encodeJiraTok(String,
      * String)} to set up value in a config.
      */
     private String authTok;

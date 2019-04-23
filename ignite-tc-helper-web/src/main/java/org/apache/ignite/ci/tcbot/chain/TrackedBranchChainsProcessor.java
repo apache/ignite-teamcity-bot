@@ -24,7 +24,7 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.ci.conf.BranchTracked;
+import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.TcServerConfig;

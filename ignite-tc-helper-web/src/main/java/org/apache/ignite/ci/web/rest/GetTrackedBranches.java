@@ -33,8 +33,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.ignite.ci.conf.BranchTracked;
-import org.apache.ignite.ci.conf.ChainAtServer;
+import org.apache.ignite.ci.tcbot.conf.BranchTracked;
+import org.apache.ignite.ci.tcbot.conf.ChainAtServer;
 import org.apache.ignite.ci.tcbot.TcBotGeneralService;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;

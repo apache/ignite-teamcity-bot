@@ -24,7 +24,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Properties;
-import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
 import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.ci.util.Base64Util;

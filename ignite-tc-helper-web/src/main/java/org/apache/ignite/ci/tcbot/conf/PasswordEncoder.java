@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.conf;
+package org.apache.ignite.ci.tcbot.conf;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;

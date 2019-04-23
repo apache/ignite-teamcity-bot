@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.conf;
+package org.apache.ignite.ci.tcbot.conf;
 
 import java.util.Objects;
 import javax.annotation.Nonnull;

@@ -25,8 +25,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.conf.BranchTracked;
-import org.apache.ignite.ci.conf.ChainAtServer;
 
 /**
  * TC Bot main JSON config file, Historically.

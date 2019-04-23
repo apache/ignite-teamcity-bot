@@ -15,29 +15,37 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.conf;
+package org.apache.ignite.ci.tcbot.conf;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
 
 /**
- *
+ * One tracked branch, probably on several servers
  */
-public class ServerIntegrationLinks {
-    /** Server ID. */
-    public final String srvId;
+public class BranchTracked {
+    /** ID for internal REST and for config file. */
+    public String id;
 
-    /** URL for git integration. */
-    public final String gitApiUrl;
-
-    /** URL for JIRA integration. */
-    public final String jiraApiUrl;
+    /** */
+    public List<ChainAtServerTracked> chains = new ArrayList<>();
 
     /**
-     * @param srvId Server ID.
-     * @param gitApiUrl URL for git integration.
-     * @param jiraApiUrl URL for JIRA integration.
+     * @return internal identifier of the branch.
      */
-    public ServerIntegrationLinks(String srvId, String gitApiUrl, String jiraApiUrl) {
-        this.srvId = srvId;
-        this.gitApiUrl = gitApiUrl;
-        this.jiraApiUrl = jiraApiUrl;
+    public String getId() {
+        return id;
+    }
+
+    /** */
+    public List<ChainAtServerTracked> getChains() {
+        return Collections.unmodifiableList(chains);
+    }
+
+    /** */
+    public Stream<ChainAtServerTracked> getChainsStream() {
+        return getChains().stream();
     }
 }

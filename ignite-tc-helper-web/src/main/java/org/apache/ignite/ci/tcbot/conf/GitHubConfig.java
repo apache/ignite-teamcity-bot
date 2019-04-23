@@ -20,7 +20,6 @@ import com.google.common.base.Strings;
 import java.util.Properties;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.conf.PasswordEncoder;
 import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -41,7 +40,7 @@ public class GitHubConfig implements IGitHubConfig {
     private String branchPrefix;
 
     /**
-     * Git Auth token encoded to access non-public git repos, use {@link org.apache.ignite.ci.conf.PasswordEncoder#encodeJiraTok(String,
+     * Git Auth token encoded to access non-public git repos, use {@link PasswordEncoder#encodeJiraTok(String,
      * String)} to set up value in a config.
      */
     private String authTok;
