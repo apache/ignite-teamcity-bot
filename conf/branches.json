@@ -53,9 +53,9 @@
     },
     "channels": [
       {
-        email: "dev@ignite.apache.org",
-        subscribed: [
-          "master"
+        "email": "dev@ignite.apache.org",
+        "subscribed": [
+          "master", "master-nightly"
         ]
       }
     ]
