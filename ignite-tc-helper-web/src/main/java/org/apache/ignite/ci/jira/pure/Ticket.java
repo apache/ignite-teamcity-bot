@@ -20,6 +20,8 @@ package org.apache.ignite.ci.jira.pure;
 import com.google.common.base.MoreObjects;
 import org.apache.ignite.ci.jira.ignited.TicketCompacted;
 
+import javax.annotation.Nullable;
+
 /**
  * See example of GSON here https://issues.apache.org/jira/rest/api/2/issue/IGNITE-123
  */
@@ -32,6 +34,13 @@ public class Ticket {
 
     /** Fields. */
     public Fields fields;
+
+    public Ticket() {}
+
+    public Ticket(String ticketKey) {
+        this.key = ticketKey;
+    }
+
 
     /**
      * @param projectCode JIRA project code to be removed from ticket key.
@@ -46,7 +55,11 @@ public class Ticket {
     /**
      * @return Ticket status (open, resolved, etc);
      */
+    @Nullable
     public String status() {
+        if (fields == null || fields.status == null)
+            return null;
+
         return fields.status.name;
     }
 

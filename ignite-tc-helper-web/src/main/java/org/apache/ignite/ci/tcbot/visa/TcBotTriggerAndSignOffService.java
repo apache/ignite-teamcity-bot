@@ -389,7 +389,10 @@ public class TcBotTriggerAndSignOffService {
                     c.prAuthorAvatarUrl = "";
                 }
 
-                c.jiraIssueId = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, pr, jiraCfg);
+                Ticket ticket = ticketMatcher.resolveTicketIdForPrBasedContrib(tickets, pr, jiraCfg);
+
+                c.jiraIssueId = ticket == null ? null : ticket.key;
+                c.jiraStatusName = ticket == null ? null : ticket.status();
 
                 if (!Strings.isNullOrEmpty(c.jiraIssueId)
                         && jiraCfg.getUrl() != null)
@@ -425,6 +428,7 @@ public class TcBotTriggerAndSignOffService {
             ContributionToCheck contribution = new ContributionToCheck();
 
             contribution.jiraIssueId = ticket.key;
+            contribution.jiraStatusName = ticket.status();
             contribution.jiraIssueUrl = jiraIntegration.generateTicketUrl(ticket.key);
             contribution.tcBranchName = branch;
 

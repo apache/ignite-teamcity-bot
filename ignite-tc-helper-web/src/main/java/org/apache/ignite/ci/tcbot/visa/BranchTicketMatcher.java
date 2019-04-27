@@ -18,10 +18,6 @@
 package org.apache.ignite.ci.tcbot.visa;
 
 import com.google.common.base.Strings;
-import java.util.Collection;
-import java.util.Objects;
-import javax.inject.Inject;
-import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
@@ -34,6 +30,11 @@ import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.inject.Inject;
+import javax.ws.rs.QueryParam;
+import java.util.Collection;
+import java.util.Objects;
 
 /**
  *
@@ -91,15 +92,20 @@ public class BranchTicketMatcher {
      * @param pr Pr.
      * @param jiraCfg Jira config.
      */
-    @Nullable public String resolveTicketIdForPrBasedContrib(Collection<Ticket> tickets, PullRequest pr,
-        IJiraServerConfig jiraCfg) {
+    @Nullable public Ticket resolveTicketIdForPrBasedContrib(Collection<Ticket> tickets, PullRequest pr,
+                                                             IJiraServerConfig jiraCfg) {
         String branchNumPrefix = jiraCfg.branchNumPrefix();
 
         if (Strings.isNullOrEmpty(branchNumPrefix)) {
             //an easy way, no special branch and ticket mappings specified, use project code.
             String jiraPrefix = jiraCfg.projectCodeForVisa() + TicketCompacted.PROJECT_DELIM;
 
-            return findFixPrefixedNumber(pr.getTitle(), jiraPrefix);
+            final String ticketKey = findFixPrefixedNumber(pr.getTitle(), jiraPrefix);
+
+            return tickets.stream()
+                    .filter(t -> Objects.equals(t.key, ticketKey))
+                    .findFirst()
+                    .orElseGet(()->new Ticket(ticketKey));
         }
 
         String prTitle = pr.getTitle();
@@ -118,7 +124,8 @@ public class BranchTicketMatcher {
      */
     @SuppressWarnings("WeakerAccess")
     @GuavaCached(maximumSize = 3000, expireAfterWriteSecs = 60, cacheNullRval = true)
-    protected String findTicketMentions(String srvCode, @Nullable String branchNum) {
+    @Nullable
+    protected Ticket findTicketMentions(String srvCode, @Nullable String branchNum) {
         return findTicketMentions(jiraIgnProv.server(srvCode).getTickets(), branchNum);
     }
 
@@ -126,13 +133,12 @@ public class BranchTicketMatcher {
      * @param tickets Tickets.
      * @param branchNum Branch number to be checked.
      */
-    @Nullable private String findTicketMentions(Collection<Ticket> tickets, @Nullable String branchNum) {
+    @Nullable private Ticket findTicketMentions(Collection<Ticket> tickets, @Nullable String branchNum) {
         if (Strings.isNullOrEmpty(branchNum))
             return null;
 
         return tickets.stream()
-            .map(t -> t.key)
-            .filter(k -> Objects.equals(k, branchNum))
+            .filter(t -> Objects.equals(t.key, branchNum))
             .findFirst()
             .orElseGet(() -> findTicketMentionsInSupplementaryFields(tickets, branchNum));
     }
@@ -141,14 +147,13 @@ public class BranchTicketMatcher {
      * @param tickets Tickets.
      * @param branchNum Branch number to be checked.
      */
-    @Nullable private String findTicketMentionsInSupplementaryFields(Collection<Ticket> tickets, String branchNum) {
+    @Nullable private Ticket findTicketMentionsInSupplementaryFields(Collection<Ticket> tickets, String branchNum) {
         if (Strings.isNullOrEmpty(branchNum))
             return null;
 
         return tickets.stream()
             .filter(t -> mentionsBranch(branchNum, t))
             .findFirst()
-            .map(t -> t.key)
             .orElse(null);
     }
 
@@ -244,10 +249,10 @@ public class BranchTicketMatcher {
                 }
                 else {
                     // PR less ticket only mentioned in real ticket
-                    String ticket = findTicketMentions(srvCode, prLessTicket);
+                    Ticket ticket = findTicketMentions(srvCode, prLessTicket);
 
-                    if (!Strings.isNullOrEmpty(ticket))
-                        return ticket; // found real JIRA ticket for comment
+                    if (ticket != null && !Strings.isNullOrEmpty(ticket.key))
+                        return ticket.key; // found real JIRA ticket for comment
                 }
             }
 
@@ -261,9 +266,13 @@ public class BranchTicketMatcher {
                     ticketFromPr = jiraPrefixInPr;
                 }
                 else {
-                    ticketFromPr = Strings.isNullOrEmpty(jiraPrefixInPr)
-                        ? null
-                        : findTicketMentions(srvCode, jiraPrefixInPr);
+                    if (Strings.isNullOrEmpty(jiraPrefixInPr)) {
+                        ticketFromPr = null;
+                    } else {
+                        Ticket ticketMentions = findTicketMentions(srvCode, jiraPrefixInPr);
+
+                        ticketFromPr = ticketMentions == null ? null : ticketMentions.key;
+                    }
                 }
 
                 if (!Strings.isNullOrEmpty(ticketFromPr))

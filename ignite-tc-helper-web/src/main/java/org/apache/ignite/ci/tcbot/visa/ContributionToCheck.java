@@ -50,6 +50,9 @@ package org.apache.ignite.ci.tcbot.visa;
     /** JIRA issue without server URL, but with project name */
     public String jiraIssueId;
 
+    /** JIRA issue statusName */
+    public String jiraStatusName;
+
     /** Pr time update. */
     public String prTimeUpdate;
 
