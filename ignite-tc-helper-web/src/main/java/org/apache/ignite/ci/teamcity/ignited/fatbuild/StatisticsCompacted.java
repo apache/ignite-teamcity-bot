@@ -67,16 +67,81 @@ public class StatisticsCompacted {
         }
     }
 
+    /**
+     * Provides build duration in millis or null.
+     *
+     * @param compactor Compactor.
+     * @return see {@link Statistics#BUILD_DURATION}
+     */
     public Long buildDuration(IStringCompactor compactor) {
-        final Integer buildDurationId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION);
+        Integer buildDurationId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION);
+
         if (buildDurationId == null)
             return null;
 
         long val = findPropertyValue(buildDurationId);
 
-        if (val < 0) return null;
+        return val >= 0 ? val : null;
+    }
 
-        return val;
+    /**
+     * @param compactor Compactor.
+     * @return see {@link Statistics#BUILD_DURATION}
+     */
+    public Long buildDurationNetTime(IStringCompactor compactor) {
+        Integer buildDurationNetId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION_NET_TIME);
+
+        if (buildDurationNetId == null)
+            return null;
+
+        long val = findPropertyValue(buildDurationNetId);
+
+        return val >= 0 ? val : null;
+    }
+
+    /**
+     * @param compactor Compactor.
+     * @return see {@link Statistics#ARTIFACTS_PUBLISHING_DURATION}
+     */
+    public Long artifcactPublishingDuration(IStringCompactor compactor) {
+        Integer buildDurationNetId = compactor.getStringIdIfPresent(Statistics.ARTIFACTS_PUBLISHING_DURATION);
+
+        if (buildDurationNetId == null)
+            return null;
+
+        long val = findPropertyValue(buildDurationNetId);
+
+        return val >= 0 ? val : null;
+    }
+
+    /**
+     * @param compactor Compactor.
+     * @return see {@link Statistics#DEPENDECIES_RESOLVING_DURATION}
+     */
+    public Long dependeciesResolvingDuration(IStringCompactor compactor) {
+        Integer buildDurationNetId = compactor.getStringIdIfPresent(Statistics.DEPENDECIES_RESOLVING_DURATION);
+
+        if (buildDurationNetId == null)
+            return null;
+
+        long val = findPropertyValue(buildDurationNetId);
+
+        return val >= 0 ? val : null;
+    }
+
+    /**
+     * @param compactor Compactor.
+     * @return source update duration in millis.{@link Statistics#SOURCES_UPDATE_DURATION}
+     */
+    public Long sourceUpdateDuration(IStringCompactor compactor) {
+        Integer buildDurationNetId = compactor.getStringIdIfPresent(Statistics.SOURCES_UPDATE_DURATION);
+
+        if (buildDurationNetId == null)
+            return null;
+
+        long val = findPropertyValue(buildDurationNetId);
+
+        return val >= 0 ? val : null;
     }
 
     private long findPropertyValue(int propCode) {

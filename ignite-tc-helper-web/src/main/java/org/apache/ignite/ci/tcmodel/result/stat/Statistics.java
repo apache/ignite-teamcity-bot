@@ -29,30 +29,18 @@ import org.jetbrains.annotations.Nullable;
 @XmlRootElement(name = "properties")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Statistics extends Parameters {
+    /** The build duration (all build stages). */
     public static final String BUILD_DURATION = "BuildDuration";
-    public static final String BUILD_STAGE_DURATION_SOURCES_UPDATE = "buildStageDuration:sourcesUpdate";
 
-    /**
-     * @return build duration in millis or null.
-     */
-    @Nullable public Long getBuildDuration() {
-        String duration = getParameter(BUILD_DURATION);
-        if (duration == null)
-            return null;
+    /** Build duration self time: The build steps duration (excluding the checkout and artifact publishing time, etc.) */
+    public static final String BUILD_DURATION_NET_TIME = "BuildDurationNetTime";
 
-        return Long.parseLong(duration);
-    }
+    /** Build stage duration sources update. */
+    public static final String SOURCES_UPDATE_DURATION = "buildStageDuration:sourcesUpdate";
 
-    /**
-     * @return source update duration in millis.
-     */
-    @Nullable public Long getSourceUpdateDuration() {
-        String duration = getParameter(BUILD_STAGE_DURATION_SOURCES_UPDATE);
+    /** Artifacts publishing. */
+    public static final String ARTIFACTS_PUBLISHING_DURATION = "buildStageDuration:artifactsPublishing";
 
-        if (duration == null)
-            return null;
-
-        return Long.parseLong(duration);
-    }
-
+    /** Dependecies resolving. */
+    public static final String DEPENDECIES_RESOLVING_DURATION = "buildStageDuration:dependenciesResolving";
 }

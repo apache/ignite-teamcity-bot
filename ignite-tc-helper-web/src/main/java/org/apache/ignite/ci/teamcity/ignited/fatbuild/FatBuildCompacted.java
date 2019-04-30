@@ -527,6 +527,22 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return statistics == null ? null : statistics.buildDuration(compactor);
     }
 
+    public Long buildDurationNetTime(IStringCompactor compactor) {
+        return statistics == null ? null : statistics.buildDurationNetTime(compactor);
+    }
+
+    public Long artifcactPublishingDuration(IStringCompactor compactor) {
+        return statistics == null ? null : statistics.artifcactPublishingDuration(compactor);
+    }
+
+    public Long dependeciesResolvingDuration(IStringCompactor compactor) {
+        return statistics == null ? null : statistics.dependeciesResolvingDuration(compactor);
+    }
+
+    public Long sourceUpdateDuration(IStringCompactor compactor) {
+        return statistics == null ? null : statistics.sourceUpdateDuration(compactor);
+    }
+
     public void statistics(IStringCompactor compactor, Statistics statistics) {
         this.statistics = new StatisticsCompacted(compactor, statistics);
     }

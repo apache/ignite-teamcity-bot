@@ -87,6 +87,15 @@ public class ChainAtServerCurrentStatus {
     /** Duration printable. */
     public String durationPrintable;
 
+    /** Duration net time printable. */
+    public String durationNetTimePrintable;
+
+    public String sourceUpdateDurationPrintable;
+
+    public String artifcactPublishingDurationPrintable;
+
+    public String dependeciesResolvingDurationPrintable;
+
     /** Tests duration printable. */
     public String testsDurationPrintable;
 
@@ -178,6 +187,10 @@ public class ChainAtServerCurrentStatus {
         );
         durationPrintable = ctx.getDurationPrintable();
         testsDurationPrintable = ctx.getTestsDurationPrintable();
+        durationNetTimePrintable = ctx.durationNetTimePrintable();
+        sourceUpdateDurationPrintable = ctx.sourceUpdateDurationPrintable();
+        artifcactPublishingDurationPrintable = ctx.artifcactPublishingDurationPrintable();
+        dependeciesResolvingDurationPrintable = ctx.dependeciesResolvingDurationPrintable();
         lostInTimeouts = ctx.getLostInTimeoutsPrintable();
         webToHist = buildWebLink(tcIgnited, ctx);
         webToBuild = buildWebLinkToBuild(tcIgnited, ctx);
@@ -260,6 +273,10 @@ public class ChainAtServerCurrentStatus {
             Objects.equals(failedTests, status.failedTests) &&
             Objects.equals(failedToFinish, status.failedToFinish) &&
             Objects.equals(durationPrintable, status.durationPrintable) &&
+            Objects.equals(durationNetTimePrintable, status.durationNetTimePrintable) &&
+            Objects.equals(sourceUpdateDurationPrintable, status.sourceUpdateDurationPrintable) &&
+            Objects.equals(artifcactPublishingDurationPrintable, status.artifcactPublishingDurationPrintable) &&
+            Objects.equals(dependeciesResolvingDurationPrintable, status.dependeciesResolvingDurationPrintable) &&
             Objects.equals(testsDurationPrintable, status.testsDurationPrintable) &&
             Objects.equals(lostInTimeouts, status.lostInTimeouts) &&
             Objects.equals(topLongRunning, status.topLongRunning) &&
@@ -270,7 +287,9 @@ public class ChainAtServerCurrentStatus {
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hash(chainName, serverId, branchName, webToHist, webToBuild, ticketFullName, webToTicket, prNum,
-            webToPr, suites, failedTests, failedToFinish, durationPrintable, testsDurationPrintable, lostInTimeouts, topLongRunning, logConsumers, buildNotFound, baseBranchForTc);
+            webToPr, suites, failedTests, failedToFinish, durationPrintable, durationNetTimePrintable,
+            sourceUpdateDurationPrintable, artifcactPublishingDurationPrintable, dependeciesResolvingDurationPrintable,
+            testsDurationPrintable, lostInTimeouts, topLongRunning, logConsumers, buildNotFound, baseBranchForTc);
     }
 
     public void setBuildNotFound(boolean buildNotFound) {

@@ -204,8 +204,24 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return buildCompacted.projectId(compactor);
     }
 
-    public Long getBuildDuration() {
+    @Nullable public Long buildDuration() {
         return buildCompacted.buildDuration(compactor);
+    }
+
+    @Nullable public Long buildDurationNetTime() {
+        return buildCompacted.buildDurationNetTime(compactor);
+    }
+
+    @Nullable public Long sourceUpdateDuration() {
+        return buildCompacted.sourceUpdateDuration(compactor);
+    }
+
+    @Nullable public Long artifcactPublishingDuration() {
+        return buildCompacted.artifcactPublishingDuration(compactor);
+    }
+
+    @Nullable public Long dependeciesResolvingDuration() {
+        return buildCompacted.dependeciesResolvingDuration(compactor);
     }
 
     public void setChanges(Collection<ChangeCompacted> changes) {

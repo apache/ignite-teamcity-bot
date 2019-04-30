@@ -68,7 +68,7 @@ public class FullChainRunCtx {
      * @return may return less time than actual duration if not all statistic is provided
      */
     public Long getTotalDuration() {
-        return getDurations().filter(Objects::nonNull).mapToLong(t -> t).sum();
+        return sumOfNonNulls(getDurations());
     }
 
     public boolean hasFullDurationInfo() {
@@ -79,7 +79,7 @@ public class FullChainRunCtx {
      * @return returns durations of all suites (last builds)
      */
     private Stream<Long> getDurations() {
-        return suites().filter(ctx -> !ctx.isComposite()).map(MultBuildRunCtx::getBuildDuration);
+        return suitesNonComposite().map(MultBuildRunCtx::buildDuration);
     }
 
     /**
@@ -107,17 +107,42 @@ public class FullChainRunCtx {
     }
 
     public String getTestsDurationPrintable() {
-        long tests = suites().filter(ctx -> !ctx.isComposite())
-            .map(MultBuildRunCtx::getAvgTestsDuration)
-            .filter(Objects::nonNull).mapToLong(t -> t).sum();
+        long tests = sumOfNonNulls(suitesNonComposite().map(MultBuildRunCtx::getAvgTestsDuration));
 
         return (TimeUtil.millisToDurationPrintable(tests));
     }
 
+    @NotNull public Stream<MultBuildRunCtx> suitesNonComposite() {
+        return suites().filter(ctx -> !ctx.isComposite());
+    }
+
     public String getLostInTimeoutsPrintable() {
-        long timeouts = suites().filter(ctx -> !ctx.isComposite())
-            .mapToLong(MultBuildRunCtx::getLostInTimeouts).sum();
+        long timeouts = suitesNonComposite().mapToLong(MultBuildRunCtx::getLostInTimeouts).sum();
 
         return TimeUtil.millisToDurationPrintable(timeouts);
+    }
+
+    public String durationNetTimePrintable() {
+        return TimeUtil.millisToDurationPrintable(
+            sumOfNonNulls(suitesNonComposite().map(MultBuildRunCtx::buildDurationNetTime)));
+    }
+
+    public String sourceUpdateDurationPrintable() {
+        return TimeUtil.millisToDurationPrintable(
+            sumOfNonNulls(suitesNonComposite().map(MultBuildRunCtx::sourceUpdateDuration)));
+    }
+
+    public String artifcactPublishingDurationPrintable() {
+        return TimeUtil.millisToDurationPrintable(
+            sumOfNonNulls(suitesNonComposite().map(MultBuildRunCtx::artifcactPublishingDuration)));
+    }
+
+    public String dependeciesResolvingDurationPrintable() {
+        return TimeUtil.millisToDurationPrintable(
+            sumOfNonNulls(suitesNonComposite().map(MultBuildRunCtx::dependeciesResolvingDuration)));
+    }
+
+    public long sumOfNonNulls(Stream<Long> st) {
+        return st.filter(Objects::nonNull).mapToLong(t -> t).sum();
     }
 }

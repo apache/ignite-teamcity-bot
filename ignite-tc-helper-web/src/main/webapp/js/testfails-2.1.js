@@ -191,8 +191,12 @@ function showChainCurrentStatusData(server, settings) {
         mInfo += " title='trigger builds'>on top</a><br>";
     }
 
-    mInfo += "Duration: " + server.durationPrintable +
-        " (Tests: " + server.testsDurationPrintable + "," +
+    mInfo += "Duration: " + server.durationPrintable + " " +
+        "(Net Time: " + server.durationNetTimePrintable + "," +
+        " Tests: " + server.testsDurationPrintable + "," +
+        " Src. Update: " + server.sourceUpdateDurationPrintable + "," +
+        " Artifacts Publishing: " + server.artifcactPublishingDurationPrintable + "," +
+        " Dependecies Resolving: " + server.dependeciesResolvingDurationPrintable + "," +
         " Timeouts: " + server.lostInTimeouts + ")<br>";
 
     if (isDefinedAndFilled(server.topLongRunning) && server.topLongRunning.length > 0) {
@@ -602,8 +606,12 @@ function showSuiteData(suite, settings, prNum) {
         moreInfoTxt += "Last commits from: " + suite.userCommits + " <br>";
     }
 
-    moreInfoTxt += "Duration: " + suite.durationPrintable +
-        " (Tests: " + suite.testsDurationPrintable + "," +
+    moreInfoTxt += "Duration: " + suite.durationPrintable + " " +
+        "(Net Time: " + suite.durationNetTimePrintable + "," +
+        " Tests: " + suite.testsDurationPrintable + "," +
+        " Src. Update: " + suite.sourceUpdateDurationPrintable + "," +
+        " Artifacts Publishing: " + suite.artifcactPublishingDurationPrintable + "," +
+        " Dependecies Resolving: " + suite.dependeciesResolvingDurationPrintable + "," +
         " Timeouts: " + suite.lostInTimeouts + ")<br>";
 
     var res = "";

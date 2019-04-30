@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
@@ -307,11 +308,42 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     /**
-     * @return average build duration.
+     * @return average build duration, see {@link Statistics#BUILD_DURATION}.
      */
-    @Nullable public Long getBuildDuration() {
-        final OptionalDouble average = buildsStream()
-            .map(SingleBuildRunCtx::getBuildDuration)
+    @Nullable public Long buildDuration() {
+        return calcAverage(buildsStream().map(SingleBuildRunCtx::buildDuration));
+    }
+
+    /**
+     * @return average build duration, see {@link Statistics#BUILD_DURATION_NET_TIME}.
+     */
+    @Nullable public Long buildDurationNetTime() {
+        return calcAverage(buildsStream().map(SingleBuildRunCtx::buildDurationNetTime));
+    }
+
+    /**
+     * @return average build duration, see {@link Statistics#SOURCES_UPDATE_DURATION}.
+     */
+    @Nullable public Long sourceUpdateDuration() {
+        return calcAverage(buildsStream().map(SingleBuildRunCtx::sourceUpdateDuration));
+    }
+
+    /**
+     * @return average build duration, see {@link Statistics#ARTIFACTS_PUBLISHING_DURATION}.
+     */
+    @Nullable public Long artifcactPublishingDuration() {
+        return calcAverage(buildsStream().map(SingleBuildRunCtx::artifcactPublishingDuration));
+    }
+
+    /**
+     * @return average build duration, see {@link Statistics#DEPENDECIES_RESOLVING_DURATION}.
+     */
+    @Nullable public Long dependeciesResolvingDuration() {
+        return calcAverage(buildsStream().map(SingleBuildRunCtx::dependeciesResolvingDuration));
+    }
+
+    @Nullable public Long calcAverage(Stream<Long> stream) {
+        final OptionalDouble average = stream
             .filter(Objects::nonNull)
             .mapToLong(l -> l)
             .average();
@@ -345,7 +377,7 @@ public class MultBuildRunCtx implements ISuiteResults {
 
         long allTimeoutsDuration = buildsStream()
             .filter(SingleBuildRunCtx::hasTimeoutProblem)
-            .map(SingleBuildRunCtx::getBuildDuration)
+            .map(SingleBuildRunCtx::buildDuration)
             .filter(Objects::nonNull)
             .mapToLong(l -> l)
             .sum();

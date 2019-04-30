@@ -105,6 +105,15 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Duration printable. */
     public String durationPrintable;
 
+    /** Duration net time printable. */
+    public String durationNetTimePrintable;
+
+    public String sourceUpdateDurationPrintable;
+
+    public String artifcactPublishingDurationPrintable;
+
+    public String dependeciesResolvingDurationPrintable;
+
     /** Tests duration printable. */
     public String testsDurationPrintable;
 
@@ -140,7 +149,11 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         result = suite.getResult();
         hasCriticalProblem = suite.hasCriticalProblem();
         failedTests = suite.failedTests();
-        durationPrintable = millisToDurationPrintable(suite.getBuildDuration());
+        durationPrintable = millisToDurationPrintable(suite.buildDuration());
+        durationNetTimePrintable = millisToDurationPrintable(suite.buildDurationNetTime());
+        sourceUpdateDurationPrintable = millisToDurationPrintable(suite.sourceUpdateDuration());
+        artifcactPublishingDurationPrintable = millisToDurationPrintable(suite.artifcactPublishingDuration());
+        dependeciesResolvingDurationPrintable = millisToDurationPrintable(suite.dependeciesResolvingDuration());
         testsDurationPrintable = millisToDurationPrintable(suite.getAvgTestsDuration());
         webToHist = buildWebLink(tcIgnited, suite);
         webToHistBaseBranch = buildWebLink(tcIgnited, suite, baseBranch);
@@ -349,6 +362,10 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             Objects.equals(userCommits, status.userCommits) &&
             Objects.equals(failedTests, status.failedTests) &&
             Objects.equals(durationPrintable, status.durationPrintable) &&
+            Objects.equals(durationNetTimePrintable, status.durationNetTimePrintable) &&
+            Objects.equals(sourceUpdateDurationPrintable, status.sourceUpdateDurationPrintable) &&
+            Objects.equals(artifcactPublishingDurationPrintable, status.artifcactPublishingDurationPrintable) &&
+            Objects.equals(dependeciesResolvingDurationPrintable, status.dependeciesResolvingDurationPrintable) &&
             Objects.equals(testsDurationPrintable, status.testsDurationPrintable) &&
             Objects.equals(lostInTimeouts, status.lostInTimeouts) &&
             Objects.equals(problemRef, status.problemRef) &&
@@ -357,7 +374,12 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(super.hashCode(), name, result, hasCriticalProblem, webToHist, webToHistBaseBranch, webToBuild, testFailures, topLongRunning, warnOnly, logConsumers, webUrlThreadDump, runningBuildCount, queuedBuildCount, serverId, suiteId, branchName, failsAllHist, criticalFails, latestRuns, userCommits, failedTests, durationPrintable, testsDurationPrintable, lostInTimeouts, problemRef, possibleBlocker);
+        return Objects.hash(super.hashCode(), name, result, hasCriticalProblem, webToHist,
+            webToHistBaseBranch, webToBuild, testFailures, topLongRunning, warnOnly, logConsumers, webUrlThreadDump,
+            runningBuildCount, queuedBuildCount, serverId, suiteId, branchName, failsAllHist, criticalFails, latestRuns,
+            userCommits, failedTests, durationPrintable, durationNetTimePrintable, sourceUpdateDurationPrintable,
+            artifcactPublishingDurationPrintable, dependeciesResolvingDurationPrintable, testsDurationPrintable,
+            lostInTimeouts, problemRef, possibleBlocker);
     }
 
     /** {@inheritDoc} */
