@@ -78,7 +78,6 @@ import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
  *
  */
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
-
     /** Default project id. */
     public static final String DEFAULT_PROJECT_ID = "IgniteTests24Java8";
 
@@ -88,9 +87,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Max build id diff to enforce reload during incremental refresh. */
     public static final int MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN = 3000;
 
+    /** Default synonyms. */
     private static final List<String> DEFAULT_SYNONYMS
             = Collections.unmodifiableList(
-                    Lists.newArrayList(ITeamcity.DEFAULT, ITeamcity.REFS_HEADS_MASTER, "master"));
+                    Lists.newArrayList(ITeamcity.DEFAULT, ITeamcity.REFS_HEADS_MASTER, ITeamcity.MASTER));
 
     /** Server (service) code. */
     private String srvCode;

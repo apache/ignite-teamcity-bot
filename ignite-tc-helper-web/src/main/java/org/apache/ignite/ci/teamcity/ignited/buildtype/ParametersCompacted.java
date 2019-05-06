@@ -50,7 +50,7 @@ public class ParametersCompacted {
             if (Strings.isNullOrEmpty(name))
                 continue;
 
-            String strVal = next.getValue();
+            String strVal = next.value();
             if (Strings.isNullOrEmpty(strVal))
                 continue;
 

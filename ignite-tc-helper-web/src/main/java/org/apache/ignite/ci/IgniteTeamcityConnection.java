@@ -233,7 +233,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
         if (buildParms != null)
             props.putAll(buildParms);
 
-        props.put("tcbot.triggerTime", System.currentTimeMillis()); // some fake property to avoid merging build in queue
+        props.put(TCBOT_TRIGGER_TIME, System.currentTimeMillis()); //
 
         StringBuilder sb = new StringBuilder();
         sb.append("<build branchName=\"").append(xmlEscapeText(branchName)).append("\">\n");

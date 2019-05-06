@@ -31,6 +31,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 import org.apache.ignite.ci.tcmodel.changes.ChangesListRef;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.bt.Parameters;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.vcs.Revision;
 import org.apache.ignite.ci.tcmodel.vcs.Revisions;
@@ -65,13 +66,16 @@ public class Build extends BuildRef {
 
     @XmlElement(name = "statistics") public StatisticsRef statisticsRef;
 
-    /** Changes included into build.*/
+    /** Changes included into build. */
     @XmlElement(name = "changes") public ChangesListRef changesRef;
 
     /** Information about build triggering. */
     @XmlElement(name = "triggered") private Triggered triggered;
 
     @XmlElement(name = "revisions") private Revisions revisions;
+
+    /** Build parameters. */
+    @Nullable @XmlElement(name = "properties") private Parameters properties;
 
     @NotNull public static Build createFakeStub() {
         return new Build();
@@ -186,5 +190,20 @@ public class Build extends BuildRef {
     public void setRevisions(List<Revision> revisions) {
         this.revisions = new Revisions();
         this.revisions.revisions(revisions);
+    }
+
+    /**
+     * @param s Parameter key.
+     */
+    @Nullable public String parameter(String s) {
+        return properties == null ? null : properties.getParameter(s);
+    }
+
+    @Nullable public Parameters parameters() {
+        return properties;
+    }
+
+    public void parameters(Parameters parameters) {
+        this.properties = parameters;
     }
 }
