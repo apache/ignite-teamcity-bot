@@ -103,7 +103,7 @@ public class GetTrackedBranches {
     }
 
     /**
-     * Return all servers registered in TC Bot config: Both from tracked branches and from
+     * Return all accessible servers registered in TC Bot config: Both from tracked branches and from
      */
     @GET
     @Path("getServerIds")

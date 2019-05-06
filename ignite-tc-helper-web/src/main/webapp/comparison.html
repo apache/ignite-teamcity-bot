@@ -28,7 +28,8 @@
         <th style="text-align: center;" width="42%"><input type='text' name='daterange2'/></th>
     </tr><tr></tr><tr></tr>
     <tr id="showError">
-        <td class="section" colspan="2" id="choiceSuite"></td>
+        <td class="section" colspan="1" id="choiceServer"></td>
+        <td class="section" colspan="1" id="choiceSuite"></td>
         <td colspan="2" id="loadStatus" style="text-align: center; color: red;"></td>
     </tr><tr></tr>
     <tr id="showInfo">
@@ -555,10 +556,29 @@
         $('.' + cssClass + '.data.' + num).prop('title', title);
     }
 
-    function loadTrackedSuites() {
+    function loadServers() {
         $.ajax({
-            url: "rest/branches/suites?server=apache",
+            url: "rest/branches/getServerIds",
             success: function(result) {
+                if (!isDefinedAndFilled(result)) {
+                    error.html("Result from " + this.url + " is undefined!");
+
+                    return;
+                }
+
+                printServers(result);
+
+                loadTrackedSuites();
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
+    function loadTrackedSuites() {
+        let server = $('#selectServer').val();
+        $.ajax({
+            url: "rest/branches/suites" + (isDefinedAndFilled(server) ? "?server=" + server + "" : ""),
+            success: function (result) {
                 if (!isDefinedAndFilled(result)) {
                     error.html("Result from " + this.url + " is undefined!");
 
@@ -573,7 +593,7 @@
         });
     }
 
-    function printSuites(result) {
+     function printSuites(result) {
         let selectHtml = "<select id='selectSuite'>";
 
         for (let i = 0; i < result.length; i++)
@@ -585,6 +605,21 @@
 
         $('#selectSuite').change(function () { reloadAll(); });
     }
+
+    // @param array of strings
+    function printServers(result) {
+        let selectHtml = "<select id='selectServer'>";
+
+        for (let i = 0; i < result.length; i++)
+            selectHtml += getHtmlOption(result[i], false, false, result[i]);
+
+        selectHtml += "</select>";
+
+        $('#choiceServer').html(selectHtml);
+
+        $('#selectServer').change(function () { loadTrackedSuites(); });
+    }
+
 
     function loadData(num, sinceDate, untilDate, testsTrigger) {
         loadGif(num);
@@ -599,7 +634,10 @@
             return;
         }
 
-        let url = 'rest/build/history?server=apache&buildType=' + suiteId + '&sinceDate=' +
+
+        let server = $('#selectServer').val();
+
+        let url = 'rest/build/history?server='+server+'&buildType=' + suiteId + '&sinceDate=' +
             sinceDate.format("DDMMYYYY") + '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
 
         if (!testsTrigger)
@@ -661,7 +699,7 @@
     }
 
     $(document).ready(function() {
-        loadTrackedSuites();
+        loadServers();
 
         $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
     });

@@ -213,8 +213,9 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("skipTests") String skipTests)  throws ParseException {
 
         Injector injector = CtxListener.getInjector(ctx);
+        final ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
 
-        BuildsHistory.Builder builder = new BuildsHistory.Builder()
+        BuildsHistory.Builder builder = new BuildsHistory.Builder(cfg)
             .branch(branch)
             .server(srvCode)
             .buildType(buildType)

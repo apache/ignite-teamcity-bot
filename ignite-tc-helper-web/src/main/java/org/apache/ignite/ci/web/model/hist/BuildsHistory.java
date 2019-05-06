@@ -36,6 +36,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -52,12 +54,12 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  * Presents statistic for all valid builds and merged failed unmuted tests in specified time interval. Statistics and
  * tests are stored in {@link #buildsStatistics} and {@link #mergedTestsBySuites} properties respectively. Builder
  * pattern is used for instance creation. Default values: <br>skipTests = false,<br>projectId="IgniteTests24Java8",
- * <br>srvId="apache", <br>buildTypeId="IgniteTests24Java8_RunAll",
+ * <br>srvCode="apache", <br>buildTypeId="IgniteTests24Java8_RunAll",
  * <br>branchName="refs/heads/master".
  */
 public class BuildsHistory {
     /** */
-    private String srvId;
+    private String srvCode;
 
     /** */
     public String projectId;
@@ -101,7 +103,7 @@ public class BuildsHistory {
      * @param prov Credentials.
      */
     public void initialize(ICredentialsProv prov) {
-        ITeamcityIgnited ignitedTeamcity = tcIgnitedProv.server(srvId, prov);
+        ITeamcityIgnited ignitedTeamcity = tcIgnitedProv.server(srvCode, prov);
 
         tcHost = ignitedTeamcity.host();
 
@@ -212,7 +214,7 @@ public class BuildsHistory {
 
     private BuildsHistory withParameters(Builder builder) {
         this.skipTests = builder.skipTests;
-        this.srvId = builder.srvId;
+        this.srvCode = builder.srvCode;
         this.buildTypeId = builder.buildTypeId;
         this.branchName = builder.branchName;
         this.sinceDateFilter = builder.sinceDate;
@@ -230,7 +232,7 @@ public class BuildsHistory {
         private String projectId = "IgniteTests24Java8";
 
         /** */
-        private String srvId = "apache";
+        private String srvCode;
 
         /** */
         private String buildTypeId = "IgniteTests24Java8_RunAll";
@@ -247,12 +249,16 @@ public class BuildsHistory {
         /** */
         private DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
 
+        public Builder(ITcBotConfig cfg) {
+            srvCode = cfg.primaryServerCode();
+        }
+
         /**
          * @param srvId server name.
          */
         public Builder server(String srvId) {
             if (!isNullOrEmpty(srvId))
-                this.srvId = srvId;
+                this.srvCode = srvId;
 
             return this;
         }
