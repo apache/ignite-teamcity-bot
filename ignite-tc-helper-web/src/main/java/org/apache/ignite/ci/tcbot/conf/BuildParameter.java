@@ -17,13 +17,19 @@
 
 package org.apache.ignite.ci.tcbot.conf;
 
+import com.google.common.base.Strings;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
 public class BuildParameter {
+    /** Name. */
     private String name;
+
+    /** Value. */
     private String value;
+
+    /** Random values. Ignored if exact values were specified */
     private List<String> randomValues = new LinkedList<>();
 
     /** {@inheritDoc} */
@@ -48,6 +54,14 @@ public class BuildParameter {
     }
 
     public Object generateValue() {
-        return value;
+        if (!Strings.isNullOrEmpty(value))
+            return value;
+
+        if (randomValues.isEmpty())
+            return null;
+
+        int idx = (int)(Math.random() * randomValues.size());
+
+        return randomValues.get(idx);
     }
 }

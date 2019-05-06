@@ -75,29 +75,25 @@ public class ChainAtServerTracked extends ChainAtServer {
         return Optional.ofNullable(baseBranchForTc);
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
-
         if (o == null || getClass() != o.getClass())
             return false;
-
         if (!super.equals(o))
             return false;
-
         ChainAtServerTracked tracked = (ChainAtServerTracked)o;
-
         return Objects.equals(branchForRest, tracked.branchForRest) &&
+            Objects.equals(baseBranchForTc, tracked.baseBranchForTc) &&
             Objects.equals(triggerBuild, tracked.triggerBuild) &&
-            Objects.equals(triggerBuildQuietPeriod, tracked.triggerBuildQuietPeriod);
+            Objects.equals(triggerBuildQuietPeriod, tracked.triggerBuildQuietPeriod) &&
+            Objects.equals(triggerParameters, tracked.triggerParameters);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(super.hashCode(), branchForRest, triggerBuild, triggerBuildQuietPeriod);
+        return Objects.hash(super.hashCode(), branchForRest, baseBranchForTc, triggerBuild, triggerBuildQuietPeriod, triggerParameters);
     }
 
     /**

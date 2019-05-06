@@ -79,28 +79,40 @@
           "suiteId": "IgniteTests24Java8_RunAllNightly",
           "branchForRest": "\u003cdefault\u003e",
           "triggerBuild": true,
-          "triggerBuildQuietPeriod": 30 //triggering quiet period in minutes
+          /* Triggering quiet period in minutes. Protects from too-often triggering in case build is too fast, e.g. compilation failure. */
+          "triggerBuildQuietPeriod": 30,
+          "triggerParameters": [
+            {
+              name: "reverse.dep.*.env.JAVA_HOME",
+              randomValues: [
+                "%env.JDK_ORA_18%",
+                "%env.JDK_ORA_9%",
+                "%env.JDK_ORA_10%",
+                "%env.JDK_OPEN_11%"
+              ]
+            }
+          ]
         }
       ]
     },
     {
-      "id": "ignite-2.7",
+      "id": "ignite-2.7.5",
       "chains": [
         {
           "serverId": "apache",
           "suiteId": "IgniteTests24Java8_RunAll",
-          "branchForRest": "ignite-2.7",
+          "branchForRest": "ignite-2.7.5",
           "baseBranchForTc": "\u003cdefault\u003e"
         }
       ]
     },
     {
-      "id": "ignite-2.7-nightly",
+      "id": "ignite-2.7.5-nightly",
       "chains": [
         {
           "serverId": "apache",
           "suiteId": "IgniteTests24Java8_RunAllNightly",
-          "branchForRest": "ignite-2.7",
+          "branchForRest": "ignite-2.7.5",
           "baseBranchForTc": "\u003cdefault\u003e",
           "triggerBuild": true,
           "triggerBuildQuietPeriod": 30 //triggering quiet period in minutes

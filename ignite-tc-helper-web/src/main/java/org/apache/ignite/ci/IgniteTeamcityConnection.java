@@ -223,7 +223,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
                 " cleanSources=\"" + cleanRebuild + "\"" +
                 " rebuildAllDependencies=\"" + cleanRebuild + "\"" +
                 " queueAtTop=\"" + queueAtTop + "\"" +
-                "/>";
+                "/>\n";
 
         String comments = " <comment><text>Build triggered from Ignite TC Bot" +
             " [cleanRebuild=" + cleanRebuild + ", top=" + queueAtTop + "]</text></comment>\n";
