@@ -19,6 +19,7 @@ package org.apache.ignite.ci.teamcity.ignited;
 import com.google.common.base.Strings;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -99,8 +100,12 @@ public interface ITeamcityIgnited {
      * @param branchName Branch name.
      * @param cleanRebuild Rebuild all dependencies.
      * @param queueAtTop Put at the top of the build queue.
+     * @param buildParms addtitional build parameters, for example Java home or test suite. Use
+     *      * <code>put("testSuite", "org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest");</code>
+     *      * to specify test suite to run.
      */
-    public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop);
+    public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop,
+        Map<String, Object> buildParms);
 
     /**
      * @param srvId Server id.

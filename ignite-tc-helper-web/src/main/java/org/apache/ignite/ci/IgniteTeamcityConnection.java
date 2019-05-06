@@ -21,6 +21,32 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.MoreExecutors;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.io.UncheckedIOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.SortedSet;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.xml.bind.JAXBException;
 import org.apache.ignite.ci.analysis.ISuiteResults;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.analysis.LogCheckTask;
@@ -55,20 +81,6 @@ import org.apache.ignite.ci.util.ZipUtil;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.xml.bind.JAXBException;
-import java.io.*;
-import java.util.SortedSet;
-import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 import static org.apache.ignite.ci.HelperConfig.ensureDirExist;
@@ -200,10 +212,11 @@ public class IgniteTeamcityConnection implements ITeamcity {
     /** {@inheritDoc} */
     @AutoProfiling
     @Override public Build triggerBuild(
-            String buildTypeId,
-            @NotNull @Nonnull String branchName,
-            boolean cleanRebuild,
-            boolean queueAtTop
+        String buildTypeId,
+        @NotNull @Nonnull String branchName,
+        boolean cleanRebuild,
+        boolean queueAtTop,
+        @Nullable Map<String, Object> buildParms
     ) {
         String triggeringOptions =
             " <triggeringOptions" +
@@ -215,25 +228,35 @@ public class IgniteTeamcityConnection implements ITeamcity {
         String comments = " <comment><text>Build triggered from Ignite TC Bot" +
             " [cleanRebuild=" + cleanRebuild + ", top=" + queueAtTop + "]</text></comment>\n";
 
-        String param = "<build branchName=\"" + xmlEscapeText(branchName) + "\">\n" +
-            "    <buildType id=\"" +
-            buildTypeId + "\"/>\n" +
-            comments +
-            triggeringOptions +
-            //some fake property to avoid merging build in queue
-            "    <properties>\n" +
-            "        <property name=\"build.query.loginTs\" value=\"" + System.currentTimeMillis() + "\"/>\n" +
-            // "        <property name=\"testSuite\" value=\"org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest\"/>\n" +
-            "    </properties>\n" +
-            "</build>";
+        Map<String, Object> props = new HashMap<>();
+
+        if (buildParms != null)
+            props.putAll(buildParms);
+
+        props.put("tcbot.triggerTime", System.currentTimeMillis()); // some fake property to avoid merging build in queue
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<build branchName=\"").append(xmlEscapeText(branchName)).append("\">\n");
+        sb.append(" <buildType id=\"").append(buildTypeId).append("\"/>\n");
+        sb.append(comments);
+        sb.append(triggeringOptions);
+        sb.append(" <properties>\n");
+
+        props.forEach((k, v) -> {
+            sb.append("  <property name=\"").append(k).append("\"");
+            sb.append(" value=\"").append(xmlEscapeText(Objects.toString(v))).append("\"/>\n");
+        });
+
+        sb.append(" </properties>\n");
+        sb.append("</build>");
 
         String url = host() + "app/rest/buildQueue";
 
         try {
-            logger.info("Triggering build: buildTypeId={}, branchName={}, cleanRebuild={}, queueAtTop={}",
-                buildTypeId, branchName, cleanRebuild, queueAtTop);
+            logger.info("Triggering build: buildTypeId={}, branchName={}, cleanRebuild={}, queueAtTop={}, buildParms={}",
+                buildTypeId, branchName, cleanRebuild, queueAtTop, props);
 
-            try (StringReader reader = new StringReader(HttpUtil.sendPostAsString(basicAuthTok, url, param))) {
+            try (StringReader reader = new StringReader(HttpUtil.sendPostAsString(basicAuthTok, url, sb.toString()))) {
                 return XmlUtil.load(Build.class, reader);
             }
             catch (JAXBException e) {

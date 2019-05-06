@@ -18,6 +18,9 @@
 package org.apache.ignite.ci.tcbot.conf;
 
 import com.google.common.base.Strings;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nonnull;
@@ -31,7 +34,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  */
 @SuppressWarnings("PublicField")
 public class ChainAtServerTracked extends ChainAtServer {
-    /** Branch identifier by TC identification for REST api */
+    /** Branch identifier by TC identification for REST API. */
     @Nonnull public String branchForRest;
 
     /** TC identified base branch: null means the same as &lt;default>, master. For not tracked branches. */
@@ -42,6 +45,9 @@ public class ChainAtServerTracked extends ChainAtServer {
 
     /** Automatic build triggering quiet period in minutes. */
     @Nullable private Integer triggerBuildQuietPeriod;
+
+    /** Build parameters for Triggerring. */
+    @Nullable private List<BuildParameter> triggerParameters;
 
     /** @return {@link #suiteId} */
     @Nonnull public String getSuiteIdMandatory() {
@@ -72,8 +78,7 @@ public class ChainAtServerTracked extends ChainAtServer {
     /**
      * {@inheritDoc}
      */
-    @Override
-    public boolean equals(Object o) {
+    @Override public boolean equals(Object o) {
         if (this == o)
             return true;
 
@@ -107,5 +112,32 @@ public class ChainAtServerTracked extends ChainAtServer {
      */
     public int getTriggerBuildQuietPeriod() {
         return triggerBuildQuietPeriod == null ? 0 : triggerBuildQuietPeriod;
+    }
+
+    /**
+     * @return Map with parameter values for current run.
+     */
+    public Map<String, Object> buildParameters() {
+        Map<String, Object> values = new HashMap<>();
+
+        if (triggerParameters != null) {
+
+            triggerParameters.forEach(
+                p -> {
+                    String name = p.name();
+                    Object val = p.generateValue();
+
+                    if (!Strings.isNullOrEmpty(name) && val != null)
+                        values.put(name, val);
+                }
+            );
+        }
+
+        return values;
+    }
+
+    /** */
+    public String branchForRest() {
+        return branchForRest;
     }
 }

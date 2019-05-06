@@ -17,6 +17,9 @@
 
 package org.apache.ignite.ci.runners;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -61,7 +64,7 @@ public class IgniteTeamcityHelperRunnerExample {
             String buildTypeIdAllP = "id8xIgniteGridGainTestsJava8_RunAll";
             //  buildTypeIdAll="IgniteTests24Java8_Queries1";
 
-            helper.triggerBuild(buildTypeIdAll, branchName, true, false);
+            helper.triggerBuild(buildTypeIdAll, branchName, true, false, Collections.emptyMap());
         }
     }
 

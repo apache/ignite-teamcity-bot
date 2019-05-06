@@ -472,8 +472,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @Override public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
-        Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
+    @Override public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop,
+        Map<String, Object> buildParms) {
+        Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop, buildParms);
 
         //todo may add additional parameter: load builds into DB in sync/async fashion
         buildRefSync.runActualizeBuildRefs(srvCode, false, Sets.newHashSet(build.getId()), conn);

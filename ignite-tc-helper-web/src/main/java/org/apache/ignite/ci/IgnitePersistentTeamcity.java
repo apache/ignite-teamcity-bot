@@ -19,11 +19,11 @@ package org.apache.ignite.ci;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import javax.annotation.Nullable;
@@ -210,8 +210,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     /** {@inheritDoc} */
     @AutoProfiling
-    @Override public Build triggerBuild(String buildTypeId, @NotNull String branchName, boolean cleanRebuild, boolean queueAtTop) {
-        return teamcity.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
+    @Override public Build triggerBuild(String buildTypeId, @NotNull String branchName, boolean cleanRebuild,
+        boolean queueAtTop, Map<String, Object> buildParms) {
+        return teamcity.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop, buildParms);
     }
 
     /** {@inheritDoc} */

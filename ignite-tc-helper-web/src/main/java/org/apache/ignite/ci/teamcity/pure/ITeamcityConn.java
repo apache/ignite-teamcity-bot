@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.teamcity.pure;
 
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
@@ -81,13 +82,16 @@ public interface ITeamcityConn {
 
     /**
      * Trigger build.
-     *
-     * @param buildTypeId Build identifier.
+     * @param buildTypeId Build type (suite) identifier.
      * @param branchName Branch name.
      * @param cleanRebuild Rebuild all dependencies.
      * @param queueAtTop Put at the top of the build queue.
+     * @param buildParms addtitional build parameters, for example Java home or test suite. Use
+     * <code>put("testSuite", "org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest");</code>
+     * to specify test suite to run.
      */
-    public Build triggerBuild(String buildTypeId, @Nonnull String branchName, boolean cleanRebuild, boolean queueAtTop);
+    public Build triggerBuild(String buildTypeId, @Nonnull String branchName, boolean cleanRebuild, boolean queueAtTop,
+        @Nullable Map<String, Object> buildParms);
 
     /**
      * @param buildId Build id.
