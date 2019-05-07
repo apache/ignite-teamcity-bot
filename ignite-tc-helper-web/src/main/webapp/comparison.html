@@ -189,6 +189,9 @@
         testsTrigger = false,
         error = $('#loadStatus');
 
+    /** Key-value map. Key - Full suite text. Value - {@link org.apache.ignite.ci.tcbot.conf.ChainAtServer} object. */
+    var suiteFullNameToChain = new Map();
+
     function refreshTests() {
         printTests(generateTestsResultsComparison(mergedTestsResults));
     }
@@ -556,28 +559,9 @@
         $('.' + cssClass + '.data.' + num).prop('title', title);
     }
 
-    function loadServers() {
-        $.ajax({
-            url: "rest/branches/getServerIds",
-            success: function(result) {
-                if (!isDefinedAndFilled(result)) {
-                    error.html("Result from " + this.url + " is undefined!");
-
-                    return;
-                }
-
-                printServers(result);
-
-                loadTrackedSuites();
-            },
-            error: showErrInLoadStatus
-        });
-    }
-
     function loadTrackedSuites() {
-        let server = $('#selectServer').val();
         $.ajax({
-            url: "rest/branches/suites" + (isDefinedAndFilled(server) ? "?server=" + server + "" : ""),
+            url: "rest/branches/suites",
             success: function (result) {
                 if (!isDefinedAndFilled(result)) {
                     error.html("Result from " + this.url + " is undefined!");
@@ -593,11 +577,20 @@
         });
     }
 
-     function printSuites(result) {
+    /**
+     *
+     * @param result list of {@link org.apache.ignite.ci.tcbot.conf.ChainAtServer} objects as JSON.
+     */
+    function printSuites(result) {
         let selectHtml = "<select id='selectSuite'>";
 
-        for (let i = 0; i < result.length; i++)
-            selectHtml += getHtmlOption(result[i].suiteId, false, false, result[i].suiteId);
+        for (let i = 0; i < result.length; i++) {
+            let suite = result[i];
+            let text = suite.suiteId + " (" + suite.serverId + ")";
+
+            suiteFullNameToChain.set(text, suite);
+            selectHtml += getHtmlOption(text, false, false, text);
+        }
 
         selectHtml += "</select>";
 
@@ -606,39 +599,26 @@
         $('#selectSuite').change(function () { reloadAll(); });
     }
 
-    // @param array of strings
-    function printServers(result) {
-        let selectHtml = "<select id='selectServer'>";
-
-        for (let i = 0; i < result.length; i++)
-            selectHtml += getHtmlOption(result[i], false, false, result[i]);
-
-        selectHtml += "</select>";
-
-        $('#choiceServer').html(selectHtml);
-
-        $('#selectServer').change(function () { loadTrackedSuites(); });
-    }
-
-
     function loadData(num, sinceDate, untilDate, testsTrigger) {
         loadGif(num);
 
-        let suiteId = $('#selectSuite').val();
+        let suiteIdFull = $('#selectSuite').val();
+
 
         mergedTestsResults[num] = {};
 
-        if ((!isDefinedAndFilled(suiteId)) || (suiteId === "")) {
+        if ((!isDefinedAndFilled(suiteIdFull)) || (suiteIdFull === "")) {
             error.html("Suite is " + (isDefinedAndFilled(suiteId) ? "empty" : "undefined") + "!");
 
             return;
         }
 
+        let chainAtServer = suiteFullNameToChain.get(suiteIdFull);
 
-        let server = $('#selectServer').val();
-
-        let url = 'rest/build/history?server='+server+'&buildType=' + suiteId + '&sinceDate=' +
-            sinceDate.format("DDMMYYYY") + '000001&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
+        let url = 'rest/build/history?server=' + chainAtServer.serverId
+            + '&buildType=' + chainAtServer.suiteId
+            + '&sinceDate=' + sinceDate.format("DDMMYYYY") + '000001'
+            + '&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
 
         if (!testsTrigger)
             url = url + '&' + SKIP_TESTS;
@@ -699,7 +679,7 @@
     }
 
     $(document).ready(function() {
-        loadServers();
+        loadTrackedSuites();
 
         $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
     });
