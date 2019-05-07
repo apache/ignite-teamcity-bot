@@ -21,7 +21,6 @@ import com.google.common.base.Strings;
 import java.util.List;
 import java.util.function.BiConsumer;
 import org.apache.ignite.ci.db.Persisted;
-import org.apache.ignite.ci.tcmodel.conf.bt.Parameters;
 import org.apache.ignite.ci.tcmodel.conf.bt.Property;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.internal.util.GridIntList;
@@ -40,8 +39,7 @@ public class PropertiesCompacted {
     public PropertiesCompacted() {
     }
 
-    public PropertiesCompacted(IStringCompactor compactor, Parameters parameters) {
-        List<Property> props = parameters.properties();
+    public PropertiesCompacted(IStringCompactor compactor, List<Property> props) {
         int size = props.size();
         keys = new GridIntList(size);
         values = new GridIntList(size);

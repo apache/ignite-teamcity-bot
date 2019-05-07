@@ -199,10 +199,16 @@ public class Build extends BuildRef {
         return properties == null ? null : properties.getParameter(s);
     }
 
+    /**
+     * @return {@link #properties}
+     */
     @Nullable public Parameters parameters() {
         return properties;
     }
 
+    /**
+     * @param parameters Parameters to be saved as {@link #properties}.
+     */
     public void parameters(Parameters parameters) {
         this.properties = parameters;
     }

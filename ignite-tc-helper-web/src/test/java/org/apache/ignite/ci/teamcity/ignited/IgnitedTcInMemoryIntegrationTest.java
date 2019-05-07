@@ -479,6 +479,8 @@ public class IgnitedTcInMemoryIntegrationTest {
 
         assertParameter(refBuild, actBuild, "env.JAVA_HOME");
         assertParameter(refBuild, actBuild, "reverse.dep.*.env.JAVA_HOME");
+        assertNotNull(refBuild.parameter(ITeamcity.TCBOT_TRIGGER_TIME));
+        assertNull(actBuild.parameter(ITeamcity.TCBOT_TRIGGER_TIME));
 
         final Triggered refTrig = refBuild.getTriggered();
         final Triggered actTrig = actBuild.getTriggered();

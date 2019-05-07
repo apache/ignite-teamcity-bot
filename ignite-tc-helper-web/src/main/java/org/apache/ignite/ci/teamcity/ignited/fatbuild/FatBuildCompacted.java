@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -27,6 +28,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
@@ -118,6 +120,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     @Nullable private RevisionCompacted revisions[];
 
+    /** Build parameters compacted, excluding dynamic parameters. */
     @Nullable private PropertiesCompacted parameters;
 
     /** {@inheritDoc} */
@@ -214,8 +217,14 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         Parameters parameters = build.parameters();
 
-        if (parameters != null && !parameters.isEmpty())
-            this.parameters = new PropertiesCompacted(compactor, parameters);
+        if (parameters != null) {
+            List<Property> propList = parameters.properties().stream()
+                .filter(prop -> !Strings.isNullOrEmpty(prop.name()))
+                .filter(prop -> !ITeamcity.AVOID_SAVE_PROPERTIES.contains(prop.name())).collect(Collectors.toList());
+
+            if (!propList.isEmpty())
+                this.parameters = new PropertiesCompacted(compactor, propList);
+        }
     }
 
     public FatBuildCompacted setFakeStub(boolean val) {

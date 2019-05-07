@@ -37,6 +37,7 @@
         <property name="TEST_SUITE" value="IgniteCacheMvccTestSuite" inherited="true"/>
         <property name="XMS" value="2g" inherited="true"/>
         <property name="XMX" value="2g" inherited="true"/>
+        <property name="tcbot.triggerTime" value="12345"/>
     </properties>
     <statistics href="/app/rest/latest/builds/id:2153237/statistics"/>
     <snapshot-dependencies count="1">

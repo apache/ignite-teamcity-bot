@@ -17,7 +17,9 @@
 
 package org.apache.ignite.ci;
 
+import com.google.common.collect.Sets;
 import java.io.File;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -45,7 +47,7 @@ public interface ITeamcity extends ITeamcityConn {
     public String TCBOT_TRIGGER_TIME = "tcbot.triggerTime";
 
     /** Default list of properties to be skipped in saving in FAT builds. */
-    public String[] AVOID_SAVE_PROPERTIES = new String[] {TCBOT_TRIGGER_TIME, "build.query.loginTs"};
+    public Set<String> AVOID_SAVE_PROPERTIES = Sets.newHashSet(TCBOT_TRIGGER_TIME, "build.query.loginTs");
 
     CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut);
 
