@@ -37,6 +37,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
@@ -238,7 +239,7 @@ public class BuildsHistory {
         private String buildTypeId = "IgniteTests24Java8_RunAll";
 
         /** */
-        private String branchName = "refs/heads/master";
+        private String branchName = ITeamcity.DEFAULT;
 
         /** */
         private Date sinceDate = null;
@@ -251,6 +252,7 @@ public class BuildsHistory {
 
         public Builder(ITcBotConfig cfg) {
             srvCode = cfg.primaryServerCode();
+            // todo may find findDefaultBuildType() from cfg.getTeamcityConfig(srvCode).defaultTrackedBranch()
         }
 
         /**
