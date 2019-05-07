@@ -190,7 +190,7 @@ public class HttpUtil {
             throw new FileNotFoundException("Service " + con.getURL() + " returned not found error."
                     + readIsToString(con.getErrorStream()));
 
-        throw new IllegalStateException("Invalid Response Code : " + resCode + ":\n"
+        throw new IllegalStateException("Service " + con.getURL() + " returned Invalid Response Code : " + resCode + ":\n"
                 + readIsToString(con.getErrorStream()));
     }
 
