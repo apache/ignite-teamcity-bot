@@ -85,6 +85,5 @@ public class PropertiesCompacted {
 
             consumer.accept(compactor.getStringFromId(nameid), compactor.getStringFromId(valId));
         }
-
     }
 }

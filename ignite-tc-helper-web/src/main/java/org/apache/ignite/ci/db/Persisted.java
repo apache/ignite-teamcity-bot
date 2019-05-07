@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.db;
 
 /**
- * Marker interface for object saved into cache
+ * Marker interface for objects saved into a cache.
  */
 public @interface Persisted {
 }

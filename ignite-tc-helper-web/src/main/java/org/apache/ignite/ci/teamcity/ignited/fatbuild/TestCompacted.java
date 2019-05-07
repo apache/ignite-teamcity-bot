@@ -367,16 +367,18 @@ public class TestCompacted {
     public Invocation toInvocation(IStringCompactor compactor, FatBuildCompacted build) {
         final boolean failedTest = isFailedTest(compactor);
 
-
         final int failCode = failedTest
-                ? (isIgnoredTest() || isMutedTest())
-                ? InvocationData.MUTED
-                : InvocationData.FAILURE
-                : InvocationData.OK;
+            ? (isIgnoredTest() || isMutedTest())
+            ? InvocationData.MUTED
+            : InvocationData.FAILURE
+            : InvocationData.OK;
 
-        return new Invocation(build.getId())
+        Invocation invocation = new Invocation(build.getId())
             .withStatus(failCode)
             .withStartDate(build.getStartDateTs())
             .withChanges(build.changes());
+
+        return invocation;
+        //      .withParameters(build.parameters().forEach(compactor, (k,v)->{}););
     }
 }

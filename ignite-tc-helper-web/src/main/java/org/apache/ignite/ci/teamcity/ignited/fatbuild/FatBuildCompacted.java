@@ -664,4 +664,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         return Collections.unmodifiableList(Arrays.asList(revisions));
     }
+
+    @Nullable public PropertiesCompacted parameters() {
+        return parameters;
+    }
 }

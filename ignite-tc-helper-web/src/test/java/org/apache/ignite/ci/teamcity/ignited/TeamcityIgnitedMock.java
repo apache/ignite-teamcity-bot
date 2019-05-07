@@ -129,12 +129,12 @@ public class TeamcityIgnitedMock {
             if (!build.isFinished(c))
                 continue;
 
-            build.getAllTests().forEach(t -> {
-                RunHistKey histKey = new RunHistKey(srvId, t.testName(), build.branchName());
+            build.getAllTests().forEach(testCompacted -> {
+                RunHistKey histKey = new RunHistKey(srvId, testCompacted.testName(), build.branchName());
 
                 final RunHistCompacted hist = histCache.computeIfAbsent(histKey, RunHistCompacted::new);
 
-                Invocation inv = t.toInvocation(c, build);
+                Invocation inv = testCompacted.toInvocation(c, build);
 
                 hist.addInvocation(inv);
             });

@@ -20,10 +20,12 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import org.apache.ignite.ci.db.Persisted;
 
 /**
  * Run history element: invocation of build or test.
  */
+@Persisted
 public class Invocation {
     /** VCS Change not filled. */
     public static final int CHANGE_NOT_FILLED = 2;
