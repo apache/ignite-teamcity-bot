@@ -33,6 +33,7 @@ import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.jetbrains.annotations.Nullable;
@@ -390,7 +391,11 @@ public class TestCompacted {
 
         java.util.Map<Integer, Integer> importantParms = new TreeMap<>();
 
-        build.parameters().forEach((k, v) -> {
+        ParametersCompacted parameters = build.parameters();
+        if (parameters == null)
+            return invocation;
+
+        parameters.forEach((k, v) -> {
             if (paramsFilter.test(k, v))
                 importantParms.put(k, v);
         });

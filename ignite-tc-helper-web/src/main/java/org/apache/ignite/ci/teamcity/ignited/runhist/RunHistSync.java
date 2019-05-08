@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.GuardedBy;
 import javax.inject.Inject;
@@ -109,6 +110,7 @@ public class RunHistSync {
 
         Set<Integer> allTriggeringBuildParameters = getFilteringParameters(srvCode);
 
+        BiPredicate<Integer, Integer> parmFilter = (k, v) -> allTriggeringBuildParameters.contains(k);
         boolean saveNow = false;
 
         int branchNameNormalized = compactor.getStringId(normalizeBranch(build.branchName(compactor)));
@@ -118,13 +120,13 @@ public class RunHistSync {
         build.getAllTests().forEach(t -> {
             RunHistKey histKey = new RunHistKey(srvId, t.testName(), branchNameNormalized);
             List<Invocation> list = testInvMap.computeIfAbsent(histKey, k -> new ArrayList<>());
-            list.add(t.toInvocation(compactor, build, (k, v) -> allTriggeringBuildParameters.contains(k)));
+            list.add(t.toInvocation(compactor, build, parmFilter));
 
             cntTests.incrementAndGet();
         });
 
         RunHistKey buildInvKey = new RunHistKey(srvId, build.buildTypeId(), branchNameNormalized);
-        Invocation buildInv = build.toInvocation(compactor);
+        Invocation buildInv = build.toInvocation(compactor, parmFilter);
 
         int cnt = cntTests.get();
 

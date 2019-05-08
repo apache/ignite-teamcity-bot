@@ -25,7 +25,9 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.ITeamcity;
@@ -619,7 +621,8 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             .toString();
     }
 
-    public Invocation toInvocation(IStringCompactor compactor) {
+    public Invocation toInvocation(IStringCompactor compactor,
+        BiPredicate<Integer, Integer> paramsFilter) {
         boolean success = isSuccess(compactor);
 
         final int failCode ;
@@ -639,10 +642,23 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         }
 
-        return new Invocation(getId())
+        Invocation invocation = new Invocation(getId())
             .withStatus(failCode)
             .withStartDate(getStartDateTs())
             .withChanges(changes());
+
+        java.util.Map<Integer, Integer> importantParms = new TreeMap<>();
+
+        ParametersCompacted parameters = this.parameters();
+        if (parameters == null)
+            return invocation;
+
+        parameters.forEach((k, v) -> {
+            if (paramsFilter.test(k, v))
+                importantParms.put(k, v);
+        });
+
+        return invocation;
     }
 
     public void setVersion(short ver) {
