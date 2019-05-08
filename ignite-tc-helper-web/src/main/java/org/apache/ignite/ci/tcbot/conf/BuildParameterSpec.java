@@ -18,11 +18,9 @@
 package org.apache.ignite.ci.tcbot.conf;
 
 import com.google.common.base.Strings;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.*;
 
 public class BuildParameterSpec {
     /** Parameter (property) Name. */
@@ -69,13 +67,13 @@ public class BuildParameterSpec {
      * @return some valid value for property or null.
      */
     public Object generateValue() {
-        if (!randomValue)
+        if (!Boolean.TRUE.equals(randomValue))
             return value;
 
-        if (selection.isEmpty())
+        if (selection == null || selection.isEmpty())
             return value;
 
-        int idx = (int)(Math.random() * selection.size());
+        int idx = (int) (Math.random() * selection.size());
 
         ParameterValueSpec spec = selection.get(idx);
 

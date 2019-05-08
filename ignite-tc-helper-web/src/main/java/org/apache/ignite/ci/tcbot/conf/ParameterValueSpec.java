@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.tcbot.conf;
 
+import com.google.common.base.Objects;
+
 /**
  * Some parameter value, which label may be used in UI.
  */
@@ -30,5 +32,19 @@ public class ParameterValueSpec {
 
     public String label() {
         return label;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ParameterValueSpec that = (ParameterValueSpec) o;
+        return Objects.equal(value, that.value) &&
+                Objects.equal(label, that.label);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(value, label);
     }
 }
