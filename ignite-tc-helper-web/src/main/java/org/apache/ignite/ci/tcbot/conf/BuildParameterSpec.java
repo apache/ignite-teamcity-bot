@@ -17,20 +17,25 @@
 
 package org.apache.ignite.ci.tcbot.conf;
 
-import com.google.common.base.Strings;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.jetbrains.annotations.Nullable;
 
-public class BuildParameter {
+public class BuildParameterSpec {
     /** Name. */
     private String name;
 
     /** Value. */
     private String value;
 
-    /** Random values. Ignored if exact values were specified */
-    private List<String> randomValues = new LinkedList<>();
+    @Nullable private Boolean randomValue;
+
+    /**
+     * For triggering parameters: possble random values.
+     * For filtering parameters: used as value for selection and displaying result.
+     */
+    @Nullable private List<ParameterValueSpec> selectionValues = new ArrayList<>();
 
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
@@ -38,15 +43,16 @@ public class BuildParameter {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        BuildParameter param = (BuildParameter)o;
+        BuildParameterSpec param = (BuildParameterSpec)o;
         return Objects.equals(name, param.name) &&
             Objects.equals(value, param.value) &&
-            Objects.equals(randomValues, param.randomValues);
+            Objects.equals(randomValue, param.randomValue) &&
+            Objects.equals(selectionValues, param.selectionValues);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(name, value, randomValues);
+        return Objects.hash(name, value, randomValue, selectionValues);
     }
 
     public String name() {
@@ -54,14 +60,16 @@ public class BuildParameter {
     }
 
     public Object generateValue() {
-        if (!Strings.isNullOrEmpty(value))
+        if (!randomValue)
             return value;
 
-        if (randomValues.isEmpty())
-            return null;
+        if (selectionValues.isEmpty())
+            return value;
 
-        int idx = (int)(Math.random() * randomValues.size());
+        int idx = (int)(Math.random() * selectionValues.size());
 
-        return randomValues.get(idx);
+        ParameterValueSpec spec = selectionValues.get(idx);
+
+        return spec.value();
     }
 }

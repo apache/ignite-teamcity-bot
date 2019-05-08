@@ -14,35 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.ignite.ci.tcbot.conf;
 
-import java.util.Collection;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 /**
- * Teamcity Server configuration.
+ *
  */
-public interface ITcServerConfig {
-    /**
-     * @return Another TC Server (service) config name to use settings from. Filled only for server aliases.
-     */
-    @Nullable public String reference();
+public class ParameterValueSpec {
+    private String value;
+    private String label;
 
-    /**
-     * @return Normalized Host address, ends with '/'.
-     */
-    @NotNull public String host();
-
-    /**
-     * @return Directory for downloading build logs (will contain ZIP files).
-     */
-    @NotNull public String logsDirectory();
-
-    /**
-     * @return
-     */
-    @NotNull public String defaultTrackedBranch();
-
-    public Collection<String> filteringParametersKeys();
+    public String value() {
+        return value;
+    }
 }

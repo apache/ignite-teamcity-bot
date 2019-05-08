@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,6 +39,7 @@ import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
 import org.apache.ignite.ci.tcbot.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
@@ -105,7 +107,7 @@ public class RunHistSync {
         if (histDao.buildWasProcessed(srvId, build.id()))
             return;
 
-        Set<Integer> allTriggeringBuildParameters = getSuitePossibleParameters(srvCode);
+        Set<Integer> allTriggeringBuildParameters = getFilteringParameters(srvCode);
 
         boolean saveNow = false;
 
@@ -150,15 +152,21 @@ public class RunHistSync {
         }
     }
 
-    @NotNull public Set<Integer> getSuitePossibleParameters(String srvCode) {
-        return cfg.getTrackedBranches().getBranches().stream().flatMap(
-                b -> b.getChainsStream()
-                    .filter(ChainAtServerTracked::isTriggerBuild)
-                    .filter(chain -> Objects.equals(chain.getServerId(), srvCode))
-                    .flatMap(ChainAtServerTracked::buildParametersKeys)
-            )
-            .map(k -> compactor.getStringId(k))
-            .collect(Collectors.toSet());
+    @NotNull public Set<Integer> getFilteringParameters(String srvCode) {
+        Set<String> triggerParameters = this.cfg.getTrackedBranches().getBranches().stream().flatMap(
+            b -> b.getChainsStream()
+                .filter(ChainAtServerTracked::isTriggerBuild)
+                .filter(chain -> Objects.equals(chain.getServerId(), srvCode))
+                .flatMap(ChainAtServerTracked::buildParametersKeys)
+        ).collect(Collectors.toSet());
+
+        ITcServerConfig tcCfg = cfg.getTeamcityConfig(srvCode);
+
+        Collection<String> filtering = tcCfg.filteringParametersKeys();
+
+        triggerParameters.addAll(filtering);
+
+        return triggerParameters.stream().map(k -> compactor.getStringId(k)).collect(Collectors.toSet());
     }
 
     @MonitoredTask(name = "Save Builds To History(srv, runner)", nameExtArgsIndexes = {0, 1})

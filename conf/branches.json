@@ -22,7 +22,10 @@
       // "branchNumPrefix": "IGNITE-",
       /* JIRA Url, HTTPs is highly recommended because of Basic Auth used. */
       "url": "https://issues.apache.org/jira/",
-      /** JIRA Auth token to access, use PasswordEncoder#encodeJiraTok to get from clear username/password */
+      /** JIRA Auth token to access,
+        Base-64 pre-encoded username and password, which will be included into Basic Auth requests.
+        Encoded token needs to be encrypted using org.apache.ignite.ci.tcbot.conf.PasswordEncoder,
+        use PasswordEncoder#encodeJiraTok to get from clear username/password */
       "authTok": "" //todo specify
     }
   ],
@@ -84,11 +87,12 @@
           "triggerParameters": [
             {
               name: "reverse.dep.*.env.JAVA_HOME",
-              randomValues: [
-                "%env.JDK_ORA_18%",
-                "%env.JDK_ORA_9%",
-                "%env.JDK_ORA_10%",
-                "%env.JDK_OPEN_11%"
+              randomValue: true,
+              "selection": [
+                {value:"%env.JDK_ORA_18%", label:"JDK8"},
+                {value:"%env.JDK_ORA_9%", label:"JDK9"},
+                {value:"%env.JDK_ORA_10%", label:"JDK10"},
+                {value:"%env.JDK_OPEN_11%", label:"JDK11"}
               ]
             }
           ]

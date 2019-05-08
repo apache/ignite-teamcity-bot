@@ -50,7 +50,7 @@ public class ChainAtServerTracked extends ChainAtServer {
     @Nullable private Integer triggerBuildQuietPeriod;
 
     /** Build parameters for Triggerring. */
-    @Nullable private List<BuildParameter> triggerParameters;
+    @Nullable private List<BuildParameterSpec> triggerParameters;
 
     /** @return {@link #suiteId} */
     @Nonnull public String getSuiteIdMandatory() {
@@ -139,7 +139,7 @@ public class ChainAtServerTracked extends ChainAtServer {
         if (triggerParameters == null || triggerParameters.isEmpty())
             return Stream.empty();
 
-        return triggerParameters.stream().map(BuildParameter::name);
+        return triggerParameters.stream().map(BuildParameterSpec::name);
     }
 
     /** */
