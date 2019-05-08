@@ -20,10 +20,14 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import java.util.Map;
+import javax.annotation.Nullable;
+import org.apache.ignite.ci.db.Persisted;
 
 /**
  * Run history element: invocation of build or test.
  */
+@Persisted
 public class Invocation {
     /** VCS Change not filled. */
     public static final int CHANGE_NOT_FILLED = 2;
@@ -45,6 +49,9 @@ public class Invocation {
 
     /** Build Start date as timestamp. */
     private long startDate;
+
+    /** Additional (important) build Pareters, which can be used for filtering. */
+    @Nullable private Map<Integer, Integer> parms;
 
     /**
      * Creates invocation.
@@ -130,5 +137,14 @@ public class Invocation {
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(buildId, status, changePresent, startDate);
+    }
+
+    public Invocation withParameters(Map<Integer, Integer> parms) {
+        if (parms == null || parms.isEmpty())
+            return this;
+
+        this.parms = parms;
+
+        return this;
     }
 }

@@ -19,6 +19,7 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.Strings;
 import java.util.List;
+import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.bt.Property;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -27,11 +28,18 @@ import org.apache.ignite.internal.util.GridLongList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Statistics values to be saved in compacted form.
+ */
+@Persisted
 public class StatisticsCompacted {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(StatisticsCompacted.class);
 
+    /** Statistics Keys (Names), int value is coming from the compatcor. */
     private GridIntList keys;
+
+    /** Statistics Parsed Values as long. */
     private GridLongList values;
 
     public StatisticsCompacted() {
@@ -48,7 +56,7 @@ public class StatisticsCompacted {
             if (Strings.isNullOrEmpty(name))
                 continue;
 
-            final String valStr = next.getValue();
+            final String valStr = next.value();
             if (Strings.isNullOrEmpty(valStr))
                 continue;
 

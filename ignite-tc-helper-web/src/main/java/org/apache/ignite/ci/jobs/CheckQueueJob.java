@@ -257,7 +257,8 @@ public class CheckQueueJob implements Runnable {
 
             startTimes.put(chain, curr);
 
-            tcIgn.triggerBuild(chain.suiteId, chain.branchForRest, true, false);
+            Map<String, Object> parms = chain.buildParameters();
+            tcIgn.triggerBuild(chain.suiteId, chain.branchForRest(), true, false, parms);
 
             res.append(chain.branchForRest).append(" ").append(chain.suiteId).append(" triggered; ");
         }

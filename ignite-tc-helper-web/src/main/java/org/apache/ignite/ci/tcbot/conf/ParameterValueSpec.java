@@ -15,10 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.db;
+package org.apache.ignite.ci.tcbot.conf;
 
 /**
- * Marker interface for objects saved into a cache.
+ * Some parameter value, which label may be used in UI.
  */
-public @interface Persisted {
+public class ParameterValueSpec {
+    private String value;
+    private String label;
+
+    public String value() {
+        return value;
+    }
+
+    public String label() {
+        return label;
+    }
 }

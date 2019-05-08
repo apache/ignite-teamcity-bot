@@ -18,11 +18,13 @@
 package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +37,9 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
+import org.apache.ignite.ci.tcbot.conf.ChainAtServerTracked;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
@@ -69,6 +74,8 @@ public class RunHistSync {
     /** Build DAO. */
     @Inject private FatBuildDao fatBuildDao;
 
+    @Inject private ITcBotConfig cfg;
+
     /** Build to save to history. */
     @GuardedBy("this")
     private final Map<String, SyncTask> buildToSave = new HashMap<>();
@@ -89,16 +96,18 @@ public class RunHistSync {
     }
 
     /**
-     * @param srvVame Server id.
+     * @param srvCode Server code (internal identification).
      * @param build Build.
      */
-    public void saveToHistoryLater(String srvVame, FatBuildCompacted build) {
+    public void saveToHistoryLater(String srvCode, FatBuildCompacted build) {
         if (!validForStatistics(build))
             return;
 
-        int srvId = ITeamcityIgnited.serverIdToInt(srvVame);
+        int srvId = ITeamcityIgnited.serverIdToInt(srvCode);
         if (histDao.buildWasProcessed(srvId, build.id()))
             return;
+
+        Set<Integer> allTriggeringBuildParameters = getFilteringParameters(srvCode);
 
         boolean saveNow = false;
 
@@ -109,7 +118,7 @@ public class RunHistSync {
         build.getAllTests().forEach(t -> {
             RunHistKey histKey = new RunHistKey(srvId, t.testName(), branchNameNormalized);
             List<Invocation> list = testInvMap.computeIfAbsent(histKey, k -> new ArrayList<>());
-            list.add(t.toInvocation(compactor, build));
+            list.add(t.toInvocation(compactor, build, (k, v) -> allTriggeringBuildParameters.contains(k)));
 
             cntTests.incrementAndGet();
         });
@@ -120,7 +129,7 @@ public class RunHistSync {
         int cnt = cntTests.get();
 
         synchronized (this) {
-            final SyncTask syncTask = buildToSave.computeIfAbsent(srvVame, s -> new SyncTask());
+            final SyncTask syncTask = buildToSave.computeIfAbsent(srvCode, s -> new SyncTask());
 
             if (syncTask.sheduledTestsCnt() + cnt <= MAX_TESTS_QUEUE)
                 syncTask.addLater(testInvMap, cnt, buildInvKey, buildInv);
@@ -138,9 +147,26 @@ public class RunHistSync {
         else {
             int ldrToActivate = ThreadLocalRandom.current().nextInt(HIST_LDR_TASKS) + 1;
 
-            scheduler.sheduleNamed(taskName("saveBuildToHistory." + ldrToActivate, srvVame),
-                () -> saveBuildToHistory(srvVame, ldrToActivate), 1, TimeUnit.MINUTES);
+            scheduler.sheduleNamed(taskName("saveBuildToHistory." + ldrToActivate, srvCode),
+                () -> saveBuildToHistory(srvCode, ldrToActivate), 1, TimeUnit.MINUTES);
         }
+    }
+
+    @NotNull public Set<Integer> getFilteringParameters(String srvCode) {
+        Set<String> triggerParameters = this.cfg.getTrackedBranches().getBranches().stream().flatMap(
+            b -> b.getChainsStream()
+                .filter(ChainAtServerTracked::isTriggerBuild)
+                .filter(chain -> Objects.equals(chain.getServerId(), srvCode))
+                .flatMap(ChainAtServerTracked::buildParametersKeys)
+        ).collect(Collectors.toSet());
+
+        ITcServerConfig tcCfg = cfg.getTeamcityConfig(srvCode);
+
+        Collection<String> filtering = tcCfg.filteringParametersKeys();
+
+        triggerParameters.addAll(filtering);
+
+        return triggerParameters.stream().map(k -> compactor.getStringId(k)).collect(Collectors.toSet());
     }
 
     @MonitoredTask(name = "Save Builds To History(srv, runner)", nameExtArgsIndexes = {0, 1})

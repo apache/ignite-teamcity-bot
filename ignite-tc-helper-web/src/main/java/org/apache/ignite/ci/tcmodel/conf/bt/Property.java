@@ -29,30 +29,40 @@ import org.jetbrains.annotations.Nullable;
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 public class Property {
+    /** Parameter Name/Key. */
     @XmlAttribute String name;
+
+    /** Parameter Value. */
     @XmlAttribute String value;
+
+    /** Flag indicating that value is inherited from a template. */
     @XmlAttribute Boolean inherited;
 
     public Property() {
     }
 
-    public Property(String name, String value) {
+    public Property(String name, String val) {
         this.name = name;
-        this.value = value;
+        this.value = val;
         this.inherited = null;
     }
 
-    public Property(String name, String value, Boolean inherited) {
+    public Property(String name, String val, Boolean inherited) {
         this.name = name;
-        this.value = value;
+        this.value = val;
         this.inherited = inherited;
     }
 
-    @Nullable
-    public String getValue() {
+    /**
+     * @return {@link #value}
+     */
+    @Nullable public String value() {
         return value;
     }
 
+    /**
+     * @return {@link #name}
+     */
     public String name() {
         return name;
     }
@@ -65,16 +75,16 @@ public class Property {
         if (!(o instanceof Property))
             return false;
 
-        Property property = (Property)o;
+        Property prop = (Property)o;
 
-        return Objects.equals(name, property.name) &&
-            Objects.equals(getValue(), property.getValue()) &&
-            Objects.equals(inherited, property.inherited);
+        return Objects.equals(name, prop.name) &&
+            Objects.equals(value(), prop.value()) &&
+            Objects.equals(inherited, prop.inherited);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(name, getValue(), inherited);
+        return Objects.hash(name, value(), inherited);
     }
 
     /** {@inheritDoc} */

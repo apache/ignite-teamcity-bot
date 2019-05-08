@@ -41,6 +41,7 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.conf.Project;
@@ -78,7 +79,6 @@ import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
  *
  */
 public class TeamcityIgnitedImpl implements ITeamcityIgnited {
-
     /** Default project id. */
     public static final String DEFAULT_PROJECT_ID = "IgniteTests24Java8";
 
@@ -88,9 +88,10 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Max build id diff to enforce reload during incremental refresh. */
     public static final int MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN = 3000;
 
+    /** Default synonyms. */
     private static final List<String> DEFAULT_SYNONYMS
             = Collections.unmodifiableList(
-                    Lists.newArrayList(ITeamcity.DEFAULT, ITeamcity.REFS_HEADS_MASTER, "master"));
+                    Lists.newArrayList(ITeamcity.DEFAULT, ITeamcity.REFS_HEADS_MASTER, ITeamcity.MASTER));
 
     /** Server (service) code. */
     private String srvCode;
@@ -150,7 +151,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     private int srvIdMaskHigh;
 
     public void init(ITeamcityConn conn) {
-        String srvCode = conn.serverId();
+        String srvCode = conn.serverCode();
 
         this.srvCode = srvCode;
         this.conn = conn;
@@ -179,8 +180,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @Override public String host() {
-        return conn.host();
+    @Override public ITcServerConfig config() {
+        return conn.config();
     }
 
     /** {@inheritDoc} */
@@ -472,8 +473,9 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @Override public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop) {
-        Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop);
+    @Override public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop,
+        Map<String, Object> buildParms) {
+        Build build = conn.triggerBuild(buildTypeId, branchName, cleanRebuild, queueAtTop, buildParms);
 
         //todo may add additional parameter: load builds into DB in sync/async fashion
         buildRefSync.runActualizeBuildRefs(srvCode, false, Sets.newHashSet(build.getId()), conn);

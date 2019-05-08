@@ -56,7 +56,7 @@ public class ChangeSync {
             change = conn.getChange(changeId);
         } catch (Exception e) {
             if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                logger.info("Loading changeId [" + changeId + "] for server [" + conn.serverId() + "] failed:" + e.getMessage(), e);
+                logger.info("Loading changeId [" + changeId + "] for server [" + conn.serverCode() + "] failed:" + e.getMessage(), e);
 
                 change = new Change();
             } else if (Throwables.getRootCause(e) instanceof SAXParseException) {

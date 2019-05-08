@@ -16,6 +16,7 @@
  */
 package org.apache.ignite.ci.tcbot.conf;
 
+import java.util.Collection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,4 +44,7 @@ public interface ITcServerConfig {
      */
     @NotNull public String defaultTrackedBranch();
 
+    @NotNull public Collection<String> filteringParametersKeys();
+
+    @NotNull public Collection<BuildParameterSpec> filteringParameters();
 }

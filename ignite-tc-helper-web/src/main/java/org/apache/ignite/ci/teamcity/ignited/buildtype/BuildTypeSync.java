@@ -107,7 +107,7 @@ public class BuildTypeSync {
      * @param conn Pure HTTP Connection API.
      */
     private void ensureActualizeBuildTypeRefsRequested(int srvIdMaskHigh, String projectId, ITeamcityConn conn) {
-        scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs", conn.serverId(), projectId),
+        scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs", conn.serverCode(), projectId),
             () -> reindexBuildTypeRefs(srvIdMaskHigh, projectId, conn), 4, TimeUnit.HOURS);
     }
 
@@ -119,7 +119,7 @@ public class BuildTypeSync {
      * @param conn Pure HTTP Connection API.
      */
     private void ensureActualizeBuildTypesRequested(int srvIdMaskHigh, String projectId, ITeamcityConn conn) {
-        scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs", "actualizeAllBuildTypes", conn.serverId()),
+        scheduler.sheduleNamed(taskName("actualizeAllBuildTypeRefs", "actualizeAllBuildTypes", conn.serverCode()),
             () -> reindexBuildTypes(srvIdMaskHigh, projectId, conn), 24, TimeUnit.HOURS);
     }
 
@@ -169,7 +169,7 @@ public class BuildTypeSync {
                     updated += (buildTypeDao.saveBuildType(srvIdMaskHigh, buildType, exBuildType) != null) ? 1 : 0;
                 } catch (Exception e) {
                     if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
-                        logger.info("Loading buildType [" + id + "] for server [" + conn.serverId() + "] failed:" +
+                        logger.info("Loading buildType [" + id + "] for server [" + conn.serverCode() + "] failed:" +
                             e.getMessage(), e);
 
                         removed += markRemoved(srvIdMaskHigh, id) ? 1 : 0;

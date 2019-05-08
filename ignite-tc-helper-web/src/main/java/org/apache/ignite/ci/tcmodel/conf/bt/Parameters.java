@@ -19,8 +19,6 @@ package org.apache.ignite.ci.tcmodel.conf.bt;
 
 import com.google.common.base.MoreObjects;
 import java.util.ArrayList;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -28,6 +26,7 @@ import java.util.Optional;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Collection of parameters in build
@@ -40,21 +39,24 @@ public class Parameters {
     public Parameters() {
     }
 
-    public Parameters(List<Property> properties) {
-        this.properties = properties == null ? null : new ArrayList<>(properties);
+    public Parameters(List<Property> props) {
+        this.properties = props == null ? null : new ArrayList<>(props);
     }
 
+    /**
+     * @param key Key of parameter.
+     */
     @Nullable public String getParameter(String key) {
         if (properties == null)
             return null;
 
         final Optional<Property> any = properties.stream().filter(property ->
             Objects.equals(property.name, key)).findAny();
-        return any.map(Property::getValue).orElse(null);
+        return any.map(Property::value).orElse(null);
     }
 
     public List<Property> properties() {
-        if (this.properties==null)
+        if (this.properties == null)
             return Collections.emptyList();
 
         return Collections.unmodifiableList(this.properties);
@@ -90,5 +92,12 @@ public class Parameters {
         return MoreObjects.toStringHelper(this)
             .add("properties", properties)
             .toString();
+    }
+
+    /**
+     * @return {@code true} if this list contains no elements
+     */
+    public boolean isEmpty() {
+        return properties == null || properties.isEmpty();
     }
 }

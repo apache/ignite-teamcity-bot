@@ -52,6 +52,7 @@ import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.util.FutureUtil;
@@ -274,7 +275,7 @@ public class BuildChainProcessor {
      * Runs deep collection of all related statistics for particular build.
      *
      * @param buildCompacted Build ref from history with references to tests.
-     * @param tcIgnited
+     * @param tcIgnited TC connection.
      * @return Full context.
      */
     public SingleBuildRunCtx loadChanges(@Nonnull FatBuildCompacted buildCompacted,
@@ -282,6 +283,10 @@ public class BuildChainProcessor {
         SingleBuildRunCtx ctx = new SingleBuildRunCtx(buildCompacted, compactor);
 
         ctx.setChanges(tcIgnited.getAllChanges(buildCompacted.changes()));
+
+        ParametersCompacted parameters = buildCompacted.parameters();
+        if (parameters != null)
+            ctx.addTagsFromParameters(parameters, tcIgnited.config(), this.compactor);
 
         return ctx;
     }

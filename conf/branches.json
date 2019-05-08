@@ -1,14 +1,36 @@
 {
   // Default server (service) code, internal identification
   "primaryServerCode": "apache",
-  /**/
+  /* Teamcity Integration Parameters */
   "tcServers": [
     {
-      //code of current server
+      /* Service Code for internal identification */
       "code": "public",
 
       // reference to another TC server service code to be used instead.
       "reference": "apache"
+    },
+    {
+      /* Service Code for internal identification */
+      "code": "apache",
+      /** Teamcity Host, HTTPs is highly recommended because of Basic Auth used.*/
+      "host": "https://ci.ignite.apache.org/",
+      /** Downloaded build logs relative path. */
+      logsDir: "apache_logs",
+      /** Default tracked branch name in internal identification of TC bot. */
+      defaultTrackedBranch: "master",
+      /** Build parameters, which may be used for filtering Run history and tagging builds. */
+      "filteringParameters": [
+        {
+          "name": "env.JAVA_HOME",
+          "selection": [
+            {"value":"%env.JDK_ORA_18%", "label":"JDK8"},
+            {"value":"%env.JDK_ORA_9%", "label":"JDK9"},
+            {"value":"%env.JDK_ORA_10%", "label":"JDK10"},
+            {"value":"%env.JDK_OPEN_11%", "label":"JDK11"}
+          ]
+        }
+      ]
     }
   ],
   /* Set of JIRA servers/projects configured */
@@ -22,23 +44,33 @@
       // "branchNumPrefix": "IGNITE-",
       /* JIRA Url, HTTPs is highly recommended because of Basic Auth used. */
       "url": "https://issues.apache.org/jira/",
-      /** JIRA Auth token to access, use PasswordEncoder#encodeJiraTok to get from clear username/password */
+      /** JIRA Auth token to access,
+        Base-64 pre-encoded username and password, which will be included into Basic Auth requests.
+        Encoded token needs to be encrypted using org.apache.ignite.ci.tcbot.conf.PasswordEncoder,
+        use PasswordEncoder#encodeJiraTok to get from clear username/password */
       "authTok": "" //todo specify
     }
   ],
-  /* Set of GitHub services configured */
+  /* Set of GitHub services configured: GitHub integration parameters.*/
   "gitHubConfigs": [
     {
       "code": "apache",
       /* More for preffering branches gives branch for PR to be default branch for triggering builds on TC. */
       "preferBranches": false,
 
+      /** Branch identification rules: PR-less contribution branch name mandatory prefix */
+      "branchPrefix": "ignite-",
+
       /*
-      Git Auth token encoded to access non-public GitHub repos, use {@link org.apache.ignite.ci.conf.PasswordEncoder#encodeJiraTok
-       to set up value in a config. For public GitHub repos token gives more velocity
+        Specify GitHub Auth token (if needed), go to User->Settings->Developers options->create new.
+        Created token needs to be encrypted using org.apache.ignite.ci.tcbot.conf.PasswordEncoder,
+        use {@link org.apache.ignite.ci.conf.PasswordEncoder#encodeJiraTok} to set up value in a config.
+        Git Auth token encoded to access non-public GitHub repos. For public GitHub repos token gives more velocity.
        */
       "authTok": "",
       //todo specify token
+
+      /* REST API Url for GitHub. Includes owner (apache) and project (ignite). */
       "apiUrl": "https://api.github.com/repos/apache/ignite/"
     }
   ],
@@ -79,28 +111,41 @@
           "suiteId": "IgniteTests24Java8_RunAllNightly",
           "branchForRest": "\u003cdefault\u003e",
           "triggerBuild": true,
-          "triggerBuildQuietPeriod": 30 //triggering quiet period in minutes
+          /* Triggering quiet period in minutes. Protects from too-often triggering in case build is too fast, e.g. compilation failure. */
+          "triggerBuildQuietPeriod": 30,
+          "triggerParameters": [
+            {
+              name: "reverse.dep.*.env.JAVA_HOME",
+              randomValue: true,
+              "selection": [
+                {value:"%env.JDK_ORA_18%", label:"JDK8"},
+                {value:"%env.JDK_ORA_9%", label:"JDK9"},
+                {value:"%env.JDK_ORA_10%", label:"JDK10"},
+                {value:"%env.JDK_OPEN_11%", label:"JDK11"}
+              ]
+            }
+          ]
         }
       ]
     },
     {
-      "id": "ignite-2.7",
+      "id": "ignite-2.7.5",
       "chains": [
         {
           "serverId": "apache",
           "suiteId": "IgniteTests24Java8_RunAll",
-          "branchForRest": "ignite-2.7",
+          "branchForRest": "ignite-2.7.5",
           "baseBranchForTc": "\u003cdefault\u003e"
         }
       ]
     },
     {
-      "id": "ignite-2.7-nightly",
+      "id": "ignite-2.7.5-nightly",
       "chains": [
         {
           "serverId": "apache",
           "suiteId": "IgniteTests24Java8_RunAllNightly",
-          "branchForRest": "ignite-2.7",
+          "branchForRest": "ignite-2.7.5",
           "baseBranchForTc": "\u003cdefault\u003e",
           "triggerBuild": true,
           "triggerBuildQuietPeriod": 30 //triggering quiet period in minutes

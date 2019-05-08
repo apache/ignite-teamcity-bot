@@ -19,12 +19,14 @@ package org.apache.ignite.ci.teamcity.ignited;
 import com.google.common.base.Strings;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
@@ -44,12 +46,17 @@ public interface ITeamcityIgnited {
     /**
      * @return Internal server ID as string
      */
-    String serverId();
+    public String serverId();
+
+    /**
+     * @return TeamCity configuration.
+     */
+    public ITcServerConfig config();
 
     /**
      * @return Normalized Host address, ends with '/'.
      */
-    public String host();
+    default public String host() {return config().host();}
 
     /**
      * Return all builds for branch and suite, without relation to its status.
@@ -99,8 +106,12 @@ public interface ITeamcityIgnited {
      * @param branchName Branch name.
      * @param cleanRebuild Rebuild all dependencies.
      * @param queueAtTop Put at the top of the build queue.
+     * @param buildParms addtitional build parameters, for example Java home or test suite. Use
+     *      * <code>put("testSuite", "org.apache.ignite.spi.discovery.tcp.ipfinder.elb.TcpDiscoveryElbIpFinderSelfTest");</code>
+     *      * to specify test suite to run.
      */
-    public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop);
+    public Build triggerBuild(String buildTypeId, String branchName, boolean cleanRebuild, boolean queueAtTop,
+        Map<String, Object> buildParms);
 
     /**
      * @param srvId Server id.

@@ -26,12 +26,14 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.ignite.ci.analysis.RunStat;
+import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.jetbrains.annotations.NotNull;
 
 /**
  *
  */
+@Persisted
 public class InvocationData {
     /** Max days to keep test invocatoin data in run statistics: affects Bot Visa. */
     public static final int MAX_DAYS = 21;

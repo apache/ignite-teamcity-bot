@@ -17,6 +17,7 @@
 package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -27,9 +28,12 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.tcmodel.conf.bt.Parameters;
+import org.apache.ignite.ci.tcmodel.conf.bt.Property;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
@@ -44,6 +48,7 @@ import org.apache.ignite.ci.tcmodel.vcs.Revisions;
 import org.apache.ignite.ci.tcmodel.vcs.VcsRootInstance;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.RevisionCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
@@ -115,6 +120,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     @Nullable private TriggeredCompacted triggered;
 
     @Nullable private RevisionCompacted revisions[];
+
+    /** Build parameters compacted, excluding dynamic parameters. */
+    @Nullable private ParametersCompacted buildParameters;
 
     /** {@inheritDoc} */
     @Override public int version() {
@@ -200,12 +208,23 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         }
 
         Revisions revisions = build.getRevisions();
-        if(revisions!=null) {
+        if (revisions != null) {
             this.revisions = revisions.revisions()
                 .stream()
                 .filter(b -> b.version() != null)
                 .map(revision -> new RevisionCompacted(compactor, revision))
                 .toArray(RevisionCompacted[]::new);
+        }
+
+        Parameters parameters = build.parameters();
+
+        if (parameters != null) {
+            List<Property> propList = parameters.properties().stream()
+                .filter(prop -> !Strings.isNullOrEmpty(prop.name()))
+                .filter(prop -> !ITeamcity.AVOID_SAVE_PROPERTIES.contains(prop.name())).collect(Collectors.toList());
+
+            if (!propList.isEmpty())
+                this.buildParameters = new ParametersCompacted(compactor, propList);
         }
     }
 
@@ -240,7 +259,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     /**
      * @param compactor Compactor.
-     * @param res Response.
+     * @param res Resulting build.
      */
     private void fillBuildFields(IStringCompactor compactor, Build res) {
         if (startDate > 0)
@@ -321,6 +340,14 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
                         .id(vcsRootInstanceId)
                         .vcsRootId(vcsRootId));
             }).collect(Collectors.toList()));
+        }
+
+        if (buildParameters != null) {
+            List<Property> props = new ArrayList<>();
+
+            buildParameters.forEach(compactor, (k, v) -> props.add(new Property(k, v)));
+
+            res.parameters(new Parameters(props));
         }
     }
 
@@ -417,12 +444,13 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             Objects.equals(statistics, that.statistics) &&
             Arrays.equals(changesIds, that.changesIds) &&
             Objects.equals(triggered, that.triggered) &&
-            Arrays.equals(revisions, that.revisions);
+            Arrays.equals(revisions, that.revisions) &&
+            Objects.equals(buildParameters, that.buildParameters);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        int res = Objects.hash(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests, flags, problems, statistics, triggered);
+        int res = Objects.hash(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests, flags, problems, statistics, triggered, buildParameters);
         res = 31 * res + Arrays.hashCode(snapshotDeps);
         res = 31 * res + Arrays.hashCode(changesIds);
         res = 31 * res + Arrays.hashCode(revisions);
@@ -441,7 +469,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     /**
      *
      */
-    public boolean isFakeStub() {
+    @Override public boolean isFakeStub() {
         if (getId() == null)
             return true;
 
@@ -636,5 +664,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             return null;
 
         return Collections.unmodifiableList(Arrays.asList(revisions));
+    }
+
+    @Nullable public ParametersCompacted parameters() {
+        return buildParameters;
     }
 }

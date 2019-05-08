@@ -18,10 +18,16 @@
 package org.apache.ignite.ci.tcbot.conf;
 
 import com.google.common.base.Strings;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -31,7 +37,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  */
 @SuppressWarnings("PublicField")
 public class ChainAtServerTracked extends ChainAtServer {
-    /** Branch identifier by TC identification for REST api */
+    /** Branch identifier by TC identification for REST API. */
     @Nonnull public String branchForRest;
 
     /** TC identified base branch: null means the same as &lt;default>, master. For not tracked branches. */
@@ -42,6 +48,9 @@ public class ChainAtServerTracked extends ChainAtServer {
 
     /** Automatic build triggering quiet period in minutes. */
     @Nullable private Integer triggerBuildQuietPeriod;
+
+    /** Build parameters for Triggerring. */
+    @Nullable private List<BuildParameterSpec> triggerParameters;
 
     /** @return {@link #suiteId} */
     @Nonnull public String getSuiteIdMandatory() {
@@ -69,30 +78,25 @@ public class ChainAtServerTracked extends ChainAtServer {
         return Optional.ofNullable(baseBranchForTc);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean equals(Object o) {
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
         if (this == o)
             return true;
-
         if (o == null || getClass() != o.getClass())
             return false;
-
         if (!super.equals(o))
             return false;
-
         ChainAtServerTracked tracked = (ChainAtServerTracked)o;
-
         return Objects.equals(branchForRest, tracked.branchForRest) &&
+            Objects.equals(baseBranchForTc, tracked.baseBranchForTc) &&
             Objects.equals(triggerBuild, tracked.triggerBuild) &&
-            Objects.equals(triggerBuildQuietPeriod, tracked.triggerBuildQuietPeriod);
+            Objects.equals(triggerBuildQuietPeriod, tracked.triggerBuildQuietPeriod) &&
+            Objects.equals(triggerParameters, tracked.triggerParameters);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(super.hashCode(), branchForRest, triggerBuild, triggerBuildQuietPeriod);
+        return Objects.hash(super.hashCode(), branchForRest, baseBranchForTc, triggerBuild, triggerBuildQuietPeriod, triggerParameters);
     }
 
     /**
@@ -107,5 +111,39 @@ public class ChainAtServerTracked extends ChainAtServer {
      */
     public int getTriggerBuildQuietPeriod() {
         return triggerBuildQuietPeriod == null ? 0 : triggerBuildQuietPeriod;
+    }
+
+    /**
+     * @return Map with parameter values for current run.
+     */
+    @NotNull public Map<String, Object> buildParameters() {
+        if (triggerParameters == null || triggerParameters.isEmpty())
+            return Collections.emptyMap();
+
+        Map<String, Object> values = new HashMap<>();
+
+        triggerParameters.forEach(
+            p -> {
+                String name = p.name();
+                Object val = p.generateValue();
+
+                if (!Strings.isNullOrEmpty(name) && val != null)
+                    values.put(name, val);
+            }
+        );
+
+        return values;
+    }
+
+    public Stream<String> buildParametersKeys() {
+        if (triggerParameters == null || triggerParameters.isEmpty())
+            return Stream.empty();
+
+        return triggerParameters.stream().map(BuildParameterSpec::name);
+    }
+
+    /** */
+    public String branchForRest() {
+        return branchForRest;
     }
 }

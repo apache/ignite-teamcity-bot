@@ -266,7 +266,7 @@ public class TcBotTriggerAndSignOffService {
         Build[] builds = new Build[suiteIds.length];
 
         for (int i = 0; i < suiteIds.length; i++)
-            builds[i] = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top);
+            builds[i] = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top, new HashMap<String, Object>());
 
         if (observe != null && observe)
             jiraRes += observeJira(srvId, branchForTc, ticketId, prov, parentSuiteId, builds);

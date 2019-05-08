@@ -477,6 +477,11 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertEquals(refBuild.getStartDate(), actBuild.getStartDate());
         assertEquals(refBuild.getFinishDate(), actBuild.getFinishDate());
 
+        assertParameter(refBuild, actBuild, "env.JAVA_HOME");
+        assertParameter(refBuild, actBuild, "reverse.dep.*.env.JAVA_HOME");
+        assertNotNull(refBuild.parameter(ITeamcity.TCBOT_TRIGGER_TIME));
+        assertNull(actBuild.parameter(ITeamcity.TCBOT_TRIGGER_TIME));
+
         final Triggered refTrig = refBuild.getTriggered();
         final Triggered actTrig = actBuild.getTriggered();
         assertNotNull(refTrig);
@@ -532,6 +537,13 @@ public class IgnitedTcInMemoryIntegrationTest {
         assertEquals(refRev0.vcsBranchName(), actRev0.vcsBranchName());
         assertEquals(refRev0.vcsRootInstance().id(), actRev0.vcsRootInstance().id());
         assertEquals(refRev0.vcsRootInstance().vcsRootId(), actRev0.vcsRootInstance().vcsRootId());
+
+
+    }
+
+    public void assertParameter(Build refBuild, Build actBuild, String parmKey) {
+        assertNotNull(refBuild.parameter(parmKey));
+        assertEquals(refBuild.parameter(parmKey), actBuild.parameter(parmKey));
     }
 
     private void saveTmpFile(Object obj, String name) throws IOException, JAXBException {

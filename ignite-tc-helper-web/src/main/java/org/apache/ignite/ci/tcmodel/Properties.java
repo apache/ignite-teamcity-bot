@@ -80,9 +80,9 @@ public class Properties {
      *
      */
     public List<Property> getProperty() {
-        if (property == null) {
-            property = new ArrayList<Property>();
-        }
+        if (property == null)
+            property = new ArrayList<>();
+
         return this.property;
     }
 
@@ -101,13 +101,13 @@ public class Properties {
     /**
      * Sets the value of the count property.
      *
-     * @param value
+     * @param val
      *     allowed object is
      *     {@link Integer }
      *
      */
-    public void setCount(Integer value) {
-        this.count = value;
+    public void setCount(Integer val) {
+        this.count = val;
     }
 
     /**
@@ -125,12 +125,12 @@ public class Properties {
     /**
      * Sets the value of the href property.
      *
-     * @param value
+     * @param val
      *     allowed object is
      *     {@link String }
      *
      */
-    public void setHref(String value) {
-        this.href = value;
+    public void setHref(String val) {
+        this.href = val;
     }
 }

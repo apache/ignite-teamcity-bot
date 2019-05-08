@@ -22,14 +22,21 @@ import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
+import org.apache.ignite.ci.tcbot.conf.BuildParameterSpec;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
+import org.apache.ignite.ci.tcbot.conf.ParameterValueSpec;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
@@ -52,6 +59,9 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     /** Logger check result future. */
     private CompletableFuture<LogCheckResult> logCheckResFut;
+
+    /** Tags found from filtering-enabled parameters. */
+    private Set<String> tags = new HashSet<>();
 
     /**
      * @param buildCompacted Build compacted.
@@ -245,5 +255,32 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
                 return duration;
             }).sum();
+    }
+
+    public void addTag(String label) {
+        this.tags.add(label);
+    }
+
+    public Set<String> tags() {
+        return tags;
+    }
+
+    public void addTagsFromParameters(ParametersCompacted parameters, ITcServerConfig tcCfg,
+        IStringCompactor compactor) {
+        for (BuildParameterSpec parm : tcCfg.filteringParameters()) {
+            if (!parm.isFilled())
+                continue;
+
+            String propVal = parameters.getProperty(compactor, parm.name());
+
+            if (Strings.isNullOrEmpty(propVal))
+                continue;
+
+            parm.selection().stream()
+                .filter(v -> Objects.equals(v.value(), propVal))
+                .findAny()
+                .ifPresent(v -> addTag(v.label()));
+
+        }
     }
 }
