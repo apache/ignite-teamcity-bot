@@ -155,7 +155,7 @@ public class RunHistSync {
     }
 
     @NotNull public Set<Integer> getFilteringParameters(String srvCode) {
-        Set<String> triggerParameters = this.cfg.getTrackedBranches().getBranches().stream().flatMap(
+        Set<String> triggerParameters = cfg.getTrackedBranches().getBranches().stream().flatMap(
             b -> b.getChainsStream()
                 .filter(ChainAtServerTracked::isTriggerBuild)
                 .filter(chain -> Objects.equals(chain.getServerId(), srvCode))

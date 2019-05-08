@@ -48,6 +48,7 @@ import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
+import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -748,6 +749,7 @@ public class IgnitedTcInMemoryIntegrationTest {
             when(tcCfg.logsDirectory()).thenReturn("logs");
             when(tcCfg.host()).thenReturn("http://ci.ignite.apache.org/");
             when(cfg.getTeamcityConfig(anyString())).thenReturn(tcCfg);
+            when(cfg.getTrackedBranches()).thenReturn(new BranchesTracked());
 
             bind(ITcBotConfig.class).toInstance(cfg);
         }
