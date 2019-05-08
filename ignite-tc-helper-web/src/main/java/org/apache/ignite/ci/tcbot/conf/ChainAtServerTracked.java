@@ -18,13 +18,16 @@
 package org.apache.ignite.ci.tcbot.conf;
 
 import com.google.common.base.Strings;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -113,23 +116,30 @@ public class ChainAtServerTracked extends ChainAtServer {
     /**
      * @return Map with parameter values for current run.
      */
-    public Map<String, Object> buildParameters() {
+    @NotNull public Map<String, Object> buildParameters() {
+        if (triggerParameters == null || triggerParameters.isEmpty())
+            return Collections.emptyMap();
+
         Map<String, Object> values = new HashMap<>();
 
-        if (triggerParameters != null) {
+        triggerParameters.forEach(
+            p -> {
+                String name = p.name();
+                Object val = p.generateValue();
 
-            triggerParameters.forEach(
-                p -> {
-                    String name = p.name();
-                    Object val = p.generateValue();
-
-                    if (!Strings.isNullOrEmpty(name) && val != null)
-                        values.put(name, val);
-                }
-            );
-        }
+                if (!Strings.isNullOrEmpty(name) && val != null)
+                    values.put(name, val);
+            }
+        );
 
         return values;
+    }
+
+    public Stream<String> buildParametersKeys() {
+        if (triggerParameters == null || triggerParameters.isEmpty())
+            return Stream.empty();
+
+        return triggerParameters.stream().map(BuildParameter::name);
     }
 
     /** */

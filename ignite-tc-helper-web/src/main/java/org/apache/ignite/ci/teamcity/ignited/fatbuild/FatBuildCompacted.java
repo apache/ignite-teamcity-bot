@@ -48,6 +48,7 @@ import org.apache.ignite.ci.tcmodel.vcs.Revisions;
 import org.apache.ignite.ci.tcmodel.vcs.VcsRootInstance;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.RevisionCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
@@ -121,7 +122,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
     @Nullable private RevisionCompacted revisions[];
 
     /** Build parameters compacted, excluding dynamic parameters. */
-    @Nullable private PropertiesCompacted parameters;
+    @Nullable private ParametersCompacted buildParameters;
 
     /** {@inheritDoc} */
     @Override public int version() {
@@ -223,7 +224,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
                 .filter(prop -> !ITeamcity.AVOID_SAVE_PROPERTIES.contains(prop.name())).collect(Collectors.toList());
 
             if (!propList.isEmpty())
-                this.parameters = new PropertiesCompacted(compactor, propList);
+                this.buildParameters = new ParametersCompacted(compactor, propList);
         }
     }
 
@@ -341,10 +342,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             }).collect(Collectors.toList()));
         }
 
-        if (parameters != null) {
+        if (buildParameters != null) {
             List<Property> props = new ArrayList<>();
 
-            parameters.forEach(compactor, (k, v) -> props.add(new Property(k, v)));
+            buildParameters.forEach(compactor, (k, v) -> props.add(new Property(k, v)));
 
             res.parameters(new Parameters(props));
         }
@@ -444,12 +445,12 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             Arrays.equals(changesIds, that.changesIds) &&
             Objects.equals(triggered, that.triggered) &&
             Arrays.equals(revisions, that.revisions) &&
-            Objects.equals(parameters, that.parameters);
+            Objects.equals(buildParameters, that.buildParameters);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        int res = Objects.hash(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests, flags, problems, statistics, triggered, parameters);
+        int res = Objects.hash(super.hashCode(), _ver, startDate, finishDate, queuedDate, projectId, name, tests, flags, problems, statistics, triggered, buildParameters);
         res = 31 * res + Arrays.hashCode(snapshotDeps);
         res = 31 * res + Arrays.hashCode(changesIds);
         res = 31 * res + Arrays.hashCode(revisions);
@@ -665,7 +666,7 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         return Collections.unmodifiableList(Arrays.asList(revisions));
     }
 
-    @Nullable public PropertiesCompacted parameters() {
-        return parameters;
+    @Nullable public ParametersCompacted parameters() {
+        return buildParameters;
     }
 }

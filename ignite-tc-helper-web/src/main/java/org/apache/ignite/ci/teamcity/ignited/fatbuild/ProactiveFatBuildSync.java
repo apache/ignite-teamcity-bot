@@ -308,12 +308,12 @@ public class ProactiveFatBuildSync {
         if (savedVer.isFakeStub())
             refCompacted.setId(buildId); //to provide possiblity to save the build
 
-        final String srvName = conn.serverId();
-        final int srvIdMask = ITeamcityIgnited.serverIdToInt(srvName);
+        final String srvCode = conn.serverId();
+        final int srvIdMask = ITeamcityIgnited.serverIdToInt(srvCode);
 
         buildRefDao.save(srvIdMask, refCompacted);
 
-        runHistSync.saveToHistoryLater(srvName, savedVer);
+        runHistSync.saveToHistoryLater(srvCode, savedVer);
 
         return savedVer;
     }

@@ -24,6 +24,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Objects;
+import java.util.TreeMap;
+import java.util.function.BiPredicate;
 import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
@@ -364,7 +366,15 @@ public class TestCompacted {
         return null;
     }
 
-    public Invocation toInvocation(IStringCompactor compactor, FatBuildCompacted build) {
+    /**
+     * @param compactor
+     * @param build
+     * @param paramsFilter parameters filter to find out parameters to be saved in RunHistory (for future filtering).
+     * @return
+     */
+    public Invocation toInvocation(IStringCompactor compactor,
+        FatBuildCompacted build,
+        BiPredicate<Integer, Integer> paramsFilter) {
         final boolean failedTest = isFailedTest(compactor);
 
         final int failCode = failedTest
@@ -378,7 +388,13 @@ public class TestCompacted {
             .withStartDate(build.getStartDateTs())
             .withChanges(build.changes());
 
-        return invocation;
-        //      .withParameters(build.parameters().forEach(compactor, (k,v)->{}););
+        java.util.Map<Integer, Integer> importantParms = new TreeMap<>();
+
+        build.parameters().forEach((k, v) -> {
+            if (paramsFilter.test(k, v))
+                importantParms.put(k, v);
+        });
+
+        return invocation.withParameters(importantParms);
     }
 }

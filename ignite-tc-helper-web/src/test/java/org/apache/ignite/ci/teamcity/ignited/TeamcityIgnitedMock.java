@@ -134,7 +134,7 @@ public class TeamcityIgnitedMock {
 
                 final RunHistCompacted hist = histCache.computeIfAbsent(histKey, RunHistCompacted::new);
 
-                Invocation inv = testCompacted.toInvocation(c, build);
+                Invocation inv = testCompacted.toInvocation(c, build, (k, v) -> true);
 
                 hist.addInvocation(inv);
             });
