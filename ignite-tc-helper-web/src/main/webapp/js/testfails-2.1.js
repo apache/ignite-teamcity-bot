@@ -90,15 +90,15 @@ function showChainResultsWithSettings(result, settings) {
 
 
 /**
- * @param server - see org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus Java Class.
+ * @param chain - see org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus Java Class.
  * @param settings - see Settings JavaScript class.
  */
-function showChainCurrentStatusData(server, settings) {
-    if(!isDefinedAndFilled(server))
+function showChainCurrentStatusData(chain, settings) {
+    if(!isDefinedAndFilled(chain))
         return;
 
-    if(isDefinedAndFilled(server.buildNotFound) && server.buildNotFound ) {
-        return "<tr><td><b>Error: Build not found for branch [" + server.branchName + "]</b>" +
+    if(isDefinedAndFilled(chain.buildNotFound) && chain.buildNotFound ) {
+        return "<tr><td><b>Error: Build not found for branch [" + chain.branchName + "]</b>" +
             "<br><br><span style='color:grey; font-size:12px;'>Perhaps, more than 2 weeks have passed since the last build " +
             "run. <br>There is no data on the TC server</span></td></tr>";
     }
@@ -108,22 +108,22 @@ function showChainCurrentStatusData(server, settings) {
     res += "<table style='width: 100%;' border='0px'>";
     res += "<tr bgcolor='#F5F5FF'><td colspan='3' width='75%'>";
     res += "<table style='width: 40%'>";
-    res += "<tr><td><b> Server: </b></td><td>[" + server.serverId + "]</td></tr>";
+    res += "<tr><td><b> Server: </b></td><td>[" + chain.serverId + "]</td></tr>";
 
-    if (isDefinedAndFilled(server.prNum)) {
+    if (isDefinedAndFilled(chain.prNum)) {
         res += "<tr><td><b> PR: </b></td><td>";
 
-        if (isDefinedAndFilled(server.webToPr))
-            res += "<a href='" + server.webToPr + "'>[#" + server.prNum + "]</a>";
+        if (isDefinedAndFilled(chain.webToPr))
+            res += "<a href='" + chain.webToPr + "'>[#" + chain.prNum + "]</a>";
         else
-            res += "[#" + server.prNum + "]";
+            res += "[#" + chain.prNum + "]";
 
         res += "</td></tr>";
     }
 
-    if (isDefinedAndFilled(server.webToTicket) && isDefinedAndFilled(server.ticketFullName)) {
+    if (isDefinedAndFilled(chain.webToTicket) && isDefinedAndFilled(chain.ticketFullName)) {
         res += "<tr><td><b> Ticket: </b></td><td>";
-        res += "<a href='" + server.webToTicket + "'>[" + server.ticketFullName + "]</a>";
+        res += "<a href='" + chain.webToTicket + "'>[" + chain.ticketFullName + "]</a>";
         res += "</td></tr>";
     }
 
@@ -131,26 +131,26 @@ function showChainCurrentStatusData(server, settings) {
 
     if (isDefinedAndFilled(findGetParameter("suiteId")))
         parentSuitId = findGetParameter("suiteId");
-    else if (isDefinedAndFilled(server))
-        parentSuitId = findGetParameter("buildTypeId", server.webToHist);
+    else if (isDefinedAndFilled(chain))
+        parentSuitId = findGetParameter("buildTypeId", chain.webToHist);
 
     if (isDefinedAndFilled(parentSuitId)) {
         res += "<tr><td><b> Suite: </b></td><td>[" + parentSuitId + "] ";
-        res += " <a href='" + server.webToHist + "'>[TC history]</a>";
+        res += " <a href='" + chain.webToHist + "'>[TC history]</a>";
         res += "</td></tr>";
     }
 
     res += "</table>";
     res += "</br>";
 
-    if (isDefinedAndFilled(server.chainName)) {
-        res += server.chainName + " ";
+    if (isDefinedAndFilled(chain.chainName)) {
+        res += chain.chainName + " ";
     }
 
     res += "<b>Chain result: </b>";
 
-    if (isDefinedAndFilled(server.failedToFinish) && isDefinedAndFilled(server.failedTests))
-        res += server.failedToFinish + " suites and " + server.failedTests + " tests failed";
+    if (isDefinedAndFilled(chain.failedToFinish) && isDefinedAndFilled(chain.failedTests))
+        res += chain.failedToFinish + " suites and " + chain.failedTests + " tests failed";
     else
         res += "empty";
 
@@ -163,8 +163,8 @@ function showChainCurrentStatusData(server, settings) {
 
     var cntFailed = 0;
     var suitesFailedList = "";
-    for (var i = 0; i < server.suites.length; i++) {
-        var suite = server.suites[i];
+    for (var i = 0; i < chain.suites.length; i++) {
+        var suite = chain.suites[i];
 
         if (!isDefinedAndFilled(suite.suiteId))
             continue;
@@ -178,44 +178,44 @@ function showChainCurrentStatusData(server, settings) {
         cntFailed++;
     }
 
-    if (suitesFailedList.length !== 0 && isDefinedAndFilled(server.serverId) && isDefinedAndFilled(server.branchName)) {
+    if (suitesFailedList.length !== 0 && isDefinedAndFilled(chain.serverId) && isDefinedAndFilled(chain.branchName)) {
         mInfo += "Trigger failed " + cntFailed + " builds";
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", " +
-            "\"" + suitesFailedList + "\", \"" + server.branchName + "\", false, false, null, \"" + server.prNum + "\")' ";
+        mInfo += " onClick='triggerBuilds(\"" + chain.serverId + "\", \"" + parentSuitId + "\", " +
+            "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", false, false, null, \"" + chain.prNum + "\")' ";
         mInfo += " title='trigger builds'>in queue</a> ";
 
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", " +
-            "\"" + suitesFailedList + "\", \"" + server.branchName + "\", true, false, null, \"" + server.prNum + "\")' ";
+        mInfo += " onClick='triggerBuilds(\"" + chain.serverId + "\", \"" + parentSuitId + "\", " +
+            "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", true, false, null, \"" + chain.prNum + "\")' ";
         mInfo += " title='trigger builds'>on top</a><br>";
     }
 
-    mInfo += "Duration: " + server.durationPrintable + " " +
-        "(Net Time: " + server.durationNetTimePrintable + "," +
-        " Tests: " + server.testsDurationPrintable + "," +
-        " Src. Update: " + server.sourceUpdateDurationPrintable + "," +
-        " Artifacts Publishing: " + server.artifcactPublishingDurationPrintable + "," +
-        " Dependecies Resolving: " + server.dependeciesResolvingDurationPrintable + "," +
-        " Timeouts: " + server.lostInTimeouts + ")<br>";
+    mInfo += "Duration: " + chain.durationPrintable + " " +
+        "(Net Time: " + chain.durationNetTimePrintable + "," +
+        " Tests: " + chain.testsDurationPrintable + "," +
+        " Src. Update: " + chain.sourceUpdateDurationPrintable + "," +
+        " Artifacts Publishing: " + chain.artifcactPublishingDurationPrintable + "," +
+        " Dependecies Resolving: " + chain.dependeciesResolvingDurationPrintable + "," +
+        " Timeouts: " + chain.lostInTimeouts + ")<br>";
 
-    if (isDefinedAndFilled(server.topLongRunning) && server.topLongRunning.length > 0) {
+    if (isDefinedAndFilled(chain.topLongRunning) && chain.topLongRunning.length > 0) {
         mInfo += "Top long running:<br>";
 
         mInfo += "<table>";
-        for (var j = 0; j < server.topLongRunning.length; j++) {
-            mInfo += showTestFailData(server.topLongRunning[j], false, settings);
+        for (var j = 0; j < chain.topLongRunning.length; j++) {
+            mInfo += showTestFailData(chain.topLongRunning[j], false, settings);
         }
         mInfo += "</table>";
     }
 
 
-    if (isDefinedAndFilled(server.logConsumers) && server.logConsumers.length > 0) {
+    if (isDefinedAndFilled(chain.logConsumers) && chain.logConsumers.length > 0) {
         mInfo += "Top Log Consumers:<br>";
 
         mInfo += "<table>";
-        for (var k = 0; k < server.logConsumers.length; k++) {
-            mInfo += showTestFailData(server.logConsumers[k], false, settings);
+        for (var k = 0; k < chain.logConsumers.length; k++) {
+            mInfo += showTestFailData(chain.logConsumers[k], false, settings);
         }
         mInfo += "</table>";
     }
@@ -234,13 +234,13 @@ function showChainCurrentStatusData(server, settings) {
     // }
 
     if (settings.isJiraAvailable()) {
-        res += "<button onclick='commentJira(\"" + server.serverId + "\", \"" + server.branchName + "\", \""
+        res += "<button onclick='commentJira(\"" + chain.serverId + "\", \"" + chain.branchName + "\", \""
             + parentSuitId + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
 
         var blockersList = "";
 
-        for (var l = 0; l < server.suites.length; l++) {
-            var suite0 = server.suites[l];
+        for (var l = 0; l < chain.suites.length; l++) {
+            var suite0 = chain.suites[l];
 
             var suiteOrNull = suiteWithCriticalFailuresOnly(suite0);
 
@@ -252,16 +252,16 @@ function showChainCurrentStatusData(server, settings) {
             }
         }
 
-        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", \"" +
-            blockersList + "\", \"" + server.branchName + "\", false, false, null,  \"" + + server.prNum + "\")'> " +
+        res += "<button onclick='triggerBuilds(\"" + chain.serverId + "\", \"" + parentSuitId + "\", \"" +
+            blockersList + "\", \"" + chain.branchName + "\", false, false, null,  \"" + + chain.prNum + "\")'> " +
             "Re-run possible blockers</button><br>";
 
-        res += "<button onclick='triggerBuilds(\"" + server.serverId + "\", \"" + parentSuitId + "\", \"" +
-            blockersList + "\", \"" + server.branchName + "\", false, true, null, \"" + + server.prNum +"\")'> " +
+        res += "<button onclick='triggerBuilds(\"" + chain.serverId + "\", \"" + parentSuitId + "\", \"" +
+            blockersList + "\", \"" + chain.branchName + "\", false, true, null, \"" + + chain.prNum +"\")'> " +
             "Re-run possible blockers & Comment JIRA</button><br>";
     }
 
-    if (isDefinedAndFilled(server.baseBranchForTc)) {
+    if (isDefinedAndFilled(chain.baseBranchForTc)) {
         // if (settings.isGithubAvailable())
         //     res+="<br>";
 
@@ -269,17 +269,17 @@ function showChainCurrentStatusData(server, settings) {
             res+="<br>";
 
         res += "Base branch";
-        res += ": " + server.baseBranchForTc.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        res += ": " + chain.baseBranchForTc.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
     res += "&nbsp;</td></tr>";
 
-    res += addBlockersData(server, settings);
+    res += addBlockersData(chain, settings);
 
-    for (var m = 0; m < server.suites.length; m++) {
-        var subSuite = server.suites[m];
+    for (var m = 0; m < chain.suites.length; m++) {
+        var subSuite = chain.suites[m];
 
-        res += showSuiteData(subSuite, settings, server.prNum);
+        res += showSuiteData(subSuite, settings, chain.prNum);
     }
 
     res += "<tr><td colspan='4'>&nbsp;</td></tr>";
@@ -648,6 +648,13 @@ function showSuiteData(suite, settings, prNum) {
     res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
         "[ " + "<a href='" + suite.webToBuild + "' title=''> " +
         "tests " + suite.failedTests + " " + suite.result;
+
+    if(isDefinedAndFilled(suite.tags)) {
+        for (let i = 0; i < suite.tags.length; i++) {
+            const tag = suite.tags[i];
+            res += " <div style='buildTag'>" + tag + "</div>" ;
+        }
+    }
 
     if (isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length > 0) {
         res += " warn " + suite.warnOnly.length;

@@ -119,6 +119,14 @@ public class TcServerConfig implements ITcServerConfig {
         return filteringParameters.stream().map(BuildParameterSpec::name).collect(Collectors.toSet());
     }
 
+    /** {@inheritDoc} */
+    @NotNull @Override public Collection<BuildParameterSpec> filteringParameters() {
+        if (filteringParameters == null || filteringParameters.isEmpty())
+            return Collections.emptySet();
+
+        return Collections.unmodifiableList(filteringParameters);
+    }
+
     /**
      * @param props Properties.
      */

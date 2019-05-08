@@ -20,6 +20,7 @@ package org.apache.ignite.ci.web.model.current;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -128,6 +129,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Possible blocker: filled for PR and builds checks, mean there was stable execution in master, but */
     public Boolean possibleBlocker;
 
+    public Set<String> tags = new HashSet<>();
+
     public void initFromContext(ITeamcityIgnited tcIgnited,
         @Nonnull final MultBuildRunCtx suite,
         @Nullable final String baseBranch) {
@@ -221,6 +224,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         this.suiteId = suite.suiteId();
         branchName = branchForLink(suite.branchName());
         // todo implement this logic in suite possibleBlocker = suite.hasPossibleBlocker();
+
+        tags = suite.tags();
     }
 
     private void initSuiteStat(ITeamcityIgnited tcIgnited,

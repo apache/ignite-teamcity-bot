@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcmodel.conf.bt.Parameters;
 import org.apache.ignite.ci.tcmodel.conf.bt.Property;
@@ -153,5 +154,18 @@ public class ParametersCompacted {
 
             consumer.accept(nameid, valId);
         }
+    }
+
+    @Nullable
+    public String getProperty(IStringCompactor compactor, String parmKey) {
+        Integer present = compactor.getStringIdIfPresent(parmKey);
+        if (present == null)
+            return null;
+
+        int propStrId = findPropertyStringId(present);
+        if (propStrId < 0)
+            return null;
+
+        return compactor.getStringFromId(propStrId);
     }
 }

@@ -587,3 +587,9 @@ div.tooltip {
 	transition: transform .25s;
 	display: inline-block;
 }
+
+.buildTag {
+	-webkit-box-shadow: 2px 4px 1px 0px rgba(224,224,224,1);
+	-moz-box-shadow: 2px 4px 1px 0px rgba(224,224,224,1);
+	box-shadow: 2px 4px 1px 0px rgba(224,224,224,1);
+}

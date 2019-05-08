@@ -44,5 +44,7 @@ public interface ITcServerConfig {
      */
     @NotNull public String defaultTrackedBranch();
 
-    public Collection<String> filteringParametersKeys();
+    @NotNull public Collection<String> filteringParametersKeys();
+
+    @NotNull public Collection<BuildParameterSpec> filteringParameters();
 }

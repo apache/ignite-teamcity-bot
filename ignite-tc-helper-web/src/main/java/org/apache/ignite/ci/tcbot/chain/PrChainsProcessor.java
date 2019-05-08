@@ -32,7 +32,6 @@ import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
-import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
@@ -145,7 +144,7 @@ public class PrChainsProcessor {
             baseBranch,
             mode);
 
-        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverId(), branchForTc);
+        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverCode(), branchForTc);
 
         chainStatus.baseBranchForTc = baseBranch;
 

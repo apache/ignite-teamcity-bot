@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.tcbot.conf;
 
 /**
- *
+ * Some parameter value, which label may be used in UI.
  */
 public class ParameterValueSpec {
     private String value;
@@ -26,5 +26,9 @@ public class ParameterValueSpec {
 
     public String value() {
         return value;
+    }
+
+    public String label() {
+        return label;
     }
 }

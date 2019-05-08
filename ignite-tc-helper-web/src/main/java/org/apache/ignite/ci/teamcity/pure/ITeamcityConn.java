@@ -23,7 +23,7 @@ import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -46,12 +46,19 @@ public interface ITeamcityConn {
      * @return Internal server ID as string
      */
     @Nullable
-    public String serverId();
+    public String serverCode();
+
+    /**
+     * @return TeamCity configuration.
+     */
+    public ITcServerConfig config();
 
     /**
      * @return Normalized Host address, ends with '/'.
      */
-    public String host();
+    default String host() {
+        return config().host();
+    }
 
     /**
      * @param buildId Build id.

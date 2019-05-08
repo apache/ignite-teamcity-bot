@@ -41,6 +41,7 @@ import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.conf.Project;
@@ -150,7 +151,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     private int srvIdMaskHigh;
 
     public void init(ITeamcityConn conn) {
-        String srvCode = conn.serverId();
+        String srvCode = conn.serverCode();
 
         this.srvCode = srvCode;
         this.conn = conn;
@@ -179,8 +180,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @Override public String host() {
-        return conn.host();
+    @Override public ITcServerConfig config() {
+        return conn.config();
     }
 
     /** {@inheritDoc} */

@@ -110,14 +110,14 @@ public class ProactiveFatBuildSync {
 
         int ldrToActivate = ThreadLocalRandom.current().nextInt(FAT_BUILD_PROACTIVE_TASKS);
 
-        scheduler.sheduleNamed(taskName("loadFatBuilds" + ldrToActivate, conn.serverId()),
-                () -> loadFatBuilds(ldrToActivate, conn.serverId()), 2, TimeUnit.MINUTES);
+        scheduler.sheduleNamed(taskName("loadFatBuilds" + ldrToActivate, conn.serverCode()),
+                () -> loadFatBuilds(ldrToActivate, conn.serverCode()), 2, TimeUnit.MINUTES);
 
     }
 
     @NotNull
     public synchronized SyncTask getSyncTask(ITeamcityConn conn) {
-        final SyncTask syncTask = buildToLoad.computeIfAbsent(conn.serverId(), s -> new SyncTask());
+        final SyncTask syncTask = buildToLoad.computeIfAbsent(conn.serverCode(), s -> new SyncTask());
 
         syncTask.conn = conn;
 
@@ -308,7 +308,7 @@ public class ProactiveFatBuildSync {
         if (savedVer.isFakeStub())
             refCompacted.setId(buildId); //to provide possiblity to save the build
 
-        final String srvCode = conn.serverId();
+        final String srvCode = conn.serverCode();
         final int srvIdMask = ITeamcityIgnited.serverIdToInt(srvCode);
 
         buildRefDao.save(srvIdMask, refCompacted);
@@ -330,7 +330,7 @@ public class ProactiveFatBuildSync {
     @Nullable public FatBuildCompacted reloadBuild(ITeamcityConn conn, int buildId, @Nullable FatBuildCompacted existingBuild) {
         //todo some sort of locking to avoid double requests
 
-        final String srvName = conn.serverId();
+        final String srvName = conn.serverCode();
         final int srvIdMask = ITeamcityIgnited.serverIdToInt(srvName);
 
         if (existingBuild != null && existingBuild.isOutdatedEntityVersion()) {

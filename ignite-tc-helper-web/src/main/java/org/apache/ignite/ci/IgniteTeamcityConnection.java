@@ -123,7 +123,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
         this.executor = MoreExecutors.directExecutor();
     }
 
-    public ITcServerConfig config() {
+    @Override public ITcServerConfig config() {
         return cfg.getTeamcityConfig(this.srvCode);
     }
 
@@ -313,13 +313,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
         }, executor);
     }
 
-    /**
-     * @return Normalized Host address, ends with '/'.
-     */
-    @Override public String host() {
-        return config().host();
-    }
-
     /** {@inheritDoc} */
     @Override public List<Project> getProjects() {
         return sendGetXmlParseJaxb(host() + "app/rest/latest/projects", ProjectsList.class).projects();
@@ -375,7 +368,7 @@ public class IgniteTeamcityConnection implements ITeamcity {
     }
 
     /** {@inheritDoc} */
-    @Override public String serverId() {
+    @Override public String serverCode() {
         return srvCode;
     }
 

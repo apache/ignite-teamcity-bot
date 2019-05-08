@@ -457,4 +457,8 @@ public class MultBuildRunCtx implements ISuiteResults {
     public Stream<LogCheckResult> getLogChecksIfFinished() {
         return buildsStream().map(SingleBuildRunCtx::getLogCheckIfFinished).filter(Objects::nonNull);
     }
+
+    public Set<String> tags() {
+        return buildsStream().flatMap(b -> b.tags().stream()).collect(Collectors.toSet());
+    }
 }

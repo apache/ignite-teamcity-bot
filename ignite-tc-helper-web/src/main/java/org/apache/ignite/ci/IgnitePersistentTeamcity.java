@@ -36,6 +36,7 @@ import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcmodel.agent.Agent;
 import org.apache.ignite.ci.tcmodel.changes.Change;
 import org.apache.ignite.ci.tcmodel.changes.ChangesList;
@@ -81,9 +82,9 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     @Override public void init(ITeamcity conn) {
         this.teamcity = conn;
-        this.serverId = conn.serverId();
+        this.serverId = conn.serverCode();
 
-        DbMigrations migrations = new DbMigrations(ignite, conn.serverId());
+        DbMigrations migrations = new DbMigrations(ignite, conn.serverCode());
 
         migrations.dataMigration(visasHistStorage.visas());
     }
@@ -112,8 +113,13 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public String serverId() {
+    @Override public String serverCode() {
         return serverId;
+    }
+
+    /** {@inheritDoc} */
+    @Override public ITcServerConfig config() {
+        return teamcity.config();
     }
 
     @NotNull private String ignCacheNme(String cache) {
@@ -122,11 +128,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
     @NotNull public static String ignCacheNme(String cache, String srvId) {
         return srvId + "." + cache;
-    }
-
-    /** {@inheritDoc} */
-    @Override public String host() {
-        return teamcity.host();
     }
 
     /** {@inheritDoc} */

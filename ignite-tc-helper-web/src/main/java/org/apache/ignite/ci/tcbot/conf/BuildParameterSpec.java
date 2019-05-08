@@ -17,18 +17,21 @@
 
 package org.apache.ignite.ci.tcbot.conf;
 
+import com.google.common.base.Strings;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.jetbrains.annotations.Nullable;
 
 public class BuildParameterSpec {
-    /** Name. */
+    /** Parameter (property) Name. */
     private String name;
 
-    /** Value. */
+    /** Value to use for triggering build. */
     private String value;
 
+    /** Use Random value, valid only for triggering parameters specifucation. */
     @Nullable private Boolean randomValue;
 
     /**
@@ -55,10 +58,16 @@ public class BuildParameterSpec {
         return Objects.hash(name, value, randomValue, selectionValues);
     }
 
+    /**
+     * @return {@link #name}.
+     */
     public String name() {
         return name;
     }
 
+    /**
+     * @return some valid value for property or null.
+     */
     public Object generateValue() {
         if (!randomValue)
             return value;
@@ -71,5 +80,15 @@ public class BuildParameterSpec {
         ParameterValueSpec spec = selectionValues.get(idx);
 
         return spec.value();
+    }
+
+    public boolean isFilled() {
+        return !Strings.isNullOrEmpty(name);
+    }
+
+    public List<ParameterValueSpec> selection() {
+        return (selectionValues == null || selectionValues.isEmpty())
+            ? Collections.emptyList()
+            : Collections.unmodifiableList(selectionValues);
     }
 }
