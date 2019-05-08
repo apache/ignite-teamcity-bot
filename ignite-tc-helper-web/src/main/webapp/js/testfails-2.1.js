@@ -649,18 +649,18 @@ function showSuiteData(suite, settings, prNum) {
         "[ " + "<a href='" + suite.webToBuild + "' title=''> " +
         "tests " + suite.failedTests + " " + suite.result;
 
-    if(isDefinedAndFilled(suite.tags)) {
-        for (let i = 0; i < suite.tags.length; i++) {
-            const tag = suite.tags[i];
-            res += " <div style='buildTag'>" + tag + "</div>" ;
-        }
-    }
-
     if (isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length > 0) {
         res += " warn " + suite.warnOnly.length;
     }
 
     res += "</a> ]";
+
+    if(isDefinedAndFilled(suite.tags)) {
+        for (let i = 0; i < suite.tags.length; i++) {
+            const tag = suite.tags[i];
+            res += " <span class='buildTag'>" + tag + "</span>" ;
+        }
+    }
 
     if (isDefinedAndFilled(suite.runningBuildCount) && suite.runningBuildCount !== 0) {
         res += " <img src='https://image.flaticon.com/icons/png/128/2/2745.png' width=12px height=12px> ";

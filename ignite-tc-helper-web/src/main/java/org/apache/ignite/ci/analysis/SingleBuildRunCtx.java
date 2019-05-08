@@ -276,9 +276,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
             if (Strings.isNullOrEmpty(propVal))
                 continue;
 
-            List<ParameterValueSpec> selection = parm.selection();
-            Stream<ParameterValueSpec> stream = selection.stream();
-            stream
+            parm.selection().stream()
                 .filter(v -> Objects.equals(v.value(), propVal))
                 .findAny()
                 .ifPresent(v -> addTag(v.label()));

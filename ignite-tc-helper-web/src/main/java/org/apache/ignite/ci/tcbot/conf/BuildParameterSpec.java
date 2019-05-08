@@ -38,7 +38,7 @@ public class BuildParameterSpec {
      * For triggering parameters: possble random values.
      * For filtering parameters: used as value for selection and displaying result.
      */
-    @Nullable private List<ParameterValueSpec> selectionValues = new ArrayList<>();
+    @Nullable private List<ParameterValueSpec> selection = new ArrayList<>();
 
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
@@ -50,12 +50,12 @@ public class BuildParameterSpec {
         return Objects.equals(name, param.name) &&
             Objects.equals(value, param.value) &&
             Objects.equals(randomValue, param.randomValue) &&
-            Objects.equals(selectionValues, param.selectionValues);
+            Objects.equals(selection, param.selection);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(name, value, randomValue, selectionValues);
+        return Objects.hash(name, value, randomValue, selection);
     }
 
     /**
@@ -72,12 +72,12 @@ public class BuildParameterSpec {
         if (!randomValue)
             return value;
 
-        if (selectionValues.isEmpty())
+        if (selection.isEmpty())
             return value;
 
-        int idx = (int)(Math.random() * selectionValues.size());
+        int idx = (int)(Math.random() * selection.size());
 
-        ParameterValueSpec spec = selectionValues.get(idx);
+        ParameterValueSpec spec = selection.get(idx);
 
         return spec.value();
     }
@@ -87,8 +87,8 @@ public class BuildParameterSpec {
     }
 
     public List<ParameterValueSpec> selection() {
-        return (selectionValues == null || selectionValues.isEmpty())
+        return (selection == null || selection.isEmpty())
             ? Collections.emptyList()
-            : Collections.unmodifiableList(selectionValues);
+            : Collections.unmodifiableList(selection);
     }
 }
