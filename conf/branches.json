@@ -16,9 +16,9 @@
       /** Teamcity Host, HTTPs is highly recommended because of Basic Auth used.*/
       "host": "https://ci.ignite.apache.org/",
       /** Downloaded build logs relative path. */
-      logsDir: "apache_logs",
+      "logsDir": "apache_logs",
       /** Default tracked branch name in internal identification of TC bot. */
-      defaultTrackedBranch: "master",
+      "defaultTrackedBranch": "master",
       /** Build parameters, which may be used for filtering Run history and tagging builds. */
       "filteringParameters": [
         {
@@ -48,7 +48,8 @@
         Base-64 pre-encoded username and password, which will be included into Basic Auth requests.
         Encoded token needs to be encrypted using org.apache.ignite.ci.tcbot.conf.PasswordEncoder,
         use PasswordEncoder#encodeJiraTok to get from clear username/password */
-      "authTok": "" //todo specify
+      "authTok": ""
+      //todo     ^ specify token
     }
   ],
   /* Set of GitHub services configured: GitHub integration parameters.*/
@@ -68,7 +69,7 @@
         Git Auth token encoded to access non-public GitHub repos. For public GitHub repos token gives more velocity.
        */
       "authTok": "",
-      //todo specify token
+      //todo     ^ specify token
 
       /* REST API Url for GitHub. Includes owner (apache) and project (ignite). */
       "apiUrl": "https://api.github.com/repos/apache/ignite/"
@@ -80,8 +81,8 @@
       /* Username, equal to from: field */
       "username": "ignitetcbot@gmail.com",
       /** Email password encoded using Password Encoder.  */
-      //todo specify password
       "pwd": ""
+      //todo ^ specify password
     },
     "channels": [
       {
@@ -113,6 +114,7 @@
           "triggerBuild": true,
           /* Triggering quiet period in minutes. Protects from too-often triggering in case build is too fast, e.g. compilation failure. */
           "triggerBuildQuietPeriod": 30,
+          /** List of build parameters should be specified for triggering build. Each parameter should have name and may have randomly selected or fixed value. */
           "triggerParameters": [
             {
               name: "reverse.dep.*.env.JAVA_HOME",
