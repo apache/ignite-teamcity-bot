@@ -15,39 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.model.hist;
+package org.apache.ignite.ci.web.model.trends;
 
 import com.google.common.collect.Lists;
-import com.google.inject.Inject;
-import com.google.inject.Injector;
-import java.io.UncheckedIOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
+import javax.inject.Provider;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -58,122 +42,30 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  * <br>srvCode="apache", <br>buildTypeId="IgniteTests24Java8_RunAll",
  * <br>branchName="refs/heads/master".
  */
-public class BuildsHistory {
-    /** */
-    private String srvCode;
-
+@SuppressWarnings("PublicField") public class BuildsHistory {
     /** */
     public String projectId;
 
+    /** Normalized TC Host address, ends with '/'. */
     public String tcHost;
 
     /** */
-    private String buildTypeId;
+    public String buildTypeId;
 
     /** */
-    private String branchName;
+    public String branchName;
 
     /** */
-    private Date sinceDateFilter;
+    public Date sinceDateFilter;
 
     /** */
-    private Date untilDateFilter;
+    public Date untilDateFilter;
 
     /** Suite name -> map of test name -> [test Name ID: String to avoid JS overflow, fail rate: float] */
     public Map<String, Map<String, List<Object>>> mergedTestsBySuites = new ConcurrentHashMap<>();
 
-    /** */
-    private boolean skipTests;
-
     /** Build statistics for all valid builds in specified time interval. */
     public List<BuildStatisticsSummary> buildsStatistics = new ArrayList<>();
-
-    /** */
-    private static final Logger logger = LoggerFactory.getLogger(BuildsHistory.class);
-
-    @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
-
-    @Inject private MasterTrendsService masterTrendsService;
-
-    @Inject private IStringCompactor compactor;
-
-    /**
-     * Initialize {@link #mergedTestsBySuites} and {@link #buildsStatistics} properties using builds which satisfy
-     * properties setted by Builder.
-     *
-     * @param prov Credentials.
-     */
-    public void initialize(ICredentialsProv prov) {
-        ITeamcityIgnited ignitedTeamcity = tcIgnitedProv.server(srvCode, prov);
-
-        tcHost = ignitedTeamcity.host();
-
-        List<Integer> finishedBuildsIds = ignitedTeamcity
-            .getFinishedBuildsCompacted(buildTypeId, branchName, sinceDateFilter, untilDateFilter)
-            .stream().mapToInt(BuildRefCompacted::id).boxed()
-            .collect(Collectors.toList());
-
-        Map<Integer, Boolean> buildIdsWithConditions = finishedBuildsIds.stream()
-            .collect(Collectors.toMap(v -> v, ignitedTeamcity::buildIsValid, (e1, e2) -> e1, LinkedHashMap::new));
-
-        initStatistics(ignitedTeamcity, buildIdsWithConditions);
-
-        List<Integer> validBuilds = buildIdsWithConditions.keySet()
-            .stream()
-            .filter(buildIdsWithConditions::get)
-            .collect(Collectors.toList());
-
-        if (!skipTests)
-            initFailedTests(validBuilds, buildIdsWithConditions);
-
-        if (MasterTrendsService.DEBUG)
-            System.out.println("Preparing response");
-    }
-
-    /**
-     * Initialize {@link #buildsStatistics} property with list of {@link BuildStatisticsSummary} produced for each valid
-     * build.
-     *
-     * @param ignited {@link ITeamcityIgnited} instance.
-     * @param buildIdsWithConditions Build ID -> build validation flag.
-     */
-    private void initStatistics(ITeamcityIgnited ignited,
-        Map<Integer, Boolean> buildIdsWithConditions) {
-        List<Future<BuildStatisticsSummary>> buildStaticsFutures = new ArrayList<>();
-
-        for (int buildId : buildIdsWithConditions.keySet()) {
-            Future<BuildStatisticsSummary> buildFut = CompletableFuture.supplyAsync(() -> {
-                BuildStatisticsSummary buildsStatistic = masterTrendsService.getBuildSummary(ignited, buildId);
-                buildsStatistic.isValid = buildIdsWithConditions.get(buildId);
-
-                return buildsStatistic;
-            });
-
-            buildStaticsFutures.add(buildFut);
-        }
-
-        if (MasterTrendsService.DEBUG)
-            System.out.println("Waiting for stat to collect");
-
-        buildStaticsFutures.forEach(fut -> {
-            try {
-                BuildStatisticsSummary buildsStatistic = fut.get();
-
-                if (buildsStatistic != null && !buildsStatistic.isFakeStub)
-                    buildsStatistics.add(buildsStatistic);
-            }
-            catch (ExecutionException e) {
-                if (e.getCause() instanceof UncheckedIOException)
-                    logger.error(Arrays.toString(e.getStackTrace()));
-
-                else
-                    throw new RuntimeException(e);
-            }
-            catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
 
     /**
      * Initialize {@link #mergedTestsBySuites} property by unique failed tests which occured in specified date
@@ -181,9 +73,10 @@ public class BuildsHistory {
      *
      * @param buildIds list of valid builds.
      * @param buildIdsWithConditions Build ID -> build validation flag.
+     * @param compactor Compactor
      */
-    private void initFailedTests(List<Integer> buildIds,
-        Map<Integer, Boolean> buildIdsWithConditions) {
+    public void initFailedTests(List<Integer> buildIds,
+        Map<Integer, Boolean> buildIdsWithConditions, IStringCompactor compactor) {
 
         for (BuildStatisticsSummary buildStat : buildsStatistics) {
             Boolean valid = buildIdsWithConditions.get(buildStat.buildId);
@@ -213,9 +106,7 @@ public class BuildsHistory {
         }
     }
 
-    private BuildsHistory withParameters(Builder builder) {
-        this.skipTests = builder.skipTests;
-        this.srvCode = builder.srvCode;
+    public BuildsHistory withParameters(Builder builder) {
         this.buildTypeId = builder.buildTypeId;
         this.branchName = builder.branchName;
         this.sinceDateFilter = builder.sinceDate;
@@ -227,13 +118,7 @@ public class BuildsHistory {
     /** */
     public static class Builder {
         /** */
-        private boolean skipTests = false;
-
-        /** */
         private String projectId = "IgniteTests24Java8";
-
-        /** */
-        private String srvCode;
 
         /** */
         private String buildTypeId = "IgniteTests24Java8_RunAll";
@@ -251,19 +136,9 @@ public class BuildsHistory {
         private DateFormat dateFormat = new SimpleDateFormat("ddMMyyyyHHmmss");
 
         public Builder(ITcBotConfig cfg) {
-            srvCode = cfg.primaryServerCode();
             // todo may find findDefaultBuildType() from cfg.getTeamcityConfig(srvCode).defaultTrackedBranch()
         }
 
-        /**
-         * @param srvId server name.
-         */
-        public Builder server(String srvId) {
-            if (!isNullOrEmpty(srvId))
-                this.srvCode = srvId;
-
-            return this;
-        }
 
         /**
          * @param buildType TC suite(buildType) name.
@@ -313,22 +188,6 @@ public class BuildsHistory {
                 this.untilDate = dateFormat.parse(untilDate);
 
             return this;
-        }
-
-        /** Set flag to skip collection of failed tests info. */
-        public Builder skipTests() {
-            this.skipTests = true;
-
-            return this;
-        }
-
-        /**
-         * @param injector Guice instance for dependency injection.
-         */
-        public BuildsHistory build(Injector injector) {
-            final BuildsHistory instance = injector.getInstance(BuildsHistory.class);
-
-            return instance.withParameters(this);
         }
     }
 }

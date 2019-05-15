@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.model.current;
+package org.apache.ignite.ci.web.model.trends;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,12 +27,10 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.TestOccurrencesRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.internal.util.typedef.T2;
@@ -46,7 +43,7 @@ import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.TC_
 /**
  * Summary of build statistics.
  */
-public class BuildStatisticsSummary {
+@SuppressWarnings("PublicField") public class BuildStatisticsSummary {
     /** String ids. */
     private static final Map<String, Integer> strIds = new ConcurrentHashMap<>();
 
@@ -134,8 +131,7 @@ public class BuildStatisticsSummary {
      * @param problemName Problem name.
      * @param problems
      */
-    private long getProblemsCount(String problemName,
-        List<ProblemCompacted> problems) {
+    private long getProblemsCount(String problemName, List<ProblemCompacted> problems) {
         if (problems == null)
             return 0;
 
@@ -150,36 +146,7 @@ public class BuildStatisticsSummary {
      * @param builds Builds.
      */
     public List<ProblemCompacted> getProblems(Stream<FatBuildCompacted> builds) {
-        List<ProblemCompacted> problemOccurrences = new ArrayList<>();
-
-        builds.forEach(build -> {
-            problemOccurrences.addAll(
-                build.problems()
-            );
-        });
-
-        return problemOccurrences;
-    }
-
-    /**
-     * Snapshot-dependencies for build.
-     *
-     * @param ignitedTeamcity ignitedTeamcity.
-     * @param buildId Build Id.
-     */
-    private List<FatBuildCompacted> getSnapshotDependencies(@Nonnull final ITeamcityIgnited ignitedTeamcity,
-        Integer buildId) {
-        List<FatBuildCompacted> snapshotDependencies = new ArrayList<>();
-        FatBuildCompacted build = ignitedTeamcity.getFatBuild(buildId);
-
-        if (build.snapshotDependencies().length > 0) {
-            for (Integer id : build.snapshotDependencies())
-                snapshotDependencies.addAll(getSnapshotDependencies(ignitedTeamcity, id));
-        }
-
-        snapshotDependencies.add(build);
-
-        return snapshotDependencies;
+        return builds.flatMap(build -> build.problems().stream()).collect(Collectors.toList());
     }
 
     /**

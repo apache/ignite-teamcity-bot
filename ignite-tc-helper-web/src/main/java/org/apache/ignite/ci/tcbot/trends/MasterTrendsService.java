@@ -17,33 +17,50 @@
 
 package org.apache.ignite.ci.tcbot.trends;
 
+import com.google.common.base.Strings;
+import java.io.UncheckedIOException;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
+import javax.inject.Provider;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
+import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.util.FutureUtil;
-import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
+import org.apache.ignite.ci.web.model.trends.BuildStatisticsSummary;
+import org.apache.ignite.ci.web.model.trends.BuildsHistory;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -53,6 +70,15 @@ public class MasterTrendsService {
     @Inject private IStringCompactor compactor;
 
     @Inject private BuildChainProcessor bcp;
+
+    @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
+
+    @Inject private Provider<BuildsHistory> buildsHistoryProvider;
+
+    @Inject private ITcBotConfig cfg;
+
+    /** */
+    private static final Logger logger = LoggerFactory.getLogger(MasterTrendsService.class);
 
     @NotNull
     @GuavaCached(maximumSize = 500, softValues = true)
@@ -89,7 +115,7 @@ public class MasterTrendsService {
             return;
         }
 
-        Date startDate = FutureUtil.getResult(builds.get(s.buildId)).getStartDate();
+        Date startDate = build.getStartDate();
 
         DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy'T'HH:mm:ss");
 
@@ -144,4 +170,128 @@ public class MasterTrendsService {
         s.totalProblems = s.getBuildTypeProblemsCount(problems);
     }
 
+    /**
+     * @param srvCodeParm Server code.
+     * @param buildType Build type.
+     * @param branch Branch.
+     * @param sinceDate Since date.
+     * @param untilDate Until date.
+     * @param skipTests flag to skip collection of failed tests info.
+     * @param prov Prov.
+     */
+    @NotNull public BuildsHistory getBuildTrends(
+        @Nullable String srvCodeParm,
+        @Nullable String buildType,
+        @Nullable String branch,
+        @Nullable String sinceDate,
+        @Nullable String untilDate,
+        @Nullable String skipTests,
+        ICredentialsProv prov) throws ParseException {
+
+        String srvCode = Strings.isNullOrEmpty(srvCodeParm) ? cfg.primaryServerCode() : srvCodeParm;
+
+        tcIgnitedProv.checkAccess(srvCode, prov);
+
+        BuildsHistory.Builder builder = new BuildsHistory.Builder(cfg)
+            .branch(branch)
+            .buildType(buildType)
+            .sinceDate(sinceDate)
+            .untilDate(untilDate);
+
+        final BuildsHistory instance = buildsHistoryProvider.get();
+
+        BuildsHistory buildsHist = instance.withParameters(builder);
+
+        initializeBuildTrends(buildsHist, srvCode, prov, Boolean.TRUE.equals(Boolean.valueOf(skipTests)));
+
+        return buildsHist;
+    }
+
+    /**
+     * Initialize {@link BuildsHistory#mergedTestsBySuites} and {@link BuildsHistory#buildsStatistics} properties using builds which satisfy
+     * properties setted by Builder.
+     *  @param buildsHist output
+     * @param srvCode
+     * @param prov Credentials.
+     * @param skipTests
+     */
+    public void initializeBuildTrends(BuildsHistory buildsHist, String srvCode,
+        ICredentialsProv prov, boolean skipTests) {
+        ITeamcityIgnited ignitedTeamcity = tcIgnitedProv.server(srvCode, prov);
+
+        buildsHist.tcHost = ignitedTeamcity.host();
+
+        List<Integer> finishedBuildsIds = ignitedTeamcity
+            .getFinishedBuildsCompacted(buildsHist.buildTypeId,
+                buildsHist.branchName,
+                buildsHist.sinceDateFilter,
+                buildsHist.untilDateFilter)
+            .stream().mapToInt(BuildRefCompacted::id).boxed()
+            .collect(Collectors.toList());
+
+        Map<Integer, Boolean> buildIdsWithConditions = finishedBuildsIds.stream()
+            .collect(Collectors.toMap(v -> v, ignitedTeamcity::buildIsValid, (e1, e2) -> e1, LinkedHashMap::new));
+
+        initStatistics(buildsHist, ignitedTeamcity, buildIdsWithConditions);
+
+        List<Integer> validBuilds = buildIdsWithConditions.keySet()
+            .stream()
+            .filter(buildIdsWithConditions::get)
+            .collect(Collectors.toList());
+
+        if (!skipTests)
+            buildsHist.initFailedTests(validBuilds, buildIdsWithConditions, compactor);
+
+        if (DEBUG)
+            System.out.println("Preparing response");
+    }
+
+
+    /**
+     * Initialize {@link BuildsHistory#buildsStatistics} property with list of {@link BuildStatisticsSummary} produced for each valid
+     * build.
+     *
+     * @param buildsHist output.
+     * @param ignited {@link ITeamcityIgnited} instance.
+     * @param buildIdsWithConditions Build ID -> build validation flag.
+     */
+    private void initStatistics(BuildsHistory buildsHist,
+        ITeamcityIgnited ignited,
+        Map<Integer, Boolean> buildIdsWithConditions) {
+        List<Future<BuildStatisticsSummary>> buildStaticsFutures = new ArrayList<>();
+
+        for (int buildId : buildIdsWithConditions.keySet()) {
+            Future<BuildStatisticsSummary> buildFut = CompletableFuture.supplyAsync(() -> {
+                BuildStatisticsSummary buildsStatistic = getBuildSummary(ignited, buildId);
+
+                buildsStatistic.isValid = buildIdsWithConditions.get(buildId);
+
+                return buildsStatistic;
+            });
+
+            buildStaticsFutures.add(buildFut);
+        }
+
+        if (MasterTrendsService.DEBUG)
+            System.out.println("Waiting for stat to collect");
+
+        buildStaticsFutures.forEach(fut -> {
+            try {
+                BuildStatisticsSummary buildsStatistic = fut.get();
+
+                if (buildsStatistic != null && !buildsStatistic.isFakeStub)
+                    buildsHist.buildsStatistics.add(buildsStatistic);
+            }
+            catch (ExecutionException e) {
+                if (e.getCause() instanceof UncheckedIOException)
+                    logger.error(Arrays.toString(e.getStackTrace()));
+
+                else
+                    throw new RuntimeException(e);
+            }
+            catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
 }

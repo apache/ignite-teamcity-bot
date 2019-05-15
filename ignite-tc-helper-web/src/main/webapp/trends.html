@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Apache Ignite Teamcity Bot - Master trends</title>
+    <link rel="icon" href="img/leaf-icon-png-7066.png">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link rel="stylesheet" href="css/style-1.5.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css"
+          integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+    <script src="js/common-1.6.js"></script>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+</head>
+<body>
+<br>
+<br>
+
+<table style="table-layout: fixed" class="compare">
+    <tr>
+        <th class="section"  width="13%">DATE INTERVAL</th>
+        <th width="3%"></th>
+        <th style="text-align: center;" width="42%"><input type='text' name='daterange1'/></th>
+        <th style="text-align: center;" width="42%"><input type='text' name='daterange2'/></th>
+    </tr><tr></tr><tr></tr>
+    <tr id="showError">
+        <td class="section" colspan="2" id="choiceSuite"></td>
+        <td colspan="2" id="loadStatus" style="text-align: center; color: red;"></td>
+    </tr><tr></tr>
+    <tr id="showInfo">
+        <td class="section">SHOW INVALID BUILD</td>
+        <td class="icon"><div class="switch-btn builds"></div></td>
+        <td style="text-align: center;" id="info1"></td>
+        <td style="text-align: center;" id="info2"></td>
+    </tr>
+    <tr><td class="field">DURATION</td>
+        <td class="icon"><button id="clickGraphDuration" class="more white short"><i class="fas fa-caret-down"></i></button></td>
+        <td class="mmm data 1" id="Duration1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="Duration2" data-allow-highlight="true"></td>
+    </tr>
+    <tr id="showGraphDuration" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphDuration1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphDuration2" width="500" height="200"></svg></td>
+    </tr><tr></tr>
+    <tr><td class="section">TESTS</td><td></td><td class="mmm title 1"></td><td class="mmm title 2"></td></tr>
+    <tr><td class="field">COUNT</td>
+        <td class="icon"><button id="clickGraphCount" class="more white short"><i class="fas fa-caret-down"></i></button></td>
+        <td class="mmm data 1" id="Count1" data-allow-highlight="false"></td>
+        <td class="mmm data 2" id="Count2" data-allow-highlight="false"></td>
+    </tr>
+    <tr id="showGraphCount" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphCount1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphCount2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">PASSED</td>
+        <td class="icon"><button id="clickGraphPassed" class="more white short"><i class="fas fa-caret-down"></i></button></td>
+        <td class="mmm data 1" id="Passed1" data-allow-highlight="false"></td>
+        <td class="mmm data 2" id="Passed2" data-allow-highlight="false"></td>
+    </tr>
+    <tr id="showGraphPassed" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphPassed1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphPassed2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">FAILED</td>
+        <td class="icon"><button id="clickGraphFailed" class="more white short"><i class="fas fa-caret-down"></i></button></td>
+        <td class="mmm data 1" id="Failed1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="Failed2" data-allow-highlight="true"></td>
+    </tr>
+    <tr id="showGraphFailed" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphFailed1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphFailed2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">IGNORED</td>
+        <td class="icon"><button id="clickGraphIgnored" class="more white short"><i class="fas fa-caret-down"></i></button></td>
+        <td class="mmm data 1" id="Ignored1" data-allow-highlight="false"></td>
+        <td class="mmm data 2" id="Ignored2" data-allow-highlight="false"></td>
+    </tr>
+    <tr id="showGraphIgnored" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphIgnored1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphIgnored2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">MUTED</td>
+        <td class="icon"><button id="clickGraphMuted" class="more white short"><i class="fas fa-caret-down"></i></button></td>
+        <td class="mmm data 1" id="Muted1" data-allow-highlight="false"></td>
+        <td class="mmm data 2" id="Muted2" data-allow-highlight="false"></td></tr>
+    <tr id="showGraphMuted" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphMuted1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphMuted2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="section">PROBLEMS</td><td></td><td class="mmm title 1"></td><td class="mmm title 2"></td></tr>
+    <tr style="display: none;"><td></td><td></td><td></td></tr>
+    <tr><td class="field">TOTAL</td>
+        <td class="icon"><button id="clickGraphTT" class="more white short"><i class="fas fa-caret-down"></i></button></td>
+        <td class="mmm data 1" id="TT1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="TT2" data-allow-highlight="true"></td></tr>
+    <tr id="showGraphTT" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphTT1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphTT2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">EXECUTION TIMEOUT</td>
+        <td class="icon"><button id="clickGraphET" class="more white short"><i class="fas fa-caret-down"></i></button></td>
+        <td class="mmm data 1" id="ET1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="ET2" data-allow-highlight="true"></td>
+    </tr>
+    <tr id="showGraphET" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphET1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphET2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">JVM CRASH</td>
+        <td class="icon"><button id="clickGraphJC" class="more white short"><i class="fas fa-caret-down"></i></button></td>
+        <td class="mmm data 1" id="JC1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="JC2" data-allow-highlight="true"></td>
+    </tr>
+    <tr id="showGraphJC" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphJC1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphJC2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">OOME</td>
+        <td class="icon"><button id="clickGraphOO" class="more white short"><i class="fas fa-caret-down"></i></button></td>
+        <td class="mmm data 1" id="OO1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="OO2" data-allow-highlight="true"></td>
+    </tr>
+    <tr id="showGraphOO" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphOO1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphOO2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="field">EXIT CODE</td>
+        <td class="icon"><button id="clickGraphEC" class="more white short"><i class="fas fa-caret-down"></i></button></td>
+        <td class="mmm data 1" id="EC1" data-allow-highlight="true"></td>
+        <td class="mmm data 2" id="EC2" data-allow-highlight="true"></td>
+    </tr>
+    <tr id="showGraphEC" style="display: none;"><td></td>
+        <td></td>
+        <td style="text-align: center;"><svg class="graph 1" id="graphEC1" width="500" height="200"></svg></td>
+        <td style="text-align: center;"><svg class="graph 2" id="graphEC2" width="500" height="200"></svg></td>
+    </tr>
+    <tr><td class="section">OTHER METRICS</td><td></td><td class="total title 1"></td><td class="total title 2"></td></tr>
+    <tr style="display: none;"><td></td><td></td><td></td></tr>
+    <tr><td class="field">RUNS COUNT</td>
+        <td></td>
+        <td class="total data 1" id="RunsCount1"></td>
+        <td class="total data 2" id="RunsCount2"></td>
+    </tr>
+</table><br>
+<table id="testsTable" class="testsTable">
+    <tbody>
+    <tr>
+        <th class="testsTableTitleHeader">FAILED TESTS</th>
+        <th class="testsTableBtnHeader"><div class="switch-btn tests"></div></th>
+        <th class="testsTableDataHeader1"></th>
+        <th class="testsTableDataHeader2">Fail-rate treshold:
+            <input id="treshold" class="treshold" type="number" min="0" max="100" value="0" onchange="refreshTests()">%
+        </th>
+        </tr>
+    </tbody>
+</table>
+
+<div id="myModal" class="modal">
+
+    <!-- Modal content -->
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <p id="tooltipText"></p>
+    </div>
+
+</div>
+
+<div id="version"></div>
+<script>
+    const FAIL_RATE_DIFF_TRESHOLD = 0.1;
+
+    let invalidInclude = false,
+        markBuildId = 0,
+        testsTrigger = false,
+        error = $('#loadStatus');
+
+    /** Key-value map. Key - Full suite text. Value - {@link org.apache.ignite.ci.tcbot.conf.ChainAtServer} object. */
+    var suiteFullNameToChain = new Map();
+
+    function refreshTests() {
+        printTests(generateTestsResultsComparison(mergedTestsResults));
+    }
+
+    function getDateFewWeeksAgo(numberOfWeeksAgo) {
+        let date = new Date();
+
+        if (isDefinedAndFilled(numberOfWeeksAgo) && Number.isInteger(numberOfWeeksAgo))
+            date.setDate(date.getDate() - numberOfWeeksAgo * 7);
+
+        return date;
+    }
+
+    /** Structure for storing tests by suites parsed response for every date interval. */
+    let mergedTestsResults = {1 : {}, 2 : {} };
+
+    let dateIntervals = {1: {start: moment(getDateFewWeeksAgo(1)), end: moment()},
+        2: {start: moment(getDateFewWeeksAgo(2)), end: moment(getDateFewWeeksAgo(1))}};
+
+    let g_tcHost;
+    let g_projectId;
+
+    function showTooltip(message) {
+        $("#tooltipText").html(message);
+        modal.show();
+    }
+
+    function toggleTests() {
+        testsTrigger = !testsTrigger;
+
+        reloadAll();
+    }
+
+    const parseTime = d3.timeParse("%d-%m-%YT%H:%M:%S"),
+        formatMillisecond = d3.timeFormat(".%L"),
+        formatSecond = d3.timeFormat(":%S"),
+        formatMinute = d3.timeFormat("%H:%M"),
+        formatHour = d3.timeFormat("%H:%M"),
+        formatDay = d3.timeFormat("%a %e"),
+        formatWeek = d3.timeFormat("%b %e"),
+        formatMonth = d3.timeFormat("%B"),
+        formatYear = d3.timeFormat("%Y");
+
+    const fieldNames = new Map([['Duration', 'Duration'], ['Count', 'Count'], ['Passed', 'Passed'], ['Failed','Failed'],
+            ['Ignored','Ignored'], ['Muted','Muted'], ['OO' ,'OOME'], ['TT', 'Total'], ['JC', 'JVM crash'],
+            ['EC', 'Exit code'], ['ET', 'Execution timeout']]),
+        mmmTitle = "min - median - max",
+        tTitle = "total",
+        duration = "Duration",
+        TESTS_TABLE = '#testsTable',
+        SKIP_TESTS = 'skipTests=true',
+        data = [];
+
+    class Data {
+        constructor(num, array, sinceDate, untilDate) {
+            this.num = num;
+            this.map = new Map(array.map(item => [item.buildId, new BuildStatistics(item)]));
+            this.sinceDate = sinceDate;
+            this.untilDate = untilDate;
+        }
+
+        get hasInvalidBuilds() {
+            return this.invalidBuildsCount !== 0;
+        }
+
+        get invalidBuildsCount() {
+            let count = 0;
+            for(let item of this.map.values()) {
+                if (!item.isValid)
+                    count++
+            }
+
+            return count;
+        }
+
+        get isEmpty() {
+            return this.builds.length === 0;
+        }
+
+        get builds() {
+            let builds = [];
+            for (let item of this.map.values()) {
+                if (invalidInclude || item.isValid) {
+                    builds.push(item);
+                }
+            }
+            return builds;
+        }
+
+        get realSinceDate() {
+            return this.builds[0].date;
+        }
+
+        get realUntilDate() {
+            return this.builds[this.builds.length - 1].date;
+        }
+
+        get fieldsStatistics() {
+            let fieldsStatistics = new FieldsStatistics(this.num);
+            for(let build of this.builds) {
+                for (let fieldName of fieldNames.keys())
+                    fieldsStatistics[fieldName].push(build.stat[fieldName]);
+
+                fieldsStatistics.dates.push(build.date);
+                fieldsStatistics.buildIds.push(build.date);
+            }
+
+            return fieldsStatistics;
+        }
+    }
+
+    class FieldsStatistics {
+         constructor(num){
+             this.dates = [];
+             this.buildIds = [];
+             this.num = num;
+             this['Duration'] = [];
+             this['Count'] = [];
+             this['Passed'] = [];
+             this['Failed'] = [];
+             this['Ignored'] = [];
+             this['Muted'] = [];
+             this['OO'] = [];
+             this['TT'] = [];
+             this['JC'] = [];
+             this['EC'] = [];
+             this['ET'] = [];
+         }
+    }
+
+    class BuildStatistics {
+        constructor(item) {
+            this.buildId = item.buildId;
+            this.date = parseTime(item.startDate);
+            this.stat = {
+                'Duration' : item.duration,
+                'Count' : item.testOccurrences.count,
+                'Passed' : item.testOccurrences.passed,
+                'Failed' : item.testOccurrences.failed,
+                'Ignored' : item.testOccurrences.ignored,
+                'Muted' : item.testOccurrences.muted,
+                'OO' : item.totalProblems.OO,
+                'TT' : item.totalProblems.TT,
+                'JC' : item.totalProblems.JC,
+                'EC' : item.totalProblems.EC,
+                'ET' : item.totalProblems.ET
+            };
+            this.isValid = item.isValid;
+            this.conditionLocal = false;
+        }
+    }
+
+    class Statistic {
+        constructor(array, name, num) {
+            let newArr = array.slice();
+            newArr = newArr.sort(function(a, b){ return a - b; });
+
+            let i = newArr.length / 2;
+
+            this.median = i % 1 === 0 ? (newArr[i - 1] + newArr[i]) / 2 : newArr[Math.floor(i)];
+            this.min = newArr[0];
+            this.max = newArr[newArr.length - 1];
+            this.name = name;
+            this.num = num;
+        }
+    }
+
+    var changeDisplay = function(id) {
+        $('*[id=' + id + ']').each(function() {
+            $(this).toggle();
+        });
+    };
+
+    function mergeSuites(results) {
+        let mergedSuites = new Set();
+
+        for (let key of Object.keys(results)) {
+            for (let suite of Object.keys(results[key]))
+                mergedSuites.add(suite);
+        }
+
+        return Array.from(mergedSuites);
+    }
+
+    function printTests(results) {
+        $(TESTS_TABLE + " tr:not(:first-child)").remove();
+
+        for (let suite of mergeSuites(results).sort()) {
+            let suiteName = suite.split('_').filter((value, index) => index != 0).join('_');
+            let testsCntCells = '';
+            let testsCells = '';
+
+            for (let key of Object.keys(results)) {
+                let obj = results[key];
+                let testsCnt = !obj.hasOwnProperty(suite) || Object.keys(obj[suite]).length == 0 ?
+                    '' : Object.keys(obj[suite]).length;
+
+                testsCntCells = testsCntCells + '<td class="testsCntCell"><p id="' + suite + '">' + testsCnt + '</p></td>';
+
+                testsCells = testsCells + '<td class="testsCell">' + getSuiteTestsHtml(results, suite, key) + '</td>'
+            }
+
+            $(TESTS_TABLE + " > tbody:last-child").append('<tr class="testsCntRow" onclick="changeDisplay(\'' + suite + '\')">' +
+                '<td class = "suiteCell">' + suiteName + '</td>' +
+                '<td></td>' + testsCntCells + '</tr>');
+
+            $(TESTS_TABLE + " > tbody:last-child").append('<tr class="testsRow" id="' + suite + '">' +
+                '<td class="testsSuiteCell" onclick="changeDisplay(\'' + suite + '\')"></td>' +
+                '<td></td>' + testsCells + '</tr>');
+        }
+    }
+
+    function generateTestsResultsComparison(results) {
+        let testsResultsComparison = {};
+
+        for (let key of  Object.keys(results)) {
+            let obj = {};
+
+            for (let suite of Object.keys(results[key])) {
+                let otherTests = {};
+
+                for (let otherKey of Object.keys(results)) {
+                    if (key === otherKey)
+                        continue;
+
+                    otherTests = Object.assign({}, results[otherKey][suite]);
+                }
+
+                let newFailedTests = {};
+
+                for (let testName of Object.keys(results[key][suite])) {
+                    let failRate = results[key][suite][testName][1];
+                    let othTstDtls = otherTests[testName];
+
+                    if ((othTstDtls == null || failRate - othTstDtls[1] > FAIL_RATE_DIFF_TRESHOLD)
+                        && failRate > $('#treshold').val()/100) {
+                        newFailedTests[testName] = [];
+                        newFailedTests[testName][0] = results[key][suite][testName][0];
+                        newFailedTests[testName][1] = failRate;
+                    }
+                }
+
+                if (Object.keys(newFailedTests).length !== 0)
+                    obj[suite] = newFailedTests;
+            }
+
+            testsResultsComparison[key] = obj;
+        }
+
+        return testsResultsComparison;
+    }
+
+    function getSuiteTestsHtml(results, suite, key) {
+        if (!results[key].hasOwnProperty(suite) || Object.keys(results[key][suite]).length === 0)
+            return '';
+
+        let res = '<table class="innerTestTable">\n';
+
+        for (let testName of Object.keys(results[key][suite]).sort()) {
+            let list = testName.toString().split(".");
+
+            if (list.length < 2)
+                list = testName.toString().split(":");
+
+            let testMethodName = list.pop();
+            let testClass = list.pop();
+            let failRate = results[key][suite][testName][1];
+            let testId = results[key][suite][testName][0];
+
+            let href = g_tcHost
+                + "project.html"
+                + "?projectId=" + g_projectId
+                + "&testNameId=" +  testId
+                + "&tab=testDetails"  ;
+            res += '<tr>' +
+                '<td class="innerTestName"><p title="' + testName + '">' + testClass + '.' + testMethodName + '</p></td>' +
+                '<td class="innerFailRate"><p title="Test\'s fail-rate for corresponding date period">' +
+                Number((failRate * 100).toFixed(1)) + '%</p></td>' +
+                '<td class="innerTcLink">' +
+                '<a href="'+href+'" target="_blank"> &gt&gt</a></td></tr>';
+        }
+
+        res += '</table>';
+
+        return res;
+    }
+
+    /**
+     * @param data see Data class
+     */
+    function printStatistics(data) {
+        clearBackgroundFromAllDataCells();
+        clearGraphs(data.num);
+        fillAllDataCells(data.num, "");
+        error.html("");
+
+        if (data.isEmpty) {
+            printImportantMessage(data.num, "#ff0000", "No data for the selected period");
+            fillTitleForData(data.num, 'mmm', "");
+
+            if (data.hasInvalidBuilds && !invalidInclude)
+                printRunsCount(data);
+            else
+                fillTitleForData(data.num, 'total', "");
+
+            return;
+        } else {
+            let firstDate = moment(data.realSinceDate).format("DD-MM-YYYY");
+            let lastDate = moment(data.realUntilDate).format("DD-MM-YYYY");
+
+            if ((data.sinceDate.format("DD-MM-YYYY") !== firstDate) || (data.untilDate.format("DD-MM-YYYY") !== lastDate)) {
+                printImportantMessage(data.num, "#ffb856", "Data for " +
+                    (firstDate === lastDate ? firstDate : ("the period from " + firstDate + " to " + lastDate)) + "");
+            } else
+                $("#info" + data.num).html("");
+        }
+
+        fillNameForMinMedianMaxColumn(mmmTitle);
+        fillNameForTotalColumn(tTitle);
+
+        fillTitleForData(data.num, 'mmm', mmmTitle);
+        fillTitleForData(data.num, 'total', tTitle);
+
+        let fieldsStatistics = data.fieldsStatistics;
+
+        for (let fieldName of fieldNames.keys()) {
+            let stat = new Statistic(fieldsStatistics[fieldName], fieldName, data.num);
+
+            fillCellWithStatistics(stat);
+
+            drawGraph(data.builds, fieldName, stat.median, data.num);
+        }
+
+        printRunsCount(data);
+    }
+
+    function printRunsCount(data){
+        $('#RunsCount' + data.num).html(data.builds.length + "<br>" + (invalidInclude || (!data.hasInvalidBuilds) ? "" :
+            "<span class='compare title'>(" + data.invalidBuildsCount +
+            " invalid builds hide)</span>"));
+    }
+
+    function fillCellWithStatistics(stat) {
+        if (stat.name === duration)
+            $('#' + stat.name + stat.num).html(time(stat.min) + " - " + time(stat.median) + " - " + time(stat.max));
+        else
+            $('#' + stat.name + stat.num).html(stat.min + " - " + stat.median +  " - " + stat.max);
+
+        compareAndHighlight(stat);
+    }
+
+    function time(s) {
+        let h = parseInt(s / 3600),
+            m = parseInt((s % 3600) / 60);
+
+        return h + ":" + ((m < 10) ? "0" : "") + m;
+    }
+
+    function fillNameForTotalColumn(num, title) {
+        $('.title.total.' + num).html(title);
+    }
+
+    function fillNameForMinMedianMaxColumn(num, title) {
+        $('.title.mmm .' + num).html(title);
+    }
+
+    function fillTitleForData(num, cssClass, title) {
+        $('.' + cssClass + '.data.' + num).prop('title', title);
+    }
+
+    function loadTrackedSuites() {
+        $.ajax({
+            url: "rest/branches/suites",
+            success: function (result) {
+                if (!isDefinedAndFilled(result)) {
+                    error.html("Result from " + this.url + " is undefined!");
+
+                    return;
+                }
+
+                printSuites(result);
+
+                reloadAll();
+            },
+            error: showErrInLoadStatus
+        });
+    }
+
+    /**
+     *
+     * @param result list of {@link org.apache.ignite.ci.tcbot.conf.ChainAtServer} objects as JSON.
+     */
+    function printSuites(result) {
+        let selectHtml = "<select id='selectSuite'>";
+
+        for (let i = 0; i < result.length; i++) {
+            let suite = result[i];
+            let text = suite.suiteId + " (" + suite.serverId + ")";
+
+            suiteFullNameToChain.set(text, suite);
+            selectHtml += getHtmlOption(text, false, false, text);
+        }
+
+        selectHtml += "</select>";
+
+        $('#choiceSuite').html(selectHtml);
+
+        $('#selectSuite').change(function () { reloadAll(); });
+    }
+
+    function loadData(num, sinceDate, untilDate, testsTrigger) {
+        loadGif(num);
+
+        let suiteIdFull = $('#selectSuite').val();
+
+
+        mergedTestsResults[num] = {};
+
+        if ((!isDefinedAndFilled(suiteIdFull)) || (suiteIdFull === "")) {
+            error.html("Suite is " + (isDefinedAndFilled(suiteId) ? "empty" : "undefined") + "!");
+
+            return;
+        }
+
+        let chainAtServer = suiteFullNameToChain.get(suiteIdFull);
+
+        let url = 'rest/build/trends?server=' + chainAtServer.serverId
+            + '&buildType=' + chainAtServer.suiteId
+            + '&sinceDate=' + sinceDate.format("DDMMYYYY") + '000001'
+            + '&untilDate=' + untilDate.format("DDMMYYYY") + '235959';
+
+        if (!testsTrigger)
+            url = url + '&' + SKIP_TESTS;
+
+        $.ajax({
+                url: url,
+                success: function (result) {
+                    try {
+                        g_tcHost = result.tcHost;
+                        g_projectId = result.projectId;
+
+                        data[num] = new Data(num, result.buildsStatistics, sinceDate, untilDate);
+
+                        printStatistics(data[num]);
+
+                        mergedTestsResults[num] = result.mergedTestsBySuites;
+
+                        printTests(generateTestsResultsComparison(mergedTestsResults));
+                    } catch (e) {
+                        error.html(e.name + ":" + e.message);
+
+                        throw e;
+                    }
+                },
+                error: showErrInLoadStatus,
+                timeout: 1800000
+            }
+        );
+    }
+
+    function parseMedian(string) {
+        let stringMedian = string.substring(string.indexOf("-") + 2, string.lastIndexOf("-") - 1);
+
+        if (stringMedian.indexOf(":") !== -1)
+            return (parseInt(stringMedian.split(":")[0]) * 60 + parseInt(stringMedian.split(":")[1])) * 60;
+        else
+            return parseFloat(stringMedian);
+    }
+
+    function compareAndHighlight(stat){
+
+        let anotherNum = (stat.num === 1) ? 2 : 1,
+            thisElement = $('#' + stat.name + stat.num),
+            anotherElement =  $('#' + stat.name + anotherNum),
+            thisMedian = stat.median - ((stat.name === duration) ? stat.median % 60 : 0);
+
+        if (thisElement.data('allowHighlight').toString() === "true") {
+            let anotherMedian = parseMedian(anotherElement.text());
+            if (!isNaN(anotherMedian)) {
+                if (thisMedian > anotherMedian) {
+                    thisElement.css('background-color', '#ffeee9');
+                    anotherElement.css('background-color', '#e5ffe8');
+                } else if (thisMedian < anotherMedian) {
+                    anotherElement.css('background-color', '#ffeee9');
+                    thisElement.css('background-color', '#e5ffe8');
+                }
+            }
+        }
+    }
+
+    $(document).ready(function() {
+        loadTrackedSuites();
+
+        $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
+    });
+
+    function clearBackgroundFromAllDataCells(num){
+        $('.data.' + (num == null ? '1, .data.2' : num)).css('background', '');
+    }
+
+    function fillAllDataCells(num, message) {
+        $(".data." + num).html(message);
+        $('.testsCntCell').html(message);
+    }
+
+    function clearGraphs(num) {
+        $(".graph." + num).empty();
+    }
+
+    function loadGif(num) {
+        clearBackgroundFromAllDataCells();
+
+        clearGraphs(num);
+
+        error.html("");
+
+        fillAllDataCells(num, "<img src='/img/loading.gif' width=15px height=15px>");
+    }
+
+    function printImportantMessage(num, color, message) {
+        $('#info' + num).html("<span style='background:" + color + "; color:white; font-weight:bold;'>" +
+            "&nbsp;&nbsp;!&nbsp;&nbsp;</span>&nbsp;&nbsp;" + message);
+        $('#showInfo').css('display', '');
+    }
+
+    $(function() {
+        for (let i = 1; i <= 2; i++) {
+            $('input[name="daterange' + i + '"]').daterangepicker(
+                dateRangePickerParam(getDateFewWeeksAgo(i), getDateFewWeeksAgo(i - 1), i), function (start, end) {
+                    dateIntervals[i].start = start;
+
+                    dateIntervals[i].end = end;
+
+                    loadData(i, start, end, testsTrigger);
+                });
+        }
+    });
+
+    for (let fieldName of fieldNames.keys())
+        graphSpoiler(fieldName);
+
+    function graphSpoiler(fieldName) {
+        $("#clickGraph" + fieldName).click(function() {
+            let element = $('#showGraph' + fieldName);
+            if (element.css('display') === 'none') {
+                element.css('display', '');
+                $(this).html("<i class='fas fa-caret-up'></i>");
+            } else {
+                element.css('display', 'none');
+                $(this).html("<i class='fas fa-caret-down'></i>");
+            }
+        });
+    }
+
+    function drawGraph(builds, fieldName, median, num) {
+        let isDuration = (fieldName === duration),
+            svg = d3.select("#graph" + fieldName + num).append("svg:svg"),
+            margin = {top: 20, right: 20, bottom: 30, left: 50},
+            width = 500 - margin.left - margin.right,
+            height = 200 - margin.top - margin.bottom,
+            g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        let value = d3.select("body").append("div").attr("class", "tooltip value").style("opacity", 0),
+            condition = d3.select("body").append("div").attr("class", "tooltip condition").style("opacity", 0),
+            mark = d3.select("body").append("div").attr("class", "tooltip mark").style("opacity", 0);
+
+        let y = (isDuration ? d3.scaleTime() : d3.scaleLinear()).range([height, 0]),
+            x = d3.scaleTime().rangeRound([0, width]);
+
+        let line = d3.line()
+            .x(function(d) { return x(d.date); })
+            .y(function(d) { return y(d.stat[fieldName]); });
+
+        x.domain(d3.extent(builds, function(d) { return d.date; }));
+        y.domain(d3.extent(builds, function(d) { return d.stat[fieldName]; }));
+
+        g.append("svg:g").attr("transform", "translate(0," + (height) + ")")
+            .call(d3.axisBottom(x).tickFormat(multiFormat));
+        g.append("svg:g").call(isDuration ? d3.axisLeft(y).tickFormat( function (d) { return time(d); })
+            : d3.axisLeft(y));
+
+        let svg_aline = g.append("line")
+            .attr("class", "line")
+            .style("stroke-dasharray", ("3, 10"))
+            .attr("x1",100)
+            .attr("x2",400)
+            .attr("y1",200)
+            .attr("y2",200)
+            .attr("stroke", "#4682B4")
+            .attr("stroke-width", "1")
+            .style("display", "none");
+
+        let median_line = g.append("line")
+            .attr("class", "line")
+            .attr("x1",0)
+            .attr("x2",width)
+            .attr("y1",y(median))
+            .attr("y2",y(median))
+            .attr("stroke", "red")
+            .attr("stroke-width", "0.2")
+            .style("display", "block");
+
+        g.append("path")
+            .datum(builds)
+            .attr("fill", "none")
+            .attr("stroke", "steelblue")
+            .attr("stroke-linejoin", "round")
+            .attr("stroke-linecap", "round")
+            .attr("stroke-width", 1.5)
+            .attr("d", line);
+
+        g.selectAll("dot").data(builds)
+            .enter()
+            .append("circle")
+            .attr("r", 3)
+            .attr("cx", function(d){return x(d.date); })
+            .attr("cy", function(d){return y(d.stat[fieldName]); })
+            .attr("class", function(d) {
+                return getDotClass(d);
+            })
+            .on("mouseover", function(d) {
+                d3.select(this).transition().duration(100)
+                    .style("fill", "#12AD5E")
+                    .attr("r", 5)
+                    .attr("onclick", "checkAvailable(" + d.buildId + "," +  d.date.getTime() + ");" +
+                        "return false;");
+
+                svg_aline.transition().duration(10)
+                    .style("display", "block")
+                    .attr("x1", x(d.date))
+                    .attr("y1", y(d.stat[fieldName]))
+                    .attr("x2", x(d.date))
+                    .attr("y2", height);
+
+                let graphTd = document.getElementById("graph" + fieldName + num).getBoundingClientRect(),
+                    scrollTop = window.pageYOffset || document.documentElement.scrollTop,
+                    top = scrollTop + graphTd.top + y(d.stat[fieldName]) - 10,
+                    partLeft = graphTd.left + x(d.date) + 44,
+                    minWidth = 18, interval = 8;
+
+                value.html('&nbsp;' + (isDuration ? time(d.stat[fieldName]) : d.stat[fieldName]) + '&nbsp;');
+
+                let valueWidth = parseInt(value.style("width"));
+
+                value.style("left", partLeft - valueWidth / 2 + "px")
+                    .style("top", top + "px" ).transition()
+                    .duration(200).style("opacity", .8).style("display", "block");
+
+                mark.html('<i class="fas fa-' + (markBuildId === d.buildId ? 'eraser' : 'highlighter') + '"></i>')
+                    .style("left", partLeft + valueWidth / 2 + interval + "px")
+                    .style("top", top + "px" )
+                    .attr("onclick", "markBuild(" + d.buildId + "); return false;").transition()
+                    .duration(200).style("opacity", .8).style("display", "block");
+
+                condition.html('<i class="' + (!d.isValid ? 'fas fa-undo' : 'far fa-trash')
+                    + '-alt"></i>')
+                    .style("left", partLeft - minWidth - interval - valueWidth / 2 + "px")
+                    .style("top", top + "px" )
+                    .attr("onclick", "setCondition(" + num + ", " + d.buildId + ", " +
+                        d.stat[fieldName] + ", " + median + ", '" + fieldName + "'); return false;").transition()
+                    .duration(200).style("opacity", .8).style("display", "block");
+            })
+
+            .on("mouseout", function() {
+                d3.select(this).transition().duration(100)
+                    .style("fill", null)
+                    .attr("r", 3);
+
+                value.transition().duration(2000)
+                    .style("opacity", 0).on("end", function() { value.style("display", "none"); });
+
+                condition.transition().duration(2000)
+                    .style("opacity", 0).on("end", function() { condition.style("display", "none"); });
+
+                mark.transition().duration(2000)
+                    .style("opacity", 0).on("end", function() { mark.style("display", "none"); });
+
+                svg_aline.style("display","none")
+            });
+
+        function getDotClass(build) {
+            if (markBuildId === build.buildId)
+                return "mark-dot";
+            else
+                return ((invalidInclude && !build.isValid) ? "hidden-dot" : "dot");
+        }
+    }
+
+    function setCondition(num, buildId, value, median, prefix) {
+        if (!isDefinedAndFilled(buildId) || buildId === "") {
+            showDialog("<i class='fas fa-exclamation-circle'></i><br><br>BuildId must be defined and filled!");
+
+            return;
+        }
+
+        let isValid = !data[num].map.get(buildId).isValid;
+        let conditionLocal = data[num].map.get(buildId).conditionLocal;
+        let modalDialog = $("#modalDialog");
+        let diff = ((value / median - 1) * 100 | 0);
+        let message = "<p style='text-align:center;opacity: 0.7;'><img src='img/tc.svg' width='100' height='100'></p>" +
+            "<br><p style='text-align:justify'><b>Build [" + buildId +  "]</b> will be marked as &laquo;" +
+            (isValid ? "" : "in") + "valid&raquo;. Value differs by <b>" + diff + "%</b> from the median.</p>" +
+            "<br><b>Field:</b>&nbsp;<select id='selectField' style='width: 200px'>";
+
+        for (let fieldName of fieldNames.keys())
+            message += getHtmlOption(fieldName, false, fieldName === prefix, fieldNames.get(fieldName));
+
+        message += "</select><br><br><b>Mark: </b><select id='selectExclusionArea' style='width: 200px'>" +
+            getHtmlOption(false, isValid && !conditionLocal, isValid && conditionLocal, "For me") +
+            getHtmlOption(true, isValid && conditionLocal, isValid && !conditionLocal, "For all") + "</select>";
+
+        message += "<br><br><span style='color:grey;font-size:smaller;text-align:justify'><hr>If you select &laquo;" +
+            "Mark for me&raquo;, build will be hidden from the results only for this dates interval until the page " +
+            "is updated.<br><hr>If you select &laquo;Mark for all&raquo;, your request will be hidden " +
+            "from the results for all users, and will not be taken into account when analyzing tests.</span>";
+
+        modalDialog.html(message);
+        modalDialog.dialog({
+            modal: true,
+            buttons: {
+                "Confirm": function () {
+                    $(this).dialog("close");
+
+                    let forAll = $('#selectExclusionArea').val() === 'true';
+                    let text = "";
+
+                    if (forAll) {
+                        $.ajax({
+                            url: 'rest/build/condition',
+                            data: {
+                                "buildId": buildId,
+                                "isValid": isValid,
+                                "field": $('#selectField').val()
+                            },
+                            success: function (res) {
+                                if (isDefinedAndFilled(res)) {
+                                    text = "<i class='fas fa-" + (res ? "check" : "exclamation") + "-circle'></i>" +
+                                        "<br><br>";
+
+                                    if (isValid) {
+                                        text += res ? "Build <b>remove</b> from invalid list!" :
+                                            "Invalid list <b>doesn't contain</b> build!";
+                                    }
+                                    else {
+                                        text += "Build " + (res ? "<b>add</b> in" :
+                                            "<b>is already</b> on the") + " invalid list!";
+                                    }
+                                } else {
+                                    text += "<i class='fas fa-exclamation-circle'><br><br></i>" +
+                                        "BuildId or condition is null!";
+                                }
+
+                                setBuildConditionOnFrontAndShowDialog(buildId, isValid, text, false);
+                            },
+                            error: showErrInLoadStatus
+                        });
+                    } else {
+                        text = "<i class='fas fa-check-circle'></i><br><br>Build <b>"  + (isValid ? "remove</b> from" :
+                            "add</b> in") +" <i>temporary</i> invalid list!";
+
+                        setBuildConditionOnFrontAndShowDialog(buildId, isValid, text, !isValid);
+                    }
+                },
+                "Cancel": function () {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    }
+
+    function getHtmlOption(value, disabled, selected, text){
+        return "<option value='" + value + "' " + (disabled ? "disabled" : "") + (selected ? "selected" : "") +
+            ">" + text + "</option>";
+    }
+
+    function setBuildConditionOnFrontAndShowDialog(buildId, isValid, text, conditionLocal) {
+        setBuildCondition(buildId, isValid, conditionLocal);
+
+        showDialog(text);
+    }
+
+    function showDialog(text) {
+        let resultDialog = $("#resultDialog");
+        resultDialog.html("<p style='text-align:center'><br>" + text + "</p>");
+
+        resultDialog.dialog({
+            modal: true,
+            buttons: {
+                "Ok": function () {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    }
+
+    function getBuildLink(buildId) { return g_tcHost + "viewLog.html?buildId=" + buildId; }
+
+    function checkAvailable(buildId, date) {
+        let dateDiff = moment().diff(moment(date), 'days');
+
+        if (dateDiff <= 14) {
+            window.open(getBuildLink(buildId), '_blank');
+
+            return;
+        }
+
+        let message = "<p style='text-align:center;opacity: 0.7;'><img src='img/tc.svg' width='100' height='100'></p>" +
+            "<br>The results &laquo;Run All&raquo; for <b>build [" + buildId +  "]</b> is <b>not available</b> on " +
+            "the TeamCity server.<br><br><span style='color:grey;font-size:smaller'><hr>TeamCity server stores data " +
+            "for the last ~14 days. Since the launch of the build " + dateDiff + " days have passed</span>";
+
+        let modalDialog = $("#modalDialog");
+
+        modalDialog.html(message);
+        modalDialog.dialog({
+            modal: true,
+            buttons: {
+                "Go anyway": function () {
+                    $(this).dialog("close");
+                    window.open(getBuildLink(buildId), '_blank');
+                },
+                "Cancel": function () {
+                    $(this).dialog("close");
+                }
+            }
+        });
+    }
+
+    // Get the modal
+    var modal = $('#myModal');
+
+    // Get the <span> element that closes the modal
+    var span = $(".close");
+
+    // When the user clicks on <span> (x), close the modal
+    span.click(function() {
+        modal.hide();
+    })
+
+
+    $('.switch-btn.builds').click(function(){
+        $(this).toggleClass('switch-on');
+
+        invalidInclude = $(this).hasClass('switch-on');
+
+        updateAll();
+    });
+
+    $('.switch-btn.tests').click(function(){
+        $(this).toggleClass('switch-on');
+
+        toggleTests();
+    });
+
+    function setBuildCondition(buildId, isValid, conditionLocal) {
+        setBuildConditionForColumn(buildId, isValid, 1, conditionLocal);
+        setBuildConditionForColumn(buildId, isValid, 2, conditionLocal);
+    }
+
+    function setBuildConditionForColumn(buildId, isValid, num, conditionLocal) {
+        if (isDefinedAndFilled(data[num])) {
+            if (data[num].map.has(buildId)) {
+                data[num].map.get(buildId).isValid = isValid;
+                data[num].map.get(buildId).conditionLocal = conditionLocal;
+            }
+
+            updateColumn(num);
+        }
+    }
+
+    function markBuild(buildId) {
+        markBuildId = (markBuildId === buildId) ? 0 : buildId;
+
+        updateAll();
+    }
+
+    function updateColumn(num) {
+        if (isDefinedAndFilled(data[num]))
+            printStatistics(data[num]);
+    }
+
+    function updateAll() {
+        updateColumn(1);
+        updateColumn(2);
+
+        if (isDefinedAndFilled(mergedTestsResults))
+            printTests(generateTestsResultsComparison(mergedTestsResults));
+    }
+
+    function reloadAll(){
+        loadData(1, dateIntervals[1].start, dateIntervals[1].end, testsTrigger);
+        loadData(2, dateIntervals[2].start, dateIntervals[2].end, testsTrigger);
+    }
+
+    function multiFormat(date) {
+        return (d3.timeSecond(date) < date ? formatMillisecond
+            : d3.timeMinute(date) < date ? formatSecond
+                : d3.timeHour(date) < date ? formatMinute
+                    : d3.timeDay(date) < date ? formatHour
+                        : d3.timeMonth(date) < date ? (d3.timeWeek(date) < date ? formatDay : formatWeek)
+                            : d3.timeYear(date) < date ? formatMonth
+                                : formatYear)(date);
+    }
+
+    function dateRangePickerParam(startDate, endDate, num) {
+        return {
+            "opens" : (num === 1 ? 'right' : 'left'),
+            "maxSpan": { "days": 7 },
+            "locale": {
+                "format": "DD/MM/YYYY", "separator": " - ", "applyLabel": "Apply", "cancelLabel": "Cancel",
+                "fromLabel": "From", "toLabel": "To", "customRangeLabel": "Custom", "weekLabel": "W",
+                "daysOfWeek": [ "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" ],
+                "monthNames": [ "January", "February", "March", "April", "May", "June", "July",
+                    "August", "September", "October", "November", "December" ],
+                "firstDay": 1
+            },
+            "startDate": moment(startDate).format("DD-MM-YYYY"), "endDate": moment(endDate).format("DD-MM-YYYY")
+        }
+    }
+</script>
+<div style="visibility:hidden">
+    <div id="modalDialog" title="Information"></div><div id="resultDialog" title="Result"></div>
+</div>
+</body>
+</html>

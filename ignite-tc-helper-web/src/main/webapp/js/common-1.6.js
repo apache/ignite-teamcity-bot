@@ -167,7 +167,7 @@ function showMenu(menuData) {
         res += "<a href=\"/\">Home</a>";
         res += "<a href=\"/prs.html\" title='PR or branch check'>PR Check</a>";
         res += "<a href=\"/guard.html\" title='Monitoring: Current test failures in tracked Branches'>Test Status</a>";
-        res += "<a href=\"/comparison.html\" title='Monitoring: Test failures trends and graphs'>Master Trends</a>";
+        res += "<a href=\"/trends.html\" title='Monitoring: Test failures trends and graphs'>Master Trends</a>";
         res += "<a href=\"/longRunningTestsReport.html\" title='Monitoring: Long running tests report''>Test Durations</a>";
         res += "<a href=\"/compare.html\" title='Compare builds tests test'>Compare builds</a>";
         res += "<a href=\"/issues.html\" title='Detected issues list'>Issues history</a>";

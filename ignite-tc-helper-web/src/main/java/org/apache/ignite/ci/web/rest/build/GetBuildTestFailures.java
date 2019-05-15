@@ -22,7 +22,6 @@ import java.text.ParseException;
 
 import com.google.inject.Injector;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
@@ -36,8 +35,8 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.model.current.BuildStatisticsSummary;
-import org.apache.ignite.ci.web.model.hist.BuildsHistory;
+import org.apache.ignite.ci.web.model.trends.BuildStatisticsSummary;
+import org.apache.ignite.ci.web.model.trends.BuildsHistory;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
@@ -203,8 +202,8 @@ public class GetBuildTestFailures {
      * @param skipTests Skip tests.
      */
     @GET
-    @Path("history")
-    public BuildsHistory getBuildsHistory(
+    @Path("trends")
+    public BuildsHistory getBuildsTrends(
         @Nullable @QueryParam("server") String srvCode,
         @Nullable @QueryParam("buildType") String buildType,
         @Nullable @QueryParam("branch") String branch,
@@ -213,29 +212,16 @@ public class GetBuildTestFailures {
         @Nullable @QueryParam("skipTests") String skipTests)  throws ParseException {
 
         Injector injector = CtxListener.getInjector(ctx);
-        final ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
+        MasterTrendsService instance = injector.getInstance(MasterTrendsService.class);
 
-        BuildsHistory.Builder builder = new BuildsHistory.Builder(cfg)
-            .branch(branch)
-            .server(srvCode)
-            .buildType(buildType)
-            .sinceDate(sinceDate)
-            .untilDate(untilDate);
 
-        if (Boolean.valueOf(skipTests))
-            builder.skipTests();
-
-        BuildsHistory buildsHist = builder.build(injector);
-
-        ICredentialsProv prov = ICredentialsProv.get(req);
-
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
-
-        buildsHist.initialize(prov);
+        BuildsHistory buildsHist =
+            instance.getBuildTrends(srvCode, buildType, branch, sinceDate, untilDate, skipTests, ICredentialsProv.get(req));
 
         if (MasterTrendsService.DEBUG)
             System.out.println("MasterTrendsService: Responding");
 
         return buildsHist;
     }
+
 }

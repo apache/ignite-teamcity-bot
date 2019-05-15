@@ -56,7 +56,7 @@ public interface ITeamcityIgnited {
     /**
      * @return Normalized Host address, ends with '/'.
      */
-    default public String host() {return config().host();}
+    public default String host() {return config().host();}
 
     /**
      * Return all builds for branch and suite, without relation to its status.
