@@ -166,6 +166,7 @@ public class ProblemCompacted {
         return type;
     }
 
+    /** {@inheritDoc} */
     @Override public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("id", id)
@@ -173,5 +174,16 @@ public class ProblemCompacted {
             .add("identity", identity)
             .add("actualBuildId", actualBuildId)
             .toString() + "\n";
+    }
+
+    /**
+     * @param compactor Compactor.
+     * @return if this problem is critical.
+     */
+    public boolean isCriticalProblem(IStringCompactor compactor) {
+        return isExecutionTimeout(compactor)
+            || isJvmCrash(compactor)
+            || isBuildFailureOnMetric(compactor)
+            || isCompilationError(compactor);
     }
 }

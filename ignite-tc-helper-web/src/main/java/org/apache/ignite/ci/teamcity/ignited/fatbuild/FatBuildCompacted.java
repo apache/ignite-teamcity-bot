@@ -621,8 +621,14 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
             .toString();
     }
 
-    public Invocation toInvocation(IStringCompactor compactor,
-        BiPredicate<Integer, Integer> paramsFilter) {
+    /**
+     * Transforms suite to compact invocation.
+     *
+     * @param compactor Compactor.
+     * @param paramsFilter Params filter (key compactor's code, value compactor's code) for checking parameters to be
+     * saved in Invocation.
+     */
+    public Invocation toInvocation(IStringCompactor compactor, BiPredicate<Integer, Integer> paramsFilter) {
         boolean success = isSuccess(compactor);
 
         final int failCode ;
@@ -630,16 +636,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         if (success)
             failCode = InvocationData.OK;
         else {
-            if (problems()
-                .stream().anyMatch(occurrence ->
-                    occurrence.isExecutionTimeout(compactor)
-                        || occurrence.isJvmCrash(compactor)
-                        || occurrence.isBuildFailureOnMetric(compactor)
-                        || occurrence.isCompilationError(compactor)))
-                failCode = InvocationData.CRITICAL_FAILURE;
-            else
-                failCode = InvocationData.FAILURE;
-
+            failCode = problems().stream().anyMatch(occurrence -> occurrence.isCriticalProblem(compactor))
+                ? InvocationData.CRITICAL_FAILURE
+                : InvocationData.FAILURE;
         }
 
         Invocation invocation = new Invocation(getId())
@@ -649,14 +648,14 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
         java.util.Map<Integer, Integer> importantParms = new TreeMap<>();
 
-        ParametersCompacted parameters = this.parameters();
-        if (parameters == null)
-            return invocation;
+        ParametersCompacted parameters = parameters();
 
-        parameters.forEach((k, v) -> {
-            if (paramsFilter.test(k, v))
-                importantParms.put(k, v);
-        });
+        if (parameters != null) {
+            parameters.forEach((k, v) -> {
+                if (paramsFilter.test(k, v))
+                    importantParms.put(k, v);
+            });
+        }
 
         return invocation;
     }

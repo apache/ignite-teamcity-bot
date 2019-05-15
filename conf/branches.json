@@ -117,13 +117,13 @@
           /** List of build parameters should be specified for triggering build. Each parameter should have name and may have randomly selected or fixed value. */
           "triggerParameters": [
             {
-              name: "reverse.dep.*.env.JAVA_HOME",
-              randomValue: true,
+              "name": "reverse.dep.*.env.JAVA_HOME",
+              "randomValue": true,
               "selection": [
-                {value:"%env.JDK_ORA_18%", label:"JDK8"},
-                {value:"%env.JDK_ORA_9%", label:"JDK9"},
-                {value:"%env.JDK_ORA_10%", label:"JDK10"},
-                {value:"%env.JDK_OPEN_11%", label:"JDK11"}
+                {"value":"%env.JDK_ORA_18%", "label":"JDK8"},
+                {"value":"%env.JDK_ORA_9%", "label":"JDK9"},
+                {"value":"%env.JDK_ORA_10%", "label":"JDK10"},
+                {"value":"%env.JDK_OPEN_11%", "label":"JDK11"}
               ]
             }
           ]
