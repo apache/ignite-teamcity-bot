@@ -131,7 +131,14 @@ public class ChainAtServerCurrentStatus {
         this.webToPr = webToPr;
     }
 
-    /** */
+
+    /**
+     * Set up ticket and PR related information.
+     *
+     * @param ticketMatcher Ticket matcher.
+     * @param jiraIntegration Jira integration.
+     * @param gitHubConnIgnited Git hub connection ignited.
+     */
     public void initJiraAndGitInfo(BranchTicketMatcher ticketMatcher,
         IJiraIgnited jiraIntegration,
         IGitHubConnIgnited gitHubConnIgnited) {

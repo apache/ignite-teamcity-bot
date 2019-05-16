@@ -18,15 +18,16 @@ package org.apache.ignite.ci.tcbot.chain;
 
 import com.google.common.base.Strings;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -37,10 +38,12 @@ import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
@@ -189,77 +192,99 @@ public class PrChainsProcessor {
     @Nullable
     public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
         ICredentialsProv prov, SyncMode queued) {
-        List<SuiteCurrentStatus> res = new ArrayList<>();
+        //using here non persistent TC allows to skip update statistic
+        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, prov);
+        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvId, prov);
 
-        TestFailuresSummary summary = getTestFailuresSummary(
-            prov, srvId, buildTypeId, branchForTc,
-            FullQueryParams.LATEST, null, null, false, queued);
+        List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
-        boolean noBuilds = summary.servers.stream().anyMatch(s -> s.buildNotFound);
+        String baseBranch = ITeamcity.DEFAULT;
 
-        if (noBuilds)
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
+            tcIgnited,
+            hist,
+            LatestRebuildMode.LATEST,
+            ProcessLogsMode.SUITE_NOT_COMPLETE,
+            true,
+            baseBranch,
+            queued);
+
+        if (ctx.isFakeStub())
             return null;
 
-        for (ChainAtServerCurrentStatus server : summary.servers) {
-            Map<String, List<SuiteCurrentStatus>> fails = findBlockerFailures(server);
-
-            fails.forEach((k, v) -> res.addAll(v));
-        }
-
-        return res;
+        return findBlockerFailures(ctx, tcIgnited, baseBranch);
     }
 
     /**
-     * @param srv Server.
      * @return Failures for given server.
+     * @param fullChainRunCtx
+     * @param tcIgnited
+     * @param baseBranch
      */
-    private Map<String, List<SuiteCurrentStatus>> findBlockerFailures(ChainAtServerCurrentStatus srv) {
-        Map<String, List<SuiteCurrentStatus>> fails = new LinkedHashMap<>();
+    private List<SuiteCurrentStatus> findBlockerFailures(FullChainRunCtx fullChainRunCtx, ITeamcityIgnited tcIgnited,
+        String baseBranch) {
+        return fullChainRunCtx
+            .failedChildSuites()
+            .map((ctx) -> {
 
-        for (SuiteCurrentStatus suite : srv.suites) {
-            String suiteRes = suite.result.toLowerCase();
-            String failType = null;
+                String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
+                IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(new SuiteInBranch(ctx.suiteId(), normalizedBaseBranch));
 
-            if (suiteRes.contains("compilation"))
-                failType = "compilation";
+                String comment = ctx.getPossibleBlockerComment(tcIgnited, compactor, statInBaseBranch);
 
-            if (suiteRes.contains("timeout"))
-                failType = "timeout";
+                //todo may avoid creation of UI model for simple comment.
+                SuiteCurrentStatus suiteUi = new SuiteCurrentStatus();
 
-            if (suiteRes.contains("exit code"))
-                failType = "exit code";
+                suiteUi.initFromContext(tcIgnited, ctx, baseBranch, compactor);
 
-            if (suiteRes.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK.toLowerCase()))
-                failType = "java level deadlock";
+                if (!Strings.isNullOrEmpty(comment))
+                    return suiteUi; // blocker found;
 
-            if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_MESSAGE.toLowerCase()))
-                failType = "build failure on message";
+                String suiteRes = suiteUi.result.toLowerCase();
+                String failType = null;
 
-            if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_METRIC.toLowerCase()))
-                failType = "build failure on metrics";
+                if (suiteRes.contains("compilation"))
+                    failType = "compilation";
 
-            if (suiteRes.contains(MultBuildRunCtx.CANCELLED.toLowerCase()))
-                failType = MultBuildRunCtx.CANCELLED.toLowerCase();
+                if (suiteRes.contains("timeout"))
+                    failType = "timeout";
 
-            if (failType == null) {
-                List<TestFailure> failures = new ArrayList<>();
+                if (suiteRes.contains("exit code"))
+                    failType = "exit code";
 
-                for (TestFailure testFailure : suite.testFailures) {
-                    if (testFailure.isNewFailedTest())
-                        failures.add(testFailure);
+                if (suiteRes.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK.toLowerCase()))
+                    failType = "java level deadlock";
+
+                if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_MESSAGE.toLowerCase()))
+                    failType = "build failure on message";
+
+                if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_METRIC.toLowerCase()))
+                    failType = "build failure on metrics";
+
+                if (suiteRes.contains(MultBuildRunCtx.CANCELLED.toLowerCase()))
+                    failType = MultBuildRunCtx.CANCELLED.toLowerCase();
+
+                if (failType == null) {
+                    List<TestFailure> failures = new ArrayList<>();
+
+                    for (TestFailure testFailure : suiteUi.testFailures) {
+                        if (testFailure.isNewFailedTest())
+                            failures.add(testFailure);
+                    }
+
+                    if (!failures.isEmpty()) {
+                        suiteUi.testFailures = failures;
+
+                        failType = "failed tests";
+                    }
                 }
 
-                if (!failures.isEmpty()) {
-                    suite.testFailures = failures;
+                if (failType != null)
+                    return suiteUi;
 
-                    failType = "failed tests";
-                }
-            }
-
-            if (failType != null)
-                fails.computeIfAbsent(failType, k -> new ArrayList<>()).add(suite);
-        }
-
-        return fails;
+                return null;
+            })
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
     }
 }

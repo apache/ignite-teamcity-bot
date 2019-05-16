@@ -242,7 +242,7 @@ function showChainCurrentStatusData(chain, settings) {
         for (var l = 0; l < chain.suites.length; l++) {
             var suite0 = chain.suites[l];
 
-            var suiteOrNull = suiteWithCriticalFailuresOnly(suite0);
+            var suiteOrNull = filterPossibleBlocker(suite0);
 
             if (suiteOrNull != null) {
                 if (blockersList.length !== 0)
@@ -305,7 +305,7 @@ function addBlockersData(server, settings) {
     for (var i = 0; i < server.suites.length; i++) {
         var suite = server.suites[i];
 
-        suite = suiteWithCriticalFailuresOnly(suite);
+        suite = filterPossibleBlocker(suite);
 
         if (suite != null)
             blockers += showSuiteData(suite, settings, server.prNum);
@@ -334,7 +334,7 @@ function addBlockersData(server, settings) {
  * @param suite - see SuiteCurrentStatus Java class.
  * @returns Suite without flaky tests. Or null - if suite have only flaky tests.
  */
-function suiteWithCriticalFailuresOnly(suite) {
+function filterPossibleBlocker(suite) {
     var suite0 = Object.assign({}, suite);
 
     if(isDefinedAndFilled(suite.blockerComment) && suite.blockerComment!=="")
@@ -699,8 +699,8 @@ function showSuiteData(suite, settings, prNum) {
         mInfo += "Top long running:<br>";
 
         mInfo += "<table>";
-        for (var i = 0; i < suite.topLongRunning.length; i++) {
-            mInfo += showTestFailData(suite.topLongRunning[i], false, settings);
+        for (var j = 0; j < suite.topLongRunning.length; j++) {
+            mInfo += showTestFailData(suite.topLongRunning[j], false, settings);
         }
         mInfo += "</table>";
     }
@@ -708,8 +708,8 @@ function showSuiteData(suite, settings, prNum) {
     if (isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length > 0) {
         mInfo += "Warn Only:<br>";
         mInfo += "<table>";
-        for (var i = 0; i < suite.warnOnly.length; i++) {
-            mInfo += showTestFailData(suite.warnOnly[i], false, settings);
+        for (var k = 0; k < suite.warnOnly.length; k++) {
+            mInfo += showTestFailData(suite.warnOnly[k], false, settings);
         }
         mInfo += "</table>";
     }
@@ -717,8 +717,8 @@ function showSuiteData(suite, settings, prNum) {
     if (isDefinedAndFilled(suite.logConsumers) && suite.logConsumers.length > 0) {
         mInfo += "Top Log Consumers:<br>";
         mInfo += "<table>";
-        for (var i = 0; i < suite.logConsumers.length; i++) {
-            mInfo += showTestFailData(suite.logConsumers[i], false, settings);
+        for (var l = 0; l < suite.logConsumers.length; l++) {
+            mInfo += showTestFailData(suite.logConsumers[l], false, settings);
         }
         mInfo += "</table>";
     }
