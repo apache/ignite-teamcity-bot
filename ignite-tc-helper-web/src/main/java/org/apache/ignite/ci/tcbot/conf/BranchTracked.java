@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
+import javax.validation.constraints.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * One tracked branch, probably on several servers
@@ -31,6 +33,10 @@ public class BranchTracked {
 
     /** */
     public List<ChainAtServerTracked> chains = new ArrayList<>();
+
+    /** Disable notifications for the following issue types. */
+    @Nullable private List<String> disableIssueTypes = new ArrayList<>();
+
 
     /**
      * @return internal identifier of the branch.
@@ -48,4 +54,14 @@ public class BranchTracked {
     public Stream<ChainAtServerTracked> getChainsStream() {
         return getChains().stream();
     }
+
+    /**
+     * @
+     */
+    @NotNull public List<String> disableIssueTypes() {
+        return disableIssueTypes == null || disableIssueTypes.isEmpty()
+            ? Collections.emptyList()
+            : Collections.unmodifiableList(disableIssueTypes);
+    }
+
 }

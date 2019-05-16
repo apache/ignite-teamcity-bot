@@ -56,8 +56,8 @@ public class TcServerConfig implements ITcServerConfig {
     /** Build parameters which may be used for filtering. */
     @Nullable private List<BuildParameterSpec> filteringParameters = new ArrayList<>();
 
-    /** Trused suites. */
-    @Nullable private List<String> trusedSuites = new ArrayList<>();
+    /** Trusted suites. */
+    @Nullable private List<String> trustedSuites = new ArrayList<>();
 
     public TcServerConfig() {
 
@@ -132,10 +132,10 @@ public class TcServerConfig implements ITcServerConfig {
 
     /** {@inheritDoc} */
     @NotNull @Override public Collection<String> trustedSuites() {
-        if (trusedSuites == null || trusedSuites.isEmpty())
+        if (trustedSuites == null || trustedSuites.isEmpty())
             return Collections.emptySet();
 
-        return Collections.unmodifiableList(trusedSuites);
+        return Collections.unmodifiableList(trustedSuites);
     }
 
     /**

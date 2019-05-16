@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +46,7 @@ import org.apache.ignite.ci.jobs.CheckQueueJob;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
+import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.ci.tcbot.conf.INotificationChannel;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
@@ -57,6 +59,7 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
@@ -157,6 +160,19 @@ public class IssueDetector {
                 long issueAgeMs = System.currentTimeMillis() - detected;
 
                 return issueAgeMs <= TimeUnit.HOURS.toMillis(2);
+            })
+            .filter(issue -> {
+                long buildStartTs = issue.buildStartTs == null ? 0 : issue.buildStartTs;
+                long buildAgeMs = System.currentTimeMillis() - buildStartTs;
+                long maxBuildAgeToNotify = TimeUnit.DAYS.toMillis(InvocationData.MAX_DAYS) / 2;
+
+                return buildAgeMs <= maxBuildAgeToNotify;
+            })
+            .filter(issue -> {
+                return cfg.getTrackedBranches()
+                    .get(issue.trackedBranchName)
+                    .filter(tb -> !tb.disableIssueTypes().contains(issue.type()))
+                    .isPresent();
             })
             .forEach(issue -> {
                 List<String> addrs = new ArrayList<>();

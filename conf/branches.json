@@ -30,7 +30,9 @@
             {"value":"%env.JDK_OPEN_11%", "label":"JDK11"}
           ]
         }
-      ]
+      ],
+      /** Build type IDs, which should trigger notifications about any non build problem, and should be blocker in this case. **/
+      "trustedSuites": []
     }
   ],
   /* Set of JIRA servers/projects configured */
