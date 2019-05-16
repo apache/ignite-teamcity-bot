@@ -47,6 +47,7 @@ import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.tcbot.conf.INotificationChannel;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
@@ -62,6 +63,7 @@ import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -242,7 +244,6 @@ public class IssueDetector {
             ITeamcityIgnited tcIgnited = tcProv.server(srvId, creds);
 
             for (SuiteCurrentStatus suiteCurrentStatus : next.suites) {
-
                 String normalizeBranch = normalizeBranch(suiteCurrentStatus.branchName());
 
                 final String trackedBranch = res.getTrackedBranch();
@@ -260,8 +261,17 @@ public class IssueDetector {
         return "New issues found " + newIssues;
     }
 
+    /**
+     * Checks and persists suites failure.
+     *
+     * @param tcIgnited Tc ignited.
+     * @param srvCode Server code.
+     * @param normalizeBranch Normalize branch.
+     * @param suiteFailure Suite failure.
+     * @param trackedBranch Tracked branch.
+     */
     private boolean registerSuiteFailIssues(ITeamcityIgnited tcIgnited,
-        String srvId,
+        String srvCode,
         String normalizeBranch,
         SuiteCurrentStatus suiteFailure,
         String trackedBranch) {
@@ -279,28 +289,50 @@ public class IssueDetector {
 
         Integer firstFailedBuildId = runStat.detectTemplate(EventTemplates.newCriticalFailure);
 
-        if (firstFailedBuildId != null && suiteFailure.hasCriticalProblem != null && suiteFailure.hasCriticalProblem) {
-            IssueKey issueKey = new IssueKey(srvId, firstFailedBuildId, suiteId);
+        if (firstFailedBuildId != null && Boolean.TRUE.equals(suiteFailure.hasCriticalProblem)) {
+            IssueKey issueKey = new IssueKey(srvCode, firstFailedBuildId, suiteId);
 
-            if (issuesStorage.containsIssueKey(issueKey))
-                return false; //duplicate
+            if (!issuesStorage.containsIssueKey(issueKey)) {
+                issuesStorage.saveIssue(createIssueForSuite(tcIgnited, suiteFailure, trackedBranch,
+                    issueKey, IssueType.newCriticalFailure));
 
-            Issue issue = new Issue(issueKey, IssueType.newCriticalFailure);
-            issue.trackedBranchName = trackedBranch;
-            issue.displayName = suiteFailure.name;
-            issue.webUrl = suiteFailure.webToHist;
-            issue.buildStartTs = tcIgnited.getBuildStartTs(issueKey.buildId);
+                issueFound = true;
+            }
+        }
 
-            locateChanges(tcIgnited, firstFailedBuildId, issue);
+        ITcServerConfig tcCfg = cfg.getTeamcityConfig(srvCode);
 
-            logger.info("Register new issue for suite fail: " + issue);
+        if (tcCfg.trustedSuites().contains(suiteId)) {
+            Integer firstTrustedSuiteFailue = runStat.detectTemplate(EventTemplates.newFailure);
 
-            issuesStorage.saveIssue(issue);
+            if (firstTrustedSuiteFailue != null) {
+                IssueKey issueKey = new IssueKey(srvCode, firstTrustedSuiteFailue, suiteId);
 
-            issueFound = true;
+                if (!issuesStorage.containsIssueKey(issueKey)) {
+                    issuesStorage.saveIssue(createIssueForSuite(tcIgnited, suiteFailure, trackedBranch,
+                        issueKey, IssueType.newTrustedSuiteFailure));
+
+                    issueFound = true;
+                }
+            }
         }
 
         return issueFound;
+    }
+
+    @NotNull
+    private Issue createIssueForSuite(ITeamcityIgnited tcIgnited, SuiteCurrentStatus suiteFailure, String trackedBranch,
+        IssueKey issueKey, IssueType issType) {
+        Issue issue = new Issue(issueKey, issType);
+        issue.trackedBranchName = trackedBranch;
+        issue.displayName = suiteFailure.name;
+        issue.webUrl = suiteFailure.webToHist;
+        issue.buildStartTs = tcIgnited.getBuildStartTs(issueKey.buildId);
+
+        locateChanges(tcIgnited, issueKey.buildId, issue);
+
+        logger.info("Register new issue for suite fail: " + issue);
+        return issue;
     }
 
     private void locateChanges(ITeamcityIgnited teamcity, int buildId, Issue issue) {
@@ -460,9 +492,9 @@ public class IssueDetector {
                 SyncMode.RELOAD_QUEUED
             );
 
-        String issResult = registerIssuesAndNotifyLater(failures, backgroundOpsCreds);
+        String issRes = registerIssuesAndNotifyLater(failures, backgroundOpsCreds);
 
-        return "Tests " + failures.failedTests + " Suites " + failures.failedToFinish + " were checked. " + issResult;
+        return "Tests " + failures.failedTests + " Suites " + failures.failedToFinish + " were checked. " + issRes;
     }
 
     public void stop() {

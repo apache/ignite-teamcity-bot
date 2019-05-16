@@ -333,7 +333,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     }
 
     public static String branchForLink(@Nullable String branchName) {
-        return branchName == null || "refs/heads/master".equals(branchName) ? ITeamcity.DEFAULT : branchName;
+        return normalizeBranch(branchName);
     }
 
     /** {@inheritDoc} */

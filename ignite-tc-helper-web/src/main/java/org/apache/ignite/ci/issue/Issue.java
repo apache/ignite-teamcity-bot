@@ -55,7 +55,10 @@ public class Issue {
     @Nullable
     public String displayName;
 
+    /** Build start timestamp. */
     @Nullable public Long buildStartTs;
+
+    /** Detected timestamp. */
     @Nullable public Long detectedTs;
 
     public Issue(IssueKey issueKey, IssueType type) {

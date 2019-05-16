@@ -52,7 +52,7 @@ public class TrackedBranchChainsProcessor {
     @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
 
     /** Tc Bot config. */
-    @Inject private ITcBotConfig tcBotConfig;
+    @Inject private ITcBotConfig tcBotCfg;
 
     /** Chains processor. */
     @Inject private BuildChainProcessor chainProc;
@@ -71,7 +71,7 @@ public class TrackedBranchChainsProcessor {
         final String branchNn = isNullOrEmpty(branch) ? TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
         res.setTrackedBranch(branchNn);
 
-        final BranchTracked tracked = tcBotConfig.getTrackedBranches().getBranchMandatory(branchNn);
+        final BranchTracked tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
 
         tracked.chains.stream()
             .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverId, creds))
@@ -144,7 +144,7 @@ public class TrackedBranchChainsProcessor {
         FullLRTestsSummary summary = new FullLRTestsSummary();
 
         final String branchNn = isNullOrEmpty(branch) ? TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
-        final BranchTracked tracked = tcBotConfig.getTrackedBranches().getBranchMandatory(branchNn);
+        final BranchTracked tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
 
         tracked.chains.stream()
             .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverId, creds))
