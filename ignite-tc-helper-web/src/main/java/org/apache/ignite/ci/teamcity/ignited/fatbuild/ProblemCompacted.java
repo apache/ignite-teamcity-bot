@@ -186,4 +186,8 @@ public class ProblemCompacted {
             || isBuildFailureOnMetric(compactor)
             || isCompilationError(compactor);
     }
+
+    public boolean isBuildFailureOnMessage(IStringCompactor compactor) {
+        return compactor.getStringId(ProblemOccurrence.BUILD_FAILURE_ON_MESSAGE) == type;
+    }
 }

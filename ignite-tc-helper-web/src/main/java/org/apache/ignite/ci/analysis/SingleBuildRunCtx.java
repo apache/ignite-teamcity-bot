@@ -119,6 +119,10 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return compactor.getStringFromId(buildCompacted.buildTypeId());
     }
 
+    @Override public boolean hasBuildMessageProblem() {
+        return getProblemsStream().anyMatch(p -> p.isBuildFailureOnMessage(compactor));
+    }
+
     public void setLogCheckResFut(CompletableFuture<LogCheckResult> logCheckResFut) {
         this.logCheckResFut = logCheckResFut;
     }

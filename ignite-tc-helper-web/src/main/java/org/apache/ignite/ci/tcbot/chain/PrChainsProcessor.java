@@ -26,7 +26,6 @@ import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
@@ -37,7 +36,6 @@ import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
@@ -240,43 +238,19 @@ public class PrChainsProcessor {
                 if (!Strings.isNullOrEmpty(comment))
                     return suiteUi; // blocker found;
 
-                String suiteRes = suiteUi.result.toLowerCase();
                 String failType = null;
 
-                if (suiteRes.contains("compilation"))
-                    failType = "compilation";
+                List<TestFailure> failures = new ArrayList<>();
 
-                if (suiteRes.contains("timeout"))
-                    failType = "timeout";
+                for (TestFailure testFailure : suiteUi.testFailures) {
+                    if (testFailure.isNewFailedTest())
+                        failures.add(testFailure);
+                }
 
-                if (suiteRes.contains("exit code"))
-                    failType = "exit code";
+                if (!failures.isEmpty()) {
+                    suiteUi.testFailures = failures;
 
-                if (suiteRes.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK.toLowerCase()))
-                    failType = "java level deadlock";
-
-                if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_MESSAGE.toLowerCase()))
-                    failType = "build failure on message";
-
-                if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_METRIC.toLowerCase()))
-                    failType = "build failure on metrics";
-
-                if (suiteRes.contains(MultBuildRunCtx.CANCELLED.toLowerCase()))
-                    failType = MultBuildRunCtx.CANCELLED.toLowerCase();
-
-                if (failType == null) {
-                    List<TestFailure> failures = new ArrayList<>();
-
-                    for (TestFailure testFailure : suiteUi.testFailures) {
-                        if (testFailure.isNewFailedTest())
-                            failures.add(testFailure);
-                    }
-
-                    if (!failures.isEmpty()) {
-                        suiteUi.testFailures = failures;
-
-                        failType = "failed tests";
-                    }
+                    failType = "failed tests";
                 }
 
                 if (failType != null)

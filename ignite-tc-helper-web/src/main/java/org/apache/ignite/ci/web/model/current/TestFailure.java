@@ -89,9 +89,9 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
     @Nullable public String webUrlBaseBranch;
 
     /**
-     * @param failure
-     * @param tcIgn
-     * @param projectId
+     * @param failure test ocurrence (probably multiple)
+     * @param tcIgn Teamcity.
+     * @param projectId project ID.
      * @param branchName
      * @param baseBranchName base branch name (e.g. master).
      */
@@ -228,6 +228,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
     /**
      * @return {@code True} if this failure is appeared in the current branch.
      */
+    @Deprecated
     public boolean isNewFailedTest() {
         if (!Strings.isNullOrEmpty(webIssueUrl))
             return false;

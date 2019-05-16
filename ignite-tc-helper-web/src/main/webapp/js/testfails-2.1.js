@@ -337,9 +337,6 @@ function addBlockersData(server, settings) {
 function filterPossibleBlocker(suite) {
     var suite0 = Object.assign({}, suite);
 
-    if(isDefinedAndFilled(suite.blockerComment) && suite.blockerComment!=="")
-        return suite0;
-
     var j = 0;
 
     suite0.testFailures = suite0.testFailures.slice();
@@ -353,7 +350,10 @@ function filterPossibleBlocker(suite) {
             suite0.testFailures.splice(j, 1);
     }
 
-    if (suite0.testFailures.length > 0 || suite0.result !== "")
+    if(isDefinedAndFilled(suite.blockerComment) && suite.blockerComment!=="")
+        return suite0;
+
+    if (suite0.testFailures.length > 0)
         return suite0;
 
     return null;
