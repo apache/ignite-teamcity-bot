@@ -37,7 +37,6 @@ import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
-import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;

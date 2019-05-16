@@ -35,7 +35,9 @@ import javax.annotation.Nonnull;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
@@ -107,8 +109,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().allMatch(bCtx -> !bCtx.isComposite() && bCtx.isCancelled());
     }
 
-    @NotNull
-    private Stream<ProblemCompacted> allProblemsInAllBuilds() {
+    @NotNull public Stream<ProblemCompacted> allProblemsInAllBuilds() {
         return buildsStream().flatMap(SingleBuildRunCtx::getProblemsStream);
     }
 
@@ -460,5 +461,25 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     public Set<String> tags() {
         return buildsStream().flatMap(b -> b.tags().stream()).collect(Collectors.toSet());
+    }
+
+    @NotNull public String getPossibleBlockerComment(ITeamcityIgnited tcIgnited,
+        @Nonnull IStringCompactor compactor,
+        IRunHistory baseBranchHist) {
+        StringBuilder res = new StringBuilder();
+
+        if(hasAnyBuildProblemExceptTestOrSnapshot() && tcIgnited.config().trustedSuites().contains(suiteId())) {
+            res.append("Suite is trusted but has build problems");
+
+            res.append(" [").append(allProblemsInAllBuilds()
+                .filter(p -> !p.isFailedTests(compactor) && !p.isSnapshotDepProblem(compactor))
+                .map(p -> p.type(compactor)).distinct().collect(Collectors.joining(", "))).append("]");
+
+            res.append(" Base branch fail rate is ");
+            res.append(baseBranchHist.getFailPercentPrintable());
+            res.append("%");
+        }
+
+        return res.toString();
     }
 }

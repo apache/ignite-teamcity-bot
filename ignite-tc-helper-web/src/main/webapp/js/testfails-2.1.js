@@ -266,7 +266,7 @@ function showChainCurrentStatusData(chain, settings) {
         //     res+="<br>";
 
         if (settings.isJiraAvailable())
-            res+="<br>";
+            res += "<br>";
 
         res += "Base branch";
         res += ": " + chain.baseBranchForTc.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -336,6 +336,10 @@ function addBlockersData(server, settings) {
  */
 function suiteWithCriticalFailuresOnly(suite) {
     var suite0 = Object.assign({}, suite);
+
+    if(isDefinedAndFilled(suite.blockerComment) && suite.blockerComment!=="")
+        return suite0;
+
     var j = 0;
 
     suite0.testFailures = suite0.testFailures.slice();
@@ -630,6 +634,10 @@ function showSuiteData(suite, settings, prNum) {
         if(isDefinedAndFilled(suite.criticalFails) && isDefinedAndFilled(suite.criticalFails.failures)) {
             moreInfoTxt += "Critical recent fails: "+ suite.criticalFails.failureRate + "% [" + suite.criticalFails.failures + " fails / " + suite.criticalFails.runs + " runs]; <br> " ;
         }
+    }
+
+    if(isDefinedAndFilled(suite.blockerComment) && suite.blockerComment!=="") {
+        res += "<span title='"+ suite.blockerComment +"'> &#x1f6ab;</span> "
     }
 
     if(isDefinedAndFilled(suite.problemRef)) {

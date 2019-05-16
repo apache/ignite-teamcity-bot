@@ -28,6 +28,7 @@ import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
@@ -56,6 +57,8 @@ public class TrackedBranchChainsProcessor {
 
     /** Chains processor. */
     @Inject private BuildChainProcessor chainProc;
+
+    @Inject private IStringCompactor compactor;
 
     @AutoProfiling
     @NotNull
@@ -119,7 +122,7 @@ public class TrackedBranchChainsProcessor {
                 if (cnt > 0)
                     runningUpdates.addAndGet(cnt);
 
-                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc);
+                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor);
 
                 return chainStatus;
             })

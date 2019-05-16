@@ -34,6 +34,7 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
 import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
@@ -166,7 +167,7 @@ public class ChainAtServerCurrentStatus {
 
     public void initFromContext(ITeamcityIgnited tcIgnited,
         FullChainRunCtx ctx,
-        @Nullable String baseBranchTc) {
+        @Nullable String baseBranchTc, IStringCompactor compactor) {
         failedTests = 0;
         failedToFinish = 0;
         //todo mode with not failed
@@ -176,7 +177,7 @@ public class ChainAtServerCurrentStatus {
             suite -> {
                 final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
 
-                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc);
+                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor);
 
                 failedTests += suiteCurStatus.failedTests;
                 if (suite.hasAnyBuildProblemExceptTestOrSnapshot() || suite.onlyCancelledBuilds())

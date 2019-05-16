@@ -35,6 +35,7 @@ import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
@@ -92,7 +93,7 @@ public class GetChainResultsAsHtml {
 
         status.chainName = ctx.suiteName();
 
-        status.initFromContext(tcIgn, ctx, failRateBranch);
+        status.initFromContext(tcIgn, ctx, failRateBranch, injector.getInstance(IStringCompactor.class));
 
         res.append(showChainAtServerData(status));
 

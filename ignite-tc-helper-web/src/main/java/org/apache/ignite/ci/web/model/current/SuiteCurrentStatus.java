@@ -29,7 +29,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
@@ -38,6 +37,7 @@ import org.apache.ignite.ci.analysis.TestLogCheckResult;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
@@ -126,23 +126,25 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
      */
     @Nullable public ProblemRef problemRef;
 
-    /** Possible blocker: filled for PR and builds checks, mean there was stable execution in master, but */
-    public Boolean possibleBlocker;
-
     public Set<String> tags = new HashSet<>();
+
+    /**
+     * Possible blocker comment: filled for PR and builds checks, non null value contains problem explanation
+     * displayable.
+     */
+    @Nullable public String blockerComment;
 
     public void initFromContext(ITeamcityIgnited tcIgnited,
         @Nonnull final MultBuildRunCtx suite,
-        @Nullable final String baseBranch) {
+        @Nullable final String baseBranch,
+        @Nonnull IStringCompactor compactor) {
 
         name = suite.suiteName();
 
         String failRateNormalizedBranch = normalizeBranch(baseBranch);
         String curBranchNormalized = normalizeBranch(suite.branchName());
 
-        String suiteId = suite.suiteId();
-
-        initSuiteStat(tcIgnited, failRateNormalizedBranch, curBranchNormalized, suiteId);
+        IRunHistory baseBranchHist = initSuiteStat(tcIgnited, failRateNormalizedBranch, curBranchNormalized, suite.suiteId());
 
         Set<String> collect = suite.lastChangeUsers().collect(Collectors.toSet());
 
@@ -223,36 +225,35 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         serverId = tcIgnited.serverId();
         this.suiteId = suite.suiteId();
         branchName = branchForLink(suite.branchName());
-        // todo implement this logic in suite possibleBlocker = suite.hasPossibleBlocker();
 
         tags = suite.tags();
+
+        blockerComment = suite.getPossibleBlockerComment(tcIgnited, compactor, baseBranchHist);
     }
 
-    private void initSuiteStat(ITeamcityIgnited tcIgnited,
+    private IRunHistory initSuiteStat(ITeamcityIgnited tcIgnited,
         String failRateNormalizedBranch,
         String curBranchNormalized,
         String suiteId) {
         if (Strings.isNullOrEmpty(suiteId))
-            return;
+            return null;
 
-        SuiteInBranch key = new SuiteInBranch(suiteId, failRateNormalizedBranch);
+        final IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(new SuiteInBranch(suiteId, failRateNormalizedBranch));
 
-        final IRunHistory stat = tcIgnited.getSuiteRunHist(key);
+        if (statInBaseBranch != null) {
+            failures = statInBaseBranch.getFailuresCount();
+            runs = statInBaseBranch.getRunsCount();
+            failureRate = statInBaseBranch.getFailPercentPrintable();
 
-        if (stat != null) {
-            failures = stat.getFailuresCount();
-            runs = stat.getRunsCount();
-            failureRate = stat.getFailPercentPrintable();
-
-            criticalFails.failures = stat.getCriticalFailuresCount();
+            criticalFails.failures = statInBaseBranch.getCriticalFailuresCount();
             criticalFails.runs = runs;
-            criticalFails.failureRate = stat.getCriticalFailPercentPrintable();
+            criticalFails.failureRate = statInBaseBranch.getCriticalFailPercentPrintable();
 
-            failsAllHist.failures = stat.getFailuresAllHist();
-            failsAllHist.runs = stat.getRunsAllHist();
-            failsAllHist.failureRate = stat.getFailPercentAllHistPrintable();
+            failsAllHist.failures = statInBaseBranch.getFailuresAllHist();
+            failsAllHist.runs = statInBaseBranch.getRunsAllHist();
+            failsAllHist.failureRate = statInBaseBranch.getFailPercentAllHistPrintable();
 
-            latestRuns = stat.getLatestRunResults();
+            latestRuns = statInBaseBranch.getLatestRunResults();
         }
 
         IRunHistory latestRunsSrc = null;
@@ -265,7 +266,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             latestRuns = statForStripe != null ? statForStripe.getLatestRunResults() : null;
         }
         else
-            latestRunsSrc = stat;
+            latestRunsSrc = statInBaseBranch;
 
         if (latestRunsSrc != null) {
             if (latestRunsSrc.detectTemplate(EventTemplates.newFailureForFlakyTest) != null)
@@ -274,6 +275,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             if (latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailure) != null)
                 problemRef = new ProblemRef("New Critical Failure");
         }
+
+        return statInBaseBranch;
     }
 
     @NotNull
@@ -374,7 +377,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             Objects.equals(testsDurationPrintable, status.testsDurationPrintable) &&
             Objects.equals(lostInTimeouts, status.lostInTimeouts) &&
             Objects.equals(problemRef, status.problemRef) &&
-            Objects.equals(possibleBlocker, status.possibleBlocker);
+            Objects.equals(blockerComment, status.blockerComment);
     }
 
     /** {@inheritDoc} */
@@ -384,7 +387,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             runningBuildCount, queuedBuildCount, serverId, suiteId, branchName, failsAllHist, criticalFails, latestRuns,
             userCommits, failedTests, durationPrintable, durationNetTimePrintable, sourceUpdateDurationPrintable,
             artifcactPublishingDurationPrintable, dependeciesResolvingDurationPrintable, testsDurationPrintable,
-            lostInTimeouts, problemRef, possibleBlocker);
+            lostInTimeouts, problemRef, blockerComment);
     }
 
     /** {@inheritDoc} */

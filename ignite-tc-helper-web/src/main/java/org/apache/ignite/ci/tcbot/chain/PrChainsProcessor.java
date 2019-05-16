@@ -37,6 +37,7 @@ import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
@@ -72,6 +73,8 @@ public class PrChainsProcessor {
     @Inject private IJiraIgnitedProvider jiraIgnProv;
 
     @Inject private BranchTicketMatcher ticketMatcher;
+
+    @Inject private IStringCompactor compactor;
 
     /**
      * @param creds Credentials.
@@ -157,7 +160,7 @@ public class PrChainsProcessor {
                 runningUpdates.addAndGet(cnt0);
 
             //fail rate reference is always default (master)
-            chainStatus.initFromContext(tcIgnited, ctx, baseBranch);
+            chainStatus.initFromContext(tcIgnited, ctx, baseBranch, compactor);
 
             chainStatus.initJiraAndGitInfo(ticketMatcher, jiraIntegration, gitHubConnIgnited);
         }

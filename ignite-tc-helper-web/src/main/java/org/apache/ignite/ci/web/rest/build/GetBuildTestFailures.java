@@ -23,6 +23,7 @@ import java.text.ParseException;
 import com.google.inject.Injector;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
@@ -144,7 +145,7 @@ public class GetBuildTestFailures {
         if (cnt > 0)
             runningUpdates.addAndGet(cnt);
 
-        chainStatus.initFromContext(tcIgnited, ctx, failRateBranch);
+        chainStatus.initFromContext(tcIgnited, ctx, failRateBranch, injector.getInstance(IStringCompactor.class));
 
         res.addChainOnServer(chainStatus);
 
