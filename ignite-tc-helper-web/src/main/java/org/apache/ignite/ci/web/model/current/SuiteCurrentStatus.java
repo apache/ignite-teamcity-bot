@@ -230,7 +230,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         tags = suite.tags();
 
-        blockerComment = suite.getPossibleBlockerComment(tcIgnited, compactor, baseBranchHist);
+        blockerComment = suite.getPossibleBlockerComment(compactor, baseBranchHist, tcIgnited.config());
 
         return this;
     }

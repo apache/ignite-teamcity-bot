@@ -748,6 +748,7 @@ public class IgnitedTcInMemoryIntegrationTest {
             ITcServerConfig tcCfg = mock(ITcServerConfig.class);
             when(tcCfg.logsDirectory()).thenReturn("logs");
             when(tcCfg.host()).thenReturn("http://ci.ignite.apache.org/");
+            when(tcCfg.trustedSuites()).thenReturn(new ArrayList<>());
             when(cfg.getTeamcityConfig(anyString())).thenReturn(tcCfg);
             when(cfg.getTrackedBranches()).thenReturn(new BranchesTracked());
 

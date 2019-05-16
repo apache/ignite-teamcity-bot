@@ -17,7 +17,6 @@
 package org.apache.ignite.ci.tcbot.chain;
 
 import com.google.common.base.Strings;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -226,23 +225,12 @@ public class PrChainsProcessor {
         return fullChainRunCtx
             .failedChildSuites()
             .map((ctx) -> {
-
                 String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
                 IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(new SuiteInBranch(ctx.suiteId(), normalizedBaseBranch));
 
-                String suiteComment = ctx.getPossibleBlockerComment(tcIgnited, compactor, statInBaseBranch);
+                String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 
-                // blocker found by suite results:
-                if (!Strings.isNullOrEmpty(suiteComment)) {
-                    return new SuiteCurrentStatus()
-                        .initFromContext(tcIgnited, ctx, baseBranch, compactor, false);
-                }
-
-                List<TestFailure> failures = new ArrayList<>();
-
-                SuiteCurrentStatus suiteUi = new SuiteCurrentStatus();
-
-                ctx.getFailedTests().forEach(occurrence -> {
+                List<TestFailure> failures =  ctx.getFailedTests().stream().map(occurrence -> {
                     IRunHistory stat = tcIgnited.getTestRunHist(new TestInBranch(occurrence.getName(), normalizedBaseBranch));
 
                     String testBlockerComment = occurrence.getPossibleBlockerComment(stat);
@@ -252,11 +240,16 @@ public class PrChainsProcessor {
 
                         failure.initFromOccurrence(occurrence, tcIgnited, ctx.projectId(), ctx.branchName(), baseBranch);
 
-                        suiteUi.testFailures.add(failure);
+                        return failure;
                     }
-                });
+                    return null;
+                }).filter(Objects::nonNull).collect(Collectors.toList());
 
-                if (!suiteUi.testFailures.isEmpty()) {
+
+                // test failure based blockers and/or blocker found by suite results
+                if (!failures.isEmpty() || !Strings.isNullOrEmpty(suiteComment)) {
+
+                    SuiteCurrentStatus suiteUi = new SuiteCurrentStatus();
                     suiteUi.testFailures = failures;
 
                     suiteUi.initFromContext(tcIgnited, ctx, baseBranch, compactor, false);

@@ -32,12 +32,12 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
@@ -481,13 +481,13 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     /**
      * Classify suite if it is blossible blocker or not.
-     * @param tcIgnited Tc ignited.
      * @param compactor Compactor.
      * @param baseBranchHist Base branch history for suite.
+     * @param tcSrvCfg
      */
-    @NotNull public String getPossibleBlockerComment(ITeamcityIgnited tcIgnited,
-        @Nonnull IStringCompactor compactor,
-        @Nullable IRunHistory baseBranchHist) {
+    @NotNull public String getPossibleBlockerComment(@Nonnull IStringCompactor compactor,
+        @Nullable IRunHistory baseBranchHist,
+        @Nonnull ITcServerConfig tcSrvCfg) {
         StringBuilder res = new StringBuilder();
 
         long cancelledCnt = getCancelledBuildsCount();
@@ -508,7 +508,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         addKnownProblemAsPossibleBlocker(res, "Out Of Memory Error", getOomeProblemCount(), baseBranchHist, false);
         addKnownProblemAsPossibleBlocker(res, "Exit Code", getExitCodeProblemsCount(), baseBranchHist, false);
 
-        if(hasAnyBuildProblemExceptTestOrSnapshot() && tcIgnited.config().trustedSuites().contains(suiteId())) {
+        if(hasAnyBuildProblemExceptTestOrSnapshot() && tcSrvCfg.trustedSuites().contains(suiteId())) {
             res.append("Suite is trusted but has build problems");
 
             res.append("[");

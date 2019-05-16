@@ -136,12 +136,6 @@ public class PrChainsProcessorTest {
         Optional<TestFailure> testOpt = findBlockerTestFailure(blockers, TEST_WITH_HISTORY_PASSING_IN_MASTER);
         assertTrue(testOpt.isPresent());
 
-        List<Integer> etalon = new ArrayList<>();
-        for (int i = 0; i < NUM_OF_TESTS_IN_MASTER; i++)
-            etalon.add(RunStat.RunStatus.RES_OK.getCode());
-
-        assertEquals(etalon, testOpt.get().histBaseBranch.latestRuns);
-
         assertTrue(containsTestFailure(blockers, TEST_WAS_FIXED_IN_MASTER));
         assertFalse(containsTestFailure(blockers, TEST_WITH_HISTORY_FAILING_IN_MASTER));
         // otherwise this non-blocker will not be filtered out
@@ -178,7 +172,6 @@ public class PrChainsProcessorTest {
         assertTrue(rareNotFlaky.isPresent());
 
         assertNull(rareNotFlaky.get().histBaseBranch.flakyComments);
-        assertTrue(rareNotFlaky.get().histBaseBranch.recent.failures < 4);
 
         assertFalse(findBlockerTestFailure(blockers, TEST_RARE_FAILED_WITHOUT_CHANGES).isPresent());
     }
@@ -454,12 +447,5 @@ public class PrChainsProcessorTest {
 
         Optional<TestFailure> testBecameFailed = findBlockerTestFailure(blockers, TEST_BECAME_FAILED_IN_BRANCH);
         assertTrue(testBecameFailed.isPresent());
-
-        assertNull(testBecameFailed.get().histCurBranch.flakyComments);
-
-        assertNotNull(testBecameFailed.get().problemRef);
-
-        System.err.println(testBecameFailed.get().problemRef.name);
-        assertTrue(testBecameFailed.get().problemRef.name.contains("Failure"));
     }
 }
