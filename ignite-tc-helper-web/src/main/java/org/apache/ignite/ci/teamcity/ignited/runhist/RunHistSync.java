@@ -90,7 +90,7 @@ public class RunHistSync {
         if (ITeamcity.REFS_HEADS_MASTER.equals(branch))
             return ITeamcity.DEFAULT;
 
-        if ("master".equals(branch))
+        if (ITeamcity.MASTER.equals(branch))
             return ITeamcity.DEFAULT;
 
         return branch;

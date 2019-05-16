@@ -17,16 +17,16 @@
 package org.apache.ignite.ci.tcbot.chain;
 
 import com.google.common.base.Strings;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -36,10 +36,12 @@ import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
@@ -72,6 +74,8 @@ public class PrChainsProcessor {
     @Inject private IJiraIgnitedProvider jiraIgnProv;
 
     @Inject private BranchTicketMatcher ticketMatcher;
+
+    @Inject private IStringCompactor compactor;
 
     /**
      * @param creds Credentials.
@@ -157,7 +161,7 @@ public class PrChainsProcessor {
                 runningUpdates.addAndGet(cnt0);
 
             //fail rate reference is always default (master)
-            chainStatus.initFromContext(tcIgnited, ctx, baseBranch);
+            chainStatus.initFromContext(tcIgnited, ctx, baseBranch, compactor);
 
             chainStatus.initJiraAndGitInfo(ticketMatcher, jiraIntegration, gitHubConnIgnited);
         }
@@ -185,78 +189,77 @@ public class PrChainsProcessor {
 
     @Nullable
     public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
-        ICredentialsProv prov, SyncMode queued) {
-        List<SuiteCurrentStatus> res = new ArrayList<>();
+        ICredentialsProv prov, SyncMode syncMode) {
+        //using here non persistent TC allows to skip update statistic
+        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, prov);
+        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvId, prov);
 
-        TestFailuresSummary summary = getTestFailuresSummary(
-            prov, srvId, buildTypeId, branchForTc,
-            FullQueryParams.LATEST, null, null, false, queued);
+        List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
-        boolean noBuilds = summary.servers.stream().anyMatch(s -> s.buildNotFound);
+        String baseBranch = ITeamcity.DEFAULT;
 
-        if (noBuilds)
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
+            tcIgnited,
+            hist,
+            LatestRebuildMode.LATEST,
+            ProcessLogsMode.SUITE_NOT_COMPLETE,
+            true,
+            baseBranch,
+            syncMode);
+
+        if (ctx.isFakeStub())
             return null;
 
-        for (ChainAtServerCurrentStatus server : summary.servers) {
-            Map<String, List<SuiteCurrentStatus>> fails = findBlockerFailures(server);
-
-            fails.forEach((k, v) -> res.addAll(v));
-        }
-
-        return res;
+        return findBlockerFailures(ctx, tcIgnited, baseBranch);
     }
 
     /**
-     * @param srv Server.
      * @return Failures for given server.
+     * @param fullChainRunCtx
+     * @param tcIgnited
+     * @param baseBranch
      */
-    private Map<String, List<SuiteCurrentStatus>> findBlockerFailures(ChainAtServerCurrentStatus srv) {
-        Map<String, List<SuiteCurrentStatus>> fails = new LinkedHashMap<>();
+    //todo may avoid creation of UI model for simple comment.
+    private List<SuiteCurrentStatus> findBlockerFailures(FullChainRunCtx fullChainRunCtx, ITeamcityIgnited tcIgnited,
+        String baseBranch) {
+        return fullChainRunCtx
+            .failedChildSuites()
+            .map((ctx) -> {
+                String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
+                IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(new SuiteInBranch(ctx.suiteId(), normalizedBaseBranch));
 
-        for (SuiteCurrentStatus suite : srv.suites) {
-            String suiteRes = suite.result.toLowerCase();
-            String failType = null;
+                String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 
-            if (suiteRes.contains("compilation"))
-                failType = "compilation";
+                List<TestFailure> failures =  ctx.getFailedTests().stream().map(occurrence -> {
+                    IRunHistory stat = tcIgnited.getTestRunHist(new TestInBranch(occurrence.getName(), normalizedBaseBranch));
 
-            if (suiteRes.contains("timeout"))
-                failType = "timeout";
+                    String testBlockerComment = occurrence.getPossibleBlockerComment(stat);
 
-            if (suiteRes.contains("exit code"))
-                failType = "exit code";
+                    if (!Strings.isNullOrEmpty(testBlockerComment)) {
+                        final TestFailure failure = new TestFailure();
 
-            if (suiteRes.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK.toLowerCase()))
-                failType = "java level deadlock";
+                        failure.initFromOccurrence(occurrence, tcIgnited, ctx.projectId(), ctx.branchName(), baseBranch);
 
-            if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_MESSAGE.toLowerCase()))
-                failType = "build failure on message";
+                        return failure;
+                    }
+                    return null;
+                }).filter(Objects::nonNull).collect(Collectors.toList());
 
-            if (suiteRes.contains(ProblemOccurrence.BUILD_FAILURE_ON_METRIC.toLowerCase()))
-                failType = "build failure on metrics";
 
-            if (suiteRes.contains(MultBuildRunCtx.CANCELLED.toLowerCase()))
-                failType = MultBuildRunCtx.CANCELLED.toLowerCase();
+                // test failure based blockers and/or blocker found by suite results
+                if (!failures.isEmpty() || !Strings.isNullOrEmpty(suiteComment)) {
 
-            if (failType == null) {
-                List<TestFailure> failures = new ArrayList<>();
+                    SuiteCurrentStatus suiteUi = new SuiteCurrentStatus();
+                    suiteUi.testFailures = failures;
 
-                for (TestFailure testFailure : suite.testFailures) {
-                    if (testFailure.isNewFailedTest())
-                        failures.add(testFailure);
+                    suiteUi.initFromContext(tcIgnited, ctx, baseBranch, compactor, false);
+
+                    return suiteUi;
                 }
 
-                if (!failures.isEmpty()) {
-                    suite.testFailures = failures;
-
-                    failType = "failed tests";
-                }
-            }
-
-            if (failType != null)
-                fails.computeIfAbsent(failType, k -> new ArrayList<>()).add(suite);
-        }
-
-        return fails;
+                return null;
+            })
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
     }
 }

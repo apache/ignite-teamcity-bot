@@ -21,6 +21,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.inject.Provider;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.Nonnull;
+import javax.inject.Inject;
+import javax.ws.rs.QueryParam;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.github.GitHubBranch;
 import org.apache.ignite.ci.github.GitHubUser;
@@ -40,12 +56,20 @@ import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
 import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.teamcity.ignited.*;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.model.*;
+import org.apache.ignite.ci.web.model.ContributionKey;
+import org.apache.ignite.ci.web.model.JiraCommentResponse;
+import org.apache.ignite.ci.web.model.SimpleResult;
+import org.apache.ignite.ci.web.model.Visa;
+import org.apache.ignite.ci.web.model.VisaRequest;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
@@ -56,16 +80,9 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.inject.Inject;
-import javax.ws.rs.QueryParam;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.apache.ignite.ci.observer.BuildsInfo.*;
+import static org.apache.ignite.ci.observer.BuildsInfo.CANCELLED_STATUS;
+import static org.apache.ignite.ci.observer.BuildsInfo.FINISHED_STATUS;
+import static org.apache.ignite.ci.observer.BuildsInfo.RUNNING_STATUS;
 import static org.apache.ignite.ci.util.XmlUtil.xmlEscapeText;
 
 /**
@@ -711,14 +728,7 @@ public class TcBotTriggerAndSignOffService {
         if (suitesStatuses == null)
             return status;
 
-        status.blockers = suitesStatuses.stream()
-            .mapToInt(suite -> {
-                if (suite.testFailures.isEmpty())
-                    return 1;
-
-                return suite.testFailures.size();
-            })
-            .sum();
+        status.blockers = suitesStatuses.stream().mapToInt(SuiteCurrentStatus::totalBlockers).sum();
 
         return status;
     }

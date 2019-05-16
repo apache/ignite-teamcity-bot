@@ -28,6 +28,7 @@ import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
+import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
@@ -52,10 +53,12 @@ public class TrackedBranchChainsProcessor {
     @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
 
     /** Tc Bot config. */
-    @Inject private ITcBotConfig tcBotConfig;
+    @Inject private ITcBotConfig tcBotCfg;
 
     /** Chains processor. */
     @Inject private BuildChainProcessor chainProc;
+
+    @Inject private IStringCompactor compactor;
 
     @AutoProfiling
     @NotNull
@@ -71,7 +74,7 @@ public class TrackedBranchChainsProcessor {
         final String branchNn = isNullOrEmpty(branch) ? TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
         res.setTrackedBranch(branchNn);
 
-        final BranchTracked tracked = tcBotConfig.getTrackedBranches().getBranchMandatory(branchNn);
+        final BranchTracked tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
 
         tracked.chains.stream()
             .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverId, creds))
@@ -119,7 +122,7 @@ public class TrackedBranchChainsProcessor {
                 if (cnt > 0)
                     runningUpdates.addAndGet(cnt);
 
-                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc);
+                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor);
 
                 return chainStatus;
             })
@@ -144,7 +147,7 @@ public class TrackedBranchChainsProcessor {
         FullLRTestsSummary summary = new FullLRTestsSummary();
 
         final String branchNn = isNullOrEmpty(branch) ? TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
-        final BranchTracked tracked = tcBotConfig.getTrackedBranches().getBranchMandatory(branchNn);
+        final BranchTracked tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
 
         tracked.chains.stream()
             .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverId, creds))

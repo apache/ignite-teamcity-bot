@@ -36,9 +36,9 @@ import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.model.hist.TestHistory;
 import org.jetbrains.annotations.NotNull;
 
+import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normalizeBranch;
 import static org.apache.ignite.ci.util.TimeUtil.millisToDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
-import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchForLink;
 
 /**
  * UI model for test failure, probably merged with its history
@@ -88,10 +88,13 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
     /** Link to test history for current branch. */
     @Nullable public String webUrlBaseBranch;
 
+    /** Blocker comment: indicates test seems to be introduced failure. */
+    @Nullable public String blockerComment;
+
     /**
-     * @param failure
-     * @param tcIgn
-     * @param projectId
+     * @param failure test ocurrence (probably multiple)
+     * @param tcIgn Teamcity.
+     * @param projectId project ID.
      * @param branchName
      * @param baseBranchName base branch name (e.g. master).
      */
@@ -142,6 +145,9 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
                     webUrlBaseBranch = buildWebLink(tcIgn, full.test.id, projectId, baseBranchName);
         });
 
+        final IRunHistory stat = tcIgn.getTestRunHist(new TestInBranch(name, normalizeBranch(baseBranchName)));
+
+        blockerComment = failure.getPossibleBlockerComment(stat);
     }
 
     /**
@@ -176,7 +182,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         if (projectId == null)
             return null;
 
-        final String branch = branchForLink(branchName);
+        final String branch = normalizeBranch(branchName);
 
         return tcIgn.host() + "project.html"
             + "?projectId=" + projectId
@@ -194,9 +200,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
         String failRateNormalizedBranch,
         String curBranchNormalized) {
 
-        TestInBranch testInBranch = new TestInBranch(name, failRateNormalizedBranch);
-
-        final IRunHistory stat = tcIgnited.getTestRunHist(testInBranch);
+        final IRunHistory stat = tcIgnited.getTestRunHist(new TestInBranch(name, failRateNormalizedBranch));
 
         histBaseBranch.init(stat);
 
@@ -228,6 +232,7 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
     /**
      * @return {@code True} if this failure is appeared in the current branch.
      */
+    @Deprecated
     public boolean isNewFailedTest() {
         if (!Strings.isNullOrEmpty(webIssueUrl))
             return false;
@@ -265,17 +270,26 @@ import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchFo
             Objects.equals(problemRef, failure.problemRef) &&
             Objects.equals(histCurBranch, failure.histCurBranch) &&
             Objects.equals(histBaseBranch, failure.histBaseBranch) &&
-            Objects.equals(webUrlBaseBranch, failure.webUrlBaseBranch);
+            Objects.equals(webUrlBaseBranch, failure.webUrlBaseBranch) &&
+            Objects.equals(blockerComment, failure.blockerComment);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(name, suiteName, testName, curFailures, webUrl, webIssueUrl, webIssueText, investigated,
-            durationPrintable, warnings, problemRef, histCurBranch, histBaseBranch, webUrlBaseBranch);
+        return Objects.hash(name, suiteName, testName, curFailures, webUrl, webIssueUrl, webIssueText,
+            investigated, durationPrintable, warnings, problemRef, histCurBranch, histBaseBranch,
+            webUrlBaseBranch, blockerComment);
     }
 
     /** {@inheritDoc} */
     @Override public String toString() {
         return "\t" + name + "\n";
+    }
+
+    /**
+     *
+     */
+    public boolean isPossibleBlocker() {
+        return !Strings.isNullOrEmpty(blockerComment);
     }
 }

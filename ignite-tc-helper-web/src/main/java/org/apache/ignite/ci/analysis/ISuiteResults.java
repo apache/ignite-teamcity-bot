@@ -22,18 +22,25 @@ package org.apache.ignite.ci.analysis;
  */
 public interface ISuiteResults {
     /** */
-    boolean hasCompilationProblem();
+    public boolean hasCompilationProblem();
 
     /** */
-    boolean hasMetricProblem();
+    public boolean hasMetricProblem();
 
-    boolean hasTimeoutProblem();
+    /** */
+    public boolean hasTimeoutProblem();
 
-    boolean hasJvmCrashProblem();
+    /** */
+    public boolean hasJvmCrashProblem();
 
-    boolean hasOomeProblem();
+    /** */
+    public boolean hasOomeProblem();
 
-    boolean hasExitCodeProblem();
+    /** */
+    public boolean hasExitCodeProblem();
+
+    /** */
+    public boolean hasBuildMessageProblem();
 
     default boolean hasCriticalProblem() {
         return hasJvmCrashProblem()
@@ -51,5 +58,5 @@ public interface ISuiteResults {
             || hasMetricProblem();
     }
 
-    String suiteId();
+    public String suiteId();
 }

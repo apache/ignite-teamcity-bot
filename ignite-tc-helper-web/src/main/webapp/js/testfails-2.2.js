@@ -242,7 +242,7 @@ function showChainCurrentStatusData(chain, settings) {
         for (var l = 0; l < chain.suites.length; l++) {
             var suite0 = chain.suites[l];
 
-            var suiteOrNull = suiteWithCriticalFailuresOnly(suite0);
+            var suiteOrNull = filterPossibleBlocker(suite0);
 
             if (suiteOrNull != null) {
                 if (blockersList.length !== 0)
@@ -266,7 +266,7 @@ function showChainCurrentStatusData(chain, settings) {
         //     res+="<br>";
 
         if (settings.isJiraAvailable())
-            res+="<br>";
+            res += "<br>";
 
         res += "Base branch";
         res += ": " + chain.baseBranchForTc.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -305,7 +305,7 @@ function addBlockersData(server, settings) {
     for (var i = 0; i < server.suites.length; i++) {
         var suite = server.suites[i];
 
-        suite = suiteWithCriticalFailuresOnly(suite);
+        suite = filterPossibleBlocker(suite);
 
         if (suite != null)
             blockers += showSuiteData(suite, settings, server.prNum);
@@ -317,9 +317,14 @@ function addBlockersData(server, settings) {
             "<th class='table-title'>Base Branch</th></tr>";
     }
     else {
-        blockers = "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>Possible Blockers</b></th>" +
-            "<th class='table-title'>Base Branch</th></tr>" +
-            blockers
+        let blockersHeader = "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>Possible Blockers";
+
+        if (isDefinedAndFilled(server.totalBlockers))
+            blockersHeader += " (" + server.totalBlockers + ")";
+
+        blockersHeader += "</b></th>" +  "<th class='table-title'>Base Branch</th></tr>";
+
+        blockers = blockersHeader + blockers;
     }
 
     blockers += "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>All Failures</b></th>" +
@@ -334,8 +339,9 @@ function addBlockersData(server, settings) {
  * @param suite - see SuiteCurrentStatus Java class.
  * @returns Suite without flaky tests. Or null - if suite have only flaky tests.
  */
-function suiteWithCriticalFailuresOnly(suite) {
+function filterPossibleBlocker(suite) {
     var suite0 = Object.assign({}, suite);
+
     var j = 0;
 
     suite0.testFailures = suite0.testFailures.slice();
@@ -343,69 +349,19 @@ function suiteWithCriticalFailuresOnly(suite) {
     while (j < suite0.testFailures.length) {
         var testFailure = suite0.testFailures[j];
 
-        if (isNewFailedTest(testFailure) || testFailure.name.includes("(last started)"))
+        if (isDefinedAndFilled(testFailure.blockerComment) && testFailure.blockerComment !== "")
             j++;
         else
             suite0.testFailures.splice(j, 1);
     }
 
-    if (suite0.testFailures.length > 0 || suite0.result !== "")
+    if(isDefinedAndFilled(suite.blockerComment) && suite.blockerComment!=="")
+        return suite0;
+
+    if (suite0.testFailures.length > 0)
         return suite0;
 
     return null;
-}
-
-/**
- * Send POST request to change PR status.
- *
- * @returns {string}
- */
-function notifyGit() {
-    var server = g_srv_to_notify_git;
-    var suites = 0;
-    var tests = 0;
-
-    for (let suite of server.suites) {
-        if (suite.result != "") {
-            suites++;
-
-            continue;
-        }
-
-        for (let testFailure of suite.testFailures) {
-            if (isNewFailedTest(testFailure))
-                tests++;
-        }
-    }
-
-    var state;
-    var desc;
-
-    if (suites === 0 && tests === 0) {
-        state = "success";
-        desc = "No blockers found.";
-    }
-    else {
-        state = "failure";
-        desc = suites + " critical suites, " + tests + " failed tests.";
-    }
-
-    var msg = {
-        state: state,
-        target_url: server.webToHist,
-        description: desc,
-        context: "TeamCity"
-    };
-
-    var notifyGitUrl = "rest/pr/notifyGit"  + parmsForRest();
-
-    $.ajax({
-        url: notifyGitUrl,
-        type: 'POST',
-        data: {notifyMsg: JSON.stringify(msg)},
-        success: function(result) {$("#loadStatus").html(result);},
-        error: showErrInLoadStatus
-    });
 }
 
 function triggerBuilds(serverId, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum) {
@@ -632,6 +588,10 @@ function showSuiteData(suite, settings, prNum) {
         }
     }
 
+    if(isDefinedAndFilled(suite.blockerComment) && suite.blockerComment!=="") {
+        res += "<span title='"+ suite.blockerComment +"'> &#x1f6ab;</span> "
+    }
+
     if(isDefinedAndFilled(suite.problemRef)) {
         res += "<span title='"+ suite.problemRef.name +"'>&#128030;</span> "
     }
@@ -691,8 +651,8 @@ function showSuiteData(suite, settings, prNum) {
         mInfo += "Top long running:<br>";
 
         mInfo += "<table>";
-        for (var i = 0; i < suite.topLongRunning.length; i++) {
-            mInfo += showTestFailData(suite.topLongRunning[i], false, settings);
+        for (var j = 0; j < suite.topLongRunning.length; j++) {
+            mInfo += showTestFailData(suite.topLongRunning[j], false, settings);
         }
         mInfo += "</table>";
     }
@@ -700,8 +660,8 @@ function showSuiteData(suite, settings, prNum) {
     if (isDefinedAndFilled(suite.warnOnly) && suite.warnOnly.length > 0) {
         mInfo += "Warn Only:<br>";
         mInfo += "<table>";
-        for (var i = 0; i < suite.warnOnly.length; i++) {
-            mInfo += showTestFailData(suite.warnOnly[i], false, settings);
+        for (var k = 0; k < suite.warnOnly.length; k++) {
+            mInfo += showTestFailData(suite.warnOnly[k], false, settings);
         }
         mInfo += "</table>";
     }
@@ -709,8 +669,8 @@ function showSuiteData(suite, settings, prNum) {
     if (isDefinedAndFilled(suite.logConsumers) && suite.logConsumers.length > 0) {
         mInfo += "Top Log Consumers:<br>";
         mInfo += "<table>";
-        for (var i = 0; i < suite.logConsumers.length; i++) {
-            mInfo += showTestFailData(suite.logConsumers[i], false, settings);
+        for (var l = 0; l < suite.logConsumers.length; l++) {
+            mInfo += showTestFailData(suite.logConsumers[l], false, settings);
         }
         mInfo += "</table>";
     }
@@ -752,32 +712,6 @@ function showSuiteData(suite, settings, prNum) {
     res += "<tr><td>&nbsp;</td><td width='12px'>&nbsp;</td><td colspan='2'></td></tr>";
 
     return res;
-}
-
-/**
- * Check that given test is new.
- *
- * @param testFail - see TestFailure Java class.
- * @returns {boolean} True - if test is new. False - otherwise.
- */
-function isNewFailedTest(testFail) {
-    if (isDefinedAndFilled(testFail.webIssueUrl))
-        return false;
-
-    if (!isDefinedAndFilled(testFail.histBaseBranch) || !isDefinedAndFilled(testFail.histBaseBranch.latestRuns))
-        return true;
-
-    var hist = testFail.histBaseBranch;
-
-    if (!isDefinedAndFilled(hist.recent))
-        return true;
-
-    var flakyCommentsInBase =
-        isDefinedAndFilled(testFail.histBaseBranch.flakyComments)
-            ? testFail.histBaseBranch.flakyComments
-            : null;
-
-    return Number.parseFloat(hist.recent.failureRate) < 4.0 && flakyCommentsInBase == null;
 }
 
 function failureRateToColor(failureRate) {
@@ -868,6 +802,10 @@ function showTestFailData(testFail, isFailureShown, settings) {
     }
     else {
         res += baseBranchMarks;
+    }
+
+    if (isDefinedAndFilled(testFail.blockerComment) && testFail.blockerComment !== "") {
+        res += "<span title='" + testFail.blockerComment + "'> &#x1f6ab;</span> "
     }
 
     var bold = false;

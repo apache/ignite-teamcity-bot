@@ -32,9 +32,11 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
+import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
@@ -94,6 +96,11 @@ public class MultBuildRunCtx implements ISuiteResults {
         return firstBuildInfo.suiteId();
     }
 
+    /** {@inheritDoc} */
+    @Override public boolean hasBuildMessageProblem() {
+        return getBuildMessageProblemCount() > 0;
+    }
+
     public String buildTypeId() {
         return firstBuildInfo.buildTypeId;
     }
@@ -107,8 +114,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().allMatch(bCtx -> !bCtx.isComposite() && bCtx.isCancelled());
     }
 
-    @NotNull
-    private Stream<ProblemCompacted> allProblemsInAllBuilds() {
+    @NotNull public Stream<ProblemCompacted> allProblemsInAllBuilds() {
         return buildsStream().flatMap(SingleBuildRunCtx::getProblemsStream);
     }
 
@@ -124,6 +130,11 @@ public class MultBuildRunCtx implements ISuiteResults {
     /** */
     public long getMetricProblemCount() {
         return buildsStream().filter(ISuiteResults::hasMetricProblem).count();
+    }
+
+    /** */
+    public long getBuildMessageProblemCount() {
+        return buildsStream().filter(ISuiteResults::hasBuildMessageProblem).count();
     }
 
     /** {@inheritDoc} */
@@ -184,7 +195,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     public String getResult() {
         StringBuilder res = new StringBuilder();
 
-        long cancelledCnt = buildsStream().filter(bCtx -> !bCtx.isComposite() && bCtx.isCancelled()).count();
+        long cancelledCnt = getCancelledBuildsCount();
 
         if (cancelledCnt > 0) {
             res.append(CANCELLED);
@@ -221,15 +232,21 @@ public class MultBuildRunCtx implements ISuiteResults {
             }
         }
 
-        List<LogCheckResult> collect = getLogChecksIfFinished().collect(Collectors.toList());
-
-        long javaDeadlocks = collect.stream().map(LogCheckResult::getCustomProblems)
-            .filter(set -> set.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK))
-            .count();
-
-        addKnownProblemCnt(res, ProblemOccurrence.JAVA_LEVEL_DEADLOCK, javaDeadlocks);
+        addKnownProblemCnt(res, ProblemOccurrence.JAVA_LEVEL_DEADLOCK, getJavaLevelDeadlocksCount());
 
         return res.toString();
+    }
+
+    public long getJavaLevelDeadlocksCount() {
+        List<LogCheckResult> collect = getLogChecksIfFinished().collect(Collectors.toList());
+
+        return collect.stream().map(LogCheckResult::getCustomProblems)
+            .filter(set -> set.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK))
+            .count();
+    }
+
+    public long getCancelledBuildsCount() {
+        return buildsStream().filter(bCtx -> !bCtx.isComposite() && bCtx.isCancelled()).count();
     }
 
     public void addKnownProblemCnt(StringBuilder res, String nme, long execToCnt) {
@@ -460,5 +477,94 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     public Set<String> tags() {
         return buildsStream().flatMap(b -> b.tags().stream()).collect(Collectors.toSet());
+    }
+
+    /**
+     * Classify suite if it is blossible blocker or not.
+     * @param compactor Compactor.
+     * @param baseBranchHist Base branch history for suite.
+     * @param tcSrvCfg
+     */
+    @NotNull public String getPossibleBlockerComment(@Nonnull IStringCompactor compactor,
+        @Nullable IRunHistory baseBranchHist,
+        @Nonnull ITcServerConfig tcSrvCfg) {
+        StringBuilder res = new StringBuilder();
+
+        long cancelledCnt = getCancelledBuildsCount();
+
+        if (cancelledCnt > 0) {
+            res.append("Suite was cancelled, cancellation is always a blocker ");
+
+            if (cancelledCnt > 1)
+                res.append(" [").append(cancelledCnt).append("] \n");
+        }
+
+        addKnownProblemAsPossibleBlocker(res, "Timeout", getExecutionTimeoutCount(), baseBranchHist, true);
+        addKnownProblemAsPossibleBlocker(res, "Jvm Crash", getJvmCrashProblemCount(), baseBranchHist, true);
+        addKnownProblemAsPossibleBlocker(res, "Failure on metric", getMetricProblemCount(), baseBranchHist, true);
+        addKnownProblemAsPossibleBlocker(res, "Compilation Error", getCompilationProblemCount(), baseBranchHist, true);
+
+        addKnownProblemAsPossibleBlocker(res, "Out Of Memory Error", getBuildMessageProblemCount(), baseBranchHist, false);
+        addKnownProblemAsPossibleBlocker(res, "Out Of Memory Error", getOomeProblemCount(), baseBranchHist, false);
+        addKnownProblemAsPossibleBlocker(res, "Exit Code", getExitCodeProblemsCount(), baseBranchHist, false);
+
+        if(hasAnyBuildProblemExceptTestOrSnapshot() && tcSrvCfg.trustedSuites().contains(suiteId())) {
+            res.append("Suite is trusted but has build problems");
+
+            res.append("[");
+            res.append(allProblemsInAllBuilds()
+                .filter(p -> !p.isFailedTests(compactor) && !p.isSnapshotDepProblem(compactor))
+                .map(p -> p.type(compactor)).distinct().collect(Collectors.joining(", ")));
+            res.append("] ");
+
+            appendFailRate(baseBranchHist, res).append(" \n");
+        }
+
+        long jldl = getJavaLevelDeadlocksCount();
+        if (jldl > 0) {
+            res.append("Java Level Deadlock detected, it is unconditional blocker")
+                .append(" ")
+                .append(jldl > 1 ? "[" + jldl + "]" : "")
+                .append(" \n");
+        }
+
+        return res.toString();
+    }
+
+    public void addKnownProblemAsPossibleBlocker(StringBuilder res, String nme, long execToCnt,
+        @Nullable IRunHistory baseBranchHist, boolean critical) {
+        if (execToCnt <= 0)
+            return;
+
+        res.append(nme).append(" is a blocker. ");
+
+        if (critical)
+            appendCriticalFailRate(baseBranchHist, res);
+        else
+            appendFailRate(baseBranchHist, res);
+
+        res.append(execToCnt > 1 ? "[" + execToCnt + "]" : "").append(" \n");
+    }
+
+    public StringBuilder appendFailRate(IRunHistory baseBranchHist, StringBuilder res) {
+        if (baseBranchHist == null)
+            return res;
+
+        res.append("Base branch fail rate is ");
+        res.append(baseBranchHist.getFailPercentPrintable());
+        res.append("% ");
+
+        return res;
+    }
+
+    public StringBuilder appendCriticalFailRate(IRunHistory baseBranchHist, StringBuilder res) {
+        if (baseBranchHist == null)
+            return res;
+
+        res.append("Base branch critical fail rate is ");
+        res.append(baseBranchHist.getCriticalFailPercentPrintable());
+        res.append("% ");
+
+        return res;
     }
 }

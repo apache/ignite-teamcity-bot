@@ -32,7 +32,7 @@ public interface ITeamcityIgnitedProvider {
      */
     public ITeamcityIgnited server(String srvCode, @Nullable ICredentialsProv prov);
 
-    default void checkAccess(@Nullable String srvCode, ICredentialsProv credsProv) {
+    public default void checkAccess(@Nullable String srvCode, ICredentialsProv credsProv) {
         if (!hasAccess(srvCode, credsProv))
             throw ServiceUnauthorizedException.noCreds(srvCode);
     }

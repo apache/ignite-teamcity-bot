@@ -33,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("WeakerAccess")
 @Persisted
 public class Issue {
-    /** Type. Null of older versions of issue */
+    /** Type code. Null of older versions of issue */
     @Nullable
     private String type;
 
@@ -55,7 +55,10 @@ public class Issue {
     @Nullable
     public String displayName;
 
+    /** Build start timestamp. */
     @Nullable public Long buildStartTs;
+
+    /** Detected timestamp. */
     @Nullable public Long detectedTs;
 
     public Issue(IssueKey issueKey, IssueType type) {
@@ -208,5 +211,9 @@ public class Issue {
         }
 
         return sb.toString();
+    }
+
+    public String type() {
+        return type;
     }
 }

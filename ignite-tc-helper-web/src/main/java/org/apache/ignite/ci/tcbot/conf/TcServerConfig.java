@@ -56,6 +56,9 @@ public class TcServerConfig implements ITcServerConfig {
     /** Build parameters which may be used for filtering. */
     @Nullable private List<BuildParameterSpec> filteringParameters = new ArrayList<>();
 
+    /** Trusted suites. */
+    @Nullable private List<String> trustedSuites = new ArrayList<>();
+
     public TcServerConfig() {
 
     }
@@ -125,6 +128,14 @@ public class TcServerConfig implements ITcServerConfig {
             return Collections.emptySet();
 
         return Collections.unmodifiableList(filteringParameters);
+    }
+
+    /** {@inheritDoc} */
+    @NotNull @Override public Collection<String> trustedSuites() {
+        if (trustedSuites == null || trustedSuites.isEmpty())
+            return Collections.emptySet();
+
+        return Collections.unmodifiableList(trustedSuites);
     }
 
     /**

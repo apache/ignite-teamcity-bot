@@ -17,28 +17,49 @@
 
 package org.apache.ignite.ci.issue;
 
+/**
+ * Type of Issue detectable by the Bot.
+ */
 public enum IssueType {
+    /** New failure. */
     newFailure("newFailure", "New test failure"),
-    newContributedTestFailure("newContributedTestFailure",
-        "Recently contributed test failed"),
 
-    newFailureForFlakyTest("newFailureForFlakyTest",
-        "New stable failure of a flaky test"),
+    /** New contributed test failure. */
+    newContributedTestFailure("newContributedTestFailure", "Recently contributed test failed"),
 
-    newCriticalFailure("newCriticalFailure", "New Critical Failure");
+    /** New failure for flaky test. */
+    newFailureForFlakyTest("newFailureForFlakyTest", "New stable failure of a flaky test"),
 
+    /** New critical failure. */
+    newCriticalFailure("newCriticalFailure", "New Critical Failure"),
+
+    /** New trusted suite failure. */
+    newTrustedSuiteFailure("newTrustedSuiteFailure", "New Trusted Suite failure");
+
+    /** Code. */
     private final String code;
+    /** Display name. */
     private final String displayName;
 
+    /**
+     * @param code Code.
+     * @param displayName Display name.
+     */
     private IssueType(String code, String displayName) {
         this.code = code;
         this.displayName = displayName;
     }
 
+    /**
+     *
+     */
     public String code() {
         return code;
     }
 
+    /**
+     *
+     */
     public String displayName() {
         return displayName;
     }

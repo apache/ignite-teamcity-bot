@@ -40,11 +40,22 @@ public interface ITcServerConfig {
     @NotNull public String logsDirectory();
 
     /**
-     * @return
+     * @return internal naming of default tracked branch for this server.
      */
     @NotNull public String defaultTrackedBranch();
 
+    /**
+     * @return set of build parameters codes, which could be used for filtering builds in RunHist/Invocations.
+     */
     @NotNull public Collection<String> filteringParametersKeys();
 
+    /**
+     * @return set of build parameters, which could be used for filtering builds in RunHist/Invocations.
+     */
     @NotNull public Collection<BuildParameterSpec> filteringParameters();
+
+    /**
+     * @return set of suite codes (build type IDs), failures in which should be threated as critical and notified.
+     */
+    @NotNull public Collection<String> trustedSuites();
 }
