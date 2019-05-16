@@ -134,10 +134,11 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
      */
     @Nullable public String blockerComment;
 
-    public void initFromContext(ITeamcityIgnited tcIgnited,
+    public SuiteCurrentStatus initFromContext(ITeamcityIgnited tcIgnited,
         @Nonnull final MultBuildRunCtx suite,
         @Nullable final String baseBranch,
-        @Nonnull IStringCompactor compactor) {
+        @Nonnull IStringCompactor compactor,
+        boolean includeTests) {
 
         name = suite.suiteName();
 
@@ -164,54 +165,55 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         webToHistBaseBranch = buildWebLink(tcIgnited, suite, baseBranch);
         webToBuild = buildWebLinkToBuild(tcIgnited, suite);
 
-        List<IMultTestOccurrence> tests = suite.getFailedTests();
-        Function<IMultTestOccurrence, Float> function = foccur -> {
-            TestInBranch testInBranch = new TestInBranch(foccur.getName(), failRateNormalizedBranch);
+        if (includeTests) {
+            List<IMultTestOccurrence> tests = suite.getFailedTests();
+            Function<IMultTestOccurrence, Float> function = foccur -> {
+                TestInBranch testInBranch = new TestInBranch(foccur.getName(), failRateNormalizedBranch);
 
-            IRunHistory apply = tcIgnited.getTestRunHist(testInBranch);
+                IRunHistory apply = tcIgnited.getTestRunHist(testInBranch);
 
-            return apply == null ? 0f : apply.getFailRate();
-        };
+                return apply == null ? 0f : apply.getFailRate();
+            };
 
-        tests.sort(Comparator.comparing(function).reversed());
+            tests.sort(Comparator.comparing(function).reversed());
 
-        tests.forEach(occurrence -> {
-            final TestFailure failure = new TestFailure();
-            failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(), baseBranch);
-            failure.initStat(tcIgnited, failRateNormalizedBranch, curBranchNormalized);
-
-            testFailures.add(failure);
-        });
-
-        suite.getTopLongRunning().forEach(occurrence -> {
-            final TestFailure failure = createOrrucForLongRun(tcIgnited, suite,
-                occurrence, baseBranch);
-
-            topLongRunning.add(failure);
-        });
-
-        suite.getCriticalFailLastStartedTest().forEach(
-            lastTest -> {
+            tests.forEach(occurrence -> {
                 final TestFailure failure = new TestFailure();
-                failure.name = lastTest + " (last started)";
+                failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(), baseBranch);
+                failure.initStat(tcIgnited, failRateNormalizedBranch, curBranchNormalized);
+
                 testFailures.add(failure);
-            }
-        );
+            });
 
-        suite.getLogsCheckResults().forEach(map -> {
-                map.forEach(
-                    (testName, logCheckResult) -> {
-                        if (logCheckResult.hasWarns())
-                            this.findFailureAndAddWarning(testName, logCheckResult);
+            suite.getTopLongRunning().forEach(occurrence -> {
+                final TestFailure failure = createOrrucForLongRun(tcIgnited, suite, occurrence, baseBranch);
 
-                    }
-                );
-            }
-        );
+                topLongRunning.add(failure);
+            });
 
-        suite.getTopLogConsumers().forEach(
-            (entry) -> logConsumers.add(createOccurForLogConsumer(entry))
-        );
+            suite.getCriticalFailLastStartedTest().forEach(
+                lastTest -> {
+                    final TestFailure failure = new TestFailure();
+                    failure.name = lastTest + " (last started)";
+                    testFailures.add(failure);
+                }
+            );
+
+            suite.getLogsCheckResults().forEach(map -> {
+                    map.forEach(
+                        (testName, logCheckResult) -> {
+                            if (logCheckResult.hasWarns())
+                                this.findFailureAndAddWarning(testName, logCheckResult);
+
+                        }
+                    );
+                }
+            );
+
+            suite.getTopLogConsumers().forEach(
+                (entry) -> logConsumers.add(createOccurForLogConsumer(entry))
+            );
+        }
 
         suite.getBuildsWithThreadDump().forEach(buildId -> {
             webUrlThreadDump = "/rest/" + GetBuildLog.GET_BUILD_LOG + "/" + GetBuildLog.THREAD_DUMP
@@ -229,6 +231,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         tags = suite.tags();
 
         blockerComment = suite.getPossibleBlockerComment(tcIgnited, compactor, baseBranchHist);
+
+        return this;
     }
 
     private IRunHistory initSuiteStat(ITeamcityIgnited tcIgnited,
@@ -406,5 +410,15 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public String branchName() {
         return branchName;
+    }
+
+    public int totalBlockers() {
+        int res = 0;
+        if (!Strings.isNullOrEmpty(blockerComment))
+            res++;
+
+        res += (int)testFailures.stream().filter(TestFailure::isPossibleBlocker).count();
+
+        return res;
     }
 }

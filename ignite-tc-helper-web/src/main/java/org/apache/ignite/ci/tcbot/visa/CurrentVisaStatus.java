@@ -17,5 +17,6 @@
 package org.apache.ignite.ci.tcbot.visa;
 
 public class CurrentVisaStatus {
+    /** Total Blockers count. */
     public Integer blockers;
 }

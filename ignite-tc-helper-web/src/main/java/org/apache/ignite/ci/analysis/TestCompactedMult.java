@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 
@@ -75,6 +76,23 @@ public class TestCompactedMult implements IMultTestOccurrence {
         return occurrences.stream()
             .map(testCompacted -> testCompacted.toTestOccurrence(compactor, 0))
             .collect(Collectors.toList());
+    }
+
+    @Override public String getPossibleBlockerComment(IRunHistory baseBranchStat) {
+        if (baseBranchStat == null)
+            return "History for base branch is absent.";
+
+        String flakyComments = baseBranchStat.getFlakyComments();
+
+        boolean lowFailureRate = baseBranchStat.getFailRate() * 100.0f < 4.;
+
+        if (lowFailureRate && flakyComments == null) {
+            return "Test has low fail rate in base branch "
+                + baseBranchStat.getFailPercentPrintable()
+                + "% and is not flaky";
+        }
+
+        return null;
     }
 
     public void add(TestCompacted next) {

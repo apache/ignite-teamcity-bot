@@ -317,9 +317,14 @@ function addBlockersData(server, settings) {
             "<th class='table-title'>Base Branch</th></tr>";
     }
     else {
-        blockers = "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>Possible Blockers</b></th>" +
-            "<th class='table-title'>Base Branch</th></tr>" +
-            blockers
+        let blockersHeader = "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>Possible Blockers";
+
+        if (isDefinedAndFilled(server.totalBlockers))
+            blockersHeader += " (" + server.totalBlockers + ")";
+
+        blockersHeader += "</b></th>" +  "<th class='table-title'>Base Branch</th></tr>";
+
+        blockers = blockersHeader + blockers;
     }
 
     blockers += "<tr bgcolor='#F5F5FF'><th colspan='3' class='table-title'><b>All Failures</b></th>" +
@@ -344,7 +349,7 @@ function filterPossibleBlocker(suite) {
     while (j < suite0.testFailures.length) {
         var testFailure = suite0.testFailures[j];
 
-        if (isNewFailedTest(testFailure) || testFailure.name.includes("(last started)"))
+        if (isDefinedAndFilled(testFailure.blockerComment) && testFailure.blockerComment !== "")
             j++;
         else
             suite0.testFailures.splice(j, 1);
@@ -357,59 +362,6 @@ function filterPossibleBlocker(suite) {
         return suite0;
 
     return null;
-}
-
-/**
- * Send POST request to change PR status.
- *
- * @returns {string}
- */
-function notifyGit() {
-    var server = g_srv_to_notify_git;
-    var suites = 0;
-    var tests = 0;
-
-    for (let suite of server.suites) {
-        if (suite.result != "") {
-            suites++;
-
-            continue;
-        }
-
-        for (let testFailure of suite.testFailures) {
-            if (isNewFailedTest(testFailure))
-                tests++;
-        }
-    }
-
-    var state;
-    var desc;
-
-    if (suites === 0 && tests === 0) {
-        state = "success";
-        desc = "No blockers found.";
-    }
-    else {
-        state = "failure";
-        desc = suites + " critical suites, " + tests + " failed tests.";
-    }
-
-    var msg = {
-        state: state,
-        target_url: server.webToHist,
-        description: desc,
-        context: "TeamCity"
-    };
-
-    var notifyGitUrl = "rest/pr/notifyGit"  + parmsForRest();
-
-    $.ajax({
-        url: notifyGitUrl,
-        type: 'POST',
-        data: {notifyMsg: JSON.stringify(msg)},
-        success: function(result) {$("#loadStatus").html(result);},
-        error: showErrInLoadStatus
-    });
 }
 
 function triggerBuilds(serverId, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum) {
@@ -762,32 +714,6 @@ function showSuiteData(suite, settings, prNum) {
     return res;
 }
 
-/**
- * Check that given test is new.
- *
- * @param testFail - see TestFailure Java class.
- * @returns {boolean} True - if test is new. False - otherwise.
- */
-function isNewFailedTest(testFail) {
-    if (isDefinedAndFilled(testFail.webIssueUrl))
-        return false;
-
-    if (!isDefinedAndFilled(testFail.histBaseBranch) || !isDefinedAndFilled(testFail.histBaseBranch.latestRuns))
-        return true;
-
-    var hist = testFail.histBaseBranch;
-
-    if (!isDefinedAndFilled(hist.recent))
-        return true;
-
-    var flakyCommentsInBase =
-        isDefinedAndFilled(testFail.histBaseBranch.flakyComments)
-            ? testFail.histBaseBranch.flakyComments
-            : null;
-
-    return Number.parseFloat(hist.recent.failureRate) < 4.0 && flakyCommentsInBase == null;
-}
-
 function failureRateToColor(failureRate) {
     var redSaturation = 255;
     var greenSaturation = 0;
@@ -876,6 +802,10 @@ function showTestFailData(testFail, isFailureShown, settings) {
     }
     else {
         res += baseBranchMarks;
+    }
+
+    if (isDefinedAndFilled(testFail.blockerComment) && testFail.blockerComment !== "") {
+        res += "<span title='" + testFail.blockerComment + "'> &#x1f6ab;</span> "
     }
 
     var bold = false;

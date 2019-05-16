@@ -114,6 +114,9 @@ public class ChainAtServerCurrentStatus {
 
     @Nullable public String baseBranchForTc;
 
+    /** Total blockers count. */
+    public int totalBlockers;
+
     public ChainAtServerCurrentStatus(String srvId, String branchTc) {
         this.serverId = srvId;
         this.branchName = branchTc;
@@ -184,15 +187,17 @@ public class ChainAtServerCurrentStatus {
             suite -> {
                 final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
 
-                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor);
+                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true);
 
                 failedTests += suiteCurStatus.failedTests;
                 if (suite.hasAnyBuildProblemExceptTestOrSnapshot() || suite.onlyCancelledBuilds())
                     failedToFinish++;
 
-                this.suites.add(suiteCurStatus);
+                suites.add(suiteCurStatus);
             }
         );
+
+        totalBlockers = suites.stream().mapToInt(SuiteCurrentStatus::totalBlockers).sum();
         durationPrintable = ctx.getDurationPrintable();
         testsDurationPrintable = ctx.getTestsDurationPrintable();
         durationNetTimePrintable = ctx.durationNetTimePrintable();

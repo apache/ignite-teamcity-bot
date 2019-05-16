@@ -27,6 +27,7 @@ import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
+import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.di.AutoProfiling;
@@ -189,7 +190,7 @@ public class PrChainsProcessor {
 
     @Nullable
     public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
-        ICredentialsProv prov, SyncMode queued) {
+        ICredentialsProv prov, SyncMode syncMode) {
         //using here non persistent TC allows to skip update statistic
         IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, prov);
         ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvId, prov);
@@ -205,7 +206,7 @@ public class PrChainsProcessor {
             ProcessLogsMode.SUITE_NOT_COMPLETE,
             true,
             baseBranch,
-            queued);
+            syncMode);
 
         if (ctx.isFakeStub())
             return null;
@@ -219,6 +220,7 @@ public class PrChainsProcessor {
      * @param tcIgnited
      * @param baseBranch
      */
+    //todo may avoid creation of UI model for simple comment.
     private List<SuiteCurrentStatus> findBlockerFailures(FullChainRunCtx fullChainRunCtx, ITeamcityIgnited tcIgnited,
         String baseBranch) {
         return fullChainRunCtx
@@ -228,33 +230,39 @@ public class PrChainsProcessor {
                 String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
                 IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(new SuiteInBranch(ctx.suiteId(), normalizedBaseBranch));
 
-                String comment = ctx.getPossibleBlockerComment(tcIgnited, compactor, statInBaseBranch);
+                String suiteComment = ctx.getPossibleBlockerComment(tcIgnited, compactor, statInBaseBranch);
 
-                //todo may avoid creation of UI model for simple comment.
-                SuiteCurrentStatus suiteUi = new SuiteCurrentStatus();
-
-                suiteUi.initFromContext(tcIgnited, ctx, baseBranch, compactor);
-
-                if (!Strings.isNullOrEmpty(comment))
-                    return suiteUi; // blocker found;
-
-                String failType = null;
+                // blocker found by suite results:
+                if (!Strings.isNullOrEmpty(suiteComment)) {
+                    return new SuiteCurrentStatus()
+                        .initFromContext(tcIgnited, ctx, baseBranch, compactor, false);
+                }
 
                 List<TestFailure> failures = new ArrayList<>();
 
-                for (TestFailure testFailure : suiteUi.testFailures) {
-                    if (testFailure.isNewFailedTest())
-                        failures.add(testFailure);
-                }
+                SuiteCurrentStatus suiteUi = new SuiteCurrentStatus();
 
-                if (!failures.isEmpty()) {
+                ctx.getFailedTests().forEach(occurrence -> {
+                    IRunHistory stat = tcIgnited.getTestRunHist(new TestInBranch(occurrence.getName(), normalizedBaseBranch));
+
+                    String testBlockerComment = occurrence.getPossibleBlockerComment(stat);
+
+                    if (!Strings.isNullOrEmpty(testBlockerComment)) {
+                        final TestFailure failure = new TestFailure();
+
+                        failure.initFromOccurrence(occurrence, tcIgnited, ctx.projectId(), ctx.branchName(), baseBranch);
+
+                        suiteUi.testFailures.add(failure);
+                    }
+                });
+
+                if (!suiteUi.testFailures.isEmpty()) {
                     suiteUi.testFailures = failures;
 
-                    failType = "failed tests";
-                }
+                    suiteUi.initFromContext(tcIgnited, ctx, baseBranch, compactor, false);
 
-                if (failType != null)
                     return suiteUi;
+                }
 
                 return null;
             })

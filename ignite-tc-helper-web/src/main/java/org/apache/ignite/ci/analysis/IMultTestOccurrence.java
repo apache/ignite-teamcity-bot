@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.analysis;
 
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 
 /**
  * Multiple test occurrence. For single build context - max 1 failure
@@ -32,4 +33,6 @@ public interface IMultTestOccurrence {
     public long getAvgDurationMs();
 
     Iterable<TestOccurrenceFull> getOccurrences();
+
+    String getPossibleBlockerComment(IRunHistory baseBranchStat);
 }
