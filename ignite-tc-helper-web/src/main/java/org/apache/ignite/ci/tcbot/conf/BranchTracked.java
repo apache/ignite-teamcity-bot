@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 import javax.validation.constraints.NotNull;
+import org.apache.ignite.ci.issue.IssueType;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -34,7 +35,7 @@ public class BranchTracked {
     /** */
     public List<ChainAtServerTracked> chains = new ArrayList<>();
 
-    /** Disable notifications for the following issue types. */
+    /** Disable notifications for the following issue types. See {@link IssueType#code()}  */
     @Nullable private List<String> disableIssueTypes = new ArrayList<>();
 
 
