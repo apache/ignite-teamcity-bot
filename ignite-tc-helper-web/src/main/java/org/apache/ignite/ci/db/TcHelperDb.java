@@ -96,11 +96,8 @@ public class TcHelperDb {
     /** */
     @NotNull
     public static <K, V> CacheConfiguration<K, V> getCacheV3Config(String name) {
-        CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
-
-        ccfg.setAffinity(new RendezvousAffinityFunction(false, 8));
-
-        return ccfg;
+        return new CacheConfiguration<K, V>(name)
+            .setAffinity(new RendezvousAffinityFunction(false, 8));
     }
 
     /** */

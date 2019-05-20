@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.io.IOException;
+import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -32,12 +33,15 @@ import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.teamcity.pure.TeamcityRecorder;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  */
 public class CtxListener implements ServletContextListener {
     /** Javax.Injector property code for servlet context. */
     public static final String INJECTOR = "injector";
+    @Nullable private static volatile Logger logger;
 
     public static Injector getInjector(ServletContext ctx) {
         return (Injector)ctx.getAttribute(INJECTOR);
@@ -70,6 +74,8 @@ public class CtxListener implements ServletContextListener {
             rootLog.removeHandler(handlers[i]);
 
         org.slf4j.bridge.SLF4JBridgeHandler.install();
+
+        logger = LoggerFactory.getLogger(CtxListener.class);
     }
 
     /** {@inheritDoc} */
@@ -79,7 +85,6 @@ public class CtxListener implements ServletContextListener {
         Injector injector = getInjector(ctx);
 
         try {
-
             injector.getInstance(IssueDetector.class).stop();
             injector.getInstance(TcUpdatePool.class).stop();
             injector.getInstance(BuildObserver.class).stop();
@@ -88,19 +93,29 @@ public class CtxListener implements ServletContextListener {
         }
         catch (Exception e) {
             e.printStackTrace();
+
+            if (logger != null)
+                logger.error("Exception during shutdown: " + e.getMessage(), e);
         }
 
         try {
             injector.getInstance(TeamcityRecorder.class).stop();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
+        catch (IOException e) {
+            e.printStackTrace();
 
+            if (logger != null)
+                logger.error("Exception during shutdown: " + e.getMessage(), e);
+        }
 
         try {
             TcHelperDb.stop(injector.getInstance(Ignite.class));
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
+
+            if (logger != null)
+                logger.error("Exception during shutdown: " + e.getMessage(), e);
         }
     }
 }

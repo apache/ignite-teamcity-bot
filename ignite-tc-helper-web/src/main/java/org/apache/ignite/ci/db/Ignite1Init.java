@@ -72,12 +72,6 @@ public class Ignite1Init {
     protected String ignitionStart() {
         System.out.println("Starting Ignite Server Node, " + Version.VERSION);
 
-       /* try {
-            Thread.sleep(30*1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }*/
-
         final IgniteConfiguration cfg = getIgniteConfiguration();
 
         this.ignite = Ignition.start(cfg);
@@ -90,11 +84,7 @@ public class Ignite1Init {
     @AutoProfiling
     protected String activate() {
         System.out.println("Activating Ignite Server Node, " + Version.VERSION);
-        /* try {
-            Thread.sleep(30*1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }*/
+
         ignite.cluster().active(true);
 
         System.out.println("Activate Completed");
@@ -140,13 +130,13 @@ public class Ignite1Init {
     }
 
     public Future<Ignite> getIgniteFuture() {
-        final FutureTask<Ignite> futureTask = new FutureTask<>(this::init);
+        final FutureTask<Ignite> futTask = new FutureTask<>(this::init);
 
-        if (igniteFutureRef.compareAndSet(null, futureTask)) {
-            final Thread thread = new Thread(futureTask, "ignite-1-init-thread");
+        if (igniteFutureRef.compareAndSet(null, futTask)) {
+            final Thread thread = new Thread(futTask, "ignite-1-init-thread");
             thread.start();
 
-            return futureTask;
+            return futTask;
         }
         else
             return igniteFutureRef.get();

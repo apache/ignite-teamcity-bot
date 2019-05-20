@@ -121,8 +121,10 @@ public class Ignite2Configurer {
 
     static DataStorageConfiguration getDataStorageConfiguration(DataRegionConfiguration regConf) {
         return new DataStorageConfiguration()
+            // .setWalCompactionEnabled(true)
             .setWalMode(WALMode.LOG_ONLY)
             .setWalHistorySize(1)
+            // .setMaxWalArchiveSize(4L * 1024 * 1024 * 1024)
             .setCheckpointFrequency(5 * 60 * 1000)
             .setWriteThrottlingEnabled(true)
             .setDefaultDataRegionConfiguration(regConf);
