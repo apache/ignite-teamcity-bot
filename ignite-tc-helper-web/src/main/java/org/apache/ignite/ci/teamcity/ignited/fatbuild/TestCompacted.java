@@ -26,7 +26,6 @@ import java.util.BitSet;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.function.BiPredicate;
-import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
 import org.apache.ignite.ci.tcmodel.hist.BuildRef;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
@@ -36,6 +35,7 @@ import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,7 +91,7 @@ public class TestCompacted {
         String testOccurrenceId = testOccurrence.getId();
         if (!Strings.isNullOrEmpty(testOccurrenceId)) {
             try {
-                final RunStat.TestId testId = RunStat.extractFullId(testOccurrenceId);
+                final TestId testId = extractFullId(testOccurrenceId);
                 if (testId != null)
                     idInBuild = testId.getTestId();
             } catch (Exception e) {
@@ -115,6 +115,42 @@ public class TestCompacted {
             testId = Long.valueOf(testOccurrence.test.id);
 
         setDetails(testOccurrence.details);
+    }
+
+    public static TestId extractFullId(String id) {
+        Integer buildId = extractIdPrefixed(id, "build:(id:", ")");
+
+        if (buildId == null)
+            return null;
+
+        Integer testId = extractIdPrefixed(id, "id:", ",");
+
+        if (testId == null)
+            return null;
+
+        return new TestId(buildId, testId);
+
+    }
+
+    public static Integer extractIdPrefixed(String id, String prefix, String postfix) {
+        try {
+            int buildIdIdx = id.indexOf(prefix);
+            if (buildIdIdx < 0)
+                return null;
+
+            int buildIdPrefixLen = prefix.length();
+            int absBuildIdx = buildIdIdx + buildIdPrefixLen;
+            int buildIdEndIdx = id.substring(absBuildIdx).indexOf(postfix);
+            if (buildIdEndIdx < 0)
+                return null;
+
+            String substring = id.substring(absBuildIdx, absBuildIdx + buildIdEndIdx);
+
+            return Integer.valueOf(substring);
+        }
+        catch (Exception ignored) {
+            return null;
+        }
     }
 
     private void setFlag(int off, Boolean val) {
@@ -401,5 +437,36 @@ public class TestCompacted {
         });
 
         return invocation.withParameters(importantParms);
+    }
+
+    /**
+     * Pair of build and test Ids.
+     */
+    private static class TestId {
+        int buildId;
+        int testId;
+
+        public TestId(Integer buildId, Integer testId) {
+            this.buildId = buildId;
+            this.testId = testId;
+        }
+
+        public int getBuildId() {
+            return buildId;
+        }
+
+        public int getTestId() {
+            return testId;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override public String toString() {
+            return MoreObjects.toStringHelper(this)
+                .add("buildId", buildId)
+                .add("testId", testId)
+                .toString();
+        }
     }
 }

@@ -75,6 +75,7 @@ public class RunHistSync {
     /** Build DAO. */
     @Inject private FatBuildDao fatBuildDao;
 
+    /** Config. */
     @Inject private ITcBotConfig cfg;
 
     /** Build to save to history. */

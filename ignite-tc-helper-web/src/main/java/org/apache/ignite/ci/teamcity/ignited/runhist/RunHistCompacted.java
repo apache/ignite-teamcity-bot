@@ -23,7 +23,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
-import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.issue.EventTemplate;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
@@ -176,9 +175,9 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
             if (curStatus == null)
                 break;
 
-            RunStat.RunStatus tmpl = RunStat.RunStatus.byCode(template[tIdx]);
+            RunStatus tmpl = RunStatus.byCode(template[tIdx]);
 
-            if ((tmpl == RunStat.RunStatus.RES_OK_OR_FAILURE && (curStatus.status() == InvocationData.OK || curStatus.status() == InvocationData.FAILURE))
+            if ((tmpl == RunStatus.RES_OK_OR_FAILURE && (curStatus.status() == InvocationData.OK || curStatus.status() == InvocationData.FAILURE))
                 || curStatus.status() == tmpl.getCode()) {
                 if (tIdx == template.length - 1)
                     return histAsArr.get(idx + centralEvtBuild).buildId();

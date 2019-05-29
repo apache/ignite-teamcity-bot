@@ -26,7 +26,7 @@ import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.ignite.ci.analysis.RunStat.extractIdPrefixed;
+import static org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted.extractIdPrefixed;
 
 /**
  *

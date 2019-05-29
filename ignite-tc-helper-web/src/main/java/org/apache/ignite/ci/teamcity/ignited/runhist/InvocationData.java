@@ -25,7 +25,6 @@ import java.util.Objects;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.ignite.ci.analysis.RunStat;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.jetbrains.annotations.NotNull;
@@ -38,13 +37,13 @@ public class InvocationData {
     /** Max days to keep test invocatoin data in run statistics: affects Bot Visa. */
     public static final int MAX_DAYS = 21;
     /** Muted. */
-    public static final int MUTED = RunStat.RunStatus.RES_MUTED_FAILURE.getCode();
+    public static final int MUTED = RunStatus.RES_MUTED_FAILURE.getCode();
     /** Failure. */
-    public static final int FAILURE = RunStat.RunStatus.RES_FAILURE.getCode();
+    public static final int FAILURE = RunStatus.RES_FAILURE.getCode();
     /** Ok. */
-    public static final int OK = RunStat.RunStatus.RES_OK.getCode();
+    public static final int OK = RunStatus.RES_OK.getCode();
     /** Ok. */
-    public static final int CRITICAL_FAILURE = RunStat.RunStatus.RES_CRITICAL_FAILURE.getCode();
+    public static final int CRITICAL_FAILURE = RunStatus.RES_CRITICAL_FAILURE.getCode();
 
     /**
      * Runs registered all the times.
