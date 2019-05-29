@@ -73,11 +73,13 @@ import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.tcmodel.user.User;
 import org.apache.ignite.ci.tcmodel.user.Users;
+import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
 import org.apache.ignite.ci.util.ExceptionUtil;
 import org.apache.ignite.ci.util.HttpUtil;
 import org.apache.ignite.ci.util.XmlUtil;
 import org.apache.ignite.ci.util.ZipUtil;
+import org.apache.ignite.ci.web.rest.exception.ConflictException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -324,6 +326,15 @@ public class IgniteTeamcityConnection implements ITeamcity {
             .getBuildTypesNonNull();
     }
 
+    /**
+     * @param url Url.
+     * @param rootElem Root elem.
+     *
+     * @throws UncheckedIOException caused by FileNotFoundException - If not found (404) was returned from service.
+     * @throws ConflictException If conflict (409) was returned from service.
+     * @throws IllegalStateException if some unexpected HTTP error returned.
+     * @throws UncheckedIOException in case communication failed.
+     */
     private <T> T sendGetXmlParseJaxb(String url, Class<T> rootElem) {
         try {
             try (InputStream inputStream = teamcityHttpConn.sendGet(basicAuthTok, url)) {
@@ -417,6 +428,10 @@ public class IgniteTeamcityConnection implements ITeamcity {
         this.executor = executor;
     }
 
+    /**
+     *
+     * @throws RuntimeException in case loading failed. See details in {@link ITeamcityConn}.
+     */
     @AutoProfiling
     public Users getUsers() {
         return getJaxbUsingHref("app/rest/latest/users", Users.class);

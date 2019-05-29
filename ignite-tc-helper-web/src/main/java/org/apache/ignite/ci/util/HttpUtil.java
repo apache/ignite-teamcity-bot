@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.apache.ignite.ci.web.rest.exception.ConflictException;
 import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -73,6 +74,9 @@ public class HttpUtil {
      * @param url URL.
      * @return Input stream from connection.
      * @throws IOException If failed.
+     * @throws FileNotFoundException If not found (404) was returned from service.
+     * @throws ConflictException If conflict (409) was returned from service.
+     * @throws IllegalStateException if some unexpected HTTP error returned.
      */
     public static InputStream sendGetWithBasicAuth(String basicAuthTok, String url) throws IOException {
         final Stopwatch started = Stopwatch.createStarted();
@@ -171,7 +175,10 @@ public class HttpUtil {
      *
      * @param con Http connection.
      * @return Input stream from connection.
-     * @throws IOException If failed.
+     * @throws IOException If communication failed.
+     * @throws FileNotFoundException If not found (404) was returned from service.
+     * @throws ConflictException If conflict (409) was returned from service.
+     * @throws IllegalStateException if some unexpected HTTP error returned.
      */
     private static InputStream getInputStream(HttpURLConnection con) throws IOException {
         int resCode = con.getResponseCode();
@@ -180,18 +187,22 @@ public class HttpUtil {
         if (resCode / 100 == 2)
             return con.getInputStream();
 
+        String detailsFromResponeText = readIsToString(con.getErrorStream());
+
         if (resCode == 400)
-            throw new BadRequestException(readIsToString(con.getErrorStream()));
+            throw new BadRequestException(detailsFromResponeText);
 
         if (resCode == 401)
             throw new ServiceUnauthorizedException("Service " + con.getURL() + " returned forbidden error.");
 
         if (resCode == 404)
-            throw new FileNotFoundException("Service " + con.getURL() + " returned not found error."
-                    + readIsToString(con.getErrorStream()));
+            throw new FileNotFoundException("Service " + con.getURL() + " returned not found error. " + detailsFromResponeText);
+
+        if (resCode == 409)
+            throw new ConflictException("Service " + con.getURL() + " returned Conflict Response Code :\n" + detailsFromResponeText);
 
         throw new IllegalStateException("Service " + con.getURL() + " returned Invalid Response Code : " + resCode + ":\n"
-                + readIsToString(con.getErrorStream()));
+                + detailsFromResponeText);
     }
 
     /**

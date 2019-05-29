@@ -17,13 +17,18 @@
 
 package org.apache.ignite.ci.teamcity.pure;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import org.apache.ignite.ci.web.rest.exception.ConflictException;
 
 public interface ITeamcityHttpConnection {
     /**
      * @param basicAuthTok Basic auth token.
      * @param url Url.
+     * @throws FileNotFoundException If not found (404) was returned from service.
+     * @throws ConflictException If conflict (409) was returned from service.
+     * @throws IllegalStateException if some unexpected HTTP error returned.
      */
     public InputStream sendGet(String basicAuthTok, String url) throws IOException;
 }

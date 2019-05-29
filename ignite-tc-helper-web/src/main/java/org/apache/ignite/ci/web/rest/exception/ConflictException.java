@@ -14,23 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity.pure;
 
-import org.apache.ignite.ci.util.HttpUtil;
-
-import javax.inject.Inject;
-import java.io.IOException;
-import java.io.InputStream;
+package org.apache.ignite.ci.web.rest.exception;
 
 /**
+ * The request could not be completed due to a conflict with the current state of the target resource.
  *
+ * This exception is thrown in case HTTP 409-Conflict is returned.
  */
-public class TeamcityRecordingConnection implements ITeamcityHttpConnection {
-    /** Recorder. */
-    @Inject private TeamcityRecorder recorder;
-
-    /** {@inheritDoc} */
-    @Override public InputStream sendGet(String basicAuthTok, String url) throws IOException {
-        return recorder.onGet(HttpUtil.sendGetWithBasicAuth(basicAuthTok, url), url);
+public class ConflictException extends RuntimeException {
+    /**
+     * @param msg Message.
+     */
+    public ConflictException(String msg) {
+        super(msg);
     }
 }

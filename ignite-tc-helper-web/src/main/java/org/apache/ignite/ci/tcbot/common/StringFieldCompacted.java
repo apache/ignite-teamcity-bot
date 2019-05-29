@@ -129,7 +129,7 @@ public class StringFieldCompacted {
             data = gzip;
         }
 
-        logger.info("U " + uncompressed.length + " S " + snappyLen + " Z " + gzipLen + ": F (" +
+        logger.debug("U " + uncompressed.length + " S " + snappyLen + " Z " + gzipLen + ": F (" +
             flag + ")");
     }
 

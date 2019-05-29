@@ -21,6 +21,9 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
+/**
+ * Exception is thrown if 3rd party service returned 401 - unauthorized.
+ */
 @Provider
 public class ServiceUnauthorizedException extends RuntimeException
         implements ExceptionMapper<ServiceUnauthorizedException> {

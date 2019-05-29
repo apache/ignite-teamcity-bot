@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.teamcity.pure;
 
+import java.io.FileNotFoundException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -36,10 +38,18 @@ import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
 import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
+import org.apache.ignite.ci.web.rest.exception.ConflictException;
 
 /**
  * Pure Teamcity Connection API for calling methods from REST service: <br>
- * https://confluence.jetbrains.com/display/TCD10/REST+API
+ * https://confluence.jetbrains.com/display/TCD10/REST+API.<br><br>
+ *
+ *
+ * HTTP methods return following errors in case HTTP communication failures:
+ * <ul><li>{@link UncheckedIOException} caused by {@link FileNotFoundException} - If not found (404) was returned from service.</li>
+ * <li>{@link ConflictException} If conflict (409) was returned from service.</li>
+ * <li>{@link IllegalStateException} if some unexpected HTTP error returned.</li>
+ * <li>{@link UncheckedIOException} in case communication failed.</ul>
  */
 public interface ITeamcityConn {
     /**
@@ -62,6 +72,8 @@ public interface ITeamcityConn {
 
     /**
      * @param buildId Build id.
+     *
+     * @throws RuntimeException in case loading failed, see details in {@link ITeamcityConn}.
      */
     public Build getBuild(int buildId);
 
@@ -102,21 +114,29 @@ public interface ITeamcityConn {
 
     /**
      * @param buildId Build id.
+     *
+     * @throws RuntimeException in case loading failed, see details in {@link ITeamcityConn}.
      */
     public ProblemOccurrences getProblems(int buildId);
 
     /**
      * @param buildId Build id.
+     *
+     * @throws RuntimeException in case loading failed, see details in {@link ITeamcityConn}.
      */
     public Statistics getStatistics(int buildId);
 
     /**
      * @param buildId Build id.
+     *
+     * @throws RuntimeException in case loading failed, see details in {@link ITeamcityConn}.
      */
     public ChangesList getChangesList(int buildId);
 
     /**
      * @param changeId Change id.
+     *
+     * @throws RuntimeException in case loading failed, see details in {@link ITeamcityConn}.
      */
     public Change getChange(int changeId);
 

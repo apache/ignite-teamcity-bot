@@ -81,5 +81,9 @@ public interface ITeamcity extends ITeamcityConn {
                 Base64Util.encodeUtf8String(user + ":" + pwd));
     }
 
+    /**
+     * @param username Username.
+     * @throws RuntimeException in case loading failed, see details in {@link ITeamcityConn}.
+     */
     User getUserByUsername(String username);
 }

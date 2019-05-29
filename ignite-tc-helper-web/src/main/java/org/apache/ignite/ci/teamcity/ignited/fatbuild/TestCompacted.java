@@ -263,7 +263,7 @@ public class TestCompacted {
         }
 
 
-        logger.info("U " + uncompressed.length + " S " + snappyLen + " Z " + gzipLen + ": F (" +
+        logger.debug("U " + uncompressed.length + " S " + snappyLen + " Z " + gzipLen + ": F (" +
                 flags.get(COMPRESS_TYPE_FLAG1) + ", " +
                 flags.get(COMPRESS_TYPE_FLAG2) +")");
     }

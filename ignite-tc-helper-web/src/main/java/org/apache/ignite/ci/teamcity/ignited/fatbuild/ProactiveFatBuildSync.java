@@ -36,6 +36,7 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.ci.web.rest.exception.ConflictException;
 import org.apache.ignite.internal.util.GridConcurrentHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -323,7 +324,7 @@ public class ProactiveFatBuildSync {
      * @param conn
      * @param buildId
      * @param existingBuild
-     * @return new build if it was updated or null if no updates detected
+     * @return new build if it was updated or <code>null</code> if no updates detected
      */
     @SuppressWarnings({"WeakerAccess"})
     @AutoProfiling
@@ -382,7 +383,9 @@ public class ProactiveFatBuildSync {
             }
         }
         catch (Exception e) {
-            if (Throwables.getRootCause(e) instanceof FileNotFoundException) {
+            Throwable cause = Throwables.getRootCause(e);
+
+            if (cause instanceof FileNotFoundException || cause instanceof ConflictException) {
                 logger.info("Loading build [" + buildId + "] for server [" + srvName + "] failed:" + e.getMessage(), e);
 
                 if (existingBuild != null) {
