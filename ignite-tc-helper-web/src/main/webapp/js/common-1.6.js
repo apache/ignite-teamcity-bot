@@ -140,7 +140,7 @@ function setupMenu() {
     g_menuSet = true;
 
     $.ajax({
-        url: "rest/user/currentUserName",
+        url: "/rest/user/currentUserName",
         success: showMenu,
         error: function () {
             //not logged in
