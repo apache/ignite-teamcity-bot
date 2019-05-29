@@ -49,48 +49,16 @@ function parmsForRest() {
     return curReqParms;
 }
 
-function checkForUpdate() {
-    var curFailuresUrl = "rest/tracked/updates" + parmsForRest();
-
-    $.ajax({
-        url: curFailuresUrl,
-        success: function (result) {
-            if (g_shownDataHashCodeHex !== "" && isDefinedAndFilled(result.hashCodeHex)) {
-                if (g_shownDataHashCodeHex === result.hashCodeHex) {
-                    var fastCheckNeeded = isDefinedAndFilled(result.runningUpdates) && result.runningUpdates > 0;
-                    var ms = fastCheckNeeded ? 3000 : 30000;
-
-                    setTimeout(checkForUpdate, ms);
-
-                    $("#loadStatus").html("");
-                } else {
-                    loadData(); // data changed, show new
-                }
-            } else {
-                loadData();
-            }
-        },
-        error: showErrInLoadStatus
-    });
-}
 
 function loadData() {
-
-    /*var app = new Vue({
-        el: '#app',
-        data: {
-            message: 'Hello Vue!'
-        }
-    })*/
     var app = new Vue({
         el: '#app',
         data: () => ({
             dialog: false,
             headers: [
                 {
-                    text: 'Dessert (100g serving)',
+                    text: 'Tracked branch name',
                     align: 'left',
-                    sortable: false,
                     value: 'name'
                 },
                 { text: 'Calories', value: 'calories' },
@@ -134,85 +102,37 @@ function loadData() {
         },
 
         methods: {
+            setData(data) {
+                this.desserts = data;
+            },
             initialize () {
-                this.desserts = [
-                    {
-                        name: 'Frozen Yogurt',
-                        calories: 159,
-                        fat: 6.0,
-                        carbs: 24,
-                        protein: 4.0
-                    },
-                    {
-                        name: 'Ice cream sandwich',
-                        calories: 237,
-                        fat: 9.0,
-                        carbs: 37,
-                        protein: 4.3
-                    },
-                    {
-                        name: 'Eclair',
-                        calories: 262,
-                        fat: 16.0,
-                        carbs: 23,
-                        protein: 6.0
-                    },
-                    {
-                        name: 'Cupcake',
-                        calories: 305,
-                        fat: 3.7,
-                        carbs: 67,
-                        protein: 4.3
-                    },
-                    {
-                        name: 'Gingerbread',
-                        calories: 356,
-                        fat: 16.0,
-                        carbs: 49,
-                        protein: 3.9
-                    },
-                    {
-                        name: 'Jelly bean',
-                        calories: 375,
-                        fat: 0.0,
-                        carbs: 94,
-                        protein: 0.0
-                    },
-                    {
-                        name: 'Lollipop',
-                        calories: 392,
-                        fat: 0.2,
-                        carbs: 98,
-                        protein: 0
-                    },
-                    {
-                        name: 'Honeycomb',
-                        calories: 408,
-                        fat: 3.2,
-                        carbs: 87,
-                        protein: 6.5
-                    },
-                    {
-                        name: 'Donut',
-                        calories: 452,
-                        fat: 25.0,
-                        carbs: 51,
-                        protein: 4.9
-                    },
-                    {
-                        name: 'KitKat',
-                        calories: 518,
-                        fat: 26.0,
-                        carbs: 65,
-                        protein: 7
-                    }
-                ]
+                f = this.setData;
+                $.ajax({ url: "/rest/branches/getIds",
+                    success: function (data) {
+                        var preparedData = [];
+
+                        for (let i = 0; i < data.length; i++) {
+                            let name = data[i];
+
+                            preparedData.push({
+                                name: name,
+                                calories: 159,
+                                fat: 6.0,
+                                carbs: 24,
+                                protein: 4.0
+                            })
+                        }
+                        f(preparedData);
+
+                        $("#loadStatus").html("");
+                    }, error: showErrInLoadStatus });
+
             },
 
             editItem (item) {
                 this.editedIndex = this.desserts.indexOf(item)
                 this.editedItem = Object.assign({}, item)
-                this.dialog = true
+                this.dialog = true;
             },
 
             deleteItem (item) {
