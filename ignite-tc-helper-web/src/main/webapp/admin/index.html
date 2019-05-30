@@ -107,6 +107,19 @@ function loadData() {
             },
             initialize () {
                 f = this.setData;
+                /*
+                https://bitbucket.org/digitalreactor/digitalreactor-platform-spa/src/master/src/components/projects/index.vue
+
+                this.$http.get('/api/projects').then(response => {
+        this.projects = response.body;
+        this.$Progress.finish();
+        if (this.projects.length === 0) {
+          this.hasNotProjects = true;
+        }
+      }, response => {
+        this.$Progress.fail();
+      });
+                */
                 $.ajax({ url: "/rest/branches/getIds",
                     success: function (data) {
                         var preparedData = [];
