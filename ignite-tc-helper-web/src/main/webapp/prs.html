@@ -90,13 +90,13 @@
             $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
 
             $.ajax({
-                url: "rest/branches/version",
+                url: "/rest/branches/version",
                 success: showVersionInfo,
                 error: showErrInLoadStatus
             });
 
             $.ajax({
-                url: "rest/branches/suites",
+                url: "/rest/branches/suites",
                 success: function(result) {
                     $("#loadStatus").html("");
                     showSuitesForTeamCityRunData(result);
@@ -107,7 +107,7 @@
             });
 
             $.ajax({
-                url: "rest/branches/getServerIds",
+                url: "/rest/branches/getServerIds",
                 success: function(result) {
                     $("#loadStatus").html("");
                     showServerContribTabs(result);
@@ -115,15 +115,6 @@
                 error: showErrInLoadStatus
             });
         }
-
-        function prShowHref(srvId, suiteId, branchName) {
-            return "/pr.html?serverId=" + srvId + "&" +
-                "suiteId=" + suiteId +
-                //"&baseBranchForTc=" +
-                "&branchForTc=" +  branchName +
-                "&action=Latest";
-        }
-
 
         function showSuitesForTeamCityRunData(result) {
             var res = "";

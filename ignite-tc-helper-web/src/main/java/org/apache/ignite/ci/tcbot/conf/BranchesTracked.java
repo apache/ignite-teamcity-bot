@@ -17,11 +17,7 @@
 
 package org.apache.ignite.ci.tcbot.conf;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -103,7 +99,7 @@ public class BranchesTracked {
     }
 
     Optional<TcServerConfig> getTcConfig(String code) {
-        return tcServers.stream().filter(s -> code.equals(s.getCode())).findAny();
+        return tcServers.stream().filter(s -> Objects.equals(code, s.getCode())).findAny();
     }
 
     Optional<JiraServerConfig> getJiraConfig(String code) {
