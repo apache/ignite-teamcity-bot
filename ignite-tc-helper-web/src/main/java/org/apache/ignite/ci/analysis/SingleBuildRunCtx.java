@@ -29,11 +29,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
+import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.tcbot.conf.BuildParameterSpec;
 import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
-import org.apache.ignite.ci.tcbot.conf.ParameterValueSpec;
 import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
@@ -261,8 +262,11 @@ public class SingleBuildRunCtx implements ISuiteResults {
             }).sum();
     }
 
-    public void addTag(String label) {
-        this.tags.add(label);
+    public void addTag(@Nullable String lb) {
+        if(Strings.isNullOrEmpty(lb))
+            return;
+
+        this.tags.add(lb);
     }
 
     public Set<String> tags() {
@@ -275,16 +279,47 @@ public class SingleBuildRunCtx implements ISuiteResults {
             if (!parm.isFilled())
                 continue;
 
-            String propVal = parameters.getProperty(compactor, parm.name());
+            String propVal = getPropertyOrSpecialValue(parameters, compactor, parm.name());
 
             if (Strings.isNullOrEmpty(propVal))
                 continue;
 
             parm.selection().stream()
-                .filter(v -> Objects.equals(v.value(), propVal))
+                .filter(pvs -> {
+                    String valRegExp = pvs.valueRegExp();
+
+                    if(!Strings.isNullOrEmpty(valRegExp))
+                        return Pattern.compile(valRegExp).matcher(propVal).find();
+
+                    String exactVal = pvs.value();
+
+                    if(!Strings.isNullOrEmpty(exactVal))
+                        return Objects.equals(exactVal, propVal);
+
+                    return false;
+                })
                 .findAny()
                 .ifPresent(v -> addTag(v.label()));
 
         }
+    }
+
+    /**
+     * @param parameters Parameters from build.
+     * @param compactor Compactor.
+     * @param parmKey Parmeters key.
+     */
+    public String getPropertyOrSpecialValue(ParametersCompacted parameters, IStringCompactor compactor,
+        String parmKey) {
+
+        String propVal;
+        if (ITeamcity.SUITE_ID_PROPERTY.equals(parmKey))
+            propVal = suiteId();
+        else if (ITeamcity.SUITE_NAME_PROPERTY.equals(parmKey))
+            propVal = suiteName();
+        else
+            propVal = parameters.getProperty(compactor, parmKey);
+
+        return propVal;
     }
 }

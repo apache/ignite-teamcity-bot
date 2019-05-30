@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.HelperConfig;
 import org.jetbrains.annotations.NotNull;
@@ -112,14 +111,6 @@ public class TcServerConfig implements ITcServerConfig {
             return defaultTrackedBranch;
 
         return DEFAULT_TRACKED_BRANCH_NAME;
-    }
-
-    /** {@inheritDoc} */
-    @Override public Collection<String> filteringParametersKeys() {
-        if (filteringParameters == null || filteringParameters.isEmpty())
-            return Collections.emptySet();
-
-        return filteringParameters.stream().map(BuildParameterSpec::name).collect(Collectors.toSet());
     }
 
     /** {@inheritDoc} */
