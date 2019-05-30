@@ -29,6 +29,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.ITeamcity;
@@ -285,11 +286,10 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
             parm.selection().stream()
                 .filter(pvs -> {
-                    String valueRegExp = pvs.valueRegExp();
+                    String valRegExp = pvs.valueRegExp();
 
-                    if(!Strings.isNullOrEmpty(valueRegExp)) {
-
-                    }
+                    if(!Strings.isNullOrEmpty(valRegExp))
+                        return Pattern.compile(valRegExp).matcher(propVal).find();
 
                     String exactVal = pvs.value();
 
@@ -304,6 +304,11 @@ public class SingleBuildRunCtx implements ISuiteResults {
         }
     }
 
+    /**
+     * @param parameters Parameters from build.
+     * @param compactor Compactor.
+     * @param parmKey Parmeters key.
+     */
     public String getPropertyOrSpecialValue(ParametersCompacted parameters, IStringCompactor compactor,
         String parmKey) {
 
