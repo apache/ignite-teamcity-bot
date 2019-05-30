@@ -381,6 +381,14 @@ function repaintLater(srvId) {
     }, 3000);
 }
 
+function prShowHref(srvId, suiteId, branchName) {
+    return "/pr.html?serverId=" + srvId + "&" +
+        "suiteId=" + suiteId +
+        //"&baseBranchForTc=" +
+        "&branchForTc=" +  branchName +
+        "&action=Latest";
+}
+
 /**
  *
  * @param status contribution status related to selected run-configuration.

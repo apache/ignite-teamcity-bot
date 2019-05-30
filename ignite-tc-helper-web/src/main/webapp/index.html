@@ -29,28 +29,36 @@ $(document).ready(function() {
     loadData();
 });
 
-function loadReadyToMerge() {
+function loadReadyForReview() {
     let app = new Vue({
         el: '#app',
         data () {
             return {
                 headers: [
                     { text: 'PR', value: 'prNumber' },
-                    { text: 'Title', value: 'title' },
+                    { text: 'Title', value: 'prTitle' },
                     { text: 'Author', value: 'author' },
                     { text: 'JIRA', value: 'jria' },
-                    { text: 'Iron (%)', value: 'iron' }
+                    { text: 'Report', value: 'report' }
                 ],
                 contributions: [
-
                 ]
             }
         },
-        setContributions(data) {
-            this.contributions = data;
+        created () {
+            this.initialize()
         },
-        created() {
-            $.get( "/rest/visa/contributions?serverId=apache", this.setContributions);
+
+        methods: {
+            setContributions(data) {
+                this.contributions = data;
+            },
+            initialize() {
+                $.ajax({
+                    url: "/rest/visa/readyForReview?serverId=apache",
+                    success: this.setContributions
+                });
+            }
         }
     })
 }
@@ -74,7 +82,7 @@ function loadData() {
         error: showErrInLoadStatus
     });
 
-    loadReadyToMerge();
+    loadReadyForReview();
 }
 
 
@@ -92,16 +100,15 @@ function loadData() {
 <div id="loadStatus"></div>
 
 
-<div id="app">
-    <v-app id="readyToMerge">
-
+<div class="formgroup"  id="app">
+    <v-app id="readyForReview">
         <v-expansion-panel>
             <v-expansion-panel-content
                     v-for="(item,i) in 1"
                     :key="i"
             >
                 <template v-slot:header>
-                    <div>Ready to merge</div>
+                    <div>Ready for review</div>
                 </template>
                 <v-card>
                     <v-data-table
@@ -110,9 +117,11 @@ function loadData() {
                             class="elevation-1"
                     >
                         <template v-slot:items="props">
-                            <td>{{ props.item.prNumber }}</td>
-                            <td class="text-xs-right">{{ props.item.title }}</td>
-                            <td class="text-xs-right">{{ props.item.author }}</td>
+                            <td>
+                                <a :href="props.item.prHtmlUrl">{{ props.item.prNumber }} </a> {{ props.item.prTitle }}</td>
+                            <td class="text-xs-right">{{ props.item.prTitle }}</td>
+                            <td class="text-xs-right">
+                                <img :src="props.item.prAuthorAvatarUrl" width='20px' height='20px'> {{ props.item.prAuthor }}</td>
                             <td class="text-xs-right">{{ props.item.jiraName }}</td>
                             <td class="text-xs-right">{{ props.item.report }}</td>
                         </template>
