@@ -97,6 +97,12 @@ public class TcBotVisaService {
         return contributions.stream().filter(
                 c -> !Strings.isNullOrEmpty(c.tcBranchName)
         ).collect(Collectors.toList());
+        /*
+        todo check current visa status from
+
+        return injector.getInstance(TcBotTriggerAndSignOffService.class)
+            .currentVisaStatus(srvCode, prov, suiteId, tcBranch); <-Without caching
+         */
     }
 
     @GET

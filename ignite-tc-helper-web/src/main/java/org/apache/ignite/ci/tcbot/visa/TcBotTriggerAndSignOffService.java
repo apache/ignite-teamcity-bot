@@ -722,6 +722,7 @@ public class TcBotTriggerAndSignOffService {
         String tcBranch) {
         CurrentVisaStatus status = new CurrentVisaStatus();
 
+        //todo SyncMode.NONE - gives incorrect results, which differs with report
         List<SuiteCurrentStatus> suitesStatuses
             = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, tcBranch, srvCode, prov, SyncMode.NONE);
 
