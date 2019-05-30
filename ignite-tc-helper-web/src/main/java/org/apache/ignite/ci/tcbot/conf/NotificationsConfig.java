@@ -34,7 +34,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  * Notifications Config
  */
 public class NotificationsConfig {
-    /** Email. */
+    /** (Source) Email. */
     private EmailSettings email = new EmailSettings();
 
     /** Slack auth token. Not encoded using Password encoder */

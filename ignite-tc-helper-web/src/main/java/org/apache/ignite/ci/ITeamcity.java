@@ -49,6 +49,12 @@ public interface ITeamcity extends ITeamcityConn {
     /** Default list of properties to be skipped in saving in FAT builds. */
     public Set<String> AVOID_SAVE_PROPERTIES = Sets.newHashSet(TCBOT_TRIGGER_TIME, "build.query.loginTs");
 
+    /** Fake property for addressing 'Suite id'. */
+    public String SUITE_ID_PROPERTY = "_suiteId";
+
+    /** Fake property for addressing 'Suite Name'. */
+    public String SUITE_NAME_PROPERTY = "_suiteName";
+
     CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut);
 
     CompletableFuture<File> downloadBuildLogZip(int id);

@@ -45,12 +45,9 @@ public interface ITcServerConfig {
     @NotNull public String defaultTrackedBranch();
 
     /**
-     * @return set of build parameters codes, which could be used for filtering builds in RunHist/Invocations.
-     */
-    @NotNull public Collection<String> filteringParametersKeys();
-
-    /**
-     * @return set of build parameters, which could be used for filtering builds in RunHist/Invocations.
+     * Provides build parameters, whichi could be used for filtering builds in RunHist/Invocations and tagging in UI.
+     *
+     * @return set of build parameters specifications.
      */
     @NotNull public Collection<BuildParameterSpec> filteringParameters();
 

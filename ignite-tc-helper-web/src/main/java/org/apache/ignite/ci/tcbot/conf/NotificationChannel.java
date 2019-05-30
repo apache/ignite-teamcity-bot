@@ -24,7 +24,7 @@ import java.util.HashSet;
  *
  */
 public class NotificationChannel implements INotificationChannel {
-    /** Email. */
+    /** (Destionation) Email. */
     private String email;
 
     /** Slack. */
