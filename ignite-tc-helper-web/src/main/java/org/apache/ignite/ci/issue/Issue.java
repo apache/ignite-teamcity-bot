@@ -19,10 +19,12 @@ package org.apache.ignite.ci.issue;
 
 import com.google.common.base.MoreObjects;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import javax.annotation.Nonnull;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.util.TimeUtil;
 import org.jetbrains.annotations.Nullable;
@@ -60,6 +62,9 @@ public class Issue {
 
     /** Detected timestamp. */
     @Nullable public Long detectedTs;
+
+    /** Set of build tags detected. */
+    public Set<String> buildTags = new TreeSet<>();
 
     public Issue(IssueKey issueKey, IssueType type) {
         this.issueKey = issueKey;
@@ -150,10 +155,19 @@ public class Issue {
     }
 
     public String getDisplayName() {
-        if(displayName==null)
+        if (displayName == null)
             return issueKey.getTestOrBuildName();
 
         return displayName;
+    }
+
+    /**
+     * @return Set of build tags detected.
+     */
+    @Nonnull public Set<String> buildTags() {
+        return buildTags == null && buildTags.isEmpty()
+            ? Collections.emptySet()
+            : Collections.unmodifiableSet(buildTags);
     }
 
     /** {@inheritDoc} */

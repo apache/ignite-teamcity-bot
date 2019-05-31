@@ -25,11 +25,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
@@ -179,7 +181,13 @@ public class IssueDetector {
 
                 channels.stream()
                     .filter(ch -> ch.isServerAllowed(srvCode))
-                    .filter(ch -> ch.isSubscribed(issue.trackedBranchName))
+                    .filter(ch -> ch.isSubscribedToBranch(issue.trackedBranchName))
+                    .filter(ch -> {
+                        if (ch.hasTagFilter())
+                            return issue.buildTags().stream().anyMatch(ch::isSubscribedToTag);
+
+                        return true;
+                    })
                     .forEach(channel -> {
                         String email = channel.email();
                         String slack = channel.slack();
@@ -263,7 +271,8 @@ public class IssueDetector {
                 final String trackedBranch = res.getTrackedBranch();
 
                 for (TestFailure testFailure : suiteCurrentStatus.testFailures) {
-                    if (registerTestFailIssues(tcIgnited, srvId, normalizeBranch, testFailure, trackedBranch))
+                    if (registerTestFailIssues(tcIgnited, srvId, normalizeBranch, testFailure, trackedBranch,
+                        suiteCurrentStatus.tags))
                         newIssues++;
                 }
 
@@ -343,6 +352,8 @@ public class IssueDetector {
         issue.webUrl = suiteFailure.webToHist;
         issue.buildStartTs = tcIgnited.getBuildStartTs(issueKey.buildId);
 
+        issue.buildTags.addAll(suiteFailure.tags);
+
         locateChanges(tcIgnited, issueKey.buildId, issue);
 
         logger.info("Register new issue for suite fail: " + issue);
@@ -364,7 +375,8 @@ public class IssueDetector {
         String srvId,
         String normalizeBranch,
         TestFailure testFailure,
-        String trackedBranch) {
+        String trackedBranch,
+        @Nonnull Set<String> suiteTags) {
 
         String name = testFailure.name;
         TestInBranch testInBranch = new TestInBranch(name, normalizeBranch);
@@ -418,6 +430,8 @@ public class IssueDetector {
         issue.trackedBranchName = trackedBranch;
         issue.displayName = testFailure.testName;
         issue.webUrl = testFailure.webUrl;
+
+        issue.buildTags.addAll(suiteTags);
 
         locateChanges(tcIgnited, buildId, issue);
 

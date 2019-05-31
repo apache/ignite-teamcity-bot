@@ -39,7 +39,7 @@ public class TcHelperUserUi {
         fullName = user.fullName;
         email = user.email;
         allTrackedBranches.forEach(
-            branchId -> subscribedAllToBranchFailures.put(branchId, user.isSubscribed(branchId))
+            branchId -> subscribedAllToBranchFailures.put(branchId, user.isSubscribedToBranch(branchId))
         );
     }
 }
