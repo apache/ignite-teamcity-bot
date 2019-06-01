@@ -33,7 +33,7 @@ import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.tcservice.model.conf.BuildType;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.util.CollectionUtil;

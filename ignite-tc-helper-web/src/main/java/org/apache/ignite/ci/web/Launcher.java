@@ -23,7 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
+import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.webapp.WebAppContext;

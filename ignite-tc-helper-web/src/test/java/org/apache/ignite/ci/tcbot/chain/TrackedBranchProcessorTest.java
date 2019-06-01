@@ -25,7 +25,7 @@ import com.google.inject.Injector;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.ci.tcbot.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.tcbot.conf.BranchesTracked;

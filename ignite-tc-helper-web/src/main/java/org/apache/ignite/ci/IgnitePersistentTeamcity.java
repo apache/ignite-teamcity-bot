@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -32,25 +31,25 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.analysis.LogCheckResult;
-import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.db.DbMigrations;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
-import org.apache.ignite.ci.tcmodel.agent.Agent;
-import org.apache.ignite.ci.tcmodel.changes.Change;
-import org.apache.ignite.ci.tcmodel.changes.ChangesList;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
-import org.apache.ignite.ci.tcmodel.conf.Project;
-import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
-import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrences;
-import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
-import org.apache.ignite.ci.tcmodel.user.User;
-import org.apache.ignite.ci.util.ObjectInterner;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcservice.ITeamcity;
+import org.apache.ignite.tcservice.model.agent.Agent;
+import org.apache.ignite.tcservice.model.changes.Change;
+import org.apache.ignite.tcservice.model.changes.ChangesList;
+import org.apache.ignite.tcservice.model.conf.BuildType;
+import org.apache.ignite.tcservice.model.conf.Project;
+import org.apache.ignite.tcservice.model.conf.bt.BuildTypeFull;
+import org.apache.ignite.tcservice.model.hist.BuildRef;
+import org.apache.ignite.tcservice.model.mute.MuteInfo;
+import org.apache.ignite.tcservice.model.result.Build;
+import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrences;
+import org.apache.ignite.tcservice.model.result.stat.Statistics;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrencesFull;
+import org.apache.ignite.tcservice.model.user.User;
+import org.apache.ignite.tcbot.common.util.ObjectInterner;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.jetbrains.annotations.NotNull;
 
@@ -140,20 +139,15 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public CompletableFuture<File> unzipFirstFile(CompletableFuture<File> fut) {
-        return teamcity.unzipFirstFile(fut);
+    @Override public CompletableFuture<File> downloadBuildLogZip(int buildId) {
+        return teamcity.downloadBuildLogZip(buildId);
     }
 
     /** {@inheritDoc} */
-    @Override public CompletableFuture<File> downloadBuildLogZip(int id) {
-        return teamcity.downloadBuildLogZip(id);
-    }
-
-    /** {@inheritDoc} */
-    @Override public CompletableFuture<LogCheckResult> analyzeBuildLog(Integer buildId, SingleBuildRunCtx ctx) {
-        return loadFutureIfAbsentVers(logCheckResultCache(), buildId,
-            k -> teamcity.analyzeBuildLog(buildId, ctx));
-    }
+//    @Override public CompletableFuture<LogCheckResult> analyzeBuildLog(Integer buildId, SingleBuildRunCtx ctx) {
+//        return loadFutureIfAbsentVers(logCheckResultCache(), buildId,
+//            k -> teamcity.analyzeBuildLog(buildId, ctx));
+//    }
 
 
     @AutoProfiling
@@ -198,10 +192,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
             return val;
         });
-    }
-
-    public Executor getExecutor() {
-        return this.teamcity.getExecutor();
     }
 
     /** {@inheritDoc} */

@@ -25,7 +25,7 @@ import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.tcbot.conf.BranchTracked;
-import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -46,9 +46,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  * Process failures for some setup tracked branch, which may be triggered/monitored by TC Bot.
  */
 public class TrackedBranchChainsProcessor {
-    /** TC Server prov. */
-    @Inject private ITcServerProvider srvProv;
-
     /** TC ignited server provider. */
     @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
 
@@ -90,8 +87,6 @@ public class TrackedBranchChainsProcessor {
 
                 chainStatus.baseBranchForTc = baseBranchTc;
 
-                IAnalyticsEnabledTeamcity teamcity = srvProv.server(srvId, creds);
-
                 ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, creds);
 
                 String suiteIdMandatory = chainTracked.getSuiteIdMandatory();
@@ -108,8 +103,8 @@ public class TrackedBranchChainsProcessor {
 
                 boolean includeScheduled = buildResMergeCnt == 1;
 
-                final FullChainRunCtx ctx = chainProc.loadFullChainContext(teamcity,
-                    tcIgnited,
+                final FullChainRunCtx ctx = chainProc.loadFullChainContext(
+                        tcIgnited,
                     chains,
                     rebuild,
                     logs,

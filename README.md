@@ -20,7 +20,7 @@ Should you have any questions, please contact Ignite Developers at dev@ignite.ap
 Locally code can be set up using IntelliJ idea and gradle project import.
 Locally it can be run using org.apache.ignite.ci.web.Launcher.main() method.
 The bot will create necessary configs in ~/.ignite-teamcity-helper - it is bot Home directory.
-In can be changed with org.apache.ignite.ci.tcbot.TcBotSystemProperties.TEAMCITY_HELPER_HOME system property.
+In can be changed with TcBotSystemProperties.TEAMCITY_HELPER_HOME system property.
 
 Examples of configs can be found in [conf](conf) directory. 
 Main config file is [conf/branches.json](conf/branches.json). This file needs to be placed to work directory, (under user home by default).

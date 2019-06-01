@@ -16,7 +16,7 @@
  */
 package org.apache.ignite.ci.web.model.long_running;
 
-import static org.apache.ignite.ci.util.TimeUtil.millisToDurationPrintable;
+import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
 
 /**
  *

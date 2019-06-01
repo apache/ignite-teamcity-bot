@@ -32,12 +32,12 @@ import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.GuardedBy;
 import javax.inject.Inject;
-import org.apache.ignite.ci.ITeamcity;
-import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.tcservice.ITeamcity;
+import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
-import org.apache.ignite.ci.tcbot.conf.BuildParameterSpec;
+import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.apache.ignite.ci.tcbot.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -165,7 +165,7 @@ public class RunHistSync {
         cfg.getTeamcityConfig(srvCode)
             .filteringParameters()
             .stream()
-            .map(BuildParameterSpec::name)
+            .map(IBuildParameterSpec::name)
             .forEach(importantParameters::add);
 
         return importantParameters.stream().map(k -> compactor.getStringId(k)).collect(Collectors.toSet());

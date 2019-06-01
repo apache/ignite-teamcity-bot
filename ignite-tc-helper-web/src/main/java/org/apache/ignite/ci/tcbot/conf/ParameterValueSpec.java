@@ -17,12 +17,14 @@
 
 package org.apache.ignite.ci.tcbot.conf;
 
+import org.apache.ignite.tcbot.common.conf.IParameterValueSpec;
+
 import java.util.Objects;
 
 /**
  * Some parameter value, which label may be used in UI.
  */
-public class ParameterValueSpec {
+public class ParameterValueSpec implements IParameterValueSpec {
     private String value;
     private String label;
     private String valueRegExp;

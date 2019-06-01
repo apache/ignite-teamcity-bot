@@ -17,13 +17,11 @@
 
 package org.apache.ignite.ci.web.rest;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import org.apache.ignite.ci.ITcAnalytics;
+import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
+import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.tcservice.ITeamcity;
+
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -35,9 +33,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
-import org.apache.ignite.ci.ITcAnalytics;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
-import org.apache.ignite.ci.web.CtxListener;
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 
 /**
  * Build log download, now provides thread dumps
@@ -67,10 +65,17 @@ public class GetBuildLog {
         @QueryParam(BUILD_NO) Integer buildNo) {
 
         ITcServerProvider helper = CtxListener.getInjector(ctx).getInstance(ITcServerProvider.class);
-        ITcAnalytics srv = helper.server(srvId, null);
-        String cached = srv.getThreadDumpCached(buildNo);
+        final ITeamcity server = helper.server(srvId, null);
 
-        return sendString(cached);
+        //todo bad code
+        if(server instanceof ITcAnalytics) {
+            ITcAnalytics srv = (ITcAnalytics) server;
+            String cached = srv.getThreadDumpCached(buildNo);
+            return sendString(cached);
+        }
+
+        return sendString("Invalid class" + server.getClass());
+
     }
 
     private Response sendString(String data) {
@@ -78,22 +83,6 @@ public class GetBuildLog {
             Writer writer = new BufferedWriter(new OutputStreamWriter(os));
             writer.write(data);
             writer.flush();
-        };
-        return Response.ok(stream).build();
-    }
-
-    private Response sendFile(File file) {
-        final StreamingOutput stream = os -> {
-            Writer writer = new BufferedWriter(new OutputStreamWriter(os));
-
-            try (BufferedReader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)){
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    writer.write(line);
-                    writer.write("\n");
-                }
-                writer.flush();
-            }
         };
         return Response.ok(stream).build();
     }

@@ -26,15 +26,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrence;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.tcservice.model.hist.BuildRef;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
@@ -87,7 +87,7 @@ public class BuildChainProcessorTest {
 
         ITeamcityIgnited tcIgnited = tcIgnitedMock(builds);
 
-        FullChainRunCtx ctx = bcp.loadFullChainContext(tcOldMock(), tcIgnited,
+        FullChainRunCtx ctx = bcp.loadFullChainContext(tcIgnited,
             entry,
             LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
         List<MultBuildRunCtx> suites = ctx.failedChildSuites().collect(Collectors.toList());
@@ -123,7 +123,7 @@ public class BuildChainProcessorTest {
             builds.put(pds1.id(), pds1);
         }
 
-        FullChainRunCtx ctx2 = bcp.loadFullChainContext(tcOldMock(), tcIgnited,
+        FullChainRunCtx ctx2 = bcp.loadFullChainContext(tcIgnited,
             entry,
             LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
         List<MultBuildRunCtx> suites2 = ctx2.failedChildSuites().collect(Collectors.toList());
@@ -153,7 +153,7 @@ public class BuildChainProcessorTest {
         List<Integer> entry = Lists.newArrayList();
         addTestBuild(c, builds, entry, 0);
 
-        FullChainRunCtx ctx = bcp.loadFullChainContext(tcOldMock(), tcIgnitedMock(builds),
+        FullChainRunCtx ctx = bcp.loadFullChainContext(tcIgnitedMock(builds),
             entry,
             LatestRebuildMode.LATEST, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
         List<MultBuildRunCtx> suites = ctx.failedChildSuites().collect(Collectors.toList());
@@ -194,10 +194,6 @@ public class BuildChainProcessorTest {
         pds2.addTests(c, Lists.newArrayList(t2, t3));
 
         builds.put(pds2.id(), pds2);
-    }
-
-    @NotNull public static IAnalyticsEnabledTeamcity tcOldMock() {
-        return Mockito.mock(IAnalyticsEnabledTeamcity.class);
     }
 
     @NotNull public ITeamcityIgnited tcIgnitedMock(Map<Integer, FatBuildCompacted> builds) {

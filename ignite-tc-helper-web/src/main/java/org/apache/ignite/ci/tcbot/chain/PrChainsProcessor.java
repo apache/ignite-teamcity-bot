@@ -23,16 +23,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
-import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
@@ -59,13 +58,7 @@ public class PrChainsProcessor {
     @Inject private BuildChainProcessor buildChainProcessor;
 
     /** Tc server provider. */
-    @Inject private ITcServerProvider tcSrvProvider;
-
-    /** Tc server provider. */
     @Inject private ITeamcityIgnitedProvider tcIgnitedProvider;
-
-    /** Git hub connection provider. */
-    @Inject private IGitHubConnectionProvider gitHubConnProvider;
 
     /** */
     @Inject private IGitHubConnIgnitedProvider gitHubConnIgnitedProvider;
@@ -104,14 +97,13 @@ public class PrChainsProcessor {
         final AtomicInteger runningUpdates = new AtomicInteger();
 
         //using here non persistent TC allows to skip update statistic
-        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvCode, creds);
         ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCode, creds);
 
         IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCode);
 
         IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCode);
 
-        res.setJavaFlags(teamcity, gitHubConnIgnited, jiraIntegration);
+        res.setJavaFlags(gitHubConnIgnited, jiraIntegration);
 
         LatestRebuildMode rebuild;
         if (FullQueryParams.HISTORY.equals(act))
@@ -139,8 +131,8 @@ public class PrChainsProcessor {
 
         String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
-            tcIgnited,
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+                tcIgnited,
             hist,
             rebuild,
             logs,
@@ -148,7 +140,7 @@ public class PrChainsProcessor {
             baseBranch,
             mode);
 
-        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverCode(), branchForTc);
+        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(tcIgnited.serverCode(), branchForTc);
 
         chainStatus.baseBranchForTc = baseBranch;
 
@@ -191,15 +183,14 @@ public class PrChainsProcessor {
     public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
         ICredentialsProv prov, SyncMode syncMode) {
         //using here non persistent TC allows to skip update statistic
-        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, prov);
         ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvId, prov);
 
         List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
         String baseBranch = ITeamcity.DEFAULT;
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
-            tcIgnited,
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+                tcIgnited,
             hist,
             LatestRebuildMode.LATEST,
             ProcessLogsMode.SUITE_NOT_COMPLETE,

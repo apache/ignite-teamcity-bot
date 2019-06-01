@@ -24,10 +24,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Properties;
-import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
+
 import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
-import org.apache.ignite.ci.util.Base64Util;
-import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.tcbot.common.util.Base64Util;
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -68,7 +69,6 @@ public class HelperConfig {
     @Deprecated
     public static final String SLACK_CHANNEL = "slack.channel";
     public static final String LOGS = "logs";
-    public static final String ENDL = String.format("%n");
 
     public static Properties loadAuthProperties(File workDir, String cfgFileName) {
         try {
@@ -107,28 +107,6 @@ public class HelperConfig {
         return isNullOrEmpty(tcName) ? name : (tcName + "." + name);
     }
 
-    public static File ensureDirExist(File workDir) {
-        if (!workDir.exists())
-            checkState(workDir.mkdirs(), "Unable to make directory [" + workDir + "]");
-
-        return workDir;
-    }
-
-    public static File resolveWorkDir() {
-        File workDir = null;
-        String property = System.getProperty(TcBotSystemProperties.TEAMCITY_HELPER_HOME);
-        if (isNullOrEmpty(property)) {
-            String conf = ".ignite-teamcity-helper";
-            String prop = System.getProperty("user.home");
-            //relative in work dir
-            workDir = isNullOrEmpty(prop) ? new File(conf) : new File(prop, conf);
-        }
-        else
-            workDir = new File(property);
-
-        return ensureDirExist(workDir);
-    }
-
     @NotNull public static String userPwdToToken(String user, String pwd) {
         return Base64Util.encodeUtf8String(user + ":" + pwd);
     }
@@ -141,7 +119,7 @@ public class HelperConfig {
     }
 
     public static BranchesTracked getTrackedBranches() {
-        final File workDir = resolveWorkDir();
+        final File workDir = TcBotWorkDir.resolveWorkDir();
         final File file = new File(workDir, "branches.json");
 
         try (FileReader json = new FileReader(file)) {
@@ -155,7 +133,7 @@ public class HelperConfig {
     public static Properties loadEmailSettings() {
         try {
             String respConf = prefixedWithServerName(null, MAIL_PROPS);
-            final File workDir = resolveWorkDir();
+            final File workDir = TcBotWorkDir.resolveWorkDir();
             File file = new File(workDir, respConf);
             return loadProps(file);
         }
@@ -165,8 +143,4 @@ public class HelperConfig {
         }
     }
 
-    @NotNull static File resolveLogs(File workDir, String logsProp) {
-        final File logsDirFileConfigured = new File(logsProp);
-        return logsDirFileConfigured.isAbsolute() ? logsDirFileConfigured : new File(workDir, logsProp);
-    }
 }

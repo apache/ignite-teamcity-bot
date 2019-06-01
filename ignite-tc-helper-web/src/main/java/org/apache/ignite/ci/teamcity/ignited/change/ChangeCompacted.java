@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 import javax.xml.bind.DatatypeConverter;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
-import org.apache.ignite.ci.tcmodel.changes.Change;
+import org.apache.ignite.tcservice.model.changes.Change;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
 import org.slf4j.Logger;

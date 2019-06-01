@@ -18,45 +18,17 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import org.apache.ignite.ci.ITeamcity;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
-import org.apache.ignite.ci.di.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
-import org.apache.ignite.ci.tcmodel.agent.Agent;
-import org.apache.ignite.ci.tcmodel.conf.Project;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
-import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
-import org.apache.ignite.ci.tcmodel.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefSync;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeDao;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeSync;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.*;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
@@ -67,13 +39,30 @@ import org.apache.ignite.ci.teamcity.ignited.mute.MuteDao;
 import org.apache.ignite.ci.teamcity.ignited.mute.MuteSync;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
-import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcservice.ITeamcity;
+import org.apache.ignite.tcservice.ITeamcityConn;
+import org.apache.ignite.tcservice.model.agent.Agent;
+import org.apache.ignite.tcservice.model.conf.Project;
+import org.apache.ignite.tcservice.model.hist.BuildRef;
+import org.apache.ignite.tcservice.model.mute.MuteInfo;
+import org.apache.ignite.tcservice.model.result.Build;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.ignite.ci.tcmodel.hist.BuildRef.STATUS_UNKNOWN;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import java.io.File;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+
+import static org.apache.ignite.tcservice.model.hist.BuildRef.STATUS_UNKNOWN;
 
 /**
  *
@@ -175,7 +164,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @Override public String serverId() {
+    @Override public String serverCode() {
         return srvCode;
     }
 
@@ -428,6 +417,15 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @Override
     public List<Agent> agents(boolean connected, boolean authorized) {
         return conn.agents(connected, authorized);
+    }
+
+    @Override
+    @Deprecated
+    public CompletableFuture<File> downloadBuildLogZip(int buildId) {
+        if (conn instanceof ITeamcity)
+            return ((ITeamcity) conn).downloadBuildLogZip(buildId);
+
+        return null;
     }
 
     /** {@inheritDoc} */

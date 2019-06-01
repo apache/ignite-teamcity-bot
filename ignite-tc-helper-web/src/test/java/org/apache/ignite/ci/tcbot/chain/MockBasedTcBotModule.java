@@ -36,7 +36,7 @@ import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
 import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
@@ -47,6 +47,8 @@ import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -87,45 +89,50 @@ public class MockBasedTcBotModule extends AbstractModule {
 
         final ITcServerProvider tcSrvOldProv = Mockito.mock(ITcServerProvider.class);
 
-        final IAnalyticsEnabledTeamcity tcOld = BuildChainProcessorTest.tcOldMock();
-        when(tcSrvOldProv.server(anyString(), any(ICredentialsProv.class))).thenReturn(tcOld);
-
         bind(ITcServerProvider.class).toInstance(tcSrvOldProv);
 
-        bind(ITcBotConfig.class).toInstance(new ITcBotConfig() {
-            @Override public String primaryServerCode() {
+        final ITcBotConfig cfg = new ITcBotConfig() {
+            @Override
+            public String primaryServerCode() {
                 return ITcBotConfig.DEFAULT_SERVER_CODE;
             }
 
-            @Override public BranchesTracked getTrackedBranches() {
+            @Override
+            public BranchesTracked getTrackedBranches() {
                 return tracked;
             }
 
             /** {@inheritDoc} */
-            @Override public ITcServerConfig getTeamcityConfig(String srvCode) {
+            @Override
+            public ITcServerConfig getTeamcityConfig(String srvCode) {
                 return new TcServerConfig().code(srvCode).properties(loadOldProps(srvCode));
             }
 
-            @Override public IJiraServerConfig getJiraConfig(String srvCode) {
+            @Override
+            public IJiraServerConfig getJiraConfig(String srvCode) {
                 return jiraCfg;
             }
 
-            @Override public IGitHubConfig getGitConfig(String srvCode) {
+            @Override
+            public IGitHubConfig getGitConfig(String srvCode) {
                 return ghCfg;
             }
 
-            @Override public NotificationsConfig notifications() {
+            @Override
+            public NotificationsConfig notifications() {
                 return new NotificationsConfig();
             }
 
             private Properties loadOldProps(String srvCode) {
-                File workDir = HelperConfig.resolveWorkDir();
+                File workDir = TcBotWorkDir.resolveWorkDir();
 
                 String cfgName = HelperConfig.prepareConfigName(srvCode);
 
                 return HelperConfig.loadAuthProperties(workDir, cfgName);
             }
-        });
+        };
+        bind(ITcBotConfig.class).toInstance(cfg);
+        bind(ITcServerConfigSupplier.class).toInstance(cfg);
 
         bind(IIssuesStorage.class).toInstance(Mockito.mock(IIssuesStorage.class));
         bind(IUserStorage.class).toInstance(Mockito.mock(IUserStorage.class));

@@ -34,7 +34,7 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.util.Diff;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
+import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
 
 /**
  * Compare builds (by ID) tests' sets.

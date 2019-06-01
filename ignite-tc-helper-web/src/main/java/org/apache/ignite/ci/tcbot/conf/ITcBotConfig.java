@@ -16,13 +16,16 @@
  */
 package org.apache.ignite.ci.tcbot.conf;
 
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
+
 import java.util.Collection;
 import java.util.List;
 
 /**
- * Teamcity Bot configuration access inteface.
+ * Teamcity Bot configuration access interface.
  */
-public interface ITcBotConfig {
+public interface ITcBotConfig extends ITcServerConfigSupplier {
     /** Default server code. */
     public String DEFAULT_SERVER_CODE = "apache";
 

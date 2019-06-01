@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
-import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 
 /**
  *

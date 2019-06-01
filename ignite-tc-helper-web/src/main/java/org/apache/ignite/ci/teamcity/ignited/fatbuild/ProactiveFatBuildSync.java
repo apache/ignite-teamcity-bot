@@ -19,14 +19,14 @@ package org.apache.ignite.ci.teamcity.ignited.fatbuild;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import java.util.stream.Stream;
-import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.tcmodel.changes.ChangesList;
-import org.apache.ignite.ci.tcmodel.result.Build;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
-import org.apache.ignite.ci.tcmodel.result.stat.Statistics;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrencesFull;
+import org.apache.ignite.tcservice.model.changes.ChangesList;
+import org.apache.ignite.tcservice.model.result.Build;
+import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
+import org.apache.ignite.tcservice.model.result.stat.Statistics;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrencesFull;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
@@ -34,9 +34,9 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
-import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
-import org.apache.ignite.ci.util.ExceptionUtil;
-import org.apache.ignite.ci.web.rest.exception.ConflictException;
+import org.apache.ignite.tcservice.ITeamcityConn;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
+import org.apache.ignite.tcbot.common.exeption.ServiceConflictException;
 import org.apache.ignite.internal.util.GridConcurrentHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -385,7 +385,7 @@ public class ProactiveFatBuildSync {
         catch (Exception e) {
             Throwable cause = Throwables.getRootCause(e);
 
-            if (cause instanceof FileNotFoundException || cause instanceof ConflictException) {
+            if (cause instanceof FileNotFoundException || cause instanceof ServiceConflictException) {
                 logger.info("Loading build [" + buildId + "] for server [" + srvName + "] failed:" + e.getMessage(), e);
 
                 if (existingBuild != null) {

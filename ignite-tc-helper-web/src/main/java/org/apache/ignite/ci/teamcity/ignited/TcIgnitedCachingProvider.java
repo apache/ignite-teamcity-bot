@@ -24,12 +24,12 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Provider;
-import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 
 /**
  *

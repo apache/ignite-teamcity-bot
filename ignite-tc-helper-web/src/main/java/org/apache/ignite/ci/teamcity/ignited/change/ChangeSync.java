@@ -17,11 +17,11 @@
 package org.apache.ignite.ci.teamcity.ignited.change;
 
 import com.google.common.base.Throwables;
-import org.apache.ignite.ci.di.AutoProfiling;
-import org.apache.ignite.ci.tcmodel.changes.Change;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcservice.model.changes.Change;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
-import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.tcservice.ITeamcityConn;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

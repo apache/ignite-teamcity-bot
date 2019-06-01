@@ -20,11 +20,11 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.db.Persisted;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.ignite.ci.tcmodel.hist.BuildRef.*;
+import static org.apache.ignite.tcservice.model.hist.BuildRef.*;
 
 @Persisted
 public class BuildRefCompacted {

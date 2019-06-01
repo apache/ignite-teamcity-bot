@@ -31,7 +31,7 @@ import javax.ws.rs.core.Context;
 import com.google.inject.Injector;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
@@ -75,11 +75,10 @@ public class GetChainResultsAsHtml {
 
         ITcServerProvider tcHelper = injector.getInstance(ITcServerProvider.class);
         final ICredentialsProv creds = ICredentialsProv.get(req);
-        IAnalyticsEnabledTeamcity teamcity = tcHelper.server(srvId, creds);
         ITeamcityIgnited tcIgn = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvId, creds);
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
-            tcIgn,
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+                tcIgn,
             Collections.singletonList(buildId),
             LatestRebuildMode.NONE,
             ProcessLogsMode.SUITE_NOT_COMPLETE,
@@ -87,7 +86,7 @@ public class GetChainResultsAsHtml {
             failRateBranch,
             SyncMode.RELOAD_QUEUED);
 
-        ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(tcIgn.serverId(), ctx.branchName());
+        ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(tcIgn.serverCode(), ctx.branchName());
 
         ctx.getRunningUpdates().forEach(FutureUtil::getResultSilent);
 

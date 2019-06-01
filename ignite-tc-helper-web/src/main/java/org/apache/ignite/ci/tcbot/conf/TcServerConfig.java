@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Properties;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -114,7 +116,7 @@ public class TcServerConfig implements ITcServerConfig {
     }
 
     /** {@inheritDoc} */
-    @NotNull @Override public Collection<BuildParameterSpec> filteringParameters() {
+    @NotNull @Override public Collection<? extends IBuildParameterSpec> filteringParameters() {
         if (filteringParameters == null || filteringParameters.isEmpty())
             return Collections.emptySet();
 

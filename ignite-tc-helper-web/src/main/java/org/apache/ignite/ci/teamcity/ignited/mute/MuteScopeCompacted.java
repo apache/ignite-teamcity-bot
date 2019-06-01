@@ -19,9 +19,9 @@ package org.apache.ignite.ci.teamcity.ignited.mute;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
-import org.apache.ignite.ci.tcmodel.conf.Project;
-import org.apache.ignite.ci.tcmodel.mute.MuteScope;
+import org.apache.ignite.tcservice.model.conf.BuildType;
+import org.apache.ignite.tcservice.model.conf.Project;
+import org.apache.ignite.tcservice.model.mute.MuteScope;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.internal.util.typedef.F;

@@ -30,7 +30,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
-import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
+import org.apache.ignite.tcservice.model.mute.MuteInfo;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.SyncMode;
 import org.apache.ignite.ci.user.ICredentialsProv;

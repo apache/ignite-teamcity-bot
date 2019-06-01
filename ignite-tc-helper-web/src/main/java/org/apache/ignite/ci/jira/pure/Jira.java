@@ -19,11 +19,11 @@ package org.apache.ignite.ci.jira.pure;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
-import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.ci.jira.Tickets;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.ci.util.HttpUtil;
+import org.apache.ignite.tcbot.common.util.HttpUtil;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
