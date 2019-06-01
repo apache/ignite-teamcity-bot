@@ -57,9 +57,7 @@ public class NotificationChannel implements INotificationChannel {
         if(Strings.isNullOrEmpty(tag))
             return true; // nothing to filter, consider subscribed
 
-        tagsFilter.contains(tag);
-
-        return false;
+        return tagsFilter.contains(tag);
     }
 
     /** {@inheritDoc} */
