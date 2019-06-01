@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.logs;
 
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence;
+import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 
 /**
  *

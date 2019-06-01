@@ -26,7 +26,7 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
-import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 
 class GitHubIgnitedProvImpl implements IGitHubConnIgnitedProvider {
     @Inject IGitHubConnectionProvider pureConnProv;

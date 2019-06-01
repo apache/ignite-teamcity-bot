@@ -27,7 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-import org.apache.ignite.ci.HelperConfig;
+
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 
 /** Unzips files to specified folder */
 public class ZipUtil {
@@ -53,7 +54,7 @@ public class ZipUtil {
                     else {
                         System.out.println("file unzip : " + newFile.getAbsoluteFile());
 
-                        HelperConfig.ensureDirExist(new File(newFile.getParent()));
+                        TcBotWorkDir.ensureDirExist(new File(newFile.getParent()));
                         Files.copy(zis, newFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                     }
                     result.add(newFile);

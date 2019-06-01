@@ -22,7 +22,7 @@ import org.apache.ignite.ci.logs.BuildLogStreamChecker;
 import org.apache.ignite.ci.logs.handlers.TestLogHandler;
 import org.apache.ignite.ci.logs.handlers.ThreadDumpInMemoryHandler;
 
-import static org.apache.ignite.ci.tcmodel.result.problems.ProblemOccurrence.JAVA_LEVEL_DEADLOCK;
+import static org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence.JAVA_LEVEL_DEADLOCK;
 
 /**
  *

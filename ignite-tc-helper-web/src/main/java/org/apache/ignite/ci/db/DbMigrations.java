@@ -35,7 +35,7 @@ import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.observer.CompactBuildsInfo;
-import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.ci.web.model.CompactContributionKey;
 import org.apache.ignite.ci.web.model.CompactVisa;
 import org.apache.ignite.ci.web.model.CompactVisaRequest;

@@ -20,7 +20,7 @@ import com.google.common.base.Strings;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.IgniteTeamcityConnection;
+import org.apache.ignite.tcservice.IgniteTeamcityConnection;
 import org.apache.ignite.ci.web.TcUpdatePool;
 
  class InitializingServerFactory implements ITcServerFactory {

@@ -22,9 +22,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -115,15 +116,7 @@ public class TcServerConfig implements ITcServerConfig {
     }
 
     /** {@inheritDoc} */
-    @Override public Collection<String> filteringParametersKeys() {
-        if (filteringParameters == null || filteringParameters.isEmpty())
-            return Collections.emptySet();
-
-        return filteringParameters.stream().map(BuildParameterSpec::name).collect(Collectors.toSet());
-    }
-
-    /** {@inheritDoc} */
-    @NotNull @Override public Collection<BuildParameterSpec> filteringParameters() {
+    @NotNull @Override public Collection<? extends IBuildParameterSpec> filteringParameters() {
         if (filteringParameters == null || filteringParameters.isEmpty())
             return Collections.emptySet();
 

@@ -27,7 +27,7 @@ import java.util.TreeSet;
 import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.db.Persisted;
 import org.apache.ignite.ci.tcbot.conf.INotificationChannel;
-import org.apache.ignite.ci.tcmodel.user.User;
+import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.ci.util.CryptUtil;
 import org.jetbrains.annotations.Nullable;
 

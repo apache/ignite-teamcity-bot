@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import org.apache.ignite.ci.issue.Issue;
-import org.apache.ignite.ci.util.TimeUtil;
+import org.apache.ignite.tcbot.common.util.TimeUtil;
 import org.apache.ignite.ci.web.model.Version;
 
 import static org.apache.ignite.ci.web.model.Version.GITHUB_REF;

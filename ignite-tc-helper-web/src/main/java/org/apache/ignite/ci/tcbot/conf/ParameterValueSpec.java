@@ -17,34 +17,53 @@
 
 package org.apache.ignite.ci.tcbot.conf;
 
-import com.google.common.base.Objects;
+import org.apache.ignite.tcbot.common.conf.IParameterValueSpec;
+
+import java.util.Objects;
 
 /**
  * Some parameter value, which label may be used in UI.
  */
-public class ParameterValueSpec {
+public class ParameterValueSpec implements IParameterValueSpec {
     private String value;
     private String label;
+    private String valueRegExp;
 
+    /**
+     * Exact value, which can be present in a build.
+     */
     public String value() {
         return value;
     }
 
+    /**
+     * @return label/tag to be associated with build or shown in selection.
+     */
     public String label() {
         return label;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ParameterValueSpec that = (ParameterValueSpec) o;
-        return Objects.equal(value, that.value) &&
-                Objects.equal(label, that.label);
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        ParameterValueSpec spec = (ParameterValueSpec)o;
+        return Objects.equals(value, spec.value) &&
+            Objects.equals(label, spec.label) &&
+            Objects.equals(valueRegExp, spec.valueRegExp);
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(value, label);
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hash(value, label, valueRegExp);
+    }
+
+    /**
+     *
+     */
+    public String valueRegExp() {
+        return this.valueRegExp;
     }
 }

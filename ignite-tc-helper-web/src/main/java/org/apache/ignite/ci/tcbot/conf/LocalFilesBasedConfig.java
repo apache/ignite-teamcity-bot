@@ -23,6 +23,8 @@ import java.util.Objects;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.ci.di.cache.GuavaCached;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 
 /**
  *
@@ -88,7 +90,7 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
 
     @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)
     protected Properties loadOldAuthProps(String srvCode) {
-        File workDir = HelperConfig.resolveWorkDir();
+        File workDir = TcBotWorkDir.resolveWorkDir();
 
         String cfgName = HelperConfig.prepareConfigName(srvCode);
 

@@ -31,7 +31,7 @@ import org.apache.ignite.ci.di.IgniteTcBotModule;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
-import org.apache.ignite.ci.teamcity.pure.TeamcityRecorder;
+import org.apache.ignite.tcservice.http.TeamcityRecorder;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

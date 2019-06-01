@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.apache.ignite.ci.analysis.TestInBranch;
-import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
@@ -122,6 +122,7 @@ public class TeamcityIgnitedMock {
 
         ITcServerConfig mock = mock(ITcServerConfig.class);
         when(tcIgnited.config()).thenReturn(mock);
+
 
         return tcIgnited;
     }

@@ -16,7 +16,7 @@
  */
 package org.apache.ignite.ci.web.rest.monitoring;
 
-import org.apache.ignite.ci.util.TimeUtil;
+import org.apache.ignite.tcbot.common.util.TimeUtil;
 
 @SuppressWarnings("WeakerAccess")
 public class HotSpot {

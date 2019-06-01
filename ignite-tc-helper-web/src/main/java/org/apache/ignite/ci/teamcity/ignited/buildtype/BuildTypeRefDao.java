@@ -33,7 +33,7 @@ import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.tcservice.model.conf.BuildType;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.jetbrains.annotations.Nullable;
 

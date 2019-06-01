@@ -20,8 +20,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.IgnitePersistentTeamcity;
-import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
-import org.apache.ignite.ci.teamcity.pure.TcRealConnectionModule;
+import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
+import org.apache.ignite.tcservice.TcRealConnectionModule;
 import org.jetbrains.annotations.Nullable;
 
 /**

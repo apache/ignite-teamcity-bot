@@ -21,7 +21,7 @@ import java.util.Objects;
 import java.util.Timer;
 import javax.inject.Inject;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
-import org.apache.ignite.ci.tcmodel.result.Build;
+import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
