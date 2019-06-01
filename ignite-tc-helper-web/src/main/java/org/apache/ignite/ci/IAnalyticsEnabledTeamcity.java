@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci;
 
+import org.apache.ignite.tcservice.ITeamcity;
+
 /**
  * Combination of REST data and persisted statistics.
  */

@@ -31,7 +31,7 @@ import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.ci.di.cache.GuavaCached;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 import org.apache.ignite.ci.teamcity.ignited.IRunStat;

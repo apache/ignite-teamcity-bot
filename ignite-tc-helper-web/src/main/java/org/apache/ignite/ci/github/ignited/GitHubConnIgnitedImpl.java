@@ -31,7 +31,7 @@ import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
 import org.apache.ignite.ci.github.GitHubBranchKey;

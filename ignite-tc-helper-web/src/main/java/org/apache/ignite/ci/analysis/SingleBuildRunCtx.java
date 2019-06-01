@@ -32,10 +32,13 @@ import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
-import org.apache.ignite.ci.ITeamcity;
+
+import org.apache.ignite.tcbot.common.conf.IParameterValueSpec;
+import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.tcbot.conf.BuildParameterSpec;
-import org.apache.ignite.ci.tcbot.conf.ITcServerConfig;
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
@@ -275,16 +278,16 @@ public class SingleBuildRunCtx implements ISuiteResults {
 
     public void addTagsFromParameters(ParametersCompacted parameters, ITcServerConfig tcCfg,
         IStringCompactor compactor) {
-        for (BuildParameterSpec parm : tcCfg.filteringParameters()) {
-            if (!parm.isFilled())
+        for (IBuildParameterSpec parm0 : tcCfg.filteringParameters()) {
+            if (!parm0.isFilled())
                 continue;
 
-            String propVal = getPropertyOrSpecialValue(parameters, compactor, parm.name());
+            String propVal = getPropertyOrSpecialValue(parameters, compactor, parm0.name());
 
             if (Strings.isNullOrEmpty(propVal))
                 continue;
 
-            parm.selection().stream()
+            parm0.selection().stream()
                 .filter(pvs -> {
                     String valRegExp = pvs.valueRegExp();
 

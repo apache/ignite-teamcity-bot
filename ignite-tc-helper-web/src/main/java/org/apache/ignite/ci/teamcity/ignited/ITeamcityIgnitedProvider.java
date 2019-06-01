@@ -18,7 +18,7 @@ package org.apache.ignite.ci.teamcity.ignited;
 
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
+import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
 
 /**
  * Provides instance of particular cache-based teamcity connection.

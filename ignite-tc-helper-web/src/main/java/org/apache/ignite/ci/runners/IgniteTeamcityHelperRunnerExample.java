@@ -17,20 +17,18 @@
 
 package org.apache.ignite.ci.runners;
 
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import org.apache.ignite.ci.IgniteTeamcityConnection;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
-import org.apache.ignite.ci.tcmodel.conf.bt.BuildTypeFull;
-import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
-import org.apache.ignite.ci.teamcity.pure.TcConnectionStaticLinker;
+import org.apache.ignite.tcservice.IgniteTeamcityConnection;
+import org.apache.ignite.tcservice.model.conf.BuildType;
+import org.apache.ignite.tcservice.model.conf.bt.BuildTypeFull;
+import org.apache.ignite.tcservice.model.conf.bt.SnapshotDependency;
+import org.apache.ignite.tcservice.util.TcConnectionStaticLinker;
 
 /**
  * Local class for running specific checks

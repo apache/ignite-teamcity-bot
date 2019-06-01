@@ -20,12 +20,12 @@ package org.apache.ignite.ci.teamcity.ignited.mute;
 import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.ignite.ci.tcmodel.mute.MuteAssignment;
-import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
-import org.apache.ignite.ci.tcmodel.mute.MuteTarget;
-import org.apache.ignite.ci.tcmodel.result.tests.TestRef;
+import org.apache.ignite.tcservice.model.mute.MuteAssignment;
+import org.apache.ignite.tcservice.model.mute.MuteInfo;
+import org.apache.ignite.tcservice.model.mute.MuteTarget;
+import org.apache.ignite.tcservice.model.result.tests.TestRef;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.util.TimeUtil;
+import org.apache.ignite.tcbot.common.util.TimeUtil;
 import org.apache.ignite.internal.util.typedef.F;
 
 /**

@@ -25,8 +25,8 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.db.Persisted;
-import org.apache.ignite.ci.tcmodel.conf.bt.Parameters;
-import org.apache.ignite.ci.tcmodel.conf.bt.Property;
+import org.apache.ignite.tcservice.model.conf.bt.Parameters;
+import org.apache.ignite.tcservice.model.conf.bt.Property;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.apache.ignite.internal.util.GridIntList;
 

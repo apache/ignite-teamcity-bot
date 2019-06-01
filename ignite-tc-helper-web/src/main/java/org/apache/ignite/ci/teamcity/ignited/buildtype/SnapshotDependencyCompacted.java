@@ -19,7 +19,7 @@ package org.apache.ignite.ci.teamcity.ignited.buildtype;
 
 import com.google.common.base.MoreObjects;
 import java.util.Objects;
-import org.apache.ignite.ci.tcmodel.conf.bt.SnapshotDependency;
+import org.apache.ignite.tcservice.model.conf.bt.SnapshotDependency;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
 public class SnapshotDependencyCompacted {

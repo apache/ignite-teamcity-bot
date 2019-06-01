@@ -36,10 +36,11 @@ import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.tcbot.TcBotBusinessServicesModule;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedModule;
-import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 
 /**
  *

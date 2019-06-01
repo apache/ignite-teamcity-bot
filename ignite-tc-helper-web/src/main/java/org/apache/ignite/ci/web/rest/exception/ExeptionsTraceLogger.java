@@ -19,7 +19,7 @@ package org.apache.ignite.ci.web.rest.exception;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 import javax.ws.rs.core.Response;
-import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
+import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

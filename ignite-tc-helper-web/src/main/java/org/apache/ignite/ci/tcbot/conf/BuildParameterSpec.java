@@ -18,11 +18,13 @@
 package org.apache.ignite.ci.tcbot.conf;
 
 import com.google.common.base.Strings;
+import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
+import org.apache.ignite.tcbot.common.conf.IParameterValueSpec;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class BuildParameterSpec {
+public class BuildParameterSpec implements IBuildParameterSpec {
     /** Parameter (property) Name. */
     private String name;
 
@@ -84,7 +86,7 @@ public class BuildParameterSpec {
         return !Strings.isNullOrEmpty(name);
     }
 
-    public List<ParameterValueSpec> selection() {
+    public List<? extends IParameterValueSpec> selection() {
         return (selection == null || selection.isEmpty())
             ? Collections.emptyList()
             : Collections.unmodifiableList(selection);

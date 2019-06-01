@@ -26,8 +26,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
-import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.web.model.Version;
 import org.apache.ignite.cluster.BaselineNode;
@@ -101,7 +101,7 @@ public class Ignite1Init {
 
     @NotNull
     private IgniteConfiguration getIgniteConfiguration() {
-        final File workDir = HelperConfig.resolveWorkDir();
+        final File workDir = TcBotWorkDir.resolveWorkDir();
         Ignite2Configurer.configLogger(workDir, "tcbot_logs");
 
         final IgniteConfiguration cfg = new IgniteConfiguration();

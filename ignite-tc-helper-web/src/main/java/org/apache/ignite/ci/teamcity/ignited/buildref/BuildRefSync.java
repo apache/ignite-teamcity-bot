@@ -16,12 +16,12 @@
  */
 package org.apache.ignite.ci.teamcity.ignited.buildref;
 
-import org.apache.ignite.ci.di.AutoProfiling;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.ci.di.MonitoredTask;
-import org.apache.ignite.ci.tcmodel.hist.BuildRef;
+import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
-import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
+import org.apache.ignite.tcservice.ITeamcityConn;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;

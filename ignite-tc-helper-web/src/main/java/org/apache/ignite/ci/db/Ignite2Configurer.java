@@ -24,12 +24,13 @@ import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.TimeBasedRollingPolicy;
 import java.io.File;
 import java.io.IOException;
-import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.tcbot.TcBotSystemProperties;
+
+import org.apache.ignite.tcbot.common.conf.TcBotSystemProperties;
 import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.WALMode;
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +50,7 @@ public class Ignite2Configurer {
         rollingFa.setAppend(true);
 
         final File logs = new File(workDir, subdir);
-        HelperConfig.ensureDirExist(logs);
+        TcBotWorkDir.ensureDirExist(logs);
 
         TimeBasedRollingPolicy logFilePolicy = new TimeBasedRollingPolicy();
         logFilePolicy.setContext(logCtx);

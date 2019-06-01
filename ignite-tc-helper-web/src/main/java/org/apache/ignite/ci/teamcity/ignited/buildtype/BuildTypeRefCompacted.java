@@ -20,7 +20,7 @@ package org.apache.ignite.ci.teamcity.ignited.buildtype;
 import com.google.common.base.MoreObjects;
 import java.util.Objects;
 import org.apache.ignite.ci.db.Persisted;
-import org.apache.ignite.ci.tcmodel.conf.BuildType;
+import org.apache.ignite.tcservice.model.conf.BuildType;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

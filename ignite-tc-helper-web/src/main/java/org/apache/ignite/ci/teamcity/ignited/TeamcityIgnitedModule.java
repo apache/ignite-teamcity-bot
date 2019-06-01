@@ -34,7 +34,7 @@ import org.apache.ignite.ci.teamcity.ignited.mute.MuteDao;
 import org.apache.ignite.ci.teamcity.ignited.mute.MuteSync;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
-import org.apache.ignite.ci.teamcity.pure.ITeamcityHttpConnection;
+import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
 import org.apache.ignite.ci.teamcity.restcached.TcRestCachedModule;
 import org.jetbrains.annotations.Nullable;
 

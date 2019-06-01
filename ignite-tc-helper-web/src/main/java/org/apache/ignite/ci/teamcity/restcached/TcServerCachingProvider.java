@@ -21,7 +21,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.user.ICredentialsProv;
-import org.apache.ignite.ci.util.ExceptionUtil;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;

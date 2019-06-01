@@ -39,7 +39,6 @@ import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.ContributionKey;
-import org.apache.ignite.ci.web.rest.exception.ServiceUnauthorizedException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

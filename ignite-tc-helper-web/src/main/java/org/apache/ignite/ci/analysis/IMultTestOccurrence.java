@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.analysis;
 
-import org.apache.ignite.ci.tcmodel.result.tests.TestOccurrenceFull;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
 
 /**

@@ -23,8 +23,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import org.apache.ignite.ci.di.MonitoredTask;
 import org.apache.ignite.ci.di.scheduler.IScheduler;
-import org.apache.ignite.ci.tcmodel.mute.MuteInfo;
-import org.apache.ignite.ci.teamcity.pure.ITeamcityConn;
+import org.apache.ignite.tcservice.model.mute.MuteInfo;
+import org.apache.ignite.tcservice.ITeamcityConn;
 import org.apache.ignite.internal.util.typedef.F;
 
 /**

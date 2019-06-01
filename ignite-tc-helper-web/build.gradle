@@ -28,6 +28,9 @@ repositories {
 
 // https://www.apache.org/legal/resolved.html#category-a
 dependencies {
+    compile (project(":tcbot-common"));
+    compile (project(":tcbot-teamcity"));
+
     compile group: 'com.google.guava', name: 'guava', version: guavaVer
 
     compile group: 'org.apache.ignite', name: 'ignite-core', version: ignVer

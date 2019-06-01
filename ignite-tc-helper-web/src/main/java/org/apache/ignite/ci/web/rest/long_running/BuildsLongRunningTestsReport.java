@@ -51,6 +51,6 @@ public class BuildsLongRunningTestsReport {
 
         final TrackedBranchChainsProcessor tbProc = CtxListener.getInjector(ctx).getInstance(TrackedBranchChainsProcessor.class);
 
-        return tbProc.getTrackedBranchLongRunningTestsSummary(null, creds);
+        return tbProc.getTrackedBranchLongRunningTestsSummary(branchOrNull, creds);
     }
 }

@@ -28,8 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.inject.Provider;
-import org.apache.ignite.ci.ITeamcity;
+import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
 
