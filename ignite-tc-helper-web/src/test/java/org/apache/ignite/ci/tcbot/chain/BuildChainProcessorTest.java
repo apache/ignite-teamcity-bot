@@ -87,7 +87,7 @@ public class BuildChainProcessorTest {
 
         ITeamcityIgnited tcIgnited = tcIgnitedMock(builds);
 
-        FullChainRunCtx ctx = bcp.loadFullChainContext(tcOldMock(), tcIgnited,
+        FullChainRunCtx ctx = bcp.loadFullChainContext(tcIgnited,
             entry,
             LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
         List<MultBuildRunCtx> suites = ctx.failedChildSuites().collect(Collectors.toList());
@@ -123,7 +123,7 @@ public class BuildChainProcessorTest {
             builds.put(pds1.id(), pds1);
         }
 
-        FullChainRunCtx ctx2 = bcp.loadFullChainContext(tcOldMock(), tcIgnited,
+        FullChainRunCtx ctx2 = bcp.loadFullChainContext(tcIgnited,
             entry,
             LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
         List<MultBuildRunCtx> suites2 = ctx2.failedChildSuites().collect(Collectors.toList());
@@ -153,7 +153,7 @@ public class BuildChainProcessorTest {
         List<Integer> entry = Lists.newArrayList();
         addTestBuild(c, builds, entry, 0);
 
-        FullChainRunCtx ctx = bcp.loadFullChainContext(tcOldMock(), tcIgnitedMock(builds),
+        FullChainRunCtx ctx = bcp.loadFullChainContext(tcIgnitedMock(builds),
             entry,
             LatestRebuildMode.LATEST, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
         List<MultBuildRunCtx> suites = ctx.failedChildSuites().collect(Collectors.toList());
@@ -194,10 +194,6 @@ public class BuildChainProcessorTest {
         pds2.addTests(c, Lists.newArrayList(t2, t3));
 
         builds.put(pds2.id(), pds2);
-    }
-
-    @NotNull public static IAnalyticsEnabledTeamcity tcOldMock() {
-        return Mockito.mock(IAnalyticsEnabledTeamcity.class);
     }
 
     @NotNull public ITeamcityIgnited tcIgnitedMock(Map<Integer, FatBuildCompacted> builds) {

@@ -17,7 +17,6 @@
 
 package org.apache.ignite.ci.web.model.current;
 
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 
@@ -52,15 +51,13 @@ import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
     }
 
     /**
-     * @param teamcity TeamCity to get info about tokens.
      * @param gitHubConn GitHub integration associated with this server.
      * @param jiraIntegration JIRA Integration
      */
-    public void setJavaFlags(IAnalyticsEnabledTeamcity teamcity,
-        IGitHubConnIgnited gitHubConn,
-        IJiraIgnited jiraIntegration) {
-        if (teamcity.isTeamCityTokenAvailable())
-            javaFlags |= TEAMCITY_FLAG;
+    public void setJavaFlags(IGitHubConnIgnited gitHubConn,
+                             IJiraIgnited jiraIntegration) {
+        //since user has logged in, TC flag should be set
+        javaFlags |= TEAMCITY_FLAG;
 
         if (gitHubConn.config().isGitTokenAvailable())
             javaFlags |= GITHUB_FLAG;

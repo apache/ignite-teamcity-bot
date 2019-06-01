@@ -123,15 +123,14 @@ public class GetBuildTestFailures {
 
         tcIgnitedProv.checkAccess(srvCode, prov);
 
-        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvCode, prov);
         ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCode, prov);
 
         String failRateBranch = ITeamcity.DEFAULT;
 
         ProcessLogsMode procLogs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
-            tcIgnited,
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+                tcIgnited,
             Collections.singletonList(buildId),
             LatestRebuildMode.NONE,
             procLogs,

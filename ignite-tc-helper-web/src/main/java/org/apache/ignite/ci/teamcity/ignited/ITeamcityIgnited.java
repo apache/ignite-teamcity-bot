@@ -17,12 +17,15 @@
 package org.apache.ignite.ci.teamcity.ignited;
 
 import com.google.common.base.Strings;
+
+import java.io.File;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.SuiteInBranch;
 import org.apache.ignite.ci.analysis.TestInBranch;
@@ -44,9 +47,9 @@ import org.jetbrains.annotations.NotNull;
  */
 public interface ITeamcityIgnited {
     /**
-     * @return Internal server ID as string
+     * @return Internal serverID (Code) as string
      */
-    public String serverId();
+    public String serverCode();
 
     /**
      * @return TeamCity configuration.
@@ -250,4 +253,6 @@ public interface ITeamcityIgnited {
 
         return null;
     }
+
+    CompletableFuture<File> downloadBuildLogZip(int buildId);
 }

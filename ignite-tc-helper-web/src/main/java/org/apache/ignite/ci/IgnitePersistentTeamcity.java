@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -140,8 +139,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
     }
 
     /** {@inheritDoc} */
-    @Override public CompletableFuture<File> downloadBuildLogZip(int id) {
-        return teamcity.downloadBuildLogZip(id);
+    @Override public CompletableFuture<File> downloadBuildLogZip(int buildId) {
+        return teamcity.downloadBuildLogZip(buildId);
     }
 
     /** {@inheritDoc} */
@@ -193,10 +192,6 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
 
             return val;
         });
-    }
-
-    public Executor getExecutor() {
-        return this.teamcity.getExecutor();
     }
 
     /** {@inheritDoc} */

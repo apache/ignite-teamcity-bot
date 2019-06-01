@@ -88,10 +88,6 @@ public class IgniteTeamcityConnection implements ITeamcity {
 
     private String srvCode;
 
-    public Executor getExecutor() {
-        return executor;
-    }
-
     public void init(@Nullable String srvCode) {
         this.srvCode = srvCode;
 

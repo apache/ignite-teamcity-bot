@@ -217,14 +217,14 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         suite.getBuildsWithThreadDump().forEach(buildId -> {
             webUrlThreadDump = "/rest/" + GetBuildLog.GET_BUILD_LOG + "/" + GetBuildLog.THREAD_DUMP
-                + "?" + GetBuildLog.SERVER_ID + "=" + tcIgnited.serverId()
+                + "?" + GetBuildLog.SERVER_ID + "=" + tcIgnited.serverCode()
                 + "&" + GetBuildLog.BUILD_NO + "=" + buildId
                 + "&" + GetBuildLog.FILE_IDX + "=" + -1;
         });
 
         runningBuildCount = suite.runningBuildCount();
         queuedBuildCount = suite.queuedBuildCount();
-        serverId = tcIgnited.serverId();
+        serverId = tcIgnited.serverCode();
         this.suiteId = suite.suiteId();
         branchName = branchForLink(suite.branchName());
 

@@ -89,9 +89,6 @@ public class MockBasedTcBotModule extends AbstractModule {
 
         final ITcServerProvider tcSrvOldProv = Mockito.mock(ITcServerProvider.class);
 
-        final IAnalyticsEnabledTeamcity tcOld = BuildChainProcessorTest.tcOldMock();
-        when(tcSrvOldProv.server(anyString(), any(ICredentialsProv.class))).thenReturn(tcOld);
-
         bind(ITcServerProvider.class).toInstance(tcSrvOldProv);
 
         final ITcBotConfig cfg = new ITcBotConfig() {

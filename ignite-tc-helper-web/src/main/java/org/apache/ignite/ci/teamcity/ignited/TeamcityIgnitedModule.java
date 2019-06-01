@@ -62,8 +62,6 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(RunHistSync.class).in(new SingletonScope());
         bind(MuteDao.class).in(new SingletonScope());
         bind(MuteSync.class).in(new SingletonScope());
-        bind(JiraTicketDao.class).in(new SingletonScope());
-        bind(JiraTicketSync.class).in(new SingletonScope());
 
         bind(IStringCompactor.class).to(IgniteStringCompactor.class).in(new SingletonScope());
 

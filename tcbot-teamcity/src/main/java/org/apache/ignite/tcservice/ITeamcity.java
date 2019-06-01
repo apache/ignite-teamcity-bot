@@ -53,11 +53,9 @@ public interface ITeamcity extends ITeamcityConn {
     /** Fake property for addressing 'Suite Name'. */
     public String SUITE_NAME_PROPERTY = "_suiteName";
 
-    CompletableFuture<File> downloadBuildLogZip(int id);
+    CompletableFuture<File> downloadBuildLogZip(int buildId);
 
     void setExecutor(ExecutorService pool);
-
-    Executor getExecutor();
 
 
     /**

@@ -134,7 +134,6 @@ public class BuildChainProcessor {
     }
 
     /**
-     * @param teamcity Teamcity.
      * @param tcIgn Teamcity Ignited.
      * @param entryPoints Entry point(s): Build(s) to start scan from.
      * @param includeLatestRebuild Include latest rebuild.
@@ -145,14 +144,13 @@ public class BuildChainProcessor {
      */
     @AutoProfiling
     public FullChainRunCtx loadFullChainContext(
-        IAnalyticsEnabledTeamcity teamcity,
-        ITeamcityIgnited tcIgn,
-        Collection<Integer> entryPoints,
-        LatestRebuildMode includeLatestRebuild,
-        ProcessLogsMode procLog,
-        boolean includeScheduledInfo,
-        @Nullable String failRateBranch,
-        SyncMode mode) {
+            ITeamcityIgnited tcIgn,
+            Collection<Integer> entryPoints,
+            LatestRebuildMode includeLatestRebuild,
+            ProcessLogsMode procLog,
+            boolean includeScheduledInfo,
+            @Nullable String failRateBranch,
+            SyncMode mode) {
 
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
@@ -190,7 +188,7 @@ public class BuildChainProcessor {
 
             buildsForSuite.forEach(buildCompacted -> ctx.addBuild(loadChanges(buildCompacted, tcIgn)));
 
-            analyzeTests(ctx, teamcity, procLog);
+            analyzeTests(ctx, tcIgn, procLog);
 
             fillBuildCounts(ctx, tcIgn, includeScheduledInfo);
 
@@ -364,8 +362,8 @@ public class BuildChainProcessor {
 
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
-    protected void analyzeTests(MultBuildRunCtx outCtx, ITeamcity teamcity,
-        ProcessLogsMode procLog) {
+    protected void analyzeTests(MultBuildRunCtx outCtx, ITeamcityIgnited teamcity,
+                                ProcessLogsMode procLog) {
         for (SingleBuildRunCtx ctx : outCtx.getBuilds()) {
             if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
                 || procLog == ProcessLogsMode.ALL)
@@ -373,7 +371,7 @@ public class BuildChainProcessor {
         }
     }
 
-    private CompletableFuture<LogCheckTask> checkBuildLogNoCache(ITeamcity teamcity, int buildId, ISuiteResults ctx) {
+    private CompletableFuture<LogCheckTask> checkBuildLogNoCache(ITeamcityIgnited teamcity, int buildId, ISuiteResults ctx) {
         final CompletableFuture<File> zipFut = teamcity.downloadBuildLogZip(buildId);
         boolean dumpLastTest = ctx.hasSuiteIncompleteFailure();
 
@@ -381,7 +379,7 @@ public class BuildChainProcessor {
             return null;
 
         return zipFut.thenApplyAsync(zipFile -> runCheckForZippedLog(dumpLastTest, zipFile),
-                teamcity.getExecutor());
+                tcUpdatePool.getService());
     }
 
 
@@ -419,7 +417,7 @@ public class BuildChainProcessor {
 
     //todo implement persistent cache for build results
     @AutoProfiling
-    public CompletableFuture<LogCheckResult> analyzeBuildLog(ITeamcity teamcity, Integer buildId, SingleBuildRunCtx ctx) {
+    public CompletableFuture<LogCheckResult> analyzeBuildLog(ITeamcityIgnited teamcity, Integer buildId, SingleBuildRunCtx ctx) {
         final Stopwatch started = Stopwatch.createStarted();
 
         CompletableFuture<LogCheckTask> fut = buildLogProcessingRunning.computeIfAbsent(buildId,

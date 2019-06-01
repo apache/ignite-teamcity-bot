@@ -22,6 +22,7 @@ import com.google.common.cache.CacheBuilder;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
+import org.apache.ignite.tcservice.ITeamcity;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -37,7 +38,7 @@ class TcServerCachingProvider implements ITcServerProvider {
     private ITcServerFactory srvFactory;
 
     /** Servers. */
-    private final Cache<String, IAnalyticsEnabledTeamcity> srvs
+    private final Cache<String, ITeamcity> srvs
         = CacheBuilder.newBuilder()
         .maximumSize(100)
         .expireAfterAccess(16, TimeUnit.MINUTES)
@@ -45,12 +46,12 @@ class TcServerCachingProvider implements ITcServerProvider {
         .build();
 
     /** {@inheritDoc} */
-    @Override public IAnalyticsEnabledTeamcity server(String srvId, @Nullable ICredentialsProv prov) {
+    @Override public ITeamcity server(String srvId, @Nullable ICredentialsProv prov) {
         String fullKey = Strings.nullToEmpty(prov == null ? null : prov.getUser(srvId)) + ":" + Strings.nullToEmpty(srvId);
 
         try {
             return srvs.get(fullKey, () -> {
-                IAnalyticsEnabledTeamcity teamcity = srvFactory.createServer(srvId);
+                ITeamcity teamcity = srvFactory.createServer(srvId);
 
                 if (prov != null) {
                     final String user = prov.getUser(srvId);
