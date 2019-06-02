@@ -63,7 +63,16 @@ public class Ignite1Init {
 
         activate();
 
+        dataMigrations();
+
         return ignite;
+    }
+
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    @MonitoredTask(name = "Data Migrations")
+    @AutoProfiling
+    public String dataMigrations() {
+        return new DbMigrations(ignite).dataMigration();
     }
 
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})

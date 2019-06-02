@@ -33,6 +33,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 
+import org.apache.ignite.tcignited.buildlog.ILogCheckResult;
+import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
@@ -60,7 +62,7 @@ public class SingleBuildRunCtx implements ISuiteResults {
     private List<ChangeCompacted> changes = new ArrayList<>();
 
     /** Logger check result future. */
-    private CompletableFuture<LogCheckResult> logCheckResFut;
+    private CompletableFuture<ILogCheckResult> logCheckResFut;
 
     /** Tags found from filtering-enabled parameters. */
     private Set<String> tags = new HashSet<>();
@@ -125,20 +127,20 @@ public class SingleBuildRunCtx implements ISuiteResults {
         return getProblemsStream().anyMatch(p -> p.isBuildFailureOnMessage(compactor));
     }
 
-    public void setLogCheckResFut(CompletableFuture<LogCheckResult> logCheckResFut) {
+    public void setLogCheckResFut(CompletableFuture<ILogCheckResult> logCheckResFut) {
         this.logCheckResFut = logCheckResFut;
     }
 
     @Nullable public String getCriticalFailLastStartedTest() {
-        LogCheckResult logCheckRes = getLogCheckIfFinished();
+        ILogCheckResult logCheckRes = getLogCheckIfFinished();
         if (logCheckRes == null)
             return null;
 
-        return logCheckRes.getLastStartedTest();
+        return logCheckRes.getLastStartedTest(compactor);
     }
 
-    @Nullable public Map<String, TestLogCheckResult> getTestLogCheckResult() {
-        LogCheckResult logCheckRes = getLogCheckIfFinished();
+    @Nullable public Map<String, ITestLogCheckResult> getTestLogCheckResult() {
+        ILogCheckResult logCheckRes = getLogCheckIfFinished();
 
         if (logCheckRes == null)
             return null;
@@ -147,22 +149,22 @@ public class SingleBuildRunCtx implements ISuiteResults {
     }
 
     @Nullable public Integer getBuildIdIfHasThreadDump() {
-        LogCheckResult logCheckRes = getLogCheckIfFinished();
+        ILogCheckResult logCheckRes = getLogCheckIfFinished();
 
-        if (logCheckRes == null)
+        if (logCheckRes == null || !logCheckRes.hasThreadDump())
             return null;
 
         return !Strings.isNullOrEmpty(logCheckRes.getLastThreadDump()) ? buildId() : null;
     }
 
-    @Nullable public LogCheckResult getLogCheckIfFinished() {
+    @Nullable public ILogCheckResult getLogCheckIfFinished() {
         if (logCheckResFut == null)
             return null;
 
         if (!logCheckResFut.isDone() || logCheckResFut.isCancelled())
             return null;
 
-        LogCheckResult logCheckRes = FutureUtil.getResultSilent(logCheckResFut);
+        ILogCheckResult logCheckRes = FutureUtil.getResultSilent(logCheckResFut);
 
         if (logCheckRes == null)
             return null;

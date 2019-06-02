@@ -19,6 +19,14 @@ package org.apache.ignite.tcservice;
 
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
+import org.apache.ignite.tcbot.common.exeption.ServiceConflictException;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.common.util.HttpUtil;
+import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
 import org.apache.ignite.tcservice.model.agent.Agent;
 import org.apache.ignite.tcservice.model.agent.AgentsRef;
 import org.apache.ignite.tcservice.model.changes.Change;
@@ -37,15 +45,7 @@ import org.apache.ignite.tcservice.model.result.stat.Statistics;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrencesFull;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcservice.model.user.Users;
-import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
 import org.apache.ignite.tcservice.util.XmlUtil;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
-import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
-import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
-import org.apache.ignite.tcbot.common.exeption.ServiceConflictException;
-import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.tcbot.common.util.HttpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,29 +121,36 @@ public class TeamcityServiceConnection implements ITeamcity {
             .collect(Collectors.toList());
     }
 
+    /** {@inheritDoc} */
     @AutoProfiling
+    @Deprecated
     public CompletableFuture<File> downloadBuildLogZip(int buildId) {
-        Supplier<File> supplier = () -> {
-            String buildIdStr = Integer.toString(buildId);
-            final File buildDir = TcBotWorkDir.ensureDirExist(new File(logsDir(), "buildId" + buildIdStr));
-            final File file = new File(buildDir, "build.log.zip");
-            if (file.exists() && file.canRead() && file.length() > 0) {
-                logger.info("Nothing to do, file is cached locally: [" + file + "]");
-
-                return file;
-            }
-            String url = host() + "downloadBuildLog.html" + "?buildId=" + buildIdStr + "&archived=true";
-
-            try {
-                HttpUtil.sendGetCopyToFile(basicAuthTok, url, file);
-            }
-            catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-            return file;
-        };
+        Supplier<File> supplier = () -> downloadAndCacheBuildLog(buildId);
 
         return supplyAsync(supplier, executor);
+    }
+
+
+    /** {@inheritDoc} */
+    @AutoProfiling
+    public File downloadAndCacheBuildLog(int buildId) {
+        String buildIdStr = Integer.toString(buildId);
+        File file = new File(logsDir(), "build" + buildIdStr + ".log.zip");
+
+        if (file.exists() && file.canRead() && file.length() > 0) {
+            logger.info("Nothing to do, file is cached locally: [" + file + "]");
+
+            return file;
+        }
+        String url = host() + "downloadBuildLog.html" + "?buildId=" + buildIdStr + "&archived=true";
+
+        try {
+            HttpUtil.sendGetCopyToFile(basicAuthTok, url, file);
+        }
+        catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return file;
     }
 
     private static File resolveLogs(File workDir, String logsProp) {

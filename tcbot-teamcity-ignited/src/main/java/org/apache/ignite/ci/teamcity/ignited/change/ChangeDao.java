@@ -39,9 +39,6 @@ public class ChangeDao {
     /** Change Compacted cache. */
     private IgniteCache<Long, ChangeCompacted> changesCache;
 
-    /** Compactor. */
-    @Inject private IStringCompactor compactor;
-
     /** */
     public void init() {
         CacheConfiguration<Long, ChangeCompacted> cfg = CacheConfigs.getCacheV2Config(TEAMCITY_CHANGE_CACHE_NAME);

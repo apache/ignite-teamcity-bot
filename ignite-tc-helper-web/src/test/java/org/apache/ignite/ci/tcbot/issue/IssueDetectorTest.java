@@ -35,7 +35,7 @@ import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl;
+import org.apache.ignite.tcignited.TeamcityIgnitedImpl;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ITcBotUserCreds;

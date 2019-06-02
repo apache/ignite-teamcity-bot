@@ -67,7 +67,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normalizeBranch;
+import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 
 /**
  *

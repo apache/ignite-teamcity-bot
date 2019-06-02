@@ -17,32 +17,25 @@
 
 package org.apache.ignite.ci.db;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import javax.cache.Cache;
+import com.google.common.collect.Sets;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteDataStreamer;
-import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
-import org.apache.ignite.ci.IgnitePersistentTeamcity;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.issue.IssuesStorage;
-import org.apache.ignite.ci.observer.CompactBuildsInfo;
-import org.apache.ignite.tcservice.model.result.Build;
-import org.apache.ignite.ci.web.model.CompactContributionKey;
-import org.apache.ignite.ci.web.model.CompactVisa;
-import org.apache.ignite.ci.web.model.CompactVisaRequest;
-import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.tcservice.model.result.Build;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.cache.Cache;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Migrations to be applied to each TC related caches.
@@ -93,6 +86,7 @@ public class DbMigrations {
     /** */
     @Deprecated
     public static final String COMPACT_VISAS_HISTORY_CACHE_NAME = "compactVisasHistoryCache";
+    public static final String DONE_MIGRATION_PREFIX = "apache";
 
     interface Old {
         String TEST_FULL = "testFull";
@@ -126,90 +120,34 @@ public class DbMigrations {
         String BUILDS_FAILURE_RUN_STAT = "buildsFailureRunStat";
 
         String TESTS_RUN_STAT = "testsRunStat";
+
+        //V2 caches, 32 parts (V1 caches were 1024 parts)
+        String LOG_CHECK_RESULT = "logCheckResult";
     }
 
     private final Ignite ignite;
-    private final String serverId;
+    private final Set<String> serverIds
+            = Sets.newHashSet("apache", "public",
+            "gg", "private", "gridgain", "gg4apache", "null");
+
     private IgniteCache<String, Object> doneMigrations;
 
-    public DbMigrations(Ignite ignite, String srvId) {
+    public DbMigrations(Ignite ignite ) {
         this.ignite = ignite;
-        this.serverId = srvId;
     }
 
-    public void dataMigration(Cache<CompactContributionKey, List<CompactVisaRequest>> visasCache) {
-
+    public String dataMigration() {
         doneMigrations = doneMigrationsCache();
 
-        applyMigration(COMPACT_VISAS_HISTORY_CACHE_NAME + "-to-" + VisasHistoryStorage.VISAS_CACHE_NAME, () -> {
-            IgniteCache<Object, Object> cache = ignite.cache(COMPACT_VISAS_HISTORY_CACHE_NAME);
-            if (cache == null) {
-                System.err.println("Cache not found " + COMPACT_VISAS_HISTORY_CACHE_NAME);
+        int sizeBefore = doneMigrations.size();
 
-                return;
-            }
-
-            IgniteCache<Object, Object> oldVisasCache = cache.withKeepBinary();
-
-            if (Objects.isNull(oldVisasCache)) {
-                System.out.println("Old cache [" + COMPACT_VISAS_HISTORY_CACHE_NAME + "] not found");
-
-                return;
-            }
-
-            int size = oldVisasCache.size();
-
-            int i = 0;
-
-            for (IgniteCache.Entry<Object, Object> entry : oldVisasCache) {
-                System.out.println("Migrating entry " + i++ + " from " + size);
-
-                Collection<BinaryObject> binVisaReqs = null;
-                Object val = entry.getValue();
-                if (val instanceof List)
-                    binVisaReqs = (Collection<BinaryObject>)val;
-                else {
-                    if (val instanceof Map)
-                        binVisaReqs = ((Map<?, BinaryObject>)val).values();
-                }
-
-                if (binVisaReqs == null)
-                    continue;
-
-                List<CompactVisaRequest> compactVisaReqs = new ArrayList<>();
-
-                CompactContributionKey compactKey = ((BinaryObject)entry.getKey()).deserialize();
-
-                for (BinaryObject binVisaReq : binVisaReqs) {
-                    CompactBuildsInfo compactInfo = ((BinaryObject)binVisaReq.field("compactInfo")).deserialize();
-
-                    CompactVisa compactVisa = ((BinaryObject)binVisaReq.field("compactVisa")).deserialize();
-
-                    compactVisaReqs.add(new CompactVisaRequest(compactVisa, compactInfo, false));
-                }
-
-                visasCache.put(compactKey, compactVisaReqs);
-            }
-        });
+        applyDestroyCacheMigration(COMPACT_VISAS_HISTORY_CACHE_NAME);
 
         applyMigration("InitialFillLatestRunsV3", () -> {
         });
 
-        applyMigration("Remove-" + RUN_STAT_CACHE, () -> {
-            IgniteCache<String, Build> oldBuilds = ignite.getOrCreateCache(ignCacheNme(RUN_STAT_CACHE));
-
-            oldBuilds.clear();
-
-            oldBuilds.destroy();
-        });
-
         applyRemoveCache(Old.CURRENT_PR_FAILURES);
 
-        applyDestroyIgnCacheMigration(TEST_OCCURRENCE_FULL);
-
-        applyDestroyIgnCacheMigration(PROBLEMS);
-
-        applyDestroyIgnCacheMigration(FINISHED_BUILDS_INCLUDE_FAILED);
 
         Cache<IssueKey, Issue> issuesCache = IssuesStorage.botDetectedIssuesCache(ignite);
         applyMigration(ISSUES + "-to-" + issuesCache.getName() + "V2", () -> {
@@ -241,36 +179,13 @@ public class DbMigrations {
             }
         });
 
-        applyDestroyIgnCacheMigration(RUNNING_BUILDS);
-
-        applyDestroyIgnCacheMigration(BUILD_QUEUE);
-
-        applyDestroyIgnCacheMigration(FINISHED_BUILDS_INCLUDE_FAILED);
-        applyDestroyIgnCacheMigration(TEST_OCCURRENCE_FULL);
-
-        applyDestroyIgnCacheMigration(Old.TESTS);
-        applyDestroyIgnCacheMigration(STAT);
-        applyDestroyIgnCacheMigration(BUILD_STATISTICS);
         applyDestroyCacheMigration(BUILD_CONDITIONS_CACHE_NAME, BUILD_CONDITIONS_CACHE_NAME);
         applyDestroyCacheMigration(TEAMCITY_BUILD_CACHE_NAME_OLD, TEAMCITY_BUILD_CACHE_NAME_OLD);
 
-        applyDestroyIgnCacheMigration(Old.CHANGE_INFO_FULL);
-        applyDestroyIgnCacheMigration(Old.CHANGES_LIST);
 
-        applyDestroyIgnCacheMigration(FINISHED_BUILDS);
-        applyDestroyIgnCacheMigration(BUILD_HIST_FINISHED);
-        applyDestroyIgnCacheMigration(BUILD_HIST_FINISHED_OR_FAILED);
 
         applyDestroyCacheMigration(COMPACT_VISAS_HISTORY_CACHE_NAME, COMPACT_VISAS_HISTORY_CACHE_NAME);
 
-        applyDestroyIgnCacheMigration(Old.BUILD_PROBLEMS);
-        applyDestroyIgnCacheMigration(Old.TEST_FULL);
-
-        applyDestroyIgnCacheMigration(Old.CONFIGURATIONS);
-        applyDestroyIgnCacheMigration(Old.TESTS_OCCURRENCES);
-        applyDestroyIgnCacheMigration(Old.TEST_REFS);
-
-        applyDestroyIgnCacheMigration(Old.ISSUES_USAGES_LIST);
 
         applyDestroyCacheMigration(Old.SUITE_HIST_CACHE_NAME);
         applyDestroyCacheMigration(Old.BUILD_START_TIME_CACHE_NAME);
@@ -279,15 +194,64 @@ public class DbMigrations {
         applyDestroyCacheMigration(Old.BUILD_START_TIME_CACHE_NAME);
         applyDestroyCacheMigration(Old.BUILD_START_TIME_CACHE_NAME2);
 
-        applyDestroyIgnCacheMigration(Old.CALCULATED_STATISTIC);
-        applyDestroyIgnCacheMigration(Old.BUILDS);
-        applyDestroyIgnCacheMigration(Old.BUILD_RESULTS);
-        applyDestroyIgnCacheMigration(Old.BUILDS_FAILURE_RUN_STAT);
-        applyDestroyIgnCacheMigration(Old.TESTS_RUN_STAT);
+        for (String srvId : serverIds) {
+            if(!DONE_MIGRATION_PREFIX.equals(srvId))
+                applyDestroyIgnCacheMigration(DONE_MIGRATIONS, srvId);
+
+            applyMigration("Remove-" + RUN_STAT_CACHE, () -> {
+                IgniteCache<String, Build> oldBuilds = ignite.getOrCreateCache(ignCacheNme(RUN_STAT_CACHE, srvId));
+
+                oldBuilds.clear();
+
+                oldBuilds.destroy();
+            });
+
+            applyDestroyIgnCacheMigration(TEST_OCCURRENCE_FULL, srvId);
+
+            applyDestroyIgnCacheMigration(PROBLEMS, srvId);
+
+            applyDestroyIgnCacheMigration(FINISHED_BUILDS_INCLUDE_FAILED, srvId);
+            applyDestroyIgnCacheMigration(RUNNING_BUILDS, srvId);
+
+            applyDestroyIgnCacheMigration(BUILD_QUEUE, srvId);
+
+            applyDestroyIgnCacheMigration(FINISHED_BUILDS_INCLUDE_FAILED, srvId);
+            applyDestroyIgnCacheMigration(TEST_OCCURRENCE_FULL, srvId);
+
+            applyDestroyIgnCacheMigration(Old.TESTS, srvId);
+            applyDestroyIgnCacheMigration(STAT, srvId);
+            applyDestroyIgnCacheMigration(BUILD_STATISTICS, srvId);
+
+            applyDestroyIgnCacheMigration(Old.CHANGE_INFO_FULL, srvId);
+            applyDestroyIgnCacheMigration(Old.CHANGES_LIST, srvId);
+
+            applyDestroyIgnCacheMigration(FINISHED_BUILDS, srvId);
+            applyDestroyIgnCacheMigration(BUILD_HIST_FINISHED, srvId);
+            applyDestroyIgnCacheMigration(BUILD_HIST_FINISHED_OR_FAILED, srvId);
+            applyDestroyIgnCacheMigration(Old.BUILD_PROBLEMS, srvId);
+            applyDestroyIgnCacheMigration(Old.TEST_FULL, srvId);
+
+            applyDestroyIgnCacheMigration(Old.CONFIGURATIONS, srvId);
+            applyDestroyIgnCacheMigration(Old.TESTS_OCCURRENCES, srvId);
+            applyDestroyIgnCacheMigration(Old.TEST_REFS, srvId);
+
+            applyDestroyIgnCacheMigration(Old.ISSUES_USAGES_LIST, srvId);
+            applyDestroyIgnCacheMigration(Old.CALCULATED_STATISTIC, srvId);
+            applyDestroyIgnCacheMigration(Old.BUILDS, srvId);
+            applyDestroyIgnCacheMigration(Old.BUILD_RESULTS, srvId);
+            applyDestroyIgnCacheMigration(Old.BUILDS_FAILURE_RUN_STAT, srvId);
+            applyDestroyIgnCacheMigration(Old.TESTS_RUN_STAT, srvId);
+
+            applyDestroyIgnCacheMigration(Old.LOG_CHECK_RESULT, srvId);
+        }
+
+        int sizeAfter = doneMigrations.size();
+        return (sizeAfter - sizeBefore) + " Migrations done from " + sizeAfter;
+
     }
 
-    private void applyDestroyIgnCacheMigration(String cacheName) {
-        String ignCacheNme = ignCacheNme(cacheName);
+    private void applyDestroyIgnCacheMigration(String cacheName, String srvId) {
+        String ignCacheNme = ignCacheNme(cacheName, srvId);
         applyDestroyCacheMigration(cacheName, ignCacheNme);
     }
 
@@ -296,7 +260,7 @@ public class DbMigrations {
     }
 
     private void applyDestroyCacheMigration(String dispCacheName, String cacheNme) {
-        applyMigration("destroy-" + dispCacheName, () -> {
+        applyMigration("destroy-" + cacheNme, () -> {
             IgniteCache<Object, Object> cache = ignite.cache(cacheNme);
 
             if (cache == null) {
@@ -307,60 +271,6 @@ public class DbMigrations {
 
             cache.destroy();
         });
-    }
-
-    private <K, V> void applyV1toV2Migration(String full, Cache<K, V> cache) {
-        applyMigration(full + "-to-" + cache.getName() + "V2", () -> {
-            v1tov2cacheMigrate(full, cache);
-        });
-    }
-
-    private <K, V> IgniteCache<K, V> getOrCreateIgnCacheV1(String name) {
-        return ignite.getOrCreateCache(ignCacheNme(name));
-    }
-
-    private <K, V> void v1tov2cacheMigrate(String deprecatedCache, Cache<K, V> newCache) {
-        String cacheNme = ignCacheNme(deprecatedCache);
-        IgniteCache<K, V> tests = ignite.cache(cacheNme);
-
-        if (tests == null) {
-            System.err.println("Cache not found: " + cacheNme);
-
-            return;
-        }
-
-        int size = tests.size();
-        if (size > 0) {
-            ignite.cluster().disableWal(newCache.getName());
-
-            try {
-                int i = 0;
-
-                Map<K, V> batch = new HashMap<>();
-
-                IgniteDataStreamer<K, V> streamer = ignite.dataStreamer(newCache.getName());
-
-                for (Cache.Entry<K, V> entry : tests) {
-                    batch.put(entry.getKey(), entry.getValue());
-
-                    i++;
-
-                    if (batch.size() >= 300)
-                        saveOneBatch(cacheNme, size, i, batch, streamer);
-                }
-
-                if (!batch.isEmpty())
-                    saveOneBatch(cacheNme, size, i, batch, streamer);
-
-                streamer.flush();
-                System.err.println("Removing data from old cache " + tests.getName());
-
-                tests.destroy();
-            }
-            finally {
-                ignite.cluster().enableWal(newCache.getName());
-            }
-        }
     }
 
     /**
@@ -403,7 +313,7 @@ public class DbMigrations {
     }
 
     private IgniteCache<String, Object> doneMigrationsCache() {
-        String migrations = ignCacheNme(DONE_MIGRATIONS);
+        String migrations = ignCacheNme(DONE_MIGRATIONS, DONE_MIGRATION_PREFIX);
         CacheConfiguration<String, Object> ccfg = new CacheConfiguration<>(migrations);
         ccfg.setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
         ccfg.setCacheMode(CacheMode.REPLICATED);
@@ -433,7 +343,8 @@ public class DbMigrations {
         }
     }
 
-    private String ignCacheNme(String tests) {
-        return IgnitePersistentTeamcity.ignCacheNme(tests, serverId);
+    @NotNull public static String ignCacheNme(String cache, String srvId) {
+        return srvId + "." + cache;
     }
+
 }

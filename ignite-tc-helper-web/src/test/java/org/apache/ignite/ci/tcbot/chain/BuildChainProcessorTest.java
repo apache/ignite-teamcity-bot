@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
@@ -43,6 +44,7 @@ import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
@@ -66,7 +68,8 @@ public class BuildChainProcessorTest {
     private Injector injector = Guice.createInjector(new AbstractModule() {
         @Override protected void configure() {
             bind(IStringCompactor.class).to(InMemoryStringCompactor.class).in(new SingletonScope());
-            super.configure();
+
+            bind(IBuildLogProcessor.class).toInstance(Mockito.mock(IBuildLogProcessor.class));
         }
     });
 

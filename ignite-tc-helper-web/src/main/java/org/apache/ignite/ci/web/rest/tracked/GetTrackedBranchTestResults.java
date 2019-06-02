@@ -42,7 +42,7 @@ import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
+import static org.apache.ignite.tcignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
 
 @Path(GetTrackedBranchTestResults.TRACKED)
 @Produces(MediaType.APPLICATION_JSON)

@@ -38,7 +38,7 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
-import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
+import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;

@@ -255,4 +255,7 @@ public interface ITeamcityIgnited {
     }
 
     CompletableFuture<File> downloadBuildLogZip(int buildId);
+
+
+    @Nullable File downloadAndCacheBuildLog(int buildId);
 }

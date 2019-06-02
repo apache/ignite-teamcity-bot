@@ -37,7 +37,8 @@ import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
+import static org.apache.ignite.tcignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID;
+
 
 public class BuildTypeSync {
     /** Logger. */

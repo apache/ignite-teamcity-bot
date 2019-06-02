@@ -19,10 +19,12 @@ package org.apache.ignite.ci.teamcity.ignited.runhist;
 
 import com.google.common.base.Objects;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
+import org.apache.ignite.tcbot.persistence.Persisted;
 
 /**
  *
  */
+@Persisted
 public class RunHistKey {
     /** Server ID. */
     @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "tstAndSrv", order = 1)})

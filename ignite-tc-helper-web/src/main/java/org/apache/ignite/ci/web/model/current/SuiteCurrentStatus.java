@@ -31,9 +31,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.analysis.TestLogCheckResult;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
+import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
@@ -41,7 +41,7 @@ import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normalizeBranch;
+import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 
@@ -301,7 +301,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         return failure;
     }
 
-    public void findFailureAndAddWarning(String testName, TestLogCheckResult logCheckRes) {
+    public void findFailureAndAddWarning(String testName, ITestLogCheckResult logCheckRes) {
         TestFailure failure = testFailures.stream().filter(f -> f.name.contains(testName)).findAny().orElseGet(
             () -> {
                 return warnOnly.stream().filter(f -> f.name.contains(testName)).findAny().orElseGet(

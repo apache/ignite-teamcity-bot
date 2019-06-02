@@ -18,16 +18,15 @@
 package org.apache.ignite.ci.tcbot.chain;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Futures;
-import org.apache.ignite.ci.analysis.*;
+import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.ci.logs.BuildLogStreamChecker;
-import org.apache.ignite.ci.teamcity.ignited.*;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.long_running.LRTest;
@@ -36,7 +35,9 @@ import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
 import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.jetbrains.annotations.NotNull;
@@ -46,21 +47,14 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 /**
  * Process whole Build Chain, E.g. runAll at particular server, including all builds involved
@@ -74,11 +68,6 @@ public class BuildChainProcessor {
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
-
-
-    /** Build logger processing running. */
-    private ConcurrentHashMap<Integer, CompletableFuture<LogCheckTask>> buildLogProcessingRunning = new ConcurrentHashMap<>();
-
 
     /**
      * Collects data about all long-running tests (run time more than one minute) across all suites in RunAll chain in
@@ -108,7 +97,11 @@ public class BuildChainProcessor {
                 List<LRTest> lrTests = new ArrayList<>();
 
                 b.getAllTests()
-                    .filter(t -> t.getDuration() > 60 * 1000)
+                    .filter(t -> {
+                        Integer duration = t.getDuration();
+
+                        return duration !=null && duration > 60 * 1000;
+                    })
                     .forEach(
                         t -> lrTests
                             .add(new LRTest(t.testName(compactor), t.getDuration(), null))
@@ -361,87 +354,22 @@ public class BuildChainProcessor {
         }
     }
 
+    @Inject IBuildLogProcessor buildLogProcessor;
+
     @SuppressWarnings("WeakerAccess")
     @AutoProfiling
     protected void analyzeTests(MultBuildRunCtx outCtx, ITeamcityIgnited teamcity,
                                 ProcessLogsMode procLog) {
         for (SingleBuildRunCtx ctx : outCtx.getBuilds()) {
             if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
-                || procLog == ProcessLogsMode.ALL)
-                ctx.setLogCheckResFut(analyzeBuildLog(teamcity, ctx.buildId(), ctx));
+                    || procLog == ProcessLogsMode.ALL)
+                ctx.setLogCheckResFut(
+                        CompletableFuture.supplyAsync(
+                                () -> buildLogProcessor.analyzeBuildLog(teamcity,
+                                        ctx.buildId(),
+                                        ctx.hasSuiteIncompleteFailure()),
+                                tcUpdatePool.getService()));
         }
-    }
-
-    private CompletableFuture<LogCheckTask> checkBuildLogNoCache(ITeamcityIgnited teamcity, int buildId, ISuiteResults ctx) {
-        final CompletableFuture<File> zipFut = teamcity.downloadBuildLogZip(buildId);
-        boolean dumpLastTest = ctx.hasSuiteIncompleteFailure();
-
-        if (zipFut == null)
-            return null;
-
-        return zipFut.thenApplyAsync(zipFile -> runCheckForZippedLog(dumpLastTest, zipFile),
-                tcUpdatePool.getService());
-    }
-
-
-    @SuppressWarnings("WeakerAccess")
-    @AutoProfiling
-    @NotNull protected LogCheckTask runCheckForZippedLog(boolean dumpLastTest, File zipFile) {
-        LogCheckTask task = new LogCheckTask(zipFile);
-
-        try {
-            //get the zip file content
-            try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile))) {
-                ZipEntry ze = zis.getNextEntry();    //get the zipped file list entry
-
-                while (ze != null) {
-                    BuildLogStreamChecker checker = task.createChecker();
-                    checker.apply(zis, zipFile);
-                    task.finalize(dumpLastTest);
-
-                    ze = zis.getNextEntry();
-                }
-                zis.closeEntry();
-            }
-        }
-        catch (IOException | UncheckedIOException e) {
-            final String msg = "Failed to process ZIPed entry " + zipFile;
-
-            System.err.println(msg);
-            e.printStackTrace();
-
-            logger.error(msg, e);
-        }
-
-        return task;
-    }
-
-    //todo implement persistent cache for build results
-    @AutoProfiling
-    public CompletableFuture<LogCheckResult> analyzeBuildLog(ITeamcityIgnited teamcity, Integer buildId, SingleBuildRunCtx ctx) {
-        final Stopwatch started = Stopwatch.createStarted();
-
-        CompletableFuture<LogCheckTask> fut = buildLogProcessingRunning.computeIfAbsent(buildId,
-                k -> checkBuildLogNoCache(teamcity, k, ctx)
-        );
-
-        if (fut == null)
-            return null;
-
-        return fut
-                .thenApply(task -> {
-                    buildLogProcessingRunning.remove(buildId, fut);
-
-                    return task;
-                })
-                .thenApply(task -> {
-                    logger.info(Thread.currentThread().getName()
-                            + ": processBuildLog required: " + started.elapsed(TimeUnit.MILLISECONDS)
-                            + "ms for " + ctx.suiteId());
-
-                    return task;
-                })
-                .thenApply(LogCheckTask::getResult);
     }
 
     /**

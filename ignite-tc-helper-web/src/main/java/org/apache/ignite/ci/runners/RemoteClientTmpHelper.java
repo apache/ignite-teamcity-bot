@@ -36,10 +36,10 @@ import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcbot.persistence.IgniteStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
+import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
-import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao;
+import org.apache.ignite.tcignited.history.RunHistCompactedDao;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.tcservice.util.XmlUtil;
 import org.apache.ignite.configuration.IgniteConfiguration;
@@ -48,7 +48,7 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompactedDao.BUILD_START_TIME_CACHE_NAME;
+import static org.apache.ignite.tcignited.history.RunHistCompactedDao.BUILD_START_TIME_CACHE_NAME;
 
 /**
  * Utility class for connecting to a remote server.

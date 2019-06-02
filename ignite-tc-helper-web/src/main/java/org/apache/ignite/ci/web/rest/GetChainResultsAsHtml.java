@@ -38,7 +38,6 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.CtxListener;

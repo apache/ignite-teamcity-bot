@@ -28,8 +28,6 @@ import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerFactory;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;

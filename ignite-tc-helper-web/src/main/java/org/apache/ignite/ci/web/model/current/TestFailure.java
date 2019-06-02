@@ -28,14 +28,14 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
-import org.apache.ignite.ci.logs.LogMsgToWarn;
+import org.apache.ignite.tcignited.buildlog.LogMsgToWarn;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.model.hist.TestHistory;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normalizeBranch;
+import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 

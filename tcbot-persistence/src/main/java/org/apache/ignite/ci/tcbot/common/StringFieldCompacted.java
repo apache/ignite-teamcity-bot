@@ -19,6 +19,12 @@ package org.apache.ignite.ci.tcbot.common;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
+import org.apache.ignite.tcbot.persistence.Persisted;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xerial.snappy.Snappy;
+
+import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -26,13 +32,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-
-import org.apache.ignite.tcbot.persistence.Persisted;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xerial.snappy.Snappy;
-
-import javax.annotation.Nonnull;
 
 /**
  * Field is included into bigger entries, so it is placed in backward compatible package.
@@ -46,6 +45,14 @@ public class StringFieldCompacted {
     public static final int FLAG_GZIP = 2;
     byte flag;
     byte data[];
+
+    public StringFieldCompacted() {
+
+    }
+
+    public StringFieldCompacted(String value) {
+        setValue(value);
+    }
 
     public String getValue() {
         if (data == null)
@@ -164,5 +171,9 @@ public class StringFieldCompacted {
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(flag, data);
+    }
+
+    public boolean isFilled() {
+        return data != null;
     }
 }

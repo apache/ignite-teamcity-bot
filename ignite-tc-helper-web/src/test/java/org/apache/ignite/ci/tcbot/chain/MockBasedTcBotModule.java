@@ -44,9 +44,9 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
+import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -72,6 +72,8 @@ public class MockBasedTcBotModule extends AbstractModule {
     /** {@inheritDoc} */
     @Override protected void configure() {
         bind(IStringCompactor.class).to(InMemoryStringCompactor.class).in(new SingletonScope());
+
+        bind(IBuildLogProcessor.class).toInstance(Mockito.mock(IBuildLogProcessor.class));
 
         final IGitHubConnectionProvider ghProv = Mockito.mock(IGitHubConnectionProvider.class);
         bind(IGitHubConnectionProvider.class).toInstance(ghProv);

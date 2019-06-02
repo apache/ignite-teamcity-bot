@@ -18,32 +18,27 @@
 package org.apache.ignite.ci.analysis;
 
 import com.google.common.base.Strings;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.OptionalDouble;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.annotation.Nonnull;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
-import org.apache.ignite.tcservice.model.hist.BuildRef;
-import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
-import org.apache.ignite.tcservice.model.result.stat.Statistics;
-import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.ci.util.CollectionUtil;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.buildlog.ILogCheckResult;
+import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
+import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcservice.model.hist.BuildRef;
+import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
+import org.apache.ignite.tcservice.model.result.stat.Statistics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.annotation.Nonnull;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Run configuration execution results loaded from different API URLs. Includes tests and problem occurrences; if logs
@@ -88,7 +83,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().map(SingleBuildRunCtx::getBuildIdIfHasThreadDump).filter(Objects::nonNull);
     }
 
-    public Stream<Map<String, TestLogCheckResult>> getLogsCheckResults() {
+    public Stream<Map<String, ITestLogCheckResult>> getLogsCheckResults() {
         return buildsStream().map(SingleBuildRunCtx::getTestLogCheckResult).filter(Objects::nonNull);
     }
 
@@ -238,11 +233,11 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public long getJavaLevelDeadlocksCount() {
-        List<LogCheckResult> collect = getLogChecksIfFinished().collect(Collectors.toList());
+        List<ILogCheckResult> collect = getLogChecksIfFinished().collect(Collectors.toList());
 
-        return collect.stream().map(LogCheckResult::getCustomProblems)
-            .filter(set -> set.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK))
-            .count();
+        return collect.stream().map(r -> r.getCustomProblems(compactor))
+                .filter(set -> set.contains(ProblemOccurrence.JAVA_LEVEL_DEADLOCK))
+                .count();
     }
 
     public long getCancelledBuildsCount() {
@@ -264,15 +259,13 @@ public class MultBuildRunCtx implements ISuiteResults {
         Map<String, Long> logSizeBytes = new HashMap<>();
 
         getLogsCheckResults()
-
             .forEach(map -> {
                 map.forEach(
                     (testName, logCheckResult) -> {
                         //todo may be it is better to find   avg
                         long bytes = (long)logCheckResult.getLogSizeBytes();
                         if (bytes > 1024 * 1024) {
-                            logSizeBytes.merge(testName, bytes, (a, b) ->
-                                Math.max(a, b));
+                            logSizeBytes.merge(testName, bytes, Math::max);
                         }
                     }
                 );
@@ -471,7 +464,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().flatMap(SingleBuildRunCtx::getAllTestNames).collect(Collectors.toSet());
     }
 
-    public Stream<LogCheckResult> getLogChecksIfFinished() {
+    public Stream<ILogCheckResult> getLogChecksIfFinished() {
         return buildsStream().map(SingleBuildRunCtx::getLogCheckIfFinished).filter(Objects::nonNull);
     }
 
