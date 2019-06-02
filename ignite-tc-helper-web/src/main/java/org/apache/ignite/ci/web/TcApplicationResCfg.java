@@ -19,7 +19,7 @@ package org.apache.ignite.ci.web;
 
 import org.apache.ignite.ci.web.auth.AuthenticationFilter;
 import org.apache.ignite.ci.web.rest.exception.ExeptionsTraceLogger;
-import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
+import org.apache.ignite.ci.web.rest.exception.ServiceStartingExceptionMapper;
 import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
 import org.glassfish.jersey.logging.LoggingFeature;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -36,7 +36,7 @@ public class TcApplicationResCfg extends ResourceConfig {
         register(AuthenticationFilter.class);
 
         register(ServiceUnauthorizedException.class);
-        register(ServiceStartingException.class);
+        register(ServiceStartingExceptionMapper.class);
 
         register(LoggingFeature.class);
         register(ExeptionsTraceLogger.class);

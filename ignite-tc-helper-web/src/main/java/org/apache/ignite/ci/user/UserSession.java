@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.user;
 
-import org.apache.ignite.ci.db.Persisted;
+import org.apache.ignite.tcbot.persistence.Persisted;
 
 @Persisted
 public class UserSession {

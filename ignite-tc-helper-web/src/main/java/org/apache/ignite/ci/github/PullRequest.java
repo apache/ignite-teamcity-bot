@@ -21,8 +21,9 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 import com.google.gson.annotations.SerializedName;
 import java.util.Objects;
-import org.apache.ignite.ci.analysis.IVersionedEntity;
-import org.apache.ignite.ci.db.Persisted;
+
+import org.apache.ignite.tcbot.persistence.IVersionedEntity;
+import org.apache.ignite.tcbot.persistence.Persisted;
 import org.jetbrains.annotations.Nullable;
 
 /**

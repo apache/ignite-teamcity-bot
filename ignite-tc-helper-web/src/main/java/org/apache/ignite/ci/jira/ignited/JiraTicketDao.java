@@ -30,9 +30,9 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.ci.di.cache.GuavaCached;
+import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.ci.jira.pure.Ticket;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.internal.U;
 

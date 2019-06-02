@@ -34,8 +34,8 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
 import org.apache.ignite.tcservice.model.conf.BuildType;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 

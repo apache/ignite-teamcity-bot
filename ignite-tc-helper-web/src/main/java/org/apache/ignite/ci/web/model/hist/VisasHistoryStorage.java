@@ -28,7 +28,7 @@ import javax.cache.Cache;
 import javax.inject.Inject;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.ci.web.model.CompactContributionKey;
 import org.apache.ignite.ci.web.model.CompactVisaRequest;
 import org.apache.ignite.ci.web.model.ContributionKey;

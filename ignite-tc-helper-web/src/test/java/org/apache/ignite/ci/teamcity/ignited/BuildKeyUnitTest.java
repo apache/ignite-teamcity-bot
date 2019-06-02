@@ -17,8 +17,9 @@
 
 package org.apache.ignite.ci.teamcity.ignited;
 
-import org.apache.ignite.ci.teamcity.ignited.buildref.BuildRefDao;
+import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertEquals;

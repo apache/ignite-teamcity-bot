@@ -37,8 +37,8 @@ import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.ci.tcbot.conf.ChainAtServer;
 import org.apache.ignite.ci.tcbot.TcBotGeneralService;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.Version;
 
@@ -66,7 +66,7 @@ public class GetTrackedBranches {
     @GET
     @Path("getIds")
     public List<String> getIdsIfAccessible() {
-        ICredentialsProv prov = ICredentialsProv.get(req);
+        ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
         ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
@@ -87,7 +87,7 @@ public class GetTrackedBranches {
     @GET
     @Path("suites")
     public Set<ChainAtServer> getSuites(@Nullable @QueryParam("server") String srvId) {
-        ICredentialsProv prov = ICredentialsProv.get(req);
+        ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
         ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
@@ -108,7 +108,7 @@ public class GetTrackedBranches {
     @GET
     @Path("getServerIds")
     public Set<String> getServerIds() {
-        ICredentialsProv prov = ICredentialsProv.get(req);
+        ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
         ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);

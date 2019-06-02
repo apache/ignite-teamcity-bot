@@ -24,6 +24,6 @@ repositories {
 
 dependencies {
     compile (project(":tcbot-teamcity"));
-
+    compile (project(":tcbot-persistence"));
 }
  

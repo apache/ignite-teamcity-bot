@@ -16,10 +16,12 @@
  */
 package org.apache.ignite.ci.di.scheduler;
 
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
+
 import java.util.concurrent.TimeUnit;
 
 /**
- * Sheduler which never waits
+ * Scheduler which never waits
  */
 public class DirectExecNoWaitScheduler implements IScheduler {
     /** {@inheritDoc} */

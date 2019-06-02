@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.web.model;
 
 import org.apache.ignite.ci.observer.CompactBuildsInfo;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 
 /**
  * Representation of {@link CompactVisaRequest} with compacted properties for more effective cache storing.

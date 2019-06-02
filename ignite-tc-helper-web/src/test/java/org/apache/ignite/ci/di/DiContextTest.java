@@ -26,11 +26,12 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
+import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerFactory;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -48,9 +49,9 @@ public class DiContextTest {
     public void checkSingletons() {
         Injector injector = getInjector();
 
-        validateInstanceCachedFor(injector, ITcServerProvider.class);
-        validateInstanceCachedFor(injector, ITcServerFactory.class);
+        validateInstanceCachedFor(injector, ITeamcityIgnitedProvider.class);
         validateInstanceCachedFor(injector, ObserverTask.class);
+        validateInstanceCachedFor(injector, BuildChainProcessor.class);
     }
 
     public Injector getInjector() {

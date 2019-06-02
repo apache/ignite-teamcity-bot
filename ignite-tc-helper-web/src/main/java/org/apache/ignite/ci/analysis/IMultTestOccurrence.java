@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.analysis;
 
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
-import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
+import org.apache.ignite.tcignited.history.IRunHistory;
 
 /**
  * Multiple test occurrence. For single build context - max 1 failure

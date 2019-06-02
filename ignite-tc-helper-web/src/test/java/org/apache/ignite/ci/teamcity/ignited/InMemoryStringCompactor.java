@@ -16,6 +16,8 @@
  */
 package org.apache.ignite.ci.teamcity.ignited;
 
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;

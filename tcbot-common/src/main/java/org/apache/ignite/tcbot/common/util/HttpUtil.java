@@ -74,7 +74,7 @@ public class HttpUtil {
      * @param basicAuthTok Authorization token.
      * @param url URL.
      * @return Input stream from connection.
-     * @throws IOException If failed.
+     * @throws IOException If communication failed.
      * @throws FileNotFoundException If not found (404) was returned from service.
      * @throws ServiceConflictException If conflict (409) was returned from service.
      * @throws IllegalStateException if some unexpected HTTP error returned.
@@ -135,6 +135,16 @@ public class HttpUtil {
         return getInputStream(con);
     }
 
+    /**
+     * @param tok token
+     * @param url full URL
+     * @param file destination file to save data.
+
+     * @throws IOException If communication failed.
+     * @throws FileNotFoundException If not found (404) was returned from service.
+     * @throws ServiceConflictException If conflict (409) was returned from service.
+     * @throws IllegalStateException if some unexpected HTTP error returned.
+     */
     public static void sendGetCopyToFile(String tok, String url, File file) throws IOException {
         try (InputStream inputStream = sendGetWithBasicAuth(tok, url)){
             Files.copy(inputStream, file.toPath(), StandardCopyOption.REPLACE_EXISTING);

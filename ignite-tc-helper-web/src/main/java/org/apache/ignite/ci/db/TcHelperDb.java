@@ -32,6 +32,7 @@ import org.apache.ignite.spi.IgniteSpiContext;
 import org.apache.ignite.spi.IgniteSpiException;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
+import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.ci.web.Launcher.waitStopSignal;
@@ -105,31 +106,8 @@ public class TcHelperDb {
         return TcHelperDb.<K, V>getCacheV3Config(name).setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
     }
 
-    @NotNull
-    public static <K, V> CacheConfiguration<K, V> getCacheV2Config(String name) {
-        CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
-
-        ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
-
-        /*
-        ccfg.setInterceptor(new CacheInterceptorAdapter<K, V>(){
-            @Nullable @Override public V onGet(K key, V val) {
-                V v = super.onGet(key, val);
-
-                int i = ObjectInterner.internFields(v);
-
-                if(i>0)
-                    System.out.println("cache.get: Strings saved: " + i);
-
-                return v;
-            }
-        });*/
-
-        return ccfg;
-    }
-
     public static <K, V> CacheConfiguration<K, V> getCacheV2TxConfig(String name) {
-        return TcHelperDb.<K, V>getCacheV2Config(name).setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
+        return CacheConfigs.<K, V>getCacheV2Config(name).setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
 
     }
 

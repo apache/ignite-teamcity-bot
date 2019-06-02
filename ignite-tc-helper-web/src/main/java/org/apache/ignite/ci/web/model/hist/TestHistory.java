@@ -20,7 +20,7 @@ package org.apache.ignite.ci.web.model.hist;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
+import org.apache.ignite.tcignited.history.IRunHistory;
 
 /**
  * Summary of failures - all history and recent runs for suite or for suite.

@@ -17,7 +17,9 @@
 
 package org.apache.ignite.tcservice;
 
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,8 @@ import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcservice.model.agent.Agent;
 import org.apache.ignite.tcservice.model.changes.Change;
 import org.apache.ignite.tcservice.model.changes.ChangesList;
@@ -167,4 +171,15 @@ public interface ITeamcityConn {
      * @return List of teamcity agents.
      */
     public List<Agent> agents(boolean connected, boolean authorized);
+
+    /**
+     * @param buildId
+     * @return
+     *
+     * @throws UncheckedIOException caused by IOException If communication failed.
+     * @throws UncheckedIOException caused by FileNotFoundException If not found (404) was returned from service.
+     * @throws ServiceConflictException If conflict (409) was returned from service.
+     * @throws IllegalStateException if some unexpected HTTP error returned.
+     */
+    @Nullable public File downloadAndCacheBuildLog(int buildId);
 }

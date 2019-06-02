@@ -35,12 +35,15 @@ import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;
 import org.apache.ignite.ci.tcbot.TcBotBusinessServicesModule;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
-import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedModule;
+import org.apache.ignite.tcbot.common.exeption.ServicesStartingException;
+import org.apache.ignite.tcbot.persistence.TcBotPersistenceModule;
+import org.apache.ignite.tcignited.TeamcityIgnitedModule;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
-import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
+import org.apache.ignite.ci.web.rest.exception.ServiceStartingExceptionMapper;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 
 /**
  *
@@ -62,7 +65,7 @@ public class IgniteTcBotModule extends AbstractModule {
                 return igniteFut.get(10, TimeUnit.SECONDS);
             }
             catch (TimeoutException e) {
-                throw new ServiceStartingException(e);
+                throw new ServicesStartingException(e);
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -77,6 +80,7 @@ public class IgniteTcBotModule extends AbstractModule {
         bind(BuildObserver.class).in(new SingletonScope());
         bind(VisasHistoryStorage.class).in(new SingletonScope());
 
+        install(new TcBotPersistenceModule());
         install(new TeamcityIgnitedModule());
         install(new JiraIgnitedModule());
         install(new GitHubIgnitedModule());

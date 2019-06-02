@@ -22,7 +22,7 @@ import org.apache.ignite.ci.jira.pure.Fields;
 import org.apache.ignite.ci.jira.pure.Status;
 import org.apache.ignite.ci.jira.pure.Ticket;
 import org.apache.ignite.ci.tcbot.common.StringFieldCompacted;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.jetbrains.annotations.Nullable;
 
 /**

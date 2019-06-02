@@ -20,6 +20,7 @@ package org.apache.ignite.tcbot.common.exeption;
 import com.google.common.base.Throwables;
 
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 /**
  *
@@ -32,6 +33,13 @@ public class ExceptionUtil {
         if (e instanceof InterruptedException)
             Thread.currentThread().interrupt();
 
+        if(e instanceof ExecutionException) {
+            ExecutionException executionException = (ExecutionException) e;
+            Throwable cause = executionException.getCause();
+
+            Throwables.throwIfUnchecked(cause);
+        }
+
         throwIfRest(e);
 
         Throwables.throwIfUnchecked(e);
@@ -41,9 +49,11 @@ public class ExceptionUtil {
 
     public static void throwIfRest(Exception e) {
         final Optional<Throwable> any = Throwables.getCausalChain(e)
-            .stream()
-            .filter(th ->false).findAny();
-                   //todo (th instanceof ExceptionMapper)).findAny();
+                .stream()
+                .filter(th ->
+                        th instanceof ServiceUnauthorizedException
+                                || th instanceof ServicesStartingException)
+                .findAny();
 
         final RuntimeException eRest = (RuntimeException) any.orElse(null);
         if (eRest != null)

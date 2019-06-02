@@ -30,17 +30,15 @@ import javax.ws.rs.core.Context;
 
 import com.google.inject.Injector;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.SyncMode;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
@@ -73,8 +71,7 @@ public class GetChainResultsAsHtml {
 
         String failRateBranch = ITeamcity.DEFAULT;
 
-        ITcServerProvider tcHelper = injector.getInstance(ITcServerProvider.class);
-        final ICredentialsProv creds = ICredentialsProv.get(req);
+        ITcBotUserCreds creds = ITcBotUserCreds.get(req);
         ITeamcityIgnited tcIgn = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvId, creds);
 
         final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(

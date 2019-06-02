@@ -35,8 +35,8 @@ import org.apache.ignite.ci.tcbot.visa.ContributionToCheck;
 import org.apache.ignite.ci.tcbot.visa.CurrentVisaStatus;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.tcbot.visa.VisaStatus;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.jetbrains.annotations.NotNull;
@@ -71,7 +71,7 @@ public class TcBotVisaService {
     public Collection<VisaStatus> history(@Nullable @QueryParam("serverId") String srvId) {
         return CtxListener.getInjector(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .getVisasStatus(srvId, ICredentialsProv.get(req));
+            .getVisasStatus(srvId, ITcBotUserCreds.get(req));
     }
 
     /**
@@ -81,7 +81,7 @@ public class TcBotVisaService {
     @GET
     @Path("contributions")
     public List<ContributionToCheck> contributions(@Nullable @QueryParam("serverId") String srvCode) {
-        ICredentialsProv credsProv = ICredentialsProv.get(req);
+        ITcBotUserCreds credsProv = ITcBotUserCreds.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 
@@ -94,7 +94,7 @@ public class TcBotVisaService {
     @Path("contributionStatus")
     public Set<ContributionCheckStatus> contributionStatus(@Nullable @QueryParam("serverId") String srvCode,
         @QueryParam("prId") String prId) {
-        ICredentialsProv prov = ICredentialsProv.get(req);
+        ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 
@@ -110,7 +110,7 @@ public class TcBotVisaService {
         @QueryParam("tcBranch") String tcBranch) {
         Injector injector = CtxListener.getInjector(ctx);
 
-        ICredentialsProv prov = ICredentialsProv.get(req);
+        ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
         injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
 

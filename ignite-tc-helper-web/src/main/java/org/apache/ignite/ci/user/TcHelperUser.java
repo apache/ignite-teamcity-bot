@@ -24,9 +24,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.analysis.IVersionedEntity;
-import org.apache.ignite.ci.db.Persisted;
+import org.apache.ignite.tcbot.persistence.IVersionedEntity;
+import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.ci.tcbot.conf.INotificationChannel;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.ci.util.CryptUtil;

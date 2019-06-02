@@ -19,6 +19,7 @@ package org.apache.ignite.ci.di.cache;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.matcher.Matchers;
+import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 
 /**
  *

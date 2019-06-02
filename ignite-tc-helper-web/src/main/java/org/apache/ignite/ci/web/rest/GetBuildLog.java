@@ -17,10 +17,9 @@
 
 package org.apache.ignite.ci.web.rest;
 
-import org.apache.ignite.ci.ITcAnalytics;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
+import com.google.inject.Injector;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.tcservice.ITeamcity;
+import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
 
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
@@ -61,21 +60,18 @@ public class GetBuildLog {
     @Path(THREAD_DUMP)
     @PermitAll
     public Response getThreadDump(
-        @QueryParam(SERVER_ID) String srvId,
-        @QueryParam(BUILD_NO) Integer buildNo) {
+        @QueryParam(SERVER_ID) String srvCode,
+        @QueryParam(BUILD_NO) Integer buildId) {
+        Injector injector = CtxListener.getInjector(ctx);
 
-        ITcServerProvider helper = CtxListener.getInjector(ctx).getInstance(ITcServerProvider.class);
-        final ITeamcity server = helper.server(srvId, null);
+        IBuildLogProcessor instance = injector.getInstance(IBuildLogProcessor.class);
 
-        //todo bad code
-        if(server instanceof ITcAnalytics) {
-            ITcAnalytics srv = (ITcAnalytics) server;
-            String cached = srv.getThreadDumpCached(buildNo);
-            return sendString(cached);
-        }
+        String cached = instance.getThreadDumpCached(srvCode, buildId);
 
-        return sendString("Invalid class" + server.getClass());
+        if (cached == null)
+            return sendString("No data found for [" + srvCode + ", " + buildId + "]");
 
+        return sendString(cached);
     }
 
     private Response sendString(String data) {
