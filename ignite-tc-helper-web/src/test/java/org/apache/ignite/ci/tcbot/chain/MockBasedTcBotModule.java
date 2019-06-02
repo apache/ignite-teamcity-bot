@@ -22,7 +22,6 @@ import com.google.inject.internal.SingletonScope;
 import java.io.File;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
@@ -41,12 +40,11 @@ import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
 import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
-import org.apache.ignite.ci.user.ICredentialsProv;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.mockito.Mockito;
@@ -86,10 +84,6 @@ public class MockBasedTcBotModule extends AbstractModule {
         mockJira(jiraCfg);
 
         bind(ITeamcityIgnitedProvider.class).to(TeamcityIgnitedProviderMock.class).in(new SingletonScope());
-
-        final ITcServerProvider tcSrvOldProv = Mockito.mock(ITcServerProvider.class);
-
-        bind(ITcServerProvider.class).toInstance(tcSrvOldProv);
 
         final ITcBotConfig cfg = new ITcBotConfig() {
             @Override

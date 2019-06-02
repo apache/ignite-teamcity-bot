@@ -40,17 +40,22 @@ import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.IgniteStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.history.IRunStat;
 import org.apache.ignite.tcservice.ITeamcity;
-import org.apache.ignite.ci.analysis.SuiteInBranch;
-import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitScheduler;
-import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
 import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcservice.TeamcityServiceConnection;
 import org.apache.ignite.tcservice.model.changes.ChangesList;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 import org.apache.ignite.tcservice.model.conf.Project;
@@ -77,7 +82,7 @@ import org.apache.ignite.ci.teamcity.pure.BuildHistoryEmulator;
 import org.apache.ignite.tcservice.ITeamcityConn;
 import org.apache.ignite.tcservice.http.ITeamcityHttpConnection;
 import org.apache.ignite.ci.teamcity.restcached.ITcServerFactory;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.tcservice.util.XmlUtil;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
@@ -96,7 +101,7 @@ import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.apache.ignite.tcbot.common.conf.TcBotWorkDir.ensureDirExist;
-import static org.apache.ignite.ci.teamcity.ignited.IgniteStringCompactor.STRINGS_CACHE;
+import static org.apache.ignite.tcbot.persistence.IgniteStringCompactor.STRINGS_CACHE;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -381,8 +386,8 @@ public class IgnitedTcInMemoryIntegrationTest {
     /**
      *
      */
-    @NotNull public ICredentialsProv creds() {
-        ICredentialsProv mock = Mockito.mock(ICredentialsProv.class);
+    @NotNull public ITcBotUserCreds creds() {
+        ITcBotUserCreds mock = Mockito.mock(ITcBotUserCreds.class);
 
         when(mock.hasAccess(anyString())).thenReturn(true);
         when(mock.getUser(anyString())).thenReturn("mtcga");
@@ -584,13 +589,13 @@ public class IgnitedTcInMemoryIntegrationTest {
         buildsMap.forEach((id, build) -> histSync.saveToHistoryLater(srvId, build));
 
         final ITeamcityIgnitedProvider inst = injector.getInstance(ITeamcityIgnitedProvider.class);
-        final ITeamcityIgnited srv = inst.server(srvId, Mockito.mock(ICredentialsProv.class));
-        final IRunHistory testRunHist = srv.getTestRunHist(new TestInBranch(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER, branch));
+        final ITeamcityIgnited srv = inst.server(srvId, Mockito.mock(ITcBotUserCreds.class));
+        final IRunHistory testRunHist = srv.getTestRunHist(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER, branch);
 
         assertNotNull(testRunHist);
         assertEquals(0.5, testRunHist.getFailRate(), 0.1);
 
-        final IRunHistory cache1Hist = srv.getSuiteRunHist(new SuiteInBranch(PrChainsProcessorTest.CACHE_1, branch));
+        final IRunHistory cache1Hist = srv.getSuiteRunHist(PrChainsProcessorTest.CACHE_1, branch);
 
         assertNotNull(cache1Hist);
         assertEquals(1.0, cache1Hist.getFailRate(), 0.1);
@@ -617,7 +622,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         final String branch = ITeamcity.DEFAULT;
 
         final ITeamcityIgnitedProvider inst = injector.getInstance(ITeamcityIgnitedProvider.class);
-        final ITeamcityIgnited srv = inst.server(srvId, Mockito.mock(ICredentialsProv.class));
+        final ITeamcityIgnited srv = inst.server(srvId, Mockito.mock(ITcBotUserCreds.class));
 
         FatBuildDao fatBuildDao = injector.getInstance(FatBuildDao.class);
         fatBuildDao.init();
@@ -641,7 +646,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         final RunHistSync histSync = injector.getInstance(RunHistSync.class);
         histSync.invokeLaterFindMissingHistory(srvId);
 
-        final IRunHistory testRunHist = srv.getTestRunHist(new TestInBranch(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER, branch));
+        final IRunHistory testRunHist = srv.getTestRunHist(PrChainsProcessorTest.TEST_FLAKY_IN_MASTER, branch);
 
         assertNotNull(testRunHist);
         assertEquals(0.5, testRunHist.getFailRate(), 0.1);
@@ -650,10 +655,8 @@ public class IgnitedTcInMemoryIntegrationTest {
     @Test
     public void testQueuedBuildsRemoved() {
         TeamcityIgnitedModule module = new TeamcityIgnitedModule();
-        module.overrideHttp(new ITeamcityHttpConnection() {
-            @Override public InputStream sendGet(String basicAuthTok, String url) throws IOException {
-                throw new FileNotFoundException(url);
-            }
+        module.overrideHttp((basicAuthTok, url) -> {
+            throw new FileNotFoundException(url);
         });
         Injector injector = Guice.createInjector(module, new IgniteAndSchedulerTestModule());
 
@@ -675,9 +678,10 @@ public class IgnitedTcInMemoryIntegrationTest {
         refR.state = BuildRef.STATE_RUNNING;
         refR.setId(buildIdR);
 
-        String srvId = APACHE;
-        int srvIdInt = ITeamcityIgnited.serverIdToInt(srvId);
-        ITeamcityConn srvConn = injector.getInstance(ITcServerFactory.class).createServer(srvId);
+        String srvCode = APACHE;
+        int srvIdInt = ITeamcityIgnited.serverIdToInt(srvCode);
+        final TeamcityServiceConnection srvConn = injector.getInstance(TeamcityServiceConnection.class);
+        srvConn.init(srvCode);
 
         buildRefDao.saveChunk(srvIdInt, Lists.newArrayList(refQ, refR));
 
@@ -687,7 +691,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         System.out.println("Running builds (before sync): " + printRefs(c, running));
 
         ProactiveFatBuildSync buildSync = injector.getInstance(ProactiveFatBuildSync.class);
-        buildSync.ensureActualizationRequested(srvId, srvConn);
+        buildSync.ensureActualizationRequested(srvCode, srvConn);
 
         FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(srvIdInt, buildIdQ);
         System.out.println(fatBuild);
@@ -711,7 +715,7 @@ public class IgnitedTcInMemoryIntegrationTest {
         putOldFashionFakeBuild(c, fatBuildDao, buildIdQ, srvIdInt);
         putOldFashionFakeBuild(c, fatBuildDao, buildIdR, srvIdInt);
 
-        buildSync.ensureActualizationRequested(srvId, srvConn);
+        buildSync.ensureActualizationRequested(srvCode, srvConn);
 
         List<BuildRefCompacted> running4 = buildRefDao.getQueuedAndRunning(srvIdInt);
         System.out.println("Running builds (before with fake builds): " + printRefs(c, running4));

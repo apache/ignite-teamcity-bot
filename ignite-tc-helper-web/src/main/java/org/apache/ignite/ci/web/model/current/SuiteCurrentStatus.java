@@ -31,14 +31,12 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.analysis.SuiteInBranch;
-import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.analysis.TestLogCheckResult;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
-import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 import org.jetbrains.annotations.NotNull;
@@ -168,9 +166,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         if (includeTests) {
             List<IMultTestOccurrence> tests = suite.getFailedTests();
             Function<IMultTestOccurrence, Float> function = foccur -> {
-                TestInBranch testInBranch = new TestInBranch(foccur.getName(), failRateNormalizedBranch);
-
-                IRunHistory apply = tcIgnited.getTestRunHist(testInBranch);
+                IRunHistory apply = tcIgnited.getTestRunHist(foccur.getName(), failRateNormalizedBranch);
 
                 return apply == null ? 0f : apply.getFailRate();
             };
@@ -242,7 +238,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         if (Strings.isNullOrEmpty(suiteId))
             return null;
 
-        final IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(new SuiteInBranch(suiteId, failRateNormalizedBranch));
+        final IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(suiteId, failRateNormalizedBranch);
 
         if (statInBaseBranch != null) {
             failures = statInBaseBranch.getFailuresCount();
@@ -262,9 +258,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         IRunHistory latestRunsSrc = null;
         if (!failRateNormalizedBranch.equals(curBranchNormalized)) {
-            SuiteInBranch keyForStripe = new SuiteInBranch(suiteId, curBranchNormalized);
 
-            final IRunHistory statForStripe = tcIgnited.getSuiteRunHist(keyForStripe);
+            final IRunHistory statForStripe = tcIgnited.getSuiteRunHist(suiteId, curBranchNormalized);
 
             latestRunsSrc = statForStripe;
             latestRuns = statForStripe != null ? statForStripe.getLatestRunResults() : null;

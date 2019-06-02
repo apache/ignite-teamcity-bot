@@ -28,7 +28,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.ci.di.MonitoredTask;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.ci.web.model.Version;
 import org.apache.ignite.cluster.BaselineNode;
 import org.apache.ignite.configuration.DataRegionConfiguration;

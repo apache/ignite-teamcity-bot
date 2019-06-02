@@ -20,22 +20,23 @@ import com.google.common.base.Strings;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.tcservice.IgniteTeamcityConnection;
+import org.apache.ignite.tcservice.TeamcityServiceConnection;
 import org.apache.ignite.ci.web.TcUpdatePool;
 
+@Deprecated
  class InitializingServerFactory implements ITcServerFactory {
     @Inject
     Provider<IAnalyticsEnabledTeamcity> tcPersistProv;
 
     @Inject
-    Provider<IgniteTeamcityConnection> tcConnProv;
+    Provider<TeamcityServiceConnection> tcConnProv;
 
     @Inject
     private TcUpdatePool tcUpdatePool;
 
     /** {@inheritDoc} */
     @Override public IAnalyticsEnabledTeamcity createServer(String srvId) {
-        IgniteTeamcityConnection tcConn = tcConnProv.get();
+        TeamcityServiceConnection tcConn = tcConnProv.get();
         tcConn.init(Strings.emptyToNull(srvId));
 
         IAnalyticsEnabledTeamcity instance = tcPersistProv.get();

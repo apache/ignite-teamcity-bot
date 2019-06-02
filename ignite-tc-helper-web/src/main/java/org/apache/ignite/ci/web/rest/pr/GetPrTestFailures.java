@@ -34,8 +34,8 @@ import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
-import org.apache.ignite.ci.teamcity.ignited.SyncMode;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
@@ -92,7 +92,7 @@ public class GetPrTestFailures {
         @QueryParam("baseBranchForTc") @Nullable String baseBranchForTc,
         @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
         SyncMode mode) {
-        final ICredentialsProv creds = ICredentialsProv.get(req);
+        final ITcBotUserCreds creds = ITcBotUserCreds.get(req);
         final Injector injector = CtxListener.getInjector(ctx);
         final PrChainsProcessor prChainsProcessor = injector.getInstance(PrChainsProcessor.class);
 

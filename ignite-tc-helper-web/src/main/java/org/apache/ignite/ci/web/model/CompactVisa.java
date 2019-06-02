@@ -17,7 +17,7 @@
 
 package org.apache.ignite.ci.web.model;
 
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.jetbrains.annotations.Nullable;
 
 /**

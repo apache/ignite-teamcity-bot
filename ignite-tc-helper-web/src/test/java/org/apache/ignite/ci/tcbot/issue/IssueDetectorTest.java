@@ -33,12 +33,12 @@ import org.apache.ignite.ci.tcbot.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.tcbot.chain.MockBasedTcBotModule;
 import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedImpl;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -113,7 +113,7 @@ public class IssueDetectorTest {
 
         IssueDetector issueDetector = injector.getInstance(IssueDetector.class);
 
-        ICredentialsProv mock = mock(ICredentialsProv.class);
+        ITcBotUserCreds mock = mock(ITcBotUserCreds.class);
         when(mock.hasAccess(anyString())).thenReturn(true);
         issueDetector.startBackgroundCheck(mock);
 

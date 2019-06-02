@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
-import org.apache.ignite.ci.db.Persisted;
+import org.apache.ignite.tcbot.persistence.Persisted;
 
 @Persisted
 public class TestLogCheckResult {

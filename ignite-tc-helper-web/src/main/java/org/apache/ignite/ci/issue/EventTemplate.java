@@ -17,7 +17,9 @@
 
 package org.apache.ignite.ci.issue;
 
-public class EventTemplate {
+import org.apache.ignite.tcignited.history.IEventTemplate;
+
+public class EventTemplate implements IEventTemplate {
     private final int[] beforeEvent;
     private final int[] eventAndAfter;
     private boolean shouldBeFirst;

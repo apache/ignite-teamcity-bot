@@ -22,7 +22,7 @@ import java.io.File;
 import java.util.Objects;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.di.cache.GuavaCached;
+import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 

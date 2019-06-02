@@ -125,7 +125,7 @@ public class LoginAuthTest {
 
         assertTrue(authenticationFilter.authenticate(ctx, loginResponse.fullToken, storage));
 
-        ICredentialsProv creds = (ICredentialsProv)ctx.getProperty(ICredentialsProv._KEY);
+        ITcBotUserCreds creds = (ITcBotUserCreds)ctx.getProperty(ITcBotUserCreds._KEY);
 
         assertNotNull(creds);
 

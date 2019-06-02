@@ -18,7 +18,7 @@ package org.apache.ignite.ci.github;
 
 import com.google.common.base.Strings;
 import java.util.Objects;
-import org.apache.ignite.ci.db.Persisted;
+import org.apache.ignite.tcbot.persistence.Persisted;
 import org.jetbrains.annotations.NotNull;
 
 @Persisted

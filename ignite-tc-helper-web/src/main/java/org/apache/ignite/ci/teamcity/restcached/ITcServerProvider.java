@@ -16,8 +16,7 @@
  */
 package org.apache.ignite.ci.teamcity.restcached;
 
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.tcservice.ITeamcity;
 
 import javax.annotation.Nullable;
@@ -30,5 +29,5 @@ public interface ITcServerProvider {
      * @param srvId Server id.
      * @param prov Prov.
      */
-    public ITeamcity server(String srvId, @Nullable ICredentialsProv prov);
+    public ITeamcity server(String srvId, @Nullable ITcBotUserCreds prov);
 }

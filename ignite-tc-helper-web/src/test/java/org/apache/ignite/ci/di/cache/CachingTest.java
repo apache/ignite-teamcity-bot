@@ -19,6 +19,8 @@ package org.apache.ignite.ci.di.cache;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

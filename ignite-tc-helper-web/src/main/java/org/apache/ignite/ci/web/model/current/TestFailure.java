@@ -26,12 +26,11 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
-import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
 import org.apache.ignite.ci.logs.LogMsgToWarn;
-import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.model.hist.TestHistory;
 import org.jetbrains.annotations.NotNull;
@@ -145,7 +144,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
                     webUrlBaseBranch = buildWebLink(tcIgn, full.test.id, projectId, baseBranchName);
         });
 
-        final IRunHistory stat = tcIgn.getTestRunHist(new TestInBranch(name, normalizeBranch(baseBranchName)));
+        final IRunHistory stat = tcIgn.getTestRunHist(name, normalizeBranch(baseBranchName));
 
         blockerComment = failure.getPossibleBlockerComment(stat);
     }
@@ -200,16 +199,14 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         String failRateNormalizedBranch,
         String curBranchNormalized) {
 
-        final IRunHistory stat = tcIgnited.getTestRunHist(new TestInBranch(name, failRateNormalizedBranch));
+        final IRunHistory stat = tcIgnited.getTestRunHist(name, failRateNormalizedBranch);
 
         histBaseBranch.init(stat);
 
         IRunHistory statForProblemsDetection = null;
 
         if (!curBranchNormalized.equals(failRateNormalizedBranch)) {
-            TestInBranch testInBranchS = new TestInBranch(name, curBranchNormalized);
-
-            statForProblemsDetection = tcIgnited.getTestRunHist(testInBranchS);
+            statForProblemsDetection = tcIgnited.getTestRunHist(name, curBranchNormalized);
 
             if (statForProblemsDetection != null) {
                 histCurBranch = new TestHistory();

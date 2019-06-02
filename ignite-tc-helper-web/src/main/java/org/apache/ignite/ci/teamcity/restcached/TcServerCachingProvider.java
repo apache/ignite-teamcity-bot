@@ -19,8 +19,7 @@ package org.apache.ignite.ci.teamcity.restcached;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcservice.ITeamcity;
 
@@ -46,7 +45,7 @@ class TcServerCachingProvider implements ITcServerProvider {
         .build();
 
     /** {@inheritDoc} */
-    @Override public ITeamcity server(String srvId, @Nullable ICredentialsProv prov) {
+    @Override public ITeamcity server(String srvId, @Nullable ITcBotUserCreds prov) {
         String fullKey = Strings.nullToEmpty(prov == null ? null : prov.getUser(srvId)) + ":" + Strings.nullToEmpty(srvId);
 
         try {

@@ -18,7 +18,7 @@
 package org.apache.ignite.ci.tcbot.visa;
 
 import com.google.common.base.Strings;
-import org.apache.ignite.ci.di.cache.GuavaCached;
+import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;

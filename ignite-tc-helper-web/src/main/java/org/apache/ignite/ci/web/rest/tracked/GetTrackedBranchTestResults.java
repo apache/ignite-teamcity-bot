@@ -31,9 +31,9 @@ import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.tcservice.model.mute.MuteInfo;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.SyncMode;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
@@ -93,7 +93,7 @@ public class GetTrackedBranchTestResults {
         @QueryParam("branch") @Nullable String branch,
         @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
         SyncMode mode) {
-        ICredentialsProv creds = ICredentialsProv.get(req);
+        ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 
@@ -131,7 +131,7 @@ public class GetTrackedBranchTestResults {
         @QueryParam("count") Integer cnt,
         @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
         SyncMode mode) {
-        ICredentialsProv creds = ICredentialsProv.get(req);
+        ITcBotUserCreds creds = ITcBotUserCreds.get(req);
         int cntLimit = cnt == null ? FullQueryParams.DEFAULT_COUNT : cnt;
         Injector injector = CtxListener.getInjector(ctx);
 
@@ -150,7 +150,7 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("serverId") String srvCode,
         @Nullable @QueryParam("projectId") String projectId
     ) {
-        ICredentialsProv creds = ICredentialsProv.get(req);
+        ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);

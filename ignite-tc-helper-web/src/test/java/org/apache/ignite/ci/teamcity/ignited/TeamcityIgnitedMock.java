@@ -22,12 +22,15 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import org.apache.ignite.ci.analysis.TestInBranch;
+
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.SyncMode;
 import org.jetbrains.annotations.NotNull;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
@@ -41,7 +44,7 @@ import static org.mockito.Mockito.when;
 public class TeamcityIgnitedMock {
     @NotNull
     public static ITeamcityIgnited getMutableMapTeamcityIgnited(Map<Integer, FatBuildCompacted> builds,
-        IStringCompactor c) {
+                                                                IStringCompactor c) {
         ITeamcityIgnited tcIgnited = Mockito.mock(ITeamcityIgnited.class);
         Map<RunHistKey, RunHistCompacted> histCache = new ConcurrentHashMap<>();
         final int srvId = 0;
@@ -86,12 +89,10 @@ public class TeamcityIgnitedMock {
                     .collect(Collectors.toList());
             });
 
-        when(tcIgnited.getTestRunHist(any(TestInBranch.class)))
+        when(tcIgnited.getTestRunHist(anyString(), anyString()))
             .thenAnswer((inv) -> {
-                final TestInBranch t = inv.getArgument(0);
-                final String name = t.name;
-                final String branch = t.branch;
-
+                final String name = inv.getArgument(0);
+                final String branch = inv.getArgument(1);
                 // System.out.println("Search history " + name + " in " + branch + ": " );
 
                 if (histCache.isEmpty()) {

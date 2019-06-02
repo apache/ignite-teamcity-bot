@@ -20,7 +20,6 @@ package org.apache.ignite.ci.tcbot.chain;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Futures;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.ci.analysis.*;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
@@ -34,7 +33,10 @@ import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.long_running.LRTest;
 import org.apache.ignite.ci.web.model.long_running.SuiteLRTestsSummary;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.tcservice.ITeamcity;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.jetbrains.annotations.NotNull;
@@ -196,10 +198,9 @@ public class BuildChainProcessor {
         });
 
         Function<MultBuildRunCtx, Float> function = ctx -> {
-            SuiteInBranch key = new SuiteInBranch(ctx.suiteId(), RunHistSync.normalizeBranch(failRateBranch));
 
             //todo cache RunStat instance into suite context to compare
-            IRunHistory runStat = tcIgn.getSuiteRunHist(key);
+            IRunHistory runStat = tcIgn.getSuiteRunHist(ctx.suiteId(), RunHistSync.normalizeBranch(failRateBranch));
 
             if (runStat == null)
                 return 0f;

@@ -16,7 +16,7 @@
  */
 package org.apache.ignite.ci.tcbot;
 
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -24,10 +24,10 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface ITcBotBgAuth {
     /** */
-    public void setServerAuthorizerCreds(ICredentialsProv creds);
+    public void setServerAuthorizerCreds(ITcBotUserCreds creds);
 
     /** */
-    @Nullable public ICredentialsProv getServerAuthorizerCreds();
+    @Nullable public ITcBotUserCreds getServerAuthorizerCreds();
 
     /** */
     public default boolean isServerAuthorized() {

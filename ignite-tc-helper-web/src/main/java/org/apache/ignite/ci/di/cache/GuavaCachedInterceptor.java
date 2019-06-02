@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
+import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.jetbrains.annotations.NotNull;
 
 public class GuavaCachedInterceptor implements MethodInterceptor {

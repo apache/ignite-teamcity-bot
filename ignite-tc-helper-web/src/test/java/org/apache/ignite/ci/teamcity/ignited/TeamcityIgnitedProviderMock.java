@@ -17,16 +17,21 @@
 
 package org.apache.ignite.ci.teamcity.ignited;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.creds.ICredentialsProv;
+
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TeamcityIgnitedProviderMock implements ITeamcityIgnitedProvider {
     /** Compactor. */
-    @Inject IStringCompactor compactor;
+    @Inject
+    IStringCompactor compactor;
 
     private Map<String, Map<Integer, FatBuildCompacted>> tcBuildsData = new ConcurrentHashMap<>();
 
@@ -36,7 +41,7 @@ public class TeamcityIgnitedProviderMock implements ITeamcityIgnitedProvider {
 
     /** {@inheritDoc} */
     @Override public boolean hasAccess(String srvCode, @Nullable ICredentialsProv prov) {
-        return prov.hasAccess(srvCode);
+        return prov != null && prov.hasAccess(srvCode);
     }
 
     /** {@inheritDoc} */

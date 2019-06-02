@@ -29,12 +29,12 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.analysis.IVersionedEntity;
 import org.apache.ignite.ci.analysis.LogCheckResult;
 import org.apache.ignite.ci.db.DbMigrations;
-import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.persistence.CacheConfigs;
+import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.model.agent.Agent;
 import org.apache.ignite.tcservice.model.changes.Change;
@@ -98,7 +98,7 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      * @param name Cache name.
      */
     private <K, V> IgniteCache<K, V> getOrCreateCacheV2(String name) {
-        final IgniteCache<K, V> cache = ignite.getOrCreateCache(TcHelperDb.getCacheV2Config(name));
+        final IgniteCache<K, V> cache = ignite.getOrCreateCache(CacheConfigs.getCacheV2Config(name));
 
         cache.enableStatistics(true);
 
@@ -174,8 +174,8 @@ public class IgnitePersistentTeamcity implements IAnalyticsEnabledTeamcity, ITea
      * @return
      */
     public <K, V extends IVersionedEntity> CompletableFuture<V> loadFutureIfAbsentVers(IgniteCache<K, V> cache,
-        K key,
-        Function<K, CompletableFuture<V>> submitFunction) {
+                                                                                       K key,
+                                                                                       Function<K, CompletableFuture<V>> submitFunction) {
         @Nullable final V persistedVal = cache.get(key);
 
         if (persistedVal != null && !persistedVal.isOutdatedEntityVersion()) {

@@ -20,10 +20,10 @@ package org.apache.ignite.ci.issue;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 
-import static org.apache.ignite.ci.teamcity.ignited.runhist.RunStatus.RES_CRITICAL_FAILURE;
-import static org.apache.ignite.ci.teamcity.ignited.runhist.RunStatus.RES_FAILURE;
-import static org.apache.ignite.ci.teamcity.ignited.runhist.RunStatus.RES_OK;
-import static org.apache.ignite.ci.teamcity.ignited.runhist.RunStatus.RES_OK_OR_FAILURE;
+import static org.apache.ignite.tcignited.history.RunStatus.RES_CRITICAL_FAILURE;
+import static org.apache.ignite.tcignited.history.RunStatus.RES_FAILURE;
+import static org.apache.ignite.tcignited.history.RunStatus.RES_OK;
+import static org.apache.ignite.tcignited.history.RunStatus.RES_OK_OR_FAILURE;
 
 public class EventTemplates {
     private static final int OK = RES_OK.getCode();

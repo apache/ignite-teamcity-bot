@@ -25,7 +25,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import javax.annotation.Nonnull;
-import org.apache.ignite.ci.db.Persisted;
+
+import org.apache.ignite.tcbot.persistence.IVersionedEntity;
+import org.apache.ignite.tcbot.persistence.Persisted;
 import org.jetbrains.annotations.Nullable;
 
 /**

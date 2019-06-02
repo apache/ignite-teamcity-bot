@@ -20,7 +20,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Inject;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
@@ -28,12 +28,11 @@ import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.SyncMode;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.long_running.FullLRTestsSummary;
@@ -63,7 +62,7 @@ public class TrackedBranchChainsProcessor {
         @Nullable String branch,
         @Nullable Boolean checkAllLogs,
         int buildResMergeCnt,
-        ICredentialsProv creds,
+        ITcBotUserCreds creds,
         SyncMode syncMode) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
@@ -138,7 +137,7 @@ public class TrackedBranchChainsProcessor {
      * @return
      */
     public FullLRTestsSummary getTrackedBranchLongRunningTestsSummary(@Nullable String branch,
-        ICredentialsProv creds) {
+        ITcBotUserCreds creds) {
         FullLRTestsSummary summary = new FullLRTestsSummary();
 
         final String branchNn = isNullOrEmpty(branch) ? TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;

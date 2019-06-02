@@ -28,13 +28,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Inject;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.ci.di.MonitoredTask;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.VisaRequest;
@@ -150,7 +150,7 @@ public class ObserverTask extends TimerTask {
             if (!tcBotBgAuth.isServerAuthorized())
                 return "Server authorization required.";
 
-            ICredentialsProv creds = tcBotBgAuth.getServerAuthorizerCreds();
+            ITcBotUserCreds creds = tcBotBgAuth.getServerAuthorizerCreds();
 
             int checkedBuilds = 0;
             int notFinishedBuilds = 0;

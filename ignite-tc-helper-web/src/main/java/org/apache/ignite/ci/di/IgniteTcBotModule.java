@@ -41,6 +41,7 @@ import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.ci.web.rest.exception.ServiceStartingException;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 
 /**
  *

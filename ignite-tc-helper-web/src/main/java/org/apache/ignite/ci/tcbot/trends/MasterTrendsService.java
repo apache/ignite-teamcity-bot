@@ -40,19 +40,19 @@ import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.ci.di.cache.GuavaCached;
+import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.ci.web.model.trends.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.trends.BuildsHistory;
@@ -186,7 +186,7 @@ public class MasterTrendsService {
         @Nullable String sinceDate,
         @Nullable String untilDate,
         @Nullable String skipTests,
-        ICredentialsProv prov) throws ParseException {
+        ITcBotUserCreds prov) throws ParseException {
 
         String srvCode = Strings.isNullOrEmpty(srvCodeParm) ? cfg.primaryServerCode() : srvCodeParm;
 
@@ -216,7 +216,7 @@ public class MasterTrendsService {
      * @param skipTests
      */
     public void initializeBuildTrends(BuildsHistory buildsHist, String srvCode,
-        ICredentialsProv prov, boolean skipTests) {
+                                      ITcBotUserCreds prov, boolean skipTests) {
         ITeamcityIgnited ignitedTeamcity = tcIgnitedProv.server(srvCode, prov);
 
         buildsHist.tcHost = ignitedTeamcity.host();

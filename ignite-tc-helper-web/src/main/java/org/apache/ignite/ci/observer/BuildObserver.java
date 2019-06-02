@@ -22,10 +22,10 @@ import java.util.Timer;
 import javax.inject.Inject;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.tcservice.model.result.Build;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,8 +97,8 @@ public class BuildObserver {
      * @param branchForTc Branch for TC.
      * @param ticket JIRA ticket name.
      */
-    public void observe(String srvId, ICredentialsProv prov, String ticket, String branchForTc, String parentSuiteId,
-        Build... builds) {
+    public void observe(String srvId, ITcBotUserCreds prov, String ticket, String branchForTc, String parentSuiteId,
+                        Build... builds) {
         BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, branchForTc, parentSuiteId, builds);
 
         observerTask.addInfo(buildsInfo);
@@ -112,7 +112,7 @@ public class BuildObserver {
 
         BuildsInfo buildsInfo = observerTask.getInfo(key);
 
-        ICredentialsProv creds = tcBotBgAuth.getServerAuthorizerCreds();
+        ITcBotUserCreds creds = tcBotBgAuth.getServerAuthorizerCreds();
 
         ITeamcityIgnited teamcity = teamcityIgnitedProvider.server(key.srvId, creds);
 

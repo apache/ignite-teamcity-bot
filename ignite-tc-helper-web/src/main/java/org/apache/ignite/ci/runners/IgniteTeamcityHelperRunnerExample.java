@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import org.apache.ignite.tcservice.IgniteTeamcityConnection;
+import org.apache.ignite.tcservice.TeamcityServiceConnection;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 import org.apache.ignite.tcservice.model.conf.bt.BuildTypeFull;
 import org.apache.ignite.tcservice.model.conf.bt.SnapshotDependency;
@@ -40,7 +40,7 @@ public class IgniteTeamcityHelperRunnerExample {
         String serverIdPriv = "private";
         String serverIdPub = "apache";
 
-        final IgniteTeamcityConnection helper = TcConnectionStaticLinker.create(serverIdPub);
+        final TeamcityServiceConnection helper = TcConnectionStaticLinker.create(serverIdPub);
 
         int k = 0;
         if (k > 0) {
@@ -66,7 +66,7 @@ public class IgniteTeamcityHelperRunnerExample {
         }
     }
 
-    private static void checkBuildTypes(IgniteTeamcityConnection helper) {
+    private static void checkBuildTypes(TeamcityServiceConnection helper) {
         Map<String, Set<String>> duplicates = new TreeMap<>();
         Map<String, String> suiteToBt = new TreeMap<>();
         List<BuildType> buildTypes = helper.getBuildTypes("Ignite20Tests");
