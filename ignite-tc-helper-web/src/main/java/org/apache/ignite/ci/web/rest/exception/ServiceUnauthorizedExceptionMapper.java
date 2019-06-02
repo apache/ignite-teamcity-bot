@@ -29,8 +29,6 @@ import javax.ws.rs.ext.Provider;
 @Provider
 public class ServiceUnauthorizedExceptionMapper
         implements ExceptionMapper<ServiceUnauthorizedException> {
-
-    @SuppressWarnings("unused")
     public ServiceUnauthorizedExceptionMapper() {
     }
 

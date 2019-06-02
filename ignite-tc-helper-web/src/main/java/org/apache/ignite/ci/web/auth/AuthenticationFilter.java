@@ -39,7 +39,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserSession;
 import org.apache.ignite.tcbot.common.util.Base64Util;
@@ -209,14 +209,14 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         users.putSession(sessId, ses);
 
-        reqCtx.setProperty(ICredentialsProv._KEY, createCredsProv(user, userKey));
+        reqCtx.setProperty(ITcBotUserCreds._KEY, createCredsProv(user, userKey));
 
         return true;
     }
 
     @NotNull
-    private ICredentialsProv createCredsProv(TcHelperUser user, byte[] userKey) {
-        return new ICredentialsProv() {
+    private ITcBotUserCreds createCredsProv(TcHelperUser user, byte[] userKey) {
+        return new ITcBotUserCreds() {
             @Override public String getUser(String srvCode) {
                 TcHelperUser.Credentials creds = user.getCredentials(srvCode);
                 if (creds == null)

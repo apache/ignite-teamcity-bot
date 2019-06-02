@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-import org.apache.ignite.ci.db.Persisted;
+import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcbot.common.util.TimeUtil;
 import org.jetbrains.annotations.Nullable;
 

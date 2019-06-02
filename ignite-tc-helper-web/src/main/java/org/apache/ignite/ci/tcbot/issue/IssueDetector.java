@@ -32,10 +32,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Inject;
 import javax.inject.Provider;
-import org.apache.ignite.ci.analysis.SuiteInBranch;
-import org.apache.ignite.ci.analysis.TestInBranch;
+
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.ci.di.MonitoredTask;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.ci.issue.EventTemplate;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.Issue;
@@ -50,15 +49,15 @@ import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
-import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
@@ -68,7 +67,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normalizeBranch;
+import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 
 /**
  *
@@ -84,7 +83,7 @@ public class IssueDetector {
     @Inject private IUserStorage userStorage;
 
     private final AtomicBoolean init = new AtomicBoolean();
-    private ICredentialsProv backgroundOpsCreds;
+    private ITcBotUserCreds backgroundOpsCreds;
     @Deprecated //todo use scheduler
     private ScheduledExecutorService executorService;
 
@@ -106,7 +105,7 @@ public class IssueDetector {
     private final AtomicBoolean sndNotificationGuard = new AtomicBoolean();
 
     private String registerIssuesAndNotifyLater(TestFailuresSummary res,
-        ICredentialsProv creds) {
+        ITcBotUserCreds creds) {
 
         if (creds == null)
             return null;
@@ -246,7 +245,7 @@ public class IssueDetector {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @AutoProfiling
     @MonitoredTask(name = "Register new issues")
-    protected String registerNewIssues(TestFailuresSummary res, ICredentialsProv creds) {
+    protected String registerNewIssues(TestFailuresSummary res, ITcBotUserCreds creds) {
         int newIssues = 0;
 
         for (ChainAtServerCurrentStatus next : res.servers) {
@@ -292,9 +291,7 @@ public class IssueDetector {
 
         String suiteId = suiteFailure.suiteId;
 
-        SuiteInBranch key = new SuiteInBranch(suiteId, normalizeBranch);
-
-        IRunHistory runStat = tcIgnited.getSuiteRunHist(key);
+        IRunHistory runStat = tcIgnited.getSuiteRunHist(suiteId, normalizeBranch);
 
         if (runStat == null)
             return false;
@@ -365,11 +362,9 @@ public class IssueDetector {
         String normalizeBranch,
         TestFailure testFailure,
         String trackedBranch) {
-
         String name = testFailure.name;
-        TestInBranch testInBranch = new TestInBranch(name, normalizeBranch);
 
-        IRunHistory runStat = tcIgnited.getTestRunHist(testInBranch);
+        IRunHistory runStat = tcIgnited.getTestRunHist(name, normalizeBranch);
 
         if (runStat == null)
             return false;
@@ -435,7 +430,7 @@ public class IssueDetector {
         return backgroundOpsCreds != null;
     }
 
-    public void startBackgroundCheck(ICredentialsProv prov) {
+    public void startBackgroundCheck(ITcBotUserCreds prov) {
         try {
             if (init.compareAndSet(false, true)) {
                 this.backgroundOpsCreds = prov;
@@ -489,7 +484,7 @@ public class IssueDetector {
     protected String checkFailuresEx(String brachName) {
         int buildsToQry = EventTemplates.templates.stream().mapToInt(EventTemplate::cntEvents).max().getAsInt();
 
-        ICredentialsProv creds = Preconditions.checkNotNull(backgroundOpsCreds, "Server should be authorized");
+        ITcBotUserCreds creds = Preconditions.checkNotNull(backgroundOpsCreds, "Server should be authorized");
 
         tbProc.getTrackedBranchTestFailures(
             brachName,

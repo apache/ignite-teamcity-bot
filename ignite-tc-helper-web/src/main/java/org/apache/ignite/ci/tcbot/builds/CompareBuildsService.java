@@ -22,11 +22,11 @@ import java.util.List;
 import javax.inject.Inject;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +44,7 @@ public class CompareBuildsService {
      * @param prov Credentials provider.
      * @return List of build tests.
      */
-    public List<String> tests0(String srvId, Integer buildId, ICredentialsProv prov) {
+    public List<String> tests0(String srvId, Integer buildId, ITcBotUserCreds prov) {
         ITeamcityIgnited srv = tcIgnitedProv.server(srvId, prov);
 
         return tests0(srv, buildId, bcp);

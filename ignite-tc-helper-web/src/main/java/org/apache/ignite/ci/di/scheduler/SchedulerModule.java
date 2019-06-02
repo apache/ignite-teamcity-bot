@@ -19,6 +19,7 @@ package org.apache.ignite.ci.di.scheduler;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 
 public class SchedulerModule extends AbstractModule {
     /** {@inheritDoc} */

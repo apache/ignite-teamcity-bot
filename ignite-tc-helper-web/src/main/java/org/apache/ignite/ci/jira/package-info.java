@@ -16,7 +16,7 @@
  */
 
 /**
- * This package is inteneded for interacting with Jira servers. It contains classes which is needed for injection Jira
+ * This package is intended for interacting with Jira servers. It contains classes which is needed for injection Jira
  * integration service instance via Guice. And interfaces and classes which provide specified functionality.
  */
 package org.apache.ignite.ci.jira;

@@ -17,13 +17,10 @@
 
 package org.apache.ignite.ci.web.rest;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import com.google.inject.Injector;
+import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
+
 import javax.annotation.security.PermitAll;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -35,9 +32,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
-import org.apache.ignite.ci.ITcAnalytics;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
-import org.apache.ignite.ci.web.CtxListener;
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 
 /**
  * Build log download, now provides thread dumps
@@ -63,12 +60,16 @@ public class GetBuildLog {
     @Path(THREAD_DUMP)
     @PermitAll
     public Response getThreadDump(
-        @QueryParam(SERVER_ID) String srvId,
-        @QueryParam(BUILD_NO) Integer buildNo) {
+        @QueryParam(SERVER_ID) String srvCode,
+        @QueryParam(BUILD_NO) Integer buildId) {
+        Injector injector = CtxListener.getInjector(ctx);
 
-        ITcServerProvider helper = CtxListener.getInjector(ctx).getInstance(ITcServerProvider.class);
-        ITcAnalytics srv = helper.server(srvId, null);
-        String cached = srv.getThreadDumpCached(buildNo);
+        IBuildLogProcessor instance = injector.getInstance(IBuildLogProcessor.class);
+
+        String cached = instance.getThreadDumpCached(srvCode, buildId);
+
+        if (cached == null)
+            return sendString("No data found for [" + srvCode + ", " + buildId + "]");
 
         return sendString(cached);
     }
@@ -78,22 +79,6 @@ public class GetBuildLog {
             Writer writer = new BufferedWriter(new OutputStreamWriter(os));
             writer.write(data);
             writer.flush();
-        };
-        return Response.ok(stream).build();
-    }
-
-    private Response sendFile(File file) {
-        final StreamingOutput stream = os -> {
-            Writer writer = new BufferedWriter(new OutputStreamWriter(os));
-
-            try (BufferedReader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)){
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    writer.write(line);
-                    writer.write("\n");
-                }
-                writer.flush();
-            }
         };
         return Response.ok(stream).build();
     }

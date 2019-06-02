@@ -57,14 +57,14 @@ import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcservice.model.mute.MuteInfo;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.ci.web.model.JiraCommentResponse;
 import org.apache.ignite.ci.web.model.SimpleResult;
@@ -141,7 +141,7 @@ public class TcBotTriggerAndSignOffService {
     }
 
     /** */
-    public List<VisaStatus> getVisasStatus(String srvId, ICredentialsProv prov) {
+    public List<VisaStatus> getVisasStatus(String srvId, ITcBotUserCreds prov) {
         List<VisaStatus> visaStatuses = new ArrayList<>();
 
         ITeamcityIgnited ignited = tcIgnitedProv.server(srvId, prov);
@@ -199,10 +199,10 @@ public class TcBotTriggerAndSignOffService {
      * @param creds Credentials.
      * @return Mutes for given server-project pair.
      */
-    public Set<MuteInfo> getMutes(String srvId, String projectId, ICredentialsProv creds) {
+    public Set<MuteInfo> getMutes(String srvId, String projectId, ITcBotUserCreds creds) {
         ITeamcityIgnited ignited = tcIgnitedProv.server(srvId, creds);
 
-        Set<MuteInfo> mutes = ignited.getMutes(projectId, creds);
+        Set<MuteInfo> mutes = ignited.getMutes(projectId);
 
         IJiraIgnited jiraIgn = jiraIgnProv.server(srvId);
 
@@ -254,7 +254,7 @@ public class TcBotTriggerAndSignOffService {
         @Nullable Boolean observe,
         @Nullable String ticketId,
         @Nullable String prNum,
-        @Nullable ICredentialsProv prov) {
+        @Nullable ITcBotUserCreds prov) {
         String jiraRes = "";
 
         ITeamcityIgnited teamcity = tcIgnitedProv.server(srvId, prov);
@@ -303,7 +303,7 @@ public class TcBotTriggerAndSignOffService {
         String srvId,
         String branchForTc,
         @Nullable String ticketFullName,
-        ICredentialsProv prov,
+        ITcBotUserCreds prov,
         String parentSuiteId,
         Build... builds
     ) {
@@ -338,7 +338,7 @@ public class TcBotTriggerAndSignOffService {
         @QueryParam("branchName") @Nullable String branchForTc,
         @QueryParam("suiteId") @Nullable String suiteId,
         @QueryParam("ticketId") @Nullable String ticketFullName,
-        ICredentialsProv prov) {
+        ITcBotUserCreds prov) {
 
         try {
             ticketFullName = ticketMatcher.resolveTicketFromBranch(srvId, ticketFullName, branchForTc);
@@ -369,7 +369,7 @@ public class TcBotTriggerAndSignOffService {
      * @param credsProv Credentials
      */
     public List<ContributionToCheck> getContributionsToCheck(String srvCodeOrAlias,
-        ICredentialsProv credsProv) {
+        ITcBotUserCreds credsProv) {
         IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCodeOrAlias);
 
         IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
@@ -562,7 +562,7 @@ public class TcBotTriggerAndSignOffService {
      * @param prId Pr id from {@link ContributionToCheck#prNumber}. Negative value imples branch number (with
      * appropriate prefix from GH config).
      */
-    public Set<ContributionCheckStatus> contributionStatuses(String srvCode, ICredentialsProv prov,
+    public Set<ContributionCheckStatus> contributionStatuses(String srvCode, ITcBotUserCreds prov,
         String prId) {
         Set<ContributionCheckStatus> statuses = new LinkedHashSet<>();
 
@@ -718,8 +718,8 @@ public class TcBotTriggerAndSignOffService {
         return teamcity.host() + "viewQueued.html?itemId=" + ref.id();
     }
 
-    public CurrentVisaStatus currentVisaStatus(String srvCode, ICredentialsProv prov, String buildTypeId,
-        String tcBranch) {
+    public CurrentVisaStatus currentVisaStatus(String srvCode, ITcBotUserCreds prov, String buildTypeId,
+                                               String tcBranch) {
         CurrentVisaStatus status = new CurrentVisaStatus();
 
         //todo SyncMode.NONE - gives incorrect results, which differs with report
@@ -747,7 +747,7 @@ public class TcBotTriggerAndSignOffService {
      */
     public Visa notifyJira(
         String srvId,
-        ICredentialsProv prov,
+        ITcBotUserCreds prov,
         String buildTypeId,
         String branchForTc,
         String ticket

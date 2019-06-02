@@ -29,12 +29,12 @@ import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.ci.tcbot.conf.ChainAtServerTracked;
 import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
@@ -112,7 +112,7 @@ public class TrackedBranchProcessorTest {
 
         TrackedBranchChainsProcessor tbProc = injector.getInstance(TrackedBranchChainsProcessor.class);
 
-        ICredentialsProv mock = mock(ICredentialsProv.class);
+        ITcBotUserCreds mock = mock(ITcBotUserCreds.class);
         when(mock.hasAccess(anyString())).thenReturn(true);
         TestFailuresSummary failures = tbProc.getTrackedBranchTestFailures(BRACH_NAME,
             false,

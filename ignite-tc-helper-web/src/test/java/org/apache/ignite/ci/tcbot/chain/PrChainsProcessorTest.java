@@ -35,12 +35,12 @@ import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 import org.apache.ignite.tcservice.model.result.tests.TestRef;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.jetbrains.annotations.NotNull;
@@ -114,7 +114,7 @@ public class PrChainsProcessorTest {
 
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
         final List<SuiteCurrentStatus> blockers = prcp.getBlockersSuitesStatuses(btId,
-            branch, SRV_ID, mock(ICredentialsProv.class));
+            branch, SRV_ID, mock(ITcBotUserCreds.class));
 
         System.out.println(blockers);
         assertNotNull(blockers);
@@ -161,7 +161,7 @@ public class PrChainsProcessorTest {
 
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
         final List<SuiteCurrentStatus> blockers = prcp.getBlockersSuitesStatuses(btId,
-            branch, SRV_ID, mock(ICredentialsProv.class));
+            branch, SRV_ID, mock(ITcBotUserCreds.class));
 
         System.out.println(blockers);
 
@@ -438,7 +438,7 @@ public class PrChainsProcessorTest {
 
         PrChainsProcessor prcp = injector.getInstance(PrChainsProcessor.class);
 
-        final List<SuiteCurrentStatus> blockers = prcp.getBlockersSuitesStatuses(btId, branch, SRV_ID, mock(ICredentialsProv.class));
+        final List<SuiteCurrentStatus> blockers = prcp.getBlockersSuitesStatuses(btId, branch, SRV_ID, mock(ITcBotUserCreds.class));
 
         System.out.println(blockers);
 

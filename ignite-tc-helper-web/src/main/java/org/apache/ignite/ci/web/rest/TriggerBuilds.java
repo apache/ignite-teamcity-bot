@@ -36,8 +36,8 @@ import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
 import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.trigger.TriggerResult;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.SimpleResult;
@@ -69,7 +69,7 @@ public class TriggerBuilds {
         @Nullable @QueryParam("ticketId") String ticketId,
         @Nullable @QueryParam("prNum") String prNum
     ) {
-        ICredentialsProv prov = ICredentialsProv.get(req);
+        ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
 
         injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
@@ -98,7 +98,7 @@ public class TriggerBuilds {
         @Nullable @QueryParam("suiteId") String suiteId,
         @Nullable @QueryParam("ticketId") String ticketId
     ) {
-        ICredentialsProv prov = ICredentialsProv.get(req);
+        ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 
@@ -112,7 +112,7 @@ public class TriggerBuilds {
     @GET
     @Path("integrationUrls")
     public Set<ServerIntegrationLinks> getIntegrationUrls(@NotNull @QueryParam("serverIds") String srvCodes) {
-        ICredentialsProv prov = ICredentialsProv.get(req);
+        ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 

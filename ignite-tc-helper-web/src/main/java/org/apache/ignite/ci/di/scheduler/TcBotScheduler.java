@@ -29,7 +29,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.ignite.ci.di.MonitoredTask;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

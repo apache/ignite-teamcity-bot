@@ -22,7 +22,7 @@ import com.google.inject.Injector;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.tcservice.model.user.User;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcservice.login.ITcLogin;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.tcbot.common.util.Base64Util;

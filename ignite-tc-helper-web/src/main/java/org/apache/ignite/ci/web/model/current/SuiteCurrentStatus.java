@@ -31,19 +31,17 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
 import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.analysis.SuiteInBranch;
-import org.apache.ignite.ci.analysis.TestInBranch;
-import org.apache.ignite.ci.analysis.TestLogCheckResult;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
-import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
+import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.ci.web.model.hist.FailureSummary;
 import org.apache.ignite.ci.web.rest.GetBuildLog;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync.normalizeBranch;
+import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 
@@ -168,9 +166,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         if (includeTests) {
             List<IMultTestOccurrence> tests = suite.getFailedTests();
             Function<IMultTestOccurrence, Float> function = foccur -> {
-                TestInBranch testInBranch = new TestInBranch(foccur.getName(), failRateNormalizedBranch);
-
-                IRunHistory apply = tcIgnited.getTestRunHist(testInBranch);
+                IRunHistory apply = tcIgnited.getTestRunHist(foccur.getName(), failRateNormalizedBranch);
 
                 return apply == null ? 0f : apply.getFailRate();
             };
@@ -217,14 +213,14 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         suite.getBuildsWithThreadDump().forEach(buildId -> {
             webUrlThreadDump = "/rest/" + GetBuildLog.GET_BUILD_LOG + "/" + GetBuildLog.THREAD_DUMP
-                + "?" + GetBuildLog.SERVER_ID + "=" + tcIgnited.serverId()
+                + "?" + GetBuildLog.SERVER_ID + "=" + tcIgnited.serverCode()
                 + "&" + GetBuildLog.BUILD_NO + "=" + buildId
                 + "&" + GetBuildLog.FILE_IDX + "=" + -1;
         });
 
         runningBuildCount = suite.runningBuildCount();
         queuedBuildCount = suite.queuedBuildCount();
-        serverId = tcIgnited.serverId();
+        serverId = tcIgnited.serverCode();
         this.suiteId = suite.suiteId();
         branchName = branchForLink(suite.branchName());
 
@@ -242,7 +238,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         if (Strings.isNullOrEmpty(suiteId))
             return null;
 
-        final IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(new SuiteInBranch(suiteId, failRateNormalizedBranch));
+        final IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(suiteId, failRateNormalizedBranch);
 
         if (statInBaseBranch != null) {
             failures = statInBaseBranch.getFailuresCount();
@@ -262,9 +258,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         IRunHistory latestRunsSrc = null;
         if (!failRateNormalizedBranch.equals(curBranchNormalized)) {
-            SuiteInBranch keyForStripe = new SuiteInBranch(suiteId, curBranchNormalized);
 
-            final IRunHistory statForStripe = tcIgnited.getSuiteRunHist(keyForStripe);
+            final IRunHistory statForStripe = tcIgnited.getSuiteRunHist(suiteId, curBranchNormalized);
 
             latestRunsSrc = statForStripe;
             latestRuns = statForStripe != null ? statForStripe.getLatestRunResults() : null;
@@ -306,7 +301,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         return failure;
     }
 
-    public void findFailureAndAddWarning(String testName, TestLogCheckResult logCheckRes) {
+    public void findFailureAndAddWarning(String testName, ITestLogCheckResult logCheckRes) {
         TestFailure failure = testFailures.stream().filter(f -> f.name.contains(testName)).findAny().orElseGet(
             () -> {
                 return warnOnly.stream().filter(f -> f.name.contains(testName)).findAny().orElseGet(

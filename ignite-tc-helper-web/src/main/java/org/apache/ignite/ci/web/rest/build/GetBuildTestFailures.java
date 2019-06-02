@@ -23,19 +23,17 @@ import java.text.ParseException;
 import com.google.inject.Injector;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.SyncMode;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.trends.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.trends.BuildsHistory;
 import org.apache.ignite.ci.web.CtxListener;
@@ -112,10 +110,9 @@ public class GetBuildTestFailures {
     @NotNull public TestFailuresSummary collectBuildCtxById(@QueryParam("serverId") String srvCode,
         @QueryParam("buildId") Integer buildId,
         @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs, SyncMode syncMode) {
-        final ICredentialsProv prov = ICredentialsProv.get(req);
+        final ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         final Injector injector = CtxListener.getInjector(ctx);
         ITeamcityIgnitedProvider tcIgnitedProv = injector.getInstance(ITeamcityIgnitedProvider.class);
-        ITcServerProvider tcSrvProvider = injector.getInstance(ITcServerProvider.class);
         final BuildChainProcessor buildChainProcessor = injector.getInstance(BuildChainProcessor.class);
 
         final TestFailuresSummary res = new TestFailuresSummary();
@@ -123,15 +120,14 @@ public class GetBuildTestFailures {
 
         tcIgnitedProv.checkAccess(srvCode, prov);
 
-        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvCode, prov);
         ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCode, prov);
 
         String failRateBranch = ITeamcity.DEFAULT;
 
         ProcessLogsMode procLogs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
-            tcIgnited,
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+                tcIgnited,
             Collections.singletonList(buildId),
             LatestRebuildMode.NONE,
             procLogs,
@@ -180,7 +176,7 @@ public class GetBuildTestFailures {
 
         ITeamcityIgnitedProvider tcIgnitedProv = injector.getInstance(ITeamcityIgnitedProvider.class);
 
-        ICredentialsProv prov = ICredentialsProv.get(req);
+        ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
         tcIgnitedProv.checkAccess(srvCode, prov);
 
@@ -217,7 +213,7 @@ public class GetBuildTestFailures {
 
 
         BuildsHistory buildsHist =
-            instance.getBuildTrends(srvCode, buildType, branch, sinceDate, untilDate, skipTests, ICredentialsProv.get(req));
+            instance.getBuildTrends(srvCode, buildType, branch, sinceDate, untilDate, skipTests, ITcBotUserCreds.get(req));
 
         if (MasterTrendsService.DEBUG)
             System.out.println("MasterTrendsService: Responding");

@@ -16,7 +16,7 @@
  */
 package org.apache.ignite.tcservice.util;
 
-import org.apache.ignite.tcservice.IgniteTeamcityConnection;
+import org.apache.ignite.tcservice.TeamcityServiceConnection;
 import org.apache.ignite.tcservice.http.TeamcityRecordingConnection;
 
 /**
@@ -26,8 +26,8 @@ public class TcConnectionStaticLinker {
     /**
      * @param srv Server ID.
      */
-    public static IgniteTeamcityConnection create(String srv) {
-        final IgniteTeamcityConnection conn = new IgniteTeamcityConnection();
+    public static TeamcityServiceConnection create(String srv) {
+        final TeamcityServiceConnection conn = new TeamcityServiceConnection();
 
         conn.setHttpConn(new TeamcityRecordingConnection());
         conn.init(srv);

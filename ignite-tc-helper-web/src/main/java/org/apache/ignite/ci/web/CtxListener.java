@@ -17,10 +17,10 @@
 
 package org.apache.ignite.ci.web;
 
-import com.google.common.base.Preconditions;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.io.IOException;
+import java.util.logging.Handler;
 import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
@@ -28,11 +28,10 @@ import javax.servlet.ServletContextListener;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.IgniteTcBotModule;
-import org.apache.ignite.ci.di.scheduler.IScheduler;
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.tcservice.http.TeamcityRecorder;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +39,8 @@ import org.slf4j.LoggerFactory;
  */
 public class CtxListener implements ServletContextListener {
     /** Javax.Injector property code for servlet context. */
-    public static final String INJECTOR = "injector";
+    private static final String INJECTOR = "injector";
+
     @Nullable private static volatile Logger logger;
 
     public static Injector getInjector(ServletContext ctx) {
@@ -55,9 +55,6 @@ public class CtxListener implements ServletContextListener {
 
         Injector injector = igniteTcBotModule.startIgniteInit(injectorPreCreated);
 
-        ITcServerProvider instance = injector.getInstance(ITcServerProvider.class);
-        Preconditions.checkState(instance == injector.getInstance(ITcServerProvider.class));
-
         final ServletContext ctx = sctxEvt.getServletContext();
 
         ctx.setAttribute(INJECTOR, injector);
@@ -70,8 +67,8 @@ public class CtxListener implements ServletContextListener {
         java.util.logging.Logger rootLog = java.util.logging.LogManager.getLogManager().getLogger("");
         java.util.logging.Handler[] handlers = rootLog.getHandlers();
 
-        for (int i = 0; i < handlers.length; i++)
-            rootLog.removeHandler(handlers[i]);
+        for (Handler handler : handlers)
+            rootLog.removeHandler(handler);
 
         org.slf4j.bridge.SLF4JBridgeHandler.install();
 

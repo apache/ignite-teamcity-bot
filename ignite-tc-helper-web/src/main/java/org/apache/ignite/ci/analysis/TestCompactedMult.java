@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
-import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
+import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 
 public class TestCompactedMult implements IMultTestOccurrence {

@@ -22,11 +22,9 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import org.apache.ignite.ci.IAnalyticsEnabledTeamcity;
+
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.SuiteInBranch;
-import org.apache.ignite.ci.analysis.TestInBranch;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
@@ -35,14 +33,13 @@ import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
-import org.apache.ignite.ci.teamcity.ignited.IRunHistory;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.SyncMode;
-import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistSync;
-import org.apache.ignite.ci.teamcity.restcached.ITcServerProvider;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.history.RunHistSync;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
@@ -56,9 +53,6 @@ import org.jetbrains.annotations.Nullable;
 public class PrChainsProcessor {
     /** Build chain processor. */
     @Inject private BuildChainProcessor buildChainProcessor;
-
-    /** Tc server provider. */
-    @Inject private ITcServerProvider tcSrvProvider;
 
     /** Tc server provider. */
     @Inject private ITeamcityIgnitedProvider tcIgnitedProvider;
@@ -87,7 +81,7 @@ public class PrChainsProcessor {
      */
     @AutoProfiling
     public TestFailuresSummary getTestFailuresSummary(
-        ICredentialsProv creds,
+        ITcBotUserCreds creds,
         String srvCode,
         String suiteId,
         String branchForTc,
@@ -100,14 +94,13 @@ public class PrChainsProcessor {
         final AtomicInteger runningUpdates = new AtomicInteger();
 
         //using here non persistent TC allows to skip update statistic
-        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvCode, creds);
         ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCode, creds);
 
         IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCode);
 
         IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCode);
 
-        res.setJavaFlags(teamcity, gitHubConnIgnited, jiraIntegration);
+        res.setJavaFlags(gitHubConnIgnited, jiraIntegration);
 
         LatestRebuildMode rebuild;
         if (FullQueryParams.HISTORY.equals(act))
@@ -135,8 +128,8 @@ public class PrChainsProcessor {
 
         String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
-            tcIgnited,
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+                tcIgnited,
             hist,
             rebuild,
             logs,
@@ -144,7 +137,7 @@ public class PrChainsProcessor {
             baseBranch,
             mode);
 
-        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(teamcity.serverCode(), branchForTc);
+        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(tcIgnited.serverCode(), branchForTc);
 
         chainStatus.baseBranchForTc = baseBranch;
 
@@ -179,23 +172,22 @@ public class PrChainsProcessor {
     @Nullable public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId,
         String branchForTc,
         String srvId,
-        ICredentialsProv prov) {
+        ITcBotUserCreds prov) {
         return getBlockersSuitesStatuses(buildTypeId, branchForTc, srvId, prov, SyncMode.RELOAD_QUEUED);
     }
 
     @Nullable
     public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
-        ICredentialsProv prov, SyncMode syncMode) {
+                                                              ITcBotUserCreds prov, SyncMode syncMode) {
         //using here non persistent TC allows to skip update statistic
-        IAnalyticsEnabledTeamcity teamcity = tcSrvProvider.server(srvId, prov);
         ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvId, prov);
 
         List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
         String baseBranch = ITeamcity.DEFAULT;
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(teamcity,
-            tcIgnited,
+        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+                tcIgnited,
             hist,
             LatestRebuildMode.LATEST,
             ProcessLogsMode.SUITE_NOT_COMPLETE,
@@ -222,12 +214,12 @@ public class PrChainsProcessor {
             .failedChildSuites()
             .map((ctx) -> {
                 String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
-                IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(new SuiteInBranch(ctx.suiteId(), normalizedBaseBranch));
+                IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(ctx.suiteId(), normalizedBaseBranch);
 
                 String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 
                 List<TestFailure> failures =  ctx.getFailedTests().stream().map(occurrence -> {
-                    IRunHistory stat = tcIgnited.getTestRunHist(new TestInBranch(occurrence.getName(), normalizedBaseBranch));
+                    IRunHistory stat = tcIgnited.getTestRunHist(occurrence.getName(), normalizedBaseBranch);
 
                     String testBlockerComment = occurrence.getPossibleBlockerComment(stat);
 

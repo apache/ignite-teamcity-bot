@@ -17,8 +17,11 @@
 package org.apache.ignite.ci.tcbot.conf;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Strings;
+
 import java.util.Collection;
 import java.util.HashSet;
+import javax.annotation.Nullable;
 
 /**
  *

@@ -29,18 +29,18 @@ import javax.inject.Inject;
 import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.ci.tcbot.conf.ChainAtServerTracked;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.ci.di.MonitoredTask;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.tcservice.model.agent.Agent;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcservice.model.result.Triggered;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +60,7 @@ public class CheckQueueJob implements Runnable {
         Integer.getInteger("CHECK_QUEUE_MIN_FREE_AGENTS_PERCENT", 50);
 
     /** */
-    private ICredentialsProv creds;
+    private ITcBotUserCreds creds;
 
     /** */
     @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
@@ -77,7 +77,7 @@ public class CheckQueueJob implements Runnable {
     /**
      * @param creds Background credentials provider.
      */
-    public void init(ICredentialsProv creds) {
+    public void init(ITcBotUserCreds creds) {
         this.creds = creds;
     }
 

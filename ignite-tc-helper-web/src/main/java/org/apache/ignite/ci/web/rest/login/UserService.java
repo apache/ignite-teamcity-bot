@@ -38,7 +38,7 @@ import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcservice.login.ITcLogin;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.CredentialsUi;
@@ -63,7 +63,7 @@ public class UserService {
     @GET
     @Path("currentUserName")
     public SimpleResult currentUserName() {
-        final ICredentialsProv prov = ICredentialsProv.get(req);
+        final ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         if (prov == null)
             return new SimpleResult("");
 
@@ -74,7 +74,7 @@ public class UserService {
             injector.getInstance(IssueDetector.class));
     }
 
-    @NotNull public SimpleResult userMenu(ICredentialsProv prov, IUserStorage users, IssueDetector issueDetector) {
+    @NotNull public SimpleResult userMenu(ITcBotUserCreds prov, IUserStorage users, IssueDetector issueDetector) {
         final TcHelperUser user = users.getUser(prov.getPrincipalId());
 
         if (user == null)
@@ -90,7 +90,7 @@ public class UserService {
     @POST
     @Path("authorize")
     public SimpleResult setAuthorizedState() {
-        final ICredentialsProv prov = ICredentialsProv.get(req);
+        final ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 
@@ -110,7 +110,7 @@ public class UserService {
     @GET
     @Path("get")
     public TcHelperUserUi getUserData(@Nullable @QueryParam("login") final String loginParm) {
-        final String currUserLogin = ICredentialsProv.get(req).getPrincipalId();
+        final String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
         Injector injector = CtxListener.getInjector(ctx);
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
@@ -141,7 +141,7 @@ public class UserService {
     @POST
     @Path("resetCredentials")
     public SimpleResult resetCredentials(@Nullable @FormParam("login") final String loginParm) {
-        final String currUserLogin = ICredentialsProv.get(req).getPrincipalId();
+        final String currUserLogin = ITcBotUserCreds.get(req).getPrincipalId();
         final String login = Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
         //todo check admin
 
@@ -164,7 +164,7 @@ public class UserService {
         Preconditions.checkState(!Strings.isNullOrEmpty(svcLogin));
         Preconditions.checkState(!Strings.isNullOrEmpty(svcPwd));
 
-        final ICredentialsProv prov = ICredentialsProv.get(req);
+        final ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         final String currUserLogin = prov.getPrincipalId();
         final Injector injector = CtxListener.getInjector(ctx);
         final ITcLogin tcLogin = injector.getInstance(ITcLogin.class);
@@ -198,7 +198,7 @@ public class UserService {
         @Nullable @FormParam("fullName") final String fullName,
         Form form) {
 
-        final String login = ICredentialsProv.get(req).getPrincipalId(); //todo check admin Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
+        final String login = ITcBotUserCreds.get(req).getPrincipalId(); //todo check admin Strings.isNullOrEmpty(loginParm) ? currUserLogin : loginParm;
 
         final IUserStorage users = CtxListener.getInjector(ctx).getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(login);

@@ -31,8 +31,8 @@ subprojects {
     apply plugin: "com.github.hierynomus.license-base"
     apply plugin: "com.github.hierynomus.license-report"
 
-
-    license.header = file('header.txt')
+    //for subprojects header can be found in top-level project.
+    license.header = file('../header.txt')
 
     license.exclude("*.xml");
 }

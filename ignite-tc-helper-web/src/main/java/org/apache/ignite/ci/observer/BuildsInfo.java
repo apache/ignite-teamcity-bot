@@ -25,10 +25,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import org.apache.ignite.tcservice.model.result.Build;
-import org.apache.ignite.ci.teamcity.ignited.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.ITeamcityIgnited;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.user.ICredentialsProv;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.ContributionKey;
 
 /**
@@ -86,8 +86,8 @@ public class BuildsInfo {
      * @param ticket Ticket.
      * @param builds Builds.
      */
-    public BuildsInfo(String srvId, ICredentialsProv prov, String ticket, String branchForTc, String parentSuiteId,
-        Build... builds) {
+    public BuildsInfo(String srvId, ITcBotUserCreds prov, String ticket, String branchForTc, String parentSuiteId,
+                      Build... builds) {
         this.userName = prov.getUser(srvId);
         this.date = Calendar.getInstance().getTime();
         this.srvId = srvId;
