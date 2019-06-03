@@ -5,4 +5,4 @@ jdk:
 - oraclejdk8
 
 script:
-- ./gradle clean build
+- gradle clean build
