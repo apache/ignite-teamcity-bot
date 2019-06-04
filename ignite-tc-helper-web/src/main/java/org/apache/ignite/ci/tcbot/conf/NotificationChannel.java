@@ -36,14 +36,28 @@ public class NotificationChannel implements INotificationChannel {
     /** Subscribed to failures in tracked branches. */
     private Collection<String> subscribed = new HashSet<>();
 
+    /** Subscribed to tags. Empty ot null set means all tags are applicable. */
+    private Collection<String> tagsFilter = new HashSet<>();
+
     /** {@inheritDoc} */
-    @Override public boolean isSubscribed(String trackedBranchId) {
+    @Override public boolean isSubscribedToBranch(String trackedBranchId) {
         return subscribed != null && subscribed.contains(trackedBranchId);
     }
 
     /** {@inheritDoc} */
     @Override public boolean isServerAllowed(String srvCode) {
         return true;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isSubscribedToTag(@Nullable String tag) {
+        if (!hasTagFilter())
+            return true;
+
+        if(Strings.isNullOrEmpty(tag))
+            return true; // nothing to filter, consider subscribed
+
+        return tagsFilter.contains(tag);
     }
 
     /** {@inheritDoc} */
@@ -54,6 +68,11 @@ public class NotificationChannel implements INotificationChannel {
     /** {@inheritDoc} */
     @Override public String slack() {
         return slack;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean hasTagFilter() {
+        return (tagsFilter != null) && !tagsFilter.isEmpty();
     }
 
     public void slack(String slack) {

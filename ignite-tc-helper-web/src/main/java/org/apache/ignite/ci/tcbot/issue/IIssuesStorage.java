@@ -30,9 +30,15 @@ public interface IIssuesStorage {
      */
     public boolean containsIssueKey(IssueKey issueKey);
 
-    void saveIssue(Issue issue);
+    public void saveIssue(Issue issue);
 
-    Stream<Issue> allIssues();
+    public Stream<Issue> allIssues();
 
-    boolean setNotified(IssueKey key, String addr);
+    /**
+     * Checks and saves address was notified (NotThreadSafe)
+     * @param key issue key.
+     * @param addr Address to register as notified.
+     * @return update successful. This address was not notified before.
+     */
+    public boolean setNotified(IssueKey key, String addr);
 }

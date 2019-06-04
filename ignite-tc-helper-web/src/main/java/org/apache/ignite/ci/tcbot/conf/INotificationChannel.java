@@ -22,13 +22,31 @@ import javax.annotation.Nullable;
  *
  */
 public interface INotificationChannel {
-    public boolean isSubscribed(String trackedBranchId);
+    /**
+     * @param trackedBranchId Tracked branch id.
+     */
+    public boolean isSubscribedToBranch(String trackedBranchId);
 
+    /**
+     * Checks if server related issue can be used for notification. For users it is determined by credentials.
+     *
+     * @param srvCode Server code.
+     */
     public boolean isServerAllowed(String srvCode);
+
+    /**
+     * @param tag Tag from actual build/issue.
+     */
+    public boolean isSubscribedToTag(@Nullable String tag);
 
     @Nullable
     public String email();
 
     @Nullable
     public String slack();
+
+    /**
+     * @return any tags specified for this channel, filtration should be applied.
+     */
+    public boolean hasTagFilter();
 }

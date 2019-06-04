@@ -25,15 +25,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.ci.tcbot.conf.INotificationChannel;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.ci.util.CryptUtil;
-import org.jetbrains.annotations.Nullable;
 
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
+/**
+ * TC Bot user. Contains login information and encrypted passwords.
+ */
 @Persisted
 public class TcHelperUser implements IVersionedEntity, INotificationChannel {
     public static final int LATEST_VERSION = 2;
@@ -131,13 +134,23 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
     }
 
     /** {@inheritDoc} */
-    @Override public boolean isSubscribed(String trackedBranchId) {
+    @Override public boolean isSubscribedToBranch(String trackedBranchId) {
         return subscribedToAllFailures != null && subscribedToAllFailures.contains(trackedBranchId);
     }
 
     /** {@inheritDoc} */
     @Override public boolean isServerAllowed(String srvCode) {
         return getCredentials(srvCode) != null;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean isSubscribedToTag(@Nullable String tag) {
+        return true;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean hasTagFilter() {
+        return false;
     }
 
     /** {@inheritDoc} */

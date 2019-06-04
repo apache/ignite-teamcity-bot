@@ -124,7 +124,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
      */
     @Nullable public ProblemRef problemRef;
 
-    public Set<String> tags = new HashSet<>();
+    @Nonnull public Set<String> tags = new HashSet<>();
 
     /**
      * Possible blocker comment: filled for PR and builds checks, non null value contains problem explanation
@@ -221,7 +221,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         runningBuildCount = suite.runningBuildCount();
         queuedBuildCount = suite.queuedBuildCount();
         serverId = tcIgnited.serverCode();
-        this.suiteId = suite.suiteId();
+        suiteId = suite.suiteId();
         branchName = branchForLink(suite.branchName());
 
         tags = suite.tags();
