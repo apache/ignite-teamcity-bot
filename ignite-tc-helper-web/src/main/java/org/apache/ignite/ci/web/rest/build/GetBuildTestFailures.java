@@ -18,32 +18,10 @@
 package org.apache.ignite.ci.web.rest.build;
 
 import com.google.common.collect.BiMap;
-import java.text.ParseException;
-
 import com.google.inject.Injector;
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.SyncMode;
-import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
-import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
-import org.apache.ignite.tcservice.ITeamcity;
-import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
-import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.apache.ignite.ci.web.model.trends.BuildStatisticsSummary;
-import org.apache.ignite.ci.web.model.trends.BuildsHistory;
-import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
-import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
-import org.apache.ignite.ci.web.model.current.UpdateInfo;
-import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
+import java.text.ParseException;
+import java.util.Collections;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -52,8 +30,28 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import java.util.Collections;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
+import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
+import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
+import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
+import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
+import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
+import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
+import org.apache.ignite.ci.web.model.current.UpdateInfo;
+import org.apache.ignite.ci.web.model.trends.BuildStatisticsSummary;
+import org.apache.ignite.ci.web.model.trends.BuildsHistory;
+import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcservice.ITeamcity;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -126,8 +124,8 @@ public class GetBuildTestFailures {
 
         ProcessLogsMode procLogs = (checkAllLogs != null && checkAllLogs) ? ProcessLogsMode.ALL : ProcessLogsMode.SUITE_NOT_COMPLETE;
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
-                tcIgnited,
+        FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+            tcIgnited,
             Collections.singletonList(buildId),
             LatestRebuildMode.NONE,
             procLogs,
@@ -135,9 +133,9 @@ public class GetBuildTestFailures {
             failRateBranch,
             syncMode);
 
-        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvCode, ctx.branchName());
+        ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvCode, tcIgnited.serverCode(), ctx.branchName());
 
-        int cnt = (int) ctx.getRunningUpdates().count();
+        int cnt = (int)ctx.getRunningUpdates().count();
         if (cnt > 0)
             runningUpdates.addAndGet(cnt);
 

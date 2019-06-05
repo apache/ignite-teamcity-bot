@@ -75,18 +75,20 @@ public class TrackedBranchChainsProcessor {
         tracked.chains.stream()
             .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverId, creds))
             .map(chainTracked -> {
-                final String srvId = chainTracked.serverId;
+                final String srvCode = chainTracked.serverId;
 
                 final String branchForTc = chainTracked.getBranchForRestMandatory();
 
                 //branch is tracked, so fail rate should be taken from this branch data (otherwise it is specified).
                 final String baseBranchTc = chainTracked.getBaseBranchForTc().orElse(branchForTc);
 
-                final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
+                ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCode, creds);
+
+                ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvCode,
+                    tcIgnited.serverCode(),
+                    branchForTc);
 
                 chainStatus.baseBranchForTc = baseBranchTc;
-
-                ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, creds);
 
                 String suiteIdMandatory = chainTracked.getSuiteIdMandatory();
 

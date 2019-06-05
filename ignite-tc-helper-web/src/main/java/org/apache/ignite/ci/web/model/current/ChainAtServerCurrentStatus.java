@@ -55,7 +55,14 @@ public class ChainAtServerCurrentStatus {
     public String chainName;
 
     /** Server ID. */
+    @Deprecated
     public final String serverId;
+
+    /** General server (service) code: JIRA, GH, TC. But if TC aliased {@link #tcServerCode} is used for TC. */
+    public final String serverCode;
+
+    /** Teamcity connection server (service) code. Same with {@link #serverCode} */
+    public final String tcServerCode;
 
     /** Branch name in teamcity identification. */
     public final String branchName;
@@ -117,8 +124,15 @@ public class ChainAtServerCurrentStatus {
     /** Total blockers count. */
     public int totalBlockers;
 
-    public ChainAtServerCurrentStatus(String srvId, String branchTc) {
-        this.serverId = srvId;
+    /**
+     * @param srvCode Server code.
+     * @param tcSvcCode Tc service code.
+     * @param branchTc Branch tc.
+     */
+    public ChainAtServerCurrentStatus(String srvCode, String tcSvcCode, String branchTc) {
+        this.serverCode = srvCode;
+        this.tcServerCode = tcSvcCode;
+        this.serverId = tcSvcCode;
         this.branchName = branchTc;
     }
 
@@ -275,6 +289,8 @@ public class ChainAtServerCurrentStatus {
         return buildNotFound == status.buildNotFound &&
             Objects.equals(chainName, status.chainName) &&
             Objects.equals(serverId, status.serverId) &&
+            Objects.equals(serverCode, status.serverCode) &&
+            Objects.equals(tcServerCode, status.tcServerCode) &&
             Objects.equals(branchName, status.branchName) &&
             Objects.equals(webToHist, status.webToHist) &&
             Objects.equals(webToBuild, status.webToBuild) &&
@@ -299,10 +315,11 @@ public class ChainAtServerCurrentStatus {
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(chainName, serverId, branchName, webToHist, webToBuild, ticketFullName, webToTicket, prNum,
-            webToPr, suites, failedTests, failedToFinish, durationPrintable, durationNetTimePrintable,
-            sourceUpdateDurationPrintable, artifcactPublishingDurationPrintable, dependeciesResolvingDurationPrintable,
-            testsDurationPrintable, lostInTimeouts, topLongRunning, logConsumers, buildNotFound, baseBranchForTc);
+        return Objects.hash(chainName, serverId, serverCode, tcServerCode, branchName, webToHist, webToBuild,
+            ticketFullName, webToTicket, prNum, webToPr, suites, failedTests, failedToFinish, durationPrintable,
+            durationNetTimePrintable,  sourceUpdateDurationPrintable, artifcactPublishingDurationPrintable,
+            dependeciesResolvingDurationPrintable,  testsDurationPrintable, lostInTimeouts, topLongRunning,
+            logConsumers, buildNotFound, baseBranchForTc);
     }
 
     public void setBuildNotFound(boolean buildNotFound) {

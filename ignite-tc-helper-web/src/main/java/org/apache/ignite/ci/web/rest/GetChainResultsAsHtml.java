@@ -64,7 +64,7 @@ public class GetChainResultsAsHtml {
     private HttpServletRequest req;
     
     //test here http://localhost:8080/rest/chainResults/html?serverId=public&buildId=1086222
-    public void showChainOnServersResults(StringBuilder res, Integer buildId, String srvId) {
+    public void showChainOnServersResults(StringBuilder res, Integer buildId, String srvCode) {
         //todo solve report auth problem
         final Injector injector = CtxListener.getInjector(ctx);
         final BuildChainProcessor buildChainProcessor = injector.getInstance(BuildChainProcessor.class);
@@ -72,7 +72,7 @@ public class GetChainResultsAsHtml {
         String failRateBranch = ITeamcity.DEFAULT;
 
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
-        ITeamcityIgnited tcIgn = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvId, creds);
+        ITeamcityIgnited tcIgn = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvCode, creds);
 
         final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
                 tcIgn,
@@ -83,7 +83,7 @@ public class GetChainResultsAsHtml {
             failRateBranch,
             SyncMode.RELOAD_QUEUED);
 
-        ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(tcIgn.serverCode(), ctx.branchName());
+        ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(srvCode, tcIgn.serverCode(), ctx.branchName());
 
         ctx.getRunningUpdates().forEach(FutureUtil::getResultSilent);
 

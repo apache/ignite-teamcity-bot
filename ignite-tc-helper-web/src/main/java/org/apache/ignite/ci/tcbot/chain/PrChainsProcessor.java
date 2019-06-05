@@ -22,29 +22,28 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-
-import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
-import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.tcignited.SyncMode;
-import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.history.RunHistSync;
+import org.apache.ignite.tcservice.ITeamcity;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -128,8 +127,8 @@ public class PrChainsProcessor {
 
         String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
-                tcIgnited,
+        FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+            tcIgnited,
             hist,
             rebuild,
             logs,
@@ -137,7 +136,7 @@ public class PrChainsProcessor {
             baseBranch,
             mode);
 
-        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(tcIgnited.serverCode(), branchForTc);
+        ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvCode, tcIgnited.serverCode(), branchForTc);
 
         chainStatus.baseBranchForTc = baseBranch;
 

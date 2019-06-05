@@ -108,7 +108,7 @@ function showChainCurrentStatusData(chain, settings) {
     res += "<table style='width: 100%;' border='0px'>";
     res += "<tr bgcolor='#F5F5FF'><td colspan='3' width='75%'>";
     res += "<table style='width: 40%'>";
-    res += "<tr><td><b> Server: </b></td><td>[" + chain.serverId + "]</td></tr>";
+    res += "<tr><td><b> Server: </b></td><td>[" + chain.serverCode +"] TC: ["+  chain.tcServerCode + "]</td></tr>";
 
     if (isDefinedAndFilled(chain.prNum)) {
         res += "<tr><td><b> PR: </b></td><td>";
@@ -178,15 +178,15 @@ function showChainCurrentStatusData(chain, settings) {
         cntFailed++;
     }
 
-    if (suitesFailedList.length !== 0 && isDefinedAndFilled(chain.serverId) && isDefinedAndFilled(chain.branchName)) {
+    if (suitesFailedList.length !== 0 && isDefinedAndFilled(chain.tcServerCode) && isDefinedAndFilled(chain.branchName)) {
         mInfo += "Trigger failed " + cntFailed + " builds";
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + chain.serverId + "\", \"" + parentSuitId + "\", " +
+        mInfo += " onClick='triggerBuilds(\"" + chain.tcServerCode + "\", \"" + parentSuitId + "\", " +
             "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", false, false, null, \"" + chain.prNum + "\")' ";
         mInfo += " title='trigger builds'>in queue</a> ";
 
         mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + chain.serverId + "\", \"" + parentSuitId + "\", " +
+        mInfo += " onClick='triggerBuilds(\"" + chain.tcServerCode + "\", \"" + parentSuitId + "\", " +
             "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", true, false, null, \"" + chain.prNum + "\")' ";
         mInfo += " title='trigger builds'>on top</a><br>";
     }
@@ -233,8 +233,9 @@ function showChainCurrentStatusData(chain, settings) {
     //     res += "<button onclick='notifyGit()'>Update PR status</button>";
     // }
 
-    if (settings.isJiraAvailable()) {
-        res += "<button onclick='commentJira(\"" + chain.serverId + "\", \"" + chain.branchName + "\", \""
+    if (settings.isJiraAvailable() && isDefinedAndFilled(chain.serverCode)) {
+        let serverCode = chain.serverCode; //chain.tcServerCode can represent reference to a service generated using alias.
+        res += "<button onclick='commentJira(\"" + serverCode + "\", \"" + chain.branchName + "\", \""
             + parentSuitId + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
 
         var blockersList = "";
@@ -252,11 +253,11 @@ function showChainCurrentStatusData(chain, settings) {
             }
         }
 
-        res += "<button onclick='triggerBuilds(\"" + chain.serverId + "\", \"" + parentSuitId + "\", \"" +
+        res += "<button onclick='triggerBuilds(\"" + chain.tcServerCode + "\", \"" + parentSuitId + "\", \"" +
             blockersList + "\", \"" + chain.branchName + "\", false, false, null,  \"" + + chain.prNum + "\")'> " +
             "Re-run possible blockers</button><br>";
 
-        res += "<button onclick='triggerBuilds(\"" + chain.serverId + "\", \"" + parentSuitId + "\", \"" +
+        res += "<button onclick='triggerBuilds(\"" + chain.tcServerCode + "\", \"" + parentSuitId + "\", \"" +
             blockersList + "\", \"" + chain.branchName + "\", false, true, null, \"" + + chain.prNum +"\")'> " +
             "Re-run possible blockers & Comment JIRA</button><br>";
     }
@@ -364,7 +365,7 @@ function filterPossibleBlocker(suite) {
     return null;
 }
 
-function triggerBuilds(serverId, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum) {
+function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum) {
     var queueAtTop = isDefinedAndFilled(top) && top;
     var observeJira = isDefinedAndFilled(observe) && observe;
     var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
@@ -392,7 +393,7 @@ function triggerBuilds(serverId, parentSuiteId, suiteIdList, branchName, top, ob
     var parentSuite = isDefinedAndFilled(parentSuiteId) ? parentSuiteId : suites[0];
     var fewSuites = suites.length > 1;
 
-    var message = "Trigger build" + (fewSuites ? "s" : "") + " at <b>server:</b> " + serverId + "<br>" +
+    var message = "Trigger build" + (fewSuites ? "s" : "") + " at <b>TC server:</b> " + tcServerCode + "<br>" +
     "<b>Branch:</b> " + branchName + "<br><b>Top:</b> " + top + "<br>" +
     "<b>Suite ID" + (fewSuites ? "s" : "") + ":</b> ";
 
@@ -421,7 +422,7 @@ function triggerBuilds(serverId, parentSuiteId, suiteIdList, branchName, top, ob
         $.ajax({
             url: 'rest/build/trigger',
             data: {
-                "serverId": serverId,
+                "serverId": tcServerCode,
                 "branchName": branchName,
                 "parentSuiteId" : parentSuite,
                 "suiteIdList": suiteIdList,
@@ -470,7 +471,7 @@ function branchForTc(pr) {
     return pr;
 }
 
-function commentJira(serverId, branchName, parentSuiteId, ticketId) {
+function commentJira(serverCode, branchName, parentSuiteId, ticketId) {
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
     ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? ticketId : null;
@@ -497,7 +498,7 @@ function commentJira(serverId, branchName, parentSuiteId, ticketId) {
     $.ajax({
         url: 'rest/build/commentJira',
         data: {
-            "serverId": serverId,
+            "serverId": serverCode, //general Servers code
             "suiteId": parentSuiteId,
             "branchName": branchName,
             "ticketId": ticketId
@@ -514,7 +515,7 @@ function commentJira(serverId, branchName, parentSuiteId, ticketId) {
 
                         ticketId = $("#enterTicketId").val();
 
-                        commentJira(serverId, branchName, parentSuiteId, ticketId)
+                        commentJira(serverCode, branchName, parentSuiteId, ticketId)
                     },
                     "Cancel": function () {
                         $(this).dialog("close");
@@ -531,7 +532,7 @@ function commentJira(serverId, branchName, parentSuiteId, ticketId) {
 
             var dialog = $("#triggerDialog");
 
-            dialog.html("Trigger builds at server: " + serverId + "<br>" +
+            dialog.html("Trigger builds at server: " + serverCode + "<br>" +
                 " Suite: " + parentSuiteId + "<br>Branch:" + branchName +
                 "<br><br> Result: " + result.result +
                 (needTicketId ? ("<br><br>Enter JIRA ticket number: <input type='text' id='enterTicketId'>") : ""));
