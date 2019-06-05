@@ -21,9 +21,9 @@ import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 
 /**
- *
+ * General update information for JS data updating requests. UI model, so it contains public fields.
  */
-@SuppressWarnings("WeakerAccess") public class UpdateInfo {
+@SuppressWarnings({"WeakerAccess", "PublicField"}) public class UpdateInfo {
     /** TeamCity auth token availability flag. */
     public static final int TEAMCITY_FLAG = 1;
 

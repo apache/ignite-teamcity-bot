@@ -93,7 +93,7 @@ public class RunHistCompactedDao {
         buildStartTime = ignite.getOrCreateCache(CacheConfigs.getCacheV2Config(BUILD_START_TIME_CACHE_NAME));
     }
 
-    @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
+    @GuavaCached(maximumSize = 50000, expireAfterWriteSecs = 120, softValues = true)
     public IRunHistory getTestRunHist(int srvIdMaskHigh, String name, @Nullable String branch) {
         RunHistKey key = getKey(srvIdMaskHigh, name, branch);
         if (key == null)
@@ -180,7 +180,7 @@ public class RunHistCompactedDao {
      * @param suiteId Suite id.
      * @param branch Branch.
      */
-    @GuavaCached(maximumSize = 200, expireAfterAccessSecs = 30, softValues = true)
+    @GuavaCached(maximumSize = 200, expireAfterWriteSecs = 120, softValues = true)
     public IRunHistory getSuiteRunHist(int srvId, String suiteId, @Nullable String branch) {
         RunHistKey key = getKey(srvId, suiteId, branch);
         if (key == null)

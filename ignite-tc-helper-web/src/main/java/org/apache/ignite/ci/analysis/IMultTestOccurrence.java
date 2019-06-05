@@ -33,6 +33,4 @@ public interface IMultTestOccurrence {
     public long getAvgDurationMs();
 
     Iterable<TestOccurrenceFull> getOccurrences();
-
-    String getPossibleBlockerComment(IRunHistory baseBranchStat);
 }

@@ -26,6 +26,7 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.analysis.IMultTestOccurrence;
+import org.apache.ignite.ci.analysis.TestCompactedMult;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
 import org.apache.ignite.tcignited.buildlog.LogMsgToWarn;
@@ -146,7 +147,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         final IRunHistory stat = tcIgn.getTestRunHist(name, normalizeBranch(baseBranchName));
 
-        blockerComment = failure.getPossibleBlockerComment(stat);
+        blockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
     }
 
     /**

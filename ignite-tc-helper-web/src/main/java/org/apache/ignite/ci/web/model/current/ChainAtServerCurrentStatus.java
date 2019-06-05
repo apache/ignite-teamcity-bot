@@ -33,11 +33,11 @@ import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
-import org.apache.ignite.tcservice.model.conf.BuildType;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcservice.model.conf.BuildType;
 
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchForLink;
@@ -88,7 +88,15 @@ public class ChainAtServerCurrentStatus {
     /** Suites involved in chain. */
     public List<SuiteCurrentStatus> suites = new ArrayList<>();
 
+    /** Count of failed tests not muted tests. In case several runs are used, overall by all runs. */
     public Integer failedTests;
+
+    /** Total (Not Muted/Not Ignored) tests in all suites. */
+    public Integer totalTests;
+
+    /** Tests which will be considered as a blocker. */
+    public Integer trustedTests;
+
     /** Count of suites with critical build problems found */
     public Integer failedToFinish;
 
@@ -194,6 +202,8 @@ public class ChainAtServerCurrentStatus {
         @Nullable String baseBranchTc, IStringCompactor compactor) {
         failedTests = 0;
         failedToFinish = 0;
+        totalTests = 0;
+        trustedTests = 0;
         //todo mode with not failed
         Stream<MultBuildRunCtx> stream = ctx.failedChildSuites();
 
@@ -203,13 +213,26 @@ public class ChainAtServerCurrentStatus {
 
                 suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true);
 
-                failedTests += suiteCurStatus.failedTests;
+                failedTests += suiteCurStatus.failedTests != null ? suiteCurStatus.failedTests : 0;
+                totalTests += suiteCurStatus.totalTests != null ? suiteCurStatus.totalTests : 0;
+                trustedTests += suiteCurStatus.trustedTests != null ? suiteCurStatus.trustedTests : 0;
                 if (suite.hasAnyBuildProblemExceptTestOrSnapshot() || suite.onlyCancelledBuilds())
                     failedToFinish++;
 
                 suites.add(suiteCurStatus);
             }
         );
+
+        //todo odd convertion
+        ctx.suites().filter(s->!s.isFailed()).forEach(suite -> {
+
+            final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
+
+            suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true);
+
+            failedTests += suiteCurStatus.failedTests != null ? suiteCurStatus.failedTests : 0;
+            totalTests += suiteCurStatus.totalTests != null ? suiteCurStatus.totalTests : 0;
+        });
 
         totalBlockers = suites.stream().mapToInt(SuiteCurrentStatus::totalBlockers).sum();
         durationPrintable = ctx.getDurationPrintable();

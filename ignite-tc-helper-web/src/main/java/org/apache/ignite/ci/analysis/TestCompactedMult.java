@@ -26,6 +26,9 @@ import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 
+/**
+ * Test occurrence merged from several runs.
+ */
 public class TestCompactedMult implements IMultTestOccurrence {
     private final List<TestCompacted> occurrences = new ArrayList<>();
     private IStringCompactor compactor;
@@ -78,7 +81,11 @@ public class TestCompactedMult implements IMultTestOccurrence {
             .collect(Collectors.toList());
     }
 
-    @Override public String getPossibleBlockerComment(IRunHistory baseBranchStat) {
+     /**
+      * @param baseBranchStat Base branch statistics.
+      * @return non null comment in case test failure is a blocker for merge into base branch.
+      */
+     public static String getPossibleBlockerComment(IRunHistory baseBranchStat) {
         if (baseBranchStat == null)
             return "History for base branch is absent.";
 

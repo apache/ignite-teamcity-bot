@@ -42,21 +42,6 @@ public interface ISuiteResults {
     /** */
     public boolean hasBuildMessageProblem();
 
-    default boolean hasCriticalProblem() {
-        return hasJvmCrashProblem()
-            || hasTimeoutProblem()
-            || hasCompilationProblem()
-            || hasMetricProblem();
-    }
-
-    default boolean hasSuiteIncompleteFailure() {
-        return hasJvmCrashProblem()
-            || hasTimeoutProblem()
-            || hasOomeProblem()
-            || hasExitCodeProblem()
-            || hasCompilationProblem()
-            || hasMetricProblem();
-    }
 
     public String suiteId();
 }

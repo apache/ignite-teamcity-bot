@@ -23,6 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.ignite.ci.analysis.FullChainRunCtx;
+import org.apache.ignite.ci.analysis.IMultTestOccurrence;
+import org.apache.ignite.ci.analysis.TestCompactedMult;
 import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
 import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
@@ -185,8 +187,8 @@ public class PrChainsProcessor {
 
         String baseBranch = ITeamcity.DEFAULT;
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
-                tcIgnited,
+        FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+            tcIgnited,
             hist,
             LatestRebuildMode.LATEST,
             ProcessLogsMode.SUITE_NOT_COMPLETE,
@@ -217,10 +219,10 @@ public class PrChainsProcessor {
 
                 String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 
-                List<TestFailure> failures =  ctx.getFailedTests().stream().map(occurrence -> {
+                List<TestFailure> failures = ctx.getFailedTests().stream().map(occurrence -> {
                     IRunHistory stat = tcIgnited.getTestRunHist(occurrence.getName(), normalizedBaseBranch);
 
-                    String testBlockerComment = occurrence.getPossibleBlockerComment(stat);
+                    String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
 
                     if (!Strings.isNullOrEmpty(testBlockerComment)) {
                         final TestFailure failure = new TestFailure();

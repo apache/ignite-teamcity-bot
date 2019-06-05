@@ -361,13 +361,14 @@ public class BuildChainProcessor {
     protected void analyzeTests(MultBuildRunCtx outCtx, ITeamcityIgnited teamcity,
                                 ProcessLogsMode procLog) {
         for (SingleBuildRunCtx ctx : outCtx.getBuilds()) {
-            if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
+            boolean incompleteFailure = ctx.hasSuiteIncompleteFailure();
+            if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && incompleteFailure)
                     || procLog == ProcessLogsMode.ALL)
                 ctx.setLogCheckResFut(
                         CompletableFuture.supplyAsync(
                                 () -> buildLogProcessor.analyzeBuildLog(teamcity,
                                         ctx.buildId(),
-                                        ctx.hasSuiteIncompleteFailure()),
+                                    incompleteFailure),
                                 tcUpdatePool.getService()));
         }
     }

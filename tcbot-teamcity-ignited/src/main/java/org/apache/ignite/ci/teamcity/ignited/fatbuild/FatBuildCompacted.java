@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.TreeMap;
@@ -30,7 +31,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
+import org.apache.ignite.ci.teamcity.ignited.change.RevisionCompacted;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
+import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcservice.ITeamcity;
@@ -49,15 +57,6 @@ import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcservice.model.vcs.Revision;
 import org.apache.ignite.tcservice.model.vcs.Revisions;
 import org.apache.ignite.tcservice.model.vcs.VcsRootInstance;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
-import org.apache.ignite.ci.teamcity.ignited.change.RevisionCompacted;
-import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
-import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * Composed data from {@link Build} and other classes, compressed for storage.
@@ -686,5 +685,30 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
 
     @Nullable public ParametersCompacted parameters() {
         return buildParameters;
+    }
+
+    public boolean hasBuildProblemType(int id) {
+        if (problems == null)
+            return false;
+
+        for (ProblemCompacted next : problems) {
+            if (next.type() == id)
+                return true;
+        }
+
+        return false;
+    }
+
+    public int totalNotMutedTests() {
+        if(tests == null)
+            return 0;
+
+        int cnt = 0;
+        for (TestCompacted next : tests) {
+            if (!next.isMutedTest() && !next.isIgnoredTest())
+                cnt++;
+        }
+
+        return cnt;
     }
 }
