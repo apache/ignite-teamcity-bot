@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity.ignited.fatbuild;
+package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.Preconditions;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,18 +30,29 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.cache.Cache;
+import javax.cache.processor.EntryProcessorException;
+import javax.cache.processor.EntryProcessorResult;
+import javax.cache.processor.MutableEntry;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.CacheEntryProcessor;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
+import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcservice.model.changes.ChangesList;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrencesFull;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -185,5 +197,71 @@ public class FatBuildDao {
         return StreamSupport.stream(buildsCache.spliterator(), false)
             .filter(entry -> entry.getValue().isOutdatedEntityVersion())
             .filter(entry -> isKeyForServer(entry.getKey(), srvId));
+    }
+
+    public IRunHistory getTestRunHist(int srvIdMaskHigh, Set<Integer> buildIds, int testName, int suiteName, int branchName) {
+        Set<Long> cacheKeys = buildIds.stream().map(id -> buildIdToCacheKey(srvIdMaskHigh, id)).collect(Collectors.toSet());
+
+        int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
+
+        CacheEntryProcessor<Long, FatBuildCompacted, Map<Integer, Invocation>> processor = new HistoryCollectProcessor(successStatusStrId);
+
+        Map<Long, EntryProcessorResult<Map<Integer, Invocation>>> map = buildsCache.invokeAll(cacheKeys, processor);
+
+        Map<Integer, RunHistCompacted> fullHist = new HashMap<>();
+
+        map.values().forEach(
+            res-> {
+                if(res==null)
+                    return;
+
+                Map<Integer, Invocation> invocationMap = res.get();
+
+                if(invocationMap==null)
+                    return;
+
+                invocationMap.forEach((k,v)->{
+                    fullHist.computeIfAbsent(k, k_ -> {
+                        RunHistCompacted inv = new RunHistCompacted();
+
+                        return inv;
+                    }).addInvocation(v);
+                });
+
+            }
+        );
+
+        RunHistCompacted result = fullHist.get(testName);
+
+        System.err.println("Build " +  " testName: " + testName + " results in scope " + map.size());
+
+        return result;
+    }
+
+    private static class HistoryCollectProcessor implements CacheEntryProcessor<Long, FatBuildCompacted, Map<Integer, Invocation>> {
+        private final int successStatusStrId;
+
+        public HistoryCollectProcessor(int successStatusStrId) {
+            this.successStatusStrId = successStatusStrId;
+        }
+
+        @Override public Map<Integer, Invocation> process(MutableEntry<Long, FatBuildCompacted> entry,
+            Object... arguments) throws EntryProcessorException {
+            if (entry.getValue() == null)
+                return null;
+
+            Map<Integer, Invocation> hist = new HashMap<>();
+            FatBuildCompacted fatBuildCompacted = entry.getValue();
+            Stream<TestCompacted> tests = fatBuildCompacted.getAllTests();
+            tests.forEach(
+                testCompacted -> {
+                    Invocation invocation = testCompacted.toInvocation(fatBuildCompacted, (k, v) -> false, successStatusStrId);
+
+                    hist.put(testCompacted.testName(), invocation);
+                }
+            );
+
+            return hist;
+        }
     }
 }

@@ -20,7 +20,7 @@ import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
+import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
 import org.apache.ignite.tcservice.ITeamcityConn;
 
 import javax.annotation.Nonnull;

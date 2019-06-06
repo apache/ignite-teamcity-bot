@@ -31,6 +31,7 @@ import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.jetbrains.annotations.NotNull;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
@@ -132,6 +133,7 @@ public class TeamcityIgnitedMock {
         Map<Integer, FatBuildCompacted> builds, int srvId) {
         Map<RunHistKey, RunHistCompacted> histCache = new ConcurrentHashMap<>();
 
+        int successStatusStrId = c.getStringId(TestOccurrence.STATUS_SUCCESS);
         for (FatBuildCompacted build : builds.values()) {
             if (!build.isFinished(c))
                 continue;
@@ -141,7 +143,7 @@ public class TeamcityIgnitedMock {
 
                 final RunHistCompacted hist = histCache.computeIfAbsent(histKey, RunHistCompacted::new);
 
-                Invocation inv = testCompacted.toInvocation(c, build, (k, v) -> true);
+                Invocation inv = testCompacted.toInvocation(build, (k, v) -> true, successStatusStrId);
 
                 hist.addInvocation(inv);
             });

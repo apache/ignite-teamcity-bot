@@ -610,12 +610,12 @@ public class MultBuildRunCtx implements ISuiteResults {
             saveToMap(res, singleBuildRunCtx.getAllTests()
                 .filter(t -> !t.isIgnoredTest() && !t.isMutedTest()));
         });
+        Integer branchName = compactor.getStringIdIfPresent(normalizedBaseBranch);
+        Integer suiteName = compactor.getStringIdIfPresent( buildTypeId());
 
         //todo can cache fail rate in mult occur
-        res.keySet().forEach((k) -> {
-            String testName = compactor.getStringFromId(k);
-            IRunHistory stat = tcIgnited.getTestRunHist(testName, normalizedBaseBranch);
-
+        res.keySet().forEach((testNameId) -> {
+            IRunHistory stat = tcIgnited.getTestRunHist(testNameId, suiteName, branchName);
             String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
             boolean b = testBlockerComment != null;
             if (b) // this test will be considered as blocker if will fail

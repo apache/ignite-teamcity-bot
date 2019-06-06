@@ -26,7 +26,7 @@ import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcservice.model.vcs.Revision;
 import org.apache.ignite.tcservice.model.vcs.VcsRootInstance;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
+import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

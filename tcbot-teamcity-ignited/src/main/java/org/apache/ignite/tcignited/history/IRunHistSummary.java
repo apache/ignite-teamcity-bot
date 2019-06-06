@@ -17,31 +17,16 @@
 package org.apache.ignite.tcignited.history;
 
 /**
- * Abstract runs statistics,
+ *
  */
-public interface IRunStat {
-    public int getRunsCount();
-    public int getFailuresCount();
+public interface IRunHistSummary {
+    /**
+     *
+     */
+    public float getFailRate();
 
     /**
-     * Recent runs fail rate.
-     * @return fail rate as float: 0.0...1.0
+     *
      */
-    public default float getFailRate() {
-        int runs = getRunsCount();
-
-        if (runs == 0)
-            return 0.0f;
-
-        return 1.0f * getFailuresCount() / runs;
-    }
-
-    public default String getFailPercentPrintable() {
-        return getPercentPrintable(getFailRate() * 100.0f);
-    }
-
-
-    public static String getPercentPrintable(float percent) {
-        return String.format("%.1f", percent).replace(".", ",");
-    }
+    public boolean isFlaky();
 }

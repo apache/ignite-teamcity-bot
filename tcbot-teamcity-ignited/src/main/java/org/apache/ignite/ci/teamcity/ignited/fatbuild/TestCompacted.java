@@ -406,15 +406,14 @@ public class TestCompacted {
     }
 
     /**
-     * @param compactor
      * @param build
      * @param paramsFilter parameters filter to find out parameters to be saved in RunHistory (for future filtering).
+     * @param successStatusStrId
      * @return
      */
-    public Invocation toInvocation(IStringCompactor compactor,
-        FatBuildCompacted build,
-        BiPredicate<Integer, Integer> paramsFilter) {
-        final boolean failedTest = isFailedTest(compactor);
+    public Invocation toInvocation(FatBuildCompacted build,
+        BiPredicate<Integer, Integer> paramsFilter, int successStatusStrId) {
+        final boolean failedTest = successStatusStrId != status;
 
         final int failCode = failedTest
             ? (isIgnoredTest() || isMutedTest())

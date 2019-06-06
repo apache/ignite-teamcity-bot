@@ -230,8 +230,8 @@ public class ChainAtServerCurrentStatus {
 
             suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true);
 
-            failedTests += suiteCurStatus.failedTests != null ? suiteCurStatus.failedTests : 0;
             totalTests += suiteCurStatus.totalTests != null ? suiteCurStatus.totalTests : 0;
+            trustedTests += suiteCurStatus.trustedTests != null ? suiteCurStatus.trustedTests : 0;
         });
 
         totalBlockers = suites.stream().mapToInt(SuiteCurrentStatus::totalBlockers).sum();

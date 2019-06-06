@@ -35,11 +35,11 @@ import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
-import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 
 import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 
@@ -124,9 +124,14 @@ public class RunHistCompactedDao {
 
     @AutoProfiling
     public boolean buildWasProcessed(int srvId, int buildId) {
-        return buildStartTime.containsKey(buildIdToCacheKey(srvId, buildId));
+        return getBuildStartTime(srvId, buildId) != null;
     }
 
+    /**
+     * @param srvId Server id.
+     * @param buildId Build id.
+     */
+    @AutoProfiling
     @Nullable public Long getBuildStartTime(int srvId, int buildId) {
         return buildStartTime.get(buildIdToCacheKey(srvId, buildId));
     }

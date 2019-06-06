@@ -22,12 +22,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-
+import org.apache.ignite.tcbot.persistence.IVersionedEntity;
+import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.history.ChangesState;
 import org.apache.ignite.tcignited.history.IEventTemplate;
 import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcbot.persistence.IVersionedEntity;
-import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.history.RunStatus;
 
 /**
@@ -37,6 +36,7 @@ import org.apache.ignite.tcignited.history.RunStatus;
 public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     /** Latest version. */
     private static final int LATEST_VERSION = 1;
+    public static final int FLAKYNESS_STATUS_CHANGE_BORDER = 1;
 
     /** Entity fields version. */
     @SuppressWarnings("FieldCanBeLocal")
@@ -90,6 +90,16 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
 
     /** {@inheritDoc} */
     @Override public String getFlakyComments() {
+        int statusChange = getStatusChangesWithoutCodeModification();
+
+        if (statusChange < FLAKYNESS_STATUS_CHANGE_BORDER)
+            return null;
+
+        return "Test seems to be flaky: " +
+            "changed its status [" + statusChange + "/" + data.invocations().count() + "] without code modifications";
+    }
+
+    public int getStatusChangesWithoutCodeModification() {
         int statusChange = 0;
 
         Invocation prev = null;
@@ -105,12 +115,12 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
             }
             prev = cur;
         }
+        return statusChange;
+    }
 
-        if (statusChange < 1)
-            return null;
-
-        return "Test seems to be flaky: " +
-            "changed its status [" + statusChange + "/" + latestRuns.size() + "] without code modifications";
+    /** {@inheritDoc} */
+    @Override public boolean isFlaky() {
+        return getStatusChangesWithoutCodeModification() >= FLAKYNESS_STATUS_CHANGE_BORDER;
     }
 
     /** {@inheritDoc} */
