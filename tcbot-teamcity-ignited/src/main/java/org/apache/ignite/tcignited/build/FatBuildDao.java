@@ -78,6 +78,10 @@ public class FatBuildDao {
     /** Builds cache. */
     private IgniteCache<Long, FatBuildCompacted> buildsCache;
 
+
+    /** Suite history cache. */
+    private IgniteCache<RunHistKey, SuiteHistory> suiteHistory;
+
     /** Compactor. */
     @Inject private IStringCompactor compactor;
 
@@ -274,7 +278,10 @@ public class FatBuildDao {
             }
         );
 
-        System.err.println("Suite history: tests in scope " + hist.testsHistory.size() + " for " +buildIds.size() + " builds checked");
+        System.err.println("Suite history: tests in scope "
+                + hist.testsHistory.size()
+                + " for " +buildIds.size() + " builds checked"
+                + " size " + hist.size(igniteProvider.get()));
 
         return hist;
     }

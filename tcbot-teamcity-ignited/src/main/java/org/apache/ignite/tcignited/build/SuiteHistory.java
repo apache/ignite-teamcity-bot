@@ -19,9 +19,17 @@ package org.apache.ignite.tcignited.build;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
+import org.apache.ignite.internal.binary.BinaryObjectExImpl;
 
 public class SuiteHistory {
     /** Tests history: Test name ID->RunHistory */
     Map<Integer, RunHistCompacted> testsHistory = new HashMap<>();
+
+    public int size(Ignite ignite) {
+        BinaryObjectExImpl binary = ignite.binary().toBinary(this);
+        return binary.length();
+    }
 }

@@ -613,6 +613,8 @@ public class MultBuildRunCtx implements ISuiteResults {
         Integer branchName = compactor.getStringIdIfPresent(normalizedBaseBranch);
         Integer suiteName = compactor.getStringIdIfPresent( buildTypeId());
 
+        // res.clear(); //todo enable feature back
+
         //todo can cache fail rate in mult occur
         res.keySet().forEach((testNameId) -> {
             IRunHistory stat = tcIgnited.getTestRunHist(testNameId, suiteName, branchName);
