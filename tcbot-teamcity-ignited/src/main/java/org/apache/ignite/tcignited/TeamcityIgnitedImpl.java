@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -438,22 +439,26 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (suiteName == null || branchName == null)
             return null;
 
-        String btId = compactor.getStringFromId(suiteName);
-        String branchId = compactor.getStringFromId(branchName);
-        List<BuildRefCompacted> compacted = getAllBuildsCompacted(btId, branchId);
-        long curTs = System.currentTimeMillis();
-        Set<Integer> buildIds = compacted.stream().filter(
-            bRef -> {
-                Long startTime = getBuildStartTime(bRef.id());
-                if (startTime == null)
-                    return false;
-                return Duration.ofMillis(startTime - curTs).toDays() < InvocationData.MAX_DAYS;
-            }
-        ).map(BuildRefCompacted::id).collect(Collectors.toSet());
+        Supplier<Set<Integer>> supplier = () -> {
+            String btId = compactor.getStringFromId(suiteName);
+            String branchId = compactor.getStringFromId(branchName);
+            List<BuildRefCompacted> compacted = getAllBuildsCompacted(btId, branchId);
+            long curTs = System.currentTimeMillis();
+            Set<Integer> buildIds = compacted.stream().filter(
+                bRef -> {
+                    Long startTime = getBuildStartTime(bRef.id());
+                    if (startTime == null)
+                        return false;
+                    return Duration.ofMillis(startTime - curTs).toDays() < InvocationData.MAX_DAYS;
+                }
+            ).map(BuildRefCompacted::id).collect(Collectors.toSet());
 
-        System.err.println("Build " + btId + " branch " + branchId + " builds in scope " + buildIds.size());
+            System.err.println("Build " + btId + " branch " + branchId + " builds in scope " + buildIds.size());
 
-        return fatBuildDao.getTestRunHist(srvIdMaskHigh, buildIds, testName, suiteName, branchName);
+            return buildIds;
+        };
+
+        return fatBuildDao.getTestRunHist(srvIdMaskHigh, supplier, testName, suiteName, branchName);
     }
 
     /** {@inheritDoc} */

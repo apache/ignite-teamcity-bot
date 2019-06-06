@@ -196,17 +196,17 @@ public class BuildRefDao {
                     buildRefsInMemCache.get(runHistKey, () -> {
                         List<BuildRefCompacted> branch = getBuildsForBranch(srvId, branchNameId);
 
-                        List<BuildRefCompacted> resultForBranch = branch.stream()
+                        List<BuildRefCompacted> resForBranch = branch.stream()
                             .filter(e -> e.buildTypeId() == buildTypeIdId)
                             .collect(Collectors.toList());
 
-                        if (!resultForBranch.isEmpty()) {
+                        if (!resForBranch.isEmpty()) {
                             System.err.println("Branch " + compactor.getStringFromId(branchNameId)
                                 + " Suite " + buildTypeId
-                                + " builds " + resultForBranch.size() + " ");
+                                + " builds " + resForBranch.size() + " ");
                         }
 
-                        return resultForBranch;
+                        return resForBranch;
                     });
 
                 res.addAll(compactedBuildsForBranch);

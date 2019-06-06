@@ -225,4 +225,11 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     @Override public int hashCode() {
         return Objects.hash(_ver, data);
     }
+
+    /**
+     * @param v Invocation.
+     */
+    public void innerAddInvocation(Invocation v) {
+        data.innerAdd(v);
+    }
 }
