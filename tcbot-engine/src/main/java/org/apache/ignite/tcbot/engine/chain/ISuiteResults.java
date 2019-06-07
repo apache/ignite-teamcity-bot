@@ -20,7 +20,7 @@ package org.apache.ignite.tcbot.engine.chain;
 /**
  * Results from one or several builds for specific build type.
  */
-public interface ISuiteResults {
+interface ISuiteResults {
     /** */
     public boolean hasCompilationProblem();
 

@@ -52,40 +52,6 @@ public class DbMigrations {
 
     private static final String BUILD_CONDITIONS_CACHE_NAME = "buildConditions";
 
-    //V1 caches, 1024 parts
-    @Deprecated
-    public static final String RUN_STAT_CACHE = "runStat";
-
-    @Deprecated
-    public static final String TEST_OCCURRENCE_FULL = "testOccurrenceFull";
-
-    @Deprecated
-    private static final String PROBLEMS = "problems";
-
-    @Deprecated
-    private static final String STAT = "stat";
-
-    @Deprecated
-    private static final String FINISHED_BUILDS = "finishedBuilds";
-
-    @Deprecated
-    public static final String FINISHED_BUILDS_INCLUDE_FAILED = "finishedBuildsIncludeFailed";
-
-    @Deprecated
-    public static final String ISSUES = "issues";
-
-    @Deprecated
-    private static final String BUILD_HIST_FINISHED = "buildHistFinished";
-
-    @Deprecated
-    private static final String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
-
-    @Deprecated
-    public static final String TEAMCITY_BUILD_CACHE_NAME_OLD = "teamcityBuild";
-
-    /** */
-    @Deprecated
-    public static final String COMPACT_VISAS_HISTORY_CACHE_NAME = "compactVisasHistoryCache";
     public static final String DONE_MIGRATION_PREFIX = "apache";
 
     interface Old {
@@ -123,6 +89,18 @@ public class DbMigrations {
 
         //V2 caches, 32 parts (V1 caches were 1024 parts)
         String LOG_CHECK_RESULT = "logCheckResult";
+        //V1 caches, 1024 parts
+        String RUN_STAT_CACHE = "runStat";
+        String TEST_OCCURRENCE_FULL = "testOccurrenceFull";
+        String PROBLEMS = "problems";
+        String STAT = "stat";
+        String FINISHED_BUILDS = "finishedBuilds";
+        String FINISHED_BUILDS_INCLUDE_FAILED = "finishedBuildsIncludeFailed";
+        String ISSUES = "issues";
+        String BUILD_HIST_FINISHED = "buildHistFinished";
+        String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
+        String TEAMCITY_BUILD_CACHE_NAME_OLD = "teamcityBuild";
+        String COMPACT_VISAS_HISTORY_CACHE_NAME = "compactVisasHistoryCache";
     }
 
     private final Ignite ignite;
@@ -141,7 +119,7 @@ public class DbMigrations {
 
         int sizeBefore = doneMigrations.size();
 
-        applyDestroyCacheMigration(COMPACT_VISAS_HISTORY_CACHE_NAME);
+        applyDestroyCacheMigration(Old.COMPACT_VISAS_HISTORY_CACHE_NAME);
 
         applyMigration("InitialFillLatestRunsV3", () -> {
         });
@@ -150,8 +128,8 @@ public class DbMigrations {
 
 
         Cache<IssueKey, Issue> issuesCache = IssuesStorage.botDetectedIssuesCache(ignite);
-        applyMigration(ISSUES + "-to-" + issuesCache.getName() + "V2", () -> {
-            String cacheName = ISSUES;
+        applyMigration(Old.ISSUES + "-to-" + issuesCache.getName() + "V2", () -> {
+            String cacheName = Old.ISSUES;
             IgniteCache<IssueKey, Issue> issuesOldCache = ignite.getOrCreateCache(cacheName);
 
             int size = issuesOldCache.size();
@@ -180,11 +158,11 @@ public class DbMigrations {
         });
 
         applyDestroyCacheMigration(BUILD_CONDITIONS_CACHE_NAME, BUILD_CONDITIONS_CACHE_NAME);
-        applyDestroyCacheMigration(TEAMCITY_BUILD_CACHE_NAME_OLD, TEAMCITY_BUILD_CACHE_NAME_OLD);
+        applyDestroyCacheMigration(Old.TEAMCITY_BUILD_CACHE_NAME_OLD, Old.TEAMCITY_BUILD_CACHE_NAME_OLD);
 
 
 
-        applyDestroyCacheMigration(COMPACT_VISAS_HISTORY_CACHE_NAME, COMPACT_VISAS_HISTORY_CACHE_NAME);
+        applyDestroyCacheMigration(Old.COMPACT_VISAS_HISTORY_CACHE_NAME, Old.COMPACT_VISAS_HISTORY_CACHE_NAME);
 
 
         applyDestroyCacheMigration(Old.SUITE_HIST_CACHE_NAME);
@@ -198,36 +176,36 @@ public class DbMigrations {
             if(!DONE_MIGRATION_PREFIX.equals(srvId))
                 applyDestroyIgnCacheMigration(DONE_MIGRATIONS, srvId);
 
-            applyMigration("Remove-" + RUN_STAT_CACHE, () -> {
-                IgniteCache<String, Build> oldBuilds = ignite.getOrCreateCache(ignCacheNme(RUN_STAT_CACHE, srvId));
+            applyMigration("Remove-" + Old.RUN_STAT_CACHE, () -> {
+                IgniteCache<String, Build> oldBuilds = ignite.getOrCreateCache(ignCacheNme(Old.RUN_STAT_CACHE, srvId));
 
                 oldBuilds.clear();
 
                 oldBuilds.destroy();
             });
 
-            applyDestroyIgnCacheMigration(TEST_OCCURRENCE_FULL, srvId);
+            applyDestroyIgnCacheMigration(Old.TEST_OCCURRENCE_FULL, srvId);
 
-            applyDestroyIgnCacheMigration(PROBLEMS, srvId);
+            applyDestroyIgnCacheMigration(Old.PROBLEMS, srvId);
 
-            applyDestroyIgnCacheMigration(FINISHED_BUILDS_INCLUDE_FAILED, srvId);
+            applyDestroyIgnCacheMigration(Old.FINISHED_BUILDS_INCLUDE_FAILED, srvId);
             applyDestroyIgnCacheMigration(RUNNING_BUILDS, srvId);
 
             applyDestroyIgnCacheMigration(BUILD_QUEUE, srvId);
 
-            applyDestroyIgnCacheMigration(FINISHED_BUILDS_INCLUDE_FAILED, srvId);
-            applyDestroyIgnCacheMigration(TEST_OCCURRENCE_FULL, srvId);
+            applyDestroyIgnCacheMigration(Old.FINISHED_BUILDS_INCLUDE_FAILED, srvId);
+            applyDestroyIgnCacheMigration(Old.TEST_OCCURRENCE_FULL, srvId);
 
             applyDestroyIgnCacheMigration(Old.TESTS, srvId);
-            applyDestroyIgnCacheMigration(STAT, srvId);
+            applyDestroyIgnCacheMigration(Old.STAT, srvId);
             applyDestroyIgnCacheMigration(BUILD_STATISTICS, srvId);
 
             applyDestroyIgnCacheMigration(Old.CHANGE_INFO_FULL, srvId);
             applyDestroyIgnCacheMigration(Old.CHANGES_LIST, srvId);
 
-            applyDestroyIgnCacheMigration(FINISHED_BUILDS, srvId);
-            applyDestroyIgnCacheMigration(BUILD_HIST_FINISHED, srvId);
-            applyDestroyIgnCacheMigration(BUILD_HIST_FINISHED_OR_FAILED, srvId);
+            applyDestroyIgnCacheMigration(Old.FINISHED_BUILDS, srvId);
+            applyDestroyIgnCacheMigration(Old.BUILD_HIST_FINISHED, srvId);
+            applyDestroyIgnCacheMigration(Old.BUILD_HIST_FINISHED_OR_FAILED, srvId);
             applyDestroyIgnCacheMigration(Old.BUILD_PROBLEMS, srvId);
             applyDestroyIgnCacheMigration(Old.TEST_FULL, srvId);
 

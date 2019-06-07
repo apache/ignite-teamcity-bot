@@ -111,13 +111,6 @@ public class HelperConfig {
         return Base64Util.encodeUtf8String(user + ":" + pwd);
     }
 
-    @Deprecated
-    public static String getMandatoryProperty(Properties props, String key, String cfgName) {
-        final String user = props.getProperty(key);
-        Preconditions.checkState(!isNullOrEmpty(user), key + " property should be filled in " + cfgName);
-        return user;
-    }
-
     public static BranchesTracked getTrackedBranches() {
         final File workDir = TcBotWorkDir.resolveWorkDir();
         final File file = new File(workDir, "branches.json");

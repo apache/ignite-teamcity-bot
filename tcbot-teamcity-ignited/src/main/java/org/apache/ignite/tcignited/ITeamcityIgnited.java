@@ -264,8 +264,5 @@ public interface ITeamcityIgnited {
         return null;
     }
 
-    CompletableFuture<File> downloadBuildLogZip(int buildId);
-
-
     @Nullable File downloadAndCacheBuildLog(int buildId);
 }
