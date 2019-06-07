@@ -150,12 +150,14 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
      * @param baseBranch Base branch.
      * @param compactor String Compactor.
      * @param includeTests Include tests - usually {@code true}, but it may be disabled for speeding up VISA collection.
+     * @param calcTrustedTests
      */
     public SuiteCurrentStatus initFromContext(ITeamcityIgnited tcIgnited,
         @Nonnull final MultBuildRunCtx suite,
         @Nullable final String baseBranch,
         @Nonnull IStringCompactor compactor,
-        boolean includeTests) {
+        boolean includeTests,
+        boolean calcTrustedTests) {
 
         name = suite.suiteName();
 
@@ -231,7 +233,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
             totalTests = suite.totalTests();
 
-            trustedTests = suite.trustedTests(tcIgnited, failRateNormalizedBranch);
+            if(calcTrustedTests)
+                trustedTests = suite.trustedTests(tcIgnited, failRateNormalizedBranch);
         }
 
         suite.getBuildsWithThreadDump().forEach(buildId -> {

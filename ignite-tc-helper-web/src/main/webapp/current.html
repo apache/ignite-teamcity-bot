@@ -37,6 +37,12 @@ function parmsForRest() {
     if (checkAllLogs != null) {
         curReqParms += "&checkAllLogs=" + checkAllLogs;
     }
+
+    var trustedTests = findGetParameter("trustedTests");
+    if (trustedTests != null) {
+        curReqParms += "&trustedTests=" + trustedTests;
+    }
+
     return curReqParms;
 }
 

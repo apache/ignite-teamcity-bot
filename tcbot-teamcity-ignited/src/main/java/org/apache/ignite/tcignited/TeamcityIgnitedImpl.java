@@ -449,7 +449,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
                     Long startTime = getBuildStartTime(bRef.id());
                     if (startTime == null)
                         return false;
-                    return Duration.ofMillis(startTime - curTs).toDays() < InvocationData.MAX_DAYS;
+
+                    return Duration.ofMillis(curTs - startTime).toDays() < InvocationData.MAX_DAYS;
                 }
             ).map(BuildRefCompacted::id).collect(Collectors.toSet());
 

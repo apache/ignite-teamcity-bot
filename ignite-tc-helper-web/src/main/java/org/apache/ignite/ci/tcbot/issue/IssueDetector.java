@@ -48,7 +48,6 @@ import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.tcbot.conf.INotificationChannel;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.tcignited.history.IRunHistory;
@@ -504,15 +503,16 @@ public class IssueDetector {
             false,
             buildsToQry,
             creds,
-            SyncMode.RELOAD_QUEUED);
+            SyncMode.RELOAD_QUEUED,
+            false);
 
         TestFailuresSummary failures =
             tbProc.getTrackedBranchTestFailures(brachName,
                 false,
                 1,
                 creds,
-                SyncMode.RELOAD_QUEUED
-            );
+                SyncMode.RELOAD_QUEUED,
+                false);
 
         String issRes = registerIssuesAndNotifyLater(failures, backgroundOpsCreds);
 

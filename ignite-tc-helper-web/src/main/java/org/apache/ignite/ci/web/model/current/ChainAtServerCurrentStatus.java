@@ -199,7 +199,9 @@ public class ChainAtServerCurrentStatus {
 
     public void initFromContext(ITeamcityIgnited tcIgnited,
         FullChainRunCtx ctx,
-        @Nullable String baseBranchTc, IStringCompactor compactor) {
+        @Nullable String baseBranchTc,
+        IStringCompactor compactor,
+        boolean calcTrustedTests) {
         failedTests = 0;
         failedToFinish = 0;
         totalTests = 0;
@@ -211,7 +213,7 @@ public class ChainAtServerCurrentStatus {
             suite -> {
                 final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
 
-                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true);
+                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
 
                 failedTests += suiteCurStatus.failedTests != null ? suiteCurStatus.failedTests : 0;
                 totalTests += suiteCurStatus.totalTests != null ? suiteCurStatus.totalTests : 0;
@@ -223,16 +225,18 @@ public class ChainAtServerCurrentStatus {
             }
         );
 
-        //todo odd convertion
-        ctx.suites().filter(s->!s.isFailed()).forEach(suite -> {
+        if(calcTrustedTests) {
+            //todo odd convertion
+            ctx.suites().filter(s -> !s.isFailed()).forEach(suite -> {
 
-            final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
+                final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
 
-            suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true);
+                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
 
-            totalTests += suiteCurStatus.totalTests != null ? suiteCurStatus.totalTests : 0;
-            trustedTests += suiteCurStatus.trustedTests != null ? suiteCurStatus.trustedTests : 0;
-        });
+                totalTests += suiteCurStatus.totalTests != null ? suiteCurStatus.totalTests : 0;
+                trustedTests += suiteCurStatus.trustedTests != null ? suiteCurStatus.trustedTests : 0;
+            });
+        }
 
         totalBlockers = suites.stream().mapToInt(SuiteCurrentStatus::totalBlockers).sum();
         durationPrintable = ctx.getDurationPrintable();
