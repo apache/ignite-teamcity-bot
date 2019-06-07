@@ -63,7 +63,8 @@ public class TrackedBranchChainsProcessor {
         @Nullable Boolean checkAllLogs,
         int buildResMergeCnt,
         ITcBotUserCreds creds,
-        SyncMode syncMode) {
+        SyncMode syncMode,
+        boolean calcTrustedTests) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -118,7 +119,7 @@ public class TrackedBranchChainsProcessor {
                 if (cnt > 0)
                     runningUpdates.addAndGet(cnt);
 
-                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor);
+                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests);
 
                 return chainStatus;
             })

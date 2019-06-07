@@ -30,15 +30,15 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
-import org.apache.ignite.tcservice.model.mute.MuteInfo;
-import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.model.current.UpdateInfo;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.apache.ignite.internal.util.typedef.F;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcservice.model.mute.MuteInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,45 +60,51 @@ public class GetTrackedBranchTestResults {
     @GET
     @Path("updates")
     public UpdateInfo getTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull,
-                                          @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        return new UpdateInfo().copyFrom(getTestFailsResultsNoSync(branchOrNull, checkAllLogs));
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
+        @QueryParam("trustedTests") @Nullable Boolean trustedTests) {
+        return new UpdateInfo().copyFrom(getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests));
     }
 
     @GET
     @Path("results/txt")
     @Produces(MediaType.TEXT_PLAIN)
     public String getTestFailsText(@Nullable @QueryParam("branch") String branchOrNull,
-                                   @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs).toString();
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
+        @QueryParam("trustedTests") @Nullable Boolean trustedTests) {
+        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests).toString();
     }
 
     @GET
     @Path("resultsNoSync")
     public TestFailuresSummary getTestFailsResultsNoSync(
-            @Nullable @QueryParam("branch") String branch,
-            @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        return latestBuildResults(branch, checkAllLogs, SyncMode.NONE);
+        @Nullable @QueryParam("branch") String branch,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
+        @QueryParam("trustedTests") @Nullable Boolean trustedTests) {
+        return latestBuildResults(branch, checkAllLogs, trustedTests, SyncMode.NONE);
     }
 
     @GET
     @Path("results")
     @NotNull
     public TestFailuresSummary getTestFailsNoCache(
-            @Nullable @QueryParam("branch") String branch,
-            @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
-        return latestBuildResults(branch, checkAllLogs, SyncMode.RELOAD_QUEUED);
+        @Nullable @QueryParam("branch") String branch,
+        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
+        @QueryParam("trustedTests") @Nullable Boolean trustedTests) {
+        return latestBuildResults(branch, checkAllLogs, trustedTests, SyncMode.RELOAD_QUEUED);
     }
 
     @NotNull public TestFailuresSummary latestBuildResults(
         @QueryParam("branch") @Nullable String branch,
         @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
+        @QueryParam("trustedTests") @Nullable Boolean trustedTests,
         SyncMode mode) {
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 
         return injector.getInstance(TrackedBranchChainsProcessor.class)
-            .getTrackedBranchTestFailures(branch, checkAllLogs, 1, creds, mode);
+            .getTrackedBranchTestFailures(branch, checkAllLogs, 1, creds, mode,
+                Boolean.TRUE.equals(trustedTests));
     }
 
     @GET
@@ -136,7 +142,7 @@ public class GetTrackedBranchTestResults {
         Injector injector = CtxListener.getInjector(ctx);
 
         return injector.getInstance(TrackedBranchChainsProcessor.class)
-            .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode);
+            .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode, false);
     }
 
     /**

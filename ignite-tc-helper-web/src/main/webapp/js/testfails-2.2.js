@@ -159,7 +159,7 @@ function showChainCurrentStatusData(chain, settings) {
     res += "Long running tests report";
     res += "</a>";
 
-    var mInfo = "";
+    var moreInfoTxt = "";
 
     var cntFailed = 0;
     var suitesFailedList = "";
@@ -179,19 +179,19 @@ function showChainCurrentStatusData(chain, settings) {
     }
 
     if (suitesFailedList.length !== 0 && isDefinedAndFilled(chain.tcServerCode) && isDefinedAndFilled(chain.branchName)) {
-        mInfo += "Trigger failed " + cntFailed + " builds";
-        mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + chain.tcServerCode + "\", \"" + parentSuitId + "\", " +
+        moreInfoTxt += "Trigger failed " + cntFailed + " builds";
+        moreInfoTxt += " <a href='javascript:void(0);' ";
+        moreInfoTxt += " onClick='triggerBuilds(\"" + chain.tcServerCode + "\", \"" + parentSuitId + "\", " +
             "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", false, false, null, \"" + chain.prNum + "\")' ";
-        mInfo += " title='trigger builds'>in queue</a> ";
+        moreInfoTxt += " title='trigger builds'>in queue</a> ";
 
-        mInfo += " <a href='javascript:void(0);' ";
-        mInfo += " onClick='triggerBuilds(\"" + chain.tcServerCode + "\", \"" + parentSuitId + "\", " +
+        moreInfoTxt += " <a href='javascript:void(0);' ";
+        moreInfoTxt += " onClick='triggerBuilds(\"" + chain.tcServerCode + "\", \"" + parentSuitId + "\", " +
             "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", true, false, null, \"" + chain.prNum + "\")' ";
-        mInfo += " title='trigger builds'>on top</a><br>";
+        moreInfoTxt += " title='trigger builds'>on top</a><br>";
     }
 
-    mInfo += "Duration: " + chain.durationPrintable + " " +
+    moreInfoTxt += "Duration: " + chain.durationPrintable + " " +
         "(Net Time: " + chain.durationNetTimePrintable + "," +
         " Tests: " + chain.testsDurationPrintable + "," +
         " Src. Update: " + chain.sourceUpdateDurationPrintable + "," +
@@ -199,31 +199,39 @@ function showChainCurrentStatusData(chain, settings) {
         " Dependecies Resolving: " + chain.dependeciesResolvingDurationPrintable + "," +
         " Timeouts: " + chain.lostInTimeouts + ")<br>";
 
-    if (isDefinedAndFilled(chain.topLongRunning) && chain.topLongRunning.length > 0) {
-        mInfo += "Top long running:<br>";
+    if(isDefinedAndFilled(chain.totalTests))
+        moreInfoTxt += " <span title='Not muted and not ignored tests'>Total tests: " + chain.totalTests + "</span>";
 
-        mInfo += "<table>";
+    if(isDefinedAndFilled(chain.trustedTests))
+        moreInfoTxt += " <span title='Tests which not filtered out because of flakyness'>Trusted tests: " + chain.trustedTests + "</span>";
+
+    moreInfoTxt += "<br>";
+
+    if (isDefinedAndFilled(chain.topLongRunning) && chain.topLongRunning.length > 0) {
+        moreInfoTxt += "Top long running:<br>";
+
+        moreInfoTxt += "<table>";
         for (var j = 0; j < chain.topLongRunning.length; j++) {
-            mInfo += showTestFailData(chain.topLongRunning[j], false, settings);
+            moreInfoTxt += showTestFailData(chain.topLongRunning[j], false, settings);
         }
-        mInfo += "</table>";
+        moreInfoTxt += "</table>";
     }
 
 
     if (isDefinedAndFilled(chain.logConsumers) && chain.logConsumers.length > 0) {
-        mInfo += "Top Log Consumers:<br>";
+        moreInfoTxt += "Top Log Consumers:<br>";
 
-        mInfo += "<table>";
+        moreInfoTxt += "<table>";
         for (var k = 0; k < chain.logConsumers.length; k++) {
-            mInfo += showTestFailData(chain.logConsumers[k], false, settings);
+            moreInfoTxt += showTestFailData(chain.logConsumers[k], false, settings);
         }
-        mInfo += "</table>";
+        moreInfoTxt += "</table>";
     }
 
     if(!isDefinedAndFilled(findGetParameter("reportMode"))) {
         res += "<span class='container'>";
         res += " <a href='javascript:void(0);' class='header'>" + more + "</a>";
-        res += "<div class='content'>" + mInfo + "</div></span>";
+        res += "<div class='content'>" + moreInfoTxt + "</div></span>";
     }
 
     res += "</td><td>";
@@ -570,6 +578,15 @@ function showSuiteData(suite, settings, prNum) {
         " Artifacts Publishing: " + suite.artifcactPublishingDurationPrintable + "," +
         " Dependecies Resolving: " + suite.dependeciesResolvingDurationPrintable + "," +
         " Timeouts: " + suite.lostInTimeouts + ")<br>";
+
+
+    if(isDefinedAndFilled(suite.totalTests))
+        moreInfoTxt += " <span title='Not muted and not ignored tests'>Total tests: " + suite.totalTests + "</span>";
+
+    if(isDefinedAndFilled(suite.trustedTests))
+        moreInfoTxt += " <span title='Tests which not filtered out because of flakyness'>Trusted tests: " + suite.trustedTests + "</span>";
+
+    moreInfoTxt += "<br>";
 
     var res = "";
     res += "<tr bgcolor='#FAFAFF'><td align='right' valign='top'>";

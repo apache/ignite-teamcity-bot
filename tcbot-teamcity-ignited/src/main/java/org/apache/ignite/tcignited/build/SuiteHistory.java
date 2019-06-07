@@ -14,34 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcignited.history;
 
-/**
- * Abstract runs statistics,
- */
-public interface IRunStat {
-    public int getRunsCount();
-    public int getFailuresCount();
+package org.apache.ignite.tcignited.build;
 
-    /**
-     * Recent runs fail rate.
-     * @return fail rate as float: 0.0...1.0
-     */
-    public default float getFailRate() {
-        int runs = getRunsCount();
+import java.util.HashMap;
+import java.util.Map;
 
-        if (runs == 0)
-            return 0.0f;
+import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
+import org.apache.ignite.internal.binary.BinaryObjectExImpl;
 
-        return 1.0f * getFailuresCount() / runs;
-    }
+public class SuiteHistory {
+    /** Tests history: Test name ID->RunHistory */
+    Map<Integer, RunHistCompacted> testsHistory = new HashMap<>();
 
-    public default String getFailPercentPrintable() {
-        return getPercentPrintable(getFailRate() * 100.0f);
-    }
-
-
-    public static String getPercentPrintable(float percent) {
-        return String.format("%.1f", percent).replace(".", ",");
+    public int size(Ignite ignite) {
+        BinaryObjectExImpl binary = ignite.binary().toBinary(this);
+        return binary.length();
     }
 }

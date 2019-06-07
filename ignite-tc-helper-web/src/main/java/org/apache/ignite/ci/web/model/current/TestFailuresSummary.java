@@ -24,9 +24,9 @@ import org.apache.ignite.internal.util.typedef.internal.U;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Summary of failures from all servers.
+ * Summary of failures from all servers. UI model, so it contains public fields.
  */
-@SuppressWarnings("WeakerAccess") public class TestFailuresSummary extends UpdateInfo {
+@SuppressWarnings({"WeakerAccess", "PublicField"}) public class TestFailuresSummary extends UpdateInfo {
     /** Servers (Services) and their chain results. */
     public List<ChainAtServerCurrentStatus> servers = new ArrayList<>();
 

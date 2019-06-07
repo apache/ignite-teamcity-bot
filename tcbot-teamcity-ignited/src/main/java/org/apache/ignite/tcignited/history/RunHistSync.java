@@ -48,7 +48,8 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
+import org.apache.ignite.tcignited.build.FatBuildDao;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,12 +119,14 @@ public class RunHistSync {
 
         int branchNameNormalized = compactor.getStringId(normalizeBranch(build.branchName(compactor)));
 
+        int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
+
         AtomicInteger cntTests = new AtomicInteger();
         Map<RunHistKey, List<Invocation>> testInvMap = new HashMap<>();
         build.getAllTests().forEach(t -> {
             RunHistKey histKey = new RunHistKey(srvId, t.testName(), branchNameNormalized);
             List<Invocation> list = testInvMap.computeIfAbsent(histKey, k -> new ArrayList<>());
-            list.add(t.toInvocation(compactor, build, parmFilter));
+            list.add(t.toInvocation(build, parmFilter, successStatusStrId));
 
             cntTests.incrementAndGet();
         });
