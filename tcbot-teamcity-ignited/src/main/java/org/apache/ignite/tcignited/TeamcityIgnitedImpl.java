@@ -477,15 +477,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return conn.agents(connected, authorized);
     }
 
-    @Override
-    @Deprecated
-    public CompletableFuture<File> downloadBuildLogZip(int buildId) {
-        if (conn instanceof ITeamcity)
-            return ((ITeamcity) conn).downloadBuildLogZip(buildId);
-
-        return null;
-    }
-
     @Nullable
     @Override
     public File downloadAndCacheBuildLog(int buildId) {

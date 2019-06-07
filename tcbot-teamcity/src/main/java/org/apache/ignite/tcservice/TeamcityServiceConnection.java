@@ -55,11 +55,7 @@ import javax.inject.Inject;
 import javax.xml.bind.JAXBException;
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static java.util.concurrent.CompletableFuture.supplyAsync;
@@ -75,9 +71,6 @@ public class TeamcityServiceConnection implements ITeamcity {
     /** Logger. */
     private static final Logger logger = LoggerFactory.getLogger(TeamcityServiceConnection.class);
 
-    /** Executor. */
-    private Executor executor;
-
     /** TeamCity authorization token. */
     private String basicAuthTok;
 
@@ -90,8 +83,6 @@ public class TeamcityServiceConnection implements ITeamcity {
 
     public void init(@Nullable String srvCode) {
         this.srvCode = srvCode;
-
-        this.executor = MoreExecutors.directExecutor();
     }
 
     @Override public ITcServerConfig config() {
@@ -120,16 +111,6 @@ public class TeamcityServiceConnection implements ITeamcity {
             .map(v -> getJaxbUsingHref(v.getHref(), Agent.class))
             .collect(Collectors.toList());
     }
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Deprecated
-    public CompletableFuture<File> downloadBuildLogZip(int buildId) {
-        Supplier<File> supplier = () -> downloadAndCacheBuildLog(buildId);
-
-        return supplyAsync(supplier, executor);
-    }
-
 
     /** {@inheritDoc} */
     @AutoProfiling
@@ -326,12 +307,6 @@ public class TeamcityServiceConnection implements ITeamcity {
         return srvCode;
     }
 
-
-    /** {@inheritDoc} */
-    @AutoProfiling
-    @Override public void setExecutor(ExecutorService executor) {
-        this.executor = executor;
-    }
 
     /**
      *

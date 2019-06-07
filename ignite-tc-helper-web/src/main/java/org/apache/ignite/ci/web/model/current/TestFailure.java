@@ -227,27 +227,6 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         }
     }
 
-    /**
-     * @return {@code True} if this failure is appeared in the current branch.
-     */
-    @Deprecated
-    public boolean isNewFailedTest() {
-        if (!Strings.isNullOrEmpty(webIssueUrl))
-            return false;
-
-        if (histBaseBranch.latestRuns == null)
-            return true;
-
-        FailureSummary recent = histBaseBranch.recent;
-
-        boolean lowFailureRate = recent != null && recent.failureRate != null &&
-            Float.valueOf(recent.failureRate.replace(',', '.')) < 4.;
-
-        //System.out.println(name + " " + recent.failureRate);
-
-        return lowFailureRate && histBaseBranch.flakyComments == null;
-    }
-
     /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
