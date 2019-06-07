@@ -19,6 +19,8 @@ package org.apache.ignite.ci.teamcity.ignited.mute;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 import org.apache.ignite.tcservice.model.conf.Project;
 import org.apache.ignite.tcservice.model.mute.MuteScope;
@@ -29,6 +31,7 @@ import org.apache.ignite.internal.util.typedef.F;
 /**
  *
  */
+@Persisted
 public class MuteScopeCompacted {
     /** Project. Project id. */
     int projectId;

@@ -34,11 +34,6 @@ public class EventTemplates {
             new int[]{FAIL, FAIL, FAIL, FAIL}
     );
 
-    public static final EventTemplate fixOfFailure = new EventTemplate(
-            new int[]{FAIL, FAIL, FAIL},
-            new int[]{OK, OK, OK, OK, OK}
-    );
-
     public static final EventTemplate newCriticalFailure = new EventTemplate(
             new int[]{RES_OK_OR_FAILURE.getCode(), RES_OK_OR_FAILURE.getCode(), RES_OK_OR_FAILURE.getCode(), RES_OK_OR_FAILURE.getCode(), RES_OK_OR_FAILURE.getCode()},
             new int[]{RES_CRITICAL_FAILURE.getCode(), RES_CRITICAL_FAILURE.getCode(), RES_CRITICAL_FAILURE.getCode(), RES_CRITICAL_FAILURE.getCode()}
@@ -59,7 +54,7 @@ public class EventTemplates {
     public static ArrayList<EventTemplate> templates;
 
     static {
-        templates = Lists.newArrayList(newFailure, newCriticalFailure, fixOfFailure,
+        templates = Lists.newArrayList(newFailure, newCriticalFailure,
             newContributedTestFailure, newFailureForFlakyTest);
     }
 }

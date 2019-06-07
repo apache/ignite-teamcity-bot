@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.analysis;
+package org.apache.ignite.tcbot.engine.chain;
 
 import com.google.common.base.Strings;
 import java.util.ArrayList;
@@ -33,11 +33,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
-import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.util.CollectionUtil;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.buildlog.ILogCheckResult;
@@ -46,8 +48,6 @@ import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Run configuration execution results loaded from different API URLs. Includes tests and problem occurrences; if logs
@@ -120,7 +120,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().allMatch(bCtx -> !bCtx.isComposite() && bCtx.isCancelled());
     }
 
-    @NotNull public Stream<ProblemCompacted> allProblemsInAllBuilds() {
+    @Nonnull public Stream<ProblemCompacted> allProblemsInAllBuilds() {
         return buildsStream().flatMap(SingleBuildRunCtx::getProblemsStream);
     }
 
@@ -206,7 +206,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return (int)getFailedTestsNames().count();
     }
 
-    @NotNull public Stream<String> getFailedTestsNames() {
+    @Nonnull public Stream<String> getFailedTestsNames() {
         return buildsStream().flatMap(SingleBuildRunCtx::getFailedNotMutedTestNames).distinct();
     }
 
@@ -505,7 +505,7 @@ public class MultBuildRunCtx implements ISuiteResults {
      * @param baseBranchHist Base branch history for suite.
      * @param tcSrvCfg
      */
-    @NotNull public String getPossibleBlockerComment(@Nonnull IStringCompactor compactor,
+    @Nonnull public String getPossibleBlockerComment(@Nonnull IStringCompactor compactor,
         @Nullable IRunHistory baseBranchHist,
         @Nonnull ITcServerConfig tcSrvCfg) {
         StringBuilder res = new StringBuilder();

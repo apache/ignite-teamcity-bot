@@ -15,22 +15,33 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.analysis;
-
-import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
-import org.apache.ignite.tcignited.history.IRunHistory;
+package org.apache.ignite.tcbot.engine.chain;
 
 /**
- * Multiple test occurrence. For single build context - max 1 failure
+ * Results from one or several builds for specific build type.
  */
-public interface IMultTestOccurrence {
-    public String getName();
+public interface ISuiteResults {
+    /** */
+    public boolean hasCompilationProblem();
 
-    public boolean isInvestigated();
+    /** */
+    public boolean hasMetricProblem();
 
-    public int failuresCount();
+    /** */
+    public boolean hasTimeoutProblem();
 
-    public long getAvgDurationMs();
+    /** */
+    public boolean hasJvmCrashProblem();
 
-    Iterable<TestOccurrenceFull> getOccurrences();
+    /** */
+    public boolean hasOomeProblem();
+
+    /** */
+    public boolean hasExitCodeProblem();
+
+    /** */
+    public boolean hasBuildMessageProblem();
+
+
+    public String suiteId();
 }

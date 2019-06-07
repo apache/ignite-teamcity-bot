@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.analysis.mode;
+package org.apache.ignite.tcbot.engine.chain;
 
 /**
  */

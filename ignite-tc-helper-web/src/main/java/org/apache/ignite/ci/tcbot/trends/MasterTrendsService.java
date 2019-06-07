@@ -53,7 +53,7 @@ import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.apache.ignite.ci.util.FutureUtil;
+import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.ci.web.model.trends.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.trends.BuildsHistory;
 import org.apache.ignite.internal.util.typedef.T2;

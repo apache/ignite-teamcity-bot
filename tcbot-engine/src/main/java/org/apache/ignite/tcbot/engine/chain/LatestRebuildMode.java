@@ -15,33 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.analysis;
+package org.apache.ignite.tcbot.engine.chain;
 
-/**
- * Results from one or several builds for specific build type.
- */
-public interface ISuiteResults {
-    /** */
-    public boolean hasCompilationProblem();
-
-    /** */
-    public boolean hasMetricProblem();
-
-    /** */
-    public boolean hasTimeoutProblem();
-
-    /** */
-    public boolean hasJvmCrashProblem();
-
-    /** */
-    public boolean hasOomeProblem();
-
-    /** */
-    public boolean hasExitCodeProblem();
-
-    /** */
-    public boolean hasBuildMessageProblem();
-
-
-    public String suiteId();
+public enum LatestRebuildMode {
+    /** None rebuilds are applied. */
+    NONE,
+    /** replace builds with Latest rebuild. */
+    LATEST,
+    /** Collect history of builds. Rebuilds are applied, but have higher priority. */
+    ALL
 }

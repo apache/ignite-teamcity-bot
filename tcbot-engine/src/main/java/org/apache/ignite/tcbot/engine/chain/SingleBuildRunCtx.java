@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.analysis;
+package org.apache.ignite.tcbot.engine.chain;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -32,23 +32,24 @@ import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
-import org.apache.ignite.ci.util.FutureUtil;
 import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.buildlog.ILogCheckResult;
 import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
-import org.jetbrains.annotations.Nullable;
 
 /**
- * Single build ocurrence,
+ * Single build occurrence with changes, tag and log results.
  */
 public class SingleBuildRunCtx implements ISuiteResults {
     /** Build compacted. */
