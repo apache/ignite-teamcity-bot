@@ -19,15 +19,15 @@ package org.apache.ignite.ci.tcbot.chain;
 
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
-import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.MultBuildRunCtx;
-import org.apache.ignite.ci.analysis.SingleBuildRunCtx;
-import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
-import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
+import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
+import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
+import org.apache.ignite.tcbot.engine.chain.SingleBuildRunCtx;
+import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
+import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.util.FutureUtil;
+import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.ci.web.TcUpdatePool;
 import org.apache.ignite.ci.web.model.long_running.LRTest;
 import org.apache.ignite.ci.web.model.long_running.SuiteLRTestsSummary;
@@ -361,13 +361,14 @@ public class BuildChainProcessor {
     protected void analyzeTests(MultBuildRunCtx outCtx, ITeamcityIgnited teamcity,
                                 ProcessLogsMode procLog) {
         for (SingleBuildRunCtx ctx : outCtx.getBuilds()) {
-            if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && ctx.hasSuiteIncompleteFailure())
+            boolean incompleteFailure = ctx.hasSuiteIncompleteFailure();
+            if ((procLog == ProcessLogsMode.SUITE_NOT_COMPLETE && incompleteFailure)
                     || procLog == ProcessLogsMode.ALL)
                 ctx.setLogCheckResFut(
                         CompletableFuture.supplyAsync(
                                 () -> buildLogProcessor.analyzeBuildLog(teamcity,
                                         ctx.buildId(),
-                                        ctx.hasSuiteIncompleteFailure()),
+                                    incompleteFailure),
                                 tcUpdatePool.getService()));
         }
     }

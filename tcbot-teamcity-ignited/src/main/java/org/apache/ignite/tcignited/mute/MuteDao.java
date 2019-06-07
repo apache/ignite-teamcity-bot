@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity.ignited.mute;
+package org.apache.ignite.tcignited.mute;
 
 import com.google.common.base.Preconditions;
 import java.util.HashMap;
@@ -27,6 +27,7 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.ci.teamcity.ignited.mute.MuteInfoCompacted;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcservice.model.mute.MuteInfo;
@@ -39,7 +40,7 @@ import org.apache.ignite.internal.util.typedef.internal.U;
  */
 public class MuteDao {
     /** Cache name. */
-    public static final String TEAMCITY_MUTE_CACHE_NAME = "teamcityMute";
+    private static final String TEAMCITY_MUTE_CACHE_NAME = "teamcityMute";
 
     /** Ignite provider. */
     @Inject private Provider<Ignite> igniteProvider;
@@ -83,18 +84,18 @@ public class MuteDao {
      * @param muteId Mute id.
      * @return Key from server-project pair.
      */
-    public static long muteIdToCacheKey(int srvIdMaskHigh, int muteId) {
+    private static long muteIdToCacheKey(int srvIdMaskHigh, int muteId) {
         return (long) muteId | (long) srvIdMaskHigh << 32;
     }
 
     /**
      * Save small part of loaded mutes.
-     *
-     * @param srvIdMaskHigh Server id mask high.
+     *  @param srvIdMaskHigh Server id mask high.
      * @param chunk Chunk.
      */
+    @SuppressWarnings("WeakerAccess")
     @AutoProfiling
-    public void saveChunk(int srvIdMaskHigh, Set<MuteInfo> chunk) {
+    protected void saveChunk(int srvIdMaskHigh, Set<MuteInfo> chunk) {
         Preconditions.checkNotNull(muteCache, "init() was not called");
 
         if (F.isEmpty(chunk))
@@ -132,7 +133,7 @@ public class MuteDao {
             if ((srvId & entry.getKey()) != srvId)
                 continue;
 
-            if (entry.getValue().id > startId) {
+            if (entry.getValue().id() > startId) {
                 if (muteCache.remove(entry.getKey()))
                     rmv++;
             }

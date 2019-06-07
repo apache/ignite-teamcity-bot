@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.analysis;
+package org.apache.ignite.tcbot.engine.chain;
 
 /**
  * Results from one or several builds for specific build type.
@@ -42,21 +42,6 @@ public interface ISuiteResults {
     /** */
     public boolean hasBuildMessageProblem();
 
-    default boolean hasCriticalProblem() {
-        return hasJvmCrashProblem()
-            || hasTimeoutProblem()
-            || hasCompilationProblem()
-            || hasMetricProblem();
-    }
-
-    default boolean hasSuiteIncompleteFailure() {
-        return hasJvmCrashProblem()
-            || hasTimeoutProblem()
-            || hasOomeProblem()
-            || hasExitCodeProblem()
-            || hasCompilationProblem()
-            || hasMetricProblem();
-    }
 
     public String suiteId();
 }

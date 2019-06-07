@@ -15,17 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.analysis;
+package org.apache.ignite.tcbot.engine.chain;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
-import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.history.IRunHistSummary;
+import org.apache.ignite.tcignited.history.IRunStat;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 
+/**
+ * Test occurrence merged from several runs.
+ */
 public class TestCompactedMult implements IMultTestOccurrence {
     private final List<TestCompacted> occurrences = new ArrayList<>();
     private IStringCompactor compactor;
@@ -78,22 +82,29 @@ public class TestCompactedMult implements IMultTestOccurrence {
             .collect(Collectors.toList());
     }
 
-    @Override public String getPossibleBlockerComment(IRunHistory baseBranchStat) {
-        if (baseBranchStat == null)
-            return "History for base branch is absent.";
+     /**
+      * @param baseBranchStat Base branch statistics.
+      * @return non null comment in case test failure is a blocker for merge into base branch.
+      */
+     public static String getPossibleBlockerComment(IRunHistSummary baseBranchStat) {
+         if (baseBranchStat == null)
+             return "History for base branch is absent.";
 
-        String flakyComments = baseBranchStat.getFlakyComments();
+         boolean flaky = baseBranchStat.isFlaky();
 
-        boolean lowFailureRate = baseBranchStat.getFailRate() * 100.0f < 4.;
+         float failRate = baseBranchStat.getFailRate();
+         boolean lowFailureRate = failRate * 100.0f < 4.;
 
-        if (lowFailureRate && flakyComments == null) {
-            return "Test has low fail rate in base branch "
-                + baseBranchStat.getFailPercentPrintable()
-                + "% and is not flaky";
-        }
+         if (lowFailureRate && !flaky) {
+             String runStatPrintable = IRunStat.getPercentPrintable(failRate * 100.0f);
 
-        return null;
-    }
+             return "Test has low fail rate in base branch "
+                 + runStatPrintable
+                 + "% and is not flaky";
+         }
+
+         return null;
+     }
 
     public void add(TestCompacted next) {
         occurrences.add(next);

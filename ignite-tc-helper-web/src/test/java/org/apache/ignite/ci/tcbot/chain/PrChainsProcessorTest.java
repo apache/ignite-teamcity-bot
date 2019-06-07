@@ -103,6 +103,7 @@ public class PrChainsProcessorTest {
         instance.addServer(SRV_ID, apacheBuilds);
     }
 
+    //todo flaky test
     @Test
     public void testTestFailureWithoutStatReportedAsBlocker() {
         IStringCompactor c = injector.getInstance(IStringCompactor.class);

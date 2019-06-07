@@ -15,30 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.issue;
+package org.apache.ignite.tcbot.common.util;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.ignite.ci.issue.Issue;
-import org.apache.ignite.ci.issue.IssueKey;
 
-public interface IIssuesStorage {
-    /**
-     * Determines if the storage contains an entry for the specified issue key.
-     *
-     * @param issueKey Issue to be checked.
-     * @return true if issue
-     */
-    public boolean containsIssueKey(IssueKey issueKey);
-
-    public void saveIssue(Issue issue);
-
-    public Stream<Issue> allIssues();
-
-    /**
-     * Checks and saves address was notified (NotThreadSafe)
-     * @param key issue key.
-     * @param addr Address to register as notified.
-     * @return update successful. This address was not notified before.
-     */
-    public boolean setNotified(IssueKey key, String addr);
+/**
+ * Collection util.
+ */
+public class CollectionUtil {
+    public static <T> List<T> top(Stream<? extends T> data, int cnt, Comparator<T> comp) {
+        Comparator<T> reversedComp = comp.reversed();
+        return data.sorted(reversedComp).limit(cnt).collect(Collectors.toList());
+    }
 }

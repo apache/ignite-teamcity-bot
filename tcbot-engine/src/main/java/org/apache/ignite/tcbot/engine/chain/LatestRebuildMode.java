@@ -15,30 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.issue;
+package org.apache.ignite.tcbot.engine.chain;
 
-import java.util.stream.Stream;
-import org.apache.ignite.ci.issue.Issue;
-import org.apache.ignite.ci.issue.IssueKey;
-
-public interface IIssuesStorage {
-    /**
-     * Determines if the storage contains an entry for the specified issue key.
-     *
-     * @param issueKey Issue to be checked.
-     * @return true if issue
-     */
-    public boolean containsIssueKey(IssueKey issueKey);
-
-    public void saveIssue(Issue issue);
-
-    public Stream<Issue> allIssues();
-
-    /**
-     * Checks and saves address was notified (NotThreadSafe)
-     * @param key issue key.
-     * @param addr Address to register as notified.
-     * @return update successful. This address was not notified before.
-     */
-    public boolean setNotified(IssueKey key, String addr);
+public enum LatestRebuildMode {
+    /** None rebuilds are applied. */
+    NONE,
+    /** replace builds with Latest rebuild. */
+    LATEST,
+    /** Collect history of builds. Rebuilds are applied, but have higher priority. */
+    ALL
 }

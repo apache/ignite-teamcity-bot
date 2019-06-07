@@ -31,15 +31,15 @@ import javax.ws.rs.core.Context;
 import com.google.inject.Injector;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
 import org.apache.ignite.tcservice.ITeamcity;
-import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
-import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
+import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
+import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
+import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.apache.ignite.ci.util.FutureUtil;
+import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
@@ -64,7 +64,7 @@ public class GetChainResultsAsHtml {
     private HttpServletRequest req;
     
     //test here http://localhost:8080/rest/chainResults/html?serverId=public&buildId=1086222
-    public void showChainOnServersResults(StringBuilder res, Integer buildId, String srvId) {
+    public void showChainOnServersResults(StringBuilder res, Integer buildId, String srvCode) {
         //todo solve report auth problem
         final Injector injector = CtxListener.getInjector(ctx);
         final BuildChainProcessor buildChainProcessor = injector.getInstance(BuildChainProcessor.class);
@@ -72,7 +72,7 @@ public class GetChainResultsAsHtml {
         String failRateBranch = ITeamcity.DEFAULT;
 
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
-        ITeamcityIgnited tcIgn = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvId, creds);
+        ITeamcityIgnited tcIgn = injector.getInstance(ITeamcityIgnitedProvider.class).server(srvCode, creds);
 
         final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
                 tcIgn,
@@ -83,13 +83,13 @@ public class GetChainResultsAsHtml {
             failRateBranch,
             SyncMode.RELOAD_QUEUED);
 
-        ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(tcIgn.serverCode(), ctx.branchName());
+        ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(srvCode, tcIgn.serverCode(), ctx.branchName());
 
         ctx.getRunningUpdates().forEach(FutureUtil::getResultSilent);
 
         status.chainName = ctx.suiteName();
 
-        status.initFromContext(tcIgn, ctx, failRateBranch, injector.getInstance(IStringCompactor.class));
+        status.initFromContext(tcIgn, ctx, failRateBranch, injector.getInstance(IStringCompactor.class), false);
 
         res.append(showChainAtServerData(status));
 

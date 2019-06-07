@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.teamcity.ignited.mute;
+package org.apache.ignite.tcignited.mute;
 
 import java.util.SortedSet;
 import java.util.concurrent.TimeUnit;

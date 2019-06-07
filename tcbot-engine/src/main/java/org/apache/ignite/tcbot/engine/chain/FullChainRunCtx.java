@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.analysis;
+package org.apache.ignite.tcbot.engine.chain;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +24,8 @@ import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcbot.common.util.TimeUtil;
-import org.jetbrains.annotations.NotNull;
+
+import javax.annotation.Nonnull;
 
 /**
  *
@@ -85,7 +86,7 @@ public class FullChainRunCtx {
     /**
      * @return sum of durations of all suites printable.
      */
-    @NotNull public String getDurationPrintable() {
+    @Nonnull public String getDurationPrintable() {
         return (TimeUtil.millisToDurationPrintable(getTotalDuration()))
             + (hasFullDurationInfo() ? "" : "+");
     }
@@ -112,7 +113,7 @@ public class FullChainRunCtx {
         return (TimeUtil.millisToDurationPrintable(tests));
     }
 
-    @NotNull public Stream<MultBuildRunCtx> suitesNonComposite() {
+    @Nonnull public Stream<MultBuildRunCtx> suitesNonComposite() {
         return suites().filter(ctx -> !ctx.isComposite());
     }
 

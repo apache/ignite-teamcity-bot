@@ -25,19 +25,19 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.IMultTestOccurrence;
-import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
+import org.apache.ignite.tcbot.engine.chain.IMultTestOccurrence;
+import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
-import org.apache.ignite.tcservice.model.conf.BuildType;
+import org.apache.ignite.tcbot.common.util.CollectionUtil;
+import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.ci.util.CollectionUtil;
-import org.apache.ignite.internal.util.typedef.T2;
+import org.apache.ignite.tcservice.model.conf.BuildType;
 
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchForLink;
@@ -55,7 +55,14 @@ public class ChainAtServerCurrentStatus {
     public String chainName;
 
     /** Server ID. */
+    @Deprecated
     public final String serverId;
+
+    /** General server (service) code: JIRA, GH, TC. But if TC aliased {@link #tcServerCode} is used for TC. */
+    public final String serverCode;
+
+    /** Teamcity connection server (service) code. Same with {@link #serverCode} */
+    public final String tcServerCode;
 
     /** Branch name in teamcity identification. */
     public final String branchName;
@@ -81,7 +88,15 @@ public class ChainAtServerCurrentStatus {
     /** Suites involved in chain. */
     public List<SuiteCurrentStatus> suites = new ArrayList<>();
 
+    /** Count of failed tests not muted tests. In case several runs are used, overall by all runs. */
     public Integer failedTests;
+
+    /** Total (Not Muted/Not Ignored) tests in all suites. */
+    public Integer totalTests;
+
+    /** Tests which will be considered as a blocker. */
+    public Integer trustedTests;
+
     /** Count of suites with critical build problems found */
     public Integer failedToFinish;
 
@@ -117,8 +132,15 @@ public class ChainAtServerCurrentStatus {
     /** Total blockers count. */
     public int totalBlockers;
 
-    public ChainAtServerCurrentStatus(String srvId, String branchTc) {
-        this.serverId = srvId;
+    /**
+     * @param srvCode Server code.
+     * @param tcSvcCode Tc service code.
+     * @param branchTc Branch tc.
+     */
+    public ChainAtServerCurrentStatus(String srvCode, String tcSvcCode, String branchTc) {
+        this.serverCode = srvCode;
+        this.tcServerCode = tcSvcCode;
+        this.serverId = tcSvcCode;
         this.branchName = branchTc;
     }
 
@@ -177,9 +199,13 @@ public class ChainAtServerCurrentStatus {
 
     public void initFromContext(ITeamcityIgnited tcIgnited,
         FullChainRunCtx ctx,
-        @Nullable String baseBranchTc, IStringCompactor compactor) {
+        @Nullable String baseBranchTc,
+        IStringCompactor compactor,
+        boolean calcTrustedTests) {
         failedTests = 0;
         failedToFinish = 0;
+        totalTests = 0;
+        trustedTests = 0;
         //todo mode with not failed
         Stream<MultBuildRunCtx> stream = ctx.failedChildSuites();
 
@@ -187,15 +213,30 @@ public class ChainAtServerCurrentStatus {
             suite -> {
                 final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
 
-                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true);
+                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
 
-                failedTests += suiteCurStatus.failedTests;
+                failedTests += suiteCurStatus.failedTests != null ? suiteCurStatus.failedTests : 0;
+                totalTests += suiteCurStatus.totalTests != null ? suiteCurStatus.totalTests : 0;
+                trustedTests += suiteCurStatus.trustedTests != null ? suiteCurStatus.trustedTests : 0;
                 if (suite.hasAnyBuildProblemExceptTestOrSnapshot() || suite.onlyCancelledBuilds())
                     failedToFinish++;
 
                 suites.add(suiteCurStatus);
             }
         );
+
+        if(calcTrustedTests) {
+            //todo odd convertion
+            ctx.suites().filter(s -> !s.isFailed()).forEach(suite -> {
+
+                final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
+
+                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
+
+                totalTests += suiteCurStatus.totalTests != null ? suiteCurStatus.totalTests : 0;
+                trustedTests += suiteCurStatus.trustedTests != null ? suiteCurStatus.trustedTests : 0;
+            });
+        }
 
         totalBlockers = suites.stream().mapToInt(SuiteCurrentStatus::totalBlockers).sum();
         durationPrintable = ctx.getDurationPrintable();
@@ -275,6 +316,8 @@ public class ChainAtServerCurrentStatus {
         return buildNotFound == status.buildNotFound &&
             Objects.equals(chainName, status.chainName) &&
             Objects.equals(serverId, status.serverId) &&
+            Objects.equals(serverCode, status.serverCode) &&
+            Objects.equals(tcServerCode, status.tcServerCode) &&
             Objects.equals(branchName, status.branchName) &&
             Objects.equals(webToHist, status.webToHist) &&
             Objects.equals(webToBuild, status.webToBuild) &&
@@ -299,10 +342,11 @@ public class ChainAtServerCurrentStatus {
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(chainName, serverId, branchName, webToHist, webToBuild, ticketFullName, webToTicket, prNum,
-            webToPr, suites, failedTests, failedToFinish, durationPrintable, durationNetTimePrintable,
-            sourceUpdateDurationPrintable, artifcactPublishingDurationPrintable, dependeciesResolvingDurationPrintable,
-            testsDurationPrintable, lostInTimeouts, topLongRunning, logConsumers, buildNotFound, baseBranchForTc);
+        return Objects.hash(chainName, serverId, serverCode, tcServerCode, branchName, webToHist, webToBuild,
+            ticketFullName, webToTicket, prNum, webToPr, suites, failedTests, failedToFinish, durationPrintable,
+            durationNetTimePrintable,  sourceUpdateDurationPrintable, artifcactPublishingDurationPrintable,
+            dependeciesResolvingDurationPrintable,  testsDurationPrintable, lostInTimeouts, topLongRunning,
+            logConsumers, buildNotFound, baseBranchForTc);
     }
 
     public void setBuildNotFound(boolean buildNotFound) {

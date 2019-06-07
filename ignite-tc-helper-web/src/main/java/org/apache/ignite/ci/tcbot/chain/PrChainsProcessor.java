@@ -22,29 +22,29 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-
-import org.apache.ignite.tcservice.ITeamcity;
-import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
-import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
-import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
+import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
+import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
+import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
-import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.tcignited.SyncMode;
-import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.history.RunHistSync;
+import org.apache.ignite.tcservice.ITeamcity;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -128,8 +128,8 @@ public class PrChainsProcessor {
 
         String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? ITeamcity.DEFAULT : baseBranchForTc;
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
-                tcIgnited,
+        FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+            tcIgnited,
             hist,
             rebuild,
             logs,
@@ -137,7 +137,7 @@ public class PrChainsProcessor {
             baseBranch,
             mode);
 
-        final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(tcIgnited.serverCode(), branchForTc);
+        ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvCode, tcIgnited.serverCode(), branchForTc);
 
         chainStatus.baseBranchForTc = baseBranch;
 
@@ -150,7 +150,7 @@ public class PrChainsProcessor {
                 runningUpdates.addAndGet(cnt0);
 
             //fail rate reference is always default (master)
-            chainStatus.initFromContext(tcIgnited, ctx, baseBranch, compactor);
+            chainStatus.initFromContext(tcIgnited, ctx, baseBranch, compactor, false); // don't need for PR
 
             chainStatus.initJiraAndGitInfo(ticketMatcher, jiraIntegration, gitHubConnIgnited);
         }
@@ -186,8 +186,8 @@ public class PrChainsProcessor {
 
         String baseBranch = ITeamcity.DEFAULT;
 
-        final FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
-                tcIgnited,
+        FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
+            tcIgnited,
             hist,
             LatestRebuildMode.LATEST,
             ProcessLogsMode.SUITE_NOT_COMPLETE,
@@ -218,10 +218,10 @@ public class PrChainsProcessor {
 
                 String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 
-                List<TestFailure> failures =  ctx.getFailedTests().stream().map(occurrence -> {
+                List<TestFailure> failures = ctx.getFailedTests().stream().map(occurrence -> {
                     IRunHistory stat = tcIgnited.getTestRunHist(occurrence.getName(), normalizedBaseBranch);
 
-                    String testBlockerComment = occurrence.getPossibleBlockerComment(stat);
+                    String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
 
                     if (!Strings.isNullOrEmpty(testBlockerComment)) {
                         final TestFailure failure = new TestFailure();
@@ -240,7 +240,7 @@ public class PrChainsProcessor {
                     SuiteCurrentStatus suiteUi = new SuiteCurrentStatus();
                     suiteUi.testFailures = failures;
 
-                    suiteUi.initFromContext(tcIgnited, ctx, baseBranch, compactor, false);
+                    suiteUi.initFromContext(tcIgnited, ctx, baseBranch, compactor, false, false);
 
                     return suiteUi;
                 }

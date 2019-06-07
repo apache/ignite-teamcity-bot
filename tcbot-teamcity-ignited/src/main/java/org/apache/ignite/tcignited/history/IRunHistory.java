@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * Test or Build run statistics.
  */
-public interface IRunHistory extends IRunStat {
+public interface IRunHistory extends IRunStat, IRunHistSummary {
     public int getFailuresAllHist();
     public int getRunsAllHist();
 
@@ -64,4 +64,13 @@ public interface IRunHistory extends IRunStat {
 
 
     public int getCriticalFailuresCount();
+
+    @Override default float getFailRate() {
+        int runs = getRunsCount();
+
+        if (runs == 0)
+            return 0.0f;
+
+        return 1.0f * getFailuresCount() / runs;
+    }
 }

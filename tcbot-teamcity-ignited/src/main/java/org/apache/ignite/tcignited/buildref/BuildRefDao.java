@@ -17,12 +17,20 @@
 
 package org.apache.ignite.tcignited.buildref;
 
-import java.util.*;
+import com.google.common.cache.CacheBuilder;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -31,14 +39,16 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.SqlQuery;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
+import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.internal.util.GridIntList;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
-import org.apache.ignite.tcservice.model.hist.BuildRef;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.configuration.CacheConfiguration;
-import org.apache.ignite.internal.util.GridIntList;
+import org.apache.ignite.tcservice.model.hist.BuildRef;
 
 /**
  *
@@ -50,11 +60,22 @@ public class BuildRefDao {
     /** Ignite provider. */
     @Inject private Provider<Ignite> igniteProvider;
 
-    /** Builds cache. */
+    /** Builds (Refs) cache: Long(ServerId||BuildId)-> Build reference */
     private IgniteCache<Long, BuildRefCompacted> buildRefsCache;
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
+
+    /** Non persistence cache for all BuildRefsCompacted for particular branch.
+     * RunHistKey(ServerId||BranchId||suiteId)-> Build reference
+     */
+    private final com.google.common.cache.Cache<RunHistKey, List<BuildRefCompacted>> buildRefsInMemCache
+        = CacheBuilder.newBuilder()
+        .maximumSize(8000)
+        .expireAfterAccess(16, TimeUnit.MINUTES)
+        .softValues()
+        .build();
+
 
     /** */
     public BuildRefDao init() {
@@ -113,10 +134,22 @@ public class BuildRefDao {
         }
 
         int size = entriesToPut.size();
-        if (size != 0)
+        if (size != 0) {
             buildRefsCache.putAll(entriesToPut);
 
+            invalidateHistoryInMem(srvId, entriesToPut.values().stream());
+        }
+
         return entriesToPut.keySet();
+    }
+
+    public void invalidateHistoryInMem(int srvId, Stream<BuildRefCompacted> stream) {
+        Iterable<RunHistKey> objects =
+            stream
+                .map(b -> new RunHistKey(srvId, b.buildTypeId(), b.branchName()))
+                .collect(Collectors.toSet());
+
+        buildRefsInMemCache.invalidateAll(objects);
     }
 
     /**
@@ -137,24 +170,53 @@ public class BuildRefDao {
 
     /**
      * @param srvId Server id mask high.
-     * @param buildTypeId Build type id.
+     * @param buildTypeId Build type (suite) id.
      * @param bracnhNameQry Bracnh name query.
      */
     @AutoProfiling
     @Nonnull public List<BuildRefCompacted> getAllBuildsCompacted(int srvId,
-                                                                  @Nullable String buildTypeId,
-                                                                  List<String> bracnhNameQry) {
-
+                                                                  String buildTypeId,
+        List<String> bracnhNameQry) {
         Integer buildTypeIdId = compactor.getStringIdIfPresent(buildTypeId);
         if (buildTypeIdId == null)
             return Collections.emptyList();
 
-        if (bracnhNameQry.stream().map(str -> compactor.getStringIdIfPresent(str)).allMatch(Objects::isNull))
+        Set<Integer> branchNameIds = bracnhNameQry.stream().map(str -> compactor.getStringIdIfPresent(str))
+            .filter(Objects::nonNull).collect(Collectors.toSet());
+
+        if (branchNameIds.isEmpty())
             return Collections.emptyList();
 
-        return getBuildsForBranch(srvId, bracnhNameQry).stream()
-            .filter(e -> e.buildTypeId() == buildTypeIdId)
-            .collect(Collectors.toList());
+        List<BuildRefCompacted> res = new ArrayList<>();
+
+        branchNameIds.forEach(branchNameId -> {
+            RunHistKey runHistKey = new RunHistKey(srvId, buildTypeIdId, branchNameId);
+            try {
+                List<BuildRefCompacted> compactedBuildsForBranch =
+                    buildRefsInMemCache.get(runHistKey, () -> {
+                        List<BuildRefCompacted> branch = getBuildsForBranch(srvId, branchNameId);
+
+                        List<BuildRefCompacted> resForBranch = branch.stream()
+                            .filter(e -> e.buildTypeId() == buildTypeIdId)
+                            .collect(Collectors.toList());
+
+                        if (!resForBranch.isEmpty()) {
+                            System.err.println("Branch " + compactor.getStringFromId(branchNameId)
+                                + " Suite " + buildTypeId
+                                + " builds " + resForBranch.size() + " ");
+                        }
+
+                        return resForBranch;
+                    });
+
+                res.addAll(compactedBuildsForBranch);
+            }
+            catch (ExecutionException e) {
+                throw ExceptionUtil.propagateException(e);
+            }
+        });
+
+        return res;
     }
 
     /**
@@ -178,27 +240,19 @@ public class BuildRefDao {
     }
 
     /**
+     * Collects all builds for branch. Short-term cached because builds from same branch may be queued several times.
+     *
      * @param srvId Server id.
-     * @param branchNamesQry Branch name(s).
+     * @param branchNameId  Branch name - IDs from compactor.
      */
     @AutoProfiling
     @GuavaCached(softValues = true, maximumSize = 10000, expireAfterWriteSecs = 90)
-    public List<BuildRefCompacted> getBuildsForBranch(int srvId, List<String> branchNamesQry) {
-        Set<Integer> branchIds = branchNamesQry.stream().map(str -> compactor.getStringIdIfPresent(str))
-            .filter(Objects::nonNull).collect(Collectors.toSet());
-
+    public List<BuildRefCompacted> getBuildsForBranch(int srvId, int branchNameId) {
         List<BuildRefCompacted> list = new ArrayList<>();
 
-        for (Integer next : branchIds)
-            fillBuilds(srvId, next, list);
-
-        return list;
-    }
-
-    private void fillBuilds(int srvId, Integer branchNameId, List<BuildRefCompacted> list) {
-        try (QueryCursor<Cache.Entry<Long, BuildRefCompacted>> qryCursor  = buildRefsCache.query(
+        try (QueryCursor<Cache.Entry<Long, BuildRefCompacted>> qryCursor = buildRefsCache.query(
             new SqlQuery<Long, BuildRefCompacted>(BuildRefCompacted.class, "branchName = ?")
-                .setArgs(branchNameId))) {
+                .setArgs((Integer)branchNameId))) {
 
             for (Cache.Entry<Long, BuildRefCompacted> next : qryCursor) {
                 Long key = next.getKey();
@@ -209,6 +263,13 @@ public class BuildRefDao {
                 list.add(next.getValue());
             }
         }
+
+        if (!list.isEmpty()) {
+            System.err.println(" Branch " + compactor.getStringFromId(branchNameId)
+                + " builds " + list.size() + " (Overall) ");
+        }
+
+        return list;
     }
 
     /**
@@ -222,6 +283,7 @@ public class BuildRefDao {
 
         if (buildPersisted == null || !buildPersisted.equals(refCompacted)) {
             buildRefsCache.put(cacheKey, refCompacted);
+            invalidateHistoryInMem(srvId, Stream.of(refCompacted));
 
             return true;
         }

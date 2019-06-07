@@ -29,8 +29,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.analysis.IMultTestOccurrence;
-import org.apache.ignite.ci.analysis.MultBuildRunCtx;
+import org.apache.ignite.tcbot.engine.chain.IMultTestOccurrence;
+import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.ci.issue.EventTemplates;
 import org.apache.ignite.ci.issue.ProblemRef;
 import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
@@ -46,9 +46,9 @@ import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrint
 import static org.apache.ignite.ci.util.UrlUtil.escape;
 
 /**
- * Represent Suite result
+ * Represent Suite result, UI class for REST responses, so it contains public fields
  */
-@SuppressWarnings("WeakerAccess") public class SuiteCurrentStatus extends FailureSummary {
+@SuppressWarnings({"WeakerAccess", "PublicField"}) public class SuiteCurrentStatus extends FailureSummary {
     /** Suite Name */
     public String name;
 
@@ -78,7 +78,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     @Nullable public Integer runningBuildCount;
     @Nullable public Integer queuedBuildCount;
 
-    /** TC getOrCreateCreds id. */
+    /** TC server id. To be replaced by separated services IDs */
+    @Deprecated
     public String serverId;
 
     /** Suite ID in teamcity identification. */
@@ -99,7 +100,14 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** TcHelperUser commits, comma separated string. */
     public String userCommits = "";
 
+    /** Count of failed tests not muted tests. In case several runs are used, overall by all runs. */
     public Integer failedTests;
+
+    /** Count of executed tests during current run. In case several runs are used, average number. */
+    public Integer totalTests;
+
+    /** Tests which will not considered as a blocker and not filtered out. */
+    public Integer trustedTests;
 
     /** Duration printable. */
     public String durationPrintable;
@@ -107,10 +115,13 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Duration net time printable. */
     public String durationNetTimePrintable;
 
+    /** Source update duration printable. */
     public String sourceUpdateDurationPrintable;
 
+    /** Artifcact publishing duration printable. */
     public String artifcactPublishingDurationPrintable;
 
+    /** Dependecies resolving duration printable. */
     public String dependeciesResolvingDurationPrintable;
 
     /** Tests duration printable. */
@@ -124,7 +135,8 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
      */
     @Nullable public ProblemRef problemRef;
 
-    public Set<String> tags = new HashSet<>();
+    /** Tags for build. */
+    @Nonnull public Set<String> tags = new HashSet<>();
 
     /**
      * Possible blocker comment: filled for PR and builds checks, non null value contains problem explanation
@@ -132,11 +144,20 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
      */
     @Nullable public String blockerComment;
 
+    /**
+     * @param tcIgnited Tc ignited.
+     * @param suite Suite.
+     * @param baseBranch Base branch.
+     * @param compactor String Compactor.
+     * @param includeTests Include tests - usually {@code true}, but it may be disabled for speeding up VISA collection.
+     * @param calcTrustedTests
+     */
     public SuiteCurrentStatus initFromContext(ITeamcityIgnited tcIgnited,
         @Nonnull final MultBuildRunCtx suite,
         @Nullable final String baseBranch,
         @Nonnull IStringCompactor compactor,
-        boolean includeTests) {
+        boolean includeTests,
+        boolean calcTrustedTests) {
 
         name = suite.suiteName();
 
@@ -200,7 +221,6 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
                         (testName, logCheckResult) -> {
                             if (logCheckResult.hasWarns())
                                 this.findFailureAndAddWarning(testName, logCheckResult);
-
                         }
                     );
                 }
@@ -209,6 +229,12 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             suite.getTopLogConsumers().forEach(
                 (entry) -> logConsumers.add(createOccurForLogConsumer(entry))
             );
+
+
+            totalTests = suite.totalTests();
+
+            if(calcTrustedTests)
+                trustedTests = suite.trustedTests(tcIgnited, failRateNormalizedBranch);
         }
 
         suite.getBuildsWithThreadDump().forEach(buildId -> {
@@ -221,7 +247,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         runningBuildCount = suite.runningBuildCount();
         queuedBuildCount = suite.queuedBuildCount();
         serverId = tcIgnited.serverCode();
-        this.suiteId = suite.suiteId();
+        suiteId = suite.suiteId();
         branchName = branchForLink(suite.branchName());
 
         tags = suite.tags();

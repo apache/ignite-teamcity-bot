@@ -25,11 +25,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
@@ -46,7 +48,6 @@ import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.tcbot.conf.INotificationChannel;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.tcignited.history.IRunHistory;
@@ -178,7 +179,13 @@ public class IssueDetector {
 
                 channels.stream()
                     .filter(ch -> ch.isServerAllowed(srvCode))
-                    .filter(ch -> ch.isSubscribed(issue.trackedBranchName))
+                    .filter(ch -> ch.isSubscribedToBranch(issue.trackedBranchName))
+                    .filter(ch -> {
+                        if (ch.hasTagFilter())
+                            return issue.buildTags().stream().anyMatch(ch::isSubscribedToTag);
+
+                        return true;
+                    })
                     .forEach(channel -> {
                         String email = channel.email();
                         String slack = channel.slack();
@@ -249,12 +256,12 @@ public class IssueDetector {
         int newIssues = 0;
 
         for (ChainAtServerCurrentStatus next : res.servers) {
-            String srvId = next.serverId;
+            String srvCode = next.serverCode;
 
-            if (!tcProv.hasAccess(srvId, creds))
+            if (!tcProv.hasAccess(srvCode, creds))
                 continue;
 
-            ITeamcityIgnited tcIgnited = tcProv.server(srvId, creds);
+            ITeamcityIgnited tcIgnited = tcProv.server(srvCode, creds);
 
             for (SuiteCurrentStatus suiteCurrentStatus : next.suites) {
                 String normalizeBranch = normalizeBranch(suiteCurrentStatus.branchName());
@@ -262,11 +269,12 @@ public class IssueDetector {
                 final String trackedBranch = res.getTrackedBranch();
 
                 for (TestFailure testFailure : suiteCurrentStatus.testFailures) {
-                    if (registerTestFailIssues(tcIgnited, srvId, normalizeBranch, testFailure, trackedBranch))
+                    if (registerTestFailIssues(tcIgnited, srvCode, normalizeBranch, testFailure, trackedBranch,
+                        suiteCurrentStatus.tags))
                         newIssues++;
                 }
 
-                if (registerSuiteFailIssues(tcIgnited, srvId, normalizeBranch, suiteCurrentStatus, trackedBranch))
+                if (registerSuiteFailIssues(tcIgnited, srvCode, normalizeBranch, suiteCurrentStatus, trackedBranch))
                     newIssues++;
             }
         }
@@ -278,7 +286,7 @@ public class IssueDetector {
      * Checks and persists suites failure.
      *
      * @param tcIgnited Tc ignited.
-     * @param srvCode Server code.
+     * @param srvCode Servers (services) code.
      * @param normalizeBranch Normalize branch.
      * @param suiteFailure Suite failure.
      * @param trackedBranch Tracked branch.
@@ -311,9 +319,8 @@ public class IssueDetector {
             }
         }
 
-        ITcServerConfig tcCfg = cfg.getTeamcityConfig(srvCode);
-
-        if (tcCfg.trustedSuites().contains(suiteId)) {
+        if (cfg.getTeamcityConfig(srvCode).trustedSuites().contains(suiteId)
+            || tcIgnited.config().trustedSuites().contains(suiteId)) {
             Integer firstTrustedSuiteFailue = runStat.detectTemplate(EventTemplates.newFailure);
 
             if (firstTrustedSuiteFailue != null) {
@@ -340,6 +347,8 @@ public class IssueDetector {
         issue.webUrl = suiteFailure.webToHist;
         issue.buildStartTs = tcIgnited.getBuildStartTs(issueKey.buildId);
 
+        issue.buildTags.addAll(suiteFailure.tags);
+
         locateChanges(tcIgnited, issueKey.buildId, issue);
 
         logger.info("Register new issue for suite fail: " + issue);
@@ -358,10 +367,11 @@ public class IssueDetector {
     }
 
     private boolean registerTestFailIssues(ITeamcityIgnited tcIgnited,
-        String srvId,
+        String srvCode,
         String normalizeBranch,
         TestFailure testFailure,
-        String trackedBranch) {
+        String trackedBranch,
+        @Nonnull Set<String> suiteTags) {
         String name = testFailure.name;
 
         IRunHistory runStat = tcIgnited.getTestRunHist(name, normalizeBranch);
@@ -404,7 +414,7 @@ public class IssueDetector {
 
         int buildId = firstFailedBuildId;
 
-        IssueKey issueKey = new IssueKey(srvId, buildId, name);
+        IssueKey issueKey = new IssueKey(srvCode, buildId, name);
 
         if (issuesStorage.containsIssueKey(issueKey))
             return false; //duplicate
@@ -413,6 +423,8 @@ public class IssueDetector {
         issue.trackedBranchName = trackedBranch;
         issue.displayName = testFailure.testName;
         issue.webUrl = testFailure.webUrl;
+
+        issue.buildTags.addAll(suiteTags);
 
         locateChanges(tcIgnited, buildId, issue);
 
@@ -491,15 +503,16 @@ public class IssueDetector {
             false,
             buildsToQry,
             creds,
-            SyncMode.RELOAD_QUEUED);
+            SyncMode.RELOAD_QUEUED,
+            false);
 
         TestFailuresSummary failures =
             tbProc.getTrackedBranchTestFailures(brachName,
                 false,
                 1,
                 creds,
-                SyncMode.RELOAD_QUEUED
-            );
+                SyncMode.RELOAD_QUEUED,
+                false);
 
         String issRes = registerIssuesAndNotifyLater(failures, backgroundOpsCreds);
 

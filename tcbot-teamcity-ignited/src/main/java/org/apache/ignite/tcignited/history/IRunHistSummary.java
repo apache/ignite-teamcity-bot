@@ -14,25 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.ignite.ci.analysis;
-
-import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
-import org.apache.ignite.tcignited.history.IRunHistory;
+package org.apache.ignite.tcignited.history;
 
 /**
- * Multiple test occurrence. For single build context - max 1 failure
+ *
  */
-public interface IMultTestOccurrence {
-    public String getName();
+public interface IRunHistSummary {
+    /**
+     *
+     */
+    public float getFailRate();
 
-    public boolean isInvestigated();
-
-    public int failuresCount();
-
-    public long getAvgDurationMs();
-
-    Iterable<TestOccurrenceFull> getOccurrences();
-
-    String getPossibleBlockerComment(IRunHistory baseBranchStat);
+    /**
+     *
+     */
+    public boolean isFlaky();
 }

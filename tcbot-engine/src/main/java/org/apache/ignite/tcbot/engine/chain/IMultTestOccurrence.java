@@ -15,13 +15,22 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.analysis.mode;
+package org.apache.ignite.tcbot.engine.chain;
 
-public enum LatestRebuildMode {
-    /** None rebuilds are applied. */
-    NONE,
-    /** replace builds with Latest rebuild. */
-    LATEST,
-    /** Collect history of builds. Rebuilds are applied, but have higher priority. */
-    ALL
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
+import org.apache.ignite.tcignited.history.IRunHistory;
+
+/**
+ * Multiple test occurrence. For single build context - max 1 failure
+ */
+public interface IMultTestOccurrence {
+    public String getName();
+
+    public boolean isInvestigated();
+
+    public int failuresCount();
+
+    public long getAvgDurationMs();
+
+    Iterable<TestOccurrenceFull> getOccurrences();
 }

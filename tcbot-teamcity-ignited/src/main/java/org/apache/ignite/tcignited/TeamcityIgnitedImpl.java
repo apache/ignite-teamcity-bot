@@ -18,31 +18,58 @@ package org.apache.ignite.tcignited;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.io.File;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildConditionDao;
-import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
-import org.apache.ignite.tcignited.buildref.BuildRefDao;
-import org.apache.ignite.tcignited.buildref.BuildRefSync;
-import org.apache.ignite.ci.teamcity.ignited.buildtype.*;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeDao;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefDao;
+import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeSync;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProactiveFatBuildSync;
-import org.apache.ignite.ci.teamcity.ignited.mute.MuteDao;
-import org.apache.ignite.ci.teamcity.ignited.mute.MuteSync;
-import org.apache.ignite.tcignited.history.RunHistCompactedDao;
-import org.apache.ignite.tcignited.history.RunHistSync;
+import org.apache.ignite.tcignited.mute.MuteDao;
+import org.apache.ignite.tcignited.mute.MuteSync;
+import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
+import org.apache.ignite.tcignited.build.FatBuildDao;
+import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
+import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
+import org.apache.ignite.tcignited.buildref.BuildRefDao;
+import org.apache.ignite.tcignited.buildref.BuildRefSync;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
+import org.apache.ignite.tcignited.history.RunHistCompactedDao;
+import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.ITeamcityConn;
 import org.apache.ignite.tcservice.model.agent.Agent;
@@ -52,16 +79,6 @@ import org.apache.ignite.tcservice.model.mute.MuteInfo;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import java.io.File;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import static org.apache.ignite.tcservice.model.hist.BuildRef.STATUS_UNKNOWN;
 
@@ -348,9 +365,21 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (stateQueuedId == null)
             return Collections.emptyList();
 
-        List<BuildRefCompacted> builds = buildRefDao.getBuildsForBranch(srvIdMaskHigh, branchForQuery(branchName));
+        Set<Integer> branchNameIds = branchForQuery(branchName).stream().map(str -> compactor.getStringIdIfPresent(str))
+            .filter(Objects::nonNull).collect(Collectors.toSet());
 
-        return builds.stream().filter(b -> b.state() == stateQueuedId).collect(Collectors.toList());
+        List<BuildRefCompacted> res = new ArrayList<>();
+
+        branchNameIds.forEach(br -> {
+            List<BuildRefCompacted> builds = buildRefDao.getBuildsForBranch(srvIdMaskHigh, br);
+
+            if(builds.isEmpty())
+                return;
+
+            builds.stream().filter(buildRef -> buildRef.state() == stateQueuedId).forEach(res::add);
+        });
+
+        return res;
     }
 
 
@@ -378,7 +407,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             .collect(Collectors.toList());
 
         if (chains.isEmpty()) {
-            // probably there are no not-cacelled builds at all
+            // probably there are no not-cacelled builds at all, check for cancelled
             chains = hist.stream()
                 .filter(ref -> !ref.isFakeStub())
                 .filter(t -> t.isFinished(compactor))
@@ -403,6 +432,34 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @AutoProfiling
     @Override public IRunHistory getSuiteRunHist(String suiteId, @Nullable String branch){
         return runHistCompactedDao.getSuiteRunHist(srvIdMaskHigh, suiteId, branch);
+    }
+
+    @Nullable @Override
+    public IRunHistory getTestRunHist(int testName, @Nullable Integer suiteName, @Nullable Integer branchName) {
+        if (suiteName == null || branchName == null)
+            return null;
+
+        Supplier<Set<Integer>> supplier = () -> {
+            String btId = compactor.getStringFromId(suiteName);
+            String branchId = compactor.getStringFromId(branchName);
+            List<BuildRefCompacted> compacted = getAllBuildsCompacted(btId, branchId);
+            long curTs = System.currentTimeMillis();
+            Set<Integer> buildIds = compacted.stream().filter(
+                bRef -> {
+                    Long startTime = getBuildStartTime(bRef.id());
+                    if (startTime == null)
+                        return false;
+
+                    return Duration.ofMillis(curTs - startTime).toDays() < InvocationData.MAX_DAYS;
+                }
+            ).map(BuildRefCompacted::id).collect(Collectors.toSet());
+
+            System.err.println("Build " + btId + " branch " + branchId + " builds in scope " + buildIds.size());
+
+            return buildIds;
+        };
+
+        return fatBuildDao.getTestRunHist(srvIdMaskHigh, supplier, testName, suiteName, branchName);
     }
 
     /** {@inheritDoc} */
@@ -511,16 +568,17 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return buildStartTime != null ? new Date(buildStartTime) : null;
     }
 
-    @GuavaCached(maximumSize = 2000, cacheNullRval = false)
+    @GuavaCached(maximumSize = 5000, cacheNullRval = false)
     @AutoProfiling
     public Long getBuildStartTs(int buildId) {
-        Long buildStartTime = runHistCompactedDao.getBuildStartTime(srvIdMaskHigh, buildId);
+        Long buildStartTime = getBuildStartTime(buildId);
         if (buildStartTime != null)
             return buildStartTime;
 
-        String msg = "Loading build [" + buildId + "] start date";
-
-        logger.info(msg);
+        if(logger.isDebugEnabled()) {
+            String msg = "Loading build [" + buildId + "] start date";
+            logger.debug(msg);
+        }
 
         FatBuildCompacted highBuild = getFatBuild(buildId, SyncMode.LOAD_NEW);
         if (highBuild == null || highBuild.isFakeStub())
@@ -529,6 +587,11 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         long ts = highBuild.getStartDateTs();
 
         return ts > 0 ? ts : null;
+    }
+
+    @GuavaCached(maximumSize = 100000, expireAfterAccessSecs = 90, softValues = true)
+    public Long getBuildStartTime(int buildId) {
+        return runHistCompactedDao.getBuildStartTime(srvIdMaskHigh, buildId);
     }
 
     /** {@inheritDoc} */

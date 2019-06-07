@@ -21,9 +21,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Inject;
 
-import org.apache.ignite.ci.analysis.FullChainRunCtx;
-import org.apache.ignite.ci.analysis.mode.LatestRebuildMode;
-import org.apache.ignite.ci.analysis.mode.ProcessLogsMode;
+import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
+import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
+import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
@@ -63,7 +63,8 @@ public class TrackedBranchChainsProcessor {
         @Nullable Boolean checkAllLogs,
         int buildResMergeCnt,
         ITcBotUserCreds creds,
-        SyncMode syncMode) {
+        SyncMode syncMode,
+        boolean calcTrustedTests) {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -75,18 +76,20 @@ public class TrackedBranchChainsProcessor {
         tracked.chains.stream()
             .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverId, creds))
             .map(chainTracked -> {
-                final String srvId = chainTracked.serverId;
+                final String srvCode = chainTracked.serverId;
 
                 final String branchForTc = chainTracked.getBranchForRestMandatory();
 
                 //branch is tracked, so fail rate should be taken from this branch data (otherwise it is specified).
                 final String baseBranchTc = chainTracked.getBaseBranchForTc().orElse(branchForTc);
 
-                final ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvId, branchForTc);
+                ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCode, creds);
+
+                ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvCode,
+                    tcIgnited.serverCode(),
+                    branchForTc);
 
                 chainStatus.baseBranchForTc = baseBranchTc;
-
-                ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, creds);
 
                 String suiteIdMandatory = chainTracked.getSuiteIdMandatory();
 
@@ -116,7 +119,7 @@ public class TrackedBranchChainsProcessor {
                 if (cnt > 0)
                     runningUpdates.addAndGet(cnt);
 
-                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor);
+                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests);
 
                 return chainStatus;
             })

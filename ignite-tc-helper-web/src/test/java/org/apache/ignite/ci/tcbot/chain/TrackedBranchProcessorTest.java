@@ -117,8 +117,8 @@ public class TrackedBranchProcessorTest {
         TestFailuresSummary failures = tbProc.getTrackedBranchTestFailures(BRACH_NAME,
             false,
             1,
-            mock, SyncMode.RELOAD_QUEUED
-        );
+            mock, SyncMode.RELOAD_QUEUED,
+            false);
 
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         System.out.println(gson.toJson(failures));

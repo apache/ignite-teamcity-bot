@@ -38,7 +38,7 @@ import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcbot.persistence.IgniteStringCompactor;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildDao;
+import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.history.RunHistCompactedDao;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.tcservice.util.XmlUtil;

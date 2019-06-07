@@ -39,12 +39,12 @@ public class RunHistKey {
 
     /**
      * @param srvId Server id.
-     * @param testName Test or suite name.
+     * @param testOrSuiteName Test or suite name.
      * @param branchName Branch name.
      */
-    public RunHistKey(int srvId, int testName, int branchName) {
+    public RunHistKey(int srvId, int testOrSuiteName, int branchName) {
         this.srvId = srvId;
-        this.testOrSuiteName = testName;
+        this.testOrSuiteName = testOrSuiteName;
         this.branch = branchName;
     }
 

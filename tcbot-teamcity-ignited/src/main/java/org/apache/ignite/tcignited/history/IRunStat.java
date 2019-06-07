@@ -24,7 +24,8 @@ public interface IRunStat {
     public int getFailuresCount();
 
     /**
-     * @return fail rate as float.
+     * Recent runs fail rate.
+     * @return fail rate as float: 0.0...1.0
      */
     public default float getFailRate() {
         int runs = getRunsCount();

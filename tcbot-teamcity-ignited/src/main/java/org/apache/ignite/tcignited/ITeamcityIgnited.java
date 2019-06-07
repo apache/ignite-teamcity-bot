@@ -204,6 +204,16 @@ public interface ITeamcityIgnited {
 
     @Nullable public IRunHistory getSuiteRunHist(String suiteId, @Nullable String branch);
 
+
+    /**
+     * V.3.0 run history implementation based on scan of fat builds.
+     *
+     * @param testName Test name.
+     * @param suiteName Suite name.
+     * @param branchName Branch name.
+     */
+    @Nullable public IRunHistory getTestRunHist(int testName, @Nullable Integer suiteName, @Nullable Integer branchName);
+
     /**
      * @param suiteBuildTypeId Suite id.
      * @return run statistics of recent runls on all branches.

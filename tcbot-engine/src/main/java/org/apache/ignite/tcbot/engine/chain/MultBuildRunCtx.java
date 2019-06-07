@@ -15,30 +15,39 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.analysis;
+package org.apache.ignite.tcbot.engine.chain;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
-import org.apache.ignite.ci.util.CollectionUtil;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.util.CollectionUtil;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.buildlog.ILogCheckResult;
 import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import javax.annotation.Nonnull;
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Run configuration execution results loaded from different API URLs. Includes tests and problem occurrences; if logs
@@ -47,10 +56,12 @@ import java.util.stream.Stream;
 public class MultBuildRunCtx implements ISuiteResults {
     /** Cancelled. */
     public static final String CANCELLED = "CANCELLED";
+    public static final int LOG_CONSUMER_BORDER_BYTES = 1024 * 1024;
 
     /** First build info. */
     @Nonnull private final BuildRef firstBuildInfo;
 
+    /** String Compactor. */
     private IStringCompactor compactor;
 
     /** Builds: Single execution. */
@@ -109,8 +120,25 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().allMatch(bCtx -> !bCtx.isComposite() && bCtx.isCancelled());
     }
 
-    @NotNull public Stream<ProblemCompacted> allProblemsInAllBuilds() {
+    @Nonnull public Stream<ProblemCompacted> allProblemsInAllBuilds() {
         return buildsStream().flatMap(SingleBuildRunCtx::getProblemsStream);
+    }
+
+
+    /**
+     * @param problemCode Problem code.
+     * @return count of builds having particular problem type
+     */
+    public long buildsCntHavingBuildProblem(String problemCode) {
+        int problemCodeId = compactor.getStringId(problemCode);
+        int cnt = 0;
+
+        for (SingleBuildRunCtx ctx : builds) {
+            if (ctx.hasBuildProblemType(problemCodeId))
+                cnt++;
+        }
+
+        return cnt;
     }
 
     public List<SingleBuildRunCtx> getBuilds() {
@@ -155,7 +183,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public long getJvmCrashProblemCount() {
-        return buildsStream().filter(ISuiteResults::hasJvmCrashProblem).count();
+        return buildsCntHavingBuildProblem(ProblemOccurrence.TC_JVM_CRASH);
     }
 
     public boolean hasOomeProblem() {
@@ -178,7 +206,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return (int)getFailedTestsNames().count();
     }
 
-    @NotNull public Stream<String> getFailedTestsNames() {
+    @Nonnull public Stream<String> getFailedTestsNames() {
         return buildsStream().flatMap(SingleBuildRunCtx::getFailedNotMutedTestNames).distinct();
     }
 
@@ -264,9 +292,8 @@ public class MultBuildRunCtx implements ISuiteResults {
                     (testName, logCheckResult) -> {
                         //todo may be it is better to find   avg
                         long bytes = (long)logCheckResult.getLogSizeBytes();
-                        if (bytes > 1024 * 1024) {
+                        if (bytes > LOG_CONSUMER_BORDER_BYTES)
                             logSizeBytes.merge(testName, bytes, Math::max);
-                        }
                     }
                 );
             });
@@ -309,7 +336,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return firstBuildInfo.getId();
     }
 
-    boolean isFailed() {
+    public boolean isFailed() {
         return failedTests() != 0 || hasAnyBuildProblemExceptTestOrSnapshot() || onlyCancelledBuilds();
     }
 
@@ -468,7 +495,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().map(SingleBuildRunCtx::getLogCheckIfFinished).filter(Objects::nonNull);
     }
 
-    public Set<String> tags() {
+    @Nonnull public Set<String> tags() {
         return buildsStream().flatMap(b -> b.tags().stream()).collect(Collectors.toSet());
     }
 
@@ -478,7 +505,7 @@ public class MultBuildRunCtx implements ISuiteResults {
      * @param baseBranchHist Base branch history for suite.
      * @param tcSrvCfg
      */
-    @NotNull public String getPossibleBlockerComment(@Nonnull IStringCompactor compactor,
+    @Nonnull public String getPossibleBlockerComment(@Nonnull IStringCompactor compactor,
         @Nullable IRunHistory baseBranchHist,
         @Nonnull ITcServerConfig tcSrvCfg) {
         StringBuilder res = new StringBuilder();
@@ -560,4 +587,44 @@ public class MultBuildRunCtx implements ISuiteResults {
 
         return res;
     }
+
+    public boolean hasCriticalProblem() {
+        return hasJvmCrashProblem()
+            || hasTimeoutProblem()
+            || hasCompilationProblem()
+            || hasMetricProblem();
+    }
+
+    public Integer totalTests() {
+        return (int)buildsStream().mapToInt(SingleBuildRunCtx::totalNotMutedTests).average().orElse(0.0);
+    }
+
+    public Integer trustedTests(ITeamcityIgnited tcIgnited,
+        String normalizedBaseBranch) {
+
+        AtomicInteger trustedCnt = new AtomicInteger();
+        Map<Integer, TestCompactedMult> res = new HashMap<>();
+
+        //todo can cache mult occurrences in ctx
+        builds.forEach(singleBuildRunCtx -> {
+            saveToMap(res, singleBuildRunCtx.getAllTests()
+                .filter(t -> !t.isIgnoredTest() && !t.isMutedTest()));
+        });
+        Integer branchName = compactor.getStringIdIfPresent(normalizedBaseBranch);
+        Integer suiteName = compactor.getStringIdIfPresent( buildTypeId());
+
+        // res.clear(); //todo enable feature back
+
+        //todo can cache fail rate in mult occur
+        res.keySet().forEach((testNameId) -> {
+            IRunHistory stat = tcIgnited.getTestRunHist(testNameId, suiteName, branchName);
+            String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
+            boolean b = testBlockerComment != null;
+            if (b) // this test will be considered as blocker if will fail
+                trustedCnt.addAndGet(1);
+        });
+
+        return trustedCnt.get();
+    }
+
 }

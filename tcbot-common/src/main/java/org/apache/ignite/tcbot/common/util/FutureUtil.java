@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.util;
+package org.apache.ignite.tcbot.common.util;
 
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
@@ -23,10 +23,11 @@ import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Async computation util.
@@ -89,7 +90,7 @@ public class FutureUtil {
      * @param listBuilds Futures to get builds.
      * @return Stream with builds.
      */
-    @NotNull public static <V> Stream<V> getResults(Collection<Future<V>> listBuilds) {
+    @Nonnull public static <V> Stream<V> getResults(Collection<Future<V>> listBuilds) {
         return listBuilds.stream().map(FutureUtil::getResult);
     }
 }

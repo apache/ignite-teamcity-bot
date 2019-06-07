@@ -20,6 +20,8 @@ package org.apache.ignite.ci.teamcity.ignited.mute;
 import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcservice.model.mute.MuteAssignment;
 import org.apache.ignite.tcservice.model.mute.MuteInfo;
 import org.apache.ignite.tcservice.model.mute.MuteTarget;
@@ -31,6 +33,7 @@ import org.apache.ignite.internal.util.typedef.F;
 /**
  * @see MuteInfo
  */
+@Persisted
 public class MuteInfoCompacted {
     /** Mute id. */
     int id;
@@ -54,7 +57,7 @@ public class MuteInfoCompacted {
      * @param mute Mute to compact.
      * @param comp Compactor.
      */
-    MuteInfoCompacted(MuteInfo mute, IStringCompactor comp) {
+    public MuteInfoCompacted(MuteInfo mute, IStringCompactor comp) {
         id = mute.id;
 
         muteDate = TimeUtil.tcSimpleDateToTimestamp(mute.assignment.muteDate);
@@ -125,5 +128,9 @@ public class MuteInfoCompacted {
     /** {@inheritDoc} */
     @Override public int hashCode() {
         return Objects.hashCode(id);
+    }
+
+    public int id() {
+        return id;
     }
 }

@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.teamcity.ignited.fatbuild;
+package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import java.util.stream.Stream;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
@@ -94,7 +95,7 @@ public class ProactiveFatBuildSync {
 
     /**
      * Invoke load fat builds later, re-load provided builds.
-     * @param conn
+     * @param conn TC server connection.
      * @param buildsToAskFromTc Builds to ask from tc.
      */
     public void scheduleBuildsLoad(ITeamcityConn conn, Collection<Integer> buildsToAskFromTc) {

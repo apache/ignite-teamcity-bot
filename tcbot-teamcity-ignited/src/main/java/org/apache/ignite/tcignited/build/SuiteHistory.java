@@ -15,30 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.issue;
+package org.apache.ignite.tcignited.build;
 
-import java.util.stream.Stream;
-import org.apache.ignite.ci.issue.Issue;
-import org.apache.ignite.ci.issue.IssueKey;
+import java.util.HashMap;
+import java.util.Map;
 
-public interface IIssuesStorage {
-    /**
-     * Determines if the storage contains an entry for the specified issue key.
-     *
-     * @param issueKey Issue to be checked.
-     * @return true if issue
-     */
-    public boolean containsIssueKey(IssueKey issueKey);
+import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
+import org.apache.ignite.internal.binary.BinaryObjectExImpl;
 
-    public void saveIssue(Issue issue);
+public class SuiteHistory {
+    /** Tests history: Test name ID->RunHistory */
+    Map<Integer, RunHistCompacted> testsHistory = new HashMap<>();
 
-    public Stream<Issue> allIssues();
-
-    /**
-     * Checks and saves address was notified (NotThreadSafe)
-     * @param key issue key.
-     * @param addr Address to register as notified.
-     * @return update successful. This address was not notified before.
-     */
-    public boolean setNotified(IssueKey key, String addr);
+    public int size(Ignite ignite) {
+        BinaryObjectExImpl binary = ignite.binary().toBinary(this);
+        return binary.length();
+    }
 }
