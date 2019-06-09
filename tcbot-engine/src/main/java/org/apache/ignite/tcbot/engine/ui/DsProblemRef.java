@@ -18,7 +18,7 @@
 package org.apache.ignite.tcbot.engine.ui;
 
 /**
- * Reference to some Issue with current suite or test detected by the Bot.
+ * Detailed status of failures: Reference to some Issue with current suite or test detected by the Bot.
  * Currently contains only display name.
  */
 public class DsProblemRef {

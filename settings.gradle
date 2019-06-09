@@ -1,6 +1,6 @@
 include 'ignite-tc-helper-web'
 include 'jetty-launcher'
-include 'tcbot-server'
+include 'tcbot-server-node'
 include 'tcbot-common'
 include 'tcbot-persistence'
 include 'tcbot-teamcity'
