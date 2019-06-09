@@ -17,15 +17,11 @@
 
 package org.apache.ignite.ci.tcbot.issue;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import org.apache.ignite.ci.issue.Issue;
-import org.apache.ignite.tcbot.common.util.TimeUtil;
 import org.apache.ignite.ci.web.model.Version;
+import org.apache.ignite.tcbot.common.util.TimeUtil;
+
+import java.util.*;
 
 import static org.apache.ignite.ci.web.model.Version.GITHUB_REF;
 
@@ -82,6 +78,11 @@ public class Notification {
         return sb.toString();
     }
 
+    public boolean involvesChange() {
+        return buildIdToIssue.values().stream().flatMap(Collection::stream)
+                .anyMatch(issue -> !issue.changes.isEmpty());
+    }
+
     public String toPlainText() {
         StringBuilder sb = new StringBuilder();
 
@@ -107,17 +108,39 @@ public class Notification {
     }
 
     private String messageHeaderHtml() {
-        return "Hi Igniters,<br><br>" +
-            " " + DETECTED_ISSUE + "<br><br>" +
-            " " + IF_YOUR_CHANGES + "<br>" +
-            " " + YOUR_ACTION + "<br><br>";
+        StringBuilder res = new StringBuilder();
+        res.append("Hi Igniters,<br><br>");
+        res.append(" ");
+        res.append(DETECTED_ISSUE);
+        res.append("<br><br>");
+
+        if (involvesChange()) {
+            res.append(" ");
+            res.append(IF_YOUR_CHANGES);
+            res.append("<br>");
+            res.append(" ");
+            res.append(YOUR_ACTION);
+            res.append("<br><br>");
+        }
+        return res.toString();
     }
 
     private String messageHeaderPlainText() {
-        return "Hi Igniters,\n\n" +
-            " " + DETECTED_ISSUE + "\n\n" +
-            " " + IF_YOUR_CHANGES + "\n" +
-            " " + YOUR_ACTION + "\n\n";
+        StringBuilder res = new StringBuilder();
+        res.append("Hi Igniters,\n\n");
+        res.append(" ");
+        res.append(DETECTED_ISSUE);
+        res.append("\n\n");
+        if (involvesChange()) {
+            res.append(" ");
+            res.append(IF_YOUR_CHANGES);
+            res.append("\n");
+            res.append(" ");
+            res.append(YOUR_ACTION);
+            res.append("\n\n");
+        }
+
+        return res.toString();
     }
 
     private String messageTailPlainText() {

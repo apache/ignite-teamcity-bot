@@ -43,7 +43,7 @@ public class NotificationsConfig {
     /** Channels to send notifications to. */
     private List<NotificationChannel> channels = new ArrayList<>();
 
-    @NotNull public static NotificationsConfig backwardConfig() {
+    @NotNull static NotificationsConfig backwardConfig() {
         Properties cfgProps = HelperConfig.loadEmailSettings();
 
         NotificationsConfig cfg = new NotificationsConfig();
@@ -61,6 +61,7 @@ public class NotificationsConfig {
             ch.subscribe(TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME);
             cfg.channels.add(ch);
         }
+
         return cfg;
     }
 
