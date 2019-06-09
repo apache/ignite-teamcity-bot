@@ -21,13 +21,13 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Inject;
 
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
-import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
@@ -68,20 +68,20 @@ public class TrackedBranchChainsProcessor {
         final TestFailuresSummary res = new TestFailuresSummary();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
-        final String branchNn = isNullOrEmpty(branch) ? TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
+        final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
         res.setTrackedBranch(branchNn);
 
-        final BranchTracked tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
+        final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
 
-        tracked.chains.stream()
-            .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverId, creds))
+        tracked.chainsStream()
+            .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
             .map(chainTracked -> {
-                final String srvCode = chainTracked.serverId;
+                final String srvCode = chainTracked.serverCode();
 
-                final String branchForTc = chainTracked.getBranchForRestMandatory();
+                final String branchForTc = chainTracked.tcBranch();
 
                 //branch is tracked, so fail rate should be taken from this branch data (otherwise it is specified).
-                final String baseBranchTc = chainTracked.getBaseBranchForTc().orElse(branchForTc);
+                final String baseBranchTc = chainTracked.tcBaseBranch().orElse(branchForTc);
 
                 ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCode, creds);
 
@@ -91,7 +91,7 @@ public class TrackedBranchChainsProcessor {
 
                 chainStatus.baseBranchForTc = baseBranchTc;
 
-                String suiteIdMandatory = chainTracked.getSuiteIdMandatory();
+                String suiteIdMandatory = chainTracked.tcSuiteId();
 
                 List<Integer> chains = tcIgnited.getLastNBuildsFromHistory(suiteIdMandatory, branchForTc, buildResMergeCnt);
 
@@ -143,19 +143,19 @@ public class TrackedBranchChainsProcessor {
         ITcBotUserCreds creds) {
         FullLRTestsSummary summary = new FullLRTestsSummary();
 
-        final String branchNn = isNullOrEmpty(branch) ? TcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
-        final BranchTracked tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
+        final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
+        final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);
 
-        tracked.chains.stream()
-            .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverId, creds))
+        tracked.chainsStream()
+            .filter(chainTracked -> tcIgnitedProv.hasAccess(chainTracked.serverCode(), creds))
             .map(chainTracked -> {
-                final String srvId = chainTracked.serverId;
+                final String srvId = chainTracked.serverCode();
 
-                final String branchForTc = chainTracked.getBranchForRestMandatory();
+                final String branchForTc = chainTracked.tcBranch();
 
                 ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, creds);
 
-                List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(chainTracked.getSuiteIdMandatory(), branchForTc, 1);
+                List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(chainTracked.tcSuiteId(), branchForTc, 1);
 
                 return chainProc.loadLongRunningTestsSummary(tcIgnited, hist);
             })

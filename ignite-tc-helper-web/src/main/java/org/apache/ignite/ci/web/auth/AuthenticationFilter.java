@@ -43,7 +43,7 @@ import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
 import org.apache.ignite.ci.user.UserSession;
 import org.apache.ignite.tcbot.common.util.Base64Util;
-import org.apache.ignite.ci.util.CryptUtil;
+import org.apache.ignite.tcbot.common.util.CryptUtil;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;

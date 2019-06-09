@@ -31,12 +31,13 @@ import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
-import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
-import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
-import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.TcBotJsonConfig;
+import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
+import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
-import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
+import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 import org.apache.ignite.ci.tcbot.conf.TcServerConfig;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
@@ -44,7 +45,7 @@ import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
 import org.mockito.Mockito;
@@ -59,9 +60,9 @@ import static org.mockito.Mockito.when;
  * Setup TC bot context with Ignited services mocks: - TC: {@link TeamcityIgnitedProviderMock}
  */
 public class MockBasedTcBotModule extends AbstractModule {
-    private BranchesTracked tracked = new BranchesTracked();
+    private TcBotJsonConfig tracked = new TcBotJsonConfig();
 
-    public MockBasedTcBotModule(BranchesTracked tracked) {
+    public MockBasedTcBotModule(TcBotJsonConfig tracked) {
         this.tracked = tracked;
     }
 
@@ -94,7 +95,7 @@ public class MockBasedTcBotModule extends AbstractModule {
             }
 
             @Override
-            public BranchesTracked getTrackedBranches() {
+            public ITrackedBranchesConfig getTrackedBranches() {
                 return tracked;
             }
 
@@ -128,7 +129,7 @@ public class MockBasedTcBotModule extends AbstractModule {
             }
         };
         bind(ITcBotConfig.class).toInstance(cfg);
-        bind(ITcServerConfigSupplier.class).toInstance(cfg);
+        bind(IDataSourcesConfigSupplier.class).toInstance(cfg);
 
         bind(IIssuesStorage.class).toInstance(Mockito.mock(IIssuesStorage.class));
         bind(IUserStorage.class).toInstance(Mockito.mock(IUserStorage.class));

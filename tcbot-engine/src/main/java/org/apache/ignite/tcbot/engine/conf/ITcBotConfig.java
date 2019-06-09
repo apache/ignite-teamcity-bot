@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.conf;
+package org.apache.ignite.tcbot.engine.conf;
 
+import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
+import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Teamcity Bot configuration access interface.
  */
-public interface ITcBotConfig extends ITcServerConfigSupplier {
+public interface ITcBotConfig extends IDataSourcesConfigSupplier {
     /** Default server code. */
     public String DEFAULT_SERVER_CODE = "apache";
 
@@ -35,17 +36,10 @@ public interface ITcBotConfig extends ITcServerConfigSupplier {
     /**
      * @return Tracked branches configuration for TC Bot.
      */
-    public BranchesTracked getTrackedBranches();
+    public ITrackedBranchesConfig getTrackedBranches();
 
     /**
-     * @return list of internal TC Bot identifiers of all tracked branches.
-     */
-    public default List<String> getTrackedBranchesIds() {
-        return getTrackedBranches().getIds();
-    }
-
-    /**
-     * @return list of servers (services) identifiers involved into tracked branhes processing.
+     * @return list of servers (services) identifiers involved into tracked branches processing.
      */
     public default Collection<String> getServerIds() {
         return getTrackedBranches().getServerIds();

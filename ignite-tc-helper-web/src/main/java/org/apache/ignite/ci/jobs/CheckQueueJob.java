@@ -17,33 +17,31 @@
 
 package org.apache.ignite.ci.jobs;
 
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import javax.inject.Inject;
-import org.apache.ignite.ci.tcbot.conf.BranchTracked;
-import org.apache.ignite.ci.tcbot.conf.ChainAtServerTracked;
+import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.user.ITcBotUserCreds;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
+import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcservice.model.agent.Agent;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcservice.model.result.Triggered;
 import org.apache.ignite.tcservice.model.user.User;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
+import java.text.MessageFormat;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Trigger build if half of agents are available and there is no self-triggered builds in build queue.
@@ -72,7 +70,7 @@ public class CheckQueueJob implements Runnable {
     @Inject private ITcBotConfig cfg;
 
     /** */
-    private final Map<ChainAtServerTracked, Long> startTimes = new HashMap<>();
+    private final Map<ITrackedChain, Long> startTimes = new HashMap<>();
 
     /**
      * @param creds Background credentials provider.
@@ -104,25 +102,23 @@ public class CheckQueueJob implements Runnable {
             return msg;
         }
 
-        List<BranchTracked> tracked = cfg.getTrackedBranches().getBranches();
+        Stream<ITrackedBranch> tracked = cfg.getTrackedBranches().branchesStream();
 
-        if (tracked == null || tracked.isEmpty()) {
+        int srvsChecked = 0, chainsChecked = 0;
+
+        Map<String, List<ITrackedChain>> chainsBySrv = mapChainsByServer(tracked);
+        if (chainsBySrv.isEmpty()) {
             final String msg = "Background check queue skipped - no config set for tracked branches.";
             logger.info(msg);
 
             return msg;
         }
+        for (Map.Entry<String, List<ITrackedChain>> entry : chainsBySrv.entrySet()) {
+            String srvCode = entry.getKey();
 
-        int srvsChecked = 0, chainsChecked = 0;
-
-        Map<String, List<ChainAtServerTracked>> chainsBySrv = mapChainsByServer(tracked);
-
-        for (Map.Entry<String, List<ChainAtServerTracked>> entry : chainsBySrv.entrySet()) {
-            String srvId = entry.getKey();
-
-            List<ChainAtServerTracked> chainsAll = entry.getValue();
-            List<ChainAtServerTracked> chains = chainsAll.stream()
-                    .filter(c -> Objects.equals(c.serverId, srvId))
+            List<ITrackedChain> chainsAll = entry.getValue();
+            List<ITrackedChain> chains = chainsAll.stream()
+                    .filter(c -> Objects.equals(c.serverCode(), srvCode))
                     .collect(Collectors.toList());
 
             srvsChecked++;
@@ -130,7 +126,7 @@ public class CheckQueueJob implements Runnable {
             chainsChecked += chainsAll.size();
 
             try {
-                checkQueue(srvId, chains);
+                checkQueue(srvCode, chains);
             }
             catch (Exception e) {
                 logger.error("Unable to check queue: " + e.getMessage(), e);
@@ -149,9 +145,7 @@ public class CheckQueueJob implements Runnable {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @AutoProfiling
     @MonitoredTask(name = "Check Server Queue", nameExtArgIndex = 0)
-    protected String checkQueue(String srvId,
-        List<ChainAtServerTracked> chains) {
-
+    protected String checkQueue(String srvId, List<ITrackedChain> chains) {
         ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvId, creds);
 
         List<Agent> agents = tcIgn.agents(true, true);
@@ -180,13 +174,13 @@ public class CheckQueueJob implements Runnable {
 
         StringBuilder res = new StringBuilder();
 
-        for (ChainAtServerTracked chain : chains) {
-            if(!Objects.equals(chain.serverId, srvId))
+        for (ITrackedChain chain : chains) {
+            if(!Objects.equals(chain.serverCode(), srvId))
                 continue;
 
             boolean trigger = true;
 
-            List<BuildRefCompacted> buildsForBr = tcIgn.getQueuedBuildsCompacted(chain.branchForRest);
+            List<BuildRefCompacted> buildsForBr = tcIgn.getQueuedBuildsCompacted(chain.tcBranch());
 
             for (BuildRefCompacted refComp : buildsForBr) {
                 Integer buildId = refComp.getId();
@@ -217,7 +211,7 @@ public class CheckQueueJob implements Runnable {
                     final String msg
                             = MessageFormat.format("Queued build {0} was early triggered " +
                             "(user {1}, branch {2}, suite {3})." +
-                            " Will not start Ignite build.", buildId, login, chain.branchForRest, build.buildTypeId);
+                            " Will not start Ignite build.", buildId, login, chain.tcBranch(), build.buildTypeId);
 
                     logger.info(msg);
 
@@ -233,7 +227,7 @@ public class CheckQueueJob implements Runnable {
                 continue;
 
             long curr = System.currentTimeMillis();
-            long delay = chain.getTriggerBuildQuietPeriod();
+            long delay = chain.triggerBuildQuietPeriod();
 
             if (delay > 0) {
                 Long lastStart = startTimes.get(chain);
@@ -245,8 +239,8 @@ public class CheckQueueJob implements Runnable {
 
                     final String msg = MessageFormat.format("Skip triggering build, timeout has not expired " +
                                     "(server={0}, suite={1}, branch={2}, delay={3} mins, passed={4} mins)",
-                            chain.getServerId(), chain.getSuiteIdMandatory(), chain.getBranchForRestMandatory(),
-                            chain.getTriggerBuildQuietPeriod(), minsPassed);
+                            chain.serverCode(), chain.tcSuiteId(), chain.tcBranch(),
+                            chain.triggerBuildQuietPeriod(), minsPassed);
                     logger.info(msg);
 
                     res.append(msg).append("; ");
@@ -257,10 +251,10 @@ public class CheckQueueJob implements Runnable {
 
             startTimes.put(chain, curr);
 
-            Map<String, Object> parms = chain.buildParameters();
-            tcIgn.triggerBuild(chain.suiteId, chain.branchForRest(), true, false, parms);
+            tcIgn.triggerBuild(chain.tcSuiteId(), chain.tcBranch(), true, false,
+                    chain.generateBuildParameters());
 
-            res.append(chain.branchForRest).append(" ").append(chain.suiteId).append(" triggered; ");
+            res.append(chain.tcBranch()).append(" ").append(chain.tcBranch()).append(" triggered; ");
         }
 
         return res.toString();
@@ -270,32 +264,36 @@ public class CheckQueueJob implements Runnable {
      * @param branchesTracked Tracked branches.
      * @return Mapped chains to server identifier.
      */
-    private Map<String, List<ChainAtServerTracked>> mapChainsByServer(List<BranchTracked> branchesTracked) {
-        Map<String, List<ChainAtServerTracked>> chainsBySrv = new HashMap<>();
+    private Map<String, List<ITrackedChain>> mapChainsByServer(Stream<ITrackedBranch> branchesTracked) {
+        Map<String, List<ITrackedChain>> chainsBySrv = new HashMap<>();
 
-        for(BranchTracked branchTracked: branchesTracked) {
-            for (ChainAtServerTracked chain : branchTracked.getChains()) {
-                String srv = chain.serverId;
+        branchesTracked.flatMap(ITrackedBranch::chainsStream)
+                .filter(chain -> {
+                    String srv = chain.serverCode();
 
-                if (!tcIgnitedProv.hasAccess(srv, creds)) {
-                    logger.warn("Background operations credentials does not grant access to server \"{}\"," +
-                        " build queue trigger will not work.", srv);
+                    if (!tcIgnitedProv.hasAccess(srv, creds)) {
+                        logger.warn("Background operations credentials does not grant access to server \"{}\"," +
+                                " build queue trigger will not work.", srv);
 
-                    continue;
-                }
+                        return false;
+                    }
 
-                if (!chain.isTriggerBuild()) {
-                    logger.info("Build triggering disabled for server={}, suite={}, branch={}",
-                            srv, chain.getSuiteIdMandatory(), chain.getBranchForRestMandatory());
+                    return true;
+                })
+                .filter(chain -> {
+                    if (!chain.triggerBuild()) {
+                        logger.info("Build triggering disabled for server={}, suite={}, branch={}",
+                                chain.serverCode(), chain.tcBranch(), chain.tcBranch());
 
-                    continue;
-                }
+                        return false;
+                    }
+                    return true;
+                })
+                .forEach(chain -> {
+                    logger.info("Checking queue for server {}.", chain.serverCode());
 
-                logger.info("Checking queue for server {}.", srv);
-
-                chainsBySrv.computeIfAbsent(srv, v -> new ArrayList<>()).add(chain);
-            }
-        }
+                    chainsBySrv.computeIfAbsent(chain.serverCode(), v -> new ArrayList<>()).add(chain);
+                });
 
         return chainsBySrv;
     }

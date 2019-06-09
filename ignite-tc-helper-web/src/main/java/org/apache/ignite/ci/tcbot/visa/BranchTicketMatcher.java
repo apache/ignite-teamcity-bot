@@ -25,9 +25,9 @@ import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.jira.ignited.TicketCompacted;
 import org.apache.ignite.ci.jira.pure.Ticket;
-import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
-import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
+import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

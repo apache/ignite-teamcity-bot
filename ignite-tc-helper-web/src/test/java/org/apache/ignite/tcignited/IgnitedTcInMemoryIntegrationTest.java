@@ -28,8 +28,8 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
-import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.ci.tcbot.conf.TcBotJsonConfig;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
@@ -41,7 +41,7 @@ import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.IgniteStringCompactor;
 import org.apache.ignite.tcbot.persistence.TcBotPersistenceModule;
@@ -739,10 +739,10 @@ public class IgnitedTcInMemoryIntegrationTest {
             when(tcCfg.host()).thenReturn("http://ci.ignite.apache.org/");
             when(tcCfg.trustedSuites()).thenReturn(new ArrayList<>());
             when(cfg.getTeamcityConfig(anyString())).thenReturn(tcCfg);
-            when(cfg.getTrackedBranches()).thenReturn(new BranchesTracked());
+            when(cfg.getTrackedBranches()).thenReturn(new TcBotJsonConfig());
 
             bind(ITcBotConfig.class).toInstance(cfg);
-            bind(ITcServerConfigSupplier.class).toInstance(cfg);
+            bind(IDataSourcesConfigSupplier.class).toInstance(cfg);
 
             install(new TcBotPersistenceModule());
         }

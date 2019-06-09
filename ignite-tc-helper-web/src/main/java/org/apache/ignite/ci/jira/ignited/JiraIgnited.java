@@ -21,7 +21,7 @@ import java.util.Set;
 import javax.inject.Inject;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.Ticket;
-import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
+import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 
 /**

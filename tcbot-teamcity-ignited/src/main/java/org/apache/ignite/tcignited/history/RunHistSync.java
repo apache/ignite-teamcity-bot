@@ -37,7 +37,7 @@ import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcservice.ITeamcity;
@@ -78,7 +78,7 @@ public class RunHistSync {
     @Inject private FatBuildDao fatBuildDao;
 
     /** Config. */
-    @Inject private ITcServerConfigSupplier cfg;
+    @Inject private IDataSourcesConfigSupplier cfg;
 
     /** Build to save to history. */
     @GuardedBy("this")

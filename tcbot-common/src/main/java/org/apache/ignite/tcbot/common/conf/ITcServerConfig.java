@@ -26,6 +26,11 @@ import java.util.Collection;
  */
 public interface ITcServerConfig {
     /**
+     * Default tracked branch in case it was not specified.
+     */
+    String DEFAULT_TRACKED_BRANCH_NAME = "master";
+
+    /**
      * @return Another TC Server (service) config name to use settings from. Filled only for server aliases.
      */
     @Nullable

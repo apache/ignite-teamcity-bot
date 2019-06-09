@@ -19,7 +19,7 @@ package org.apache.ignite.ci.jira.pure;
 
 import java.io.IOException;
 import org.apache.ignite.ci.jira.Tickets;
-import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
+import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 
 /**
  * Reperesents methods to provide interaction with Jira servers.

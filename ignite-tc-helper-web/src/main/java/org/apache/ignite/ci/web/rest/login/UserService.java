@@ -32,10 +32,11 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Form;
 import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcservice.login.ITcLogin;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
@@ -47,6 +48,8 @@ import org.apache.ignite.ci.web.model.TcHelperUserUi;
 import org.apache.ignite.ci.web.model.UserMenuResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.stream.Collectors;
 
 
 @Path(UserService.USER)
@@ -118,7 +121,11 @@ public class UserService {
         IUserStorage users = injector.getInstance(IUserStorage.class);
         final TcHelperUser user = users.getUser(login);
 
-        final TcHelperUserUi tcHelperUserUi = new TcHelperUserUi(user, cfg.getTrackedBranchesIds());
+        //todo can filter accessibliity
+        final TcHelperUserUi tcHelperUserUi = new TcHelperUserUi(user,
+                cfg.getTrackedBranches().branchesStream()
+                        .map(ITrackedBranch::name)
+                        .collect(Collectors.toList()) );
 
         //if principal is not null, can do only brief check of credentials.
 

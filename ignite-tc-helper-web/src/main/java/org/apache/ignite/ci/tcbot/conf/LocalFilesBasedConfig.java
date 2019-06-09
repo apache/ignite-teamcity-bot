@@ -19,26 +19,48 @@ package org.apache.ignite.ci.tcbot.conf;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Objects;
 import java.util.Properties;
+
+import com.google.gson.Gson;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
+import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
+import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 
 /**
  *
  */
 public class LocalFilesBasedConfig implements ITcBotConfig {
+    private static TcBotJsonConfig reloadConfig() {
+        final File workDir = TcBotWorkDir.resolveWorkDir();
+        final File file = new File(workDir, "branches.json");
+
+        try (FileReader json = new FileReader(file)) {
+            return new Gson().fromJson(json, TcBotJsonConfig.class);
+        }
+        catch (IOException e) {
+            throw ExceptionUtil.propagateException(e);
+        }
+    }
+
     /** {@inheritDoc} */
     @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)
-    @Override public BranchesTracked getTrackedBranches() {
-        return HelperConfig.getTrackedBranches();
+    protected TcBotJsonConfig getConfig() {
+        return reloadConfig();
     }
 
     /** {@inheritDoc} */
     @Override public ITcServerConfig getTeamcityConfig(String srvCode) {
-        return getTrackedBranches().getTcConfig(srvCode)
+        return getConfig().getTcConfig(srvCode)
             .orElseGet(() -> {
                 TcServerConfig tcCfg = new TcServerConfig();
 
@@ -54,7 +76,7 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
 
     /** {@inheritDoc} */
     @Override public IJiraServerConfig getJiraConfig(String srvCode) {
-        return getTrackedBranches().getJiraConfig(srvCode)
+        return getConfig().getJiraConfig(srvCode)
             .orElseGet(() -> new JiraServerConfig()
                 .code(srvCode)
                 .properties(loadOldAuthProps(srvCode)));
@@ -62,7 +84,7 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
 
     /** {@inheritDoc} */
     @Override public IGitHubConfig getGitConfig(String srvCode) {
-        GitHubConfig cfg = getTrackedBranches().getGitHubConfig(srvCode)
+        GitHubConfig cfg = getConfig().getGitHubConfig(srvCode)
             .orElseGet(() -> new GitHubConfig()
                 .code(srvCode)
                 .properties(loadOldAuthProps(srvCode)));
@@ -74,7 +96,7 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
 
     /** {@inheritDoc} */
     @Override public NotificationsConfig notifications() {
-        NotificationsConfig notifications = getTrackedBranches().notifications();
+        NotificationsConfig notifications = getConfig().notifications();
         if (notifications != null && !notifications.isEmpty())
             return notifications;
 
@@ -83,9 +105,14 @@ public class LocalFilesBasedConfig implements ITcBotConfig {
 
     /** {@inheritDoc} */
     @Override public String primaryServerCode() {
-        String srvCode = getTrackedBranches().primaryServerCode();
+        String srvCode = getConfig().primaryServerCode();
 
         return Strings.isNullOrEmpty(srvCode) ? ITcBotConfig.DEFAULT_SERVER_CODE : srvCode;
+    }
+
+    @Override
+    public ITrackedBranchesConfig getTrackedBranches() {
+        return getConfig();
     }
 
     @GuavaCached(softValues = true, expireAfterWriteSecs = 3 * 60)

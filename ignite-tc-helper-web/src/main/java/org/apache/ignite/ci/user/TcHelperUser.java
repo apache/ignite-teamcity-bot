@@ -28,9 +28,9 @@ import java.util.TreeSet;
 import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
-import org.apache.ignite.ci.tcbot.conf.INotificationChannel;
+import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcservice.model.user.User;
-import org.apache.ignite.ci.util.CryptUtil;
+import org.apache.ignite.tcbot.common.util.CryptUtil;
 
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 

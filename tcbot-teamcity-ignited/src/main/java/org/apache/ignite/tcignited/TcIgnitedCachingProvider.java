@@ -20,7 +20,7 @@ import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcservice.TeamcityServiceConnection;
@@ -39,7 +39,7 @@ class TcIgnitedCachingProvider implements ITeamcityIgnitedProvider {
     @Inject private Provider<TeamcityServiceConnection> srvFactory;
 
     /** Config. */
-    @Inject private ITcServerConfigSupplier cfg;
+    @Inject private IDataSourcesConfigSupplier cfg;
 
     @Inject private Provider<TeamcityIgnitedImpl> provider;
 

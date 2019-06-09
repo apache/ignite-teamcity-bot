@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.ci.github.GitHubBranchShort;
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
+import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;

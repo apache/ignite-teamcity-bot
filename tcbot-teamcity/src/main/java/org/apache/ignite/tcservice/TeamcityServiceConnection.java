@@ -18,9 +18,8 @@
 package org.apache.ignite.tcservice;
 
 import com.google.common.base.Strings;
-import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.exeption.ServiceConflictException;
@@ -77,7 +76,7 @@ public class TeamcityServiceConnection implements ITeamcity {
     /** Teamcity http connection. */
     @Inject private ITeamcityHttpConnection teamcityHttpConn;
 
-    @Inject private ITcServerConfigSupplier cfg;
+    @Inject private IDataSourcesConfigSupplier cfg;
 
     private String srvCode;
 

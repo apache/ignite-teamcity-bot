@@ -20,6 +20,8 @@ import com.google.common.base.Strings;
 import java.util.Properties;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.HelperConfig;
+import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
+import org.apache.ignite.tcbot.common.conf.PasswordEncoder;
 import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Strings.isNullOrEmpty;

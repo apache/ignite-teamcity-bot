@@ -14,17 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcbot.common.conf;
+package org.apache.ignite.tcbot.engine.conf;
 
-import java.util.Collection;
+import javax.annotation.Nonnull;
+import java.util.Map;
+import java.util.Optional;
 
 /**
- * Teamcity build parameter for filtering and for triggering specification.
+ *
  */
-public interface IBuildParameterSpec {
-    String name();
+public interface ITrackedChain {
+    public String serverCode();
 
-    boolean isFilled();
+    public String tcBranch();
 
-    Collection<? extends IParameterValueSpec> selection();
+    @Nonnull public Optional<String> tcBaseBranch();
+
+    /**
+     * @return trigger build quiet period, milliseconds.
+     */
+    public int triggerBuildQuietPeriod();
+
+    @Nonnull
+    public Map<String, Object> generateBuildParameters();
+
+    public String tcSuiteId();
+
+    public boolean triggerBuild();
 }

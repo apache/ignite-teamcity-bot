@@ -50,9 +50,9 @@ import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
-import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
-import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
+import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcservice.model.mute.MuteInfo;
 import org.apache.ignite.tcservice.model.result.Build;
@@ -635,11 +635,11 @@ public class TcBotTriggerAndSignOffService {
         cfg.getTrackedBranches()
             .get(trBranch)
             .ifPresent(
-                b -> b.getChainsStream()
-                    .filter(c -> Objects.equals(realTcId, c.serverId))
-                    .filter(c -> c.branchForRest.equals(ITeamcity.DEFAULT))
+                b -> b.chainsStream()
+                    .filter(c -> Objects.equals(realTcId, c.serverCode()))
+                    .filter(c -> ITeamcity.DEFAULT.equals(c.tcBranch()))
                     .findFirst()
-                    .ifPresent(ch -> buildTypeId.append(ch.suiteId)));
+                    .ifPresent(ch -> buildTypeId.append(ch.tcSuiteId())));
 
         return buildTypeId.toString();
     }

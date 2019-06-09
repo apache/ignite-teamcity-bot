@@ -25,8 +25,8 @@ import com.ullink.slack.simpleslackapi.SlackUser;
 import com.ullink.slack.simpleslackapi.impl.SlackSessionFactory;
 import com.ullink.slack.simpleslackapi.replies.SlackMessageReply;
 import java.io.IOException;
-import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
+
+import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 

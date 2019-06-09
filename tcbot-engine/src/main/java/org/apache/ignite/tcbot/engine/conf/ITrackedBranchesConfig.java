@@ -14,41 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.conf;
+package org.apache.ignite.tcbot.engine.conf;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  *
  */
-public interface IGitHubConfig {
-    /**
-     * @return server (service) code.
-     */
-    public String code();
+public interface ITrackedBranchesConfig {
+    Stream<ITrackedBranch> branchesStream();
 
-    /** Git branch prefix for search ticket-related TC runs in PR-less contributions. */
-    @Nonnull
-    public String gitBranchPrefix();
+    Collection<String> getServerIds();
 
-    /**
-     * Extracts and returns GitHub authorization token from properties.
-     *
-     * @return Null or decoded auth token for Github.
-     */
-    @Nullable
-    public String gitAuthTok();
-
-    /**
-     * @return GitHub Api URL, if specified always ends with '/'
-     */
-    @Nullable
-    public String gitApiUrl();
-
-    default boolean isGitTokenAvailable() {
-        return gitAuthTok() != null;
+    public default Optional<ITrackedBranch> get(String branch) {
+        return branchesStream().filter(b -> branch.equals(b.name())).findAny();
     }
 
-    boolean isPreferBranches();
+
+    public default ITrackedBranch getBranchMandatory(String branch) {
+        return get(branch).orElseThrow(() -> new RuntimeException("Branch not found: " + branch));
+    }
+
 }

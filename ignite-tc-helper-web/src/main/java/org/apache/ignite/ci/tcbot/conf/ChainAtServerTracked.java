@@ -27,6 +27,8 @@ import java.util.Optional;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -36,7 +38,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  * Chain on particular TC server, which is tracked by the Bot.
  */
 @SuppressWarnings("PublicField")
-public class ChainAtServerTracked extends ChainAtServer {
+public class ChainAtServerTracked extends ChainAtServer implements ITrackedChain {
     /** Branch identifier by TC identification for REST API. */
     @Nonnull public String branchForRest;
 
@@ -49,7 +51,7 @@ public class ChainAtServerTracked extends ChainAtServer {
     /** Automatic build triggering quiet period in minutes. */
     @Nullable private Integer triggerBuildQuietPeriod;
 
-    /** Build parameters for Triggerring. */
+    /** Build parameters for Triggering. */
     @Nullable private List<BuildParameterSpec> triggerParameters;
 
     /** @return {@link #suiteId} */
@@ -68,14 +70,13 @@ public class ChainAtServerTracked extends ChainAtServer {
     }
 
     /**
-     * @return base (etalon) branch in TC indentification t builds
+     * @return base (etalon) branch in TC identification t builds
      */
-    @Nonnull
-    public Optional<String> getBaseBranchForTc() {
+    @Nonnull public Optional<String> tcBaseBranch() {
         if (Strings.isNullOrEmpty(baseBranchForTc))
             return Optional.empty();
 
-        return Optional.ofNullable(baseBranchForTc);
+        return Optional.of(baseBranchForTc);
     }
 
     /** {@inheritDoc} */
@@ -102,21 +103,26 @@ public class ChainAtServerTracked extends ChainAtServer {
     /**
      * @return {@code True} If automatic build triggering enabled.
      */
-    public boolean isTriggerBuild() {
+    public boolean triggerBuild() {
         return triggerBuild == null ? false : triggerBuild;
     }
 
     /**
      * @return Quiet period in minutes between triggering builds or zero if period is not set and should be ignored.
      */
-    public int getTriggerBuildQuietPeriod() {
+    public int triggerBuildQuietPeriod() {
         return triggerBuildQuietPeriod == null ? 0 : triggerBuildQuietPeriod;
+    }
+
+    @Override
+    public String tcSuiteId() {
+        return suiteId;
     }
 
     /**
      * @return Map with parameter values for current run.
      */
-    @NotNull public Map<String, Object> buildParameters() {
+    @Nonnull public Map<String, Object> generateBuildParameters() {
         if (triggerParameters == null || triggerParameters.isEmpty())
             return Collections.emptyMap();
 
@@ -142,8 +148,17 @@ public class ChainAtServerTracked extends ChainAtServer {
         return triggerParameters.stream().map(BuildParameterSpec::name);
     }
 
-    /** */
-    public String branchForRest() {
+    @Override
+    public String tcBranch() {
         return branchForRest;
     }
+
+    /**
+     * @return Server ID to access configs within IDataSourceCfgSupplier.
+     */
+    @Override
+    public String serverCode() {
+        return serverId;
+    }
+
 }

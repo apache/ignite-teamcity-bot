@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.tcbot.conf;
 
+import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
+
 import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -36,9 +38,9 @@ public class ChainAtServer {
 
     }
 
-    public ChainAtServer(ChainAtServer o) {
-        this.serverId = o.serverId;
-        this.suiteId = o.suiteId;
+    public ChainAtServer(ITrackedChain o) {
+        this.serverId = o.serverCode();
+        this.suiteId = o.tcSuiteId();
     }
 
     /** {@inheritDoc} */
