@@ -66,7 +66,10 @@ Static content is placed in [webapp](ignite-tc-helper-web/src/main/webapp).
 TC Bot services can be found in [tcbot-engine](tcbot-engine)
 
 TC Bot integrations are placed in corresponding submodules
+
 | Data Source | Pure Integration | Persistence-enabled |
-| ----------- | ---------------- | ------------------ |
-| Teamcity | [tcbot-teamcity](tcbot-teamcity) | [tcbot-teamcity-ignited](tcbot-teamcity-ignited)  |
+| ----------- | ---------------- | ------------------- |
+| Teamcity | [tcbot-teamcity](tcbot-teamcity) | [tcbot-teamcity-ignited](tcbot-teamcity-ignited) |
+| JIRA | [tcbot-jira](tcbot-jira) | [tcbot-jira-ignited](tcbot-jira-ignited)  |
+| GitHub | [tcbot-github](tcbot-github) | [tcbot-github-ignited](tcbot-github-ignited)  |
 
