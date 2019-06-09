@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
-import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
+import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;

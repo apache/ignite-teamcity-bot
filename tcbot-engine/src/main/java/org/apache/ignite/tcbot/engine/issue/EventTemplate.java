@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.issue;
+package org.apache.ignite.tcbot.engine.issue;
 
 import org.apache.ignite.tcignited.history.IEventTemplate;
 

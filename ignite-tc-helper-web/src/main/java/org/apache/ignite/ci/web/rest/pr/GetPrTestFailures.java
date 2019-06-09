@@ -37,8 +37,8 @@ import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
-import org.apache.ignite.ci.web.model.current.UpdateInfo;
+import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -71,7 +71,7 @@ public class GetPrTestFailures {
 
     @GET
     @Path("resultsNoSync")
-    public TestFailuresSummary getPrFailuresResultsNoSync(
+    public DsSummaryUi getPrFailuresResultsNoSync(
         @Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @Nonnull @QueryParam("branchForTc") String branchForTc,
@@ -83,7 +83,7 @@ public class GetPrTestFailures {
         return getPrFailsWithSyncMode(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc, checkAllLogs, SyncMode.NONE);
     }
 
-    public TestFailuresSummary getPrFailsWithSyncMode(
+    public DsSummaryUi getPrFailsWithSyncMode(
         @QueryParam("serverId") @Nullable String srvId,
         @QueryParam("suiteId") @Nonnull String suiteId,
         @QueryParam("branchForTc") @Nonnull String branchForTc,
@@ -111,7 +111,7 @@ public class GetPrTestFailures {
      */
     @GET
     @Path("results")
-    @NotNull public TestFailuresSummary getPrFailures (
+    @NotNull public DsSummaryUi getPrFailures (
         @Nullable @QueryParam("serverId") String srvId,
         @Nonnull @QueryParam("suiteId") String suiteId,
         @Nonnull @QueryParam("branchForTc") String branchForTc,

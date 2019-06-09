@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.tcbot.engine.ui;
 
-package org.apache.ignite.ci.issue;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Reference to some Issue with current suite or test detected by the Bot.
- * Currently contains only display name.
+ *
  */
-public class ProblemRef {
-    public String name;
-    public String webUrl;
+@SuppressWarnings("WeakerAccess")
+public class LrTestsFullSummaryUi {
+    public List<LrTestsSuiteSummaryUi> suiteSummaries = new ArrayList<>();
 
-    public ProblemRef(String name) {
-        this.name = name;
+    public void addSuiteSummaries(List<LrTestsSuiteSummaryUi> summaries) {
+        suiteSummaries.addAll(summaries);
     }
 }

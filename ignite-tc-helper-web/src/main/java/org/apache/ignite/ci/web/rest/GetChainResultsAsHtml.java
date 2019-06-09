@@ -29,7 +29,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 
 import com.google.inject.Injector;
-import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
+import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
@@ -41,10 +41,10 @@ import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
-import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
-import org.apache.ignite.ci.web.model.current.TestFailure;
-import org.apache.ignite.ci.web.model.hist.TestHistory;
+import org.apache.ignite.tcbot.engine.ui.DsChainUi;
+import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
+import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
+import org.apache.ignite.tcbot.engine.ui.DsTestHistoryUi;
 
 import static java.lang.Float.parseFloat;
 import static javax.ws.rs.core.MediaType.TEXT_HTML;
@@ -83,7 +83,7 @@ public class GetChainResultsAsHtml {
             failRateBranch,
             SyncMode.RELOAD_QUEUED);
 
-        ChainAtServerCurrentStatus status = new ChainAtServerCurrentStatus(srvCode, tcIgn.serverCode(), ctx.branchName());
+        DsChainUi status = new DsChainUi(srvCode, tcIgn.serverCode(), ctx.branchName());
 
         ctx.getRunningUpdates().forEach(FutureUtil::getResultSilent);
 
@@ -143,7 +143,7 @@ public class GetChainResultsAsHtml {
         return failures!=null;
     }
 
-    private String showChainAtServerData(ChainAtServerCurrentStatus server) {
+    private String showChainAtServerData(DsChainUi server) {
         String res = "";
         String altTxt = "";
 
@@ -164,7 +164,7 @@ public class GetChainResultsAsHtml {
         res += "</b><br><br>";
 
         StringBuilder resBuilder = new StringBuilder(res);
-        for (SuiteCurrentStatus suite : server.suites) {
+        for (DsSuiteUi suite : server.suites) {
             resBuilder.append(showSuiteData(suite));
         }
         res = resBuilder.toString();
@@ -172,7 +172,7 @@ public class GetChainResultsAsHtml {
         return res;
     }
 
-    private String showSuiteData(SuiteCurrentStatus suite) {
+    private String showSuiteData(DsSuiteUi suite) {
         String res = "";
         String altTxt = "duration: " + suite.durationPrintable;
         res += "&nbsp; ";
@@ -208,9 +208,9 @@ public class GetChainResultsAsHtml {
         */
         res+=" <br>";
 
-        List<TestFailure> failures = suite.testFailures;
+        List<DsTestFailureUi> failures = suite.testFailures;
         StringBuilder resBuilder = new StringBuilder(res);
-        for (TestFailure next : failures)
+        for (DsTestFailureUi next : failures)
             resBuilder.append(showTestFailData(next));
         res = resBuilder.toString();
         
@@ -230,7 +230,7 @@ public class GetChainResultsAsHtml {
     }
 
 
-    private String showTestFailData(TestFailure testFail) {
+    private String showTestFailData(DsTestFailureUi testFail) {
         String res = "";
         res += "&nbsp; &nbsp; ";
 
@@ -261,7 +261,7 @@ public class GetChainResultsAsHtml {
         boolean haveWeb = isDefinedAndFilled(testFail.webUrl);
         String histContent = "";
 
-        TestHistory hist;
+        DsTestHistoryUi hist;
 
         if(isDefinedAndFilled(testFail.histBaseBranch))
             hist = testFail.histBaseBranch;

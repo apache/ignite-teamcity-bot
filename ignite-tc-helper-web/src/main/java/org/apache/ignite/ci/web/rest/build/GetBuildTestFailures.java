@@ -33,15 +33,15 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
-import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
+import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.teamcity.ignited.buildcondition.BuildCondition;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
-import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
-import org.apache.ignite.ci.web.model.current.UpdateInfo;
+import org.apache.ignite.tcbot.engine.ui.DsChainUi;
+import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
 import org.apache.ignite.ci.web.model.trends.BuildStatisticsSummary;
 import org.apache.ignite.ci.web.model.trends.BuildsHistory;
 import org.apache.ignite.tcbot.common.exeption.ServiceUnauthorizedException;
@@ -89,7 +89,7 @@ public class GetBuildTestFailures {
 
     @GET
     @Path("failuresNoSync")
-    public TestFailuresSummary getBuildTestFailsNoSync(
+    public DsSummaryUi getBuildTestFailsNoSync(
         @QueryParam("serverId") String srvId,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
@@ -98,22 +98,22 @@ public class GetBuildTestFailures {
 
     @GET
     @Path("failures")
-    @NotNull public TestFailuresSummary getBuildTestFails(
+    @NotNull public DsSummaryUi getBuildTestFails(
         @QueryParam("serverId") String srvId,
         @QueryParam("buildId") Integer buildId,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
         return collectBuildCtxById(srvId, buildId, checkAllLogs, SyncMode.RELOAD_QUEUED);
     }
 
-    @NotNull public TestFailuresSummary collectBuildCtxById(@QueryParam("serverId") String srvCode,
-        @QueryParam("buildId") Integer buildId,
-        @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs, SyncMode syncMode) {
+    @NotNull public DsSummaryUi collectBuildCtxById(@QueryParam("serverId") String srvCode,
+                                                    @QueryParam("buildId") Integer buildId,
+                                                    @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs, SyncMode syncMode) {
         final ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         final Injector injector = CtxListener.getInjector(ctx);
         ITeamcityIgnitedProvider tcIgnitedProv = injector.getInstance(ITeamcityIgnitedProvider.class);
         final BuildChainProcessor buildChainProcessor = injector.getInstance(BuildChainProcessor.class);
 
-        final TestFailuresSummary res = new TestFailuresSummary();
+        final DsSummaryUi res = new DsSummaryUi();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
         tcIgnitedProv.checkAccess(srvCode, prov);
@@ -133,7 +133,7 @@ public class GetBuildTestFailures {
             failRateBranch,
             syncMode);
 
-        ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvCode, tcIgnited.serverCode(), ctx.branchName());
+        DsChainUi chainStatus = new DsChainUi(srvCode, tcIgnited.serverCode(), ctx.branchName());
 
         int cnt = (int)ctx.getRunningUpdates().count();
         if (cnt > 0)

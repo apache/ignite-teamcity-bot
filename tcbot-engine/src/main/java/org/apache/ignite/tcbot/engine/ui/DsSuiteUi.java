@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.model.current;
+package org.apache.ignite.tcbot.engine.ui;
 
 import com.google.common.base.Strings;
 import java.util.ArrayList;
@@ -29,26 +29,28 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.IMultTestOccurrence;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
-import org.apache.ignite.ci.issue.EventTemplates;
-import org.apache.ignite.ci.issue.ProblemRef;
+import org.apache.ignite.tcbot.engine.issue.EventTemplates;
+import org.apache.ignite.tcbot.engine.ui.BotUrls.GetBuildLog;
 import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.ci.web.model.hist.FailureSummary;
-import org.apache.ignite.ci.web.rest.GetBuildLog;
-import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
-import static org.apache.ignite.ci.util.UrlUtil.escape;
+
 
 /**
+ * Detailed status of failures: Suite failures.
+ *
  * Represent Suite result, UI class for REST responses, so it contains public fields
  */
-@SuppressWarnings({"WeakerAccess", "PublicField"}) public class SuiteCurrentStatus extends FailureSummary {
+@SuppressWarnings({"WeakerAccess", "PublicField"})
+public class DsSuiteUi extends DsHistoryStatUi {
     /** Suite Name */
     public String name;
 
@@ -67,10 +69,10 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /** Web Href. to suite particular run */
     public String webToBuild = "";
 
-    public List<TestFailure> testFailures = new ArrayList<>();
-    public List<TestFailure> topLongRunning = new ArrayList<>();
-    public List<TestFailure> warnOnly = new ArrayList<>();
-    public List<TestFailure> logConsumers = new ArrayList<>();
+    public List<DsTestFailureUi> testFailures = new ArrayList<>();
+    public List<DsTestFailureUi> topLongRunning = new ArrayList<>();
+    public List<DsTestFailureUi> warnOnly = new ArrayList<>();
+    public List<DsTestFailureUi> logConsumers = new ArrayList<>();
 
     /** Web Href. to thread dump display */
     @Nullable public String webUrlThreadDump;
@@ -89,10 +91,10 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     public String branchName;
 
     /** Failure summary in tracked branch according to all runs history. */
-    @Nonnull public FailureSummary failsAllHist = new FailureSummary();
+    @Nonnull public DsHistoryStatUi failsAllHist = new DsHistoryStatUi();
 
     /** Failure summary in tracked branch according to all runs history. */
-    @Nonnull public FailureSummary criticalFails = new FailureSummary();
+    @Nonnull public DsHistoryStatUi criticalFails = new DsHistoryStatUi();
 
     /** Latest runs, 0,1,3 values for each run. */
     @Nullable public List<Integer> latestRuns;
@@ -133,7 +135,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     /**
      * Advisory mark there is problem in this suite.
      */
-    @Nullable public ProblemRef problemRef;
+    @Nullable public DsProblemRef problemRef;
 
     /** Tags for build. */
     @Nonnull public Set<String> tags = new HashSet<>();
@@ -152,12 +154,12 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
      * @param includeTests Include tests - usually {@code true}, but it may be disabled for speeding up VISA collection.
      * @param calcTrustedTests
      */
-    public SuiteCurrentStatus initFromContext(ITeamcityIgnited tcIgnited,
-        @Nonnull final MultBuildRunCtx suite,
-        @Nullable final String baseBranch,
-        @Nonnull IStringCompactor compactor,
-        boolean includeTests,
-        boolean calcTrustedTests) {
+    public DsSuiteUi initFromContext(ITeamcityIgnited tcIgnited,
+                                     @Nonnull final MultBuildRunCtx suite,
+                                     @Nullable final String baseBranch,
+                                     @Nonnull IStringCompactor compactor,
+                                     boolean includeTests,
+                                     boolean calcTrustedTests) {
 
         name = suite.suiteName();
 
@@ -195,7 +197,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             tests.sort(Comparator.comparing(function).reversed());
 
             tests.forEach(occurrence -> {
-                final TestFailure failure = new TestFailure();
+                final DsTestFailureUi failure = new DsTestFailureUi();
                 failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(), baseBranch);
                 failure.initStat(tcIgnited, failRateNormalizedBranch, curBranchNormalized);
 
@@ -203,14 +205,14 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             });
 
             suite.getTopLongRunning().forEach(occurrence -> {
-                final TestFailure failure = createOrrucForLongRun(tcIgnited, suite, occurrence, baseBranch);
+                final DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, suite, occurrence, baseBranch);
 
                 topLongRunning.add(failure);
             });
 
             suite.getCriticalFailLastStartedTest().forEach(
                 lastTest -> {
-                    final TestFailure failure = new TestFailure();
+                    final DsTestFailureUi failure = new DsTestFailureUi();
                     failure.name = lastTest + " (last started)";
                     testFailures.add(failure);
                 }
@@ -295,28 +297,28 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         if (latestRunsSrc != null) {
             if (latestRunsSrc.detectTemplate(EventTemplates.newFailureForFlakyTest) != null)
-                problemRef = new ProblemRef("New Failure");
+                problemRef = new DsProblemRef("New Failure");
 
             if (latestRunsSrc.detectTemplate(EventTemplates.newCriticalFailure) != null)
-                problemRef = new ProblemRef("New Critical Failure");
+                problemRef = new DsProblemRef("New Critical Failure");
         }
 
         return statInBaseBranch;
     }
 
-    @NotNull
-    public static TestFailure createOccurForLogConsumer(Map.Entry<String, Long> entry) {
-        TestFailure failure = new TestFailure();
+    @Nonnull
+    public static DsTestFailureUi createOccurForLogConsumer(Map.Entry<String, Long> entry) {
+        DsTestFailureUi failure = new DsTestFailureUi();
         long sizeMb = entry.getValue() / 1024 / 1024;
         failure.name = entry.getKey() + " " + sizeMb + " Mbytes";
         return failure;
     }
 
-    @NotNull public static TestFailure createOrrucForLongRun(ITeamcityIgnited tcIgnited,
-        @Nonnull MultBuildRunCtx suite,
-        final IMultTestOccurrence occurrence,
-        @Nullable final String failRateBranch) {
-        final TestFailure failure = new TestFailure();
+    @Nonnull public static DsTestFailureUi createOrrucForLongRun(ITeamcityIgnited tcIgnited,
+                                                                 @Nonnull MultBuildRunCtx suite,
+                                                                 final IMultTestOccurrence occurrence,
+                                                                 @Nullable final String failRateBranch) {
+        final DsTestFailureUi failure = new DsTestFailureUi();
 
         failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(), failRateBranch);
 
@@ -328,11 +330,11 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
     }
 
     public void findFailureAndAddWarning(String testName, ITestLogCheckResult logCheckRes) {
-        TestFailure failure = testFailures.stream().filter(f -> f.name.contains(testName)).findAny().orElseGet(
+        DsTestFailureUi failure = testFailures.stream().filter(f -> f.name.contains(testName)).findAny().orElseGet(
             () -> {
                 return warnOnly.stream().filter(f -> f.name.contains(testName)).findAny().orElseGet(
                     () -> {
-                        TestFailure f = new TestFailure();
+                        DsTestFailureUi f = new DsTestFailureUi();
                         f.name = testName + " (warning)";
                         warnOnly.add(f);
 
@@ -353,10 +355,10 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         return buildWebLink(teamcity, suite, branchName);
     }
 
-    @NotNull private static String buildWebLink(ITeamcityIgnited teamcity, MultBuildRunCtx suite, String branchName) {
+    @Nonnull private static String buildWebLink(ITeamcityIgnited teamcity, MultBuildRunCtx suite, String branchName) {
         final String branch = branchForLink(branchName);
         return teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
-            + "&branch=" + escape(branch)
+            + "&branch=" + UrlUtil.escape(branch)
             + "&tab=buildTypeStatusDiv";
     }
 
@@ -372,7 +374,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             return false;
         if (!super.equals(o))
             return false;
-        SuiteCurrentStatus status = (SuiteCurrentStatus)o;
+        DsSuiteUi status = (DsSuiteUi)o;
         return Objects.equals(name, status.name) &&
             Objects.equals(result, status.result) &&
             Objects.equals(hasCriticalProblem, status.hasCriticalProblem) &&
@@ -438,7 +440,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         if (!Strings.isNullOrEmpty(blockerComment))
             res++;
 
-        res += (int)testFailures.stream().filter(TestFailure::isPossibleBlocker).count();
+        res += (int)testFailures.stream().filter(DsTestFailureUi::isPossibleBlocker).count();
 
         return res;
     }

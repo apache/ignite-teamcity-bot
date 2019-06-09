@@ -14,30 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.chain;
+package org.apache.ignite.tcbot.engine.tracked;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
+import org.apache.ignite.tcbot.engine.ui.DsChainUi;
+import org.apache.ignite.tcbot.engine.ui.LrTestsFullSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
-import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
-import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
-import org.apache.ignite.ci.web.model.long_running.FullLRTestsSummary;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.apache.ignite.tcignited.creds.ICredentialsProv;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -57,15 +58,15 @@ public class TrackedBranchChainsProcessor {
     @Inject private IStringCompactor compactor;
 
     @AutoProfiling
-    @NotNull
-    public TestFailuresSummary getTrackedBranchTestFailures(
+    @Nonnull
+    public DsSummaryUi getTrackedBranchTestFailures(
         @Nullable String branch,
         @Nullable Boolean checkAllLogs,
         int buildResMergeCnt,
-        ITcBotUserCreds creds,
+        ICredentialsProv creds,
         SyncMode syncMode,
         boolean calcTrustedTests) {
-        final TestFailuresSummary res = new TestFailuresSummary();
+        final DsSummaryUi res = new DsSummaryUi();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
         final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
@@ -85,7 +86,7 @@ public class TrackedBranchChainsProcessor {
 
                 ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCode, creds);
 
-                ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvCode,
+                DsChainUi chainStatus = new DsChainUi(srvCode,
                     tcIgnited.serverCode(),
                     branchForTc);
 
@@ -125,7 +126,7 @@ public class TrackedBranchChainsProcessor {
             })
             .forEach(res::addChainOnServer);
 
-        res.servers.sort(Comparator.comparing(ChainAtServerCurrentStatus::serverName));
+        res.servers.sort(Comparator.comparing(DsChainUi::serverName));
 
         res.postProcess(runningUpdates.get());
 
@@ -139,9 +140,9 @@ public class TrackedBranchChainsProcessor {
      * @param creds
      * @return
      */
-    public FullLRTestsSummary getTrackedBranchLongRunningTestsSummary(@Nullable String branch,
-        ITcBotUserCreds creds) {
-        FullLRTestsSummary summary = new FullLRTestsSummary();
+    public LrTestsFullSummaryUi getTrackedBranchLongRunningTestsSummary(@Nullable String branch,
+                                                                        ICredentialsProv creds) {
+        LrTestsFullSummaryUi summary = new LrTestsFullSummaryUi();
 
         final String branchNn = isNullOrEmpty(branch) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : branch;
         final ITrackedBranch tracked = tcBotCfg.getTrackedBranches().getBranchMandatory(branchNn);

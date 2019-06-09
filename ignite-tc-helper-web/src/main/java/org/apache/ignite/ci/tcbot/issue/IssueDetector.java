@@ -23,17 +23,19 @@ import org.apache.ignite.ci.issue.*;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
-import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
+import org.apache.ignite.tcbot.engine.issue.EventTemplate;
+import org.apache.ignite.tcbot.engine.issue.EventTemplates;
+import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
-import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
-import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
-import org.apache.ignite.ci.web.model.current.TestFailure;
-import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
+import org.apache.ignite.tcbot.engine.ui.DsChainUi;
+import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
+import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
+import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
@@ -96,8 +98,8 @@ public class IssueDetector {
     /** Send notification guard. */
     private final AtomicBoolean sndNotificationGuard = new AtomicBoolean();
 
-    private String registerIssuesAndNotifyLater(TestFailuresSummary res,
-        ITcBotUserCreds creds) {
+    private String registerIssuesAndNotifyLater(DsSummaryUi res,
+                                                ITcBotUserCreds creds) {
 
         if (creds == null)
             return null;
@@ -243,10 +245,10 @@ public class IssueDetector {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @AutoProfiling
     @MonitoredTask(name = "Register new issues")
-    protected String registerNewIssues(TestFailuresSummary res, ITcBotUserCreds creds) {
+    protected String registerNewIssues(DsSummaryUi res, ITcBotUserCreds creds) {
         int newIssues = 0;
 
-        for (ChainAtServerCurrentStatus next : res.servers) {
+        for (DsChainUi next : res.servers) {
             String srvCode = next.serverCode;
 
             if (!tcProv.hasAccess(srvCode, creds))
@@ -254,12 +256,12 @@ public class IssueDetector {
 
             ITeamcityIgnited tcIgnited = tcProv.server(srvCode, creds);
 
-            for (SuiteCurrentStatus suiteCurrentStatus : next.suites) {
+            for (DsSuiteUi suiteCurrentStatus : next.suites) {
                 String normalizeBranch = normalizeBranch(suiteCurrentStatus.branchName());
 
                 final String trackedBranch = res.getTrackedBranch();
 
-                for (TestFailure testFailure : suiteCurrentStatus.testFailures) {
+                for (DsTestFailureUi testFailure : suiteCurrentStatus.testFailures) {
                     if (registerTestFailIssues(tcIgnited, srvCode, normalizeBranch, testFailure, trackedBranch,
                         suiteCurrentStatus.tags))
                         newIssues++;
@@ -285,7 +287,7 @@ public class IssueDetector {
     private boolean registerSuiteFailIssues(ITeamcityIgnited tcIgnited,
         String srvCode,
         String normalizeBranch,
-        SuiteCurrentStatus suiteFailure,
+        DsSuiteUi suiteFailure,
         String trackedBranch) {
 
         String suiteId = suiteFailure.suiteId;
@@ -330,8 +332,8 @@ public class IssueDetector {
     }
 
     @NotNull
-    private Issue createIssueForSuite(ITeamcityIgnited tcIgnited, SuiteCurrentStatus suiteFailure, String trackedBranch,
-        IssueKey issueKey, IssueType issType) {
+    private Issue createIssueForSuite(ITeamcityIgnited tcIgnited, DsSuiteUi suiteFailure, String trackedBranch,
+                                      IssueKey issueKey, IssueType issType) {
         Issue issue = new Issue(issueKey, issType);
         issue.trackedBranchName = trackedBranch;
         issue.displayName = suiteFailure.name;
@@ -360,7 +362,7 @@ public class IssueDetector {
     private boolean registerTestFailIssues(ITeamcityIgnited tcIgnited,
         String srvCode,
         String normalizeBranch,
-        TestFailure testFailure,
+        DsTestFailureUi testFailure,
         String trackedBranch,
         @Nonnull Set<String> suiteTags) {
         String name = testFailure.name;
@@ -493,7 +495,7 @@ public class IssueDetector {
             SyncMode.RELOAD_QUEUED,
             false);
 
-        TestFailuresSummary failures =
+        DsSummaryUi failures =
             tbProc.getTrackedBranchTestFailures(brachName,
                 false,
                 1,

@@ -31,7 +31,7 @@ import org.apache.ignite.ci.issue.IssueList;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.ci.web.model.SimpleResult;
-import org.apache.ignite.ci.web.model.current.UpdateInfo;
+import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
 import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Strings.isNullOrEmpty;

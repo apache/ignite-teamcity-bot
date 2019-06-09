@@ -15,9 +15,8 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.model.current;
+package org.apache.ignite.tcbot.engine.ui;
 
-import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -25,32 +24,30 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
+
+import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.IMultTestOccurrence;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
-import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
-import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
-import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
 import org.apache.ignite.tcbot.common.util.CollectionUtil;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcservice.model.conf.BuildType;
 
-import static org.apache.ignite.ci.util.UrlUtil.escape;
-import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.branchForLink;
-import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOccurForLogConsumer;
-import static org.apache.ignite.ci.web.model.current.SuiteCurrentStatus.createOrrucForLongRun;
+import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.branchForLink;
+import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOccurForLogConsumer;
+import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOrrucForLongRun;
 
 /**
+ * Detailed status of PR or tracked branch for chain.
+ *
  * Represent Run All chain results/ or RunAll+latest re-runs.
  *
  * Persisted as part of cached result. Renaming require background updater migration.
  */
 @SuppressWarnings({"WeakerAccess", "PublicField"})
-public class ChainAtServerCurrentStatus {
+public class DsChainUi {
     /** {@link BuildType#getName()} */
     public String chainName;
 
@@ -86,7 +83,7 @@ public class ChainAtServerCurrentStatus {
     public String webToPr;
 
     /** Suites involved in chain. */
-    public List<SuiteCurrentStatus> suites = new ArrayList<>();
+    public List<DsSuiteUi> suites = new ArrayList<>();
 
     /** Count of failed tests not muted tests. In case several runs are used, overall by all runs. */
     public Integer failedTests;
@@ -119,10 +116,10 @@ public class ChainAtServerCurrentStatus {
     public String lostInTimeouts;
 
     /** top long running suites */
-    public List<TestFailure> topLongRunning = new ArrayList<>();
+    public List<DsTestFailureUi> topLongRunning = new ArrayList<>();
 
     /** top log data producing tests . */
-    public List<TestFailure> logConsumers = new ArrayList<>();
+    public List<DsTestFailureUi> logConsumers = new ArrayList<>();
 
     /** Special flag if chain entry point not found */
     public boolean buildNotFound;
@@ -137,7 +134,7 @@ public class ChainAtServerCurrentStatus {
      * @param tcSvcCode Tc service code.
      * @param branchTc Branch tc.
      */
-    public ChainAtServerCurrentStatus(String srvCode, String tcSvcCode, String branchTc) {
+    public DsChainUi(String srvCode, String tcSvcCode, String branchTc) {
         this.serverCode = srvCode;
         this.tcServerCode = tcSvcCode;
         this.serverId = tcSvcCode;
@@ -157,45 +154,7 @@ public class ChainAtServerCurrentStatus {
     }
 
 
-    /**
-     * Set up ticket and PR related information.
-     *
-     * @param ticketMatcher Ticket matcher.
-     * @param jiraIntegration Jira integration.
-     * @param gitHubConnIgnited Git hub connection ignited.
-     */
-    public void initJiraAndGitInfo(BranchTicketMatcher ticketMatcher,
-        IJiraIgnited jiraIntegration,
-        IGitHubConnIgnited gitHubConnIgnited) {
 
-        String ticketFullName = null;
-        try {
-            ticketFullName = ticketMatcher
-                .resolveTicketFromBranch(jiraIntegration.config().getCode(),
-                    null,
-                    branchName);
-        }
-        catch (BranchTicketMatcher.TicketNotFoundException ignore) {
-        }
-
-        Integer prNum = IGitHubConnection.convertBranchToPrId(branchName);
-
-        String prUrl = null;
-        String ticketUrl = null;
-
-        if (prNum != null) {
-            PullRequest pullReq = gitHubConnIgnited.getPullRequest(prNum);
-
-            if (pullReq != null && pullReq.getTitle() != null)
-                prUrl = pullReq.htmlUrl();
-        }
-
-        if (!Strings.isNullOrEmpty(ticketFullName) && jiraIntegration.config().getUrl() != null)
-            ticketUrl = jiraIntegration.generateTicketUrl(ticketFullName);
-
-        setPrInfo(prNum, prUrl);
-        setJiraTicketInfo(ticketFullName, ticketUrl);
-    }
 
     public void initFromContext(ITeamcityIgnited tcIgnited,
         FullChainRunCtx ctx,
@@ -211,7 +170,7 @@ public class ChainAtServerCurrentStatus {
 
         stream.forEach(
             suite -> {
-                final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
+                final DsSuiteUi suiteCurStatus = new DsSuiteUi();
 
                 suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
 
@@ -229,7 +188,7 @@ public class ChainAtServerCurrentStatus {
             //todo odd convertion
             ctx.suites().filter(s -> !s.isFailed()).forEach(suite -> {
 
-                final SuiteCurrentStatus suiteCurStatus = new SuiteCurrentStatus();
+                final DsSuiteUi suiteCurStatus = new DsSuiteUi();
 
                 suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
 
@@ -238,7 +197,7 @@ public class ChainAtServerCurrentStatus {
             });
         }
 
-        totalBlockers = suites.stream().mapToInt(SuiteCurrentStatus::totalBlockers).sum();
+        totalBlockers = suites.stream().mapToInt(DsSuiteUi::totalBlockers).sum();
         durationPrintable = ctx.getDurationPrintable();
         testsDurationPrintable = ctx.getTestsDurationPrintable();
         durationNetTimePrintable = ctx.durationNetTimePrintable();
@@ -260,7 +219,7 @@ public class ChainAtServerCurrentStatus {
                 MultBuildRunCtx suite = pairCtxAndOccur.get1();
                 IMultTestOccurrence longRunningOccur = pairCtxAndOccur.get2();
 
-                TestFailure failure = createOrrucForLongRun(tcIgnited, suite, longRunningOccur, baseBranchTc);
+                DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, suite, longRunningOccur, baseBranchTc);
 
                 failure.testName = "[" + suite.suiteName() + "] " + failure.testName; //may be separate field
 
@@ -279,7 +238,7 @@ public class ChainAtServerCurrentStatus {
                 MultBuildRunCtx suite = pairCtxAndOccur.get1();
                 Map.Entry<String, Long> testLogConsuming = pairCtxAndOccur.get2();
 
-                TestFailure failure = createOccurForLogConsumer(testLogConsuming);
+                DsTestFailureUi failure = createOccurForLogConsumer(testLogConsuming);
 
                 failure.name = "[" + suite.suiteName() + "] " + failure.name; //todo suite as be separate field
 
@@ -295,7 +254,7 @@ public class ChainAtServerCurrentStatus {
     private static String buildWebLink(ITeamcityIgnited teamcity, FullChainRunCtx suite) {
         final String branch = branchForLink(suite.branchName());
         return teamcity.host() + "viewType.html?buildTypeId=" + suite.suiteId()
-            + "&branch=" + escape(branch)
+            + "&branch=" + UrlUtil.escape(branch)
             + "&tab=buildTypeStatusDiv";
     }
 
@@ -312,7 +271,7 @@ public class ChainAtServerCurrentStatus {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        ChainAtServerCurrentStatus status = (ChainAtServerCurrentStatus)o;
+        DsChainUi status = (DsChainUi)o;
         return buildNotFound == status.buildNotFound &&
             Objects.equals(chainName, status.chainName) &&
             Objects.equals(serverId, status.serverId) &&

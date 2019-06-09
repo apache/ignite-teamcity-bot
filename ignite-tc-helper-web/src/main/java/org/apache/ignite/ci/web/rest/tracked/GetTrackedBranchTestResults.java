@@ -27,13 +27,13 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
+import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
-import org.apache.ignite.ci.web.model.current.UpdateInfo;
+import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
@@ -76,7 +76,7 @@ public class GetTrackedBranchTestResults {
 
     @GET
     @Path("resultsNoSync")
-    public TestFailuresSummary getTestFailsResultsNoSync(
+    public DsSummaryUi getTestFailsResultsNoSync(
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @QueryParam("trustedTests") @Nullable Boolean trustedTests) {
@@ -86,14 +86,14 @@ public class GetTrackedBranchTestResults {
     @GET
     @Path("results")
     @NotNull
-    public TestFailuresSummary getTestFailsNoCache(
+    public DsSummaryUi getTestFailsNoCache(
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @QueryParam("trustedTests") @Nullable Boolean trustedTests) {
         return latestBuildResults(branch, checkAllLogs, trustedTests, SyncMode.RELOAD_QUEUED);
     }
 
-    @NotNull public TestFailuresSummary latestBuildResults(
+    @NotNull public DsSummaryUi latestBuildResults(
         @QueryParam("branch") @Nullable String branch,
         @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
         @QueryParam("trustedTests") @Nullable Boolean trustedTests,
@@ -117,22 +117,22 @@ public class GetTrackedBranchTestResults {
 
     @GET
     @Path("mergedResultsNoSync")
-    public TestFailuresSummary getAllTestFailsNoSync(@Nullable @QueryParam("branch") String branch,
-        @Nullable @QueryParam("count") Integer cnt,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+    public DsSummaryUi getAllTestFailsNoSync(@Nullable @QueryParam("branch") String branch,
+                                             @Nullable @QueryParam("count") Integer cnt,
+                                             @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
         return mergedBuildsResults(branch, cnt, checkAllLogs, SyncMode.NONE);
     }
 
     @GET
     @Path("mergedResults")
     @NotNull
-    public TestFailuresSummary getAllTestFailsForMergedBuidls(@Nullable @QueryParam("branch") String branchOpt,
-        @QueryParam("count") Integer cnt,
-        @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
+    public DsSummaryUi getAllTestFailsForMergedBuidls(@Nullable @QueryParam("branch") String branchOpt,
+                                                      @QueryParam("count") Integer cnt,
+                                                      @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
         return mergedBuildsResults(branchOpt, cnt, checkAllLogs, SyncMode.RELOAD_QUEUED);
     }
 
-    @NotNull public TestFailuresSummary mergedBuildsResults(
+    @NotNull public DsSummaryUi mergedBuildsResults(
         @QueryParam("branch") @Nullable String branchOpt,
         @QueryParam("count") Integer cnt,
         @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,

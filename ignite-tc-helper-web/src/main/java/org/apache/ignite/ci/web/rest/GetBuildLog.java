@@ -19,6 +19,7 @@ package org.apache.ignite.ci.web.rest;
 
 import com.google.inject.Injector;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.tcbot.engine.ui.BotUrls;
 import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
 
 import javax.annotation.security.PermitAll;
@@ -39,14 +40,9 @@ import java.io.Writer;
 /**
  * Build log download, now provides thread dumps
  */
-@Path(GetBuildLog.GET_BUILD_LOG)
+@Path(BotUrls.GetBuildLog.GET_BUILD_LOG)
 @Produces(MediaType.TEXT_PLAIN)
 public class GetBuildLog {
-    public static final String GET_BUILD_LOG = "getBuildLog";
-    public static final String THREAD_DUMP = "threadDump";
-    public static final String SERVER_ID = "serverId";
-    public static final String BUILD_NO = "buildNo";
-    public static final String FILE_IDX = "fileIdx";
 
     /** Servlet Context. */
     @Context
@@ -57,11 +53,11 @@ public class GetBuildLog {
     private HttpServletRequest req;
 
     @GET
-    @Path(THREAD_DUMP)
+    @Path(BotUrls.GetBuildLog.THREAD_DUMP)
     @PermitAll
     public Response getThreadDump(
-        @QueryParam(SERVER_ID) String srvCode,
-        @QueryParam(BUILD_NO) Integer buildId) {
+        @QueryParam(BotUrls.GetBuildLog.SERVER_ID) String srvCode,
+        @QueryParam(BotUrls.GetBuildLog.BUILD_NO) Integer buildId) {
         Injector injector = CtxListener.getInjector(ctx);
 
         IBuildLogProcessor instance = injector.getInstance(IBuildLogProcessor.class);

@@ -39,9 +39,8 @@ import org.apache.ignite.tcbot.common.exeption.ServicesStartingException;
 import org.apache.ignite.tcbot.persistence.TcBotPersistenceModule;
 import org.apache.ignite.tcignited.TeamcityIgnitedModule;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
-import org.apache.ignite.ci.web.TcUpdatePool;
+import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
-import org.apache.ignite.ci.web.rest.exception.ServiceStartingExceptionMapper;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 

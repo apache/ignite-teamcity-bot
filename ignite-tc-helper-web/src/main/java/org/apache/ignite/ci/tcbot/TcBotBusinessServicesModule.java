@@ -19,7 +19,7 @@ package org.apache.ignite.ci.tcbot;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.issue.IssuesStorage;
-import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
+import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.LocalFilesBasedConfig;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;

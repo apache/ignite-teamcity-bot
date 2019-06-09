@@ -24,10 +24,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
+import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
-import org.apache.ignite.ci.web.model.long_running.FullLRTestsSummary;
+import org.apache.ignite.tcbot.engine.ui.LrTestsFullSummaryUi;
 import org.jetbrains.annotations.Nullable;
 
 @Path(BuildsLongRunningTestsReport.LONG_RUNNING_SUMMARY)
@@ -46,7 +46,7 @@ public class BuildsLongRunningTestsReport {
     @GET
     @Path("summary")
     @Produces(MediaType.APPLICATION_JSON)
-    public FullLRTestsSummary getBranch(@Nullable @QueryParam("branch") String branchOrNull) {
+    public LrTestsFullSummaryUi getBranch(@Nullable @QueryParam("branch") String branchOrNull) {
         final ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
         final TrackedBranchChainsProcessor tbProc = CtxListener.getInjector(ctx).getInstance(TrackedBranchChainsProcessor.class);
