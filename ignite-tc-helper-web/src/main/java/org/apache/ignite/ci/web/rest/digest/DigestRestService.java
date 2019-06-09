@@ -19,7 +19,9 @@ package org.apache.ignite.ci.web.rest.digest;
 import com.google.inject.Injector;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.engine.digest.DigestService;
+import org.apache.ignite.tcbot.engine.digest.WeeklyFailuresDigest;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 
 import javax.servlet.ServletContext;
@@ -31,10 +33,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
+
 @Path("digest")
 @Produces(MediaType.APPLICATION_JSON)
 public class DigestRestService {
-
     /** */
     @Context
     private ServletContext ctx;
@@ -51,7 +54,9 @@ public class DigestRestService {
         ICredentialsProv creds = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
         DigestService digestService = injector.getInstance(DigestService.class);
+        String branchNn = isNullOrEmpty(trBrName) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : trBrName;
 
-        return digestService.generate(trBrName, creds).toHtml();
+        WeeklyFailuresDigest prevDigest = digestService.getLastDigest(branchNn);
+        return digestService.generate(branchNn, creds).toHtml(prevDigest);
     }
 }

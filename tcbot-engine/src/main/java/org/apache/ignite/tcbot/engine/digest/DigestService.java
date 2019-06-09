@@ -17,7 +17,6 @@
 package org.apache.ignite.tcbot.engine.digest;
 
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
-import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcignited.SyncMode;
@@ -32,14 +31,24 @@ public class DigestService {
     @Inject
     TrackedBranchChainsProcessor tbProc;
 
+    @Inject
+    WeeklyFailuresDao dao;
+
     public WeeklyFailuresDigest generate(String trBrName, ICredentialsProv creds) {
         WeeklyFailuresDigest res = new WeeklyFailuresDigest();
 
         DsSummaryUi failures = tbProc.getTrackedBranchTestFailures(trBrName, false,
                 1, creds, SyncMode.RELOAD_QUEUED, true);
         res.failedTests = failures.failedTests;
-        res.trustedTests = failures.servers.stream().mapToInt(s->s.trustedTests).sum();
+
+        res.totalTests = failures.servers.stream().mapToInt(s -> s.totalTests).sum();
+
+        res.trustedTests = failures.servers.stream().mapToInt(s -> s.trustedTests).sum();
 
         return res;
+    }
+
+    public WeeklyFailuresDigest getLastDigest(String branchNn) {
+        return dao.get(branchNn);
     }
 }

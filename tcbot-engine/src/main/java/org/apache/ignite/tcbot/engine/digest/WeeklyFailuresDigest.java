@@ -18,22 +18,44 @@ package org.apache.ignite.tcbot.engine.digest;
 
 import org.apache.ignite.tcbot.common.util.TimeUtil;
 
+import javax.annotation.Nullable;
+
 /**
  *
  */
 public class WeeklyFailuresDigest {
+    public long ts = System.currentTimeMillis();
     public int trustedTests;
     public Integer failedTests;
+    public int totalTests;
 
-    public String toHtml() {
-        String s = "Digest from " +
-                " "
-                + " to " + TimeUtil.timestampToDateTimePrintable(System.currentTimeMillis());
-
+    public String toHtml(@Nullable WeeklyFailuresDigest lastDigest) {
         StringBuilder res = new StringBuilder();
-        res.append(s);
-        res.append("Trusted tests " + trustedTests);
-        res.append("Failed tests " + failedTests);
+        res.append("Digest");
+        if (lastDigest != null) {
+            res.append(" from ");
+            res.append(TimeUtil.timestampToDateTimePrintable(lastDigest.ts));
+        }
+
+        res.append(" till ");
+        res.append(TimeUtil.timestampToDateTimePrintable(System.currentTimeMillis()));
+        res.append("<br>");
+
+        res.append("Trusted tests ").append(trustedTests);
+        if (lastDigest != null) {
+            int add = trustedTests - lastDigest.trustedTests;
+
+            res.append("(");
+            if (add >= 0)
+                res.append("+");
+            res.append(add);
+            res.append(")");
+        }
+        res.append("<br>");
+        res.append("Total executed tests ").append(totalTests);
+        res.append("<br>");
+        res.append("Failed tests ").append(failedTests);
+        res.append("<br>");
         return res.toString();
     }
 }

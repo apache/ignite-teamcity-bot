@@ -231,7 +231,7 @@ public class PrChainsProcessor {
             hist,
             LatestRebuildMode.LATEST,
             ProcessLogsMode.SUITE_NOT_COMPLETE,
-            true,
+            false,
             baseBranch,
             syncMode);
 
