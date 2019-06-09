@@ -14,28 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcbot.engine.conf;
+package org.apache.ignite.tcbot.engine.digest;
 
-import java.util.Collection;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Stream;
+import org.apache.ignite.tcbot.common.util.TimeUtil;
 
 /**
  *
  */
-public interface ITrackedBranchesConfig {
-    Stream<ITrackedBranch> branchesStream();
+public class WeeklyFailuresDigest {
+    public int trustedTests;
+    public Integer failedTests;
 
-    Collection<String> getServerIds();
+    public String toHtml() {
+        String s = "Digest from " +
+                " "
+                + " to " + TimeUtil.timestampToDateTimePrintable(System.currentTimeMillis());
 
-    public default Optional<ITrackedBranch> get(String branch) {
-        return branchesStream().filter(b -> Objects.equals(branch, b.name())).findAny();
+        StringBuilder res = new StringBuilder();
+        res.append(s);
+        res.append("Trusted tests " + trustedTests);
+        res.append("Failed tests " + failedTests);
+        return res.toString();
     }
-
-
-    public default ITrackedBranch getBranchMandatory(String branch) {
-        return get(branch).orElseThrow(() -> new RuntimeException("Branch not found: " + branch));
-    }
-
 }

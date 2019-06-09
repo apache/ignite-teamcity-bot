@@ -1,0 +1,62 @@
+<html>
+<head>
+    <title>Apache Ignite Teamcity Bot - Digest of Failures</title>
+    <link rel="icon" href="img/leaf-icon-png-7066.png">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="css/style-1.5.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.2/css/all.css"
+          integrity="sha384-/rXc/GQVaYpyDdyxK+ecHPVYJSN9bmVFBvjA/9eOB+pb3F2w2N6fc5qB9Ew5yIns" crossorigin="anonymous">
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <script src="js/common-1.6.js"></script>
+    <script src="js/testfails-2.2.js"></script>
+</head>
+<body>
+<script>
+
+$(document).ready(function() {
+    $( document ).tooltip();
+    loadData();
+
+    $.ajax({ url: "/rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
+});
+
+function parmsForRest() {
+    var curReqParms = "";
+    var branch = findGetParameter("branch");
+    if (branch != null) {
+        curReqParms += "?branch=" + branch;
+    }
+
+    return curReqParms;
+}
+
+
+function loadData() {
+    $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+
+    $.ajax({
+        url: "rest/digest/html" + parmsForRest(),
+        success: function (result) {
+            $("#loadStatus").html("");
+            showData(result);
+        },
+        error: showErrInLoadStatus
+    });
+}
+
+function showData(result) {
+    $("#divDigest").html( result );
+}
+
+</script>
+
+<div id="loadStatus"></div>
+<div id="divDigest"></div>
+
+<div id="version"></div>
+<div style="visibility:hidden;"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
+</body>
+</html>
