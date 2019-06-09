@@ -25,6 +25,8 @@ import com.google.inject.Injector;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.ci.tcbot.conf.ChainAtServerTracked;
@@ -35,10 +37,10 @@ import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.TeamcityIgnitedProviderMock;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
-import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
-import org.apache.ignite.ci.web.model.current.TestFailure;
-import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
+import org.apache.ignite.tcbot.engine.ui.DsChainUi;
+import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
+import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
+import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -114,7 +116,7 @@ public class TrackedBranchProcessorTest {
 
         ITcBotUserCreds mock = mock(ITcBotUserCreds.class);
         when(mock.hasAccess(anyString())).thenReturn(true);
-        TestFailuresSummary failures = tbProc.getTrackedBranchTestFailures(BRACH_NAME,
+        DsSummaryUi failures = tbProc.getTrackedBranchTestFailures(BRACH_NAME,
             false,
             1,
             mock, SyncMode.RELOAD_QUEUED,
@@ -125,37 +127,37 @@ public class TrackedBranchProcessorTest {
 
         assertFalse(failures.servers.isEmpty());
 
-        ChainAtServerCurrentStatus apacheSrv = failures.servers.get(0);
+        DsChainUi apacheSrv = failures.servers.get(0);
 
         assertTrue(apacheSrv.failedTests > 0);
 
         assertFalse(apacheSrv.suites.isEmpty());
 
-        Optional<SuiteCurrentStatus> cache9 = findSuite(apacheSrv, CACHE_9);
+        Optional<DsSuiteUi> cache9 = findSuite(apacheSrv, CACHE_9);
         assertTrue(cache9.isPresent());
 
-        SuiteCurrentStatus suiteFails = cache9.get();
+        DsSuiteUi suiteFails = cache9.get();
         assertFalse(suiteFails.testFailures.isEmpty());
 
-        Optional<TestFailure> tfOpt = findTestFailure(suiteFails, TEST_RARE_FAILED_WITH_CHANGES);
+        Optional<DsTestFailureUi> tfOpt = findTestFailure(suiteFails, TEST_RARE_FAILED_WITH_CHANGES);
         assertTrue(tfOpt.isPresent());
         assertNull(tfOpt.get().histBaseBranch.flakyComments);
         assertNull(tfOpt.get().problemRef);
 
-        Optional<TestFailure> tfFlakyOpt = findTestFailure(suiteFails, TEST_RARE_FAILED_WITHOUT_CHANGES);
+        Optional<DsTestFailureUi> tfFlakyOpt = findTestFailure(suiteFails, TEST_RARE_FAILED_WITHOUT_CHANGES);
         assertTrue(tfFlakyOpt.isPresent());
         assertNotNull(tfFlakyOpt.get().histBaseBranch.flakyComments);
 
         assertNull(tfFlakyOpt.get().problemRef);
     }
 
-    public Optional<SuiteCurrentStatus> findSuite(ChainAtServerCurrentStatus apacheSrv, String suiteName) {
+    public Optional<DsSuiteUi> findSuite(DsChainUi apacheSrv, String suiteName) {
         return apacheSrv.suites.stream().filter(s -> {
             return s.name.contains(suiteName);
         }).findAny();
     }
 
-    public Optional<TestFailure> findTestFailure(SuiteCurrentStatus suiteFails, String name) {
+    public Optional<DsTestFailureUi> findTestFailure(DsSuiteUi suiteFails, String name) {
         return suiteFails.testFailures.stream().filter(tf -> tf.name.equals(name)).findAny();
     }
 

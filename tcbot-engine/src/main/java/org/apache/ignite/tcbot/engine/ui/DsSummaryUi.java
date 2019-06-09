@@ -15,20 +15,24 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.model.current;
+package org.apache.ignite.tcbot.engine.ui;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.apache.ignite.internal.util.typedef.internal.U;
-import org.jetbrains.annotations.Nullable;
+
+import javax.annotation.Nullable;
 
 /**
+ * Detailed status model for overall response.
+ *
  * Summary of failures from all servers. UI model, so it contains public fields.
  */
-@SuppressWarnings({"WeakerAccess", "PublicField"}) public class TestFailuresSummary extends UpdateInfo {
+@SuppressWarnings({"WeakerAccess", "PublicField"})
+public class DsSummaryUi extends UpdateInfo {
     /** Servers (Services) and their chain results. */
-    public List<ChainAtServerCurrentStatus> servers = new ArrayList<>();
+    public List<DsChainUi> servers = new ArrayList<>();
 
     public Integer failedTests;
 
@@ -36,9 +40,10 @@ import org.jetbrains.annotations.Nullable;
     public Integer failedToFinish;
 
     /** Tracked branch ID. */
-    @Nullable private String trackedBranch;
+    @Nullable
+    private String trackedBranch;
 
-    public void addChainOnServer(ChainAtServerCurrentStatus chainStatus) {
+    public void addChainOnServer(DsChainUi chainStatus) {
         servers.add(chainStatus);
 
         if (chainStatus.failedToFinish != null) {
@@ -68,7 +73,7 @@ import org.jetbrains.annotations.Nullable;
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        TestFailuresSummary summary = (TestFailuresSummary)o;
+        DsSummaryUi summary = (DsSummaryUi)o;
         return Objects.equals(servers, summary.servers) &&
             Objects.equals(failedTests, summary.failedTests) &&
             Objects.equals(failedToFinish, summary.failedToFinish) &&

@@ -26,13 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.ignite.tcbot.engine.chain.*;
 import org.apache.ignite.tcignited.buildlog.IBuildLogProcessor;
 import org.apache.ignite.tcservice.ITeamcity;
-import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
-import org.apache.ignite.tcbot.engine.chain.IMultTestOccurrence;
-import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
-import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
-import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;

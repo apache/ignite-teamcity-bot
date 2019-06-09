@@ -14,26 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.web.model.long_running;
 
-import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
+package org.apache.ignite.tcbot.engine.ui;
 
-/**
- *
- */
-public class LRTest {
-    public String name;
-
-    public long time;
-
-    public String timePrintable;
-
-    public String webLink;
-
-    public LRTest(String name, long time, String webLink) {
-        this.name = name;
-        this.time = time;
-        timePrintable = millisToDurationPrintable(time);
-        this.webLink = webLink;
+public class BotUrls {
+    public class GetBuildLog {
+        public static final String FILE_IDX = "fileIdx";
+        public static final String GET_BUILD_LOG = "getBuildLog";
+        public static final String SERVER_ID = "serverId";
+        public static final String BUILD_NO = "buildNo";
+        public static final String THREAD_DUMP = "threadDump";
     }
 }

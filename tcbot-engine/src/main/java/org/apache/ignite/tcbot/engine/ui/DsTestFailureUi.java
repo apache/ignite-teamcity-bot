@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.model.current;
+package org.apache.ignite.tcbot.engine.ui;
 
 import com.google.common.base.Strings;
 import java.util.ArrayList;
@@ -25,25 +25,24 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.IMultTestOccurrence;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
-import org.apache.ignite.ci.issue.EventTemplates;
-import org.apache.ignite.ci.issue.ProblemRef;
+import org.apache.ignite.tcbot.engine.issue.EventTemplates;
 import org.apache.ignite.tcignited.buildlog.LogMsgToWarn;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.ci.web.model.hist.FailureSummary;
-import org.apache.ignite.ci.web.model.hist.TestHistory;
-import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
-import static org.apache.ignite.ci.util.UrlUtil.escape;
+
 
 /**
  * UI model for test failure, probably merged with its history
  */
-@SuppressWarnings({"WeakerAccess", "PublicField"}) public class TestFailure {
+@SuppressWarnings({"WeakerAccess", "PublicField"})
+public class DsTestFailureUi {
     /** Test full Name */
     public String name;
 
@@ -75,15 +74,15 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
     public List<String> warnings = new ArrayList<>();
 
-    @Nullable public ProblemRef problemRef;
+    @Nullable public DsProblemRef problemRef;
 
     /** History cur branch. If it is absent, history is to be taken from histBaseBranch. */
-    @Nullable public TestHistory histCurBranch;
+    @Nullable public DsTestHistoryUi histCurBranch;
 
     /**
      * This history is created only for PR/Branch failures, it contains data from the base branch (e.g. master).
      */
-    @NotNull public TestHistory histBaseBranch = new TestHistory();
+    @Nonnull public DsTestHistoryUi histBaseBranch = new DsTestHistoryUi();
 
     /** Link to test history for current branch. */
     @Nullable public String webUrlBaseBranch;
@@ -187,7 +186,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
         return tcIgn.host() + "project.html"
             + "?projectId=" + projectId
             + "&testNameId=" + id
-            + "&branch=" + escape(branch)
+            + "&branch=" + UrlUtil.escape(branch)
             + "&tab=testDetails";
     }
 
@@ -210,7 +209,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             statForProblemsDetection = tcIgnited.getTestRunHist(name, curBranchNormalized);
 
             if (statForProblemsDetection != null) {
-                histCurBranch = new TestHistory();
+                histCurBranch = new DsTestHistoryUi();
 
                 histCurBranch.init(statForProblemsDetection);
             }
@@ -220,10 +219,10 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
 
         if (statForProblemsDetection != null) {
             if (statForProblemsDetection.detectTemplate(EventTemplates.newFailure) != null)
-                problemRef = new ProblemRef("New Failure");
+                problemRef = new DsProblemRef("New Failure");
 
             if (statForProblemsDetection.detectTemplate(EventTemplates.newContributedTestFailure) != null)
-                problemRef = new ProblemRef("Recently contributed test failure");
+                problemRef = new DsProblemRef("Recently contributed test failure");
         }
     }
 
@@ -233,7 +232,7 @@ import static org.apache.ignite.ci.util.UrlUtil.escape;
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        TestFailure failure = (TestFailure)o;
+        DsTestFailureUi failure = (DsTestFailureUi)o;
         return investigated == failure.investigated &&
             Objects.equals(name, failure.name) &&
             Objects.equals(suiteName, failure.suiteName) &&

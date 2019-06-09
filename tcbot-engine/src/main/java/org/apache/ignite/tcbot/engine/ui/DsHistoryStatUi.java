@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.model.hist;
+package org.apache.ignite.tcbot.engine.ui;
 
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 /**
  * Test failure summary: contains statistic of failures and total runs for suite or for test.
  */
-public class FailureSummary {
+public class DsHistoryStatUi {
     /** Registered number of failures from TC helper DB */
     @Nullable public Integer failures;
 
@@ -39,7 +39,7 @@ public class FailureSummary {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        FailureSummary summary = (FailureSummary)o;
+        DsHistoryStatUi summary = (DsHistoryStatUi)o;
 
         return Objects.equals(failures, summary.failures) &&
             Objects.equals(runs, summary.runs) &&

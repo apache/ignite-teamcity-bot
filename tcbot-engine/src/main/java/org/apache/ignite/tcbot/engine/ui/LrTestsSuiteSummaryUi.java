@@ -14,19 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.web.model.long_running;
+package org.apache.ignite.tcbot.engine.ui;
 
-import java.util.ArrayList;
 import java.util.List;
+
+import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
 
 /**
  *
  */
 @SuppressWarnings("WeakerAccess")
-public class FullLRTestsSummary {
-    public List<SuiteLRTestsSummary> suiteSummaries = new ArrayList<>();
+public class LrTestsSuiteSummaryUi {
+    public String name;
 
-    public void addSuiteSummaries(List<SuiteLRTestsSummary> summaries) {
-        suiteSummaries.addAll(summaries);
+    public long testAvgTime;
+
+    public String testAvgTimePrintable;
+
+    public List<LrTestUi> tests;
+
+    public LrTestsSuiteSummaryUi(String name, long testAvgTime, List<LrTestUi> tests) {
+        this.name = name;
+        this.testAvgTime = testAvgTime;
+        testAvgTimePrintable = millisToDurationPrintable(testAvgTime);
+        this.tests = tests;
     }
 }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.issue;
+package org.apache.ignite.tcbot.engine.issue;
 
 import com.google.common.collect.Lists;
 import java.util.ArrayList;

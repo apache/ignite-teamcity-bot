@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.model.hist;
+package org.apache.ignite.tcbot.engine.ui;
 
 import java.util.List;
 import java.util.Objects;
@@ -25,12 +25,12 @@ import org.apache.ignite.tcignited.history.IRunHistory;
 /**
  * Summary of failures - all history and recent runs for suite or for suite.
  */
-public class TestHistory {
+public class DsTestHistoryUi {
     /** 'All the time' runs history statistic. */
-    public FailureSummary allTime = new FailureSummary();
+    public DsHistoryStatUi allTime = new DsHistoryStatUi();
 
     /** Latest runs history statistic. */
-    public FailureSummary recent = new FailureSummary();
+    public DsHistoryStatUi recent = new DsHistoryStatUi();
 
     /** Latest runs, 0,1,2 values for each run. */
     @Nullable public List<Integer> latestRuns;
@@ -61,7 +61,7 @@ public class TestHistory {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        TestHistory hist = (TestHistory)o;
+        DsTestHistoryUi hist = (DsTestHistoryUi)o;
         return Objects.equals(allTime, hist.allTime) &&
             Objects.equals(recent, hist.recent) &&
             Objects.equals(latestRuns, hist.latestRuns) &&

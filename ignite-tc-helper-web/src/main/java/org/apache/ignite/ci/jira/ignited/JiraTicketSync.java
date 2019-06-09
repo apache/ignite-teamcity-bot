@@ -37,7 +37,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.ignite.ci.util.UrlUtil.escape;
+import static org.apache.ignite.tcbot.common.util.UrlUtil.escape;
 
 /**
  * Sync serving requests for all JIRA servers.

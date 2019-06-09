@@ -15,23 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.chain;
+package org.apache.ignite.tcbot.engine.chain;
 
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
-import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
-import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
-import org.apache.ignite.tcbot.engine.chain.SingleBuildRunCtx;
-import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
-import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
-import org.apache.ignite.ci.web.TcUpdatePool;
-import org.apache.ignite.ci.web.model.long_running.LRTest;
-import org.apache.ignite.ci.web.model.long_running.SuiteLRTestsSummary;
+import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.engine.ui.LrTestUi;
+import org.apache.ignite.tcbot.engine.ui.LrTestsSuiteSummaryUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.SyncMode;
@@ -40,12 +35,11 @@ import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.Build;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -77,11 +71,11 @@ public class BuildChainProcessor {
      * @param entryPoints
      * @return list of summaries about individual suite runs.
      */
-    public List<SuiteLRTestsSummary> loadLongRunningTestsSummary(
+    public List<LrTestsSuiteSummaryUi> loadLongRunningTestsSummary(
         ITeamcityIgnited teamcityIgnited,
         Collection<Integer> entryPoints
     ) {
-        final List<SuiteLRTestsSummary> res = new ArrayList<>();
+        final List<LrTestsSuiteSummaryUi> res = new ArrayList<>();
 
         SyncMode mode = SyncMode.RELOAD_QUEUED;
 
@@ -94,7 +88,7 @@ public class BuildChainProcessor {
             .filter(b -> !b.isComposite() && b.getTestsCount() > 0)
             .forEach(b ->
             {
-                List<LRTest> lrTests = new ArrayList<>();
+                List<LrTestUi> lrTests = new ArrayList<>();
 
                 b.getAllTests()
                     .filter(t -> {
@@ -104,7 +98,7 @@ public class BuildChainProcessor {
                     })
                     .forEach(
                         t -> lrTests
-                            .add(new LRTest(t.testName(compactor), t.getDuration(), null))
+                            .add(new LrTestUi(t.testName(compactor), t.getDuration(), null))
                     );
 
                 if (!lrTests.isEmpty()) {
@@ -117,7 +111,7 @@ public class BuildChainProcessor {
                     });
 
                     res.add(
-                        new SuiteLRTestsSummary(b.buildTypeName(compactor),
+                        new LrTestsSuiteSummaryUi(b.buildTypeName(compactor),
                             b.buildDuration(compactor) / b.getTestsCount(),
                             lrTests));
                 }
@@ -213,7 +207,7 @@ public class BuildChainProcessor {
         return fullChainRunCtx;
     }
 
-    @NotNull
+    @Nonnull
     public Map<Integer, Future<FatBuildCompacted>> loadAllBuildsInChains(Collection<Integer> entryPoints,
         SyncMode mode,
         ITeamcityIgnited tcIgn) {
@@ -244,7 +238,7 @@ public class BuildChainProcessor {
         return builds;
     }
 
-    @NotNull
+    @Nonnull
     public Map<String, List<FatBuildCompacted>> groupByBuildType(Map<Integer, Future<FatBuildCompacted>> builds) {
         Map<String, List<FatBuildCompacted>> buildsByBt = new ConcurrentHashMap<>();
         builds.values().forEach(bFut -> {
@@ -285,7 +279,7 @@ public class BuildChainProcessor {
     }
 
     @SuppressWarnings("WeakerAccess")
-    @NotNull
+    @Nonnull
     @AutoProfiling
     protected List<Future<FatBuildCompacted>> replaceWithRecent(List<FatBuildCompacted> builds,
         int cntLimit,
@@ -380,7 +374,7 @@ public class BuildChainProcessor {
      * @param teamcityIgnited Teamcity ignited.
      * @return Set of new builds found during this dependencies check round.
      */
-    @NotNull
+    @Nonnull
     private Set<Integer> dependencies(
         Future<FatBuildCompacted> buildFut,
         SyncMode mode,

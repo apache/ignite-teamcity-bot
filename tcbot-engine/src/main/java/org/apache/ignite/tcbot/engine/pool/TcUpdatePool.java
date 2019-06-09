@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web;
+package org.apache.ignite.tcbot.engine.pool;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

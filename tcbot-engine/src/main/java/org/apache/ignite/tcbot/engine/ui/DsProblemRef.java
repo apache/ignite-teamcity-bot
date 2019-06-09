@@ -15,26 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.util;
-
-import com.google.common.base.Strings;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import javax.annotation.Nullable;
+package org.apache.ignite.tcbot.engine.ui;
 
 /**
- * URL escaping Util
+ * Reference to some Issue with current suite or test detected by the Bot.
+ * Currently contains only display name.
  */
-public class UrlUtil {
-    private static final String ENC = "UTF-8";
+public class DsProblemRef {
+    public String name;
+    public String webUrl;
 
-    public static String escape(@Nullable final String val) {
-        try {
-            return URLEncoder.encode(Strings.nullToEmpty(val), ENC);
-        }
-        catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-            return val;
-        }
+    public DsProblemRef(String name) {
+        this.name = name;
     }
 }

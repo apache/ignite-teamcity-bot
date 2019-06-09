@@ -28,6 +28,7 @@ import javax.servlet.ServletContextListener;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.ci.di.IgniteTcBotModule;
+import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.tcbot.issue.IssueDetector;

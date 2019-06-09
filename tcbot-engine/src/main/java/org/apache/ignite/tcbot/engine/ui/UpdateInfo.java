@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.web.model.current;
+package org.apache.ignite.tcbot.engine.ui;
 
-import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
-import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
+import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
+import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 
 /**
  * General update information for JS data updating requests. UI model, so it contains public fields.
@@ -51,18 +51,17 @@ import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
     }
 
     /**
-     * @param gitHubConn GitHub integration associated with this server.
-     * @param jiraIntegration JIRA Integration
+     * @param gitHubConfig
+     * @param jiraCfg
      */
-    public void setJavaFlags(IGitHubConnIgnited gitHubConn,
-                             IJiraIgnited jiraIntegration) {
+    public void setJavaFlags(IGitHubConfig gitHubConfig, IJiraServerConfig jiraCfg) {
         //since user has logged in, TC flag should be set
         javaFlags |= TEAMCITY_FLAG;
 
-        if (gitHubConn.config().isGitTokenAvailable())
+        if (gitHubConfig.isGitTokenAvailable())
             javaFlags |= GITHUB_FLAG;
 
-        if (jiraIntegration.config().isJiraTokenAvailable())
+        if (jiraCfg.isJiraTokenAvailable())
             javaFlags |= JIRA_FLAG;
     }
 }

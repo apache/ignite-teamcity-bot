@@ -70,9 +70,9 @@ import org.apache.ignite.ci.web.model.JiraCommentResponse;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.VisaRequest;
-import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
-import org.apache.ignite.ci.web.model.current.TestFailure;
-import org.apache.ignite.ci.web.model.hist.FailureSummary;
+import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
+import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
+import org.apache.ignite.tcbot.engine.ui.DsHistoryStatUi;
 import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
 import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;
@@ -722,13 +722,13 @@ public class TcBotTriggerAndSignOffService {
                                                String tcBranch) {
         CurrentVisaStatus status = new CurrentVisaStatus();
 
-        List<SuiteCurrentStatus> suitesStatuses
+        List<DsSuiteUi> suitesStatuses
             = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, tcBranch, srvCode, prov, SyncMode.NONE);
 
         if (suitesStatuses == null)
             return status;
 
-        status.blockers = suitesStatuses.stream().mapToInt(SuiteCurrentStatus::totalBlockers).sum();
+        status.blockers = suitesStatuses.stream().mapToInt(DsSuiteUi::totalBlockers).sum();
 
         return status;
     }
@@ -772,7 +772,7 @@ public class TcBotTriggerAndSignOffService {
         JiraCommentResponse res;
 
         try {
-            List<SuiteCurrentStatus> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
+            List<DsSuiteUi> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
 
             if (suitesStatuses == null)
                 return new Visa("JIRA wasn't commented - no finished builds to analyze.");
@@ -809,15 +809,15 @@ public class TcBotTriggerAndSignOffService {
      * @param tcIgnited TC service.
      * @return Comment, which should be sent to the JIRA ticket.
      */
-    private String generateJiraComment(List<SuiteCurrentStatus> suites, String webUrl, String buildTypeId,
-        ITeamcityIgnited tcIgnited) {
+    private String generateJiraComment(List<DsSuiteUi> suites, String webUrl, String buildTypeId,
+                                       ITeamcityIgnited tcIgnited) {
         BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
 
         String suiteNameUsedForVisa = (bt != null ? bt.name(compactor) : buildTypeId);
 
         StringBuilder res = new StringBuilder();
 
-        for (SuiteCurrentStatus suite : suites) {
+        for (DsSuiteUi suite : suites) {
             res.append("{color:#d04437}").append(jiraEscText(suite.name)).append("{color}");
             res.append(" [[tests ").append(suite.failedTests);
 
@@ -826,7 +826,7 @@ public class TcBotTriggerAndSignOffService {
 
             res.append('|').append(suite.webToBuild).append("]]\\n");
 
-            for (TestFailure failure : suite.testFailures) {
+            for (DsTestFailureUi failure : suite.testFailures) {
                 res.append("* ");
 
                 if (failure.suiteName != null && failure.testName != null)
@@ -834,7 +834,7 @@ public class TcBotTriggerAndSignOffService {
                 else
                     res.append(jiraEscText(failure.name));
 
-                FailureSummary recent = failure.histBaseBranch.recent;
+                DsHistoryStatUi recent = failure.histBaseBranch.recent;
 
                 if (recent != null) {
                     if (recent.failureRate != null) {

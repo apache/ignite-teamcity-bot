@@ -22,20 +22,20 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
-import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
-import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
-import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
+
+import org.apache.ignite.ci.github.PullRequest;
+import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.tcbot.engine.chain.*;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
-import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
-import org.apache.ignite.ci.web.model.current.TestFailure;
-import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
+import org.apache.ignite.tcbot.engine.ui.DsChainUi;
+import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
+import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
+import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -80,7 +80,7 @@ public class PrChainsProcessor {
      * @return Test failures summary.
      */
     @AutoProfiling
-    public TestFailuresSummary getTestFailuresSummary(
+    public DsSummaryUi getTestFailuresSummary(
         ITcBotUserCreds creds,
         String srvCode,
         String suiteId,
@@ -90,7 +90,7 @@ public class PrChainsProcessor {
         @Nullable String baseBranchForTc,
         @Nullable Boolean checkAllLogs,
         SyncMode mode) {
-        final TestFailuresSummary res = new TestFailuresSummary();
+        final DsSummaryUi res = new DsSummaryUi();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
         //using here non persistent TC allows to skip update statistic
@@ -100,7 +100,7 @@ public class PrChainsProcessor {
 
         IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCode);
 
-        res.setJavaFlags(gitHubConnIgnited, jiraIntegration);
+        res.setJavaFlags(gitHubConnIgnited.config(), jiraIntegration.config());
 
         LatestRebuildMode rebuild;
         if (FullQueryParams.HISTORY.equals(act))
@@ -137,7 +137,7 @@ public class PrChainsProcessor {
             baseBranch,
             mode);
 
-        ChainAtServerCurrentStatus chainStatus = new ChainAtServerCurrentStatus(srvCode, tcIgnited.serverCode(), branchForTc);
+        DsChainUi chainStatus = new DsChainUi(srvCode, tcIgnited.serverCode(), branchForTc);
 
         chainStatus.baseBranchForTc = baseBranch;
 
@@ -152,7 +152,7 @@ public class PrChainsProcessor {
             //fail rate reference is always default (master)
             chainStatus.initFromContext(tcIgnited, ctx, baseBranch, compactor, false); // don't need for PR
 
-            chainStatus.initJiraAndGitInfo(ticketMatcher, jiraIntegration, gitHubConnIgnited);
+            initJiraAndGitInfo(chainStatus, jiraIntegration, gitHubConnIgnited);
         }
 
         res.addChainOnServer(chainStatus);
@@ -163,22 +163,62 @@ public class PrChainsProcessor {
     }
 
     /**
+     * Set up ticket and PR related information.
+     *  @param chainStatus Ticket matcher.
+     * @param jiraIntegration Jira integration.
+     * @param gitHubConnIgnited Git hub connection ignited.
+     */
+    public void initJiraAndGitInfo(DsChainUi chainStatus,
+                                   IJiraIgnited jiraIntegration,
+                                   IGitHubConnIgnited gitHubConnIgnited) {
+
+        String ticketFullName = null;
+        String branchName = chainStatus.branchName;
+        try {
+            ticketFullName = ticketMatcher
+                    .resolveTicketFromBranch(jiraIntegration.config().getCode(),
+                            null,
+                            branchName);
+        }
+        catch (BranchTicketMatcher.TicketNotFoundException ignore) {
+        }
+
+        Integer prNum = IGitHubConnection.convertBranchToPrId(branchName);
+
+        String prUrl = null;
+        String ticketUrl = null;
+
+        if (prNum != null) {
+            PullRequest pullReq = gitHubConnIgnited.getPullRequest(prNum);
+
+            if (pullReq != null && pullReq.getTitle() != null)
+                prUrl = pullReq.htmlUrl();
+        }
+
+        if (!Strings.isNullOrEmpty(ticketFullName) && jiraIntegration.config().getUrl() != null)
+            ticketUrl = jiraIntegration.generateTicketUrl(ticketFullName);
+
+        chainStatus.setPrInfo(prNum, prUrl);
+        chainStatus.setJiraTicketInfo(ticketFullName, ticketUrl);
+    }
+
+    /**
      * @param buildTypeId  Build type ID, for which visa was ordered.
      * @param branchForTc Branch for TeamCity.
      * @param srvId Server id.
      * @param prov Credentials.
      * @return List of suites with possible blockers.
      */
-    @Nullable public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId,
-        String branchForTc,
-        String srvId,
-        ITcBotUserCreds prov) {
+    @Nullable public List<DsSuiteUi> getBlockersSuitesStatuses(String buildTypeId,
+                                                               String branchForTc,
+                                                               String srvId,
+                                                               ITcBotUserCreds prov) {
         return getBlockersSuitesStatuses(buildTypeId, branchForTc, srvId, prov, SyncMode.RELOAD_QUEUED);
     }
 
     @Nullable
-    public List<SuiteCurrentStatus> getBlockersSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
-                                                              ITcBotUserCreds prov, SyncMode syncMode) {
+    public List<DsSuiteUi> getBlockersSuitesStatuses(String buildTypeId, String branchForTc, String srvId,
+                                                     ITcBotUserCreds prov, SyncMode syncMode) {
         //using here non persistent TC allows to skip update statistic
         ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvId, prov);
 
@@ -208,8 +248,8 @@ public class PrChainsProcessor {
      * @param baseBranch
      */
     //todo may avoid creation of UI model for simple comment.
-    private List<SuiteCurrentStatus> findBlockerFailures(FullChainRunCtx fullChainRunCtx, ITeamcityIgnited tcIgnited,
-        String baseBranch) {
+    private List<DsSuiteUi> findBlockerFailures(FullChainRunCtx fullChainRunCtx, ITeamcityIgnited tcIgnited,
+                                                String baseBranch) {
         return fullChainRunCtx
             .failedChildSuites()
             .map((ctx) -> {
@@ -218,13 +258,13 @@ public class PrChainsProcessor {
 
                 String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 
-                List<TestFailure> failures = ctx.getFailedTests().stream().map(occurrence -> {
+                List<DsTestFailureUi> failures = ctx.getFailedTests().stream().map(occurrence -> {
                     IRunHistory stat = tcIgnited.getTestRunHist(occurrence.getName(), normalizedBaseBranch);
 
                     String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
 
                     if (!Strings.isNullOrEmpty(testBlockerComment)) {
-                        final TestFailure failure = new TestFailure();
+                        final DsTestFailureUi failure = new DsTestFailureUi();
 
                         failure.initFromOccurrence(occurrence, tcIgnited, ctx.projectId(), ctx.branchName(), baseBranch);
 
@@ -237,7 +277,7 @@ public class PrChainsProcessor {
                 // test failure based blockers and/or blocker found by suite results
                 if (!failures.isEmpty() || !Strings.isNullOrEmpty(suiteComment)) {
 
-                    SuiteCurrentStatus suiteUi = new SuiteCurrentStatus();
+                    DsSuiteUi suiteUi = new DsSuiteUi();
                     suiteUi.testFailures = failures;
 
                     suiteUi.initFromContext(tcIgnited, ctx, baseBranch, compactor, false, false);

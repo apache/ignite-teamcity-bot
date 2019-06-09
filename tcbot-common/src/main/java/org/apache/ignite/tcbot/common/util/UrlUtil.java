@@ -14,29 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.web.model.long_running;
 
-import java.util.List;
+package org.apache.ignite.tcbot.common.util;
 
-import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
+import com.google.common.base.Strings;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import javax.annotation.Nullable;
 
 /**
- *
+ * URL escaping Util
  */
-@SuppressWarnings("WeakerAccess")
-public class SuiteLRTestsSummary {
-    public String name;
+public class UrlUtil {
+    private static final String ENC = "UTF-8";
 
-    public long testAvgTime;
-
-    public String testAvgTimePrintable;
-
-    public List<LRTest> tests;
-
-    public SuiteLRTestsSummary(String name, long testAvgTime, List<LRTest> tests) {
-        this.name = name;
-        this.testAvgTime = testAvgTime;
-        testAvgTimePrintable = millisToDurationPrintable(testAvgTime);
-        this.tests = tests;
+    public static String escape(@Nullable final String val) {
+        try {
+            return URLEncoder.encode(Strings.nullToEmpty(val), ENC);
+        }
+        catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return val;
+        }
     }
 }
