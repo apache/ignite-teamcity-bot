@@ -20,13 +20,13 @@ import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.tcbot.chain.BuildChainProcessor;
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.LocalFilesBasedConfig;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 
 /**
  * TC Bot self services mapping (without 3rd party integrations configuration.
@@ -36,7 +36,7 @@ public class TcBotBusinessServicesModule extends AbstractModule {
     @Override protected void configure() {
         bind(ITcBotConfig.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
         //todo remove
-        bind(ITcServerConfigSupplier.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
+        bind(IDataSourcesConfigSupplier.class).to(LocalFilesBasedConfig.class).in(new SingletonScope());
         bind(IUserStorage.class).to(UserAndSessionsStorage.class).in(new SingletonScope());
         bind(IIssuesStorage.class).to(IssuesStorage.class).in(new SingletonScope());
         bind(MasterTrendsService.class).in(new SingletonScope());

@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.ci.tcbot.conf.ChainAtServerTracked;
-import org.apache.ignite.ci.tcbot.conf.BranchesTracked;
+import org.apache.ignite.ci.tcbot.conf.TcBotJsonConfig;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
@@ -66,7 +66,7 @@ public class TrackedBranchProcessorTest {
     private Map<Integer, FatBuildCompacted> apacheBuilds = new ConcurrentHashMap<>();
 
     /** Branches tracked. */
-    private BranchesTracked branchesTracked = new BranchesTracked();
+    private TcBotJsonConfig branchesTracked = new TcBotJsonConfig();
     /**
      * Injector.
      */

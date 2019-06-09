@@ -33,7 +33,6 @@ import org.jetbrains.annotations.Nullable;
  * Teamcity connection configuration or reference to another config.
  */
 public class TcServerConfig implements ITcServerConfig {
-    public static final String DEFAULT_TRACKED_BRANCH_NAME = "master";
     private static final String DEFAULT_HOST = "https://ci.ignite.apache.org/";
 
     /** TC server name. */

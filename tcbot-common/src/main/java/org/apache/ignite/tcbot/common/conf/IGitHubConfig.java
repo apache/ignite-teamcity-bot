@@ -14,39 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.conf;
+package org.apache.ignite.tcbot.common.conf;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
  *
  */
-public interface INotificationChannel {
+public interface IGitHubConfig {
     /**
-     * @param trackedBranchId Tracked branch id.
+     * @return server (service) code.
      */
-    public boolean isSubscribedToBranch(String trackedBranchId);
+    public String code();
+
+    /** Git branch prefix for search ticket-related TC runs in PR-less contributions. */
+    @Nonnull
+    public String gitBranchPrefix();
 
     /**
-     * Checks if server related issue can be used for notification. For users it is determined by credentials.
+     * Extracts and returns GitHub authorization token from properties.
      *
-     * @param srvCode Server code.
+     * @return Null or decoded auth token for Github.
      */
-    public boolean isServerAllowed(String srvCode);
+    @Nullable
+    public String gitAuthTok();
 
     /**
-     * @param tag Tag from actual build/issue.
+     * @return GitHub Api URL, if specified always ends with '/'
      */
-    public boolean isSubscribedToTag(@Nullable String tag);
-
     @Nullable
-    public String email();
+    public String gitApiUrl();
 
-    @Nullable
-    public String slack();
+    default boolean isGitTokenAvailable() {
+        return gitAuthTok() != null;
+    }
 
-    /**
-     * @return any tags specified for this channel, filtration should be applied.
-     */
-    public boolean hasTagFilter();
+    boolean isPreferBranches();
 }

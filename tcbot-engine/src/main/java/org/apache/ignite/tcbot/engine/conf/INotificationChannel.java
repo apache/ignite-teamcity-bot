@@ -14,17 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcbot.common.conf;
+package org.apache.ignite.tcbot.engine.conf;
 
-import java.util.Collection;
+import javax.annotation.Nullable;
 
 /**
- * Teamcity build parameter for filtering and for triggering specification.
+ *
  */
-public interface IBuildParameterSpec {
-    String name();
+public interface INotificationChannel {
+    /**
+     * @param trackedBranchId Tracked branch id.
+     */
+    public boolean isSubscribedToBranch(String trackedBranchId);
 
-    boolean isFilled();
+    /**
+     * Checks if server related issue can be used for notification. For users it is determined by credentials.
+     *
+     * @param srvCode Server code.
+     */
+    public boolean isServerAllowed(String srvCode);
 
-    Collection<? extends IParameterValueSpec> selection();
+    /**
+     * @param tag Tag from actual build/issue.
+     */
+    public boolean isSubscribedToTag(@Nullable String tag);
+
+    @Nullable
+    public String email();
+
+    @Nullable
+    public String slack();
+
+    /**
+     * @return any tags specified for this channel, filtration should be applied.
+     */
+    public boolean hasTagFilter();
 }

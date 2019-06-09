@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.util;
+package org.apache.ignite.tcbot.common.util;
 
 import com.google.common.base.Throwables;
-import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.Charset;
@@ -92,7 +92,7 @@ public class CryptUtil {
         return aesEcbPkcs5PaddedCrypt(aesKey(userKey), data, Cipher.DECRYPT_MODE);
     }
 
-    @NotNull
+    @Nonnull
     private static SecretKeySpec aesKey(byte[] userKey) {
         return new SecretKeySpec(userKey, "AES");
     }

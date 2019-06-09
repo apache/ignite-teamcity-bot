@@ -38,7 +38,7 @@ import org.apache.ignite.ci.github.GitHubBranchKey;
 import org.apache.ignite.ci.github.GitHubBranchShort;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
+import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

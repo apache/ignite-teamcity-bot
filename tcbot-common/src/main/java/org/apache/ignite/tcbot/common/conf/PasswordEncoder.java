@@ -15,17 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.conf;
+package org.apache.ignite.tcbot.common.conf;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import org.apache.ignite.tcbot.common.util.Base64Util;
+import org.apache.ignite.tcbot.common.util.CryptUtil;
+
 import java.security.SecureRandom;
+import javax.annotation.Nonnull;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
-import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.util.CryptUtil;
-import org.jetbrains.annotations.NotNull;
 
 import static javax.xml.bind.DatatypeConverter.parseHexBinary;
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
@@ -68,7 +69,7 @@ public class PasswordEncoder {
         return CryptUtil.aesEcbPkcs5PaddedCrypt(k(), data, Cipher.DECRYPT_MODE);
     }
 
-    @NotNull private static SecretKeySpec k() {
+    @Nonnull private static SecretKeySpec k() {
         int reqBytes = 128 / 8;
         String ptrn = "Ignite";
         byte[] raw = Strings.repeat(ptrn, reqBytes / ptrn.length() + 1).substring(0, reqBytes).getBytes();
@@ -90,7 +91,12 @@ public class PasswordEncoder {
     public static void main0(String[] args) {
         String pass = "324aadfe23....";
         String encode = encode(pass);
-        System.err.println("Encoded: " + HelperConfig.GITHUB_AUTH_TOKEN + "=" + encode);
+        System.err.println("Encoded: " +
+                "\"gitHubConfigs\": [\n" +
+                        "    {\n" +
+                        "      \"authTok\": \"\",\n" +
+                             "" + encode +   "    }\n" +
+                "  ],");
         String decode = decode(encode);
         Preconditions.checkState(decode.equals(pass));
     }
@@ -116,10 +122,14 @@ public class PasswordEncoder {
     }
 
     public static void encodeJiraTok(String user, String pwd) {
-        String tok = HelperConfig.userPwdToToken(user, pwd);
+        String tok =  userPwdToToken(user, pwd);
         String encode = encode(tok);
-        System.err.println("Encoded: " + HelperConfig.JIRA_AUTH_TOKEN + "=" + encode);
+        System.err.println("Encoded: "  + "=" + encode);
         String decode = decode(encode);
         Preconditions.checkState(decode.equals(tok));
+    }
+
+    @Nonnull public static String userPwdToToken(String user, String pwd) {
+        return Base64Util.encodeUtf8String(user + ":" + pwd);
     }
 }

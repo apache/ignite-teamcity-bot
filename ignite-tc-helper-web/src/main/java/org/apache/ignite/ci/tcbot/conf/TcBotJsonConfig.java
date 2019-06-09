@@ -17,7 +17,16 @@
 
 package org.apache.ignite.ci.tcbot.conf;
 
-import java.util.*;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
+import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
+import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -26,7 +35,7 @@ import javax.annotation.Nullable;
  * TC Bot main JSON config file, Historically.
  * Config file for tracked branches.
  */
-public class BranchesTracked {
+public class TcBotJsonConfig implements ITrackedBranchesConfig {
     /** Branches. */
     private List<BranchTracked> branches = new ArrayList<>();
 
@@ -45,38 +54,18 @@ public class BranchesTracked {
     /** Notifications settings & tokens. */
     private NotificationsConfig notifications = new NotificationsConfig();
 
-    /**
-     * @return list of internal identifiers of branch.
-     */
-    public List<String> getIds() {
-        return branches.stream().map(BranchTracked::getId).collect(Collectors.toList());
-    }
-
-    /**
-     * Get Unique suites involved into tracked branches
-     */
-    public Set<ChainAtServer> getSuitesUnique() {
-        return branches.stream()
-            .flatMap(BranchTracked::getChainsStream)
-            .map(ChainAtServer::new) // to produce object with another equals
-            .collect(Collectors.toSet());
-    }
-
-    public Optional<BranchTracked> get(String branch) {
-        return branches.stream().filter(b -> branch.equals(b.getId())).findAny();
-    }
-
-    public BranchTracked getBranchMandatory(String branch) {
-        return get(branch).orElseThrow(() -> new RuntimeException("Branch not found: " + branch));
+    @Override
+    public Stream<ITrackedBranch> branchesStream() {
+        return branches.stream().map(t->t);
     }
 
     /**
      *
      */
     public Set<String> getServerIds() {
-        Stream<String> srvsInTracked = branches.stream()
-            .flatMap(BranchTracked::getChainsStream)
-            .map(ChainAtServer::getServerId);
+        Stream<String> srvsInTracked = branchesStream()
+            .flatMap(ITrackedBranch::chainsStream)
+            .map(ITrackedChain::serverCode);
 
         return Stream.concat(srvsInTracked,
             tcServers.stream().map(TcServerConfig::getCode))

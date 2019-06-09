@@ -14,17 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.ignite.tcbot.common.conf;
 
-import java.util.Collection;
-
 /**
- * Teamcity build parameter for filtering and for triggering specification.
+ * 3rd party data sources (services/servers) configurations.
  */
-public interface IBuildParameterSpec {
-    String name();
-
-    boolean isFilled();
-
-    Collection<? extends IParameterValueSpec> selection();
+public interface IDataSourcesConfigSupplier {
+    public ITcServerConfig getTeamcityConfig(String srvCode);
 }

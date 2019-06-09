@@ -19,42 +19,12 @@ package org.apache.ignite.ci.tcbot.issue;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import javax.annotation.Nonnull;
-import javax.inject.Inject;
-import javax.inject.Provider;
-
-import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
-import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
-import org.apache.ignite.ci.issue.EventTemplate;
-import org.apache.ignite.ci.issue.EventTemplates;
-import org.apache.ignite.ci.issue.Issue;
-import org.apache.ignite.ci.issue.IssueKey;
-import org.apache.ignite.ci.issue.IssueType;
+import org.apache.ignite.ci.issue.*;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.tcbot.chain.TrackedBranchChainsProcessor;
-import org.apache.ignite.ci.tcbot.conf.INotificationChannel;
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
-import org.apache.ignite.ci.tcbot.conf.NotificationsConfig;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
-import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
@@ -64,9 +34,30 @@ import org.apache.ignite.ci.web.model.current.ChainAtServerCurrentStatus;
 import org.apache.ignite.ci.web.model.current.SuiteCurrentStatus;
 import org.apache.ignite.ci.web.model.current.TestFailure;
 import org.apache.ignite.ci.web.model.current.TestFailuresSummary;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
+import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.history.IRunHistory;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import javax.inject.Inject;
+import javax.inject.Provider;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 
@@ -472,19 +463,15 @@ public class IssueDetector {
      *
      */
     private void checkFailures() {
-        List<String> ids = cfg.getTrackedBranchesIds();
-
-        for (String tbranchName : ids) {
+        cfg.getTrackedBranches().branchesStream().forEach(tb -> {
             try {
-                checkFailuresEx(tbranchName);
-            }
-            catch (Exception e) {
+                checkFailuresEx(tb.name());
+            } catch (Exception e) {
                 e.printStackTrace();
 
                 logger.error("Failure periodic check failed: " + e.getMessage(), e);
             }
-        }
-
+        });
     }
 
     /**

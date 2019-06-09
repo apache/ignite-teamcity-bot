@@ -14,10 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.tcbot.engine.conf;
 
-package org.apache.ignite.tcbot.common.conf;
+import javax.annotation.Nonnull;
+import java.util.List;
+import java.util.stream.Stream;
 
-@Deprecated
-public interface ITcServerConfigSupplier {
-    public ITcServerConfig getTeamcityConfig(String srvCode);
+/**
+ *
+ */
+public interface ITrackedBranch {
+    public String name();
+    public Stream<ITrackedChain> chainsStream();
+
+    /** Disable notifications for the following issue types.   */
+    @Nonnull public List<String> disableIssueTypes();
 }

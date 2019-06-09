@@ -23,12 +23,14 @@ import java.util.List;
 import java.util.stream.Stream;
 import javax.validation.constraints.NotNull;
 import org.apache.ignite.ci.issue.IssueType;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
+import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * One tracked branch, probably on several servers
  */
-public class BranchTracked {
+public class BranchTracked implements ITrackedBranch {
     /** ID for internal REST and for config file. */
     public String id;
 
@@ -42,7 +44,7 @@ public class BranchTracked {
     /**
      * @return internal identifier of the branch.
      */
-    public String getId() {
+    public String name() {
         return id;
     }
 
@@ -52,8 +54,8 @@ public class BranchTracked {
     }
 
     /** */
-    public Stream<ChainAtServerTracked> getChainsStream() {
-        return getChains().stream();
+    public Stream<ITrackedChain> chainsStream() {
+        return chains.stream().map(t->t);
     }
 
     /**

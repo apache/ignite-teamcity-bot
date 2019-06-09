@@ -30,7 +30,7 @@ import org.apache.ignite.ci.jira.pure.Fields;
 import org.apache.ignite.ci.jira.pure.IJiraIntegration;
 import org.apache.ignite.ci.jira.pure.IJiraIntegrationProvider;
 import org.apache.ignite.ci.jira.pure.Ticket;
-import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
+import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.NotNull;

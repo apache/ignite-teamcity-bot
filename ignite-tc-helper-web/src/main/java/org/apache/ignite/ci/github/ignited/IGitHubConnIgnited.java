@@ -18,8 +18,8 @@ package org.apache.ignite.ci.github.ignited;
 
 import java.util.List;
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.ci.tcbot.conf.IGitHubConfig;
-import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
+import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
+import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 
 /**
  *

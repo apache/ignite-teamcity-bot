@@ -19,7 +19,7 @@ package org.apache.ignite.ci.jira.ignited;
 import java.io.IOException;
 import java.util.Set;
 import org.apache.ignite.ci.jira.pure.Ticket;
-import org.apache.ignite.ci.tcbot.conf.IJiraServerConfig;
+import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 
 /**
  *

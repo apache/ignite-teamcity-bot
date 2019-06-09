@@ -33,10 +33,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.ignite.ci.tcbot.conf.BranchTracked;
 import org.apache.ignite.ci.tcbot.conf.ChainAtServer;
 import org.apache.ignite.ci.tcbot.TcBotGeneralService;
-import org.apache.ignite.ci.tcbot.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
+import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
@@ -71,12 +72,23 @@ public class GetTrackedBranches {
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
         ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
 
-        return cfg.getTrackedBranches().getBranches()
-                .stream()
+        return cfg.getTrackedBranches().branchesStream()
                 .filter(bt ->
-                        bt.getChains().stream().anyMatch(chain-> tcProv.hasAccess(chain.serverId, prov)))
-                .map(BranchTracked::getId)
+                        bt.chainsStream().anyMatch(chain-> tcProv.hasAccess(chain.serverCode(), prov)))
+                .map(ITrackedBranch::name)
                 .collect(Collectors.toList());
+    }
+
+
+    /**
+     * Get Unique suites involved into tracked branches
+     * @param trackedBranches
+     */
+    public Set<ChainAtServer> getSuitesUnique(ITrackedBranchesConfig trackedBranches) {
+        return trackedBranches.branchesStream()
+                .flatMap(ITrackedBranch::chainsStream)
+                .map(ChainAtServer::new) // to produce object with another equals
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -92,8 +104,7 @@ public class GetTrackedBranches {
         ITcBotConfig cfg = injector.getInstance(ITcBotConfig.class);
         ITeamcityIgnitedProvider tcProv = injector.getInstance(ITeamcityIgnitedProvider.class);
 
-        return cfg.getTrackedBranches()
-            .getSuitesUnique()
+        return getSuitesUnique(cfg.getTrackedBranches())
             .stream()
             .filter(chainAtSrv ->
                 Strings.isNullOrEmpty(srvId)
