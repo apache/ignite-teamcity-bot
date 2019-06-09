@@ -60,6 +60,13 @@ TeamCity Bot Components and its interactions
 
 <img src="https://docs.google.com/drawings/d/e/2PACX-1vQM6tH6-pb6C_JGjNG41sUBJP72CVpNqeBHIQdgaGYL4rGoYfZtywwzVB1JKF1Kk8haXUVl_IORI6NQ/pub?w=1356&h=733">
 
+### Modules structure
 Static content is placed in [webapp](ignite-tc-helper-web/src/main/webapp).
-TC Bot services can be found in [tcbot](ignite-tc-helper-web/src/main/java/org/apache/ignite/ci/tcbot). 
-TC Bot integrations are placed in corresponding subpackages in [ci](ignite-tc-helper-web/src/main/java/org/apache/ignite/ci).
+
+TC Bot services can be found in [tcbot-engine](tcbot-engine)
+
+TC Bot integrations are placed in corresponding submodules
+| Data Source | Pure Integration | Persistence-enabled |
+| ----------- | ---------------- | ------------------ |
+| Teamcity | [tcbot-teamcity](tcbot-teamcity) | [tcbot-teamcity-ignited](tcbot-teamcity-ignited)  |
+

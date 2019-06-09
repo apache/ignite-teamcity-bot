@@ -21,7 +21,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
- * Test failure summary: contains statistic of failures and total runs for suite or for test.
+ * Detailed status of failures: Test/suite failure summary: contains statistic of failures and total runs for suite or for test.
  */
 public class DsHistoryStatUi {
     /** Registered number of failures from TC helper DB */

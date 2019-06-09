@@ -39,7 +39,7 @@ import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrint
 
 
 /**
- * UI model for test failure, probably merged with its history
+ * Detailed status of failures: UI model for test failure, probably merged with its history
  */
 @SuppressWarnings({"WeakerAccess", "PublicField"})
 public class DsTestFailureUi {
