@@ -62,9 +62,9 @@ allprojects {
 
     repositories {
         //uncomment for RC testing
-        maven {
-            url "https://repository.apache.org/content/repositories/orgapacheignite-1463/"
-        }
+       // maven {
+       //     url "https://repository.apache.org/content/repositories/orgapacheignite-1463/"
+       // }
     }
 }
 
