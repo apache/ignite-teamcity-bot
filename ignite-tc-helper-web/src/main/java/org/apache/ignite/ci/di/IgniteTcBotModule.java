@@ -29,7 +29,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.di.cache.GuavaCachedModule;
 import org.apache.ignite.ci.di.scheduler.SchedulerModule;
-import org.apache.ignite.ci.github.ignited.GitHubIgnitedModule;
+import org.apache.ignite.githubignited.GitHubIgnitedModule;
 import org.apache.ignite.ci.jira.ignited.JiraIgnitedModule;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.ObserverTask;

@@ -14,11 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github.pure;
+package org.apache.ignite.ci.github;
 
-public interface IGitHubConnectionProvider {
-    /**
-     * @param srvId Server id.
-     */
-    public IGitHubConnection server(String srvId);
+import org.apache.ignite.tcbot.persistence.Persisted;
+
+import java.util.Objects;
+
+@Persisted
+public class GitHubCommit {
+    /** Sha of the commit. */
+    private String sha;
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        GitHubCommit commit = (GitHubCommit)o;
+        return Objects.equals(sha, commit.sha);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hash(sha);
+    }
 }

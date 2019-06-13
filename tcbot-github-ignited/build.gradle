@@ -15,13 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.tcbot.common.conf;
+apply plugin: 'java'
 
-/**
- * 3rd party data sources (services/servers) configurations.
- */
-public interface IDataSourcesConfigSupplier {
-    public ITcServerConfig getTeamcityConfig(String srvCode);
-
-    public IGitHubConfig getGitConfig(String srvCode);
+dependencies {
+    compile (project(":tcbot-github"));
+    compile (project(":tcbot-persistence"));
 }
+ 

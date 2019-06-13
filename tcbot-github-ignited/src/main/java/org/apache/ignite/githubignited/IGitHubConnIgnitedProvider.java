@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.ignite.tcbot.common.conf;
+package org.apache.ignite.githubignited;
 
 /**
- * 3rd party data sources (services/servers) configurations.
+ *
  */
-public interface IDataSourcesConfigSupplier {
-    public ITcServerConfig getTeamcityConfig(String srvCode);
-
-    public IGitHubConfig getGitConfig(String srvCode);
+public interface IGitHubConnIgnitedProvider {
+    /**
+     * @param srvId Server id.
+     */
+    public IGitHubConnIgnited server(String srvId);
 }

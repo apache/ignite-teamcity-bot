@@ -20,11 +20,7 @@ apply plugin: 'war'
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
-
-repositories {
-    mavenCentral()
-    mavenLocal()
-}
+ 
 
 // https://www.apache.org/legal/resolved.html#category-a
 dependencies {

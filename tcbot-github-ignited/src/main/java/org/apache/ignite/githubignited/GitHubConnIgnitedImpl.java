@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github.ignited;
+package org.apache.ignite.githubignited;
 
 import java.util.HashSet;
 import java.util.List;
@@ -25,21 +25,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.ci.db.TcHelperDb;
+import org.apache.ignite.githubservice.IGitHubConnection;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
+import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.ci.github.GitHubBranchKey;
 import org.apache.ignite.ci.github.GitHubBranchShort;
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.ci.github.pure.IGitHubConnection;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,8 +86,8 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
         srvIdMaskHigh = Math.abs(srvCode.hashCode());
 
         Ignite ignite = igniteProvider.get();
-        prCache = ignite.getOrCreateCache(TcHelperDb.getCache8PartsConfig(GIT_HUB_PR));
-        branchCache = ignite.getOrCreateCache(TcHelperDb.getCache8PartsConfig(GIT_HUB_BRANCHES));
+        prCache = ignite.getOrCreateCache(CacheConfigs.getCache8PartsConfig(GIT_HUB_PR));
+        branchCache = ignite.getOrCreateCache(CacheConfigs.getCache8PartsConfig(GIT_HUB_BRANCHES));
     }
 
     /** {@inheritDoc} */
@@ -148,7 +148,7 @@ class GitHubConnIgnitedImpl implements IGitHubConnIgnited {
      * @param taskName Task name.
      * @return Task name concatenated with server name.
      */
-    @NotNull
+    @Nonnull
     private String taskName(String taskName) {
         return IGitHubConnIgnited.class.getSimpleName() + "." + taskName + "." + srvCode;
     }

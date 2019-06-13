@@ -58,13 +58,19 @@ allprojects {
         slf4jVer = '1.7.25'
 
         gsonVer = '2.8.2'
+        
+        junitVer = '4.12'
+        mockitoVer = '2.22.0'
     }
 
     repositories {
         //uncomment for RC testing
-       // maven {
-       //     url "https://repository.apache.org/content/repositories/orgapacheignite-1463/"
-       // }
+        // maven {
+        //     url "https://repository.apache.org/content/repositories/orgapacheignite-1463/"
+        // }
+
+        mavenCentral()
+        mavenLocal()
     }
 }
 

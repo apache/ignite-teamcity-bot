@@ -24,7 +24,8 @@ import java.util.Objects;
 
 import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
-import org.jetbrains.annotations.Nullable;
+
+import javax.annotation.Nullable;
 
 /**
  *
@@ -167,7 +168,7 @@ public class PullRequest implements IVersionedEntity {
         return LATEST_VERSION;
     }
 
-    @Nullable public String lastCommitShaShort() {
+    @Nullable  public String lastCommitShaShort() {
         String sha = head().sha();
 
         return Strings.isNullOrEmpty(sha) ? null : sha.substring(0, INCLUDE_SHORT_VER);

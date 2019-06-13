@@ -17,8 +17,9 @@
 package org.apache.ignite.ci.github;
 
 import com.google.gson.annotations.SerializedName;
-import java.util.Objects;
 import org.apache.ignite.tcbot.persistence.Persisted;
+
+import java.util.Objects;
 
 @Persisted
 public class GitHubUser {

@@ -14,24 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github.pure;
+package org.apache.ignite.githubservice;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.ci.github.GitHubBranchShort;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
-import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.common.util.HttpUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,7 +53,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
 
     /** Config. */
     @Inject
-    private ITcBotConfig cfg;
+    private IDataSourcesConfigSupplier cfg;
 
     /** Service (server) code. */
     private String srvCode;
@@ -152,7 +151,7 @@ class GitHubConnectionImpl implements IGitHubConnection {
         return readOnePage(outLinkNext, url, rspHeaders, tok);
     }
 
-    @NotNull public String getApiUrlMandatory() {
+    @Nonnull public String getApiUrlMandatory() {
         String gitApiUrl = config().gitApiUrl();
 
         Preconditions.checkState(!isNullOrEmpty(gitApiUrl), "Git API URL is not configured for this server.");
