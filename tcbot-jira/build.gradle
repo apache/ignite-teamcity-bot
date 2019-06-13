@@ -15,15 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.tcbot.common.conf;
+apply plugin: 'java'
 
-/**
- * 3rd party data sources (services/servers) configurations.
- */
-public interface IDataSourcesConfigSupplier {
-    public ITcServerConfig getTeamcityConfig(String srvCode);
-
-    public IGitHubConfig getGitConfig(String srvCode);
-
-    public IJiraServerConfig getJiraConfig(String srvCode);
+dependencies {
+    compile (project(":tcbot-common"));
+    // JIRA integration shares entries for pure and Ignited connection, so persistence module is here for interfaces/annotations
+    compile (project(":tcbot-persistence"));
+    
+    testCompile group: 'junit', name: 'junit', version: junitVer
+    testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer
 }
+ 

@@ -15,15 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.tcbot.common.conf;
+package org.apache.ignite.jiraservice;
 
 /**
- * 3rd party data sources (services/servers) configurations.
+ *
  */
-public interface IDataSourcesConfigSupplier {
-    public ITcServerConfig getTeamcityConfig(String srvCode);
-
-    public IGitHubConfig getGitConfig(String srvCode);
-
-    public IJiraServerConfig getJiraConfig(String srvCode);
+public interface IJiraIntegrationProvider {
+    /**
+     * @param srvId Server id.
+     */
+    public IJiraIntegration server(String srvId);
 }

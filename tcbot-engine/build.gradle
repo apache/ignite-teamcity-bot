@@ -18,8 +18,8 @@
 apply plugin: 'java'
 
 dependencies {
-    compile (project(":tcbot-persistence"));
     compile (project(":tcbot-teamcity-ignited"));
     compile (project(":tcbot-github-ignited"));
+    compile (project(":tcbot-jira-ignited"));
 }
  

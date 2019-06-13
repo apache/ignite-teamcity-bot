@@ -15,15 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.tcbot.common.conf;
+package org.apache.ignite.tcbot.persistence.scheduler;
 
-/**
- * 3rd party data sources (services/servers) configurations.
- */
-public interface IDataSourcesConfigSupplier {
-    public ITcServerConfig getTeamcityConfig(String srvCode);
+import com.google.inject.AbstractModule;
+import com.google.inject.internal.SingletonScope;
 
-    public IGitHubConfig getGitConfig(String srvCode);
-
-    public IJiraServerConfig getJiraConfig(String srvCode);
+public class SchedulerModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        bind(IScheduler.class).to(TcBotScheduler.class).in(new SingletonScope());
+    }
 }

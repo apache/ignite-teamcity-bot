@@ -19,7 +19,7 @@ package org.apache.ignite.ci.tcbot.conf;
 import com.google.common.base.Strings;
 import java.util.Properties;
 import org.apache.ignite.ci.HelperConfig;
-import org.apache.ignite.ci.jira.pure.Ticket;
+import org.apache.ignite.jiraservice.Ticket;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 import org.apache.ignite.tcbot.common.conf.PasswordEncoder;
 import org.jetbrains.annotations.Nullable;
