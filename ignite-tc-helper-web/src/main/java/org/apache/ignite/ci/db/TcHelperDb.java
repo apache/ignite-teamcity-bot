@@ -111,15 +111,6 @@ public class TcHelperDb {
 
     }
 
-    @NotNull
-    public static <K, V> CacheConfiguration<K, V> getCache8PartsConfig(String name) {
-        CacheConfiguration<K, V> ccfg = new CacheConfiguration<>(name);
-
-        ccfg.setAffinity(new RendezvousAffinityFunction(false, 8));
-
-        return ccfg;
-    }
-
     public static class LocalOnlyTcpDiscoveryIpFinder implements TcpDiscoveryIpFinder {
         /** Port. */
         private int port;

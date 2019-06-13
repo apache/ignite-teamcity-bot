@@ -20,11 +20,7 @@ apply plugin: 'application'
 
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
-
-repositories {
-    mavenCentral()
-    mavenLocal()
-}
+ 
 
 mainClassName = 'org.apache.ignite.ci.TcHelperJettyLauncher'
 applicationDefaultJvmArgs = ["-Dteamcity.helper.home=../work",

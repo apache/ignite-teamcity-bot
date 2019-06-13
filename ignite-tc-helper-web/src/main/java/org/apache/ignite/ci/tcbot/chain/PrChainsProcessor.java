@@ -24,10 +24,10 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.ci.github.pure.IGitHubConnection;
+import org.apache.ignite.githubservice.IGitHubConnection;
 import org.apache.ignite.tcbot.engine.chain.*;
-import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
-import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
+import org.apache.ignite.githubignited.IGitHubConnIgnited;
+import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
 import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
 import org.apache.ignite.ci.tcbot.visa.BranchTicketMatcher;

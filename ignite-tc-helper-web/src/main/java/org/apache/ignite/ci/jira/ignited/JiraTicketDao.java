@@ -32,6 +32,7 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.ci.jira.pure.Ticket;
+import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.internal.U;
@@ -56,7 +57,7 @@ public class JiraTicketDao {
      *
      */
     public void init() {
-        jiraCache = igniteProvider.get().getOrCreateCache(TcHelperDb.getCache8PartsConfig(TEAMCITY_JIRA_TICKET_CACHE_NAME));
+        jiraCache = igniteProvider.get().getOrCreateCache(CacheConfigs.getCache8PartsConfig(TEAMCITY_JIRA_TICKET_CACHE_NAME));
     }
 
     /**

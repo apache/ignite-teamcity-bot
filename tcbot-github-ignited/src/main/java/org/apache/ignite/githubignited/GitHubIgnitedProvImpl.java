@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github.ignited;
+package org.apache.ignite.githubignited;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -24,8 +24,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Provider;
-import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
+import org.apache.ignite.githubservice.IGitHubConnection;
+import org.apache.ignite.githubservice.IGitHubConnectionProvider;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 
 class GitHubIgnitedProvImpl implements IGitHubConnIgnitedProvider {

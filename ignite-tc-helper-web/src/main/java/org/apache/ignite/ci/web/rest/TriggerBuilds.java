@@ -31,8 +31,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import org.apache.ignite.ci.github.pure.IGitHubConnection;
-import org.apache.ignite.ci.github.pure.IGitHubConnectionProvider;
+
+import org.apache.ignite.githubservice.IGitHubConnection;
+import org.apache.ignite.githubservice.IGitHubConnectionProvider;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.trigger.TriggerResult;

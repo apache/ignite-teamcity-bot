@@ -16,12 +16,7 @@
  */
 
 apply plugin: 'java'
-
-repositories {
-    mavenCentral()
-    mavenLocal()
-}
-
+ 
 dependencies {
     compile (project(":tcbot-teamcity"));
     compile (project(":tcbot-persistence"));

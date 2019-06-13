@@ -14,38 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github;
+package org.apache.ignite.githubservice;
 
-import java.util.Objects;
-import org.apache.ignite.tcbot.persistence.Persisted;
+import com.google.inject.AbstractModule;
+import com.google.inject.internal.SingletonScope;
 
-/**
- *
- */
-@Persisted
-public class GitHubBranchShort {
-    /** Name. */
-    String name;
-    /** Commit. */
-    GitHubCommit commit;
-
-    public String name() {
-        return name;
-    }
-
+public class GitHubIntegrationModule extends AbstractModule {
     /** {@inheritDoc} */
-    @Override public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-        GitHubBranchShort aShort = (GitHubBranchShort)o;
-        return Objects.equals(name, aShort.name) &&
-            Objects.equals(commit, aShort.commit);
-    }
-
-    /** {@inheritDoc} */
-    @Override public int hashCode() {
-        return Objects.hash(name, commit);
+    @Override protected void configure() {
+        bind(IGitHubConnection.class).to(GitHubConnectionImpl.class);
+        bind(IGitHubConnectionProvider.class).to(GitHubCachingProvider.class).in(new SingletonScope());
     }
 }

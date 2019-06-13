@@ -16,17 +16,12 @@
  */
 
 apply plugin: 'java'
-
-repositories {
-    mavenCentral()
-    mavenLocal()
-}
+ 
 
 dependencies {
     compile (project(":tcbot-common"));
 
-    /// JAXB replacement for Java 11
-    compile group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
+    /// JAXB replacement for Java 11, API is defined in common
     compile group: 'com.sun.xml.bind', name: 'jaxb-impl', version: '2.3.0'
     compile group: 'com.sun.xml.bind', name: 'jaxb-core', version: '2.3.0'
 }

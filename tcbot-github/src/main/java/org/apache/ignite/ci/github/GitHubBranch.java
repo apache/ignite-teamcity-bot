@@ -16,12 +16,19 @@
  */
 package org.apache.ignite.ci.github;
 
-import java.util.Objects;
 import org.apache.ignite.tcbot.persistence.Persisted;
 
+import java.util.Objects;
+
 @Persisted
-public class GitHubCommit {
-    /** Sha of the commit. */
+public class GitHubBranch {
+    /** Label. */
+    private String label;
+
+    /** Branch name. */
+    private String ref;
+
+    /** Sha of latest commit. */
     private String sha;
 
     /** {@inheritDoc} */
@@ -30,12 +37,22 @@ public class GitHubCommit {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        GitHubCommit commit = (GitHubCommit)o;
-        return Objects.equals(sha, commit.sha);
+        GitHubBranch branch = (GitHubBranch)o;
+        return Objects.equals(label, branch.label) &&
+            Objects.equals(ref, branch.ref) &&
+            Objects.equals(sha, branch.sha);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(sha);
+        return Objects.hash(label, ref, sha);
+    }
+
+    public String ref() {
+        return ref;
+    }
+
+    public String sha() {
+        return sha;
     }
 }

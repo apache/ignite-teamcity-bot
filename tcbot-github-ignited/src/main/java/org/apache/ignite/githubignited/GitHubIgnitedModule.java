@@ -14,14 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github.ignited;
+package org.apache.ignite.githubignited;
+
+import com.google.inject.AbstractModule;
+import com.google.inject.internal.SingletonScope;
+import org.apache.ignite.githubservice.GitHubIntegrationModule;
 
 /**
- *
+ * Requires {@link org.apache.ignite.ci.di.scheduler.SchedulerModule} to be installed
  */
-public interface IGitHubConnIgnitedProvider {
-    /**
-     * @param srvId Server id.
-     */
-    public IGitHubConnIgnited server(String srvId);
+public class GitHubIgnitedModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        install(new GitHubIntegrationModule());
+
+        bind(IGitHubConnIgnitedProvider.class).to(GitHubIgnitedProvImpl.class).in(new SingletonScope());
+    }
 }

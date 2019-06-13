@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.github.pure;
+package org.apache.ignite.githubservice;
 
 import com.google.common.base.Strings;
 import java.util.List;
@@ -23,9 +23,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.ci.github.GitHubBranchShort;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
-import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * GitHub pure connection
