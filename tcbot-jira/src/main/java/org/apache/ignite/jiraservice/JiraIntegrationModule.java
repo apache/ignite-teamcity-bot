@@ -15,15 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.tcbot.common.conf;
+package org.apache.ignite.jiraservice;
+
+import com.google.inject.AbstractModule;
+import com.google.inject.internal.SingletonScope;
 
 /**
- * 3rd party data sources (services/servers) configurations.
+ * JIRA pure integration module
  */
-public interface IDataSourcesConfigSupplier {
-    public ITcServerConfig getTeamcityConfig(String srvCode);
-
-    public IGitHubConfig getGitConfig(String srvCode);
-
-    public IJiraServerConfig getJiraConfig(String srvCode);
+public class JiraIntegrationModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        bind(IJiraIntegration.class).to(Jira.class);
+        bind(IJiraIntegrationProvider.class).to(JiraIntegrationProvider.class).in(new SingletonScope());
+    }
 }

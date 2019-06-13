@@ -15,15 +15,8 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.tcbot.common.conf;
-
 /**
- * 3rd party data sources (services/servers) configurations.
+ * This package is intended for interacting with Jira servers. It contains classes which is needed for injection Jira
+ * integration service instance via Guice. And interfaces and classes which provide specified functionality.
  */
-public interface IDataSourcesConfigSupplier {
-    public ITcServerConfig getTeamcityConfig(String srvCode);
-
-    public IGitHubConfig getGitConfig(String srvCode);
-
-    public IJiraServerConfig getJiraConfig(String srvCode);
-}
+package org.apache.ignite.jiraservice;

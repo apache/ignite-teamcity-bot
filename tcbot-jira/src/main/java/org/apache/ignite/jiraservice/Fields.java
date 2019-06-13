@@ -15,15 +15,31 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.tcbot.common.conf;
+package org.apache.ignite.jiraservice;
+
+import com.google.common.base.MoreObjects;
 
 /**
- * 3rd party data sources (services/servers) configurations.
+ *
  */
-public interface IDataSourcesConfigSupplier {
-    public ITcServerConfig getTeamcityConfig(String srvCode);
+public class Fields {
+    /** Ticket status. */
+    public Status status;
 
-    public IGitHubConfig getGitConfig(String srvCode);
+    /** Summary. */
+    public String summary;
 
-    public IJiraServerConfig getJiraConfig(String srvCode);
+    /** Customfield 11050. */
+    public String customfield_11050;
+
+    /** Description. */
+    public String description;
+
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("status", status)
+            .add("summary", summary)
+            .add("customfield_11050", customfield_11050)
+            .toString();
+    }
 }
