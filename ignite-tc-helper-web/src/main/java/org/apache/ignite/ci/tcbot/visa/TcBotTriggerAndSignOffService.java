@@ -37,19 +37,21 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import javax.ws.rs.QueryParam;
+
+import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.github.GitHubBranch;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
-import org.apache.ignite.ci.github.ignited.IGitHubConnIgnitedProvider;
-import org.apache.ignite.ci.jira.ignited.IJiraIgnited;
-import org.apache.ignite.ci.jira.ignited.IJiraIgnitedProvider;
-import org.apache.ignite.ci.jira.pure.Ticket;
+import org.apache.ignite.githubignited.IGitHubConnIgnited;
+import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
+import org.apache.ignite.jiraignited.IJiraIgnited;
+import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
+import org.apache.ignite.jiraservice.Ticket;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
-import org.apache.ignite.ci.tcbot.chain.PrChainsProcessor;
+import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
@@ -130,7 +132,8 @@ public class TcBotTriggerAndSignOffService {
     /** Config. */
     @Inject ITcBotConfig cfg;
 
-    @Inject BranchTicketMatcher ticketMatcher;
+    @Inject
+    BranchTicketMatcher ticketMatcher;
 
     /** Jackson serializer. */
     private final ObjectMapper objMapper = new ObjectMapper();

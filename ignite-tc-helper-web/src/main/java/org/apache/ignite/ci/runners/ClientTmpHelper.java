@@ -20,10 +20,10 @@ package org.apache.ignite.ci.runners;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.ci.db.TcHelperDb;
-import org.apache.ignite.ci.github.ignited.IGitHubConnIgnited;
+import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssuesStorage;
-import org.apache.ignite.ci.jira.ignited.JiraTicketDao;
+import org.apache.ignite.jiraignited.JiraTicketDao;
 
 /**
  * Utility class for local connection to TC helper DB (server) and any manipulations with data needed.

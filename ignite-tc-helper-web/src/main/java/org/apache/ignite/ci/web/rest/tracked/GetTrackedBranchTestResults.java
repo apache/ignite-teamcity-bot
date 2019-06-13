@@ -34,7 +34,6 @@ import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.UpdateInfo;
-import org.apache.ignite.ci.web.rest.parms.FullQueryParams;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;
@@ -48,6 +47,7 @@ import static org.apache.ignite.tcignited.TeamcityIgnitedImpl.DEFAULT_PROJECT_ID
 @Produces(MediaType.APPLICATION_JSON)
 public class GetTrackedBranchTestResults {
     public static final String TRACKED = "tracked";
+    public static final int DEFAULT_COUNT = 10;
 
     /** Servlet Context. */
     @Context
@@ -138,7 +138,7 @@ public class GetTrackedBranchTestResults {
         @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
         SyncMode mode) {
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
-        int cntLimit = cnt == null ? FullQueryParams.DEFAULT_COUNT : cnt;
+        int cntLimit = cnt == null ? DEFAULT_COUNT : cnt;
         Injector injector = CtxListener.getInjector(ctx);
 
         return injector.getInstance(TrackedBranchChainsProcessor.class)

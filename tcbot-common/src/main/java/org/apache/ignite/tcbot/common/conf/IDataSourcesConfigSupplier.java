@@ -22,4 +22,8 @@ package org.apache.ignite.tcbot.common.conf;
  */
 public interface IDataSourcesConfigSupplier {
     public ITcServerConfig getTeamcityConfig(String srvCode);
+
+    public IGitHubConfig getGitConfig(String srvCode);
+
+    public IJiraServerConfig getJiraConfig(String srvCode);
 }
