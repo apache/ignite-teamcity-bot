@@ -315,7 +315,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return CollectionUtil.top(res.values().stream(), 3, comparing).stream();
     }
 
-    public List<IMultTestOccurrence> getFailedTests() {
+    public List<TestCompactedMult> getFailedTests() {
         Map<Integer, TestCompactedMult> res = new HashMap<>();
 
         builds.forEach(singleBuildRunCtx -> {

@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -53,6 +54,8 @@ import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.history.SuiteInvocation;
+import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
 import org.apache.ignite.tcservice.model.changes.ChangesList;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
@@ -78,12 +81,10 @@ public class FatBuildDao {
     /** Builds cache. */
     private IgniteCache<Long, FatBuildCompacted> buildsCache;
 
-
-    /** Suite history cache. */
-    private IgniteCache<RunHistKey, SuiteHistory> suiteHistory;
-
     /** Compactor. */
     @Inject private IStringCompactor compactor;
+
+    @Inject SuiteInvocationHistoryDao historyDao;
 
     /**
      * Non persistence cache for all suite RunHistory for particular branch.
@@ -102,6 +103,8 @@ public class FatBuildDao {
      */
     public FatBuildDao init() {
         buildsCache = igniteProvider.get().getOrCreateCache(CacheConfigs.getCacheV2Config(TEAMCITY_FAT_BUILD_CACHE_NAME));
+
+        historyDao.init();
 
         return this;
     }
@@ -172,7 +175,7 @@ public class FatBuildDao {
     }
 
     /**
-     * @param srvIdMaskHigh Server id mask high.
+     * @param srvIdMaskHigh Server id mask to be placed at high bits of the key.
      * @param buildId Build id.
      */
     public static long buildIdToCacheKey(int srvIdMaskHigh, int buildId) {
@@ -197,10 +200,7 @@ public class FatBuildDao {
     public Map<Long, FatBuildCompacted> getAllFatBuilds(int srvIdMaskHigh, Collection<Integer> buildsIds) {
         Preconditions.checkNotNull(buildsCache, "init() was not called");
 
-        Set<Long> ids = buildsIds.stream()
-            .filter(Objects::nonNull)
-            .map(buildId -> buildIdToCacheKey(srvIdMaskHigh, buildId))
-            .collect(Collectors.toSet());
+        Set<Long> ids = buildsIdsToCacheKeys(srvIdMaskHigh, buildsIds);
 
         return buildsCache.getAll(ids);
     }
@@ -223,18 +223,36 @@ public class FatBuildDao {
             .filter(entry -> isKeyForServer(entry.getKey(), srvId));
     }
 
+    /**
+     * @param srvIdMaskHigh Server id mask to be placed at high bits in the key.
+     * @param buildIdsSupplier Latest actual Build ids supplier.
+     * @param testName Test name.
+     * @param suiteName Suite name.
+     * @param branchName Branch name.
+     */
     public IRunHistory getTestRunHist(int srvIdMaskHigh,
         Supplier<Set<Integer>> buildIdsSupplier, int testName, int suiteName, int branchName) {
 
-
         RunHistKey runHistKey = new RunHistKey(srvIdMaskHigh, suiteName, branchName);
 
-        SuiteHistory history;
+        SuiteHistory hist;
 
         try {
-            history = runHistInMemCache.get(runHistKey,
+            hist = runHistInMemCache.get(runHistKey,
                 () -> {
+                    Map<Integer, SuiteInvocation> suiteRunHist = historyDao.getSuiteRunHist(srvIdMaskHigh, suiteName, branchName);// todo RunHistSync.normalizeBranch();
+
                     Set<Integer> buildIds = determineLatestBuilds(buildIdsSupplier);
+
+                    HashSet<Integer> missedBuilds = new HashSet<>(buildIds);
+
+                    missedBuilds.removeAll(suiteRunHist.keySet());
+
+                    if (!missedBuilds.isEmpty()) {
+
+                    }
+
+                    Set<Long> cacheKeys = buildsIdsToCacheKeys(srvIdMaskHigh, buildIds);
 
                     return calcSuiteHistory(srvIdMaskHigh, buildIds);
                 });
@@ -243,12 +261,12 @@ public class FatBuildDao {
             throw ExceptionUtil.propagateException(e);
         }
 
-        return history.testsHistory.get(testName);
+        return hist.testsHistory.get(testName);
     }
 
     @AutoProfiling
     protected SuiteHistory calcSuiteHistory(int srvIdMaskHigh, Set<Integer> buildIds) {
-        Set<Long> cacheKeys = buildIds.stream().map(id -> buildIdToCacheKey(srvIdMaskHigh, id)).collect(Collectors.toSet());
+        Set<Long> cacheKeys = buildsIdsToCacheKeys(srvIdMaskHigh, buildIds);
 
         int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
@@ -259,13 +277,13 @@ public class FatBuildDao {
         SuiteHistory hist = new SuiteHistory();
 
         map.values().forEach(
-            res-> {
-                if(res==null)
+            res -> {
+                if (res == null)
                     return;
 
                 Map<Integer, Invocation> invocationMap = res.get();
 
-                if(invocationMap == null)
+                if (invocationMap == null)
                     return;
 
                 invocationMap.forEach((k, v) -> {
@@ -284,6 +302,11 @@ public class FatBuildDao {
                 + " size " + hist.size(igniteProvider.get()));
 
         return hist;
+    }
+
+    private static Set<Long> buildsIdsToCacheKeys(int srvIdMaskHigh, Collection<Integer> stream) {
+        return stream.stream()
+            .filter(Objects::nonNull).map(id -> buildIdToCacheKey(srvIdMaskHigh, id)).collect(Collectors.toSet());
     }
 
     @AutoProfiling

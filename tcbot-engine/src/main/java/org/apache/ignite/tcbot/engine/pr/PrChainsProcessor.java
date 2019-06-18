@@ -258,12 +258,14 @@ public class PrChainsProcessor {
             .failedChildSuites()
             .map((ctx) -> {
                 String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
+                Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
                 IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(ctx.suiteId(), normalizedBaseBranch);
+                Integer suiteId = compactor.getStringIdIfPresent(ctx.suiteId()); // can be inlined
 
                 String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 
                 List<DsTestFailureUi> failures = ctx.getFailedTests().stream().map(occurrence -> {
-                    IRunHistory stat = tcIgnited.getTestRunHist(occurrence.getName(), normalizedBaseBranch);
+                    IRunHistory stat = tcIgnited.getTestRunHist(occurrence.testName(), suiteId, baseBranchId);
 
                     String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
 

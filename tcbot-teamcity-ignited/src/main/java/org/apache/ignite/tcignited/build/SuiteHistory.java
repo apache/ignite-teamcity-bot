@@ -20,13 +20,20 @@ package org.apache.ignite.tcignited.build;
 import java.util.HashMap;
 import java.util.Map;
 
+import java.util.TreeMap;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.internal.binary.BinaryObjectExImpl;
+import org.apache.ignite.tcignited.history.SuiteInvocation;
 
+/**
+ * Suite run history summary.
+ */
 public class SuiteHistory {
     /** Tests history: Test name ID->RunHistory */
     Map<Integer, RunHistCompacted> testsHistory = new HashMap<>();
+
+    Map<Integer, SuiteInvocation> invocationMap = new TreeMap<>();
 
     public int size(Ignite ignite) {
         BinaryObjectExImpl binary = ignite.binary().toBinary(this);

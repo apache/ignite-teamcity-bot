@@ -209,7 +209,7 @@ public interface ITeamcityIgnited {
      * V.3.0 run history implementation based on scan of fat builds.
      *
      * @param testName Test name.
-     * @param suiteName Suite name.
+     * @param suiteName Suite name. Null suite name means suite not found
      * @param branchName Branch name.
      */
     @Nullable public IRunHistory getTestRunHist(int testName, @Nullable Integer suiteName, @Nullable Integer branchName);

@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.history.IRunHistSummary;
@@ -39,6 +40,9 @@ public class TestCompactedMult implements IMultTestOccurrence {
         this.compactor = compactor;
     }
 
+    @Nullable public Integer testName() {
+        return occurrences.isEmpty() ? null : occurrences.iterator().next().testName();
+    }
     /** {@inheritDoc} */
     @Override public String getName() {
         return occurrences.isEmpty() ? "" : occurrences.iterator().next().testName(compactor);

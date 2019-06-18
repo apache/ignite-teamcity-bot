@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -52,8 +51,6 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.tcignited.mute.MuteDao;
-import org.apache.ignite.tcignited.mute.MuteSync;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
@@ -70,6 +67,8 @@ import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
 import org.apache.ignite.tcignited.history.RunHistCompactedDao;
 import org.apache.ignite.tcignited.history.RunHistSync;
+import org.apache.ignite.tcignited.mute.MuteDao;
+import org.apache.ignite.tcignited.mute.MuteSync;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.ITeamcityConn;
 import org.apache.ignite.tcservice.model.agent.Agent;
@@ -434,9 +433,13 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return runHistCompactedDao.getSuiteRunHist(srvIdMaskHigh, suiteId, branch);
     }
 
-    @Nullable @Override
-    public IRunHistory getTestRunHist(int testName, @Nullable Integer suiteName, @Nullable Integer branchName) {
+    /** {@inheritDoc} */
+    @Nullable @Override public IRunHistory getTestRunHist(int testName, @Nullable Integer suiteName,
+        @Nullable Integer branchName) {
         if (suiteName == null || branchName == null)
+            return null;
+
+        if (testName < 0 || suiteName < 0 || branchName < 0)
             return null;
 
         Supplier<Set<Integer>> supplier = () -> {

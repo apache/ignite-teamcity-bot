@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.IMultTestOccurrence;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
+import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.engine.issue.EventTemplates;
 import org.apache.ignite.tcbot.engine.ui.BotUrls.GetBuildLog;
 import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
@@ -187,7 +188,7 @@ public class DsSuiteUi extends DsHistoryStatUi {
         webToBuild = buildWebLinkToBuild(tcIgnited, suite);
 
         if (includeTests) {
-            List<IMultTestOccurrence> tests = suite.getFailedTests();
+            List<TestCompactedMult> tests = suite.getFailedTests();
             Function<IMultTestOccurrence, Float> function = foccur -> {
                 IRunHistory apply = tcIgnited.getTestRunHist(foccur.getName(), failRateNormalizedBranch);
 
