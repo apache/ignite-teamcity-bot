@@ -68,12 +68,8 @@ dependencies {
 }
 
 processResources {
-
-    // Minify json resources
     from(sourceSets.test.resources.srcDirs) {
         include "**/*.json"
-
-        // Minify every file here
     }
 }
 

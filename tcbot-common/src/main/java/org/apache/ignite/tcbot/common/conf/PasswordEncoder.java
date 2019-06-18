@@ -19,14 +19,13 @@ package org.apache.ignite.tcbot.common.conf;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import org.apache.ignite.tcbot.common.util.Base64Util;
-import org.apache.ignite.tcbot.common.util.CryptUtil;
-
 import java.security.SecureRandom;
 import javax.annotation.Nonnull;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
+import org.apache.ignite.tcbot.common.util.Base64Util;
+import org.apache.ignite.tcbot.common.util.CryptUtil;
 
 import static javax.xml.bind.DatatypeConverter.parseHexBinary;
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
@@ -118,7 +117,7 @@ public class PasswordEncoder {
     }
 
     public static void main1(String[] args) {
-        encodeJiraTok("ignitetcbot", "21313");
+        encodeJiraTok("ignitetcbot", "enterClearPasswordOrTokenForUser");
     }
 
     public static void encodeJiraTok(String user, String pwd) {
