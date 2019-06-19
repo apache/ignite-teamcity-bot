@@ -433,20 +433,21 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @Nullable @Override public IRunHistory getTestRunHist(int testName, @Nullable Integer suiteName,
-        @Nullable Integer branchName) {
-        if (suiteName == null || branchName == null)
+    @Nullable @Override public IRunHistory getTestRunHist(int testName, @Nullable Integer buildTypeId,
+        @Nullable Integer normalizedBaseBranch) {
+        if (buildTypeId == null || normalizedBaseBranch == null)
             return null;
 
-        if (testName < 0 || suiteName < 0 || branchName < 0)
+        if (testName < 0 || buildTypeId < 0 || normalizedBaseBranch < 0)
             return null;
 
         Supplier<Set<Integer>> supplier = () -> {
-            String btId = compactor.getStringFromId(suiteName);
-            String branchId = compactor.getStringFromId(branchName);
+            String btId = compactor.getStringFromId(buildTypeId);
+            String branchId = compactor.getStringFromId(normalizedBaseBranch);
             List<BuildRefCompacted> compacted = getAllBuildsCompacted(btId, branchId);
             long curTs = System.currentTimeMillis();
-            Set<Integer> buildIds = compacted.stream().filter(
+            Set<Integer> buildIds = compacted.stream()
+                .filter(
                 bRef -> {
                     Long startTime = getBuildStartTime(bRef.id());
                     if (startTime == null)
@@ -456,12 +457,12 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
                 }
             ).map(BuildRefCompacted::id).collect(Collectors.toSet());
 
-            System.err.println("Build " + btId + " branch " + branchId + " builds in scope " + buildIds.size());
+            System.err.println("*** Build " + btId + " branch " + branchId + " builds in scope " + buildIds.size());
 
             return buildIds;
         };
 
-        return fatBuildDao.getTestRunHist(srvIdMaskHigh, supplier, testName, suiteName, branchName);
+        return fatBuildDao.getTestRunHist(srvIdMaskHigh, supplier, testName, buildTypeId, normalizedBaseBranch);
     }
 
     /** {@inheritDoc} */

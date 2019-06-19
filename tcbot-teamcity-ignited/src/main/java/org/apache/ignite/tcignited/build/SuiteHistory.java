@@ -33,8 +33,6 @@ public class SuiteHistory {
     /** Tests history: Test name ID->RunHistory */
     Map<Integer, RunHistCompacted> testsHistory = new HashMap<>();
 
-    Map<Integer, SuiteInvocation> invocationMap = new TreeMap<>();
-
     public int size(Ignite ignite) {
         BinaryObjectExImpl binary = ignite.binary().toBinary(this);
         return binary.length();

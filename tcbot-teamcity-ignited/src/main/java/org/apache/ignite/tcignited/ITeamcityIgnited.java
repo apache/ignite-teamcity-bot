@@ -210,10 +210,10 @@ public interface ITeamcityIgnited {
      * V.3.0 run history implementation based on scan of fat builds.
      *
      * @param testName Test name.
-     * @param suiteName Suite name. Null suite name means suite not found
-     * @param branchName Branch name.
+     * @param buildTypeId Suite (Build Type) ID, ID for compactor. Null suite name means suite not found.
+     * @param normalizedBaseBranch Branch name. This branch name does not support branches equivalence, only exact query will work.
      */
-    @Nullable public IRunHistory getTestRunHist(int testName, @Nullable Integer suiteName, @Nullable Integer branchName);
+    @Nullable public IRunHistory getTestRunHist(int testName, @Nullable Integer buildTypeId, @Nullable Integer normalizedBaseBranch);
 
     /**
      * @param suiteBuildTypeId Suite id.

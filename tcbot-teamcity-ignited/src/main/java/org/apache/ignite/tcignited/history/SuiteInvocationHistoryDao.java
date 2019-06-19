@@ -58,11 +58,11 @@ public class SuiteInvocationHistoryDao {
         suiteHistory = ignite.getOrCreateCache(ccfg);
     }
 
-    public Map<Integer, SuiteInvocation> getSuiteRunHist(int srvId, int suiteName, int normalizedBranchName) {
+    public Map<Integer, SuiteInvocation> getSuiteRunHist(int srvId, int buildTypeId, int normalizedBranchName) {
         java.util.Map<Integer, SuiteInvocation> map = new HashMap<>();
         try (QueryCursor<Cache.Entry<Long, SuiteInvocation>> qryCursor = suiteHistory.query(
-            new SqlQuery<Long, SuiteInvocation>(SuiteInvocation.class, "srvId = ? and suiteName = ? and normalizedBranchName = ?")
-                .setArgs(srvId, suiteName, normalizedBranchName))) {
+            new SqlQuery<Long, SuiteInvocation>(SuiteInvocation.class, "srvId = ? and buildTypeId = ? and normalizedBranchName = ?")
+                .setArgs(srvId, buildTypeId, normalizedBranchName))) {
 
             for (Cache.Entry<Long, SuiteInvocation> next : qryCursor) {
                 Long key = next.getKey();
@@ -72,5 +72,13 @@ public class SuiteInvocationHistoryDao {
         }
 
         return map;
+    }
+
+    public void putAll(int srvId, Map<Integer, SuiteInvocation> addl) {
+        Map<Long, SuiteInvocation> data = new HashMap<>();
+
+        addl.forEach((k, v) -> data.put(BuildRefDao.buildIdToCacheKey(srvId, k), v));
+
+        suiteHistory.putAll(data);
     }
 }

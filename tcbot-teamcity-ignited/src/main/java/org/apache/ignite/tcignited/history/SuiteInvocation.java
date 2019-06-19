@@ -38,7 +38,7 @@ public class SuiteInvocation {
 
     /** Suite name for queries */
     @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "serverSuiteBranch", order = 1)})
-    private int suiteName;
+    private int buildTypeId;
 
     /** Teamcity branch name for queries */
     @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "serverSuiteBranch", order = 2)})
@@ -52,10 +52,13 @@ public class SuiteInvocation {
 
     public SuiteInvocation() {}
 
-    public SuiteInvocation(FatBuildCompacted buildCompacted, IStringCompactor comp,
+    public SuiteInvocation(int srvId, int normalizedBaseBranch, FatBuildCompacted buildCompacted, IStringCompactor comp,
         BiPredicate<Integer, Integer> filter) {
-        buildStartTime = buildCompacted.getStartDateTs();
-        suite = buildCompacted.toInvocation(comp, filter);
+        this.srvId = srvId;
+        this.normalizedBranchName = normalizedBaseBranch;
+        this.buildStartTime = buildCompacted.getStartDateTs();
+        this.suite = buildCompacted.toInvocation(comp, filter);
+        this.buildTypeId = buildCompacted.buildTypeId();
     }
 
     public void addTest(int testName, Invocation invocation) {

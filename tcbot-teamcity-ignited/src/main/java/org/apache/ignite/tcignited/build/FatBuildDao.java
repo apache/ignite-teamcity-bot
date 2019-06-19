@@ -225,22 +225,21 @@ public class FatBuildDao {
 
     /**
      * @param srvIdMaskHigh Server id mask to be placed at high bits in the key.
-     * @param buildIdsSupplier Latest actual Build ids supplier.
+     * @param buildIdsSupplier Latest actual Build ids supplier. This supplier should handle all equivalent branches in it.
      * @param testName Test name.
-     * @param suiteName Suite name.
-     * @param branchName Branch name.
+     * @param buildTypeId Suite (Build type) id.
+     * @param normalizedBaseBranch Branch name.
      */
     @AutoProfiling
     public IRunHistory getTestRunHist(int srvIdMaskHigh,
-        Supplier<Set<Integer>> buildIdsSupplier, int testName, int suiteName, int branchName) {
+        Supplier<Set<Integer>> buildIdsSupplier, int testName, int buildTypeId, int normalizedBaseBranch) {
 
-        RunHistKey runHistKey = new RunHistKey(srvIdMaskHigh, suiteName, branchName);
+        RunHistKey runHistKey = new RunHistKey(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
 
         SuiteHistory hist;
-
         try {
             hist = runHistInMemCache.get(runHistKey,
-                () -> loadSuiteHistory(srvIdMaskHigh, buildIdsSupplier, suiteName, branchName));
+                () -> loadSuiteHistory(srvIdMaskHigh, buildIdsSupplier, buildTypeId, normalizedBaseBranch));
         }
         catch (ExecutionException e) {
             throw ExceptionUtil.propagateException(e);
@@ -252,9 +251,9 @@ public class FatBuildDao {
     @AutoProfiling
     public SuiteHistory loadSuiteHistory(int srvId,
         Supplier<Set<Integer>> buildIdsSupplier,
-        int suiteName,
-        int branchName) {
-        Map<Integer, SuiteInvocation> suiteRunHist = historyDao.getSuiteRunHist(srvId, suiteName, branchName);// todo RunHistSync.normalizeBranch();
+        int buildTypeId,
+        int normalizedBaseBranch) {
+        Map<Integer, SuiteInvocation> suiteRunHist = historyDao.getSuiteRunHist(srvId, buildTypeId, normalizedBaseBranch);
 
         Set<Integer> buildIds = determineLatestBuilds(buildIdsSupplier);
 
@@ -262,33 +261,44 @@ public class FatBuildDao {
 
         missedBuildsIds.removeAll(suiteRunHist.keySet());
 
-        if (!missedBuildsIds.isEmpty())
-            addSuiteInvocationsToHistory(srvId, suiteRunHist, missedBuildsIds);
+        if (!missedBuildsIds.isEmpty()) {
+            Map<Integer, SuiteInvocation> addl = addSuiteInvocationsToHistory(srvId, missedBuildsIds, normalizedBaseBranch);
+
+            System.err.println("***** + Adding to persisted history for suite "
+                + compactor.getStringFromId(buildTypeId)
+                + " branch " + compactor.getStringFromId(normalizedBaseBranch) + " requires " +
+                addl.size() + " invocations");
+
+            historyDao.putAll(srvId, addl);
+            suiteRunHist.putAll(addl);
+        }
 
         SuiteHistory sumary = new SuiteHistory();
 
         suiteRunHist.forEach((buildId, suiteInv) -> {
             suiteInv.tests().forEach((tName, test) -> {
-                RunHistCompacted compacted = sumary.testsHistory.computeIfAbsent(tName,
-                    k_ -> new RunHistCompacted());
-
-                compacted.innerAddInvocation(test);
+                sumary.testsHistory.computeIfAbsent(tName,
+                    k_ -> new RunHistCompacted()).innerAddInvocation(test);
             });
 
         });
+
+        System.err.println("***** History for suite "
+            + compactor.getStringFromId(buildTypeId)
+            + " branch" + compactor.getStringFromId(normalizedBaseBranch) + " requires " +
+            sumary.size(igniteProvider.get()) + " bytes");
 
         return sumary;
     }
 
     @AutoProfiling
-    public void addSuiteInvocationsToHistory(int srvId, Map<Integer, SuiteInvocation> suiteRunHist,
-        HashSet<Integer> missedBuildsIds) {
+    public Map<Integer, SuiteInvocation> addSuiteInvocationsToHistory(int srvId,
+        HashSet<Integer> missedBuildsIds, int normalizedBaseBranch) {
+        Map<Integer, SuiteInvocation> suiteRunHist = new HashMap<>();
         int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
-        Map<Long, FatBuildCompacted> buildsCacheAll = getAllFatBuilds(srvId, missedBuildsIds);
-
-        buildsCacheAll.forEach((buildCacheKey, fatBuildCompacted) -> {
-            SuiteInvocation sinv = new SuiteInvocation(fatBuildCompacted, compactor, (k, v) -> false);
+        getAllFatBuilds(srvId, missedBuildsIds).forEach((buildCacheKey, fatBuildCompacted) -> {
+            SuiteInvocation sinv = new SuiteInvocation(srvId, normalizedBaseBranch, fatBuildCompacted, compactor, (k, v) -> false);
 
             Stream<TestCompacted> tests = fatBuildCompacted.getAllTests();
             tests.forEach(
@@ -301,6 +311,8 @@ public class FatBuildDao {
 
             suiteRunHist.put(fatBuildCompacted.id(), sinv);
         });
+
+        return suiteRunHist;
     }
 
     @AutoProfiling
