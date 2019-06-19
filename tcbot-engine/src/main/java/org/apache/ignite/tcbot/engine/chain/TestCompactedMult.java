@@ -20,11 +20,14 @@ package org.apache.ignite.tcbot.engine.chain;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.history.IRunHistSummary;
+import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 
@@ -35,6 +38,7 @@ public class TestCompactedMult implements IMultTestOccurrence {
     private final List<TestCompacted> occurrences = new ArrayList<>();
     private IStringCompactor compactor;
     private long avgDuration = -1;
+    private java.util.Map<Integer, IRunHistory> historyCacheMap = new ConcurrentHashMap<>();
 
     public TestCompactedMult(IStringCompactor compactor) {
         this.compactor = compactor;
@@ -112,5 +116,11 @@ public class TestCompactedMult implements IMultTestOccurrence {
 
     public void add(TestCompacted next) {
         occurrences.add(next);
+    }
+
+
+    public IRunHistory history(ITeamcityIgnited ignited, Integer buildTypeIdId, Integer baseBranchId) {
+        return historyCacheMap.computeIfAbsent(baseBranchId,
+            (k)-> ignited.getTestRunHist(testName(), buildTypeIdId, k));
     }
 }

@@ -305,8 +305,8 @@ public class MultBuildRunCtx implements ISuiteResults {
         return CollectionUtil.top(logSizeBytes.entrySet().stream(), 3, comparing).stream();
     }
 
-    public Stream<? extends IMultTestOccurrence> getTopLongRunning() {
-        Comparator<IMultTestOccurrence> comparing = Comparator.comparing(IMultTestOccurrence::getAvgDurationMs);
+    public Stream<TestCompactedMult> getTopLongRunning() {
+        Comparator<TestCompactedMult> comparing = Comparator.comparing(TestCompactedMult::getAvgDurationMs);
 
         Map<Integer, TestCompactedMult> res = new HashMap<>();
 
@@ -609,17 +609,14 @@ public class MultBuildRunCtx implements ISuiteResults {
 
         //todo can cache mult occurrences in ctx
         builds.forEach(singleBuildRunCtx -> {
-            saveToMap(res, singleBuildRunCtx.getAllTests()
-                .filter(t -> !t.isIgnoredTest() && !t.isMutedTest()));
+            saveToMap(res,
+                singleBuildRunCtx.getAllTests().filter(t -> !t.isIgnoredTest() && !t.isMutedTest()));
         });
         Integer branchName = compactor.getStringIdIfPresent(normalizedBaseBranch);
         Integer suiteName = buildTypeIdId();
 
-        // res.clear(); //todo enable feature back
-
-        //todo can cache fail rate in mult occur
-        res.keySet().forEach((testNameId) -> {
-            IRunHistory stat = tcIgnited.getTestRunHist(testNameId, suiteName, branchName);
+        res.forEach((testNameId, compactedMult) -> {
+            IRunHistory stat = compactedMult.history(tcIgnited, suiteName, branchName);
             String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
             boolean b = testBlockerComment != null;
             if (b) // this test will be considered as blocker if will fail

@@ -25,17 +25,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
 import org.apache.ignite.tcbot.common.util.UrlUtil;
-import org.apache.ignite.tcbot.engine.chain.IMultTestOccurrence;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.engine.issue.EventTemplates;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.buildlog.LogMsgToWarn;
 import org.apache.ignite.tcignited.history.IRunHistory;
-import org.apache.ignite.tcignited.ITeamcityIgnited;
 
-import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
+import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 
 
 /**
@@ -92,16 +90,20 @@ public class DsTestFailureUi {
 
     /**
      * @param failure test ocurrence (probably multiple)
+     * @param buildTypeIdId
      * @param tcIgn Teamcity.
      * @param projectId project ID.
-     * @param branchName
-     * @param baseBranchName base branch name (e.g. master).
+     * @param branchName current branch name.
+     * @param baseBranchName base branch name (e.g. master), without normalization.
+     * @param baseBranchId Normalized base branch ID (from compactor).
      */
-    public void initFromOccurrence(@Nonnull final IMultTestOccurrence failure,
+    public void initFromOccurrence(@Nonnull final TestCompactedMult failure,
+        Integer buildTypeIdId,
         @Nonnull final ITeamcityIgnited tcIgn,
         @Nullable final String projectId,
         @Nullable final String branchName,
-        @Nullable final String baseBranchName) {
+        @Nullable final String baseBranchName,
+        Integer baseBranchId) {
         name = failure.getName();
         investigated = failure.isInvestigated();
         curFailures = failure.failuresCount();
@@ -144,8 +146,7 @@ public class DsTestFailureUi {
                     webUrlBaseBranch = buildWebLink(tcIgn, full.test.id, projectId, baseBranchName);
         });
 
-        final IRunHistory stat = tcIgn.getTestRunHist(name, normalizeBranch(baseBranchName));
-
+        final IRunHistory stat = failure.history(tcIgn, buildTypeIdId, baseBranchId);
         blockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
     }
 
@@ -191,22 +192,22 @@ public class DsTestFailureUi {
     }
 
     /**
+     * @param occurrence
+     * @param buildTypeIdId
      * @param tcIgnited TC service as Run stat supplier.
-     * @param failRateNormalizedBranch Base branch: Fail rate and flakyness detection normalized branch.
+     * @param baseBranchId Base branch: Fail rate and flakyness detection normalized branch.
      * @param curBranchNormalized Cur branch normalized.
      */
-    public void initStat(ITeamcityIgnited tcIgnited,
-        String failRateNormalizedBranch,
-        String curBranchNormalized) {
-
-        final IRunHistory stat = tcIgnited.getTestRunHist(name, failRateNormalizedBranch);
-
+    public void initStat(TestCompactedMult occurrence, Integer buildTypeIdId, ITeamcityIgnited tcIgnited,
+        @Nullable Integer baseBranchId,
+        @Nullable Integer curBranchNormalized) {
+        final IRunHistory stat = occurrence.history(tcIgnited, buildTypeIdId, baseBranchId);
         histBaseBranch.init(stat);
 
-        IRunHistory statForProblemsDetection = null;
+        IRunHistory statForProblemsDetection;
 
-        if (!curBranchNormalized.equals(failRateNormalizedBranch)) {
-            statForProblemsDetection = tcIgnited.getTestRunHist(name, curBranchNormalized);
+        if (!Objects.equals(curBranchNormalized, baseBranchId)) {
+            statForProblemsDetection = occurrence.history(tcIgnited, buildTypeIdId, curBranchNormalized);
 
             if (statForProblemsDetection != null) {
                 histCurBranch = new DsTestHistoryUi();
