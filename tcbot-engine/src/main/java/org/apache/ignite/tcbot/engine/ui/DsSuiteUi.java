@@ -166,6 +166,7 @@ public class DsSuiteUi extends DsHistoryStatUi {
 
         String failRateNormalizedBranch = normalizeBranch(baseBranch);
         String curBranchNormalized = normalizeBranch(suite.branchName());
+        Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
 
         IRunHistory baseBranchHist = initSuiteStat(tcIgnited, failRateNormalizedBranch, curBranchNormalized, suite.suiteId());
 
@@ -189,8 +190,8 @@ public class DsSuiteUi extends DsHistoryStatUi {
 
         if (includeTests) {
             List<TestCompactedMult> tests = suite.getFailedTests();
-            Function<IMultTestOccurrence, Float> function = foccur -> {
-                IRunHistory apply = tcIgnited.getTestRunHist(foccur.getName(), failRateNormalizedBranch);
+            Function<TestCompactedMult, Float> function = foccur -> {
+                IRunHistory apply = tcIgnited.getTestRunHist(foccur.testName(), suite.buildTypeIdId(), baseBranchId);
 
                 return apply == null ? 0f : apply.getFailRate();
             };

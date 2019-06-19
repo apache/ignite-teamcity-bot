@@ -61,6 +61,7 @@ public class RunHistCompactedDao {
     private Provider<Ignite> igniteProvider;
 
     /** Test history cache. */
+    @Deprecated
     private IgniteCache<RunHistKey, RunHistCompacted> testHistCache;
 
     /** Suite history cache. */

@@ -330,7 +330,7 @@ public class BuildChainProcessor {
     protected void fillBuildCounts(MultBuildRunCtx outCtx,
         ITeamcityIgnited teamcityIgnited, boolean includeScheduledInfo) {
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {
-            final List<BuildRefCompacted> runAllBuilds = teamcityIgnited.getAllBuildsCompacted(outCtx.buildTypeId(), outCtx.branchName());
+            List<BuildRefCompacted> runAllBuilds = teamcityIgnited.getAllBuildsCompacted(outCtx.suiteId(), outCtx.branchName());
 
             long cntRunning = runAllBuilds
                 .stream()

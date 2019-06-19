@@ -366,6 +366,7 @@ public class IssueDetector {
         String trackedBranch,
         @Nonnull Set<String> suiteTags) {
         String name = testFailure.name;
+        Integer tname = compactor.getStringIdIfPresent(name);
 
         IRunHistory runStat = tcIgnited.getTestRunHist(name, normalizeBranch);
 

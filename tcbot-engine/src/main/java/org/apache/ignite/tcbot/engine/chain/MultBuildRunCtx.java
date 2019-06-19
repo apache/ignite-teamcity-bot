@@ -98,8 +98,9 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().map(SingleBuildRunCtx::getTestLogCheckResult).filter(Objects::nonNull);
     }
 
-    public String suiteId() {
-        return firstBuildInfo.suiteId();
+    /** {@inheritDoc} */
+    @Override public String suiteId() {
+        return firstBuild().map(SingleBuildRunCtx::suiteId).orElse(null);
     }
 
     /** {@inheritDoc} */
@@ -107,9 +108,6 @@ public class MultBuildRunCtx implements ISuiteResults {
         return getBuildMessageProblemCount() > 0;
     }
 
-    public String buildTypeId() {
-        return firstBuildInfo.buildTypeId;
-    }
 
     public boolean hasAnyBuildProblemExceptTestOrSnapshot() {
         return allProblemsInAllBuilds()
@@ -170,6 +168,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().filter(ISuiteResults::hasCompilationProblem).count();
     }
 
+    /** {@inheritDoc} */
     public boolean hasTimeoutProblem() {
         return getExecutionTimeoutCount() > 0;
     }
@@ -178,6 +177,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().filter(SingleBuildRunCtx::hasTimeoutProblem).count();
     }
 
+    /** {@inheritDoc} */
     public boolean hasJvmCrashProblem() {
         return getJvmCrashProblemCount() > 0;
     }
@@ -186,10 +186,12 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsCntHavingBuildProblem(ProblemOccurrence.TC_JVM_CRASH);
     }
 
+    /** {@inheritDoc} */
     public boolean hasOomeProblem() {
         return getOomeProblemCount() > 0;
     }
 
+    /** {@inheritDoc} */
     @Override public boolean hasExitCodeProblem() {
         return getExitCodeProblemsCount() > 0;
     }
@@ -611,7 +613,7 @@ public class MultBuildRunCtx implements ISuiteResults {
                 .filter(t -> !t.isIgnoredTest() && !t.isMutedTest()));
         });
         Integer branchName = compactor.getStringIdIfPresent(normalizedBaseBranch);
-        Integer suiteName = compactor.getStringIdIfPresent( buildTypeId());
+        Integer suiteName = buildTypeIdId();
 
         // res.clear(); //todo enable feature back
 
@@ -627,4 +629,14 @@ public class MultBuildRunCtx implements ISuiteResults {
         return trustedCnt.get();
     }
 
+    /**
+     * Returns suite name non compacted.
+     */
+    public Integer buildTypeIdId() {
+        return firstBuild().map(SingleBuildRunCtx::buildTypeIdId).orElse(null);
+    }
+
+    public Optional<SingleBuildRunCtx> firstBuild() {
+        return builds.stream().findFirst();
+    }
 }

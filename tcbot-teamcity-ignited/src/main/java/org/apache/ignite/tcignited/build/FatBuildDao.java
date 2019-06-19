@@ -230,6 +230,7 @@ public class FatBuildDao {
      * @param suiteName Suite name.
      * @param branchName Branch name.
      */
+    @AutoProfiling
     public IRunHistory getTestRunHist(int srvIdMaskHigh,
         Supplier<Set<Integer>> buildIdsSupplier, int testName, int suiteName, int branchName) {
 
@@ -239,29 +240,67 @@ public class FatBuildDao {
 
         try {
             hist = runHistInMemCache.get(runHistKey,
-                () -> {
-                    Map<Integer, SuiteInvocation> suiteRunHist = historyDao.getSuiteRunHist(srvIdMaskHigh, suiteName, branchName);// todo RunHistSync.normalizeBranch();
-
-                    Set<Integer> buildIds = determineLatestBuilds(buildIdsSupplier);
-
-                    HashSet<Integer> missedBuilds = new HashSet<>(buildIds);
-
-                    missedBuilds.removeAll(suiteRunHist.keySet());
-
-                    if (!missedBuilds.isEmpty()) {
-
-                    }
-
-                    Set<Long> cacheKeys = buildsIdsToCacheKeys(srvIdMaskHigh, buildIds);
-
-                    return calcSuiteHistory(srvIdMaskHigh, buildIds);
-                });
+                () -> loadSuiteHistory(srvIdMaskHigh, buildIdsSupplier, suiteName, branchName));
         }
         catch (ExecutionException e) {
             throw ExceptionUtil.propagateException(e);
         }
 
         return hist.testsHistory.get(testName);
+    }
+
+    @AutoProfiling
+    public SuiteHistory loadSuiteHistory(int srvId,
+        Supplier<Set<Integer>> buildIdsSupplier,
+        int suiteName,
+        int branchName) {
+        Map<Integer, SuiteInvocation> suiteRunHist = historyDao.getSuiteRunHist(srvId, suiteName, branchName);// todo RunHistSync.normalizeBranch();
+
+        Set<Integer> buildIds = determineLatestBuilds(buildIdsSupplier);
+
+        HashSet<Integer> missedBuildsIds = new HashSet<>(buildIds);
+
+        missedBuildsIds.removeAll(suiteRunHist.keySet());
+
+        if (!missedBuildsIds.isEmpty())
+            addSuiteInvocationsToHistory(srvId, suiteRunHist, missedBuildsIds);
+
+        SuiteHistory sumary = new SuiteHistory();
+
+        suiteRunHist.forEach((buildId, suiteInv) -> {
+            suiteInv.tests().forEach((tName, test) -> {
+                RunHistCompacted compacted = sumary.testsHistory.computeIfAbsent(tName,
+                    k_ -> new RunHistCompacted());
+
+                compacted.innerAddInvocation(test);
+            });
+
+        });
+
+        return sumary;
+    }
+
+    @AutoProfiling
+    public void addSuiteInvocationsToHistory(int srvId, Map<Integer, SuiteInvocation> suiteRunHist,
+        HashSet<Integer> missedBuildsIds) {
+        int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
+
+        Map<Long, FatBuildCompacted> buildsCacheAll = getAllFatBuilds(srvId, missedBuildsIds);
+
+        buildsCacheAll.forEach((buildCacheKey, fatBuildCompacted) -> {
+            SuiteInvocation sinv = new SuiteInvocation(fatBuildCompacted, compactor, (k, v) -> false);
+
+            Stream<TestCompacted> tests = fatBuildCompacted.getAllTests();
+            tests.forEach(
+                testCompacted -> {
+                    Invocation invocation = testCompacted.toInvocation(fatBuildCompacted, (k, v) -> false, successStatusStrId);
+
+                    sinv.addTest(testCompacted.testName(), invocation);
+                }
+            );
+
+            suiteRunHist.put(fatBuildCompacted.id(), sinv);
+        });
     }
 
     @AutoProfiling

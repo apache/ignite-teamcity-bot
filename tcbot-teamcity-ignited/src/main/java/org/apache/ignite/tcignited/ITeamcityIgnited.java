@@ -200,6 +200,7 @@ public interface ITeamcityIgnited {
      */
     public BuildTypeCompacted getBuildType(String buildTypeId);
 
+    @Deprecated
     @Nullable public IRunHistory getTestRunHist(String testName, @Nullable String branch);
 
     @Nullable public IRunHistory getSuiteRunHist(String suiteId, @Nullable String branch);

@@ -421,7 +421,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** {@inheritDoc} */
     @Nullable
-    @AutoProfiling
     @Override public IRunHistory getTestRunHist(String testName, @Nullable String branch) {
         return runHistCompactedDao.getTestRunHist(srvIdMaskHigh, testName, branch);
     }

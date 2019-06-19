@@ -16,9 +16,14 @@
  */
 package org.apache.ignite.tcignited.history;
 
-import java.util.List;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.BiPredicate;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcbot.persistence.Persisted;
 
 /**
@@ -41,7 +46,23 @@ public class SuiteInvocation {
 
     Invocation suite;
 
-    List<Invocation> tests;
+    java.util.Map<Integer, Invocation> tests = new HashMap<>();
 
     Long buildStartTime;
+
+    public SuiteInvocation() {}
+
+    public SuiteInvocation(FatBuildCompacted buildCompacted, IStringCompactor comp,
+        BiPredicate<Integer, Integer> filter) {
+        buildStartTime = buildCompacted.getStartDateTs();
+        suite = buildCompacted.toInvocation(comp, filter);
+    }
+
+    public void addTest(int testName, Invocation invocation) {
+        tests.put(testName, invocation);
+    }
+
+    public Map<Integer, Invocation> tests() {
+        return Collections.unmodifiableMap(tests);
+    }
 }
