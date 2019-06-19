@@ -28,7 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -232,7 +232,7 @@ public class FatBuildDao {
      */
     @AutoProfiling
     public IRunHistory getTestRunHist(int srvIdMaskHigh,
-        Supplier<Set<Integer>> buildIdsSupplier, int testName, int buildTypeId, int normalizedBaseBranch) {
+        Function<Set<Integer>, Set<Integer>> buildIdsSupplier, int testName, int buildTypeId, int normalizedBaseBranch) {
 
         RunHistKey runHistKey = new RunHistKey(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
 
@@ -248,14 +248,16 @@ public class FatBuildDao {
         return hist.testsHistory.get(testName);
     }
 
+
+    //todo create standalone history collector class
     @AutoProfiling
     public SuiteHistory loadSuiteHistory(int srvId,
-        Supplier<Set<Integer>> buildIdsSupplier,
+        Function<Set<Integer>, Set<Integer>> buildIdsSupplier,
         int buildTypeId,
         int normalizedBaseBranch) {
         Map<Integer, SuiteInvocation> suiteRunHist = historyDao.getSuiteRunHist(srvId, buildTypeId, normalizedBaseBranch);
 
-        Set<Integer> buildIds = determineLatestBuilds(buildIdsSupplier);
+        Set<Integer> buildIds = determineLatestBuildsFunction(buildIdsSupplier, suiteRunHist.keySet());
 
         HashSet<Integer> missedBuildsIds = new HashSet<>(buildIds);
 
@@ -361,8 +363,9 @@ public class FatBuildDao {
     }
 
     @AutoProfiling
-    protected Set<Integer> determineLatestBuilds(Supplier<Set<Integer>> buildIdsSupplier) {
-        return buildIdsSupplier.get();
+    protected Set<Integer> determineLatestBuildsFunction(Function<Set<Integer>, Set<Integer>> buildIdsSupplier,
+        Set<Integer> known) {
+        return buildIdsSupplier.apply(known);
     }
 
     public void invalidateHistoryInMem(int srvId, Stream<BuildRefCompacted> stream) {

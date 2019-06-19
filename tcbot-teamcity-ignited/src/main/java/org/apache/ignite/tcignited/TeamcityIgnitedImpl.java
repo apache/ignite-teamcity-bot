@@ -34,7 +34,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -441,21 +441,23 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (testName < 0 || buildTypeId < 0 || normalizedBaseBranch < 0)
             return null;
 
-        Supplier<Set<Integer>> supplier = () -> {
+        Function<Set<Integer>, Set<Integer>> supplier = (knownBuilds) -> {
             String btId = compactor.getStringFromId(buildTypeId);
             String branchId = compactor.getStringFromId(normalizedBaseBranch);
             List<BuildRefCompacted> compacted = getAllBuildsCompacted(btId, branchId);
             long curTs = System.currentTimeMillis();
             Set<Integer> buildIds = compacted.stream()
+                .filter(b -> !knownBuilds.contains(b.id()))
+                //todo filter queued, cancelled and so on
                 .filter(
-                bRef -> {
-                    Long startTime = getBuildStartTime(bRef.id());
-                    if (startTime == null)
-                        return false;
+                    bRef -> {
+                        Long startTime = getBuildStartTime(bRef.id());
+                        if (startTime == null)
+                            return false;
 
-                    return Duration.ofMillis(curTs - startTime).toDays() < InvocationData.MAX_DAYS;
-                }
-            ).map(BuildRefCompacted::id).collect(Collectors.toSet());
+                        return Duration.ofMillis(curTs - startTime).toDays() < InvocationData.MAX_DAYS;
+                    }
+                ).map(BuildRefCompacted::id).collect(Collectors.toSet());
 
             System.err.println("*** Build " + btId + " branch " + branchId + " builds in scope " + buildIds.size());
 
