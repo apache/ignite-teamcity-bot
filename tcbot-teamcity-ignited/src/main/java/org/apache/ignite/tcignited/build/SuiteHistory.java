@@ -22,8 +22,10 @@ import java.util.Map;
 
 import java.util.TreeMap;
 import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.internal.binary.BinaryObjectExImpl;
+import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.SuiteInvocation;
 
 /**
@@ -36,5 +38,17 @@ public class SuiteHistory {
     public int size(Ignite ignite) {
         BinaryObjectExImpl binary = ignite.binary().toBinary(this);
         return binary.length();
+    }
+
+    public IRunHistory getTestRunHist(int name) {
+        return testsHistory.get(name);
+    }
+
+    public RunHistCompacted getOrAddTestsHistory(Integer tName) {
+        return testsHistory.computeIfAbsent(tName, k_ -> new RunHistCompacted());
+    }
+
+    public void addTestInvocation(Integer tName, Invocation invocation) {
+        getOrAddTestsHistory(tName).innerAddInvocation(invocation);
     }
 }

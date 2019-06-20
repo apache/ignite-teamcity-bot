@@ -61,12 +61,15 @@ import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
 import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
+import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.buildref.BuildRefSync;
+import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
 import org.apache.ignite.tcignited.history.RunHistCompactedDao;
 import org.apache.ignite.tcignited.history.RunHistSync;
+import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
 import org.apache.ignite.tcignited.mute.MuteDao;
 import org.apache.ignite.tcignited.mute.MuteSync;
 import org.apache.ignite.tcservice.ITeamcity;
@@ -93,11 +96,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** Max build id diff to enforce reload during incremental refresh. */
     public static final int MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN = 3000;
-
-    /** Default synonyms. */
-    private static final List<String> DEFAULT_SYNONYMS
-            = Collections.unmodifiableList(
-                    Lists.newArrayList(ITeamcity.DEFAULT, ITeamcity.REFS_HEADS_MASTER, ITeamcity.MASTER));
 
     /** Server (service) code. */
     private String srvCode;
@@ -150,10 +148,19 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Run history sync. */
     @Inject private RunHistSync runHistSync;
 
-    @Inject private BuildLogCheckResultDao logCheckResultDao;
+    /** Logger check result DAO. */
+    @Inject private BuildLogCheckResultDao logCheckResDao;
+
+    /** History DAO. */
+    @Inject private SuiteInvocationHistoryDao histDao;
+
+    /** History collector. */
+    @Inject private HistoryCollector histCollector;
 
     /** Strings compactor. */
     @Inject private IStringCompactor compactor;
+
+    @Inject private BranchEquivalence branchEquivalence;
 
     /** Server ID mask for cache Entries. */
     private int srvIdMaskHigh;
@@ -171,7 +178,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         changesDao.init();
         runHistCompactedDao.init();
         muteDao.init();
-        logCheckResultDao.init();
+        logCheckResDao.init();
+        histDao.init();
     }
 
     /**
@@ -351,7 +359,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             @Nullable String branchName) {
         ensureActualizeRequested();
 
-        return buildRefDao.getAllBuildsCompacted(srvIdMaskHigh, buildTypeId, branchForQuery(branchName));
+        return buildRefDao.getAllBuildsCompacted(srvIdMaskHigh, buildTypeId, branchEquivalence.branchForQuery(branchName));
     }
 
     /** {@inheritDoc} */
@@ -364,7 +372,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (stateQueuedId == null)
             return Collections.emptyList();
 
-        Set<Integer> branchNameIds = branchForQuery(branchName).stream().map(str -> compactor.getStringIdIfPresent(str))
+        Set<Integer> branchNameIds = branchEquivalence.branchForQuery(branchName).stream().map(str -> compactor.getStringIdIfPresent(str))
             .filter(Objects::nonNull).collect(Collectors.toSet());
 
         List<BuildRefCompacted> res = new ArrayList<>();
@@ -441,30 +449,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (testName < 0 || buildTypeId < 0 || normalizedBaseBranch < 0)
             return null;
 
-        Function<Set<Integer>, Set<Integer>> supplier = (knownBuilds) -> {
-            String btId = compactor.getStringFromId(buildTypeId);
-            String branchId = compactor.getStringFromId(normalizedBaseBranch);
-            List<BuildRefCompacted> compacted = getAllBuildsCompacted(btId, branchId);
-            long curTs = System.currentTimeMillis();
-            Set<Integer> buildIds = compacted.stream()
-                .filter(b -> !knownBuilds.contains(b.id()))
-                //todo filter queued, cancelled and so on
-                .filter(
-                    bRef -> {
-                        Long startTime = getBuildStartTime(bRef.id());
-                        if (startTime == null)
-                            return false;
-
-                        return Duration.ofMillis(curTs - startTime).toDays() < InvocationData.MAX_DAYS;
-                    }
-                ).map(BuildRefCompacted::id).collect(Collectors.toSet());
-
-            System.err.println("*** Build " + btId + " branch " + branchId + " builds in scope " + buildIds.size());
-
-            return buildIds;
-        };
-
-        return fatBuildDao.getTestRunHist(srvIdMaskHigh, supplier, testName, buildTypeId, normalizedBaseBranch);
+        return histCollector.getTestRunHist(srvIdMaskHigh, testName, buildTypeId, normalizedBaseBranch);
     }
 
     /** {@inheritDoc} */
@@ -507,13 +492,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @Override public BuildTypeCompacted getBuildType(String buildTypeId) {
 
         return buildTypeDao.getFatBuildType(srvIdMaskHigh, buildTypeId);
-    }
-
-    public List<String> branchForQuery(@Nullable String branchName) {
-        if (ITeamcity.DEFAULT.equals(branchName))
-            return DEFAULT_SYNONYMS;
-        else
-            return Collections.singletonList(branchName);
     }
 
     /**
