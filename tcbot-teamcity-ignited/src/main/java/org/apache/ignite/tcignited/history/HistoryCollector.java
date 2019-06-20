@@ -27,14 +27,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.cache.processor.EntryProcessorException;
-import javax.cache.processor.MutableEntry;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
@@ -115,10 +111,10 @@ public class HistoryCollector {
      * @param srvId
      * @param buildTypeId
      * @param normalizedBaseBranch
-     * @param knownBuilds Known builds.
+     * @param knownBuilds Known builds, which already present in run history.
      */
     @AutoProfiling
-    protected Set<Integer> determineLatestBuildsFunction(
+    protected Set<Integer> determineLatestBuilds(
         int srvId, int buildTypeId, int normalizedBaseBranch, Set<Integer> knownBuilds) {
         String btId = compactor.getStringFromId(buildTypeId);
         String branchId = compactor.getStringFromId(normalizedBaseBranch);
@@ -127,22 +123,41 @@ public class HistoryCollector {
         long curTs = System.currentTimeMillis();
         Set<Integer> buildIds = compacted.stream()
             .filter(b -> !knownBuilds.contains(b.id()))
-            //todo filter queued, cancelled and so on
-            .filter(
-                bRef -> {
-                    //todo getAll
-                    //todo getStartTime From FatBuild
-                    Long startTime = runHistCompactedDao.getBuildStartTime(srvId, bRef.id());
-                    if (startTime == null)
-                        return false;
+            .filter(this::applicableForHistory)
+            .map(BuildRefCompacted::id).collect(Collectors.toSet());
 
-                    return Duration.ofMillis(curTs - startTime).toDays() < InvocationData.MAX_DAYS;
-                }
-            ).map(BuildRefCompacted::id).collect(Collectors.toSet());
+        Map<Integer, Long> buildStartTimeFromFatBuild = getStartTimeFromFatBuild(srvId, buildIds);
 
-        System.err.println("*** Build " + btId + " branch " + branchId + " builds in scope " + buildIds.size());
+        //todo filter queued, cancelled and so on
+        Set<Integer> buildInScope = buildIds.stream().filter(
+            bId -> {
+                //todo getAll
+                //todo getStartTime From FatBuild
+                Long startTime = buildStartTimeFromFatBuild.get(bId);
+                //todo cache in runHistCompactedDao.getBuildStartTime(srvId, bRef.id());
+                if (startTime == null)
+                    return false;
+
+                return Duration.ofMillis(curTs - startTime).toDays() < InvocationData.MAX_DAYS;
+            }
+        ).collect(Collectors.toSet());
+
+        System.err.println("*** Build " + btId + " branch " + branchId + " builds in scope " +
+            buildInScope+ " from " + buildIds.size());
 
         return buildIds;
+    }
+
+    @AutoProfiling
+    protected Map<Integer, Long> getStartTimeFromFatBuild(int srvId, Set<Integer> buildIds) {
+        return fatBuildDao.getBuildStartTime(srvId, buildIds);
+    }
+
+    /**
+     * @param ref Build Reference or fat build.
+     */
+    private boolean applicableForHistory(BuildRefCompacted ref) {
+        return !ref.isFakeStub() && !ref.isCancelled(compactor) && ref.isFinished(compactor);
     }
 
     @AutoProfiling
@@ -151,7 +166,7 @@ public class HistoryCollector {
         int normalizedBaseBranch) {
         Map<Integer, SuiteInvocation> suiteRunHist = histDao.getSuiteRunHist(srvId, buildTypeId, normalizedBaseBranch);
 
-        Set<Integer> buildIds = determineLatestBuildsFunction(srvId, buildTypeId, normalizedBaseBranch, suiteRunHist.keySet());
+        Set<Integer> buildIds = determineLatestBuilds(srvId, buildTypeId, normalizedBaseBranch, suiteRunHist.keySet());
 
         HashSet<Integer> missedBuildsIds = new HashSet<>(buildIds);
 
@@ -162,8 +177,8 @@ public class HistoryCollector {
 
             System.err.println("***** + Adding to persisted history for suite "
                 + compactor.getStringFromId(buildTypeId)
-                + " branch " + compactor.getStringFromId(normalizedBaseBranch) + " requires " +
-                addl.size() + " invocations");
+                + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": added " +
+                addl.size() + " invocations from " + missedBuildsIds + " builds checked");
 
             histDao.putAll(srvId, addl);
             suiteRunHist.putAll(addl);
@@ -191,8 +206,6 @@ public class HistoryCollector {
     }
 
 
-
-
     @AutoProfiling
     public Map<Integer, SuiteInvocation> addSuiteInvocationsToHistory(int srvId,
         HashSet<Integer> missedBuildsIds, int normalizedBaseBranch) {
@@ -200,6 +213,9 @@ public class HistoryCollector {
         int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
         fatBuildDao.getAllFatBuilds(srvId, missedBuildsIds).forEach((buildCacheKey, fatBuildCompacted) -> {
+            if(!applicableForHistory(fatBuildCompacted))
+                return;
+
             SuiteInvocation sinv = new SuiteInvocation(srvId, normalizedBaseBranch, fatBuildCompacted, compactor, (k, v) -> false);
 
             Stream<TestCompacted> tests = fatBuildCompacted.getAllTests();
@@ -258,33 +274,4 @@ public class HistoryCollector {
         return hist;
     }
     */
-
-
-    private static class HistoryCollectProcessor implements CacheEntryProcessor<Long, FatBuildCompacted, Map<Integer, Invocation>> {
-        private final int successStatusStrId;
-
-        public HistoryCollectProcessor(int successStatusStrId) {
-            this.successStatusStrId = successStatusStrId;
-        }
-
-        @Override public Map<Integer, Invocation> process(MutableEntry<Long, FatBuildCompacted> entry,
-            Object... arguments) throws EntryProcessorException {
-            if (entry.getValue() == null)
-                return null;
-
-            Map<Integer, Invocation> hist = new HashMap<>();
-            FatBuildCompacted fatBuildCompacted = entry.getValue();
-            Stream<TestCompacted> tests = fatBuildCompacted.getAllTests();
-            tests.forEach(
-                testCompacted -> {
-                    Invocation invocation = testCompacted.toInvocation(fatBuildCompacted, (k, v) -> false, successStatusStrId);
-
-                    hist.put(testCompacted.testName(), invocation);
-                }
-            );
-
-            return hist;
-        }
-    }
-
 }

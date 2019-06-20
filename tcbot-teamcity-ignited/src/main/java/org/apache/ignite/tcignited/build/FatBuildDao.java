@@ -19,6 +19,7 @@ package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.Preconditions;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,14 +30,19 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.cache.Cache;
+import javax.cache.processor.EntryProcessorException;
+import javax.cache.processor.EntryProcessorResult;
+import javax.cache.processor.MutableEntry;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcservice.model.changes.ChangesList;
 import org.apache.ignite.tcservice.model.result.Build;
@@ -191,12 +197,36 @@ public class FatBuildDao {
             .filter(entry -> isKeyForServer(entry.getKey(), srvId));
     }
 
-
-
-    private static Set<Long> buildsIdsToCacheKeys(int srvIdMaskHigh, Collection<Integer> stream) {
+    private static Set<Long> buildsIdsToCacheKeys(int srvId, Collection<Integer> stream) {
         return stream.stream()
-            .filter(Objects::nonNull).map(id -> buildIdToCacheKey(srvIdMaskHigh, id)).collect(Collectors.toSet());
+            .filter(Objects::nonNull).map(id -> buildIdToCacheKey(srvId, id)).collect(Collectors.toSet());
     }
 
+    public Map<Integer, Long> getBuildStartTime(int srvId, Set<Integer> ids) {
+        Map<Long, EntryProcessorResult<Long>> map = buildsCache.invokeAll(buildsIdsToCacheKeys(srvId, ids), new GetStartTimeProc());
 
+        HashMap<Integer, Long> res = new HashMap<>();
+
+        map.forEach((k, r)->{
+            Long aLong = r.get();
+            if(aLong!=null)
+                res.put(BuildRefDao.cacheKeyToBuildId(k), aLong);
+        });
+
+        return res;
+    }
+
+    private static class GetStartTimeProc implements CacheEntryProcessor<Long, FatBuildCompacted, Long> {
+        public GetStartTimeProc() {
+        }
+
+        @Override public Long process(MutableEntry<Long, FatBuildCompacted> entry,
+            Object... arguments) throws EntryProcessorException {
+            if (entry.getValue() == null)
+                return null;
+
+            FatBuildCompacted fatBuildCompacted = entry.getValue();
+            return fatBuildCompacted.getStartDateTs();
+        }
+    }
 }
