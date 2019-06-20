@@ -22,18 +22,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
-import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
-import org.apache.ignite.tcbot.engine.ui.LrTestsFullSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.LrTestsFullSummaryUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
@@ -107,7 +106,7 @@ public class TrackedBranchChainsProcessor {
                 boolean includeScheduled = buildResMergeCnt == 1;
 
                 final FullChainRunCtx ctx = chainProc.loadFullChainContext(
-                        tcIgnited,
+                    tcIgnited,
                     chains,
                     rebuild,
                     logs,

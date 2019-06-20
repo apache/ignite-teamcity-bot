@@ -17,6 +17,7 @@
 package org.apache.ignite.tcignited.history;
 
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Iterables;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -159,7 +160,7 @@ public class HistoryCollector {
         System.err.println("*** Build " + btId + " branch " + branchId + " builds in scope " +
             buildInScope.size() + " from " + buildIds.size());
 
-        return buildIds;
+        return buildInScope;
     }
 
     @AutoProfiling
@@ -229,23 +230,29 @@ public class HistoryCollector {
         Map<Integer, SuiteInvocation> suiteRunHist = new HashMap<>();
         int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
-        fatBuildDao.getAllFatBuilds(srvId, missedBuildsIds).forEach((buildCacheKey, fatBuildCompacted) -> {
-            if(!applicableForHistory(fatBuildCompacted))
-                return;
+        System.err.println("GET ALL: " + missedBuildsIds.size());
+        Iterables.partition(missedBuildsIds, 32*10).forEach(
+            chunk->{
+                fatBuildDao.getAllFatBuilds(srvId, chunk).forEach((buildCacheKey, fatBuildCompacted) -> {
+                    if(!applicableForHistory(fatBuildCompacted))
+                        return;
 
-            SuiteInvocation sinv = new SuiteInvocation(srvId, normalizedBaseBranch, fatBuildCompacted, compactor, (k, v) -> false);
+                    SuiteInvocation sinv = new SuiteInvocation(srvId, normalizedBaseBranch, fatBuildCompacted, compactor, (k, v) -> false);
 
-            Stream<TestCompacted> tests = fatBuildCompacted.getAllTests();
-            tests.forEach(
-                testCompacted -> {
-                    Invocation invocation = testCompacted.toInvocation(fatBuildCompacted, (k, v) -> false, successStatusStrId);
+                    Stream<TestCompacted> tests = fatBuildCompacted.getAllTests();
+                    tests.forEach(
+                        testCompacted -> {
+                            Invocation invocation = testCompacted.toInvocation(fatBuildCompacted, (k, v) -> false, successStatusStrId);
 
-                    sinv.addTest(testCompacted.testName(), invocation);
-                }
-            );
+                            sinv.addTest(testCompacted.testName(), invocation);
+                        }
+                    );
 
-            suiteRunHist.put(fatBuildCompacted.id(), sinv);
-        });
+                    suiteRunHist.put(fatBuildCompacted.id(), sinv);
+                });
+            }
+        );
+
 
         System.err.println("***** + Adding to persisted history   "
             + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": added " +
