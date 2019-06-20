@@ -30,6 +30,7 @@ import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 
@@ -58,6 +59,7 @@ public class SuiteInvocationHistoryDao {
         suiteHistory = ignite.getOrCreateCache(ccfg);
     }
 
+    @AutoProfiling
     public Map<Integer, SuiteInvocation> getSuiteRunHist(int srvId, int buildTypeId, int normalizedBranchName) {
         java.util.Map<Integer, SuiteInvocation> map = new HashMap<>();
         try (QueryCursor<Cache.Entry<Long, SuiteInvocation>> qryCursor = suiteHistory.query(

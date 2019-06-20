@@ -126,14 +126,28 @@ public class HistoryCollector {
             .filter(this::applicableForHistory)
             .map(BuildRefCompacted::id).collect(Collectors.toSet());
 
-        Map<Integer, Long> buildStartTimeFromFatBuild = getStartTimeFromFatBuild(srvId, buildIds);
+        System.out.println("***** Loading build start time history for suite "
+            + compactor.getStringFromId(buildTypeId)
+            + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": " + buildIds.size() + " builds" );
 
+        Map<Integer, Long> buildStartTimeFromSeparatedCache = getStartTimeFromSpecialCache(srvId, buildIds);
+
+        HashSet<Integer> notFoundKeys = new HashSet<>(buildIds);
+        notFoundKeys.removeAll(buildStartTimeFromSeparatedCache.keySet());
+
+        if (!notFoundKeys.isEmpty()) {
+            Map<Integer, Long> buildStartTimeFromFatBuild = getStartTimeFromFatBuild(srvId, notFoundKeys);
+
+            buildStartTimeFromSeparatedCache.putAll(buildStartTimeFromFatBuild);
+
+            runHistCompactedDao.setBuildsStartTime(srvId, buildStartTimeFromFatBuild);
+        }
         //todo filter queued, cancelled and so on
         Set<Integer> buildInScope = buildIds.stream().filter(
             bId -> {
                 //todo getAll
                 //todo getStartTime From FatBuild
-                Long startTime = buildStartTimeFromFatBuild.get(bId);
+                Long startTime = buildStartTimeFromSeparatedCache.get(bId);
                 //todo cache in runHistCompactedDao.getBuildStartTime(srvId, bRef.id());
                 if (startTime == null)
                     return false;
@@ -143,9 +157,14 @@ public class HistoryCollector {
         ).collect(Collectors.toSet());
 
         System.err.println("*** Build " + btId + " branch " + branchId + " builds in scope " +
-            buildInScope+ " from " + buildIds.size());
+            buildInScope.size() + " from " + buildIds.size());
 
         return buildIds;
+    }
+
+    @AutoProfiling
+    protected Map<Integer, Long> getStartTimeFromSpecialCache(int srvId, Set<Integer> buildIds) {
+        return runHistCompactedDao.getBuildsStartTime(srvId, buildIds);
     }
 
     @AutoProfiling
@@ -166,6 +185,10 @@ public class HistoryCollector {
         int normalizedBaseBranch) {
         Map<Integer, SuiteInvocation> suiteRunHist = histDao.getSuiteRunHist(srvId, buildTypeId, normalizedBaseBranch);
 
+        System.out.println("***** Found history for suite "
+            + compactor.getStringFromId(buildTypeId)
+            + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": " + suiteRunHist.size() );
+
         Set<Integer> buildIds = determineLatestBuilds(srvId, buildTypeId, normalizedBaseBranch, suiteRunHist.keySet());
 
         HashSet<Integer> missedBuildsIds = new HashSet<>(buildIds);
@@ -175,12 +198,6 @@ public class HistoryCollector {
         if (!missedBuildsIds.isEmpty()) {
             Map<Integer, SuiteInvocation> addl = addSuiteInvocationsToHistory(srvId, missedBuildsIds, normalizedBaseBranch);
 
-            System.err.println("***** + Adding to persisted history for suite "
-                + compactor.getStringFromId(buildTypeId)
-                + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": added " +
-                addl.size() + " invocations from " + missedBuildsIds + " builds checked");
-
-            histDao.putAll(srvId, addl);
             suiteRunHist.putAll(addl);
         }
 
@@ -229,6 +246,12 @@ public class HistoryCollector {
 
             suiteRunHist.put(fatBuildCompacted.id(), sinv);
         });
+
+        System.err.println("***** + Adding to persisted history   "
+            + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": added " +
+            suiteRunHist.size() + " invocations from " + missedBuildsIds.size() + " builds checked");
+
+        histDao.putAll(srvId, suiteRunHist);
 
         return suiteRunHist;
     }

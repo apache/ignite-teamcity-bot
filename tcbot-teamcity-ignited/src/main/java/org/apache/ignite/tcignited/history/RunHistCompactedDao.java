@@ -17,9 +17,15 @@
 
 package org.apache.ignite.tcignited.history;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.cache.Cache;
@@ -40,6 +46,7 @@ import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.buildref.BuildRefDao;
 
 import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 
@@ -234,5 +241,33 @@ public class RunHistCompactedDao {
 
         cluster.disableWal(testHistCache.getName());
         cluster.disableWal(suiteHistCache.getName());
+    }
+
+    private static Set<Long> buildsIdsToCacheKeys(int srvId, Collection<Integer> ids) {
+        return ids.stream()
+            .filter(Objects::nonNull).map(id -> buildIdToCacheKey(srvId, id)).collect(Collectors.toSet());
+    }
+
+    public Map<Integer, Long> getBuildsStartTime(int srvId, Set<Integer> ids) {
+        Set<Long> cacheKeys = buildsIdsToCacheKeys(srvId, ids);
+
+        Map<Integer, Long> res = new HashMap<>();
+
+        buildStartTime.getAll(cacheKeys).forEach((k, r) -> {
+            res.put(BuildRefDao.cacheKeyToBuildId(k), r);
+        });
+
+        return res;
+    }
+
+    public void setBuildsStartTime(int srvId, Map<Integer, Long> builds) {
+        Map<Long, Long> res = new HashMap<>();
+
+        builds.forEach((buildId, ts) -> {
+            if (ts != null)
+                res.put(buildIdToCacheKey(srvId, buildId), ts);
+        });
+
+        buildStartTime.putAll(res);
     }
 }

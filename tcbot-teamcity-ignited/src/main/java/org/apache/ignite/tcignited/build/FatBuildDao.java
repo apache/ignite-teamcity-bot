@@ -18,6 +18,7 @@
 package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +38,7 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
@@ -202,31 +204,42 @@ public class FatBuildDao {
             .filter(Objects::nonNull).map(id -> buildIdToCacheKey(srvId, id)).collect(Collectors.toSet());
     }
 
+    /**
+     * @param srvId Server id.
+     * @param ids Ids.
+     */
     public Map<Integer, Long> getBuildStartTime(int srvId, Set<Integer> ids) {
-        Map<Long, EntryProcessorResult<Long>> map = buildsCache.invokeAll(buildsIdsToCacheKeys(srvId, ids), new GetStartTimeProc());
-
+        IgniteCache<Long, BinaryObject> cacheBin = buildsCache.withKeepBinary();
+        Set<Long> keys = buildsIdsToCacheKeys(srvId, ids);
         HashMap<Integer, Long> res = new HashMap<>();
 
-        map.forEach((k, r)->{
-            Long aLong = r.get();
-            if(aLong!=null)
-                res.put(BuildRefDao.cacheKeyToBuildId(k), aLong);
-        });
+        Iterables.partition(keys, 32 * 10).forEach(
+            chunk -> {
+                Map<Long, EntryProcessorResult<Long>> map = cacheBin.invokeAll(keys, new GetStartTimeProc());
+                map.forEach((k, r) -> {
+                    Long ts = r.get();
+                    if (ts != null)
+                        res.put(BuildRefDao.cacheKeyToBuildId(k), ts);
+                });
+            }
+        );
 
         return res;
     }
 
-    private static class GetStartTimeProc implements CacheEntryProcessor<Long, FatBuildCompacted, Long> {
+    private static class GetStartTimeProc implements CacheEntryProcessor<Long, BinaryObject, Long> {
         public GetStartTimeProc() {
         }
 
-        @Override public Long process(MutableEntry<Long, FatBuildCompacted> entry,
+        /** {@inheritDoc} */
+        @Override public Long process(MutableEntry<Long, BinaryObject> entry,
             Object... arguments) throws EntryProcessorException {
             if (entry.getValue() == null)
                 return null;
 
-            FatBuildCompacted fatBuildCompacted = entry.getValue();
-            return fatBuildCompacted.getStartDateTs();
+            BinaryObject buildBinary = entry.getValue();
+
+            return buildBinary.field("startDate");
         }
     }
 }
