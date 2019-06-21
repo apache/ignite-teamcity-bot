@@ -90,10 +90,10 @@ public class TeamcityIgnitedMock {
                     .collect(Collectors.toList());
             });
 
-        when(tcIgnited.getTestRunHist(anyString(), anyString()))
+        when(tcIgnited.getTestRunHist(anyInt(), anyInt(), anyInt()))
             .thenAnswer((inv) -> {
-                final String name = inv.getArgument(0);
-                final String branch = inv.getArgument(1);
+                final Integer tstName = inv.getArgument(0);
+                final Integer branchId = inv.getArgument(2);
                 // System.out.println("Search history " + name + " in " + branch + ": " );
 
                 if (histCache.isEmpty()) {
@@ -103,11 +103,9 @@ public class TeamcityIgnitedMock {
                     }
                 }
 
-                final Integer tstName = c.getStringIdIfPresent(name);
                 if (tstName == null)
                     return null;
 
-                final Integer branchId = c.getStringIdIfPresent(branch);
                 if (branchId == null)
                     return null;
 
@@ -115,7 +113,7 @@ public class TeamcityIgnitedMock {
 
                 final RunHistCompacted runHistCompacted = histCache.get(key);
 
-                System.out.println("Test history " + name + " in " + branch + " => " + runHistCompacted);
+                System.out.println("Test history " + c.getStringFromId(tstName) + " in " + c.getStringFromId(branchId) + " => " + runHistCompacted);
 
                 return runHistCompacted;
             });

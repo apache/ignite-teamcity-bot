@@ -511,7 +511,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         // schedule find missing later
         fatBuildSync.ensureActualizationRequested(srvCode, conn);
 
-        runHistSync.invokeLaterFindMissingHistory(srvCode);
+        //todo remove unused code
+        // runHistSync.invokeLaterFindMissingHistory(srvCode);
     }
 
     /** {@inheritDoc} */

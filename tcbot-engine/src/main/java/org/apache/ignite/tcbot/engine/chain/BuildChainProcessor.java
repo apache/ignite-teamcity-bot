@@ -144,6 +144,8 @@ public class BuildChainProcessor {
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
 
+        Integer failRateBranchId = compactor.getStringIdIfPresent(RunHistSync.normalizeBranch(failRateBranch));
+
         Map<Integer, Future<FatBuildCompacted>> builds = loadAllBuildsInChains(entryPoints, mode, tcIgn);
 
         Map<String, List<Future<FatBuildCompacted>>> freshRebuilds = new ConcurrentHashMap<>();
@@ -185,8 +187,7 @@ public class BuildChainProcessor {
         });
 
         Function<MultBuildRunCtx, Float> function = ctx -> {
-            IRunHistory runStat = ctx.history(tcIgn,
-                compactor.getStringIdIfPresent(RunHistSync.normalizeBranch(failRateBranch)));
+            IRunHistory runStat = ctx.history(tcIgn, failRateBranchId);
 
             if (runStat == null)
                 return 0f;

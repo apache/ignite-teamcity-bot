@@ -644,7 +644,10 @@ public class MultBuildRunCtx implements ISuiteResults {
      * @param baseBranchId Base branch id.
      */
     public IRunHistory history(ITeamcityIgnited tcIgn, Integer baseBranchId) {
+        if (baseBranchId == null)
+            return null;
+
         return historyCacheMap.computeIfAbsent(baseBranchId,
-            (k)->  tcIgn.getSuiteRunHist(buildTypeIdId(), k));
+            (k) -> tcIgn.getSuiteRunHist(buildTypeIdId(), k));
     }
 }
