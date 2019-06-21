@@ -24,8 +24,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
@@ -105,6 +108,7 @@ public class HistoryCollector {
         return hist.getTestRunHist(testName);
     }
 
+    ConcurrentMap<Integer, AtomicInteger> biggestBuildIdOutOfHistoryScope = new ConcurrentHashMap<>();
 
     /**
      *  Latest actual Build ids supplier. This supplier should handle all equivalent branches in
@@ -121,11 +125,16 @@ public class HistoryCollector {
         String branchId = compactor.getStringFromId(normalizedBaseBranch);
         List<BuildRefCompacted> compacted = buildRefDao.getAllBuildsCompacted(srvId, btId,
             branchEquivalence.branchForQuery(branchId));
+
+        AtomicInteger biggestIdOutOfScope = biggestBuildIdOutOfHistoryScope.get(srvId);
+        int outOfScopeBuildId = biggestIdOutOfScope == null ? -1 : biggestIdOutOfScope.get();
+
         long curTs = System.currentTimeMillis();
         Set<Integer> buildIds = compacted.stream()
-            .filter(b -> !knownBuilds.contains(b.id()))
+            .filter(b -> b.id() > outOfScopeBuildId)
             .filter(this::applicableForHistory)
-            .map(BuildRefCompacted::id).collect(Collectors.toSet());
+            .map(BuildRefCompacted::id)
+            .filter(bId -> !knownBuilds.contains(bId)).collect(Collectors.toSet());
 
         System.out.println("***** Loading build start time history for suite "
             + compactor.getStringFromId(buildTypeId)
@@ -153,7 +162,23 @@ public class HistoryCollector {
                 if (startTime == null)
                     return false;
 
-                return Duration.ofMillis(curTs - startTime).toDays() < InvocationData.MAX_DAYS;
+                long ageInDays = Duration.ofMillis(curTs - startTime).toDays();
+
+                if(ageInDays>InvocationData.MAX_DAYS + 2) {
+                    AtomicInteger integer = biggestBuildIdOutOfHistoryScope.computeIfAbsent(srvId,
+                        s -> {
+                            AtomicInteger atomicInteger = new AtomicInteger();
+                            atomicInteger.set(-1);
+                            return atomicInteger;
+                        });
+
+                    int newBorder = integer.accumulateAndGet(bId, Math::max);
+
+                    if (newBorder == bId)
+                        System.err.println(" New border for server was set " + bId);
+                }
+
+                return ageInDays < InvocationData.MAX_DAYS;
             }
         ).collect(Collectors.toSet());
 
@@ -258,7 +283,7 @@ public class HistoryCollector {
             + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": added " +
             suiteRunHist.size() + " invocations from " + missedBuildsIds.size() + " builds checked");
 
-        histDao.putAll(srvId, suiteRunHist);
+        histDao.putAllAsync(srvId, suiteRunHist);
 
         return suiteRunHist;
     }

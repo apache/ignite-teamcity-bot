@@ -76,11 +76,12 @@ public class SuiteInvocationHistoryDao {
         return map;
     }
 
-    public void putAll(int srvId, Map<Integer, SuiteInvocation> addl) {
+    @AutoProfiling
+    public void putAllAsync(int srvId, Map<Integer, SuiteInvocation> addl) {
         Map<Long, SuiteInvocation> data = new HashMap<>();
 
         addl.forEach((k, v) -> data.put(BuildRefDao.buildIdToCacheKey(srvId, k), v));
 
-        suiteHistory.putAll(data);
+        suiteHistory.putAllAsync(data);
     }
 }

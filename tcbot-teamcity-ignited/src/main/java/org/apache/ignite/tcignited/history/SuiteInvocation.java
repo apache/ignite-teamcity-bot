@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiPredicate;
+import org.apache.ignite.cache.affinity.AffinityKeyMapped;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
@@ -37,6 +38,7 @@ public class SuiteInvocation {
     private int srvId;
 
     /** Suite name for queries */
+    @AffinityKeyMapped
     @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "serverSuiteBranch", order = 1)})
     private int buildTypeId;
 
