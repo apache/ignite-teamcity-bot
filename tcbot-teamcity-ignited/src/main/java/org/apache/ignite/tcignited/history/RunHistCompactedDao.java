@@ -260,7 +260,7 @@ public class RunHistCompactedDao {
         return res;
     }
 
-    public void setBuildsStartTimeAsync(int srvId, Map<Integer, Long> builds) {
+    public void setBuildsStartTime(int srvId, Map<Integer, Long> builds) {
         Map<Long, Long> res = new HashMap<>();
 
         builds.forEach((buildId, ts) -> {
@@ -268,6 +268,6 @@ public class RunHistCompactedDao {
                 res.put(buildIdToCacheKey(srvId, buildId), ts);
         });
 
-        buildStartTime.putAllAsync(res);
+        buildStartTime.putAll(res);
     }
 }

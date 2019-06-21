@@ -63,6 +63,7 @@ import org.apache.ignite.tcignited.buildref.BuildRefSync;
 import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
+import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcignited.history.RunHistCompactedDao;
 import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
@@ -436,7 +437,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     }
 
     /** {@inheritDoc} */
-    @Nullable @Override public IRunHistory getSuiteRunHist(@Nullable Integer buildTypeId, @Nullable Integer normalizedBaseBranch) {
+    @Nullable @Override public ISuiteRunHistory getSuiteRunHist(@Nullable Integer buildTypeId, @Nullable Integer normalizedBaseBranch) {
         if (buildTypeId == null || normalizedBaseBranch == null)
             return null;
 

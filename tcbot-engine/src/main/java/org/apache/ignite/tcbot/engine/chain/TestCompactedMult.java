@@ -20,7 +20,6 @@ package org.apache.ignite.tcbot.engine.chain;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
@@ -29,6 +28,7 @@ import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.history.IRunHistSummary;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
+import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 
 /**
@@ -37,11 +37,12 @@ import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 public class TestCompactedMult implements IMultTestOccurrence {
     private final List<TestCompacted> occurrences = new ArrayList<>();
     private IStringCompactor compactor;
+    private MultBuildRunCtx ctx;
     private long avgDuration = -1;
-    private java.util.Map<Integer, IRunHistory> historyCacheMap = new ConcurrentHashMap<>();
 
-    public TestCompactedMult(IStringCompactor compactor) {
+    public TestCompactedMult(IStringCompactor compactor, MultBuildRunCtx ctx) {
         this.compactor = compactor;
+        this.ctx = ctx;
     }
 
     @Nullable public Integer testName() {
@@ -119,8 +120,16 @@ public class TestCompactedMult implements IMultTestOccurrence {
     }
 
 
-    public IRunHistory history(ITeamcityIgnited ignited, Integer buildTypeIdId, Integer baseBranchId) {
-        return historyCacheMap.computeIfAbsent(baseBranchId,
-            (k)-> ignited.getTestRunHist(testName(), buildTypeIdId, k));
+    public IRunHistory history(ITeamcityIgnited ignited, Integer baseBranchId) {
+        Integer name = testName();
+        if (name == null)
+            return null;
+
+        ISuiteRunHistory suiteRunHist = ctx.suiteHist(ignited, baseBranchId);
+
+        if (suiteRunHist == null)
+            return null;
+
+        return suiteRunHist.getTestRunHist(name);
     }
 }

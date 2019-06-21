@@ -18,6 +18,7 @@
 package org.apache.ignite.tcbot.engine.chain;
 
 import com.google.common.base.Strings;
+import com.google.common.cache.CacheBuilder;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -27,8 +28,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -39,12 +40,14 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.util.CollectionUtil;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.buildlog.ILogCheckResult;
 import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
 import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
@@ -67,7 +70,8 @@ public class MultBuildRunCtx implements ISuiteResults {
     /** Builds: Single execution. */
     private List<SingleBuildRunCtx> builds = new CopyOnWriteArrayList<>();
 
-    private java.util.Map<Integer, IRunHistory> historyCacheMap = new ConcurrentHashMap<>();
+    private final com.google.common.cache.Cache<Integer, Optional<ISuiteRunHistory>> historyCacheMap
+        = CacheBuilder.newBuilder().build();
 
     public void addBuild(SingleBuildRunCtx ctx) {
         builds.add(ctx);
@@ -331,7 +335,7 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     public void saveToMap(Map<Integer, TestCompactedMult> res, Stream<TestCompacted> tests) {
         tests.forEach(testCompacted -> {
-            res.computeIfAbsent(testCompacted.testName(), k -> new TestCompactedMult(compactor))
+            res.computeIfAbsent(testCompacted.testName(), k -> new TestCompactedMult(compactor, this))
                 .add(testCompacted);
         });
     }
@@ -615,10 +619,9 @@ public class MultBuildRunCtx implements ISuiteResults {
                 singleBuildRunCtx.getAllTests().filter(t -> !t.isIgnoredTest() && !t.isMutedTest()));
         });
         Integer branchName = compactor.getStringIdIfPresent(normalizedBaseBranch);
-        Integer suiteName = buildTypeIdId();
 
         res.forEach((testNameId, compactedMult) -> {
-            IRunHistory stat = compactedMult.history(tcIgnited, suiteName, branchName);
+            IRunHistory stat = compactedMult.history(tcIgnited, branchName);
             String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
             boolean b = testBlockerComment != null;
             if (b) // this test will be considered as blocker if will fail
@@ -647,7 +650,22 @@ public class MultBuildRunCtx implements ISuiteResults {
         if (baseBranchId == null)
             return null;
 
-        return historyCacheMap.computeIfAbsent(baseBranchId,
-            (k) -> tcIgn.getSuiteRunHist(buildTypeIdId(), k));
+        ISuiteRunHistory suiteHist = suiteHist(tcIgn, baseBranchId);
+        if (suiteHist == null)
+            return null;
+
+        return suiteHist.self();
+    }
+
+    @Nullable
+    ISuiteRunHistory suiteHist(ITeamcityIgnited tcIgn, Integer baseBranchId) {
+        try {
+            return historyCacheMap.get(baseBranchId,
+                () -> Optional.ofNullable(tcIgn.getSuiteRunHist(buildTypeIdId(), baseBranchId)))
+                .orElse(null);
+        }
+        catch (ExecutionException e) {
+            throw  ExceptionUtil.propagateException(e);
+        }
     }
 }

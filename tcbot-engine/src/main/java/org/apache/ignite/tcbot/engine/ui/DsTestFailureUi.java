@@ -90,7 +90,6 @@ public class DsTestFailureUi {
 
     /**
      * @param failure test ocurrence (probably multiple)
-     * @param buildTypeIdId
      * @param tcIgn Teamcity.
      * @param projectId project ID.
      * @param branchName current branch name.
@@ -98,7 +97,6 @@ public class DsTestFailureUi {
      * @param baseBranchId Normalized base branch ID (from compactor).
      */
     public void initFromOccurrence(@Nonnull final TestCompactedMult failure,
-        Integer buildTypeIdId,
         @Nonnull final ITeamcityIgnited tcIgn,
         @Nullable final String projectId,
         @Nullable final String branchName,
@@ -146,7 +144,7 @@ public class DsTestFailureUi {
                     webUrlBaseBranch = buildWebLink(tcIgn, full.test.id, projectId, baseBranchName);
         });
 
-        final IRunHistory stat = failure.history(tcIgn, buildTypeIdId, baseBranchId);
+        final IRunHistory stat = failure.history(tcIgn, baseBranchId);
         blockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
     }
 
@@ -201,13 +199,13 @@ public class DsTestFailureUi {
     public void initStat(TestCompactedMult occurrence, Integer buildTypeIdId, ITeamcityIgnited tcIgnited,
         @Nullable Integer baseBranchId,
         @Nullable Integer curBranchNormalized) {
-        final IRunHistory stat = occurrence.history(tcIgnited, buildTypeIdId, baseBranchId);
+        final IRunHistory stat = occurrence.history(tcIgnited, baseBranchId);
         histBaseBranch.init(stat);
 
         IRunHistory statForProblemsDetection;
 
         if (!Objects.equals(curBranchNormalized, baseBranchId)) {
-            statForProblemsDetection = occurrence.history(tcIgnited, buildTypeIdId, curBranchNormalized);
+            statForProblemsDetection = occurrence.history(tcIgnited, curBranchNormalized);
 
             if (statForProblemsDetection != null) {
                 histCurBranch = new DsTestHistoryUi();

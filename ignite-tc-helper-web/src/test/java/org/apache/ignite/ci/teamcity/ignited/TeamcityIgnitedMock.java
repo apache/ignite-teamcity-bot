@@ -31,6 +31,7 @@ import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.jetbrains.annotations.NotNull;
 import org.mockito.Mockito;
@@ -116,6 +117,41 @@ public class TeamcityIgnitedMock {
                 System.out.println("Test history " + c.getStringFromId(tstName) + " in " + c.getStringFromId(branchId) + " => " + runHistCompacted);
 
                 return runHistCompacted;
+            });
+
+        when(tcIgnited.getSuiteRunHist(anyInt(), anyInt()))
+            .thenAnswer((inv) -> {
+                final Integer suiteName = inv.getArgument(0);
+                final Integer branchId = inv.getArgument(1);
+                // System.out.println("Search history " + name + " in " + branch + ": " );
+                if (histCache.isEmpty()) {
+                    synchronized (histCache) {
+                        if (histCache.isEmpty())
+                            initHistory(c, histCache, builds, srvId);
+                    }
+                }
+
+                ISuiteRunHistory mock = Mockito.mock(ISuiteRunHistory.class);
+
+                when(mock.getTestRunHist(anyInt())).thenAnswer((inv2)-> {
+                    final Integer tstName = inv2.getArgument(0);
+
+                    if (tstName == null)
+                        return null;
+
+                    if (branchId == null)
+                        return null;
+
+                    final RunHistKey key = new RunHistKey(srvId, tstName, branchId);
+
+                    final RunHistCompacted runHistCompacted = histCache.get(key);
+
+                    System.out.println("Test history " + c.getStringFromId(tstName) + " in " + c.getStringFromId(branchId) + " => " + runHistCompacted);
+
+                    return runHistCompacted;
+                });
+
+                return mock;
             });
 
         // when(tcIgnited.gitBranchPrefix()).thenReturn("ignite-");

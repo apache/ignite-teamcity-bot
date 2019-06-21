@@ -192,7 +192,7 @@ public class DsSuiteUi extends DsHistoryStatUi {
         if (includeTests) {
             List<TestCompactedMult> tests = suite.getFailedTests();
             Function<TestCompactedMult, Float> function = testCompactedMult -> {
-                IRunHistory res = testCompactedMult.history(tcIgnited, buildTypeIdId, baseBranchId);
+                IRunHistory res = testCompactedMult.history(tcIgnited, baseBranchId);
 
                 return res == null ? 0f : res.getFailRate();
             };
@@ -201,7 +201,7 @@ public class DsSuiteUi extends DsHistoryStatUi {
 
             tests.forEach(occurrence -> {
                 final DsTestFailureUi failure = new DsTestFailureUi();
-                failure.initFromOccurrence(occurrence, buildTypeIdId, tcIgnited, suite.projectId(),
+                failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(),
                     suite.branchName(), baseBranch, baseBranchId);
                 failure.initStat(occurrence, buildTypeIdId, tcIgnited, baseBranchId, curBranchId);
 
@@ -267,9 +267,6 @@ public class DsSuiteUi extends DsHistoryStatUi {
         Integer failRateNormalizedBranch,
         Integer curBranchNormalized,
         MultBuildRunCtx suite) {
-        if (suite.buildTypeIdId() == null)
-            return null;
-
         IRunHistory statInBaseBranch = suite.history(tcIgnited, failRateNormalizedBranch);
 
         if (statInBaseBranch != null) {
@@ -325,7 +322,7 @@ public class DsSuiteUi extends DsHistoryStatUi {
 
         Integer baseBranchId = compactor.getStringIdIfPresent(normalizeBranch(failRateBranch));
         Integer buildTypeIdId = suite.buildTypeIdId();
-        failure.initFromOccurrence(occurrence, buildTypeIdId, tcIgnited, suite.projectId(), suite.branchName(),
+        failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(),
             failRateBranch, baseBranchId);
 
         failure.initStat(occurrence, buildTypeIdId, tcIgnited,  baseBranchId,

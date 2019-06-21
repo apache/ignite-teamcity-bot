@@ -260,18 +260,17 @@ public class PrChainsProcessor {
                 String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
                 Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
                 IRunHistory statInBaseBranch = ctx.history(tcIgnited, baseBranchId);
-                Integer suiteId = compactor.getStringIdIfPresent(ctx.suiteId()); // can be inlined
 
                 String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 
                 List<DsTestFailureUi> failures = ctx.getFailedTests().stream().map(occurrence -> {
-                    IRunHistory stat = occurrence.history(tcIgnited, suiteId, baseBranchId);
+                    IRunHistory stat = occurrence.history(tcIgnited, baseBranchId);
                     String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
 
                     if (!Strings.isNullOrEmpty(testBlockerComment)) {
                         final DsTestFailureUi failure = new DsTestFailureUi();
 
-                        failure.initFromOccurrence(occurrence, ctx.buildTypeIdId(), tcIgnited, ctx.projectId(), ctx.branchName(), baseBranch, baseBranchId);
+                        failure.initFromOccurrence(occurrence, tcIgnited, ctx.projectId(), ctx.branchName(), baseBranch, baseBranchId);
 
                         return failure;
                     }

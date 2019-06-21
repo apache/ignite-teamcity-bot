@@ -48,7 +48,7 @@ public class SuiteInvocationHistoryDao {
     private IgniteCache<Long, SuiteInvocation> suiteHistory;
 
     public void init() {
-        CacheConfiguration<Long , SuiteInvocation> ccfg = CacheConfigs.getCacheV2Config("suiteHistory");
+        CacheConfiguration<Long , SuiteInvocation> ccfg = CacheConfigs.getCacheV2Config("teamcitySuiteHistory");
         ccfg.setExpiryPolicyFactory(AccessedExpiryPolicy.factoryOf(new Duration(HOURS, 12)));
         ccfg.setEagerTtl(true);
 
@@ -77,11 +77,11 @@ public class SuiteInvocationHistoryDao {
     }
 
     @AutoProfiling
-    public void putAllAsync(int srvId, Map<Integer, SuiteInvocation> addl) {
+    public void putAll(int srvId, Map<Integer, SuiteInvocation> addl) {
         Map<Long, SuiteInvocation> data = new HashMap<>();
 
         addl.forEach((k, v) -> data.put(BuildRefDao.buildIdToCacheKey(srvId, k), v));
 
-        suiteHistory.putAllAsync(data);
+        suiteHistory.putAll(data);
     }
 }

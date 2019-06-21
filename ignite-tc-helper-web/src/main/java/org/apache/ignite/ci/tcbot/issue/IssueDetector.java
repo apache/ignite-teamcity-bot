@@ -295,7 +295,7 @@ public class IssueDetector {
         Integer btId = compactor.getStringIdIfPresent(suiteId);
         Integer brNormId = compactor.getStringIdIfPresent(normalizeBranch);
 
-        IRunHistory runStat = tcIgnited.getSuiteRunHist(btId, brNormId);
+        IRunHistory runStat = tcIgnited.getSuiteRunHist(btId, brNormId).self();
 
         if (runStat == null)
             return false;

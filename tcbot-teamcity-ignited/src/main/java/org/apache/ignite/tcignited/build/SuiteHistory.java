@@ -25,12 +25,13 @@ import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.internal.binary.BinaryObjectExImpl;
 import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcignited.history.SuiteInvocation;
 
 /**
  * Suite run history summary.
  */
-public class SuiteHistory {
+public class SuiteHistory implements ISuiteRunHistory {
     /** Tests history: Test name ID->RunHistory */
     private Map<Integer, RunHistCompacted> testsHistory = new HashMap<>();
 
@@ -41,8 +42,8 @@ public class SuiteHistory {
         return binary.length();
     }
 
-    public IRunHistory getTestRunHist(int name) {
-        return testsHistory.get(name);
+    public IRunHistory getTestRunHist(int testName) {
+        return testsHistory.get(testName);
     }
 
     public RunHistCompacted getOrAddTestsHistory(Integer tName) {
@@ -60,6 +61,10 @@ public class SuiteHistory {
     }
 
     public RunHistCompacted getSuiteHist() {
+        return suiteHist;
+    }
+
+    @Override public IRunHistory self() {
         return suiteHist;
     }
 }

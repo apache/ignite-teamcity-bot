@@ -33,6 +33,7 @@ import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
+import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.agent.Agent;
 import org.apache.ignite.tcservice.model.mute.MuteInfo;
 import org.apache.ignite.tcservice.model.result.Build;
@@ -206,7 +207,7 @@ public interface ITeamcityIgnited {
     @Deprecated
     @Nullable public IRunHistory getSuiteRunHist(String suiteId, @Nullable String branch);
 
-    @Nullable public IRunHistory getSuiteRunHist(@Nullable Integer buildTypeId, @Nullable Integer normalizedBaseBranch);
+    @Nullable public ISuiteRunHistory getSuiteRunHist(@Nullable Integer buildTypeId, @Nullable Integer normalizedBaseBranch);
 
     /**
      * V.3.0 run history implementation based on scan of fat builds.
