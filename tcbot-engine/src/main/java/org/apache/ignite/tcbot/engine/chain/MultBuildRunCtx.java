@@ -17,6 +17,7 @@
 
 package org.apache.ignite.tcbot.engine.chain;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.cache.CacheBuilder;
 import java.util.ArrayList;
@@ -659,9 +660,14 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     @Nullable
     ISuiteRunHistory suiteHist(ITeamcityIgnited tcIgn, Integer baseBranchId) {
+        Integer buildTypeIdId = buildTypeIdId();
+        Preconditions.checkNotNull(buildTypeIdId, "Build type ID should be filled");
+
         try {
             return historyCacheMap.get(baseBranchId,
-                () -> Optional.ofNullable(tcIgn.getSuiteRunHist(buildTypeIdId(), baseBranchId)))
+                () -> {
+                    return Optional.ofNullable(tcIgn.getSuiteRunHist(buildTypeIdId, baseBranchId));
+                })
                 .orElse(null);
         }
         catch (ExecutionException e) {

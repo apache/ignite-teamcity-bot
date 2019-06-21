@@ -185,12 +185,12 @@ public class BuildChainProcessor {
 
             final MultBuildRunCtx ctx = new MultBuildRunCtx(ref, compactor);
 
+            buildsForSuite.forEach(buildCompacted -> ctx.addBuild(loadChanges(buildCompacted, tcIgn)));
+
             //ask for history for the suite in parallel
             tcUpdatePool.getService().submit(() -> {
                 ctx.history(tcIgn, failRateBranchId);
             });
-
-            buildsForSuite.forEach(buildCompacted -> ctx.addBuild(loadChanges(buildCompacted, tcIgn)));
 
             analyzeTests(ctx, tcIgn, procLog);
 

@@ -108,8 +108,6 @@ public class PrChainsProcessorTest {
 
     //todo flaky test
     @Test
-    @Ignore
-    //todo fix failing test
     public void testTestFailureWithoutStatReportedAsBlocker() {
         IStringCompactor c = injector.getInstance(IStringCompactor.class);
 
