@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
@@ -47,11 +48,16 @@ import org.apache.ignite.tcignited.build.SuiteHistory;
 import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public class HistoryCollector {
+    /** Logger. */
+    private static final Logger logger = LoggerFactory.getLogger(HistoryCollector.class);
+
     /** History DAO. */
     @Inject private SuiteInvocationHistoryDao histDao;
 
@@ -84,16 +90,25 @@ public class HistoryCollector {
         .softValues()
         .build();
 
+    /** Biggest build ID, which out of history scope (MAX days + 2). */
+    private final ConcurrentMap<Integer, AtomicInteger> biggestBuildIdOutOfHistoryScope = new ConcurrentHashMap<>();
+
     /**
      * @param srvIdMaskHigh Server id mask to be placed at high bits in the key.
      * @param testName Test name.
      * @param buildTypeId Suite (Build type) id.
      * @param normalizedBaseBranch Branch name.
      */
-    @AutoProfiling
     public IRunHistory getTestRunHist(int srvIdMaskHigh, int testName, int buildTypeId,
         int normalizedBaseBranch) {
 
+        SuiteHistory hist = getSuiteHist(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
+
+        return hist.getTestRunHist(testName);
+    }
+
+    @AutoProfiling
+    protected SuiteHistory getSuiteHist(int srvIdMaskHigh, int buildTypeId, int normalizedBaseBranch) {
         RunHistKey runHistKey = new RunHistKey(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
 
         SuiteHistory hist;
@@ -105,10 +120,8 @@ public class HistoryCollector {
             throw ExceptionUtil.propagateException(e);
         }
 
-        return hist.getTestRunHist(testName);
+        return hist;
     }
-
-    ConcurrentMap<Integer, AtomicInteger> biggestBuildIdOutOfHistoryScope = new ConcurrentHashMap<>();
 
     /**
      *  Latest actual Build ids supplier. This supplier should handle all equivalent branches in
@@ -123,14 +136,14 @@ public class HistoryCollector {
         int srvId, int buildTypeId, int normalizedBaseBranch, Set<Integer> knownBuilds) {
         String btId = compactor.getStringFromId(buildTypeId);
         String branchId = compactor.getStringFromId(normalizedBaseBranch);
-        List<BuildRefCompacted> compacted = buildRefDao.getAllBuildsCompacted(srvId, btId,
+        List<BuildRefCompacted> bRefsList = buildRefDao.getAllBuildsCompacted(srvId, btId,
             branchEquivalence.branchForQuery(branchId));
 
         AtomicInteger biggestIdOutOfScope = biggestBuildIdOutOfHistoryScope.get(srvId);
         int outOfScopeBuildId = biggestIdOutOfScope == null ? -1 : biggestIdOutOfScope.get();
 
         long curTs = System.currentTimeMillis();
-        Set<Integer> buildIds = compacted.stream()
+        Set<Integer> buildIds = bRefsList.stream()
             .filter(b -> b.id() > outOfScopeBuildId)
             .filter(this::applicableForHistory)
             .map(BuildRefCompacted::id)
@@ -140,31 +153,28 @@ public class HistoryCollector {
             + compactor.getStringFromId(buildTypeId)
             + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": " + buildIds.size() + " builds" );
 
-        Map<Integer, Long> buildStartTimeFromSeparatedCache = getStartTimeFromSpecialCache(srvId, buildIds);
+        Map<Integer, Long> buildStartTimes = getStartTimeFromSpecialCache(srvId, buildIds);
 
-        HashSet<Integer> notFoundKeys = new HashSet<>(buildIds);
-        notFoundKeys.removeAll(buildStartTimeFromSeparatedCache.keySet());
+        Set<Integer> notFoundKeys = new HashSet<>(buildIds);
+        notFoundKeys.removeAll(buildStartTimes.keySet());
 
         if (!notFoundKeys.isEmpty()) {
             Map<Integer, Long> buildStartTimeFromFatBuild = getStartTimeFromFatBuild(srvId, notFoundKeys);
 
-            buildStartTimeFromSeparatedCache.putAll(buildStartTimeFromFatBuild);
+            buildStartTimes.putAll(buildStartTimeFromFatBuild);
 
-            runHistCompactedDao.setBuildsStartTime(srvId, buildStartTimeFromFatBuild);
+            runHistCompactedDao.setBuildsStartTimeAsync(srvId, buildStartTimeFromFatBuild);
         }
-        //todo filter queued, cancelled and so on
+
         Set<Integer> buildInScope = buildIds.stream().filter(
             bId -> {
-                //todo getAll
-                //todo getStartTime From FatBuild
-                Long startTime = buildStartTimeFromSeparatedCache.get(bId);
-                //todo cache in runHistCompactedDao.getBuildStartTime(srvId, bRef.id());
+                Long startTime = buildStartTimes.get(bId);
                 if (startTime == null)
                     return false;
 
                 long ageInDays = Duration.ofMillis(curTs - startTime).toDays();
 
-                if(ageInDays>InvocationData.MAX_DAYS + 2) {
+                if (ageInDays > InvocationData.MAX_DAYS + 2) {
                     AtomicInteger integer = biggestBuildIdOutOfHistoryScope.computeIfAbsent(srvId,
                         s -> {
                             AtomicInteger atomicInteger = new AtomicInteger();
@@ -175,7 +185,7 @@ public class HistoryCollector {
                     int newBorder = integer.accumulateAndGet(bId, Math::max);
 
                     if (newBorder == bId)
-                        System.err.println(" New border for server was set " + bId);
+                        logger.info("History Collector: New border for server was set " + bId);
                 }
 
                 return ageInDays < InvocationData.MAX_DAYS;
@@ -183,7 +193,7 @@ public class HistoryCollector {
         ).collect(Collectors.toSet());
 
         System.err.println("*** Build " + btId + " branch " + branchId + " builds in scope " +
-            buildInScope.size() + " from " + buildIds.size());
+            buildInScope.size() + " from " + bRefsList.size());
 
         return buildInScope;
     }
@@ -206,7 +216,7 @@ public class HistoryCollector {
     }
 
     @AutoProfiling
-    public SuiteHistory loadSuiteHistory(int srvId,
+    protected SuiteHistory loadSuiteHistory(int srvId,
         int buildTypeId,
         int normalizedBaseBranch) {
         Map<Integer, SuiteInvocation> suiteRunHist = histDao.getSuiteRunHist(srvId, buildTypeId, normalizedBaseBranch);
@@ -229,45 +239,50 @@ public class HistoryCollector {
 
         SuiteHistory sumary = new SuiteHistory();
 
-        suiteRunHist.forEach((buildId, suiteInv) -> suiteInv.tests().forEach(sumary::addTestInvocation));
+        suiteRunHist.forEach((buildId, suiteInv) -> sumary.addSuiteInvocation(suiteInv));
 
-        System.err.println("***** History for suite "
-            + compactor.getStringFromId(buildTypeId)
-            + " branch" + compactor.getStringFromId(normalizedBaseBranch) + " requires " +
-            sumary.size(igniteProvider.get()) + " bytes");
+        if (logger.isDebugEnabled()) {
+            logger.debug("***** History for suite "
+                + compactor.getStringFromId(buildTypeId)
+                + " branch" + compactor.getStringFromId(normalizedBaseBranch) + " requires " +
+                sumary.size(igniteProvider.get()) + " bytes");
+        }
 
         return sumary;
     }
 
-    public void invalidateHistoryInMem(int srvId, Stream<BuildRefCompacted> stream) {
-        Iterable<RunHistKey> objects =
-            stream
-                .map(b -> new RunHistKey(srvId, b.buildTypeId(), b.branchName()))
-                .collect(Collectors.toSet());
+    /**
+     * @param srvId Server id.
+     * @param b Build ref to invalidate.
+     */
+    public void invalidateHistoryInMem(int srvId, BuildRefCompacted b) {
+        RunHistKey inv = new RunHistKey(srvId, b.buildTypeId(), b.branchName());
 
-        runHistInMemCache.invalidateAll(objects);
+        runHistInMemCache.invalidate(inv);
     }
 
 
     @AutoProfiling
-    public Map<Integer, SuiteInvocation> addSuiteInvocationsToHistory(int srvId,
+    protected Map<Integer, SuiteInvocation> addSuiteInvocationsToHistory(int srvId,
         HashSet<Integer> missedBuildsIds, int normalizedBaseBranch) {
         Map<Integer, SuiteInvocation> suiteRunHist = new HashMap<>();
         int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
         System.err.println("GET ALL: " + missedBuildsIds.size());
-        Iterables.partition(missedBuildsIds, 32*10).forEach(
-            chunk->{
+        Iterables.partition(missedBuildsIds, 32 * 10).forEach(
+            chunk -> {
                 fatBuildDao.getAllFatBuilds(srvId, chunk).forEach((buildCacheKey, fatBuildCompacted) -> {
-                    if(!applicableForHistory(fatBuildCompacted))
+                    if (!applicableForHistory(fatBuildCompacted))
                         return;
 
-                    SuiteInvocation sinv = new SuiteInvocation(srvId, normalizedBaseBranch, fatBuildCompacted, compactor, (k, v) -> false);
+                    BiPredicate<Integer, Integer> paramsFilter = (k, v) -> false;
+
+                    SuiteInvocation sinv = new SuiteInvocation(srvId, normalizedBaseBranch, fatBuildCompacted, compactor, paramsFilter);
 
                     Stream<TestCompacted> tests = fatBuildCompacted.getAllTests();
                     tests.forEach(
                         testCompacted -> {
-                            Invocation invocation = testCompacted.toInvocation(fatBuildCompacted, (k, v) -> false, successStatusStrId);
+                            Invocation invocation = testCompacted.toInvocation(fatBuildCompacted, paramsFilter, successStatusStrId);
 
                             sinv.addTest(testCompacted.testName(), invocation);
                         }
@@ -288,45 +303,13 @@ public class HistoryCollector {
         return suiteRunHist;
     }
 
-    /*
-    @AutoProfiling
-    protected SuiteHistory calcSuiteHistory(int srvIdMaskHigh, Set<Integer> buildIds) {
-        Set<Long> cacheKeys = buildsIdsToCacheKeys(srvIdMaskHigh, buildIds);
-
-        int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
-
-        CacheEntryProcessor<Long, FatBuildCompacted, Map<Integer, Invocation>> processor = new FatBuildDao.HistoryCollectProcessor(successStatusStrId);
-
-        Map<Long, EntryProcessorResult<Map<Integer, Invocation>>> map = buildsCache.invokeAll(cacheKeys, processor);
-
-        SuiteHistory hist = new SuiteHistory();
-
-        map.values().forEach(
-            res -> {
-                if (res == null)
-                    return;
-
-                Map<Integer, Invocation> invocationMap = res.get();
-
-                if (invocationMap == null)
-                    return;
-
-                invocationMap.forEach((k, v) -> {
-                    RunHistCompacted compacted = hist.testsHistory.computeIfAbsent(k,
-                        k_ -> new RunHistCompacted());
-
-                    compacted.innerAddInvocation(v);
-                });
-
-            }
-        );
-
-        System.err.println("Suite history: tests in scope "
-            + hist.testsHistory.size()
-            + " for " +buildIds.size() + " builds checked"
-            + " size " + hist.size(igniteProvider.get()));
-
-        return hist;
+    /**
+     * @param srvId Server id.
+     * @param buildTypeId Build type id.
+     * @param normalizedBaseBranch Normalized base branch.
+     */
+    public IRunHistory getSuiteRunHist(int srvId, int buildTypeId,  int  normalizedBaseBranch) {
+        return getSuiteHist(srvId, buildTypeId, normalizedBaseBranch).getSuiteHist();
     }
-    */
+
 }

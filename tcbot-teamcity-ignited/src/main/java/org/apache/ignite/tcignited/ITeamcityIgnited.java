@@ -203,8 +203,10 @@ public interface ITeamcityIgnited {
     @Deprecated
     @Nullable public IRunHistory getTestRunHist(String testName, @Nullable String branch);
 
+    @Deprecated
     @Nullable public IRunHistory getSuiteRunHist(String suiteId, @Nullable String branch);
 
+    @Nullable public IRunHistory getSuiteRunHist(@Nullable Integer buildTypeId, @Nullable Integer normalizedBaseBranch);
 
     /**
      * V.3.0 run history implementation based on scan of fat builds.

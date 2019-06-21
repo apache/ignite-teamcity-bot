@@ -168,7 +168,7 @@ public class DsSuiteUi extends DsHistoryStatUi {
         String curBranchNormalized = normalizeBranch(suite.branchName());
         Integer curBranchId = compactor.getStringIdIfPresent(curBranchNormalized);
 
-        IRunHistory baseBranchHist = initSuiteStat(tcIgnited, failRateNormalizedBranch, curBranchNormalized, suite.suiteId());
+        IRunHistory baseBranchHist = initSuiteStat(tcIgnited, baseBranchId, curBranchId, suite);
 
         Set<String> collect = suite.lastChangeUsers().collect(Collectors.toSet());
 
@@ -264,13 +264,13 @@ public class DsSuiteUi extends DsHistoryStatUi {
     }
 
     private IRunHistory initSuiteStat(ITeamcityIgnited tcIgnited,
-        String failRateNormalizedBranch,
-        String curBranchNormalized,
-        String suiteId) {
-        if (Strings.isNullOrEmpty(suiteId))
+        Integer failRateNormalizedBranch,
+        Integer curBranchNormalized,
+        MultBuildRunCtx suite) {
+        if (suite.buildTypeIdId() == null)
             return null;
 
-        final IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(suiteId, failRateNormalizedBranch);
+        IRunHistory statInBaseBranch = suite.history(tcIgnited, failRateNormalizedBranch);
 
         if (statInBaseBranch != null) {
             failures = statInBaseBranch.getFailuresCount();
@@ -289,9 +289,8 @@ public class DsSuiteUi extends DsHistoryStatUi {
         }
 
         IRunHistory latestRunsSrc = null;
-        if (!failRateNormalizedBranch.equals(curBranchNormalized)) {
-
-            final IRunHistory statForStripe = tcIgnited.getSuiteRunHist(suiteId, curBranchNormalized);
+        if (!Objects.equals(failRateNormalizedBranch, curBranchNormalized)) {
+            IRunHistory statForStripe = suite.history(tcIgnited, curBranchNormalized);
 
             latestRunsSrc = statForStripe;
             latestRuns = statForStripe != null ? statForStripe.getLatestRunResults() : null;

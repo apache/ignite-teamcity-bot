@@ -16,10 +16,8 @@
  */
 package org.apache.ignite.tcignited;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.File;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,7 +32,6 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -51,7 +48,6 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
@@ -72,7 +68,6 @@ import org.apache.ignite.tcignited.history.RunHistSync;
 import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
 import org.apache.ignite.tcignited.mute.MuteDao;
 import org.apache.ignite.tcignited.mute.MuteSync;
-import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.ITeamcityConn;
 import org.apache.ignite.tcservice.model.agent.Agent;
 import org.apache.ignite.tcservice.model.conf.Project;
@@ -438,6 +433,17 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     @AutoProfiling
     @Override public IRunHistory getSuiteRunHist(String suiteId, @Nullable String branch){
         return runHistCompactedDao.getSuiteRunHist(srvIdMaskHigh, suiteId, branch);
+    }
+
+    /** {@inheritDoc} */
+    @Nullable @Override public IRunHistory getSuiteRunHist(@Nullable Integer buildTypeId, @Nullable Integer normalizedBaseBranch) {
+        if (buildTypeId == null || normalizedBaseBranch == null)
+            return null;
+
+        if (buildTypeId < 0 || normalizedBaseBranch < 0)
+            return null;
+
+        return histCollector.getSuiteRunHist(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
     }
 
     /** {@inheritDoc} */

@@ -259,7 +259,7 @@ public class PrChainsProcessor {
             .map((ctx) -> {
                 String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
                 Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
-                IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(ctx.suiteId(), normalizedBaseBranch);
+                IRunHistory statInBaseBranch = ctx.history(tcIgnited, baseBranchId);
                 Integer suiteId = compactor.getStringIdIfPresent(ctx.suiteId()); // can be inlined
 
                 String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());

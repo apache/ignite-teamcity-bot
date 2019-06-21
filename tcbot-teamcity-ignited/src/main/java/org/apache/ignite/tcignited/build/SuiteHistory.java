@@ -20,7 +20,6 @@ package org.apache.ignite.tcignited.build;
 import java.util.HashMap;
 import java.util.Map;
 
-import java.util.TreeMap;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
@@ -33,7 +32,9 @@ import org.apache.ignite.tcignited.history.SuiteInvocation;
  */
 public class SuiteHistory {
     /** Tests history: Test name ID->RunHistory */
-    Map<Integer, RunHistCompacted> testsHistory = new HashMap<>();
+    private Map<Integer, RunHistCompacted> testsHistory = new HashMap<>();
+
+    private RunHistCompacted suiteHist = new RunHistCompacted();
 
     public int size(Ignite ignite) {
         BinaryObjectExImpl binary = ignite.binary().toBinary(this);
@@ -50,5 +51,15 @@ public class SuiteHistory {
 
     public void addTestInvocation(Integer tName, Invocation invocation) {
         getOrAddTestsHistory(tName).innerAddInvocation(invocation);
+    }
+
+    public void addSuiteInvocation(SuiteInvocation suiteInv) {
+        suiteInv.tests().forEach(this::addTestInvocation);
+
+        suiteHist.innerAddInvocation(suiteInv.suiteInvocation());
+    }
+
+    public RunHistCompacted getSuiteHist() {
+        return suiteHist;
     }
 }

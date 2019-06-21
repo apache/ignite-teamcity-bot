@@ -185,9 +185,8 @@ public class BuildChainProcessor {
         });
 
         Function<MultBuildRunCtx, Float> function = ctx -> {
-
-            //todo cache RunStat instance into suite context to compare
-            IRunHistory runStat = tcIgn.getSuiteRunHist(ctx.suiteId(), RunHistSync.normalizeBranch(failRateBranch));
+            IRunHistory runStat = ctx.history(tcIgn,
+                compactor.getStringIdIfPresent(RunHistSync.normalizeBranch(failRateBranch)));
 
             if (runStat == null)
                 return 0f;

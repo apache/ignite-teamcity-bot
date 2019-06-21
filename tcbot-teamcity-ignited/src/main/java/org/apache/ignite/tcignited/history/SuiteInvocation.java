@@ -46,9 +46,9 @@ public class SuiteInvocation {
     @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "serverSuiteBranch", order = 2)})
     private int normalizedBranchName;
 
-    Invocation suite;
+    private Invocation suite;
 
-    java.util.Map<Integer, Invocation> tests = new HashMap<>();
+    private Map<Integer, Invocation> tests = new HashMap<>();
 
     Long buildStartTime;
 
@@ -69,5 +69,9 @@ public class SuiteInvocation {
 
     public Map<Integer, Invocation> tests() {
         return Collections.unmodifiableMap(tests);
+    }
+
+    public Invocation suiteInvocation() {
+        return suite;
     }
 }

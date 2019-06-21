@@ -134,7 +134,7 @@ public class FatBuildDao {
     public void putFatBuild(int srvIdMaskHigh, int buildId, FatBuildCompacted newBuild) {
         buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
 
-        histCollector.invalidateHistoryInMem(srvIdMaskHigh, Stream.of(newBuild));
+        histCollector.invalidateHistoryInMem(srvIdMaskHigh, newBuild);
     }
 
     public static int[] extractChangeIds(@Nonnull ChangesList changesList) {

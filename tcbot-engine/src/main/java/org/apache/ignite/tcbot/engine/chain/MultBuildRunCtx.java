@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,7 +35,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
@@ -66,6 +66,8 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     /** Builds: Single execution. */
     private List<SingleBuildRunCtx> builds = new CopyOnWriteArrayList<>();
+
+    private java.util.Map<Integer, IRunHistory> historyCacheMap = new ConcurrentHashMap<>();
 
     public void addBuild(SingleBuildRunCtx ctx) {
         builds.add(ctx);
@@ -635,5 +637,14 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     public Optional<SingleBuildRunCtx> firstBuild() {
         return builds.stream().findFirst();
+    }
+
+    /**
+     * @param tcIgn Tc ign.
+     * @param baseBranchId Base branch id.
+     */
+    public IRunHistory history(ITeamcityIgnited tcIgn, Integer baseBranchId) {
+        return historyCacheMap.computeIfAbsent(baseBranchId,
+            (k)->  tcIgn.getSuiteRunHist(buildTypeIdId(), k));
     }
 }
