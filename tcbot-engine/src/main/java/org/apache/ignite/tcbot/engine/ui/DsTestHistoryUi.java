@@ -27,7 +27,7 @@ import org.apache.ignite.tcignited.history.IRunHistory;
  */
 public class DsTestHistoryUi {
     /** 'All the time' runs history statistic. */
-    public DsHistoryStatUi allTime = new DsHistoryStatUi();
+    @Deprecated public DsHistoryStatUi allTime = new DsHistoryStatUi();
 
     /** Latest runs history statistic. */
     public DsHistoryStatUi recent = new DsHistoryStatUi();

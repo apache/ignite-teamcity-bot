@@ -261,13 +261,14 @@ public class IssueDetector {
 
                 final String trackedBranch = res.getTrackedBranch();
 
+                String suiteId = suiteCurrentStatus.suiteId;
                 for (DsTestFailureUi testFailure : suiteCurrentStatus.testFailures) {
-                    if (registerTestFailIssues(tcIgnited, srvCode, normalizeBranch, testFailure, trackedBranch,
+                    if (registerTestFailIssues(tcIgnited, srvCode, suiteId, normalizeBranch, testFailure, trackedBranch,
                         suiteCurrentStatus.tags))
                         newIssues++;
                 }
 
-                if (registerSuiteFailIssues(tcIgnited, srvCode, normalizeBranch, suiteCurrentStatus, trackedBranch))
+                if (registerSuiteFailIssues(tcIgnited, srvCode, suiteId, normalizeBranch, suiteCurrentStatus, trackedBranch))
                     newIssues++;
             }
         }
@@ -286,13 +287,15 @@ public class IssueDetector {
      */
     private boolean registerSuiteFailIssues(ITeamcityIgnited tcIgnited,
         String srvCode,
+        String suiteId,
         String normalizeBranch,
         DsSuiteUi suiteFailure,
         String trackedBranch) {
 
-        String suiteId = suiteFailure.suiteId;
+        Integer btId = compactor.getStringIdIfPresent(suiteId);
+        Integer brNormId = compactor.getStringIdIfPresent(normalizeBranch);
 
-        IRunHistory runStat = tcIgnited.getSuiteRunHist(suiteId, normalizeBranch);
+        IRunHistory runStat = tcIgnited.getSuiteRunHist(btId, brNormId).self();
 
         if (runStat == null)
             return false;
@@ -361,13 +364,17 @@ public class IssueDetector {
 
     private boolean registerTestFailIssues(ITeamcityIgnited tcIgnited,
         String srvCode,
+        String suiteId,
         String normalizeBranch,
         DsTestFailureUi testFailure,
         String trackedBranch,
         @Nonnull Set<String> suiteTags) {
         String name = testFailure.name;
+        int tname = compactor.getStringId(name);
+        Integer btId = compactor.getStringIdIfPresent(suiteId);
+        Integer brNormId = compactor.getStringIdIfPresent(normalizeBranch);
 
-        IRunHistory runStat = tcIgnited.getTestRunHist(name, normalizeBranch);
+        IRunHistory runStat = tcIgnited.getTestRunHist(tname, btId, brNormId);
 
         if (runStat == null)
             return false;

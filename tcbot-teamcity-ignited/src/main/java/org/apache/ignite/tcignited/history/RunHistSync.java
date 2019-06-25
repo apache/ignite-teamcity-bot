@@ -205,6 +205,8 @@ public class RunHistSync {
     @Nonnull protected String saveInvocationsMap(
         Map<RunHistKey, List<Invocation>> buildsSaveThisRun,
         Map<RunHistKey, List<Invocation>> testsSaveThisRun) {
+        if (Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)))
+            return "Skipped";
 
         if (Boolean.valueOf(System.getProperty(TcBotSystemProperties.DEV_MODE)))
             if (testsSaveThisRun.size() > 100)

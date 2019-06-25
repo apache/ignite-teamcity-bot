@@ -21,15 +21,50 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.ignite.Ignite;
+import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.internal.binary.BinaryObjectExImpl;
+import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.history.ISuiteRunHistory;
+import org.apache.ignite.tcignited.history.SuiteInvocation;
 
-public class SuiteHistory {
+/**
+ * Suite run history summary.
+ */
+public class SuiteHistory implements ISuiteRunHistory {
     /** Tests history: Test name ID->RunHistory */
-    Map<Integer, RunHistCompacted> testsHistory = new HashMap<>();
+    private Map<Integer, RunHistCompacted> testsHistory = new HashMap<>();
+
+    private RunHistCompacted suiteHist = new RunHistCompacted();
 
     public int size(Ignite ignite) {
         BinaryObjectExImpl binary = ignite.binary().toBinary(this);
         return binary.length();
+    }
+
+    public IRunHistory getTestRunHist(int testName) {
+        return testsHistory.get(testName);
+    }
+
+    public RunHistCompacted getOrAddTestsHistory(Integer tName) {
+        return testsHistory.computeIfAbsent(tName, k_ -> new RunHistCompacted());
+    }
+
+    public void addTestInvocation(Integer tName, Invocation invocation) {
+        getOrAddTestsHistory(tName).innerAddInvocation(invocation);
+    }
+
+    public void addSuiteInvocation(SuiteInvocation suiteInv) {
+        suiteInv.tests().forEach(this::addTestInvocation);
+
+        suiteHist.innerAddInvocation(suiteInv.suiteInvocation());
+    }
+
+    public RunHistCompacted getSuiteHist() {
+        return suiteHist;
+    }
+
+    @Override public IRunHistory self() {
+        return suiteHist;
     }
 }
