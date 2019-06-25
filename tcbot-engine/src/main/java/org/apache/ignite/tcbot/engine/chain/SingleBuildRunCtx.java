@@ -346,4 +346,8 @@ public class SingleBuildRunCtx implements ISuiteResults {
     public int totalNotMutedTests() {
         return buildCompacted.totalNotMutedTests();
     }
+
+    public int buildTypeIdId() {
+        return buildCompacted.buildTypeId();
+    }
 }

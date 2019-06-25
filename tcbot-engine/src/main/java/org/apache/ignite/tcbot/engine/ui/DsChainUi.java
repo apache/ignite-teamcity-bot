@@ -24,13 +24,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-
+import org.apache.ignite.internal.util.typedef.T2;
+import org.apache.ignite.tcbot.common.util.CollectionUtil;
 import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
-import org.apache.ignite.tcbot.engine.chain.IMultTestOccurrence;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
-import org.apache.ignite.tcbot.common.util.CollectionUtil;
-import org.apache.ignite.internal.util.typedef.T2;
+import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcservice.model.conf.BuildType;
@@ -208,18 +207,18 @@ public class DsChainUi {
         webToHist = buildWebLink(tcIgnited, ctx);
         webToBuild = buildWebLinkToBuild(tcIgnited, ctx);
 
-        Stream<T2<MultBuildRunCtx, IMultTestOccurrence>> allLongRunning = ctx.suites().flatMap(
+        Stream<T2<MultBuildRunCtx, TestCompactedMult>> allLongRunning = ctx.suites().flatMap(
             suite -> suite.getTopLongRunning().map(t -> new T2<>(suite, t))
         );
-        Comparator<T2<MultBuildRunCtx, IMultTestOccurrence>> durationComp
+        Comparator<T2<MultBuildRunCtx, TestCompactedMult>> durationComp
             = Comparator.comparing((pair) -> pair.get2().getAvgDurationMs());
 
         CollectionUtil.top(allLongRunning, 3, durationComp).forEach(
             pairCtxAndOccur -> {
                 MultBuildRunCtx suite = pairCtxAndOccur.get1();
-                IMultTestOccurrence longRunningOccur = pairCtxAndOccur.get2();
+                TestCompactedMult longRunningOccur = pairCtxAndOccur.get2();
 
-                DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, suite, longRunningOccur, baseBranchTc);
+                DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, compactor, suite, longRunningOccur, baseBranchTc);
 
                 failure.testName = "[" + suite.suiteName() + "] " + failure.testName; //may be separate field
 

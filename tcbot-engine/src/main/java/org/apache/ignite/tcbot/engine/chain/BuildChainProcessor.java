@@ -19,12 +19,32 @@ package org.apache.ignite.tcbot.engine.chain;
 
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.Futures;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.ParametersCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.util.FutureUtil;
 import org.apache.ignite.tcbot.engine.pool.TcUpdatePool;
-import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.engine.ui.LrTestUi;
 import org.apache.ignite.tcbot.engine.ui.LrTestsSuiteSummaryUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -37,18 +57,6 @@ import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * Process whole Build Chain, E.g. runAll at particular server, including all builds involved
@@ -144,6 +152,8 @@ public class BuildChainProcessor {
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
 
+        Integer failRateBranchId = compactor.getStringIdIfPresent(RunHistSync.normalizeBranch(failRateBranch));
+
         Map<Integer, Future<FatBuildCompacted>> builds = loadAllBuildsInChains(entryPoints, mode, tcIgn);
 
         Map<String, List<Future<FatBuildCompacted>>> freshRebuilds = new ConcurrentHashMap<>();
@@ -177,6 +187,11 @@ public class BuildChainProcessor {
 
             buildsForSuite.forEach(buildCompacted -> ctx.addBuild(loadChanges(buildCompacted, tcIgn)));
 
+            //ask for history for the suite in parallel
+            tcUpdatePool.getService().submit(() -> {
+                ctx.history(tcIgn, failRateBranchId);
+            });
+
             analyzeTests(ctx, tcIgn, procLog);
 
             fillBuildCounts(ctx, tcIgn, includeScheduledInfo);
@@ -185,9 +200,7 @@ public class BuildChainProcessor {
         });
 
         Function<MultBuildRunCtx, Float> function = ctx -> {
-
-            //todo cache RunStat instance into suite context to compare
-            IRunHistory runStat = tcIgn.getSuiteRunHist(ctx.suiteId(), RunHistSync.normalizeBranch(failRateBranch));
+            IRunHistory runStat = ctx.history(tcIgn, failRateBranchId);
 
             if (runStat == null)
                 return 0f;
@@ -230,7 +243,8 @@ public class BuildChainProcessor {
                 .peek(val -> Preconditions.checkNotNull(val, "Build future should be in context"))
                 .flatMap(ref -> dependencies(ref, mode, builds, tcIgn).stream()).collect(Collectors.toSet());
 
-            logger.info("Level [" + level + "] dependencies:" + depsNextLevel);
+            if(logger.isDebugEnabled())
+                logger.debug("Level [" + level + "] dependencies:" + depsNextLevel);
 
             remainedUnloadedDeps = depsNextLevel;
         }
@@ -330,7 +344,7 @@ public class BuildChainProcessor {
     protected void fillBuildCounts(MultBuildRunCtx outCtx,
         ITeamcityIgnited teamcityIgnited, boolean includeScheduledInfo) {
         if (includeScheduledInfo && !outCtx.hasScheduledBuildsInfo()) {
-            final List<BuildRefCompacted> runAllBuilds = teamcityIgnited.getAllBuildsCompacted(outCtx.buildTypeId(), outCtx.branchName());
+            List<BuildRefCompacted> runAllBuilds = teamcityIgnited.getAllBuildsCompacted(outCtx.suiteId(), outCtx.branchName());
 
             long cntRunning = runAllBuilds
                 .stream()

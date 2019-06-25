@@ -16,10 +16,8 @@
  */
 package org.apache.ignite.tcignited;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.File;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,10 +30,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -52,9 +48,6 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.tcignited.mute.MuteDao;
-import org.apache.ignite.tcignited.mute.MuteSync;
-import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
@@ -64,13 +57,18 @@ import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
 import org.apache.ignite.tcignited.buildlog.BuildLogCheckResultDao;
+import org.apache.ignite.tcignited.buildref.BranchEquivalence;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.buildref.BuildRefSync;
+import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
+import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcignited.history.RunHistCompactedDao;
 import org.apache.ignite.tcignited.history.RunHistSync;
-import org.apache.ignite.tcservice.ITeamcity;
+import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
+import org.apache.ignite.tcignited.mute.MuteDao;
+import org.apache.ignite.tcignited.mute.MuteSync;
 import org.apache.ignite.tcservice.ITeamcityConn;
 import org.apache.ignite.tcservice.model.agent.Agent;
 import org.apache.ignite.tcservice.model.conf.Project;
@@ -94,11 +92,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** Max build id diff to enforce reload during incremental refresh. */
     public static final int MAX_ID_DIFF_TO_ENFORCE_CONTINUE_SCAN = 3000;
-
-    /** Default synonyms. */
-    private static final List<String> DEFAULT_SYNONYMS
-            = Collections.unmodifiableList(
-                    Lists.newArrayList(ITeamcity.DEFAULT, ITeamcity.REFS_HEADS_MASTER, ITeamcity.MASTER));
 
     /** Server (service) code. */
     private String srvCode;
@@ -151,10 +144,19 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
     /** Run history sync. */
     @Inject private RunHistSync runHistSync;
 
-    @Inject private BuildLogCheckResultDao logCheckResultDao;
+    /** Logger check result DAO. */
+    @Inject private BuildLogCheckResultDao logCheckResDao;
+
+    /** History DAO. */
+    @Inject private SuiteInvocationHistoryDao histDao;
+
+    /** History collector. */
+    @Inject private HistoryCollector histCollector;
 
     /** Strings compactor. */
     @Inject private IStringCompactor compactor;
+
+    @Inject private BranchEquivalence branchEquivalence;
 
     /** Server ID mask for cache Entries. */
     private int srvIdMaskHigh;
@@ -172,7 +174,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         changesDao.init();
         runHistCompactedDao.init();
         muteDao.init();
-        logCheckResultDao.init();
+        logCheckResDao.init();
+        histDao.init();
     }
 
     /**
@@ -352,7 +355,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
             @Nullable String branchName) {
         ensureActualizeRequested();
 
-        return buildRefDao.getAllBuildsCompacted(srvIdMaskHigh, buildTypeId, branchForQuery(branchName));
+        return buildRefDao.getAllBuildsCompacted(srvIdMaskHigh, buildTypeId, branchEquivalence.branchForQuery(branchName));
     }
 
     /** {@inheritDoc} */
@@ -365,7 +368,7 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         if (stateQueuedId == null)
             return Collections.emptyList();
 
-        Set<Integer> branchNameIds = branchForQuery(branchName).stream().map(str -> compactor.getStringIdIfPresent(str))
+        Set<Integer> branchNameIds = branchEquivalence.branchForQuery(branchName).stream().map(str -> compactor.getStringIdIfPresent(str))
             .filter(Objects::nonNull).collect(Collectors.toSet());
 
         List<BuildRefCompacted> res = new ArrayList<>();
@@ -422,7 +425,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
     /** {@inheritDoc} */
     @Nullable
-    @AutoProfiling
     @Override public IRunHistory getTestRunHist(String testName, @Nullable String branch) {
         return runHistCompactedDao.getTestRunHist(srvIdMaskHigh, testName, branch);
     }
@@ -434,32 +436,27 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return runHistCompactedDao.getSuiteRunHist(srvIdMaskHigh, suiteId, branch);
     }
 
-    @Nullable @Override
-    public IRunHistory getTestRunHist(int testName, @Nullable Integer suiteName, @Nullable Integer branchName) {
-        if (suiteName == null || branchName == null)
+    /** {@inheritDoc} */
+    @Nullable @Override public ISuiteRunHistory getSuiteRunHist(@Nullable Integer buildTypeId, @Nullable Integer normalizedBaseBranch) {
+        if (buildTypeId == null || normalizedBaseBranch == null)
             return null;
 
-        Supplier<Set<Integer>> supplier = () -> {
-            String btId = compactor.getStringFromId(suiteName);
-            String branchId = compactor.getStringFromId(branchName);
-            List<BuildRefCompacted> compacted = getAllBuildsCompacted(btId, branchId);
-            long curTs = System.currentTimeMillis();
-            Set<Integer> buildIds = compacted.stream().filter(
-                bRef -> {
-                    Long startTime = getBuildStartTime(bRef.id());
-                    if (startTime == null)
-                        return false;
+        if (buildTypeId < 0 || normalizedBaseBranch < 0)
+            return null;
 
-                    return Duration.ofMillis(curTs - startTime).toDays() < InvocationData.MAX_DAYS;
-                }
-            ).map(BuildRefCompacted::id).collect(Collectors.toSet());
+        return histCollector.getSuiteRunHist(srvIdMaskHigh, buildTypeId, normalizedBaseBranch);
+    }
 
-            System.err.println("Build " + btId + " branch " + branchId + " builds in scope " + buildIds.size());
+    /** {@inheritDoc} */
+    @Nullable @Override public IRunHistory getTestRunHist(int testName, @Nullable Integer buildTypeId,
+        @Nullable Integer normalizedBaseBranch) {
+        if (buildTypeId == null || normalizedBaseBranch == null)
+            return null;
 
-            return buildIds;
-        };
+        if (testName < 0 || buildTypeId < 0 || normalizedBaseBranch < 0)
+            return null;
 
-        return fatBuildDao.getTestRunHist(srvIdMaskHigh, supplier, testName, suiteName, branchName);
+        return histCollector.getTestRunHist(srvIdMaskHigh, testName, buildTypeId, normalizedBaseBranch);
     }
 
     /** {@inheritDoc} */
@@ -504,13 +501,6 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         return buildTypeDao.getFatBuildType(srvIdMaskHigh, buildTypeId);
     }
 
-    public List<String> branchForQuery(@Nullable String branchName) {
-        if (ITeamcity.DEFAULT.equals(branchName))
-            return DEFAULT_SYNONYMS;
-        else
-            return Collections.singletonList(branchName);
-    }
-
     /**
      * Enables scheduling for build refs/builds/history sync
      */
@@ -522,7 +512,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         // schedule find missing later
         fatBuildSync.ensureActualizationRequested(srvCode, conn);
 
-        runHistSync.invokeLaterFindMissingHistory(srvCode);
+        //todo remove unused code
+        // runHistSync.invokeLaterFindMissingHistory(srvCode);
     }
 
     /** {@inheritDoc} */

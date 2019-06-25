@@ -29,6 +29,8 @@ import org.apache.ignite.ci.teamcity.ignited.change.ChangeDao;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeSync;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.build.ProactiveFatBuildSync;
+import org.apache.ignite.tcignited.history.HistoryCollector;
+import org.apache.ignite.tcignited.history.SuiteInvocationHistoryDao;
 import org.apache.ignite.tcignited.mute.MuteDao;
 import org.apache.ignite.tcignited.mute.MuteSync;
 import org.apache.ignite.tcignited.buildlog.BuildLogProcessorModule;
@@ -65,6 +67,8 @@ public class TeamcityIgnitedModule extends AbstractModule {
         bind(MuteDao.class).in(new SingletonScope());
         bind(MuteSync.class).in(new SingletonScope());
         bind(BuildLogCheckResultDao.class).in(new SingletonScope());
+        bind(SuiteInvocationHistoryDao.class).in(new SingletonScope());
+        bind(HistoryCollector.class).in(new SingletonScope());
 
         TcRealConnectionModule module = new TcRealConnectionModule();
         if (conn != null)

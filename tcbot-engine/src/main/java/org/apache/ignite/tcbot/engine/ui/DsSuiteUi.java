@@ -29,19 +29,18 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
 import org.apache.ignite.tcbot.common.util.UrlUtil;
-import org.apache.ignite.tcbot.engine.chain.IMultTestOccurrence;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
+import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.engine.issue.EventTemplates;
 import org.apache.ignite.tcbot.engine.ui.BotUrls.GetBuildLog;
-import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
-import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
+import org.apache.ignite.tcignited.history.IRunHistory;
 
-import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 import static org.apache.ignite.tcbot.common.util.TimeUtil.millisToDurationPrintable;
+import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 
 
 /**
@@ -164,9 +163,12 @@ public class DsSuiteUi extends DsHistoryStatUi {
         name = suite.suiteName();
 
         String failRateNormalizedBranch = normalizeBranch(baseBranch);
-        String curBranchNormalized = normalizeBranch(suite.branchName());
+        Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
 
-        IRunHistory baseBranchHist = initSuiteStat(tcIgnited, failRateNormalizedBranch, curBranchNormalized, suite.suiteId());
+        String curBranchNormalized = normalizeBranch(suite.branchName());
+        Integer curBranchId = compactor.getStringIdIfPresent(curBranchNormalized);
+
+        IRunHistory baseBranchHist = initSuiteStat(tcIgnited, baseBranchId, curBranchId, suite);
 
         Set<String> collect = suite.lastChangeUsers().collect(Collectors.toSet());
 
@@ -186,26 +188,28 @@ public class DsSuiteUi extends DsHistoryStatUi {
         webToHistBaseBranch = buildWebLink(tcIgnited, suite, baseBranch);
         webToBuild = buildWebLinkToBuild(tcIgnited, suite);
 
+        Integer buildTypeIdId = suite.buildTypeIdId();
         if (includeTests) {
-            List<IMultTestOccurrence> tests = suite.getFailedTests();
-            Function<IMultTestOccurrence, Float> function = foccur -> {
-                IRunHistory apply = tcIgnited.getTestRunHist(foccur.getName(), failRateNormalizedBranch);
+            List<TestCompactedMult> tests = suite.getFailedTests();
+            Function<TestCompactedMult, Float> function = testCompactedMult -> {
+                IRunHistory res = testCompactedMult.history(tcIgnited, baseBranchId);
 
-                return apply == null ? 0f : apply.getFailRate();
+                return res == null ? 0f : res.getFailRate();
             };
 
             tests.sort(Comparator.comparing(function).reversed());
 
             tests.forEach(occurrence -> {
                 final DsTestFailureUi failure = new DsTestFailureUi();
-                failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(), baseBranch);
-                failure.initStat(tcIgnited, failRateNormalizedBranch, curBranchNormalized);
+                failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(),
+                    suite.branchName(), baseBranch, baseBranchId);
+                failure.initStat(occurrence, buildTypeIdId, tcIgnited, baseBranchId, curBranchId);
 
                 testFailures.add(failure);
             });
 
             suite.getTopLongRunning().forEach(occurrence -> {
-                final DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, suite, occurrence, baseBranch);
+                final DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, compactor, suite, occurrence, baseBranch);
 
                 topLongRunning.add(failure);
             });
@@ -260,13 +264,10 @@ public class DsSuiteUi extends DsHistoryStatUi {
     }
 
     private IRunHistory initSuiteStat(ITeamcityIgnited tcIgnited,
-        String failRateNormalizedBranch,
-        String curBranchNormalized,
-        String suiteId) {
-        if (Strings.isNullOrEmpty(suiteId))
-            return null;
-
-        final IRunHistory statInBaseBranch = tcIgnited.getSuiteRunHist(suiteId, failRateNormalizedBranch);
+        Integer failRateNormalizedBranch,
+        Integer curBranchNormalized,
+        MultBuildRunCtx suite) {
+        IRunHistory statInBaseBranch = suite.history(tcIgnited, failRateNormalizedBranch);
 
         if (statInBaseBranch != null) {
             failures = statInBaseBranch.getFailuresCount();
@@ -285,9 +286,8 @@ public class DsSuiteUi extends DsHistoryStatUi {
         }
 
         IRunHistory latestRunsSrc = null;
-        if (!failRateNormalizedBranch.equals(curBranchNormalized)) {
-
-            final IRunHistory statForStripe = tcIgnited.getSuiteRunHist(suiteId, curBranchNormalized);
+        if (!Objects.equals(failRateNormalizedBranch, curBranchNormalized)) {
+            IRunHistory statForStripe = suite.history(tcIgnited, curBranchNormalized);
 
             latestRunsSrc = statForStripe;
             latestRuns = statForStripe != null ? statForStripe.getLatestRunResults() : null;
@@ -315,16 +315,18 @@ public class DsSuiteUi extends DsHistoryStatUi {
     }
 
     @Nonnull public static DsTestFailureUi createOrrucForLongRun(ITeamcityIgnited tcIgnited,
-                                                                 @Nonnull MultBuildRunCtx suite,
-                                                                 final IMultTestOccurrence occurrence,
-                                                                 @Nullable final String failRateBranch) {
+        IStringCompactor compactor, @Nonnull MultBuildRunCtx suite,
+        final TestCompactedMult occurrence,
+        @Nullable final String failRateBranch) {
         final DsTestFailureUi failure = new DsTestFailureUi();
 
-        failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(), failRateBranch);
+        Integer baseBranchId = compactor.getStringIdIfPresent(normalizeBranch(failRateBranch));
+        Integer buildTypeIdId = suite.buildTypeIdId();
+        failure.initFromOccurrence(occurrence, tcIgnited, suite.projectId(), suite.branchName(),
+            failRateBranch, baseBranchId);
 
-        failure.initStat(tcIgnited,
-            normalizeBranch(failRateBranch),
-            normalizeBranch(suite.branchName()));
+        failure.initStat(occurrence, buildTypeIdId, tcIgnited,  baseBranchId,
+            compactor.getStringIdIfPresent(normalizeBranch(suite.branchName())));
 
         return failure;
     }

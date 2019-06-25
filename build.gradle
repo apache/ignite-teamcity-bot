@@ -38,10 +38,11 @@ subprojects {
 }
 
 allprojects {
+    apply plugin: 'java'
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
 
     ext {
-        sourceCompatibility = '1.8'
-        targetCompatibility = '1.8'
 
         jettyVer = '9.4.12.v20180830'
 
