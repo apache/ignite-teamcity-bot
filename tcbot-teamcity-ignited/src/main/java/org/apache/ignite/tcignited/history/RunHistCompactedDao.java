@@ -141,11 +141,18 @@ public class RunHistCompactedDao {
      */
     @AutoProfiling
     @Nullable public Long getBuildStartTime(int srvId, int buildId) {
-        return buildStartTime.get(buildIdToCacheKey(srvId, buildId));
+        Long ts = buildStartTime.get(buildIdToCacheKey(srvId, buildId));
+        if (ts == null || ts <= 0)
+            return null;
+
+        return ts;
     }
 
     @AutoProfiling
     public boolean setBuildProcessed(int srvId, int buildId, long ts) {
+        if (ts <= 0)
+            return false;
+
         return buildStartTime.putIfAbsent(buildIdToCacheKey(srvId, buildId), ts);
     }
 
@@ -253,8 +260,9 @@ public class RunHistCompactedDao {
 
         Map<Integer, Long> res = new HashMap<>();
 
-        buildStartTime.getAll(cacheKeys).forEach((k, r) -> {
-            res.put(BuildRefDao.cacheKeyToBuildId(k), r);
+        buildStartTime.getAll(cacheKeys).forEach((k, ts) -> {
+            if (ts != null && ts > 0)
+                res.put(BuildRefDao.cacheKeyToBuildId(k), ts);
         });
 
         return res;
@@ -264,7 +272,7 @@ public class RunHistCompactedDao {
         Map<Long, Long> res = new HashMap<>();
 
         builds.forEach((buildId, ts) -> {
-            if (ts != null)
+            if (ts != null && ts > 0)
                 res.put(buildIdToCacheKey(srvId, buildId), ts);
         });
 
