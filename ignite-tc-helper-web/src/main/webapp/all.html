@@ -27,6 +27,17 @@
         //todo fix setInterval( function() { checkForUpdate(); }, 60000);
 
         $.ajax({url: "rest/branches/version", success: showVersionInfo, error: showErrInLoadStatus});
+
+        $( "#tagSelect" ).change(function() {
+            var selectedTag = $( "#tagSelect option:selected" ).val()
+
+            $( ".suiteBlock" ).each(function() {
+                if(selectedTag == 'all' || $(this).find(".buildTag:contains('" + selectedTag +"')").length > 0)
+                    $(this).show();
+                else
+                    $(this).hide();
+            })
+        });
     });
 
 
@@ -135,12 +146,41 @@
 
         $("#divFailures").html(showChainOnServersResults(result)
             + " <a href='" + repMode + "'>report mode</a>");
+
+        refillTagSelect();
+    }
+
+    function refillTagSelect() {
+        var newTagList = new Set();
+
+        $("div#divFailures table tr td span.buildTag").each(function(){
+            newTagList.add(this.innerText);
+        })
+
+        var tagSelect = $("#tagSelect");
+
+        tagSelect.empty();
+
+        tagSelect.append(
+            $("<option></option>")
+                .attr("value", "all")
+                .text("All")
+        );
+
+        newTagList.forEach(function(key) {
+          tagSelect.append(
+            $("<option></option>")
+                .attr("value", key)
+                .text(key)
+          );
+        });
     }
 
 </script>
 
 <div id="loadStatus"></div>
-<div><a href=".">Home</a><br></div>
+<div><a href=".">Home</a> <select id="tagSelect" style="float:right"></select></div>
+<br/>
 <div id="divFailures"></div>
 
 <div id="version"></div>
