@@ -24,6 +24,8 @@ import java.io.FileWriter;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Duration;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.cache.Cache;
 import javax.xml.bind.JAXBException;
@@ -62,8 +64,66 @@ public class RemoteClientTmpHelper {
      * @param args Args.
      */
     public static void main(String[] args) {
+        // mainDumpFatBuildStartTime(args);
         System.err.println("Please insert option of main");
     }
+
+
+    public static void mainDumpFatBuildStartTime(String[] args) {
+        try (Ignite ignite = tcbotServerConnectedClient()) {
+            IgniteCache<Long, FatBuildCompacted> bst = ignite.cache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
+            Iterator<Cache.Entry<Long, FatBuildCompacted>> iterator = bst.iterator();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(dumpsDir(),
+                    "fatBuildStartTime.txt")))) {
+                while (iterator.hasNext()) {
+                    Cache.Entry<Long, FatBuildCompacted> next = iterator.next();
+
+                    FatBuildCompacted val = next.getValue();
+                    long ageDays = -1;
+                    long startDateTs = -2;
+
+                    if (val != null) {
+                        startDateTs = val.getStartDateTs();
+                        ageDays = Duration.ofMillis(System.currentTimeMillis() - startDateTs).toDays();
+                    }
+
+                    writer.write(next.getKey() + " " + startDateTs + " " +
+                            ageDays + "\n");
+                }
+
+            }
+            catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+    }
+
+
+    public static void mainDumpBuildStartTime(String[] args) {
+        try (Ignite ignite = tcbotServerConnectedClient()) {
+            IgniteCache<Long, Long> bst = ignite.cache(BUILD_START_TIME_CACHE_NAME);
+            Iterator<Cache.Entry<Long, Long>> iterator = bst.iterator();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(dumpsDir(),
+                    "BuildStartTime.txt")))) {
+            while (iterator.hasNext()) {
+                Cache.Entry<Long, Long> next = iterator.next();
+
+                Long val = next.getValue();
+                long ageDays = -1;
+                if(val!=null)
+                ageDays = Duration.ofMillis(System.currentTimeMillis() - val).toDays();
+
+                writer.write(next.getKey() + " " + val + " " +
+                    ageDays +"\n");
+            }
+
+            }
+            catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+    }
+
 
     /**
      * @param args Args.
