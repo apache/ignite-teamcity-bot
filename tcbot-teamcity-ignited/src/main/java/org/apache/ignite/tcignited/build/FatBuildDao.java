@@ -239,7 +239,12 @@ public class FatBuildDao {
 
             BinaryObject buildBinary = entry.getValue();
 
-            return buildBinary.field("startDate");
+            Long startDate = buildBinary.field("startDate");
+
+            if (startDate == null || startDate <= 0)
+                return null;
+
+            return startDate;
         }
     }
 }

@@ -200,11 +200,13 @@ public class HistoryCollector {
         return buildInScope;
     }
 
+    @SuppressWarnings("WeakerAccess")
     @AutoProfiling
     protected Map<Integer, Long> getStartTimeFromSpecialCache(int srvId, Set<Integer> buildIds) {
         return runHistCompactedDao.getBuildsStartTime(srvId, buildIds);
     }
 
+    @SuppressWarnings("WeakerAccess")
     @AutoProfiling
     protected Map<Integer, Long> getStartTimeFromFatBuild(int srvId, Set<Integer> buildIds) {
         return fatBuildDao.getBuildStartTime(srvId, buildIds);
