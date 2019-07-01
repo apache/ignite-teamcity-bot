@@ -20,6 +20,7 @@ package org.apache.ignite.ci.issue;
 import com.google.common.base.MoreObjects;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -30,14 +31,14 @@ import org.apache.ignite.tcbot.common.util.TimeUtil;
 import org.jetbrains.annotations.Nullable;
 
 /**
- *
+ * Issue used both for saving into DB and in UI (in issue history).
  */
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings({"WeakerAccess", "PublicField"})
 @Persisted
 public class Issue {
     /** Type code. Null of older versions of issue */
     @Nullable
-    private String type;
+    public String type;
 
     /** Display type. for issue. Kept for backward compatibilty with older records without type code. */
     private String displayType;
@@ -65,6 +66,8 @@ public class Issue {
 
     /** Set of build tags detected. */
     public Set<String> buildTags = new TreeSet<>();
+
+    public java.util.Map<String, Integer> stat = new HashMap<>();
 
     public Issue(IssueKey issueKey, IssueType type,
         @Nullable Long buildStartTs) {

@@ -149,6 +149,11 @@ public class IssueDetector {
         Map<String, Notification> toBeSent = new HashMap<>();
 
         AtomicInteger issuesChecked = new AtomicInteger();
+        AtomicInteger filteredFresh = new AtomicInteger();
+        AtomicInteger filteredBuildTs = new AtomicInteger();
+        AtomicInteger filteredNotDisabled = new AtomicInteger();
+        AtomicInteger hasSubscriptions = new AtomicInteger();
+        AtomicInteger neverSentBefore = new AtomicInteger();
 
         issuesStorage.allIssues()
             .peek(issue -> issuesChecked.incrementAndGet())
@@ -163,6 +168,7 @@ public class IssueDetector {
 
                 return issueAgeMs <= bound;
             })
+            .peek(issue -> filteredFresh.incrementAndGet())
             .filter(issue -> {
                 if (issue.buildStartTs == null)
                     return true; // exception due to bug in issue detection; field was not filled
@@ -173,31 +179,40 @@ public class IssueDetector {
 
                 return buildAgeMs <= maxBuildAgeToNotify;
             })
+            .peek(issue -> filteredBuildTs.incrementAndGet())
             .filter(issue -> {
                 return cfg.getTrackedBranches()
                     .get(issue.trackedBranchName)
                     .filter(tb -> !tb.disableIssueTypes().contains(issue.type()))
                     .isPresent();
             })
+            .peek(issue -> filteredNotDisabled.incrementAndGet())
             .forEach(issue -> {
                 List<String> addrs = new ArrayList<>();
 
                 final String srvCode = issue.issueKey().server;
 
+                AtomicInteger ctnSrvAllowed = new AtomicInteger();
+                AtomicInteger cntSubscibed = new AtomicInteger();
+                AtomicInteger cntTagsFilterPassed = new AtomicInteger();
+
                 channels.stream()
                     .filter(ch -> ch.isServerAllowed(srvCode))
+                    .peek(ch -> ctnSrvAllowed.incrementAndGet())
                     .filter(ch -> ch.isSubscribedToBranch(issue.trackedBranchName))
+                    .peek(ch -> cntSubscibed.incrementAndGet())
                     .filter(ch -> {
                         if (ch.hasTagFilter())
                             return issue.buildTags().stream().anyMatch(ch::isSubscribedToTag);
 
                         return true;
                     })
+                    .peek(ch -> cntTagsFilterPassed.incrementAndGet())
                     .forEach(channel -> {
                         String email = channel.email();
                         String slack = channel.slack();
                         logger.info("User/channel " + channel + " is candidate for notification " + email
-                            + " , " + slack + "for " + issue);
+                            + " , " + slack + " for " + issue);
 
                         if (!Strings.isNullOrEmpty(email))
                             addrs.add(email);
@@ -206,8 +221,14 @@ public class IssueDetector {
                             addrs.add(SLACK + slack);
                     });
 
+                if(!addrs.isEmpty())
+                    hasSubscriptions.incrementAndGet();
+
+                boolean nonNotifedFound = false;
                 for (String nextAddr : addrs) {
                     if (issuesStorage.setNotified(issue.issueKey, nextAddr)) {
+                        nonNotifedFound = true;
+
                         toBeSent.computeIfAbsent(nextAddr, addr -> {
                             Notification notification = new Notification();
                             notification.ts = System.currentTimeMillis();
@@ -216,11 +237,23 @@ public class IssueDetector {
                         }).addIssue(issue);
                     }
                 }
+                if (!nonNotifedFound)
+                    issuesStorage.saveIssueSubscribersStat(issue.issueKey, ctnSrvAllowed.get(),
+                        cntSubscibed.get(), cntTagsFilterPassed.get());
+
+                if (nonNotifedFound)
+                    neverSentBefore.incrementAndGet();
             });
 
-        if (toBeSent.isEmpty())
-            return "Noting to notify, " + issuesChecked + " issues checked";
+        String stat = issuesChecked.get() + " issues checked " +
+            filteredFresh.get() + " detected recenty " +
+            filteredBuildTs.get() + " for fresh builds " +
+            filteredNotDisabled.get() + " not disabled " +
+            hasSubscriptions.get() + " has subscriber " +
+            neverSentBefore.get() + " non notified";
 
+        if (toBeSent.isEmpty())
+            return "Noting to notify, " + stat;
         NotificationsConfig notifications = cfg.notifications();
 
         StringBuilder res = new StringBuilder();
@@ -248,7 +281,7 @@ public class IssueDetector {
             }
         }
 
-        return res + ", " + issuesChecked.get() + "issues checked";
+        return res + ", " + stat;
     }
 
     /**

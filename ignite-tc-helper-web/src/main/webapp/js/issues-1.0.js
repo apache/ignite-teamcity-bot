@@ -19,11 +19,14 @@
 function showIssues(result) {
     var res = "";
     res += "Build problems";
-    res += "<br>";
 
     if (!isDefinedAndFilled(result.issues)) {
         return res;
     }
+
+    res += " " + result.issues.length;
+
+    res += "<br>";
 
     for (var i = 0; i < result.issues.length; i++) {
         var issue = result.issues[i];
@@ -46,7 +49,12 @@ function showIssues(result) {
             }
             res += "]";
         }
-        res += " br=" + issue.trackedBranchName + "bID=" + issue.issueKey.buildId;
+        res += " tbr=" + issue.trackedBranchName + " bID=" + issue.issueKey.buildId;
+
+        if(isDefinedAndFilled(issue.stat)) {
+            res += " stat=";
+            res += JSON.stringify(issue.stat);
+        }
 
         res += "<br><br>";
     }
