@@ -19,28 +19,45 @@ package org.apache.ignite.ci.tcbot.issue;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import org.apache.ignite.ci.issue.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.annotation.Nonnull;
+import javax.inject.Inject;
+import javax.inject.Provider;
+import org.apache.ignite.ci.issue.Issue;
+import org.apache.ignite.ci.issue.IssueKey;
+import org.apache.ignite.ci.issue.IssueType;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
 import org.apache.ignite.ci.mail.EmailSender;
 import org.apache.ignite.ci.mail.SlackSender;
-import org.apache.ignite.tcbot.engine.issue.EventTemplate;
-import org.apache.ignite.tcbot.engine.issue.EventTemplates;
-import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
-import org.apache.ignite.tcbot.engine.ui.DsChainUi;
-import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
-import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
-import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
+import org.apache.ignite.tcbot.engine.issue.EventTemplate;
+import org.apache.ignite.tcbot.engine.issue.EventTemplates;
+import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
+import org.apache.ignite.tcbot.engine.ui.DsChainUi;
+import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
+import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
@@ -49,17 +66,6 @@ import org.apache.ignite.tcignited.history.IRunHistory;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import javax.inject.Inject;
-import javax.inject.Provider;
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 
@@ -150,9 +156,17 @@ public class IssueDetector {
                 long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
                 long issueAgeMs = System.currentTimeMillis() - detected;
 
-                return issueAgeMs <= TimeUnit.HOURS.toMillis(2);
+                long bound = TimeUnit.HOURS.toMillis(2);
+                //temporary to issue missed notifications
+                if (issue.buildStartTs == null)
+                    bound = TimeUnit.DAYS.toMillis(InvocationData.MAX_DAYS) / 2;
+
+                return issueAgeMs <= bound;
             })
             .filter(issue -> {
+                if (issue.buildStartTs == null)
+                    return true; // exception due to bug in issue detection; field was not filled
+
                 long buildStartTs = issue.buildStartTs == null ? 0 : issue.buildStartTs;
                 long buildAgeMs = System.currentTimeMillis() - buildStartTs;
                 long maxBuildAgeToNotify = TimeUnit.DAYS.toMillis(InvocationData.MAX_DAYS) / 2;
@@ -337,11 +351,10 @@ public class IssueDetector {
     @NotNull
     private Issue createIssueForSuite(ITeamcityIgnited tcIgnited, DsSuiteUi suiteFailure, String trackedBranch,
                                       IssueKey issueKey, IssueType issType) {
-        Issue issue = new Issue(issueKey, issType);
+        Issue issue = new Issue(issueKey, issType,  tcIgnited.getBuildStartTs(issueKey.buildId));
         issue.trackedBranchName = trackedBranch;
         issue.displayName = suiteFailure.name;
         issue.webUrl = suiteFailure.webToHist;
-        issue.buildStartTs = tcIgnited.getBuildStartTs(issueKey.buildId);
 
         issue.buildTags.addAll(suiteFailure.tags);
 
@@ -419,7 +432,7 @@ public class IssueDetector {
         if (issuesStorage.containsIssueKey(issueKey))
             return false; //duplicate
 
-        Issue issue = new Issue(issueKey, type);
+        Issue issue = new Issue(issueKey, type, tcIgnited.getBuildStartTs(issueKey.buildId));
         issue.trackedBranchName = trackedBranch;
         issue.displayName = testFailure.testName;
         issue.webUrl = testFailure.webUrl;

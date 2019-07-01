@@ -17,6 +17,8 @@
 
 package org.apache.ignite.ci.issue;
 
+import com.google.common.base.MoreObjects;
+
 public class ChangeUi {
     public final String username;
     public final String webUrl;
@@ -40,5 +42,13 @@ public class ChangeUi {
 
     public String toPlainText() {
         return username + " " + webUrl;
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("username", username)
+            .add("webUrl", webUrl)
+            .toString();
     }
 }
