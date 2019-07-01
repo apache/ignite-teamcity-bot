@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.cache.Cache;
 import javax.xml.bind.JAXBException;
@@ -34,6 +35,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
+import org.apache.ignite.ci.issue.IssueType;
 import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
@@ -67,9 +69,59 @@ public class RemoteClientTmpHelper {
      * @param args Args.
      */
     public static void main(String[] args) {
-        // mainDumpIssues(args);
+        // mainDropInvalidIssues(args);
         System.err.println("Please insert option of main");
     }
+
+    public static void mainDropInvalidIssues(String[] args) {
+        try (Ignite ignite = tcbotServerConnectedClient()) {
+            IgniteCache<IssueKey, Issue>  bst = ignite.cache(IssuesStorage.BOT_DETECTED_ISSUES);
+            Iterator<Cache.Entry<IssueKey, Issue>> iter = bst.iterator();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(dumpsDir(),
+                "Issues_dropped.txt")))) {
+                while (iter.hasNext()) {
+                    Cache.Entry<IssueKey, Issue> next = iter.next();
+
+                    boolean rmv = false;
+                    Issue val = next.getValue();
+                    if (val.type == null)
+                        rmv = true;
+
+                    //don't touch it
+                    if (Objects.equals(val.type, IssueType.newContributedTestFailure.code()))
+                        continue;
+
+                    long ageDays = -1;
+                    if (val != null && val.buildStartTs == null) {
+                        if (val.detectedTs == null)
+                            rmv = true;
+                        else
+                            ageDays = Duration.ofMillis(System.currentTimeMillis() - val.detectedTs).toDays();
+
+
+                        rmv = true;
+                    }
+
+                    if(rmv) {
+                        bst.remove(next.getKey());
+
+                        String str = "Removing issue " + next.getKey() + " " + val.type + " detected " +
+                            ageDays + " days ago\n";
+                        writer.write(str);
+                        System.err.println(str);
+                    }
+                }
+
+                writer.flush();
+            }
+            catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+
+            dumpDictionary(ignite);
+        }
+    }
+
 
     public static void mainDumpIssues(String[] args) {
         try (Ignite ignite = tcbotServerConnectedClient()) {
