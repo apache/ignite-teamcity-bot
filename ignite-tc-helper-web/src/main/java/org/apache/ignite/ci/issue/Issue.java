@@ -57,7 +57,7 @@ public class Issue {
     @Nullable
     public String displayName;
 
-    /** Build start timestamp. */
+    /** Build start timestamp. Builds which is older that 10 days not notified. */
     @Nullable public Long buildStartTs;
 
     /** Detected timestamp. */
@@ -66,11 +66,13 @@ public class Issue {
     /** Set of build tags detected. */
     public Set<String> buildTags = new TreeSet<>();
 
-    public Issue(IssueKey issueKey, IssueType type) {
+    public Issue(IssueKey issueKey, IssueType type,
+        @Nullable Long buildStartTs) {
         this.issueKey = issueKey;
         this.detectedTs = System.currentTimeMillis();
         this.type = type.code();
         this.displayType = type.displayName();
+        this.buildStartTs = buildStartTs;
     }
 
     public void addChange(String username, String webUrl) {
