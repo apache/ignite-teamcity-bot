@@ -19,7 +19,6 @@ package org.apache.ignite.ci.tcbot.issue;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -136,7 +135,7 @@ public class IssueDetector {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @AutoProfiling
     @MonitoredTask(name = "Send Notifications")
-    protected String sendNewNotificationsEx() throws IOException {
+    protected String sendNewNotificationsEx() {
         List<INotificationChannel> channels = new ArrayList<>();
 
         userStorage.allUsers()
@@ -224,10 +223,11 @@ public class IssueDetector {
                 if(!addrs.isEmpty())
                     hasSubscriptions.incrementAndGet();
 
-                boolean nonNotifedFound = false;
+                boolean nonNotifedChFound = false;
+
                 for (String nextAddr : addrs) {
-                    if (issuesStorage.setNotified(issue.issueKey, nextAddr)) {
-                        nonNotifedFound = true;
+                    if (issuesStorage.getIsNewAndSetNotified(issue.issueKey, nextAddr, null)) {
+                        nonNotifedChFound = true;
 
                         toBeSent.computeIfAbsent(nextAddr, addr -> {
                             Notification notification = new Notification();
@@ -237,51 +237,70 @@ public class IssueDetector {
                         }).addIssue(issue);
                     }
                 }
-                if (!nonNotifedFound)
-                    issuesStorage.saveIssueSubscribersStat(issue.issueKey, ctnSrvAllowed.get(),
-                        cntSubscibed.get(), cntTagsFilterPassed.get());
 
-                if (nonNotifedFound)
+                if (!nonNotifedChFound) {
+                    issuesStorage.saveIssueSubscribersStat(issue.issueKey,
+                        ctnSrvAllowed.get(),
+                        cntSubscibed.get(),
+                        cntTagsFilterPassed.get());
+                }
+                else
                     neverSentBefore.incrementAndGet();
             });
 
-        String stat = issuesChecked.get() + " issues checked " +
-            filteredFresh.get() + " detected recenty " +
-            filteredBuildTs.get() + " for fresh builds " +
-            filteredNotDisabled.get() + " not disabled " +
-            hasSubscriptions.get() + " has subscriber " +
-            neverSentBefore.get() + " non notified";
+        String stat = issuesChecked.get() + " issues checked, " +
+            filteredFresh.get() + " detected recenty, " +
+            filteredBuildTs.get() + " for fresh builds, " +
+            filteredNotDisabled.get() + " not disabled, " +
+            hasSubscriptions.get() + " has subscriber, " +
+            neverSentBefore.get() + " non sent before";
 
         if (toBeSent.isEmpty())
             return "Noting to notify, " + stat;
+
         NotificationsConfig notifications = cfg.notifications();
 
-        StringBuilder res = new StringBuilder();
-        Collection<Notification> values = toBeSent.values();
-        for (Notification next : values) {
-            if (next.addr.startsWith(SLACK)) {
-                String slackUser = next.addr.substring(SLACK.length());
+        Map<String, AtomicInteger> sndStat = new HashMap<>();
 
-                List<String> messages = next.toSlackMarkup();
+        for (Notification next : toBeSent.values()) {
+            String addr = next.addr;
 
-                for (String msg : messages) {
-                    final boolean snd = SlackSender.sendMessage(slackUser, msg, notifications);
+            try {
+                if (addr.startsWith(SLACK)) {
+                    String slackUser = addr.substring(SLACK.length());
 
-                    res.append("Send ").append(slackUser).append(": ").append(snd);
-                    if (!snd)
-                        break;
+                    List<String> messages = next.toSlackMarkup();
+
+                    for (String msg : messages) {
+                        SlackSender.sendMessage(slackUser, msg, notifications);
+
+                        sndStat.computeIfAbsent(addr, k -> new AtomicInteger()).incrementAndGet();
+                    }
+                }
+                else {
+                    String builds = next.buildIdToIssue.keySet().toString();
+                    String subj = "[MTCGA]: " + next.countIssues() + " new failures in builds " + builds + " needs to be handled";
+
+                    EmailSender.sendEmail(addr, subj, next.toHtml(), next.toPlainText(), notifications);
+
+                    sndStat.computeIfAbsent(addr, k -> new AtomicInteger()).incrementAndGet();
                 }
             }
-            else {
-                String builds = next.buildIdToIssue.keySet().toString();
-                String subj = "[MTCGA]: " + next.countIssues() + " new failures in builds " + builds + " needs to be handled";
+            catch (Exception e) {
+                e.printStackTrace();
+                logger.warn("Unable to notify address [" + addr + "] about build failures", e);
 
-                EmailSender.sendEmail(next.addr, subj, next.toHtml(), next.toPlainText(), notifications);
-                res.append("Send ").append(next.addr).append(" subject: ").append(subj);
+                next.allIssues().forEach(issue -> {
+                        IssueKey key = issue.issueKey();
+                        // rollback successfull notification
+                        issuesStorage.getIsNewAndSetNotified(key, addr, e);
+                    });
+
+                stat += " ;" + e.getClass().getSimpleName() + ": " + e.getMessage();
             }
         }
 
-        return res + ", " + stat;
+        return "Send " + sndStat.toString() + "; Statistics: " + stat;
     }
 
     /**

@@ -18,6 +18,7 @@
 package org.apache.ignite.ci.tcbot.issue;
 
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 
@@ -38,9 +39,10 @@ public interface IIssuesStorage {
      * Checks and saves address was notified (NotThreadSafe)
      * @param key issue key.
      * @param addr Address to register as notified.
+     * @param e Exception. Null means notification was successfull. Non null means notification failed
      * @return update successful. This address was not notified before.
      */
-    public boolean setNotified(IssueKey key, String addr);
+    public boolean getIsNewAndSetNotified(IssueKey key, String addr, @Nullable Exception e);
 
     public void saveIssueSubscribersStat(IssueKey key, int cntSrvAllowed, int cntSubscribed, int cntTagsFilterPassed);
 }
