@@ -32,7 +32,7 @@ function showIssues(result) {
         var issueTitle = '';
         res += " <span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + issueTitle + "'></span> ";
 
-        res += issue.displayType;
+        res += issue.type;
 
         res += " " + issue.issueKey.testOrBuildName;
 
@@ -46,6 +46,7 @@ function showIssues(result) {
             }
             res += "]";
         }
+        res += " br=" + issue.trackedBranchName + "bID=" + issue.issueKey.buildId;
 
         res += "<br><br>";
     }
