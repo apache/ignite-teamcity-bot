@@ -588,8 +588,10 @@ function showSuiteData(suite, settings, prNum) {
 
     moreInfoTxt += "<br>";
 
-    var res = "";
-    res += "<tr bgcolor='#FAFAFF'><td align='right' valign='top'>";
+    var res = "<tr class='suiteBlock'><td colspan='4' style='width: 100%'>" +
+              "<table style='width: 100%' border='0px'>"
+
+    res += "<tr bgcolor='#FAFAFF'><td align='right' valign='top' width='15%' colspan='2'>";
 
     var failRateText = "";
     if (isDefinedAndFilled(suite.failures) && isDefinedAndFilled(suite.runs) && isDefinedAndFilled(suite.failureRate)) {
@@ -620,7 +622,7 @@ function showSuiteData(suite, settings, prNum) {
         res += drawLatestRuns(suite.latestRuns) + " ";
     }
 
-    res +="</td><td colspan='2'>";
+    res +="</td><td>";
     res += "<span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + failRateText + "'></span> ";
 
     res += "<a href='" + suite.webToHist + "'>" + suite.name + "</a> " +
@@ -729,6 +731,8 @@ function showSuiteData(suite, settings, prNum) {
 
     res += "<tr><td>&nbsp;</td><td width='12px'>&nbsp;</td><td colspan='2'></td></tr>";
 
+    res += "</tr></table>"
+
     return res;
 }
 
@@ -780,8 +784,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
             return ""; // test is hidder
     }
 
-    var res = "";
-    res += "<tr><td align='right' valign='top' colspan='2'>";
+    var res = "<tr><td align='right' valign='top' colspan='2' width='5%'>";
 
     var haveIssue = isDefinedAndFilled(testFail.webIssueUrl) && isDefinedAndFilled(testFail.webIssueText);
 
@@ -940,8 +943,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
     }
 
-
-    res += "<td>";
+    res += "<td width='15%'>";
 
     var haveBaseBranchWeb = isDefinedAndFilled(testFail.webUrlBaseBranch);
     if (haveBaseBranchWeb)
