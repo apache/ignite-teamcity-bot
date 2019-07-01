@@ -23,12 +23,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.Map;
 import java.util.TreeSet;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcbot.common.util.TimeUtil;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Issue used both for saving into DB and in UI (in issue history).
@@ -67,7 +69,13 @@ public class Issue {
     /** Set of build tags detected. */
     public Set<String> buildTags = new TreeSet<>();
 
-    public java.util.Map<String, Integer> stat = new HashMap<>();
+    /** Statistics of subscribers for this issue. Filled accordignly recent update. */
+    public Map<String, Object> stat = new HashMap<>();
+
+    /** Notification failed: Map from address to exception text */
+    @Nullable public Map<String, String> notificationFailed = new HashMap<>();
+
+    public int notificationRetry = 0;
 
     public Issue(IssueKey issueKey, IssueType type,
         @Nullable Long buildStartTs) {
@@ -234,5 +242,33 @@ public class Issue {
 
     public String type() {
         return type;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        Issue issue = (Issue)o;
+        return notificationRetry == issue.notificationRetry &&
+            Objects.equals(type, issue.type) &&
+            Objects.equals(displayType, issue.displayType) &&
+            Objects.equals(trackedBranchName, issue.trackedBranchName) &&
+            Objects.equals(issueKey, issue.issueKey) &&
+            Objects.equals(changes, issue.changes) &&
+            Objects.equals(addressNotified, issue.addressNotified) &&
+            Objects.equals(webUrl, issue.webUrl) &&
+            Objects.equals(displayName, issue.displayName) &&
+            Objects.equals(buildStartTs, issue.buildStartTs) &&
+            Objects.equals(detectedTs, issue.detectedTs) &&
+            Objects.equals(buildTags, issue.buildTags) &&
+            Objects.equals(stat, issue.stat) &&
+            Objects.equals(notificationFailed, issue.notificationFailed);
+    }
+
+    /** {@inheritDoc} */
+    @Override public int hashCode() {
+        return Objects.hash(type, displayType, trackedBranchName, issueKey, changes, addressNotified, webUrl, displayName, buildStartTs, detectedTs, buildTags, stat, notificationFailed, notificationRetry);
     }
 }

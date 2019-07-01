@@ -20,6 +20,7 @@ package org.apache.ignite.ci.issue;
 import java.util.HashMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import javax.annotation.Nullable;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -53,17 +54,40 @@ public class IssuesStorage implements IIssuesStorage {
     }
 
     /** {@inheritDoc} */
-    @Override public boolean setNotified(IssueKey issueKey, String to) {
+    @Override public boolean getIsNewAndSetNotified(IssueKey issueKey, String to,
+        @Nullable Exception e) {
         Issue issue = cache().get(issueKey);
         if (issue == null)
             return false;
 
-        boolean add = issue.addressNotified.add(to);
+        boolean update;
+        if (e == null) {
+            if (issue.notificationRetry >= 2 && issue.notificationFailed.containsKey(to))
+                return false; // no more tries;
 
-        if (add)
+            update = issue.addressNotified.add(to);
+
+            if (update && issue.notificationFailed != null)
+                issue.notificationFailed.remove(to);
+        }
+        else {
+            if (issue.notificationRetry < 2)
+                issue.addressNotified.remove(to);
+
+            issue.notificationRetry++;
+
+            if (issue.notificationFailed == null)
+                issue.notificationFailed = new HashMap<>();
+
+            issue.notificationFailed.put(to, e.getClass().getSimpleName() + ": " + e.getMessage());
+
+            update = true;
+        }
+
+        if (update)
             cache().put(issueKey, issue);
 
-        return add;
+        return update;
     }
 
     @Override
@@ -73,6 +97,8 @@ public class IssuesStorage implements IIssuesStorage {
         if (issue == null)
             return;
 
+        int hashCode = issue.hashCode();
+
         if (issue.stat == null)
             issue.stat = new HashMap<>();
 
@@ -80,8 +106,8 @@ public class IssuesStorage implements IIssuesStorage {
         issue.stat.put("cntSubscribed", cntSubscribed);
         issue.stat.put("cntTagsFilterPassed", cntTagsFilterPassed);
 
-        cache().put(issueKey, issue);
-
+        if (issue.hashCode() != hashCode)
+            cache().put(issueKey, issue); // protect from odd writes
     }
 
     /** {@inheritDoc} */

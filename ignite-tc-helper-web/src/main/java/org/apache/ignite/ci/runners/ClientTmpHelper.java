@@ -29,6 +29,11 @@ import org.apache.ignite.jiraignited.JiraTicketDao;
  * Utility class for local connection to TC helper DB (server) and any manipulations with data needed.
  */
 public class ClientTmpHelper {
+    public static void main(String[] args) {
+        //select some main option here.
+        mainDropIssHist(args);
+    }
+
     /**
      * @param args Args.
      */
@@ -47,7 +52,7 @@ public class ClientTmpHelper {
     /**
      * @param args Args.
      */
-    public static void main0(String[] args) {
+    public static void mainDropIssHist(String[] args) {
         Ignite ignite = TcHelperDb.startClient();
 
         IgniteCache<Object, Object> cache = ignite.cache(IssuesStorage.BOT_DETECTED_ISSUES);
@@ -56,7 +61,10 @@ public class ClientTmpHelper {
             issue -> {
                 Object key = issue.getKey();
                 Issue val = (Issue)issue.getValue();
-                // val.addressNotified.clear();
+
+                if(val.issueKey.testOrBuildName.contains(
+                    "GridCachePartitionEvictionDuringReadThroughSelfTest.testPartitionRent"))
+                    val.addressNotified.clear();
 
                 cache.put(key, val);
             }
@@ -74,9 +82,6 @@ public class ClientTmpHelper {
         ignite.close();
     }
 
-    public static void main(String[] args) {
-        mainDeleteTickets(args);
-    }
 
     public static void mainDeleteTickets(String[] args) {
         Ignite ignite = TcHelperDb.startClient();

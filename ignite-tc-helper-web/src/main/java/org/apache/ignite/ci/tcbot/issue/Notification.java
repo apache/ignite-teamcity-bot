@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.tcbot.issue;
 
+import java.util.stream.Stream;
 import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.web.model.Version;
 import org.apache.ignite.tcbot.common.util.TimeUtil;
@@ -193,4 +194,7 @@ public class Notification {
         return sb.toString();
     }
 
+    public Stream<Issue> allIssues() {
+        return this.buildIdToIssue.values().stream().flatMap(Collection::stream);
+    }
 }

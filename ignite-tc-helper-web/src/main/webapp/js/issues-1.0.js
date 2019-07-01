@@ -26,14 +26,16 @@ function showIssues(result) {
 
     res += " " + result.issues.length;
 
-    res += "<br>";
+    res += ": <br>";
 
     for (var i = 0; i < result.issues.length; i++) {
         var issue = result.issues[i];
 
         var color = 'red';
         var issueTitle = '';
-        res += " <span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + issueTitle + "'></span> ";
+        //res += " <span style='border-color: " + color + "; width:6px; height:6px; display: inline-block; border-width: 4px; color: black; border-style: solid;' title='" + issueTitle + "'></span> ";
+
+        res += "&#8226; ";
 
         res += issue.type;
 
@@ -55,6 +57,13 @@ function showIssues(result) {
             res += " stat=";
             res += JSON.stringify(issue.stat);
         }
+
+        if(isDefinedAndFilled(issue.notificationFailed)) {
+            res += " notificationFailed=";
+            res += JSON.stringify(issue.notificationFailed);
+        }
+
+        res += " retry=" + issue.notificationRetry;
 
         res += "<br><br>";
     }
