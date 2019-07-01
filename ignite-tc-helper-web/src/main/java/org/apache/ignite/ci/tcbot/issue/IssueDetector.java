@@ -161,9 +161,6 @@ public class IssueDetector {
                 long issueAgeMs = System.currentTimeMillis() - detected;
 
                 long bound = TimeUnit.HOURS.toMillis(2);
-                //temporary to issue missed notifications
-                if (issue.buildStartTs == null)
-                    bound = TimeUnit.DAYS.toMillis(InvocationData.MAX_DAYS) / 2;
 
                 return issueAgeMs <= bound;
             })
