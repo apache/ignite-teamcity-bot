@@ -17,6 +17,7 @@
 
 package org.apache.ignite.ci.issue;
 
+import java.util.HashMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.cache.Cache;
@@ -63,6 +64,24 @@ public class IssuesStorage implements IIssuesStorage {
             cache().put(issueKey, issue);
 
         return add;
+    }
+
+    @Override
+    public void saveIssueSubscribersStat(IssueKey issueKey, int cntSrvAllowed, int cntSubscribed,
+        int cntTagsFilterPassed) {
+        Issue issue = cache().get(issueKey);
+        if (issue == null)
+            return;
+
+        if (issue.stat == null)
+            issue.stat = new HashMap<>();
+
+        issue.stat.put("cntSrvAllowed", cntSrvAllowed);
+        issue.stat.put("cntSubscribed", cntSubscribed);
+        issue.stat.put("cntTagsFilterPassed", cntTagsFilterPassed);
+
+        cache().put(issueKey, issue);
+
     }
 
     /** {@inheritDoc} */

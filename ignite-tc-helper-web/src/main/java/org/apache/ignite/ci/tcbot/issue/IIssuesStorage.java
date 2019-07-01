@@ -41,4 +41,6 @@ public interface IIssuesStorage {
      * @return update successful. This address was not notified before.
      */
     public boolean setNotified(IssueKey key, String addr);
+
+    public void saveIssueSubscribersStat(IssueKey key, int cntSrvAllowed, int cntSubscribed, int cntTagsFilterPassed);
 }
