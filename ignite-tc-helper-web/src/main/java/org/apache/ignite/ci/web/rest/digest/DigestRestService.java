@@ -57,6 +57,6 @@ public class DigestRestService {
         String branchNn = isNullOrEmpty(trBrName) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : trBrName;
 
         WeeklyFailuresDigest prevDigest = digestSvc.getLastDigest(branchNn);
-        return digestSvc.generate(branchNn, creds).toHtml(prevDigest);
+        return digestSvc.generateFromCurrentState(branchNn, creds).toHtml(prevDigest);
     }
 }

@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
 import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
@@ -37,7 +38,7 @@ public class DigestService {
     private ITcBotConfig cfg;
 
     @Inject
-    private TrackedBranchChainsProcessor tbProc;
+    private IDetailedStatusForTrackedBranch tbProc;
 
     @Inject
     private WeeklyFailuresDao dao;
@@ -50,11 +51,11 @@ public class DigestService {
 
     private final AtomicBoolean init = new AtomicBoolean();
 
-    public WeeklyFailuresDigest generate(String trBrName, ICredentialsProv creds) {
-        WeeklyFailuresDigest res = new WeeklyFailuresDigest();
+    public WeeklyFailuresDigest generateFromCurrentState(String trBrName, ICredentialsProv creds) {
+        WeeklyFailuresDigest res = new WeeklyFailuresDigest(trBrName);
 
         DsSummaryUi failures = tbProc.getTrackedBranchTestFailures(trBrName, false,
-                1, creds, SyncMode.RELOAD_QUEUED, true);
+                10, creds, SyncMode.RELOAD_QUEUED, true);
         res.failedTests = failures.failedTests;
         res.failedSuites = failures.failedToFinish;
 

@@ -89,34 +89,28 @@ public class MockBasedTcBotModule extends AbstractModule {
         bind(ITeamcityIgnitedProvider.class).to(TeamcityIgnitedProviderMock.class).in(new SingletonScope());
 
         final ITcBotConfig cfg = new ITcBotConfig() {
-            @Override
-            public String primaryServerCode() {
+            @Override public String primaryServerCode() {
                 return ITcBotConfig.DEFAULT_SERVER_CODE;
             }
 
-            @Override
-            public ITrackedBranchesConfig getTrackedBranches() {
+            @Override  public ITrackedBranchesConfig getTrackedBranches() {
                 return tracked;
             }
 
             /** {@inheritDoc} */
-            @Override
-            public ITcServerConfig getTeamcityConfig(String srvCode) {
+            @Override public ITcServerConfig getTeamcityConfig(String srvCode) {
                 return new TcServerConfig().code(srvCode).properties(loadOldProps(srvCode));
             }
 
-            @Override
-            public IJiraServerConfig getJiraConfig(String srvCode) {
+            @Override public IJiraServerConfig getJiraConfig(String srvCode) {
                 return jiraCfg;
             }
 
-            @Override
-            public IGitHubConfig getGitConfig(String srvCode) {
+            @Override public IGitHubConfig getGitConfig(String srvCode) {
                 return ghCfg;
             }
 
-            @Override
-            public NotificationsConfig notifications() {
+            @Override public NotificationsConfig notifications() {
                 return new NotificationsConfig();
             }
 

@@ -14,14 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.di.scheduler;
-
-import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
+package org.apache.ignite.tcbot.persistence.scheduler;
 
 import java.util.concurrent.TimeUnit;
 
 /**
- * Scheduler which never waits
+ * Scheduler which never waits. Can be used for tests.
  */
 public class DirectExecNoWaitScheduler implements IScheduler {
     /** {@inheritDoc} */

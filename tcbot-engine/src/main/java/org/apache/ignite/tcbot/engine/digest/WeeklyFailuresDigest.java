@@ -16,9 +16,8 @@
  */
 package org.apache.ignite.tcbot.engine.digest;
 
-import org.apache.ignite.tcbot.common.util.TimeUtil;
-
 import javax.annotation.Nullable;
+import org.apache.ignite.tcbot.common.util.TimeUtil;
 
 /**
  *
@@ -26,6 +25,8 @@ import javax.annotation.Nullable;
 public class WeeklyFailuresDigest {
     /** Timestamp. */
     public long ts = System.currentTimeMillis();
+    public String trackedBranchName;
+
     /** Failed tests. */
     public Integer failedTests;
     /** Failed suites. */
@@ -35,9 +36,13 @@ public class WeeklyFailuresDigest {
     /** Trusted tests. */
     public int trustedTests;
 
+    public WeeklyFailuresDigest(String trackedBranchName) {
+        this.trackedBranchName = trackedBranchName;
+    }
+
     public String toHtml(@Nullable WeeklyFailuresDigest lastDigest) {
         StringBuilder res = new StringBuilder();
-        res.append("Digest");
+        res.append("Digest [").append(trackedBranchName).append("]");
         if (lastDigest != null) {
             res.append(" from ");
             res.append(TimeUtil.timestampToDateTimePrintable(lastDigest.ts));

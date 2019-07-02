@@ -44,7 +44,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 /**
  * Process failures for some setup tracked branch, which may be triggered/monitored by TC Bot.
  */
-public class TrackedBranchChainsProcessor {
+public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBranch {
     /** TC ignited server provider. */
     @Inject private ITeamcityIgnitedProvider tcIgnitedProv;
 
@@ -57,6 +57,7 @@ public class TrackedBranchChainsProcessor {
     /** Compactor. */
     @Inject private IStringCompactor compactor;
 
+    @Override
     @AutoProfiling
     @Nonnull
     public DsSummaryUi getTrackedBranchTestFailures(
