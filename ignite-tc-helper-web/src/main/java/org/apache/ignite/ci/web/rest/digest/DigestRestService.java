@@ -53,10 +53,10 @@ public class DigestRestService {
     public String generateDigest(@QueryParam("branch") String trBrName) {
         ICredentialsProv creds = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
-        DigestService digestService = injector.getInstance(DigestService.class);
+        DigestService digestSvc = injector.getInstance(DigestService.class);
         String branchNn = isNullOrEmpty(trBrName) ? ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME : trBrName;
 
-        WeeklyFailuresDigest prevDigest = digestService.getLastDigest(branchNn);
-        return digestService.generate(branchNn, creds).toHtml(prevDigest);
+        WeeklyFailuresDigest prevDigest = digestSvc.getLastDigest(branchNn);
+        return digestSvc.generate(branchNn, creds).toHtml(prevDigest);
     }
 }

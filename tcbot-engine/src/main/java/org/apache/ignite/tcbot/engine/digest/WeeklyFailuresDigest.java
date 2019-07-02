@@ -24,10 +24,16 @@ import javax.annotation.Nullable;
  *
  */
 public class WeeklyFailuresDigest {
+    /** Timestamp. */
     public long ts = System.currentTimeMillis();
-    public int trustedTests;
+    /** Failed tests. */
     public Integer failedTests;
+    /** Failed suites. */
+    public Integer failedSuites;
+    /** Total tests. */
     public int totalTests;
+    /** Trusted tests. */
+    public int trustedTests;
 
     public String toHtml(@Nullable WeeklyFailuresDigest lastDigest) {
         StringBuilder res = new StringBuilder();
@@ -55,6 +61,8 @@ public class WeeklyFailuresDigest {
         res.append("Total executed tests ").append(totalTests);
         res.append("<br>");
         res.append("Failed tests ").append(failedTests);
+        res.append("<br>");
+        res.append("Failed suites ").append(failedSuites);
         res.append("<br>");
         return res.toString();
     }

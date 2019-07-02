@@ -37,6 +37,7 @@ import org.apache.ignite.ci.tcbot.issue.IssueDetector;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
+import org.apache.ignite.tcbot.engine.digest.DigestService;
 import org.apache.ignite.tcservice.model.user.User;
 import org.apache.ignite.tcservice.login.ITcLogin;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
@@ -102,6 +103,8 @@ public class UserService {
         helper.setServerAuthorizerCreds(prov);
 
         issueDetector.startBackgroundCheck(prov);
+
+        injector.getInstance(DigestService.class).startBackgroundCheck(prov);
 
         CtxListener.getInjector(ctx).getInstance(TcBotTriggerAndSignOffService.class).startObserver();
 

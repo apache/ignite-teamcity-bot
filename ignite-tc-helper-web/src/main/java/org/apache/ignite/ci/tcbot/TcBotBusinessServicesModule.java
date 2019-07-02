@@ -19,14 +19,13 @@ package org.apache.ignite.ci.tcbot;
 import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.ci.issue.IssuesStorage;
-import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
-import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.tcbot.conf.LocalFilesBasedConfig;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 
 /**
  * TC Bot self services mapping (without 3rd party integrations configuration.
@@ -41,6 +40,5 @@ public class TcBotBusinessServicesModule extends AbstractModule {
         bind(IIssuesStorage.class).to(IssuesStorage.class).in(new SingletonScope());
         bind(MasterTrendsService.class).in(new SingletonScope());
         bind(ITcBotBgAuth.class).to(TcBotBgAuthImpl.class).in(new SingletonScope());
-        bind(BuildChainProcessor.class).in(new SingletonScope());
     }
 }

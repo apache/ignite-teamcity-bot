@@ -50,6 +50,7 @@ import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
+import org.apache.ignite.tcbot.engine.digest.DigestService;
 import org.apache.ignite.tcbot.engine.issue.EventTemplate;
 import org.apache.ignite.tcbot.engine.issue.EventTemplates;
 import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
@@ -526,7 +527,6 @@ public class IssueDetector {
                 checkQueueJob.init(backgroundOpsCreds);
 
                 executorService.scheduleAtFixedRate(checkQueueJob, 0, 10, TimeUnit.MINUTES);
-
             }
         }
         catch (Exception e) {

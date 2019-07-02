@@ -16,23 +16,39 @@
  */
 package org.apache.ignite.tcbot.engine.digest;
 
+import java.util.Collection;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 
-import javax.inject.Inject;
-
+/**
+ *
+ */
 public class DigestService {
     @Inject
-    ITcBotConfig cfg;
+    private ITcBotConfig cfg;
 
     @Inject
-    TrackedBranchChainsProcessor tbProc;
+    private TrackedBranchChainsProcessor tbProc;
 
     @Inject
-    WeeklyFailuresDao dao;
+    private WeeklyFailuresDao dao;
+
+    @Inject
+    private IScheduler scheduler;
+
+    @Nullable
+    private volatile ICredentialsProv bgCreds;
+
+    private final AtomicBoolean init = new AtomicBoolean();
 
     public WeeklyFailuresDigest generate(String trBrName, ICredentialsProv creds) {
         WeeklyFailuresDigest res = new WeeklyFailuresDigest();
@@ -40,6 +56,7 @@ public class DigestService {
         DsSummaryUi failures = tbProc.getTrackedBranchTestFailures(trBrName, false,
                 1, creds, SyncMode.RELOAD_QUEUED, true);
         res.failedTests = failures.failedTests;
+        res.failedSuites = failures.failedToFinish;
 
         res.totalTests = failures.servers.stream().mapToInt(s -> s.totalTests).sum();
 
@@ -50,5 +67,19 @@ public class DigestService {
 
     public WeeklyFailuresDigest getLastDigest(String branchNn) {
         return dao.get(branchNn);
+    }
+
+    public void startBackgroundCheck(ICredentialsProv creds) {
+        if (init.compareAndSet(false, true)) {
+            this.bgCreds = creds;
+
+            scheduler.sheduleNamed("digestServiceCheckDigest",
+                this::digestServiceCheckDigest, 15, TimeUnit.MINUTES);
+        }
+    }
+
+    private void digestServiceCheckDigest() {
+        Collection<? extends INotificationChannel> channels = cfg.notifications().channels();
+
     }
 }

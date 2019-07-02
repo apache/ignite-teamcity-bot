@@ -23,6 +23,8 @@ import javax.annotation.Nullable;
  */
 public interface INotificationChannel {
     /**
+     * Subscribed to new failures in a branch.
+     *
      * @param trackedBranchId Tracked branch id.
      */
     public boolean isSubscribedToBranch(String trackedBranchId);
@@ -39,9 +41,15 @@ public interface INotificationChannel {
      */
     public boolean isSubscribedToTag(@Nullable String tag);
 
+    /**
+     * Returns email address.
+     */
     @Nullable
     public String email();
 
+    /**
+     * Slack channel (started from #) or user.
+     */
     @Nullable
     public String slack();
 

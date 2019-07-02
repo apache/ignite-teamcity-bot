@@ -54,6 +54,7 @@ public class TrackedBranchChainsProcessor {
     /** Chains processor. */
     @Inject private BuildChainProcessor chainProc;
 
+    /** Compactor. */
     @Inject private IStringCompactor compactor;
 
     @AutoProfiling
