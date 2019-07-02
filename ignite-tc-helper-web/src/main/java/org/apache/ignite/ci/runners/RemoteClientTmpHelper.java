@@ -19,33 +19,40 @@ package org.apache.ignite.ci.runners;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Duration;
+import java.util.Iterator;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.cache.Cache;
 import javax.xml.bind.JAXBException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.ci.issue.Issue;
+import org.apache.ignite.ci.issue.IssueKey;
+import org.apache.ignite.ci.issue.IssueType;
+import org.apache.ignite.ci.issue.IssuesStorage;
 import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
-import org.apache.ignite.tcservice.model.hist.BuildRef;
-import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.tcbot.persistence.IgniteStringCompactor;
-import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.tcignited.build.FatBuildDao;
-import org.apache.ignite.tcignited.history.RunHistCompactedDao;
 import org.apache.ignite.ci.user.TcHelperUser;
-import org.apache.ignite.tcservice.util.XmlUtil;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.logger.slf4j.Slf4jLogger;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
+import org.apache.ignite.tcbot.persistence.IgniteStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.build.FatBuildDao;
+import org.apache.ignite.tcignited.buildref.BuildRefDao;
+import org.apache.ignite.tcignited.history.RunHistCompactedDao;
+import org.apache.ignite.tcservice.model.hist.BuildRef;
+import org.apache.ignite.tcservice.model.result.Build;
+import org.apache.ignite.tcservice.util.XmlUtil;
 import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.tcignited.history.RunHistCompactedDao.BUILD_START_TIME_CACHE_NAME;
@@ -62,8 +69,144 @@ public class RemoteClientTmpHelper {
      * @param args Args.
      */
     public static void main(String[] args) {
+        // mainDropInvalidIssues(args);
         System.err.println("Please insert option of main");
     }
+
+    public static void mainDropInvalidIssues(String[] args) {
+        try (Ignite ignite = tcbotServerConnectedClient()) {
+            IgniteCache<IssueKey, Issue>  bst = ignite.cache(IssuesStorage.BOT_DETECTED_ISSUES);
+            Iterator<Cache.Entry<IssueKey, Issue>> iter = bst.iterator();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(dumpsDir(),
+                "Issues_dropped.txt")))) {
+                while (iter.hasNext()) {
+                    Cache.Entry<IssueKey, Issue> next = iter.next();
+
+                    boolean rmv = false;
+                    Issue val = next.getValue();
+                    if (val.type == null)
+                        rmv = true;
+
+                    //don't touch it
+                    if (Objects.equals(val.type, IssueType.newContributedTestFailure.code()))
+                        continue;
+
+                    long ageDays = -1;
+                    if (val != null && val.buildStartTs == null) {
+                        if (val.detectedTs == null)
+                            rmv = true;
+                        else
+                            ageDays = Duration.ofMillis(System.currentTimeMillis() - val.detectedTs).toDays();
+
+
+                        rmv = true;
+                    }
+
+                    if(rmv) {
+                        bst.remove(next.getKey());
+
+                        String str = "Removing issue " + next.getKey() + " " + val.type + " detected " +
+                            ageDays + " days ago\n";
+                        writer.write(str);
+                        System.err.println(str);
+                    }
+                }
+
+                writer.flush();
+            }
+            catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+
+            dumpDictionary(ignite);
+        }
+    }
+
+
+    public static void mainDumpIssues(String[] args) {
+        try (Ignite ignite = tcbotServerConnectedClient()) {
+            IgniteCache<IssueKey, Issue>  bst = ignite.cache(IssuesStorage.BOT_DETECTED_ISSUES);
+            Iterator<Cache.Entry<IssueKey, Issue>> iter = bst.iterator();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(dumpsDir(),
+                "Issues.txt")))) {
+                while (iter.hasNext()) {
+                    Cache.Entry<IssueKey, Issue> next = iter.next();
+
+                    Issue val = next.getValue();
+                    long ageDays = -1;
+                    if (val != null && val.buildStartTs != null)
+                        ageDays = Duration.ofMillis(System.currentTimeMillis() - val.buildStartTs).toDays();
+
+                    writer.write(next.getKey() + " " + val + " " +
+                        ageDays + "\n");
+                }
+
+                writer.flush();
+            }
+            catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+
+            dumpDictionary(ignite);
+        }
+    }
+
+
+    public static void mainDumpFatBuildStartTime(String[] args) {
+        try (Ignite ignite = tcbotServerConnectedClient()) {
+            IgniteCache<Long, FatBuildCompacted> bst = ignite.cache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
+            Iterator<Cache.Entry<Long, FatBuildCompacted>> iterator = bst.iterator();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(dumpsDir(),
+                    "fatBuildStartTime.txt")))) {
+                while (iterator.hasNext()) {
+                    Cache.Entry<Long, FatBuildCompacted> next = iterator.next();
+
+                    FatBuildCompacted val = next.getValue();
+                    long ageDays = -1;
+                    long startDateTs = -2;
+
+                    if (val != null) {
+                        startDateTs = val.getStartDateTs();
+                        ageDays = Duration.ofMillis(System.currentTimeMillis() - startDateTs).toDays();
+                    }
+
+                    writer.write(next.getKey() + " " + startDateTs + " " +
+                            ageDays + "\n");
+                }
+
+            }
+            catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+    }
+
+
+    public static void mainDumpBuildStartTime(String[] args) {
+        try (Ignite ignite = tcbotServerConnectedClient()) {
+            IgniteCache<Long, Long> bst = ignite.cache(BUILD_START_TIME_CACHE_NAME);
+            Iterator<Cache.Entry<Long, Long>> iterator = bst.iterator();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(dumpsDir(),
+                    "BuildStartTime.txt")))) {
+            while (iterator.hasNext()) {
+                Cache.Entry<Long, Long> next = iterator.next();
+
+                Long val = next.getValue();
+                long ageDays = -1;
+                if(val!=null)
+                ageDays = Duration.ofMillis(System.currentTimeMillis() - val).toDays();
+
+                writer.write(next.getKey() + " " + val + " " +
+                    ageDays +"\n");
+            }
+
+            }
+            catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+    }
+
 
     /**
      * @param args Args.
@@ -195,18 +338,12 @@ public class RemoteClientTmpHelper {
         cfg.setDiscoverySpi(spi);
     }
 
-    public static void mainExport(String[] args) throws IOException {
+    public static void mainExport(String[] args) {
         final Ignite ignite = tcbotServerConnectedClient();
 
-        if (dumpDict) {
-            IgniteCache<String, Object> strings = ignite.cache(IgniteStringCompactor.STRINGS_CACHE);
-            try (FileWriter writer = new FileWriter("Dictionary.txt")) {
-                for (Cache.Entry<String, Object> next1 : strings) {
-                    writer.write(next1.getValue().toString()
-                        + "\n");
-                }
-            }
-        }
+        if (dumpDict)
+            dumpDictionary(ignite);
+
         if (false) {
             IgniteCache<Long, FatBuildCompacted> cache1 = ignite.cache(FatBuildDao.TEAMCITY_FAT_BUILD_CACHE_NAME);
 
@@ -220,6 +357,21 @@ public class RemoteClientTmpHelper {
             IgniteCache<Long, BuildRefCompacted> cache2 = ignite.cache(BuildRefDao.TEAMCITY_BUILD_CACHE_NAME);
             dumpBuildRef(cache2, apache, id);
             dumpBuildRef(cache2, apache, id1);
+        }
+    }
+
+    public static void dumpDictionary(Ignite ignite) {
+        IgniteCache<String, Object> strings = ignite.cache(IgniteStringCompactor.STRINGS_CACHE);
+        try {
+            try (FileWriter writer = new FileWriter(new File(dumpsDir(), "Dictionary.txt"))) {
+                for (Cache.Entry<String, Object> next1 : strings) {
+                    writer.write(next1.getValue().toString()
+                        + "\n");
+                }
+            }
+        }
+        catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

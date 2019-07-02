@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.ignite.internal.util.typedef.internal.U;
+import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.history.RunStatus;
 
@@ -38,7 +39,7 @@ import javax.annotation.Nonnull;
 @Persisted
 public class InvocationData {
     /** Max days to keep test invocatoin data in run statistics: affects Bot Visa. */
-    public static final int MAX_DAYS = 21;
+    public static final int MAX_DAYS = TcBotConst.HISTORY_MAX_DAYS;
     /** Muted. */
     public static final int MUTED = RunStatus.RES_MUTED_FAILURE.getCode();
     /** Failure. */

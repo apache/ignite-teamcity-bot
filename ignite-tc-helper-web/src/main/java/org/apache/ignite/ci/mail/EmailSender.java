@@ -35,8 +35,8 @@ import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
  * Class for sending email with configured credentials.
  */
 public class EmailSender {
-    public static boolean sendEmail(String to, String subject, String html, String plainText,
-        NotificationsConfig notifications) {
+    public static void sendEmail(String to, String subject, String html, String plainText,
+        NotificationsConfig notifications) throws MessagingException {
 
         String user = notifications.emailUsernameMandatory();
 
@@ -58,42 +58,34 @@ public class EmailSender {
                 }
             });
 
-        try {
-            // Create a default MimeMessage object.
-            MimeMessage msg = new MimeMessage(ses);
+        // Create a default MimeMessage object.
+        MimeMessage msg = new MimeMessage(ses);
 
-            // Set From: header field of the header.
-            msg.setFrom(new InternetAddress(from));
+        // Set From: header field of the header.
+        msg.setFrom(new InternetAddress(from));
 
-            // Set To: header field of the header.
-            msg.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
+        // Set To: header field of the header.
+        msg.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
 
-            // Set Subject: header field
-            msg.setSubject(subject);
+        // Set Subject: header field
+        msg.setSubject(subject);
 
-            final MimeBodyPart textPart = new MimeBodyPart();
-            textPart.setContent(plainText, "text/plain");
-            // HTML version
-            final MimeBodyPart htmlPart = new MimeBodyPart();
-            htmlPart.setContent(html, "text/html");
+        final MimeBodyPart textPart = new MimeBodyPart();
+        textPart.setContent(plainText, "text/plain");
+        // HTML version
+        final MimeBodyPart htmlPart = new MimeBodyPart();
+        htmlPart.setContent(html, "text/html");
 
-            // Create the Multipart.  Add BodyParts to it.
-            final Multipart mp = new MimeMultipart("alternative");
-            mp.addBodyPart(textPart);
-            mp.addBodyPart(htmlPart);
-            // Set Multipart as the message's content
-            msg.setContent(mp);
+        // Create the Multipart.  Add BodyParts to it.
+        final Multipart mp = new MimeMultipart("alternative");
+        mp.addBodyPart(textPart);
+        mp.addBodyPart(htmlPart);
+        // Set Multipart as the message's content
+        msg.setContent(mp);
 
-            // Send message
-            Transport.send(msg);
+        // Send message
+        Transport.send(msg);
 
-            System.out.println("Sent message successfully to [" + to + "]...");
-
-            return true;
-        }
-        catch (MessagingException mex) {
-            mex.printStackTrace();
-        }
-        return false;
+        System.out.println("Sent message successfully to [" + to + "]...");
     }
 }

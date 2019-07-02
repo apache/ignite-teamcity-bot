@@ -34,7 +34,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  *
  */
 public class SlackSender {
-    public static boolean sendMessage(String addr, String msg,
+    public static void sendMessage(String addr, String msg,
         NotificationsConfig cfg) throws IOException {
         String authTok = cfg.slackAuthToken();
         Preconditions.checkState(!isNullOrEmpty(authTok),  "notifications:\"{}\" property should be filled in branches.json");
@@ -49,11 +49,8 @@ public class SlackSender {
 
                 SlackChannel slackCh = ses.findChannelByName(ch);
 
-                if (slackCh == null) {
-                    System.err.println("Failed to find channel [" + addr + "]: Notification not send [" + msg + "]");
-
-                    return false;
-                }
+                if (slackCh == null)
+                    throw new RuntimeException("Failed to find channel [" + addr + "]: Notification not send [" + msg + "]");
 
                 SlackMessageHandle<SlackMessageReply> handle = ses.sendMessage(slackCh, msg);
 
@@ -62,22 +59,16 @@ public class SlackSender {
             else {
                 SlackUser user = ses.findUserByUserName(addr); //make sure bot is a member of the user.
 
-                if (user == null) {
-                    System.err.println("Failed to find user [" + addr + "]: Notification not send [" + msg + "]");
-
-                    return false;
-                }
+                if (user == null)
+                    throw new RuntimeException("Failed to find user [" + addr + "]: Notification not send [" + msg + "]");
 
                 SlackMessageHandle<SlackMessageReply> handle = ses.sendMessageToUser(user, msg, null);
 
                 System.out.println("Message to user " + addr + " " + msg + "; acked: " + handle.isAcked());
-
             }
         }
         finally {
             ses.disconnect();
         }
-
-        return true;
     }
 }

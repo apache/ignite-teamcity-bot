@@ -33,6 +33,7 @@ import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
+import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.agent.Agent;
 import org.apache.ignite.tcservice.model.mute.MuteInfo;
 import org.apache.ignite.tcservice.model.result.Build;
@@ -200,19 +201,22 @@ public interface ITeamcityIgnited {
      */
     public BuildTypeCompacted getBuildType(String buildTypeId);
 
+    @Deprecated
     @Nullable public IRunHistory getTestRunHist(String testName, @Nullable String branch);
 
+    @Deprecated
     @Nullable public IRunHistory getSuiteRunHist(String suiteId, @Nullable String branch);
 
+    @Nullable public ISuiteRunHistory getSuiteRunHist(@Nullable Integer buildTypeId, @Nullable Integer normalizedBaseBranch);
 
     /**
      * V.3.0 run history implementation based on scan of fat builds.
      *
      * @param testName Test name.
-     * @param suiteName Suite name.
-     * @param branchName Branch name.
+     * @param buildTypeId Suite (Build Type) ID, ID for compactor. Null suite name means suite not found.
+     * @param normalizedBaseBranch Branch name. This branch name does not support branches equivalence, only exact query will work.
      */
-    @Nullable public IRunHistory getTestRunHist(int testName, @Nullable Integer suiteName, @Nullable Integer branchName);
+    @Nullable public IRunHistory getTestRunHist(int testName, @Nullable Integer buildTypeId, @Nullable Integer normalizedBaseBranch);
 
     /**
      * @param suiteBuildTypeId Suite id.

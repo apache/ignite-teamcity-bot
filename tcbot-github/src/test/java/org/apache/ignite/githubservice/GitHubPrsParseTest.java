@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.ignite.githubservice;
 
 import com.google.common.base.Preconditions;
@@ -25,7 +26,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.githubservice.GitHubConnectionImpl;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertEquals;

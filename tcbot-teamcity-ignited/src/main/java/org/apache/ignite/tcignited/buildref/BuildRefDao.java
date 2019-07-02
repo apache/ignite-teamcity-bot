@@ -175,7 +175,7 @@ public class BuildRefDao {
      */
     @AutoProfiling
     @Nonnull public List<BuildRefCompacted> getAllBuildsCompacted(int srvId,
-                                                                  String buildTypeId,
+        String buildTypeId,
         List<String> bracnhNameQry) {
         Integer buildTypeIdId = compactor.getStringIdIfPresent(buildTypeId);
         if (buildTypeIdId == null)

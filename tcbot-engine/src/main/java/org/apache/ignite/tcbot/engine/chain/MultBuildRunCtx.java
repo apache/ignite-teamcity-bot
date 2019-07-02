@@ -17,7 +17,9 @@
 
 package org.apache.ignite.tcbot.engine.chain;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.cache.CacheBuilder;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -28,23 +30,25 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.util.CollectionUtil;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.buildlog.ILogCheckResult;
 import org.apache.ignite.tcignited.buildlog.ITestLogCheckResult;
 import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
@@ -66,6 +70,9 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     /** Builds: Single execution. */
     private List<SingleBuildRunCtx> builds = new CopyOnWriteArrayList<>();
+
+    private final com.google.common.cache.Cache<Integer, Optional<ISuiteRunHistory>> historyCacheMap
+        = CacheBuilder.newBuilder().build();
 
     public void addBuild(SingleBuildRunCtx ctx) {
         builds.add(ctx);
@@ -98,8 +105,9 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().map(SingleBuildRunCtx::getTestLogCheckResult).filter(Objects::nonNull);
     }
 
-    public String suiteId() {
-        return firstBuildInfo.suiteId();
+    /** {@inheritDoc} */
+    @Override public String suiteId() {
+        return firstBuild().map(SingleBuildRunCtx::suiteId).orElse(null);
     }
 
     /** {@inheritDoc} */
@@ -107,9 +115,6 @@ public class MultBuildRunCtx implements ISuiteResults {
         return getBuildMessageProblemCount() > 0;
     }
 
-    public String buildTypeId() {
-        return firstBuildInfo.buildTypeId;
-    }
 
     public boolean hasAnyBuildProblemExceptTestOrSnapshot() {
         return allProblemsInAllBuilds()
@@ -170,6 +175,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().filter(ISuiteResults::hasCompilationProblem).count();
     }
 
+    /** {@inheritDoc} */
     public boolean hasTimeoutProblem() {
         return getExecutionTimeoutCount() > 0;
     }
@@ -178,6 +184,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsStream().filter(SingleBuildRunCtx::hasTimeoutProblem).count();
     }
 
+    /** {@inheritDoc} */
     public boolean hasJvmCrashProblem() {
         return getJvmCrashProblemCount() > 0;
     }
@@ -186,10 +193,12 @@ public class MultBuildRunCtx implements ISuiteResults {
         return buildsCntHavingBuildProblem(ProblemOccurrence.TC_JVM_CRASH);
     }
 
+    /** {@inheritDoc} */
     public boolean hasOomeProblem() {
         return getOomeProblemCount() > 0;
     }
 
+    /** {@inheritDoc} */
     @Override public boolean hasExitCodeProblem() {
         return getExitCodeProblemsCount() > 0;
     }
@@ -303,8 +312,8 @@ public class MultBuildRunCtx implements ISuiteResults {
         return CollectionUtil.top(logSizeBytes.entrySet().stream(), 3, comparing).stream();
     }
 
-    public Stream<? extends IMultTestOccurrence> getTopLongRunning() {
-        Comparator<IMultTestOccurrence> comparing = Comparator.comparing(IMultTestOccurrence::getAvgDurationMs);
+    public Stream<TestCompactedMult> getTopLongRunning() {
+        Comparator<TestCompactedMult> comparing = Comparator.comparing(TestCompactedMult::getAvgDurationMs);
 
         Map<Integer, TestCompactedMult> res = new HashMap<>();
 
@@ -315,7 +324,7 @@ public class MultBuildRunCtx implements ISuiteResults {
         return CollectionUtil.top(res.values().stream(), 3, comparing).stream();
     }
 
-    public List<IMultTestOccurrence> getFailedTests() {
+    public List<TestCompactedMult> getFailedTests() {
         Map<Integer, TestCompactedMult> res = new HashMap<>();
 
         builds.forEach(singleBuildRunCtx -> {
@@ -327,7 +336,7 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     public void saveToMap(Map<Integer, TestCompactedMult> res, Stream<TestCompacted> tests) {
         tests.forEach(testCompacted -> {
-            res.computeIfAbsent(testCompacted.testName(), k -> new TestCompactedMult(compactor))
+            res.computeIfAbsent(testCompacted.testName(), k -> new TestCompactedMult(compactor, this))
                 .add(testCompacted);
         });
     }
@@ -607,17 +616,13 @@ public class MultBuildRunCtx implements ISuiteResults {
 
         //todo can cache mult occurrences in ctx
         builds.forEach(singleBuildRunCtx -> {
-            saveToMap(res, singleBuildRunCtx.getAllTests()
-                .filter(t -> !t.isIgnoredTest() && !t.isMutedTest()));
+            saveToMap(res,
+                singleBuildRunCtx.getAllTests().filter(t -> !t.isIgnoredTest() && !t.isMutedTest()));
         });
         Integer branchName = compactor.getStringIdIfPresent(normalizedBaseBranch);
-        Integer suiteName = compactor.getStringIdIfPresent( buildTypeId());
 
-        // res.clear(); //todo enable feature back
-
-        //todo can cache fail rate in mult occur
-        res.keySet().forEach((testNameId) -> {
-            IRunHistory stat = tcIgnited.getTestRunHist(testNameId, suiteName, branchName);
+        res.forEach((testNameId, compactedMult) -> {
+            IRunHistory stat = compactedMult.history(tcIgnited, branchName);
             String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
             boolean b = testBlockerComment != null;
             if (b) // this test will be considered as blocker if will fail
@@ -627,4 +632,46 @@ public class MultBuildRunCtx implements ISuiteResults {
         return trustedCnt.get();
     }
 
+    /**
+     * Returns suite name non compacted.
+     */
+    public Integer buildTypeIdId() {
+        return firstBuild().map(SingleBuildRunCtx::buildTypeIdId).orElse(null);
+    }
+
+    public Optional<SingleBuildRunCtx> firstBuild() {
+        return builds.stream().findFirst();
+    }
+
+    /**
+     * @param tcIgn Tc ign.
+     * @param baseBranchId Base branch id.
+     */
+    public IRunHistory history(ITeamcityIgnited tcIgn, Integer baseBranchId) {
+        if (baseBranchId == null)
+            return null;
+
+        ISuiteRunHistory suiteHist = suiteHist(tcIgn, baseBranchId);
+        if (suiteHist == null)
+            return null;
+
+        return suiteHist.self();
+    }
+
+    @Nullable
+    ISuiteRunHistory suiteHist(ITeamcityIgnited tcIgn, Integer baseBranchId) {
+        Integer buildTypeIdId = buildTypeIdId();
+        Preconditions.checkNotNull(buildTypeIdId, "Build type ID should be filled");
+
+        try {
+            return historyCacheMap.get(baseBranchId,
+                () -> {
+                    return Optional.ofNullable(tcIgn.getSuiteRunHist(buildTypeIdId, baseBranchId));
+                })
+                .orElse(null);
+        }
+        catch (ExecutionException e) {
+            throw  ExceptionUtil.propagateException(e);
+        }
+    }
 }

@@ -21,10 +21,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
+import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.history.IRunHistSummary;
+import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
+import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 
 /**
@@ -33,12 +38,17 @@ import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 public class TestCompactedMult implements IMultTestOccurrence {
     private final List<TestCompacted> occurrences = new ArrayList<>();
     private IStringCompactor compactor;
+    private MultBuildRunCtx ctx;
     private long avgDuration = -1;
 
-    public TestCompactedMult(IStringCompactor compactor) {
+    public TestCompactedMult(IStringCompactor compactor, MultBuildRunCtx ctx) {
         this.compactor = compactor;
+        this.ctx = ctx;
     }
 
+    @Nullable public Integer testName() {
+        return occurrences.isEmpty() ? null : occurrences.iterator().next().testName();
+    }
     /** {@inheritDoc} */
     @Override public String getName() {
         return occurrences.isEmpty() ? "" : occurrences.iterator().next().testName(compactor);
@@ -93,7 +103,7 @@ public class TestCompactedMult implements IMultTestOccurrence {
          boolean flaky = baseBranchStat.isFlaky();
 
          float failRate = baseBranchStat.getFailRate();
-         boolean lowFailureRate = failRate * 100.0f < 4.;
+         boolean lowFailureRate = failRate * 100.0f < TcBotConst.NON_FLAKY_TEST_FAIL_RATE_BLOCKER_BORDER_PERCENTS;
 
          if (lowFailureRate && !flaky) {
              String runStatPrintable = IRunStat.getPercentPrintable(failRate * 100.0f);
@@ -108,5 +118,19 @@ public class TestCompactedMult implements IMultTestOccurrence {
 
     public void add(TestCompacted next) {
         occurrences.add(next);
+    }
+
+
+    public IRunHistory history(ITeamcityIgnited ignited, Integer baseBranchId) {
+        Integer name = testName();
+        if (name == null)
+            return null;
+
+        ISuiteRunHistory suiteRunHist = ctx.suiteHist(ignited, baseBranchId);
+
+        if (suiteRunHist == null)
+            return null;
+
+        return suiteRunHist.getTestRunHist(name);
     }
 }

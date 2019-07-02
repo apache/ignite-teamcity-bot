@@ -18,16 +18,13 @@
 package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.Preconditions;
-import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -41,23 +38,18 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.CacheEntryProcessor;
-import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
-import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
-import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
-import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
-import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.history.IRunHistory;
+import org.apache.ignite.tcignited.buildref.BuildRefDao;
+import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcservice.model.changes.ChangesList;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
-import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrencesFull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,24 +70,11 @@ public class FatBuildDao {
     /** Builds cache. */
     private IgniteCache<Long, FatBuildCompacted> buildsCache;
 
-
-    /** Suite history cache. */
-    private IgniteCache<RunHistKey, SuiteHistory> suiteHistory;
-
     /** Compactor. */
     @Inject private IStringCompactor compactor;
 
-    /**
-     * Non persistence cache for all suite RunHistory for particular branch.
-     * RunHistKey(ServerId||BranchId||suiteId)-> Build reference
-     */
-    private final com.google.common.cache.Cache<RunHistKey, SuiteHistory> runHistInMemCache
-        = CacheBuilder.newBuilder()
-        .maximumSize(8000)
-        .expireAfterAccess(16, TimeUnit.MINUTES)
-        .softValues()
-        .build();
-
+    /** History collector. */
+    @Inject private HistoryCollector histCollector;
 
     /**
      *
@@ -155,7 +134,7 @@ public class FatBuildDao {
     public void putFatBuild(int srvIdMaskHigh, int buildId, FatBuildCompacted newBuild) {
         buildsCache.put(buildIdToCacheKey(srvIdMaskHigh, buildId), newBuild);
 
-        invalidateHistoryInMem(srvIdMaskHigh, Stream.of(newBuild));
+        histCollector.invalidateHistoryInMem(srvIdMaskHigh, newBuild);
     }
 
     public static int[] extractChangeIds(@Nonnull ChangesList changesList) {
@@ -172,7 +151,7 @@ public class FatBuildDao {
     }
 
     /**
-     * @param srvIdMaskHigh Server id mask high.
+     * @param srvIdMaskHigh Server id mask to be placed at high bits of the key.
      * @param buildId Build id.
      */
     public static long buildIdToCacheKey(int srvIdMaskHigh, int buildId) {
@@ -197,10 +176,7 @@ public class FatBuildDao {
     public Map<Long, FatBuildCompacted> getAllFatBuilds(int srvIdMaskHigh, Collection<Integer> buildsIds) {
         Preconditions.checkNotNull(buildsCache, "init() was not called");
 
-        Set<Long> ids = buildsIds.stream()
-            .filter(Objects::nonNull)
-            .map(buildId -> buildIdToCacheKey(srvIdMaskHigh, buildId))
-            .collect(Collectors.toSet());
+        Set<Long> ids = buildsIdsToCacheKeys(srvIdMaskHigh, buildsIds);
 
         return buildsCache.getAll(ids);
     }
@@ -223,108 +199,52 @@ public class FatBuildDao {
             .filter(entry -> isKeyForServer(entry.getKey(), srvId));
     }
 
-    public IRunHistory getTestRunHist(int srvIdMaskHigh,
-        Supplier<Set<Integer>> buildIdsSupplier, int testName, int suiteName, int branchName) {
-
-
-        RunHistKey runHistKey = new RunHistKey(srvIdMaskHigh, suiteName, branchName);
-
-        SuiteHistory history;
-
-        try {
-            history = runHistInMemCache.get(runHistKey,
-                () -> {
-                    Set<Integer> buildIds = determineLatestBuilds(buildIdsSupplier);
-
-                    return calcSuiteHistory(srvIdMaskHigh, buildIds);
-                });
-        }
-        catch (ExecutionException e) {
-            throw ExceptionUtil.propagateException(e);
-        }
-
-        return history.testsHistory.get(testName);
+    private static Set<Long> buildsIdsToCacheKeys(int srvId, Collection<Integer> stream) {
+        return stream.stream()
+            .filter(Objects::nonNull).map(id -> buildIdToCacheKey(srvId, id)).collect(Collectors.toSet());
     }
 
-    @AutoProfiling
-    protected SuiteHistory calcSuiteHistory(int srvIdMaskHigh, Set<Integer> buildIds) {
-        Set<Long> cacheKeys = buildIds.stream().map(id -> buildIdToCacheKey(srvIdMaskHigh, id)).collect(Collectors.toSet());
+    /**
+     * @param srvId Server id.
+     * @param ids Ids.
+     */
+    public Map<Integer, Long> getBuildStartTime(int srvId, Set<Integer> ids) {
+        IgniteCache<Long, BinaryObject> cacheBin = buildsCache.withKeepBinary();
+        Set<Long> keys = buildsIdsToCacheKeys(srvId, ids);
+        HashMap<Integer, Long> res = new HashMap<>();
 
-        int successStatusStrId = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
-
-        CacheEntryProcessor<Long, FatBuildCompacted, Map<Integer, Invocation>> processor = new HistoryCollectProcessor(successStatusStrId);
-
-        Map<Long, EntryProcessorResult<Map<Integer, Invocation>>> map = buildsCache.invokeAll(cacheKeys, processor);
-
-        SuiteHistory hist = new SuiteHistory();
-
-        map.values().forEach(
-            res-> {
-                if(res==null)
-                    return;
-
-                Map<Integer, Invocation> invocationMap = res.get();
-
-                if(invocationMap == null)
-                    return;
-
-                invocationMap.forEach((k, v) -> {
-                    RunHistCompacted compacted = hist.testsHistory.computeIfAbsent(k,
-                        k_ -> new RunHistCompacted());
-
-                    compacted.innerAddInvocation(v);
+        Iterables.partition(keys, 32 * 10).forEach(
+            chunk -> {
+                Map<Long, EntryProcessorResult<Long>> map = cacheBin.invokeAll(keys, new GetStartTimeProc());
+                map.forEach((k, r) -> {
+                    Long ts = r.get();
+                    if (ts != null)
+                        res.put(BuildRefDao.cacheKeyToBuildId(k), ts);
                 });
-
             }
         );
 
-        System.err.println("Suite history: tests in scope "
-                + hist.testsHistory.size()
-                + " for " +buildIds.size() + " builds checked"
-                + " size " + hist.size(igniteProvider.get()));
-
-        return hist;
+        return res;
     }
 
-    @AutoProfiling
-    protected Set<Integer> determineLatestBuilds(Supplier<Set<Integer>> buildIdsSupplier) {
-        return buildIdsSupplier.get();
-    }
-
-    public void invalidateHistoryInMem(int srvId, Stream<BuildRefCompacted> stream) {
-        Iterable<RunHistKey> objects =
-            stream
-                .map(b -> new RunHistKey(srvId, b.buildTypeId(), b.branchName()))
-                .collect(Collectors.toSet());
-
-        runHistInMemCache.invalidateAll(objects);
-    }
-
-
-    private static class HistoryCollectProcessor implements CacheEntryProcessor<Long, FatBuildCompacted, Map<Integer, Invocation>> {
-        private final int successStatusStrId;
-
-        public HistoryCollectProcessor(int successStatusStrId) {
-            this.successStatusStrId = successStatusStrId;
+    private static class GetStartTimeProc implements CacheEntryProcessor<Long, BinaryObject, Long> {
+        public GetStartTimeProc() {
         }
 
-        @Override public Map<Integer, Invocation> process(MutableEntry<Long, FatBuildCompacted> entry,
+        /** {@inheritDoc} */
+        @Override public Long process(MutableEntry<Long, BinaryObject> entry,
             Object... arguments) throws EntryProcessorException {
             if (entry.getValue() == null)
                 return null;
 
-            Map<Integer, Invocation> hist = new HashMap<>();
-            FatBuildCompacted fatBuildCompacted = entry.getValue();
-            Stream<TestCompacted> tests = fatBuildCompacted.getAllTests();
-            tests.forEach(
-                testCompacted -> {
-                    Invocation invocation = testCompacted.toInvocation(fatBuildCompacted, (k, v) -> false, successStatusStrId);
+            BinaryObject buildBinary = entry.getValue();
 
-                    hist.put(testCompacted.testName(), invocation);
-                }
-            );
+            Long startDate = buildBinary.field("startDate");
 
-            return hist;
+            if (startDate == null || startDate <= 0)
+                return null;
+
+            return startDate;
         }
     }
 }

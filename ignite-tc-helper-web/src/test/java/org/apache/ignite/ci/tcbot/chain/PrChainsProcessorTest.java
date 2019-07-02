@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
+import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcservice.model.conf.BuildType;
@@ -222,7 +223,7 @@ public class PrChainsProcessorTest {
             addBuildsToEmulatedStor(cache1InMaster);
         }
 
-        long ageMs = TimeUnit.DAYS.toMillis(InvocationData.MAX_DAYS);
+        long ageMs = TimeUnit.DAYS.toMillis(TcBotConst.HISTORY_MAX_DAYS);
 
         for (int i = 0; i < 134; i++) {
             addBuildsToEmulatedStor(createFailedBuild(c, CACHE_1,
