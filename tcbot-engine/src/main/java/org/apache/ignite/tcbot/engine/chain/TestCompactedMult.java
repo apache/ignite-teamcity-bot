@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
+import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.history.IRunHistSummary;
@@ -102,7 +103,7 @@ public class TestCompactedMult implements IMultTestOccurrence {
          boolean flaky = baseBranchStat.isFlaky();
 
          float failRate = baseBranchStat.getFailRate();
-         boolean lowFailureRate = failRate * 100.0f < 4.;
+         boolean lowFailureRate = failRate * 100.0f < TcBotConst.NON_FLAKY_TEST_FAIL_RATE_BLOCKER_BORDER_PERCENTS;
 
          if (lowFailureRate && !flaky) {
              String runStatPrintable = IRunStat.getPercentPrintable(failRate * 100.0f);

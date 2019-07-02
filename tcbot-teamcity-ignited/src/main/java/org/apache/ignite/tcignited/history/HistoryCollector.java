@@ -39,8 +39,8 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
-import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
+import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -176,7 +176,7 @@ public class HistoryCollector {
 
                 long ageInDays = Duration.ofMillis(curTs - startTime).toDays();
 
-                if (ageInDays > InvocationData.MAX_DAYS + 2) {
+                if (ageInDays > TcBotConst.HISTORY_BUILD_ID_BORDER_DAYS) {
                     AtomicInteger integer = biggestBuildIdOutOfHistoryScope.computeIfAbsent(srvId,
                         s -> {
                             AtomicInteger atomicInteger = new AtomicInteger();
@@ -190,7 +190,7 @@ public class HistoryCollector {
                         logger.info("History Collector: New border for server was set " + bId);
                 }
 
-                return ageInDays < InvocationData.MAX_DAYS;
+                return ageInDays < TcBotConst.HISTORY_MAX_DAYS;
             }
         ).collect(Collectors.toSet());
 
