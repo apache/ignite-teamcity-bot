@@ -42,9 +42,9 @@ import org.apache.ignite.ci.mail.SlackSender;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.ignited.runhist.InvocationData;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.user.TcHelperUser;
+import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
@@ -160,7 +160,15 @@ public class IssueDetector {
                 long detected = issue.detectedTs == null ? 0 : issue.detectedTs;
                 long issueAgeMs = System.currentTimeMillis() - detected;
 
-                long bound = TimeUnit.HOURS.toMillis(2);
+                //here boundary can be not an absolute, but some ts when particular notification channel config was changed
+                // alternatively boundary may depend to issue notification histroy
+
+                boolean neverNotified = issue.addressNotified == null || issue.addressNotified.isEmpty();
+                // if issue had a prior notification, limit age by 2 hours to avoid new addresses spamming.
+                // otherwise check last day issues if it is notifiable
+                long bound = TimeUnit.HOURS.toMillis(neverNotified
+                    ? TcBotConst.NOTIFY_MAX_AGE_SINCE_DETECT_HOURS
+                    : TcBotConst.NOTIFY_MAX_AGE_SINCE_DETECT_FOR_NOTIFIED_ISSUE_HOURS );
 
                 return issueAgeMs <= bound;
             })
@@ -171,7 +179,7 @@ public class IssueDetector {
 
                 long buildStartTs = issue.buildStartTs == null ? 0 : issue.buildStartTs;
                 long buildAgeMs = System.currentTimeMillis() - buildStartTs;
-                long maxBuildAgeToNotify = TimeUnit.DAYS.toMillis(InvocationData.MAX_DAYS) / 2;
+                long maxBuildAgeToNotify = TimeUnit.DAYS.toMillis(TcBotConst.NOTIFY_MAX_AGE_SINCE_START_DAYS) / 2;
 
                 return buildAgeMs <= maxBuildAgeToNotify;
             })

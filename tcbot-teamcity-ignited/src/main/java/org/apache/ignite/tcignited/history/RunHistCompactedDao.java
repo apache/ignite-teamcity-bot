@@ -72,6 +72,7 @@ public class RunHistCompactedDao {
     private IgniteCache<RunHistKey, RunHistCompacted> testHistCache;
 
     /** Suite history cache. */
+    @Deprecated
     private IgniteCache<RunHistKey, RunHistCompacted> suiteHistCache;
 
     /** Build start time. */
@@ -157,6 +158,7 @@ public class RunHistCompactedDao {
     }
 
     @AutoProfiling
+    @Deprecated
     public Integer addTestInvocations(RunHistKey histKey, List<Invocation> list) {
         if (list.isEmpty())
             return 0;

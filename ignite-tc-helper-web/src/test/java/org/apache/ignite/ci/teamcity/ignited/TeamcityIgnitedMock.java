@@ -179,7 +179,7 @@ public class TeamcityIgnitedMock {
 
                 Invocation inv = testCompacted.toInvocation(build, (k, v) -> true, successStatusStrId);
 
-                hist.addInvocation(inv);
+                hist.innerAddInvocation(inv);
             });
         }
 

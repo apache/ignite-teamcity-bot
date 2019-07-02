@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.persistence.IVersionedEntity;
 import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.history.ChangesState;
@@ -36,7 +37,6 @@ import org.apache.ignite.tcignited.history.RunStatus;
 public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     /** Latest version. */
     private static final int LATEST_VERSION = 1;
-    public static final int FLAKYNESS_STATUS_CHANGE_BORDER = 1;
 
     /** Entity fields version. */
     @SuppressWarnings("FieldCanBeLocal")
@@ -92,7 +92,7 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     @Override public String getFlakyComments() {
         int statusChange = getStatusChangesWithoutCodeModification();
 
-        if (statusChange < FLAKYNESS_STATUS_CHANGE_BORDER)
+        if (statusChange < TcBotConst.FLAKYNESS_STATUS_CHANGE_BORDER)
             return null;
 
         return "Test seems to be flaky: " +
@@ -120,7 +120,7 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
 
     /** {@inheritDoc} */
     @Override public boolean isFlaky() {
-        return getStatusChangesWithoutCodeModification() >= FLAKYNESS_STATUS_CHANGE_BORDER;
+        return getStatusChangesWithoutCodeModification() >= TcBotConst.FLAKYNESS_STATUS_CHANGE_BORDER;
     }
 
     /** {@inheritDoc} */
@@ -132,6 +132,7 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
      * @param inv Invocation.
      * @return if test run is new and is not expired.
      */
+    @Deprecated
     public boolean addInvocation(Invocation inv) {
         return data.addInvocation(inv);
     }

@@ -104,6 +104,7 @@ public class RunHistSync {
      * @param srvCode Server code (internal identification).
      * @param build Build.
      */
+    @Deprecated
     public void saveToHistoryLater(String srvCode, FatBuildCompacted build) {
         if (!validForStatistics(build))
             return;
@@ -201,6 +202,7 @@ public class RunHistSync {
         return saveInvocationsMap(buildsSaveThisRun, testsSaveThisRun);
     }
 
+    @Deprecated
     @AutoProfiling
     @Nonnull protected String saveInvocationsMap(
         Map<RunHistKey, List<Invocation>> buildsSaveThisRun,
@@ -259,6 +261,7 @@ public class RunHistSync {
         return res;
     }
 
+    @Deprecated
     private void saveInvocationList(Set<Integer> confirmedNewBuild,
         Set<Integer> confirmedDuplicate,
         AtomicInteger invocations,
@@ -297,6 +300,7 @@ public class RunHistSync {
         duplicateOrExpired.addAndGet(invocationList.size() - cntAdded);
     }
 
+    @Deprecated
     public void invokeLaterFindMissingHistory(String srvName) {
         scheduler.sheduleNamed(taskName("findMissingHistFromBuildRef", srvName),
             () -> findMissingHistFromBuildRef(srvName), 12, TimeUnit.HOURS);
@@ -310,6 +314,7 @@ public class RunHistSync {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     @MonitoredTask(name = "Find Missing Build History", nameExtArgsIndexes = {0})
     @AutoProfiling
+    @Deprecated
     protected String findMissingHistFromBuildRef(String srvId) {
         int srvIdMaskHigh = ITeamcityIgnited.serverIdToInt(srvId);
 
@@ -342,6 +347,7 @@ public class RunHistSync {
      * @param srvNme Server  name;
      * @param load Build IDs to be loaded into history cache later.
      */
+    @Deprecated
     private void scheduleHistLoad(String srvNme, List<Integer> load) {
         load.forEach(id -> {
             FatBuildCompacted fatBuild = fatBuildDao.getFatBuild(ITeamcityIgnited.serverIdToInt(srvNme), id);
