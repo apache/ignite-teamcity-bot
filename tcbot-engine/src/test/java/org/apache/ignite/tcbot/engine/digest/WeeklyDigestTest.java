@@ -23,6 +23,7 @@ import javax.cache.Cache;
 import javax.mail.MessagingException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.engine.conf.BranchTracked;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
@@ -42,6 +43,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -60,6 +62,9 @@ public class WeeklyDigestTest {
 
         ITcBotConfig cfg = Mockito.mock(ITcBotConfig.class);
         TcBotJsonConfig tcBotJsonCfg = new TcBotJsonConfig();
+        BranchTracked branch = new BranchTracked();
+        branch.id = ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME;
+        tcBotJsonCfg.addBranch(branch);
         when(cfg.getTrackedBranches()).thenReturn(tcBotJsonCfg);
 
         NotificationsConfig notificationsCfg = tcBotJsonCfg.notifications();
@@ -72,7 +77,7 @@ public class WeeklyDigestTest {
 
             return cacheMock;
         });
-        IEmailSender emailSender = Mockito.mock(IEmailSender.class);
+        IEmailSender emailSnd = Mockito.mock(IEmailSender.class);
 
         Injector injector = Guice.createInjector(new AbstractModule() {
             @Override protected void configure() {
@@ -81,7 +86,7 @@ public class WeeklyDigestTest {
                 bind(ITcBotConfig.class).toInstance(cfg);
                 bind(IScheduler.class).to(DirectExecNoWaitScheduler.class);
                 bind(Ignite.class).toInstance(ignite);
-                bind(IEmailSender.class).toInstance(emailSender);
+                bind(IEmailSender.class).toInstance(emailSnd);
             }
         });
 
@@ -104,7 +109,7 @@ public class WeeklyDigestTest {
 
         digestSvc.startBackgroundCheck(creds);
 
-        verify(emailSender, times(1))
-            .sendEmail(anyString(), anyString(), anyString(), anyString(), any(ISendEmailConfig.class));
+        verify(emailSnd, times(1))
+            .sendEmail(eq(email), anyString(), anyString(), anyString(), any(ISendEmailConfig.class));
     }
 }

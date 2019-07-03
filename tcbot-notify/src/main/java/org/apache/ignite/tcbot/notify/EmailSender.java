@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.mail;
+package org.apache.ignite.tcbot.notify;
 
 import java.util.Properties;
 import javax.mail.Authenticator;
@@ -29,14 +29,14 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
-import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 
 /**
  * Class for sending email with configured credentials.
  */
-public class EmailSender {
-    public static void sendEmail(String to, String subject, String html, String plainText,
-        NotificationsConfig notifications) throws MessagingException {
+class EmailSender implements IEmailSender {
+    /** {@inheritDoc} */
+    @Override public void sendEmail(String to, String subject, String html, String plainText,
+        ISendEmailConfig notifications) throws MessagingException {
 
         String user = notifications.emailUsernameMandatory();
 

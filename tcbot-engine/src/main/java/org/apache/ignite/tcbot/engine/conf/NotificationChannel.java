@@ -18,7 +18,6 @@ package org.apache.ignite.tcbot.engine.conf;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
-
 import java.util.Collection;
 import java.util.HashSet;
 import javax.annotation.Nullable;
@@ -63,8 +62,12 @@ public class NotificationChannel implements INotificationChannel {
         return tagsFilter.contains(tag);
     }
 
+    /** {@inheritDoc} */
     @Override public boolean isSubscribedToDigestForBranch(String tbName) {
-        return false;
+        if (subscribedToDigest == null)
+            return false;
+
+        return subscribedToDigest.contains(tbName);
     }
 
     /** {@inheritDoc} */

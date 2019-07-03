@@ -17,5 +17,21 @@
 
 package org.apache.ignite.tcbot.notify;
 
+import javax.annotation.Nonnull;
+
+/**
+ * Source email configuration. Now only gmail server is supported.
+ */
 public interface ISendEmailConfig {
+    /**
+     * @return Email username.
+     */
+    @Nonnull
+    public String emailUsernameMandatory() ;
+
+    /**
+     * @return Email password.
+     */
+    @Nonnull
+    public String emailPasswordClearMandatory() ;
 }

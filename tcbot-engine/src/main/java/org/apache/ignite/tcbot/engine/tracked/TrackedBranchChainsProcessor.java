@@ -57,10 +57,9 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
     /** Compactor. */
     @Inject private IStringCompactor compactor;
 
-    @Override
     @AutoProfiling
     @Nonnull
-    public DsSummaryUi getTrackedBranchTestFailures(
+    @Override public DsSummaryUi getTrackedBranchTestFailures(
         @Nullable String branch,
         @Nullable Boolean checkAllLogs,
         int buildResMergeCnt,

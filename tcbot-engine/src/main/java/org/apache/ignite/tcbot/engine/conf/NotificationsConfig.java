@@ -117,6 +117,10 @@ public class NotificationsConfig implements INotificationsConfig {
         return email == null ? null : email.username();
     }
 
+    /**
+     *
+     */
+    @Override @Nonnull
     public String emailUsernameMandatory() {
         String username = emailUsername();
 
@@ -129,7 +133,7 @@ public class NotificationsConfig implements INotificationsConfig {
     /**
      * @return Email password.
      */
-    @Nonnull
+    @Override @Nonnull
     public String emailPasswordClearMandatory() {
         Preconditions.checkNotNull(email,
             "notifications/email/pwd property should be filled in branches.json");
