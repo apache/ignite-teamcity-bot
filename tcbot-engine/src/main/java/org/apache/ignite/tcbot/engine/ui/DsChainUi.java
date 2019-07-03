@@ -323,4 +323,12 @@ public class DsChainUi {
 
         return builder.toString();
     }
+
+    public int totalTests() {
+        return totalTests == null ? 0 : totalTests;
+    }
+
+    public int trustedTests() {
+        return trustedTests == null ? 0 : totalTests;
+    }
 }

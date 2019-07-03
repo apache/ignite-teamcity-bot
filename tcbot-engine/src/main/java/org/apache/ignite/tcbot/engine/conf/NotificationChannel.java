@@ -107,18 +107,22 @@ public class NotificationChannel implements INotificationChannel {
     /**
      * @param name Tracked Branch Name.
      */
-    public void subscribeToDigest(String name) {
-        if(subscribedToDigest ==null)
+    public NotificationChannel subscribeToDigest(String name) {
+        if (subscribedToDigest == null)
             subscribedToDigest = new HashSet<>();
 
         subscribedToDigest.add(name);
+
+        return this;
     }
 
     /**
      * Sets email.
      * @param email Value.
      */
-    public void email(String email) {
+    public NotificationChannel email(String email) {
         this.email = email;
+
+        return this;
     }
 }

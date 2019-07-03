@@ -29,6 +29,7 @@ import org.apache.ignite.tcbot.engine.conf.NotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
+import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.notify.ISendEmailConfig;
@@ -37,8 +38,11 @@ import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -55,19 +59,23 @@ public class WeeklyDigestTest {
         IDetailedStatusForTrackedBranch failuresProvider = Mockito.mock(IDetailedStatusForTrackedBranch.class);
         when(failuresProvider.getTrackedBranchTestFailures(anyString(),anyBoolean(),anyInt(),
             any(ICredentialsProv.class), any(SyncMode.class), anyBoolean())).thenAnswer((inv)->{
-            DsSummaryUi ui = new DsSummaryUi();
+            DsSummaryUi summaryUi = new DsSummaryUi();
 
-            return ui;
+            DsChainUi chainUi = new DsChainUi("", "", "/refs/heads/master");
+            summaryUi.addChainOnServer(chainUi);
+
+            return summaryUi;
         });
 
         ITcBotConfig cfg = Mockito.mock(ITcBotConfig.class);
-        TcBotJsonConfig tcBotJsonCfg = new TcBotJsonConfig();
-        BranchTracked branch = new BranchTracked();
-        branch.id = ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME;
-        tcBotJsonCfg.addBranch(branch);
-        when(cfg.getTrackedBranches()).thenReturn(tcBotJsonCfg);
 
-        NotificationsConfig notificationsCfg = tcBotJsonCfg.notifications();
+        TcBotJsonConfig tcBotJsonCfg = new TcBotJsonConfig();
+        String master = ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME;
+        String release = "ignite-2.7.5";
+        tcBotJsonCfg.addBranch(new BranchTracked().id(master));
+        tcBotJsonCfg.addBranch(new BranchTracked().id(release));
+
+        when(cfg.getTrackedBranches()).thenReturn(tcBotJsonCfg);
 
         when(cfg.notifications()).thenReturn(tcBotJsonCfg.notifications());
 
@@ -94,22 +102,49 @@ public class WeeklyDigestTest {
 
         ICredentialsProv creds = Mockito.mock(ICredentialsProv.class);
 
-        WeeklyFailuresDigest generate = digestSvc.generateFromCurrentState(ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME, creds);
+        WeeklyFailuresDigest generate = digestSvc.generateFromCurrentState(master, creds);
 
         System.out.println(generate.toHtml(null));
 
         System.out.println(generate.toHtml(generate));
 
-        NotificationChannel ch = new NotificationChannel();
-
         String email = "tcbot@gmail.com";
-        ch.email(email);
-        ch.subscribeToDigest(ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME);
-        notificationsCfg.addChannel(ch);
+        tcBotJsonCfg.notifications().addChannel(new NotificationChannel()
+            .email(email)
+            .subscribeToDigest(master));
+
+
+        String rmEmail = "release-manager@apache.org";
+        tcBotJsonCfg.notifications().addChannel(new NotificationChannel()
+            .email(rmEmail)
+            .subscribeToDigest(master).subscribeToDigest(release));
 
         digestSvc.startBackgroundCheck(creds);
 
+        ArgumentCaptor<String> htmlText = ArgumentCaptor.forClass(String.class);
+
         verify(emailSnd, times(1))
-            .sendEmail(eq(email), anyString(), anyString(), anyString(), any(ISendEmailConfig.class));
+            .sendEmail(eq(email), anyString(), htmlText.capture(), anyString(), any(ISendEmailConfig.class));
+
+        String htmlEmail = htmlText.getValue();
+
+        System.out.println(htmlEmail);
+
+        assertTrue(htmlEmail.contains("Total executed tests 0"));
+        assertTrue(htmlEmail.contains("Digest [master]"));
+        assertFalse(htmlEmail.contains("Digest ["+release+"]"));
+
+        verify(emailSnd, times(1))
+            .sendEmail(eq(rmEmail), anyString(), htmlText.capture(), anyString(), any(ISendEmailConfig.class));
+
+
+        String htmlEmailForRm = htmlText.getValue();
+
+        System.out.println(htmlEmailForRm);
+
+        assertTrue(htmlEmailForRm.contains("Total executed tests 0"));
+        assertTrue(htmlEmailForRm.contains("Digest [master]"));
+        assertTrue(htmlEmailForRm.contains("Digest ["+release+"]"));
+
     }
 }

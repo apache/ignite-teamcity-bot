@@ -17,8 +17,12 @@
 package org.apache.ignite.tcbot.engine.digest;
 
 import com.google.common.base.Strings;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -28,6 +32,7 @@ import javax.mail.MessagingException;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
+import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
@@ -66,9 +71,9 @@ public class DigestService {
         res.failedTests = failures.failedTests;
         res.failedSuites = failures.failedToFinish;
 
-        res.totalTests = failures.servers.stream().mapToInt(s -> s.totalTests).sum();
+        res.totalTests = failures.servers.stream().mapToInt(DsChainUi::totalTests).sum();
 
-        res.trustedTests = failures.servers.stream().mapToInt(s -> s.trustedTests).sum();
+        res.trustedTests = failures.servers.stream().mapToInt(DsChainUi::trustedTests).sum();
 
         return res;
     }
@@ -89,6 +94,9 @@ public class DigestService {
     private void digestServiceCheckDigest() {
         Collection<? extends INotificationChannel> channels = cfg.notifications().channels();
 
+        Map<String, WeeklyFailuresDigest> digestMap = new HashMap<>();
+        Map<String, List<WeeklyFailuresDigest>> sendNotifications = new HashMap<>();
+
         cfg.getTrackedBranches().branchesStream().forEach(
             tb -> {
                 List<INotificationChannel> subscibers = channels.stream()
@@ -97,24 +105,39 @@ public class DigestService {
                         return ch.isSubscribedToDigestForBranch(tb.name());
                     }).collect(Collectors.toList());
 
-                if(subscibers.isEmpty())
+                if (subscibers.isEmpty())
                     return;
 
+                WeeklyFailuresDigest digest = digestMap.computeIfAbsent(tb.name(), (k) -> {
+                    return generateFromCurrentState(k, bgCreds);
+                });
 
                 subscibers.forEach(
-                    s->{
-                        try {
-                            emailSender.sendEmail(s.email(),  "you're subscibed to " + tb.name(),
-                                "",
-                                "", cfg.notifications());
-                        }
-                        catch (MessagingException e) {
-                            e.printStackTrace(); // todo log
-                        }
+                    s -> {
+                        sendNotifications.computeIfAbsent(s.email(), k->new ArrayList<>()).add(digest);
                     }
                 );
             }
         );
+
+        sendNotifications.forEach((addr,v)->{
+
+            try {
+                StringBuilder emailTextHtml = new StringBuilder();
+                for (WeeklyFailuresDigest next : v) {
+                    String html = next.toHtml(null);
+                    emailTextHtml.append(html);
+                    emailTextHtml.append("<br>\n");
+                }
+                String list = v.stream().map(d -> d.trackedBranchName).collect(Collectors.toList()).toString();
+                emailSender.sendEmail(addr, "[TC Digest] you're subscibed to " + list,
+                    emailTextHtml.toString(),
+                    "", cfg.notifications());
+            }
+            catch (MessagingException e) {
+                e.printStackTrace(); // todo log
+            }
+        });
 
     }
 }

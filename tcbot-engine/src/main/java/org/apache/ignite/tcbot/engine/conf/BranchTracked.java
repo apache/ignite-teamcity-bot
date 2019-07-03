@@ -64,4 +64,12 @@ public class BranchTracked implements ITrackedBranch {
             : Collections.unmodifiableList(disableIssueTypes);
     }
 
+    /**
+     * @param id Tracked branch ID (TC Bot identification).
+     */
+    public BranchTracked id(String id) {
+        this.id = id;
+
+        return this;
+    }
 }
