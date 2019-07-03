@@ -19,6 +19,9 @@ package org.apache.ignite.tcbot.engine.digest;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.cache.Cache;
 import javax.mail.MessagingException;
 import org.apache.ignite.Ignite;
@@ -26,7 +29,6 @@ import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.engine.conf.BranchTracked;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationChannel;
-import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
@@ -42,6 +44,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -53,6 +56,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class WeeklyDigestTest {
+    private IDigestStorage stor = new EmulatedDigestStorage();
 
     @Test
     public void generateDigestAndDiff() throws MessagingException {
@@ -80,11 +84,7 @@ public class WeeklyDigestTest {
         when(cfg.notifications()).thenReturn(tcBotJsonCfg.notifications());
 
         Ignite ignite = Mockito.mock(Ignite.class);
-        when(ignite.cache(anyString())).thenAnswer(inv -> {
-            Cache cacheMock = Mockito.mock(Cache.class);
-
-            return cacheMock;
-        });
+        when(ignite.cache(anyString())).thenAnswer(inv -> Mockito.mock(Cache.class));
         IEmailSender emailSnd = Mockito.mock(IEmailSender.class);
 
         Injector injector = Guice.createInjector(new AbstractModule() {
@@ -95,6 +95,8 @@ public class WeeklyDigestTest {
                 bind(IScheduler.class).to(DirectExecNoWaitScheduler.class);
                 bind(Ignite.class).toInstance(ignite);
                 bind(IEmailSender.class).toInstance(emailSnd);
+
+                bind(IDigestStorage.class).toInstance(stor);
             }
         });
 
@@ -131,20 +133,30 @@ public class WeeklyDigestTest {
         System.out.println(htmlEmail);
 
         assertTrue(htmlEmail.contains("Total executed tests 0"));
-        assertTrue(htmlEmail.contains("Digest [master]"));
-        assertFalse(htmlEmail.contains("Digest ["+release+"]"));
+        assertTrue(htmlEmail.contains("Digest [" + master + "]"));
+        assertFalse(htmlEmail.contains("Digest [" + release + "]"));
 
         verify(emailSnd, times(1))
             .sendEmail(eq(rmEmail), anyString(), htmlText.capture(), anyString(), any(ISendEmailConfig.class));
-
 
         String htmlEmailForRm = htmlText.getValue();
 
         System.out.println(htmlEmailForRm);
 
         assertTrue(htmlEmailForRm.contains("Total executed tests 0"));
-        assertTrue(htmlEmailForRm.contains("Digest [master]"));
-        assertTrue(htmlEmailForRm.contains("Digest ["+release+"]"));
+        assertTrue(htmlEmailForRm.contains("Digest [" + master + "]"));
+        assertTrue(htmlEmailForRm.contains("Digest [" + release + "]"));
 
+        assertNotNull(stor.findLatest(master));
+    }
+
+    private static class EmulatedDigestStorage implements IDigestStorage {
+        AtomicInteger id = new AtomicInteger();
+        ConcurrentMap<Integer, WeeklyFailuresDigest> map = new ConcurrentHashMap<>();
+
+        @Override public WeeklyFailuresDigest findLatest(String trBrName) {
+            return map.values().stream().filter(d -> d.trackedBranchName.equals(trBrName))
+                .findAny().orElse(null);
+        }
     }
 }

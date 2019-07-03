@@ -18,21 +18,20 @@
 package org.apache.ignite.tcbot.engine.pr;
 
 import com.google.common.base.Strings;
-import org.apache.ignite.githubservice.IGitHubConnection;
-import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
+import java.util.Collection;
+import java.util.Objects;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import org.apache.ignite.ci.github.PullRequest;
 import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
+import org.apache.ignite.githubservice.IGitHubConnection;
 import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
 import org.apache.ignite.jiraservice.Ticket;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
+import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import java.util.Collection;
-import java.util.Objects;
 
 /**
  *
@@ -48,8 +47,8 @@ public class BranchTicketMatcher {
     @Inject private IJiraIgnitedProvider jiraIgnProv;
 
     @Nullable public String resolveTcBranchForPrLess(Ticket ticket,
-                                           IJiraServerConfig jiraCfg,
-                                           IGitHubConfig gitHubCfg) {
+        IJiraServerConfig jiraCfg,
+        IGitHubConfig gitHubCfg) {
         String branchNumPrefix = jiraCfg.branchNumPrefix();
 
         if (Strings.isNullOrEmpty(branchNumPrefix)) {

@@ -50,7 +50,7 @@ public class DigestService {
     private IDetailedStatusForTrackedBranch tbProc;
 
     @Inject
-    private WeeklyFailuresDao dao;
+    private IDigestStorage dao;
 
     @Inject
     private IScheduler scheduler;
@@ -78,8 +78,11 @@ public class DigestService {
         return res;
     }
 
+    /**
+     * @param branchNn Branch nn.
+     */
     public WeeklyFailuresDigest getLastDigest(String branchNn) {
-        return dao.get(branchNn);
+        return dao.findLatest(branchNn);
     }
 
     public void startBackgroundCheck(ICredentialsProv creds) {
@@ -99,7 +102,7 @@ public class DigestService {
         Collection<? extends INotificationChannel> channels = cfg.notifications().channels();
 
         Map<String, WeeklyFailuresDigest> digestMap = new HashMap<>();
-        Map<String, List<WeeklyFailuresDigest>> sendNotifications = new HashMap<>();
+        Map<String, List<WeeklyFailuresDigest>> sndNotifications = new HashMap<>();
 
         cfg.getTrackedBranches().branchesStream().forEach(
             tb -> {
@@ -116,14 +119,13 @@ public class DigestService {
                 });
 
                 subscibers.forEach(
-                    s -> {
-                        sendNotifications.computeIfAbsent(s.email(), k->new ArrayList<>()).add(digest);
-                    }
+                    channel -> sndNotifications.computeIfAbsent(channel.email(), k -> new ArrayList<>()).add(digest)
                 );
             }
         );
 
-        sendNotifications.forEach((addr,v)->{
+        StringBuilder errs = new StringBuilder();
+        sndNotifications.forEach((addr, v) -> {
             try {
                 StringBuilder emailTextHtml = new StringBuilder();
                 for (WeeklyFailuresDigest next : v) {
@@ -138,9 +140,11 @@ public class DigestService {
             }
             catch (MessagingException e) {
                 e.printStackTrace(); // todo log
+                errs.append("Unable to send report to [").append(addr).append("]:")
+                    .append(e.getClass()).append(":").append(e.getMessage()).append("; ");
             }
         });
 
-        return "Digest generated " + digestMap.keySet() + " Send to " + sendNotifications.keySet();
+        return "Digest generated " + digestMap.keySet() + " Send to " + sndNotifications.keySet() + " " + errs;
     }
 }

@@ -17,6 +17,7 @@
 package org.apache.ignite.tcbot.engine.digest;
 
 import javax.annotation.Nullable;
+import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.tcbot.common.util.TimeUtil;
 
 /**
@@ -24,7 +25,11 @@ import org.apache.ignite.tcbot.common.util.TimeUtil;
  */
 public class WeeklyFailuresDigest {
     /** Timestamp. */
-    public long ts = System.currentTimeMillis();
+    public long ts;
+
+    @QuerySqlField(index = true)
+    public Integer branchNameId;
+
     public String trackedBranchName;
 
     /** Failed tests. */
@@ -38,6 +43,7 @@ public class WeeklyFailuresDigest {
 
     public WeeklyFailuresDigest(String trackedBranchName) {
         this.trackedBranchName = trackedBranchName;
+        ts = System.currentTimeMillis();
     }
 
     public String toHtml(@Nullable WeeklyFailuresDigest lastDigest) {

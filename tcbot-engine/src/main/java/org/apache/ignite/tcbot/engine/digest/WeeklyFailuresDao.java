@@ -16,23 +16,85 @@
  */
 package org.apache.ignite.tcbot.engine.digest;
 
-import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
-
+import java.util.Collections;
 import javax.annotation.Nullable;
+import javax.cache.Cache;
 import javax.inject.Inject;
 import javax.inject.Provider;
+import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteAtomicSequence;
+import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.CacheAtomicityMode;
+import org.apache.ignite.cache.QueryEntity;
+import org.apache.ignite.cache.query.QueryCursor;
+import org.apache.ignite.cache.query.SqlQuery;
+import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.tcbot.persistence.CacheConfigs;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
 
-public class WeeklyFailuresDao {
+public class WeeklyFailuresDao implements IDigestStorage {
+    public static final String DIGEST_HIST_CACHE = "botDigestHist";
+    public static final String DIGEST_ENUMERATION_SEQ = "digestIdSeq";
 
-    public static final String DIGEST_HIST_CACHE = "digestHist";
-    @Inject
-    Provider<Ignite> igniteProvider;
+    /** Ignite provider. */
+    @Inject private Provider<Ignite> igniteProvider;
 
+    /** Compactor. */
+    @Inject private IStringCompactor compactor;
+
+    /** Digest id sequence. */
+    private IgniteAtomicSequence digestIdSeq;
+
+    /**
+     * @param trackedBranchName Tracked branch name.
+     */
     @Nullable
-    public WeeklyFailuresDigest get(String trackedBranchName) {
-        IgniteCache<String, WeeklyFailuresDigest> cache = igniteProvider.get().getOrCreateCache(DIGEST_HIST_CACHE);
+    public WeeklyFailuresDigest findLatest(String trackedBranchName) {
+        Integer trBrId = compactor.getStringIdIfPresent(trackedBranchName);
+        if (trBrId == null)
+            return null;
 
-        return cache.get(trackedBranchName);
+        WeeklyFailuresDigest latest = null;
+        IgniteCache<Integer, WeeklyFailuresDigest> cache = cache();
+
+        try (QueryCursor<Cache.Entry<Integer, WeeklyFailuresDigest>> qryCursor = cache.query(
+            new SqlQuery<Integer, WeeklyFailuresDigest>(WeeklyFailuresDigest.class, "branchNameId = ?")
+                .setArgs(trBrId))) {
+
+            for (Cache.Entry<Integer, WeeklyFailuresDigest> next : qryCursor) {
+                WeeklyFailuresDigest digest = next.getValue();
+                if (latest == null)
+                    latest = digest;
+                else if (digest.ts > latest.ts)
+                    latest = digest;
+            }
+        }
+
+        return latest;
+    }
+
+    public void save(WeeklyFailuresDigest digest) {
+        if (digest.branchNameId == null)
+            digest.branchNameId = compactor.getStringId(digest.trackedBranchName);
+
+        int id = (int)digestIdSeq.incrementAndGet();
+
+        cache().put(id, digest);
+
+    }
+
+    public void init() {
+        Ignite ignite = igniteProvider.get();
+        digestIdSeq = ignite.atomicSequence(DIGEST_ENUMERATION_SEQ, 0, true);
+    }
+
+    public IgniteCache<Integer, WeeklyFailuresDigest> cache() {
+        CacheConfiguration<Integer, WeeklyFailuresDigest> cfg = CacheConfigs.getCache8PartsConfig(DIGEST_HIST_CACHE);
+
+        cfg.setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
+
+        cfg.setQueryEntities(Collections.singletonList(new QueryEntity(String.class, WeeklyFailuresDigest.class)));
+
+        return igniteProvider.get().getOrCreateCache(cfg);
     }
 }

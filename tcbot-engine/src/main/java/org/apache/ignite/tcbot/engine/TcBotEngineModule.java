@@ -21,6 +21,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.internal.SingletonScope;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.digest.DigestService;
+import org.apache.ignite.tcbot.engine.digest.IDigestStorage;
+import org.apache.ignite.tcbot.engine.digest.WeeklyFailuresDao;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
 import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 
@@ -33,5 +35,6 @@ public class TcBotEngineModule extends AbstractModule {
         bind(BuildChainProcessor.class).in(new SingletonScope());
         bind(IDetailedStatusForTrackedBranch.class).to(TrackedBranchChainsProcessor.class).in(new SingletonScope());
         bind(DigestService.class).in(new SingletonScope());
+        bind(IDigestStorage.class).to(WeeklyFailuresDao.class).in(new SingletonScope());
     }
 }
