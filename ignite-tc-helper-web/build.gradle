@@ -20,11 +20,7 @@ apply plugin: 'war'
 
 // https://www.apache.org/legal/resolved.html#category-a
 dependencies {
-    compile (project(":tcbot-common"));
-    compile (project(":tcbot-teamcity"));
-    compile (project(":tcbot-teamcity-ignited"));
-    compile (project(":tcbot-engine"));
-    compile (project(":tcbot-notify"));
+    compile (project(":tcbot-engine")); 
 
     compile group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
     compile group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
@@ -54,12 +50,6 @@ dependencies {
 
     testCompile group: 'junit', name: 'junit', version: junitVer
     testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer
-
-    compile group: 'com.ullink.slack', name: 'simpleslackapi', version: '1.2.0'
-
-    compile group: 'org.xerial.snappy', name: 'snappy-java', version: '1.1.7.2'
-
-
 }
 
 processResources {

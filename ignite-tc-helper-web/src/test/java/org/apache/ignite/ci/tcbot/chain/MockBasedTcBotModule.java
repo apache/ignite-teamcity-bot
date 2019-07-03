@@ -41,6 +41,8 @@ import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
 import org.apache.ignite.tcbot.engine.conf.TcServerConfig;
 import org.apache.ignite.ci.tcbot.issue.IIssuesStorage;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
+import org.apache.ignite.tcbot.notify.IEmailSender;
+import org.apache.ignite.tcbot.notify.ISlackSender;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.ci.teamcity.ignited.InMemoryStringCompactor;
@@ -127,6 +129,9 @@ public class MockBasedTcBotModule extends AbstractModule {
 
         bind(IIssuesStorage.class).toInstance(Mockito.mock(IIssuesStorage.class));
         bind(IUserStorage.class).toInstance(Mockito.mock(IUserStorage.class));
+
+        bind(IEmailSender.class).toInstance(Mockito.mock(IEmailSender.class));
+        bind(ISlackSender.class).toInstance(Mockito.mock(ISlackSender.class));
 
         super.configure();
     }

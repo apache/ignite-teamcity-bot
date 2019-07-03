@@ -20,7 +20,6 @@ import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +28,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.mail.MessagingException;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
@@ -87,11 +87,15 @@ public class DigestService {
             this.bgCreds = creds;
 
             scheduler.sheduleNamed("digestServiceCheckDigest",
-                this::digestServiceCheckDigest, 15, TimeUnit.MINUTES);
+                this::digestServiceCheckDigest, 1, TimeUnit.MINUTES);
         }
     }
 
-    private void digestServiceCheckDigest() {
+    /**
+     *
+     */
+    @MonitoredTask(name = "Digest Generation")
+    protected String digestServiceCheckDigest() {
         Collection<? extends INotificationChannel> channels = cfg.notifications().channels();
 
         Map<String, WeeklyFailuresDigest> digestMap = new HashMap<>();
@@ -101,9 +105,8 @@ public class DigestService {
             tb -> {
                 List<INotificationChannel> subscibers = channels.stream()
                     .filter(ch -> !Strings.isNullOrEmpty(ch.email()))
-                    .filter(ch -> {
-                        return ch.isSubscribedToDigestForBranch(tb.name());
-                    }).collect(Collectors.toList());
+                    .filter(ch -> ch.isSubscribedToDigestForBranch(tb.name()))
+                    .collect(Collectors.toList());
 
                 if (subscibers.isEmpty())
                     return;
@@ -121,7 +124,6 @@ public class DigestService {
         );
 
         sendNotifications.forEach((addr,v)->{
-
             try {
                 StringBuilder emailTextHtml = new StringBuilder();
                 for (WeeklyFailuresDigest next : v) {
@@ -132,12 +134,13 @@ public class DigestService {
                 String list = v.stream().map(d -> d.trackedBranchName).collect(Collectors.toList()).toString();
                 emailSender.sendEmail(addr, "[TC Digest] you're subscibed to " + list,
                     emailTextHtml.toString(),
-                    "", cfg.notifications());
+                    "Sorry, TC Digest in text form is not supported. Visit https://mtcga.gridgain.com/digest.html", cfg.notifications());
             }
             catch (MessagingException e) {
                 e.printStackTrace(); // todo log
             }
         });
 
+        return "Digest generated " + digestMap.keySet() + " Send to " + sendNotifications.keySet();
     }
 }

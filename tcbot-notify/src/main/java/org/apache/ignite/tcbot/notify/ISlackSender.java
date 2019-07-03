@@ -14,27 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcbot.common.interceptor;
+package org.apache.ignite.tcbot.notify;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.io.IOException;
 
-@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.METHOD)
-public @interface MonitoredTask {
+/**
+ *
+ */
+public interface ISlackSender {
     /**
-     * @return Display name for monitoring page.
+     * @param addr Address, if starts from "#" - channel is notified, otherwise - user
+     * @param msg Message text.
+     * @param cfg Config with Slack token.
      */
-    String name() default "";
-
-    /**
-     * Argument index (0-based) to be used to extend name.
-     */
-    int nameExtArgIndex() default -1;
-
-    /**
-     * Array of Argument indexes (0-based) to be used to extend name.
-     */
-    int[] nameExtArgsIndexes() default {};
+    public void sendMessage(String addr, String msg, ISlackBotConfig cfg) throws IOException;
 }

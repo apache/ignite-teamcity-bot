@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcbot.engine.conf;
 
-import org.apache.ignite.tcbot.notify.ISendEmailConfig;
+package org.apache.ignite.tcbot.notify;
 
 /**
- *
+ * Source email configuration. Now only gmail server is supported.
  */
-public interface INotificationsConfig extends ISendEmailConfig {
+public interface ISlackBotConfig {
+    String slackAuthToken();
 }
