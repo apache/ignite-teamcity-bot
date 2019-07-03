@@ -18,12 +18,7 @@
 apply plugin: 'java'
 
 dependencies {
-    compile (project(":tcbot-teamcity-ignited"));
-    compile (project(":tcbot-github-ignited"));
-    compile (project(":tcbot-jira-ignited"));
-    compile (project(":tcbot-notify"));
+    compile (project(":tcbot-common"));
 
-    testCompile group: 'junit', name: 'junit', version: junitVer
-    testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer
+    compile group: 'javax.mail', name: 'mail', version: '1.4.7'
 }
- 

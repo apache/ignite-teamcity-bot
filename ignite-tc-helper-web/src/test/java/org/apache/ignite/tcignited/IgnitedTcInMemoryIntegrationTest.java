@@ -28,7 +28,7 @@ import org.apache.ignite.ci.db.TcHelperDb;
 import org.apache.ignite.tcbot.persistence.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.jiraservice.IJiraIntegrationProvider;
 import org.apache.ignite.ci.tcbot.chain.PrChainsProcessorTest;
-import org.apache.ignite.ci.tcbot.conf.TcBotJsonConfig;
+import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;

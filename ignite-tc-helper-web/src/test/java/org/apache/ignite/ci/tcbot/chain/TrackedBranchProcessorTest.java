@@ -28,9 +28,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.tcservice.ITeamcity;
-import org.apache.ignite.ci.tcbot.conf.BranchTracked;
-import org.apache.ignite.ci.tcbot.conf.ChainAtServerTracked;
-import org.apache.ignite.ci.tcbot.conf.TcBotJsonConfig;
+import org.apache.ignite.tcbot.engine.conf.BranchTracked;
+import org.apache.ignite.tcbot.engine.conf.ChainAtServerTracked;
+import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.SyncMode;

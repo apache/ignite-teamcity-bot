@@ -40,6 +40,10 @@ public interface INotificationChannel {
      * @param tag Tag from actual build/issue.
      */
     public boolean isSubscribedToTag(@Nullable String tag);
+    /**
+     * @param tbName Tb name.
+     */
+    public boolean isSubscribedToDigestForBranch(String tbName);
 
     /**
      * Returns email address.
@@ -57,4 +61,5 @@ public interface INotificationChannel {
      * @return any tags specified for this channel, filtration should be applied.
      */
     public boolean hasTagFilter();
+
 }

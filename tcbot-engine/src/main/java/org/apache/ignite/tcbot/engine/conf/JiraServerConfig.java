@@ -14,15 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.conf;
+package org.apache.ignite.tcbot.engine.conf;
 
 import com.google.common.base.Strings;
 import java.util.Properties;
-import org.apache.ignite.ci.HelperConfig;
+import javax.annotation.Nullable;
 import org.apache.ignite.jiraservice.Ticket;
 import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
 import org.apache.ignite.tcbot.common.conf.PasswordEncoder;
-import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -30,6 +29,17 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  *
  */
 public class JiraServerConfig implements IJiraServerConfig {
+    /** JIRA authorization token property name. */
+    public static final String JIRA_AUTH_TOKEN = "jira.auth_token";
+
+
+    /** JIRA URL to build links to tickets. */
+    public static final String JIRA_URL = "jira.url";
+
+    /** Prefix for JIRA ticket names. */
+    @Deprecated
+    public static final String JIRA_TICKET_TEMPLATE = "jira.ticket_template";
+
     /** Service (server) Name. */
     private String code;
 
@@ -96,7 +106,7 @@ public class JiraServerConfig implements IJiraServerConfig {
     /** {@inheritDoc} */
     @Override public String getUrl() {
         if (Strings.isNullOrEmpty(url) && props != null)
-            return props.getProperty(HelperConfig.JIRA_URL);
+            return props.getProperty(JIRA_URL);
 
         return url;
     }
@@ -104,7 +114,7 @@ public class JiraServerConfig implements IJiraServerConfig {
     /** {@inheritDoc} */
     @Override public String projectCodeForVisa() {
         if (Strings.isNullOrEmpty(projectCode) && props != null) {
-            String ticketPref = props.getProperty(HelperConfig.JIRA_TICKET_TEMPLATE, "IGNITE-");
+            String ticketPref = props.getProperty(JIRA_TICKET_TEMPLATE, "IGNITE-");
 
             return ticketPref.replaceAll("-", "");
         }
@@ -124,7 +134,7 @@ public class JiraServerConfig implements IJiraServerConfig {
         String tok;
 
         if (Strings.isNullOrEmpty(authTok) && props != null)
-            tok = props.getProperty(HelperConfig.JIRA_AUTH_TOKEN);
+            tok = props.getProperty(JIRA_AUTH_TOKEN);
         else
             tok = authTok;
 

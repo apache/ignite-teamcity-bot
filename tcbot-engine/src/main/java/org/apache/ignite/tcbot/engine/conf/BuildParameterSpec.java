@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.conf;
+package org.apache.ignite.tcbot.engine.conf;
 
 import com.google.common.base.Strings;
+import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
 import org.apache.ignite.tcbot.common.conf.IParameterValueSpec;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 

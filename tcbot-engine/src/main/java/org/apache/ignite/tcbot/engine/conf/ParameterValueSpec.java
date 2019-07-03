@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.conf;
+package org.apache.ignite.tcbot.engine.conf;
 
 import org.apache.ignite.tcbot.common.conf.IParameterValueSpec;
 

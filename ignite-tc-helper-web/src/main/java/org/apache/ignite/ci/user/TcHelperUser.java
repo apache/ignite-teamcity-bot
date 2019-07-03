@@ -149,6 +149,11 @@ public class TcHelperUser implements IVersionedEntity, INotificationChannel {
     }
 
     /** {@inheritDoc} */
+    @Override public boolean isSubscribedToDigestForBranch(String tbName) {
+        return false;
+    }
+
+    /** {@inheritDoc} */
     @Override public boolean hasTagFilter() {
         return false;
     }

@@ -24,6 +24,7 @@ dependencies {
     compile (project(":tcbot-teamcity"));
     compile (project(":tcbot-teamcity-ignited"));
     compile (project(":tcbot-engine"));
+    compile (project(":tcbot-notify"));
 
     compile group: 'org.apache.ignite', name: 'ignite-core', version: ignVer
     compile group: 'org.apache.ignite', name: 'ignite-slf4j', version: ignVer
@@ -50,8 +51,6 @@ dependencies {
 
     compile group: 'org.glassfish.jersey.media', name: 'jersey-media-json-jackson', version: jerseyVer
     compile group: 'org.glassfish.jersey.media', name: 'jersey-media-multipart', version: jerseyVer
-
-    compile group: 'javax.mail', name: 'mail', version: '1.4.7'
 
     testCompile group: 'junit', name: 'junit', version: junitVer
     testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer

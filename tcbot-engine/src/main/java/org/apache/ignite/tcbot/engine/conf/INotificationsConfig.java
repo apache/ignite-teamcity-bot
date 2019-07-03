@@ -16,5 +16,7 @@
  */
 package org.apache.ignite.tcbot.engine.conf;
 
-public interface INotificationsConfig {
+import org.apache.ignite.tcbot.notify.ISendEmailConfig;
+
+public interface INotificationsConfig extends ISendEmailConfig {
 }

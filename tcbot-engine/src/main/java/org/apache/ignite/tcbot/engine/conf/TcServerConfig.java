@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.conf;
+package org.apache.ignite.tcbot.engine.conf;
 
 import com.google.common.base.Strings;
 import java.util.ArrayList;
@@ -23,17 +23,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import javax.annotation.Nonnull;
-import org.apache.ignite.ci.HelperConfig;
+import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.conf.IBuildParameterSpec;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Teamcity connection configuration or reference to another config.
  */
 public class TcServerConfig implements ITcServerConfig {
     private static final String DEFAULT_HOST = "https://ci.ignite.apache.org/";
+    public static final String HOST = "host";
+
+    public static final String TC_BUILD_LOGS_DIR = "logs";
 
     /** TC server name. */
     @Nonnull private String code;
@@ -63,7 +64,7 @@ public class TcServerConfig implements ITcServerConfig {
 
     }
 
-    @NotNull public String getCode() {
+    @Nonnull public String getCode() {
         return code;
     }
 
@@ -87,27 +88,27 @@ public class TcServerConfig implements ITcServerConfig {
         String dfltLogs = (Strings.isNullOrEmpty(getCode()) ? "" : code + "_") + "logs";
 
         return props != null
-            ? props.getProperty(HelperConfig.LOGS, dfltLogs)
+            ? props.getProperty(TC_BUILD_LOGS_DIR, dfltLogs)
             : dfltLogs;
     }
 
     /**
      * Configured value for host.
      */
-    @NotNull
+    @Nonnull
     private String hostConfigured() {
         if (!Strings.isNullOrEmpty(host))
             return host;
 
         return props != null
-            ? props.getProperty(HelperConfig.HOST, DEFAULT_HOST)
+            ? props.getProperty(HOST, DEFAULT_HOST)
             : DEFAULT_HOST;
     }
 
     /**
      * @return tracked branch name to be used for this server for PRs check
      */
-    @Override @NotNull public String defaultTrackedBranch() {
+    @Nonnull @Override public String defaultTrackedBranch() {
         if (!Strings.isNullOrEmpty(defaultTrackedBranch))
             return defaultTrackedBranch;
 
@@ -115,7 +116,7 @@ public class TcServerConfig implements ITcServerConfig {
     }
 
     /** {@inheritDoc} */
-    @NotNull @Override public Collection<? extends IBuildParameterSpec> filteringParameters() {
+    @Nonnull @Override public Collection<? extends IBuildParameterSpec> filteringParameters() {
         if (filteringParameters == null || filteringParameters.isEmpty())
             return Collections.emptySet();
 
@@ -123,7 +124,7 @@ public class TcServerConfig implements ITcServerConfig {
     }
 
     /** {@inheritDoc} */
-    @NotNull @Override public Collection<String> trustedSuites() {
+    @Nonnull @Override public Collection<String> trustedSuites() {
         if (trustedSuites == null || trustedSuites.isEmpty())
             return Collections.emptySet();
 

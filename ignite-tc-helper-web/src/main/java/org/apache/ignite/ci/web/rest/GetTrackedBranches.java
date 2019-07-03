@@ -33,7 +33,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.ignite.ci.tcbot.conf.ChainAtServer;
+import org.apache.ignite.tcbot.engine.conf.ChainAtServer;
 import org.apache.ignite.ci.tcbot.TcBotGeneralService;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;

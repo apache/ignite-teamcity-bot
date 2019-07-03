@@ -16,16 +16,20 @@
  */
 package org.apache.ignite.tcbot.engine.digest;
 
+import com.google.common.base.Strings;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import javax.mail.MessagingException;
 import org.apache.ignite.tcbot.engine.conf.INotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
-import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
@@ -45,6 +49,9 @@ public class DigestService {
 
     @Inject
     private IScheduler scheduler;
+
+    @Inject
+    private IEmailSender emailSender;
 
     @Nullable
     private volatile ICredentialsProv bgCreds;
@@ -81,6 +88,33 @@ public class DigestService {
 
     private void digestServiceCheckDigest() {
         Collection<? extends INotificationChannel> channels = cfg.notifications().channels();
+
+        cfg.getTrackedBranches().branchesStream().forEach(
+            tb -> {
+                List<INotificationChannel> subscibers = channels.stream()
+                    .filter(ch -> !Strings.isNullOrEmpty(ch.email()))
+                    .filter(ch -> {
+                        return ch.isSubscribedToDigestForBranch(tb.name());
+                    }).collect(Collectors.toList());
+
+                if(subscibers.isEmpty())
+                    return;
+
+
+                subscibers.forEach(
+                    s->{
+                        try {
+                            emailSender.sendEmail(s.email(),  "you're subscibed to " + tb.name(),
+                                "",
+                                "", cfg.notifications());
+                        }
+                        catch (MessagingException e) {
+                            e.printStackTrace(); // todo log
+                        }
+                    }
+                );
+            }
+        );
 
     }
 }

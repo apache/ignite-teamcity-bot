@@ -15,9 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.conf;
-
-import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
+package org.apache.ignite.tcbot.engine.conf;
 
 import java.util.Objects;
 import javax.annotation.Nonnull;

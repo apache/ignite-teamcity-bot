@@ -20,12 +20,17 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import javax.cache.Cache;
+import javax.mail.MessagingException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.conf.NotificationChannel;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
+import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
+import org.apache.ignite.tcbot.notify.IEmailSender;
+import org.apache.ignite.tcbot.notify.ISendEmailConfig;
 import org.apache.ignite.tcbot.persistence.scheduler.DirectExecNoWaitScheduler;
 import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.SyncMode;
@@ -37,12 +42,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class WeeklyDigestTest {
 
     @Test
-    public void generateDigestAndDiff() {
+    public void generateDigestAndDiff() throws MessagingException {
         IDetailedStatusForTrackedBranch failuresProvider = Mockito.mock(IDetailedStatusForTrackedBranch.class);
         when(failuresProvider.getTrackedBranchTestFailures(anyString(),anyBoolean(),anyInt(),
             any(ICredentialsProv.class), any(SyncMode.class), anyBoolean())).thenAnswer((inv)->{
@@ -52,9 +59,12 @@ public class WeeklyDigestTest {
         });
 
         ITcBotConfig cfg = Mockito.mock(ITcBotConfig.class);
-        NotificationsConfig notificationsCfg = new NotificationsConfig();
+        TcBotJsonConfig tcBotJsonCfg = new TcBotJsonConfig();
+        when(cfg.getTrackedBranches()).thenReturn(tcBotJsonCfg);
 
-        when(cfg.notifications()).thenReturn(notificationsCfg);
+        NotificationsConfig notificationsCfg = tcBotJsonCfg.notifications();
+
+        when(cfg.notifications()).thenReturn(tcBotJsonCfg.notifications());
 
         Ignite ignite = Mockito.mock(Ignite.class);
         when(ignite.cache(anyString())).thenAnswer(inv -> {
@@ -62,6 +72,7 @@ public class WeeklyDigestTest {
 
             return cacheMock;
         });
+        IEmailSender emailSender = Mockito.mock(IEmailSender.class);
 
         Injector injector = Guice.createInjector(new AbstractModule() {
             @Override protected void configure() {
@@ -70,6 +81,7 @@ public class WeeklyDigestTest {
                 bind(ITcBotConfig.class).toInstance(cfg);
                 bind(IScheduler.class).to(DirectExecNoWaitScheduler.class);
                 bind(Ignite.class).toInstance(ignite);
+                bind(IEmailSender.class).toInstance(emailSender);
             }
         });
 
@@ -83,6 +95,16 @@ public class WeeklyDigestTest {
 
         System.out.println(generate.toHtml(generate));
 
+        NotificationChannel ch = new NotificationChannel();
+
+        String email = "tcbot@gmail.com";
+        ch.email(email);
+        ch.subscribeToDigest(ITcServerConfig.DEFAULT_TRACKED_BRANCH_NAME);
+        notificationsCfg.addChannel(ch);
+
         digestSvc.startBackgroundCheck(creds);
+
+        verify(emailSender, times(1))
+            .sendEmail(anyString(), anyString(), anyString(), anyString(), any(ISendEmailConfig.class));
     }
 }

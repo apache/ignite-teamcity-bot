@@ -15,15 +15,11 @@
  * limitations under the License.
  */
 
-apply plugin: 'java'
+package org.apache.ignite.tcbot.notify;
 
-dependencies {
-    compile (project(":tcbot-teamcity-ignited"));
-    compile (project(":tcbot-github-ignited"));
-    compile (project(":tcbot-jira-ignited"));
-    compile (project(":tcbot-notify"));
+import javax.mail.MessagingException;
 
-    testCompile group: 'junit', name: 'junit', version: junitVer
-    testCompile group: 'org.mockito', name: 'mockito-core', version: mockitoVer
+public interface IEmailSender {
+    public void sendEmail(String to, String subject, String html, String plainText,
+        ISendEmailConfig notifications) throws MessagingException;
 }
- 

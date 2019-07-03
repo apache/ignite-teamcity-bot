@@ -15,12 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.conf;
-
-import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
-import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
-import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
-import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
+package org.apache.ignite.tcbot.engine.conf;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -87,11 +82,11 @@ public class TcBotJsonConfig implements ITrackedBranchesConfig {
         return primaryServerCode;
     }
 
-    Optional<TcServerConfig> getTcConfig(String code) {
+    public Optional<TcServerConfig> getTcConfig(String code) {
         return tcServers.stream().filter(s -> code.equals(s.getCode())).findAny();
     }
 
-    Optional<JiraServerConfig> getJiraConfig(String code) {
+    public Optional<JiraServerConfig> getJiraConfig(String code) {
         return jiraServers.stream().filter(s -> code.equals(s.getCode())).findAny();
     }
 

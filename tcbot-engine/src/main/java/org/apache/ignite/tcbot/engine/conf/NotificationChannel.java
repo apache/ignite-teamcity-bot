@@ -39,6 +39,9 @@ public class NotificationChannel implements INotificationChannel {
     /** Subscribed to tags. Empty ot null set means all tags are applicable. */
     private Collection<String> tagsFilter = new HashSet<>();
 
+    /** Subscribed to digest. */
+    private Collection<String> subscribedToDigest = new HashSet<>();
+
     /** {@inheritDoc} */
     @Override public boolean isSubscribedToBranch(String trackedBranchId) {
         return subscribed != null && subscribed.contains(trackedBranchId);
@@ -58,6 +61,10 @@ public class NotificationChannel implements INotificationChannel {
             return true; // nothing to filter, consider subscribed
 
         return tagsFilter.contains(tag);
+    }
+
+    @Override public boolean isSubscribedToDigestForBranch(String tbName) {
+        return false;
     }
 
     /** {@inheritDoc} */
@@ -89,6 +96,26 @@ public class NotificationChannel implements INotificationChannel {
             .add("email", email)
             .add("slack", slack)
             .add("subscribed", subscribed)
+            .add("tagsFilter", tagsFilter)
+            .add("subscribedToDigest", subscribedToDigest)
             .toString();
+    }
+
+    /**
+     * @param name Tracked Branch Name.
+     */
+    public void subscribeToDigest(String name) {
+        if(subscribedToDigest ==null)
+            subscribedToDigest = new HashSet<>();
+
+        subscribedToDigest.add(name);
+    }
+
+    /**
+     * Sets email.
+     * @param email Value.
+     */
+    public void email(String email) {
+        this.email = email;
     }
 }

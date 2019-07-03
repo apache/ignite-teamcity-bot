@@ -143,6 +143,13 @@ public class NotificationsConfig implements INotificationsConfig {
         if (channels == null)
             return Collections.emptyList();
 
-        return channels;
+        return Collections.unmodifiableList(channels);
+    }
+
+    public void addChannel(NotificationChannel ch) {
+        if (channels == null)
+            this.channels = new ArrayList<>();
+
+        channels.add(ch);
     }
 }

@@ -32,9 +32,13 @@ import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.conf.TcBotWorkDir;
+import org.apache.ignite.tcbot.engine.conf.GitHubConfig;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranchesConfig;
+import org.apache.ignite.tcbot.engine.conf.JiraServerConfig;
 import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
+import org.apache.ignite.tcbot.engine.conf.TcBotJsonConfig;
+import org.apache.ignite.tcbot.engine.conf.TcServerConfig;
 
 /**
  *
