@@ -211,7 +211,8 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
         List<BuildRefCompacted> buildRefs = getAllBuildsCompacted(buildTypeId, branchName)
             .stream()
             .filter(b -> b.isFinished(compactor))
-            .filter(b -> b.status() != unknownStatus)
+            .filter(b -> b.status() != unknownStatus) //check build is not cancelled
+            .sorted(Comparator.comparing(BuildRefCompacted::id))
             .collect(Collectors.toList());
 
         if (buildRefs.isEmpty())
