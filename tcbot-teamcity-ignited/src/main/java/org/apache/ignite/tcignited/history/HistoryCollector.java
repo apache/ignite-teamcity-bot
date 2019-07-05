@@ -16,7 +16,6 @@
  */
 package org.apache.ignite.tcignited.history;
 
-import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
 import java.time.Duration;
@@ -143,9 +142,18 @@ public class HistoryCollector {
         long curTs = System.currentTimeMillis();
         Set<Integer> buildIds = bRefsList.stream()
             .filter(b -> {
-                AtomicInteger biggestIdOutOfScope = biggestBuildIdOutOfHistoryScope.get(srvId);
+               /* AtomicInteger biggestIdOutOfScope = biggestBuildIdOutOfHistoryScope.get(srvId);
                 int outOfScopeBuildId = biggestIdOutOfScope == null ? -1 : biggestIdOutOfScope.get();
                 return b.id() > outOfScopeBuildId;
+                */
+
+                Integer maxBuildIdForDay = runHistCompactedDao.getBorderForAgeForBuildId(srvId, TcBotConst.HISTORY_BUILD_ID_BORDER_DAYS);
+
+                if (maxBuildIdForDay == null)
+                    return true;
+
+                return b.id()>maxBuildIdForDay;
+
             })
             .filter(this::applicableForHistory)
             .map(BuildRefCompacted::id)
@@ -225,7 +233,7 @@ public class HistoryCollector {
         int normalizedBaseBranch) {
         Map<Integer, SuiteInvocation> suiteRunHist = histDao.getSuiteRunHist(srvId, buildTypeId, normalizedBaseBranch);
 
-        System.out.println("***** Found history for suite "
+        logger.info("***** Found history for suite "
             + compactor.getStringFromId(buildTypeId)
             + " branch " + compactor.getStringFromId(normalizedBaseBranch) + ": " + suiteRunHist.size() );
 
@@ -325,4 +333,22 @@ public class HistoryCollector {
         return getSuiteHist(srvId, buildTypeId, normalizedBaseBranch);
     }
 
+
+    /**
+     * @param srvId Server id.
+     * @param buildId Build id.
+     */
+    public Long getBuildStartTime(int srvId, int buildId) {
+        Long time = runHistCompactedDao.getBuildStartTime(srvId, buildId);
+
+        if (time != null)
+            return time;
+
+        time = fatBuildDao.getBuildStartTime(srvId, buildId);
+
+        if (time != null)
+            runHistCompactedDao.setBuildStartTime(srvId, buildId, time);
+
+        return time;
+    }
 }

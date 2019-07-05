@@ -44,7 +44,6 @@ import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.StatisticsCompacted;
 import org.apache.ignite.lang.IgniteCallable;
 import org.apache.ignite.resources.IgniteInstanceResource;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
@@ -213,6 +212,17 @@ public class FatBuildDao {
 
     /**
      * @param srvId Server id.
+     * @param buildId Build Id.
+     */
+    @Nullable public Long getBuildStartTime(int srvId, Integer buildId) {
+        IgniteCache<Long, BinaryObject> cacheBin = buildsCache.withKeepBinary();
+        long key = buildIdToCacheKey(srvId, buildId);
+
+        return cacheBin.invoke(key, new GetStartTimeProc());
+    }
+
+    /**
+     * @param srvId Server id.
      * @param ids Ids.
      */
     public Map<Integer, Long> getBuildStartTime(int srvId, Set<Integer> ids) {
@@ -244,10 +254,7 @@ public class FatBuildDao {
         int stateRunning = compactor.getStringId(BuildRef.STATE_RUNNING);
         Integer buildDurationId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION);
 
-        serversCompute.call(new BuiltTimeIgniteCallable(cacheBin, stateRunning, buildDurationId));
-
-
-
+        serversCompute.call(new BuiltTimeIgniteCallable(stateRunning, buildDurationId));
     }
 
     public static long getBuildRunningTime(int stateRunning, Integer buildDurationId,
@@ -312,24 +319,22 @@ public class FatBuildDao {
     }
 
     public static class BuiltTimeIgniteCallable implements IgniteCallable<Long> {
-        private final IgniteCache<Long, BinaryObject> cacheBin;
         private final int stateRunning;
         private final Integer buildDurationId;
         @IgniteInstanceResource
         Ignite ignite;
 
-        public BuiltTimeIgniteCallable(IgniteCache<Long, BinaryObject> cacheBin, int stateRunning,
+        public BuiltTimeIgniteCallable(  int stateRunning,
             Integer buildDurationId) {
-            this.cacheBin = cacheBin;
             this.stateRunning = stateRunning;
             this.buildDurationId = buildDurationId;
         }
 
         @Override public Long call() throws Exception {
 
-            IgniteCache<Object, Object> cache = ignite.cache(TEAMCITY_FAT_BUILD_CACHE_NAME);
+            IgniteCache<Long, FatBuildCompacted> cache = ignite.cache(TEAMCITY_FAT_BUILD_CACHE_NAME);
 
-            IgniteCache<Object, Object> cacheBin = cache.withKeepBinary();
+            IgniteCache<Long, BinaryObject> cacheBin = cache.withKeepBinary();
             QueryCursor<Cache.Entry<Long, BinaryObject>> query = cacheBin.query(
                 new ScanQuery<Long, BinaryObject>()
                     .setLocal(true));
@@ -370,7 +375,7 @@ public class FatBuildDao {
             if (1 != 2)
                 return null;
 
-            Iterable<Cache.Entry<Long, BinaryObject>> entries = this.cacheBin.localEntries();
+            Iterable<Cache.Entry<Long, BinaryObject>> entries = cacheBin.localEntries();
             for (Cache.Entry<Long, BinaryObject> next : entries) {
                 Long srvAndBuild = next.getKey();
 

@@ -36,13 +36,17 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.cache.query.QueryCursor;
+import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.internal.util.GridIntList;
+import org.apache.ignite.lang.IgniteCallable;
+import org.apache.ignite.resources.IgniteInstanceResource;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
@@ -104,7 +108,7 @@ public class BuildRefDao {
      * @param srvId Server id.
      */
     public static boolean isKeyForServer(Long key, int srvId) {
-        return key!=null && key >> 32 == srvId;
+        return key!=null && cacheKeyToSrvId(key) == srvId;
     }
 
     /**
@@ -166,6 +170,13 @@ public class BuildRefDao {
     public static int cacheKeyToBuildId(Long cacheKey) {
         long l = cacheKey << 32;
         return (int)(l >> 32);
+    }
+
+    /**
+     * @param cacheKey Cache key.
+     */
+    public static int cacheKeyToSrvId(long cacheKey) {
+        return (int)(cacheKey >> 32);
     }
 
     /**
@@ -306,5 +317,56 @@ public class BuildRefDao {
     @Nonnull public Stream<Cache.Entry<Long, BuildRefCompacted>> getAllBuildRefs(int srvId) {
         return StreamSupport.stream(buildRefsCache.spliterator(), false)
                 .filter(entry -> isKeyForServer(entry.getKey(), srvId));
+    }
+
+    public IgniteCache<Long, BuildRefCompacted> buildRefsCache() {
+        return buildRefsCache;
+    }
+
+    public static class BuildTimeIgniteCallable implements IgniteCallable<Long> {
+        private final int stateRunning;
+        private final Integer buildDurationId;
+        @IgniteInstanceResource
+        Ignite ignite;
+
+        public BuildTimeIgniteCallable(IgniteCache<Long, BinaryObject> cacheBin, int stateRunning,
+            Integer buildDurationId) {
+            this.stateRunning = stateRunning;
+            this.buildDurationId = buildDurationId;
+        }
+
+        @Override public Long call() throws Exception {
+            IgniteCache<Long, BuildRefCompacted> cache = ignite.cache(TEAMCITY_BUILD_CACHE_NAME);
+
+            IgniteCache<Long, BuildRefCompacted>cacheBin = cache.withKeepBinary();
+            QueryCursor<Cache.Entry<Long, BinaryObject>> query = cacheBin.query(
+                new ScanQuery<Long, BinaryObject>()
+                    .setFilter((k,v)->{
+                        int srvId = cacheKeyToSrvId(k);
+
+return false;
+                    })
+                    .setLocal(true));
+
+             /*.query(new SqlQuery<Long, BinaryObject>(
+                FatBuildCompacted.class,
+                " _KEY > ?")
+                .setLocal(true)
+                .setArgs(0L));*/
+
+// Iterate over the result set.
+            try (QueryCursor<Cache.Entry<Long, BinaryObject>> cursor = query) {
+
+                for (Cache.Entry<Long, BinaryObject> next : cursor) {
+
+                    BinaryObject buildBinary = next.getValue();
+                    long runningTime = 0l;// getBuildRunningTime(stateRunning, buildDurationId, buildBinary);
+
+                    System.err.println("Running " + runningTime);
+                }
+            }
+
+            return null;
+        }
     }
 }
