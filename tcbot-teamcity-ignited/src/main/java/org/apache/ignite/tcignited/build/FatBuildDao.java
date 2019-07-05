@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -244,15 +245,33 @@ public class FatBuildDao {
         return res;
     }
 
-    public void forEachFatBuild() {
+    public void forEachFatBuild(List<Long> idsToCheck) {
         IgniteCache<Long, BinaryObject> cacheBin = buildsCache.withKeepBinary();
+
+        int stateRunning = compactor.getStringId(BuildRef.STATE_RUNNING);
+        Integer buildDurationId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION);
+
+        Iterables.partition(idsToCheck, 32 * 10).forEach(
+            chunk -> {
+                HashSet<Long> keys = new HashSet<>(chunk);
+                Map<Long, BinaryObject> all = cacheBin.getAll(keys);
+                all.forEach((key, buildBinary) -> {
+                    long runningTime = getBuildRunningTime(stateRunning, buildDurationId, buildBinary);
+                    if (runningTime > 0) {
+                        int buildTypeId = buildBinary.field("buildTypeId");
+                        System.err.println("Running " + runningTime + "BT: " + buildTypeId);
+                    }
+                });
+            }
+        );
+
+
+        if(0!=1)
+        return;
 
         Ignite ignite = igniteProvider.get();
 
         IgniteCompute serversCompute = ignite.compute(ignite.cluster().forServers());
-
-        int stateRunning = compactor.getStringId(BuildRef.STATE_RUNNING);
-        Integer buildDurationId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION);
 
         serversCompute.call(new BuiltTimeIgniteCallable(stateRunning, buildDurationId));
     }
@@ -264,7 +283,7 @@ public class FatBuildDao {
         if (startTs == null || startTs <= 0)
             return -1;
 
-        int buildTypeId = buildBinary.field("buildTypeId");
+
         int status = buildBinary.field("status");
         int state = buildBinary.field("state");
 

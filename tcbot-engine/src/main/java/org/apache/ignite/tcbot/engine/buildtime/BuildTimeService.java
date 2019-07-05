@@ -18,7 +18,9 @@
 package org.apache.ignite.tcbot.engine.buildtime;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import org.apache.ignite.IgniteCache;
@@ -64,14 +66,14 @@ public class BuildTimeService {
 
         Collection<String> allServers = cfg.getServerIds();
 
-        forEachBuildRef(1, allServers);
+        List<Long> idsToCheck = forEachBuildRef(1, allServers);
 
-        fatBuildDao.forEachFatBuild();
+        fatBuildDao.forEachFatBuild(idsToCheck);
 
         return null;
     }
 
-    public void forEachBuildRef(int days, Collection<String> allServers) {
+    public List<Long> forEachBuildRef(int days, Collection<String> allServers) {
         IgniteCache<Long, BinaryObject> cacheBin = buildRefDao.buildRefsCache().withKeepBinary();
 
         // Ignite ignite = igniteProvider.get();
@@ -93,6 +95,7 @@ public class BuildTimeService {
                 }));
 
         int cnt = 0;
+        List<Long> idsToCheck = new ArrayList<>();
 
         try (QueryCursor<Cache.Entry<Long, BinaryObject>> cursor = query) {
             for (Cache.Entry<Long, BinaryObject> next : cursor) {
@@ -118,11 +121,15 @@ public class BuildTimeService {
                 System.err.println("Found build at srv [" + srvId + "]: [" + buildId + "] to analyze, ts="+ startTs);
 
                 cnt++;
+
+                idsToCheck.add(key);
             }
         }
 
         System.err.println("Total builds to load " + cnt);
 
         // serversCompute.call(new BuildTimeIgniteCallable(cacheBin, stateRunning, buildDurationId));
+
+        return idsToCheck;
     }
 }
