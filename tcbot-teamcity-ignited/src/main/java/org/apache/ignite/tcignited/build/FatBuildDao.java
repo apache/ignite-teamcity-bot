@@ -38,15 +38,22 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.IgniteCompute;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.CacheEntryProcessor;
+import org.apache.ignite.cache.query.QueryCursor;
+import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.StatisticsCompacted;
+import org.apache.ignite.lang.IgniteCallable;
+import org.apache.ignite.resources.IgniteInstanceResource;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcservice.model.changes.ChangesList;
+import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
@@ -227,6 +234,62 @@ public class FatBuildDao {
         return res;
     }
 
+    public void forEachFatBuild() {
+        IgniteCache<Long, BinaryObject> cacheBin = buildsCache.withKeepBinary();
+
+        Ignite ignite = igniteProvider.get();
+
+        IgniteCompute serversCompute = ignite.compute(ignite.cluster().forServers());
+
+        int stateRunning = compactor.getStringId(BuildRef.STATE_RUNNING);
+        Integer buildDurationId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION);
+
+        serversCompute.call(new BuiltTimeIgniteCallable(cacheBin, stateRunning, buildDurationId));
+
+
+
+    }
+
+    public static long getBuildRunningTime(int stateRunning, Integer buildDurationId,
+        BinaryObject buildBinary) {
+        Long startTs = buildBinary.field("startDate");
+
+        if (startTs == null || startTs <= 0)
+            return -1;
+
+        int buildTypeId = buildBinary.field("buildTypeId");
+        int status = buildBinary.field("status");
+        int state = buildBinary.field("state");
+
+        long runningTime = -1;
+        if(stateRunning == state)
+            runningTime = System.currentTimeMillis() - startTs;
+
+        if(runningTime<0){
+
+            if (buildDurationId != null) {
+                BinaryObject statistics = buildBinary.field("statistics");
+                if(statistics!=null) {
+                    // statistics.field()
+                }
+                long val = -1; //statistics.findPropertyValue(buildDurationId);
+
+                runningTime = val >= 0 ? val : -1;
+            }
+
+
+        }
+
+        if(runningTime<0) {
+            Long finishTs= buildBinary.field("finishDate");
+
+            if(finishTs!=null)
+                runningTime = finishTs - startTs;
+        }
+
+        return runningTime;
+    }
+
     private static class GetStartTimeProc implements CacheEntryProcessor<Long, BinaryObject, Long> {
         public GetStartTimeProc() {
         }
@@ -245,6 +308,80 @@ public class FatBuildDao {
                 return null;
 
             return startDate;
+        }
+    }
+
+    public static class BuiltTimeIgniteCallable implements IgniteCallable<Long> {
+        private final IgniteCache<Long, BinaryObject> cacheBin;
+        private final int stateRunning;
+        private final Integer buildDurationId;
+        @IgniteInstanceResource
+        Ignite ignite;
+
+        public BuiltTimeIgniteCallable(IgniteCache<Long, BinaryObject> cacheBin, int stateRunning,
+            Integer buildDurationId) {
+            this.cacheBin = cacheBin;
+            this.stateRunning = stateRunning;
+            this.buildDurationId = buildDurationId;
+        }
+
+        @Override public Long call() throws Exception {
+
+            IgniteCache<Object, Object> cache = ignite.cache(TEAMCITY_FAT_BUILD_CACHE_NAME);
+
+            IgniteCache<Object, Object> cacheBin = cache.withKeepBinary();
+            QueryCursor<Cache.Entry<Long, BinaryObject>> query = cacheBin.query(
+                new ScanQuery<Long, BinaryObject>()
+                    .setLocal(true));
+
+             /*.query(new SqlQuery<Long, BinaryObject>(
+                FatBuildCompacted.class,
+                " _KEY > ?")
+                .setLocal(true)
+                .setArgs(0L));*/
+
+// Iterate over the result set.
+            try (QueryCursor<Cache.Entry<Long, BinaryObject>> cursor = query) {
+
+                for (Cache.Entry<Long, BinaryObject> next : cursor) {
+
+                    BinaryObject buildBinary = next.getValue();
+                    long runningTime = getBuildRunningTime(stateRunning, buildDurationId, buildBinary);
+
+                    System.err.println("Running " + runningTime);
+                }
+            }
+
+        /*
+        FieldsQueryCursor<List<?>> query = cacheBin.query(new SqlFieldsQuery("" +
+
+            "select startDate, buildTypeId from FatBuildCompacted where _KEY > ?")
+            .setLocal(true)
+            .setArgs(0L));
+
+// Iterate over the result set.
+        try (QueryCursor<List<?>> cursor = query) {
+            for (List<?> row : cursor)
+                System.out.println("startDate=" + row.get(0));
+
+        }
+        */
+
+            if (1 != 2)
+                return null;
+
+            Iterable<Cache.Entry<Long, BinaryObject>> entries = this.cacheBin.localEntries();
+            for (Cache.Entry<Long, BinaryObject> next : entries) {
+                Long srvAndBuild = next.getKey();
+
+                BinaryObject buildBinary = next.getValue();
+
+                Long val = getBuildRunningTime(stateRunning, buildDurationId, buildBinary);
+                if (val != null)
+                    return val;
+            }
+
+            return null;
         }
     }
 }

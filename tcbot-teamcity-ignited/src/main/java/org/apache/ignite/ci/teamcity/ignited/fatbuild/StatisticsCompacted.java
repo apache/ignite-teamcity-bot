@@ -153,7 +153,7 @@ public class StatisticsCompacted {
         return val >= 0 ? val : null;
     }
 
-    private long findPropertyValue(int propCode) {
+    public long findPropertyValue(int propCode) {
         if (keys == null)
             return -1L;
 
