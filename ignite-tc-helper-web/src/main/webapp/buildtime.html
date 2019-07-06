@@ -1,0 +1,139 @@
+<html>
+<head>
+    <title>Apache Ignite Teamcity Bot - Build Time Analytics</title>
+    <link rel="icon" href="img/leaf-icon-png-7066.png">
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- production version, optimized for size and speed -->
+    <!--<script src="https://cdn.jsdelivr.net/npm/vue"></script>-->
+
+    <script src="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/style-1.5.css">
+
+    <script src="js/common-1.6.js"></script>
+    <script>
+$(document).ready(function() {
+    $.getScript("js/common-1.6.js", function(data, textStatus, jqxhr){ });
+
+    $( document ).tooltip();
+    loadData();
+});
+
+function loadAnalytics() {
+    let app = new Vue({
+        el: '#app',
+        data () {
+            return {
+                headers: [
+                    { text: 'Build Type', value: 'buildType' },
+                    { text: 'Average Duration', value: 'averageDuration' },
+                    { text: 'Duration', value: 'totalDuration' }
+                ],
+                byBuildType: [
+                ]
+            }
+        },
+        created () {
+            this.initialize()
+        },
+
+        methods: {
+            setBuildTimeStat(data) {
+                this.byBuildType = data.byBuildType;
+                this.timedOutByBuildType = data.timedOutByBuildType;
+
+                $("#loadStatus").html("");
+            },
+            initialize() {
+                $.ajax({ url: "/rest/buildtime/analytics",
+                    success: this.setBuildTimeStat,
+                    error: showErrInLoadStatus });
+            }
+        }
+    })
+}
+
+function loadData() {
+    $("#loadStatus").html("<img src='https://www.wallies.com/filebin/images/loading_apple.gif' width=20px height=20px> Please wait");
+
+    $("#version").html(" " + "<a href=\"monitoring.html\">TC Bot Moniroting Page</a> <br>");
+    $.ajax({
+        url: "rest/branches/version",
+        success: showVersionInfo,
+        error: showErrInLoadStatus
+    });
+
+
+    loadAnalytics();
+}
+
+
+</script>
+</head>
+<body>
+
+<div id="loadStatus"></div>
+
+
+<div class="formgroup"  id="app">
+
+    <v-app id="readyForReview">
+        <!--<v-expansion-panel>-->
+            <!--<v-expansion-panel-content-->
+                    <!--v-for="(item,i) in 1"-->
+                    <!--:key="i"-->
+            <!--&gt;-->
+                <template v-slot:header>
+                    <div>Build types longest avg.duration</div>
+                </template>
+                <v-card>
+                    <div>Longest average duration (more than 90 minutes)</div>
+                    <v-data-table
+                            :headers="headers"
+                            :items="byBuildType"
+                            class="elevation-1"
+                    >
+                        <template v-slot:items="props">
+                            <!--<td>-->
+                                <!--<a :href="props.item.prHtmlUrl">{{ props.item.prNumber }} </a> {{ props.item.prTitle }}</td>-->
+                            <!--<td class="text-xs-right">{{ props.item.b }}</td>-->
+                            <!--<td class="text-xs-right">-->
+                                <!--<img :src="props.item.prAuthorAvatarUrl" width='20px' height='20px'> {{ props.item.prAuthor }}</td>-->
+                            <td class="text-xs-right">{{ props.item.buildType }}</td>
+                            <td class="text-xs-right">{{ props.item.averageDuration }}</td>
+                            <td class="text-xs-right">{{ props.item.totalDuration }}</td>
+                        </template>
+                    </v-data-table>
+
+                    <div>Timed out suites average duration (more than 60 minutes)</div>
+                    <v-data-table
+                            :headers="headers"
+                            :items="timedOutByBuildType"
+                            class="elevation-1"
+                    >
+                        <template v-slot:items="props">
+                            <td class="text-xs-right">{{ props.item.buildType }}</td>
+                            <td class="text-xs-right">{{ props.item.averageDuration }}</td>
+                            <td class="text-xs-right">{{ props.item.totalDuration }}</td>
+                        </template>
+                    </v-data-table>
+                </v-card>
+            <!--</v-expansion-panel-content>-->
+        <!--</v-expansion-panel>-->
+
+    </v-app>
+</div>
+
+<div id="version"></div>
+</body>
+</html>
