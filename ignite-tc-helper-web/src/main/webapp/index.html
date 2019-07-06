@@ -82,6 +82,11 @@ function loadData() {
         error: showErrInLoadStatus
     });
 
+    $.ajax({ url: "/rest/buildtime/analytics",
+        success: function (data) {
+            $("#loadStatus").html("");
+        }, error: showErrInLoadStatus });
+
     loadReadyForReview();
 }
 

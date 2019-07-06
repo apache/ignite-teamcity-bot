@@ -14,19 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.tcignited.buildtime;
 
-package org.apache.ignite.tcbot.engine.ui;
+public class BuildTimeRecord {
+    private long totaltime;
+    private int cnt;
 
-/**
- * Detailed status of failures: Reference to some Issue with current suite or test detected by the Bot.
- * Currently contains only display name.
- */
-@SuppressWarnings({"WeakerAccess", "PublicField"})
-public class DsProblemRef {
-    public String name;
-    public String webUrl;
+    public void addInvocation(long runningTimeMs) {
+        totaltime += runningTimeMs;
+        cnt++;
+    }
 
-    public DsProblemRef(String name) {
-        this.name = name;
+    public long avgDuration() {
+        if (cnt == 0)
+            return 0;
+
+        return totaltime / cnt;
+    }
+
+    public long totalDuration() {
+        return totaltime;
     }
 }

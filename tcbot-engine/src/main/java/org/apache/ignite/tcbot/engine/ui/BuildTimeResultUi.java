@@ -17,16 +17,11 @@
 
 package org.apache.ignite.tcbot.engine.ui;
 
-/**
- * Detailed status of failures: Reference to some Issue with current suite or test detected by the Bot.
- * Currently contains only display name.
- */
-@SuppressWarnings({"WeakerAccess", "PublicField"})
-public class DsProblemRef {
-    public String name;
-    public String webUrl;
+import java.util.ArrayList;
+import java.util.List;
 
-    public DsProblemRef(String name) {
-        this.name = name;
-    }
+@SuppressWarnings({"WeakerAccess", "PublicField"})
+public class BuildTimeResultUi {
+    public List<BuildTimeRecordUi> byBuildType = new ArrayList<>();
+    public List<BuildTimeRecordUi> timedOutByBuildType = new ArrayList<>();
 }

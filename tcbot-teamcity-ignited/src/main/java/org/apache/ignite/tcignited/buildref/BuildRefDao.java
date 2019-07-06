@@ -104,7 +104,7 @@ public class BuildRefDao {
      * @param srvId Server id.
      */
     public static boolean isKeyForServer(Long key, int srvId) {
-        return key!=null && key >> 32 == srvId;
+        return key!=null && cacheKeyToSrvId(key) == srvId;
     }
 
     /**
@@ -166,6 +166,13 @@ public class BuildRefDao {
     public static int cacheKeyToBuildId(Long cacheKey) {
         long l = cacheKey << 32;
         return (int)(l >> 32);
+    }
+
+    /**
+     * @param cacheKey Cache key.
+     */
+    public static int cacheKeyToSrvId(long cacheKey) {
+        return (int)(cacheKey >> 32);
     }
 
     /**
@@ -306,5 +313,9 @@ public class BuildRefDao {
     @Nonnull public Stream<Cache.Entry<Long, BuildRefCompacted>> getAllBuildRefs(int srvId) {
         return StreamSupport.stream(buildRefsCache.spliterator(), false)
                 .filter(entry -> isKeyForServer(entry.getKey(), srvId));
+    }
+
+    public IgniteCache<Long, BuildRefCompacted> buildRefsCache() {
+        return buildRefsCache;
     }
 }

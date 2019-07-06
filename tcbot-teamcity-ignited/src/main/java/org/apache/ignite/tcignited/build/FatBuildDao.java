@@ -19,23 +19,6 @@ package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.cache.Cache;
-import javax.cache.processor.EntryProcessorException;
-import javax.cache.processor.EntryProcessorResult;
-import javax.cache.processor.MutableEntry;
-import javax.inject.Inject;
-import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.binary.BinaryObject;
@@ -45,14 +28,29 @@ import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
+import org.apache.ignite.tcignited.buildtime.BuildTimeResult;
 import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcservice.model.changes.ChangesList;
+import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrencesFull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.cache.Cache;
+import javax.cache.processor.EntryProcessorException;
+import javax.cache.processor.EntryProcessorResult;
+import javax.cache.processor.MutableEntry;
+import javax.inject.Inject;
+import javax.inject.Provider;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  *
@@ -63,6 +61,7 @@ public class FatBuildDao {
 
     /** Cache name */
     public static final String TEAMCITY_FAT_BUILD_CACHE_NAME = "teamcityFatBuild";
+    public static final int MAX_FAT_BUILD_CHUNK = 32 * 10;
 
     /** Ignite provider. */
     @Inject private Provider<Ignite> igniteProvider;
@@ -206,6 +205,17 @@ public class FatBuildDao {
 
     /**
      * @param srvId Server id.
+     * @param buildId Build Id.
+     */
+    @Nullable public Long getBuildStartTime(int srvId, Integer buildId) {
+        IgniteCache<Long, BinaryObject> cacheBin = buildsCache.withKeepBinary();
+        long key = buildIdToCacheKey(srvId, buildId);
+
+        return cacheBin.invoke(key, new GetStartTimeProc());
+    }
+
+    /**
+     * @param srvId Server id.
      * @param ids Ids.
      */
     public Map<Integer, Long> getBuildStartTime(int srvId, Set<Integer> ids) {
@@ -213,7 +223,7 @@ public class FatBuildDao {
         Set<Long> keys = buildsIdsToCacheKeys(srvId, ids);
         HashMap<Integer, Long> res = new HashMap<>();
 
-        Iterables.partition(keys, 32 * 10).forEach(
+        Iterables.partition(keys, MAX_FAT_BUILD_CHUNK).forEach(
             chunk -> {
                 Map<Long, EntryProcessorResult<Long>> map = cacheBin.invokeAll(keys, new GetStartTimeProc());
                 map.forEach((k, r) -> {
@@ -225,6 +235,113 @@ public class FatBuildDao {
         );
 
         return res;
+    }
+
+    public BuildTimeResult loadBuildTimeResult(int ageDays, List<Long> idsToCheck) {
+        int stateRunning = compactor.getStringId(BuildRef.STATE_RUNNING);
+        Integer buildDurationId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION);
+        int timeoutProblemCode = compactor.getStringId(ProblemOccurrence.TC_EXECUTION_TIMEOUT);
+
+        BuildTimeResult res = new BuildTimeResult();
+
+        // also may take affinity into account
+        Iterables.partition(idsToCheck, MAX_FAT_BUILD_CHUNK).forEach(
+                chunk -> {
+                    HashSet<Long> keys = new HashSet<>(chunk);
+                    Map<Long, FatBuildCompacted> all = buildsCache.getAll(keys);
+                    all.forEach((key, build) -> {
+                        if (build.isComposite())
+                            return;
+
+                        long runningTime = getBuildRunningTime(stateRunning, buildDurationId, build);
+                        if (runningTime > 0) {
+                            int buildTypeId = build.buildTypeId();
+                            System.err.println("Running " + runningTime + " BT: " + buildTypeId);
+
+                            int srvId = BuildRefDao.cacheKeyToSrvId(key);
+                            boolean hasTimeout = build.hasBuildProblemType(timeoutProblemCode);
+
+                            res.add(srvId, buildTypeId, runningTime, hasTimeout);
+                        }
+                    });
+                }
+        );
+
+        return res;
+
+    }
+
+    public static long getBuildRunningTime(int stateRunning, Integer buildDurationId,
+                                           FatBuildCompacted buildBinary) {
+        long startTs = buildBinary.getStartDateTs();
+
+        if (startTs <= 0)
+            return -1;
+
+        int state = buildBinary.state();
+
+        long runningTime = -1;
+        if (stateRunning == state)
+            runningTime = System.currentTimeMillis() - startTs;
+
+        if (runningTime < 0) {
+            if (buildDurationId != null) {
+                Long val = buildBinary.statisticValue(buildDurationId);
+
+                runningTime = (val != null && val >= 0) ? val : -1;
+            }
+
+
+        }
+
+        if (runningTime < 0) {
+            long finishTs = buildBinary.getFinishDateTs();
+
+            if (finishTs > 0)
+                runningTime = finishTs - startTs;
+        }
+
+        return runningTime;
+    }
+
+    public static long getBuildRunningTime(int stateRunning, Integer buildDurationId,
+        BinaryObject buildBinary) {
+        Long startTs = buildBinary.field("startDate");
+
+        if (startTs == null || startTs <= 0)
+            return -1;
+
+
+        int status = buildBinary.field("status");
+        int state = buildBinary.field("state");
+
+        long runningTime = -1;
+        if(stateRunning == state)
+            runningTime = System.currentTimeMillis() - startTs;
+
+        if(runningTime<0){
+
+            if (buildDurationId != null) {
+                BinaryObject statistics = buildBinary.field("statistics");
+                if(statistics!=null) {
+                    // statistics.field()
+                }
+                long val = -1; //statistics.findPropertyValue(buildDurationId);
+
+                runningTime = val >= 0 ? val : -1;
+            }
+
+
+        }
+
+        if(runningTime<0) {
+            Long finishTs= buildBinary.field("finishDate");
+
+            if(finishTs!=null)
+                runningTime = finishTs - startTs;
+        }
+
+        return runningTime;
     }
 
     private static class GetStartTimeProc implements CacheEntryProcessor<Long, BinaryObject, Long> {

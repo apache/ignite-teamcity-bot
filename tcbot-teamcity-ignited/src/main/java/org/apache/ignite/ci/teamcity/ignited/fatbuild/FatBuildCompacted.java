@@ -554,6 +554,10 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
                 .forEach(this.problems::add);
     }
 
+    public Long statisticValue(Integer propCode) {
+        return statistics == null ? null : statistics.statisticValue(propCode);
+    }
+
     public Long buildDuration(IStringCompactor compactor) {
         return statistics == null ? null : statistics.buildDuration(compactor);
     }
@@ -710,5 +714,9 @@ public class FatBuildCompacted extends BuildRefCompacted implements IVersionedEn
         }
 
         return cnt;
+    }
+
+    public long getFinishDateTs() {
+        return finishDate;
     }
 }

@@ -17,6 +17,7 @@
 
 package org.apache.ignite.tcignited.history;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,7 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -42,6 +46,7 @@ import org.apache.ignite.ci.teamcity.ignited.runhist.Invocation;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistCompacted;
 import org.apache.ignite.ci.teamcity.ignited.runhist.RunHistKey;
 import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.common.interceptor.GuavaCached;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
@@ -51,7 +56,7 @@ import org.apache.ignite.tcignited.buildref.BuildRefDao;
 import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 
 /**
- *
+ * TODO: rename to build start time storage
  */
 public class RunHistCompactedDao {
     /** Cache name. */
@@ -77,6 +82,17 @@ public class RunHistCompactedDao {
 
     /** Build start time. */
     private IgniteCache<Long, Long> buildStartTime;
+
+    /**
+     * Biggest build ID, which is older than particular days count.
+     * Map: server ID-> Array of build Ids
+     * Array[0] = max build ID
+     * Array[1] = max build ID older than 1 day
+     */
+    private final ConcurrentMap<Integer, AtomicIntegerArray> maxBuildIdOlderThanDays = new ConcurrentHashMap<>();
+
+    /** Millis in day. */
+    private static final long MILLIS_IN_DAY = Duration.ofDays(1).toMillis();
 
     /** Compactor. */
     @Inject private IStringCompactor compactor;
@@ -146,13 +162,26 @@ public class RunHistCompactedDao {
         if (ts == null || ts <= 0)
             return null;
 
+        processBuildForBorder(srvId, buildId, ts);
+
         return ts;
+    }
+
+    public boolean setBuildStartTime(int srvId, int buildId, long ts) {
+        if (ts <= 0)
+            return false;
+
+        processBuildForBorder(srvId, buildId, ts);
+
+        return buildStartTime.putIfAbsent(buildIdToCacheKey(srvId, buildId), ts);
     }
 
     @AutoProfiling
     public boolean setBuildProcessed(int srvId, int buildId, long ts) {
         if (ts <= 0)
             return false;
+
+        processBuildForBorder(srvId, buildId, ts);
 
         return buildStartTime.putIfAbsent(buildIdToCacheKey(srvId, buildId), ts);
     }
@@ -263,8 +292,13 @@ public class RunHistCompactedDao {
         Map<Integer, Long> res = new HashMap<>();
 
         buildStartTime.getAll(cacheKeys).forEach((k, ts) -> {
-            if (ts != null && ts > 0)
-                res.put(BuildRefDao.cacheKeyToBuildId(k), ts);
+            if (ts != null && ts > 0) {
+                int buildId = BuildRefDao.cacheKeyToBuildId(k);
+
+                res.put(buildId, ts);
+
+                processBuildForBorder(srvId, buildId, ts);
+            }
         });
 
         return res;
@@ -274,10 +308,46 @@ public class RunHistCompactedDao {
         Map<Long, Long> res = new HashMap<>();
 
         builds.forEach((buildId, ts) -> {
-            if (ts != null && ts > 0)
+            if (ts != null && ts > 0) {
                 res.put(buildIdToCacheKey(srvId, buildId), ts);
+
+                processBuildForBorder(srvId, buildId, ts);
+            }
         });
 
         buildStartTime.putAll(res);
     }
+
+    private void processBuildForBorder(int srvId, Integer buildId, Long ts) {
+        if (ts == null || ts <= 0)
+            return;
+
+        AtomicIntegerArray arr = maxBuildIdOlderThanDays.computeIfAbsent(srvId,
+            k -> new AtomicIntegerArray(TcBotConst.BUILD_MAX_DAYS + 1));
+
+        long ageMs = System.currentTimeMillis() - ts;
+        if (ageMs < 0)
+            return;
+
+        long days = ageMs / MILLIS_IN_DAY;
+        if (days > TcBotConst.BUILD_MAX_DAYS)
+            days = TcBotConst.BUILD_MAX_DAYS;
+
+        arr.accumulateAndGet((int)days, buildId, Math::max);
+    }
+
+    @Nullable public Integer getBorderForAgeForBuildId(int srvId, int ageDays) {
+        AtomicIntegerArray arr = maxBuildIdOlderThanDays.get(srvId);
+        if (arr == null)
+            return null;
+
+        for (int i = ageDays; i < TcBotConst.BUILD_MAX_DAYS; i++) {
+            int buildId = arr.get(i);
+            if (buildId != 0)
+                return buildId;
+        }
+
+        return null;
+    }
+
 }

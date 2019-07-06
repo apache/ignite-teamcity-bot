@@ -569,12 +569,17 @@ public class TeamcityIgnitedImpl implements ITeamcityIgnited {
 
         long ts = highBuild.getStartDateTs();
 
-        return ts > 0 ? ts : null;
+        if (ts > 0) {
+            runHistCompactedDao.setBuildStartTime(srvIdMaskHigh, buildId, ts);
+
+            return ts;
+        } else
+            return null;
     }
 
-    @GuavaCached(maximumSize = 100000, expireAfterAccessSecs = 90, softValues = true)
+    //@GuavaCached(maximumSize = 100000, expireAfterAccessSecs = 90, softValues = true)
     public Long getBuildStartTime(int buildId) {
-        return runHistCompactedDao.getBuildStartTime(srvIdMaskHigh, buildId);
+        return histCollector.getBuildStartTime(srvIdMaskHigh, buildId);
     }
 
     /** {@inheritDoc} */
