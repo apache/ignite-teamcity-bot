@@ -14,9 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.ignite.tcignited.buildtime;
 
-package org.apache.ignite.tcbot.engine.ui;
+public class BuildTimeRecord {
+    private long totaltime;
+    private int cnt;
 
-public class BuildTimeSummaryUi {
+    public void addInvocation(long runningTimeMs) {
+        totaltime += runningTimeMs;
+        cnt++;
+    }
 
+    public long avgDuration() {
+        if (cnt == 0)
+            return 0;
+
+        return totaltime / cnt;
+    }
 }

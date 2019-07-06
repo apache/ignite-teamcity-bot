@@ -28,9 +28,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.tcbot.engine.buildtime.BuildTimeService;
-import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
-import org.apache.ignite.tcbot.engine.ui.BuildTimeSummaryUi;
-import org.apache.ignite.tcbot.engine.ui.LrTestsFullSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.BuildTimeResultUi;
 import org.jetbrains.annotations.Nullable;
 
 @Path(BuildTimeRestService.LONG_RUNNING_SUMMARY)
@@ -48,7 +46,7 @@ public class BuildTimeRestService {
 
     @GET
     @Path("analytics")
-    public BuildTimeSummaryUi loadAnalytics(@Nullable @QueryParam("branch") String branchOrNull) {
+    public BuildTimeResultUi loadAnalytics(@Nullable @QueryParam("branch") String branchOrNull) {
         final ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
         final BuildTimeService tbProc = CtxListener.getInjector(ctx).getInstance(BuildTimeService.class);

@@ -18,22 +18,25 @@
 package org.apache.ignite.tcbot.engine.buildtime;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 import javax.cache.Cache;
 import javax.inject.Inject;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
+import org.apache.ignite.tcbot.common.util.TimeUtil;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
-import org.apache.ignite.tcbot.engine.ui.BuildTimeSummaryUi;
+import org.apache.ignite.tcbot.engine.ui.BuildTimeRecordUi;
+import org.apache.ignite.tcbot.engine.ui.BuildTimeResultUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
+import org.apache.ignite.tcignited.buildtime.BuildTimeRecord;
+import org.apache.ignite.tcignited.buildtime.BuildTimeResult;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcignited.history.RunHistCompactedDao;
@@ -57,20 +60,42 @@ public class BuildTimeService {
 
     @Inject HistoryCollector historyCollector;
 
-    public BuildTimeSummaryUi analytics(ICredentialsProv prov) {
+    public BuildTimeResultUi analytics(ICredentialsProv prov) {
         String serverCode = cfg.primaryServerCode();
 
         ITeamcityIgnited server = tcProv.server(serverCode, prov);
 
-        // fatBuildDao.forEachFatBuild();
+        // fatBuildDao.loadBuildTimeResult();
 
         Collection<String> allServers = cfg.getServerIds();
 
-        List<Long> idsToCheck = forEachBuildRef(1, allServers);
+        int days = 1;
+        List<Long> idsToCheck = forEachBuildRef(days, allServers);
 
-        fatBuildDao.forEachFatBuild(idsToCheck);
+        BuildTimeResult res = fatBuildDao.loadBuildTimeResult(days, idsToCheck);
 
-        return null;
+        Set<Integer> availableServers = allServers.stream()
+                .filter(prov::hasAccess)
+                .map(ITeamcityIgnited::serverIdToInt)
+                .collect(Collectors.toSet());
+
+        BuildTimeResultUi resultUi = new BuildTimeResultUi();
+
+        long minDuration = Duration.ofHours(1).toMillis();
+        List<Map.Entry<Long, BuildTimeRecord>> entries = res.topBuildTypes(availableServers, minDuration);
+        entries.forEach(e->{
+            BuildTimeRecordUi buildTimeRecordUi = new BuildTimeRecordUi();
+            Long key = e.getKey();
+            int btId = BuildTimeResult.cacheKeyToBuildType(key);
+            buildTimeRecordUi.buildType = compactor.getStringFromId(btId);
+
+            buildTimeRecordUi.averageDuration = TimeUtil.millisToDurationPrintable(e.getValue().avgDuration());
+            resultUi.byBuildType.add(buildTimeRecordUi);
+        });
+
+
+
+        return resultUi;
     }
 
     public List<Long> forEachBuildRef(int days, Collection<String> allServers) {
@@ -112,7 +137,7 @@ public class BuildTimeService {
                     continue;
 
                 Long startTs = historyCollector.getBuildStartTime(srvId, buildId);
-                if (startTs != null && startTs < minTs)
+                if (startTs == null || startTs < minTs)
                     continue; //time not saved in the DB, skip
 
                 BinaryObject buildBinary = next.getValue();

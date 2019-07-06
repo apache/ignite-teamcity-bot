@@ -51,6 +51,7 @@ import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
+import org.apache.ignite.tcignited.buildtime.BuildTimeResult;
 import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcservice.model.changes.ChangesList;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
@@ -70,6 +71,7 @@ public class FatBuildDao {
 
     /** Cache name */
     public static final String TEAMCITY_FAT_BUILD_CACHE_NAME = "teamcityFatBuild";
+    public static final int MAX_FAT_BUILD_CHUNK = 32 * 10;
 
     /** Ignite provider. */
     @Inject private Provider<Ignite> igniteProvider;
@@ -231,7 +233,7 @@ public class FatBuildDao {
         Set<Long> keys = buildsIdsToCacheKeys(srvId, ids);
         HashMap<Integer, Long> res = new HashMap<>();
 
-        Iterables.partition(keys, 32 * 10).forEach(
+        Iterables.partition(keys, MAX_FAT_BUILD_CHUNK).forEach(
             chunk -> {
                 Map<Long, EntryProcessorResult<Long>> map = cacheBin.invokeAll(keys, new GetStartTimeProc());
                 map.forEach((k, r) -> {
@@ -245,13 +247,14 @@ public class FatBuildDao {
         return res;
     }
 
-    public void forEachFatBuild(List<Long> idsToCheck) {
+    public BuildTimeResult loadBuildTimeResult(int ageDays, List<Long> idsToCheck) {
         IgniteCache<Long, BinaryObject> cacheBin = buildsCache.withKeepBinary();
 
         int stateRunning = compactor.getStringId(BuildRef.STATE_RUNNING);
         Integer buildDurationId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION);
 
-        Iterables.partition(idsToCheck, 32 * 10).forEach(
+        BuildTimeResult res =new BuildTimeResult();
+        Iterables.partition(idsToCheck, MAX_FAT_BUILD_CHUNK).forEach(
             chunk -> {
                 HashSet<Long> keys = new HashSet<>(chunk);
                 Map<Long, BinaryObject> all = cacheBin.getAll(keys);
@@ -260,20 +263,24 @@ public class FatBuildDao {
                     if (runningTime > 0) {
                         int buildTypeId = buildBinary.field("buildTypeId");
                         System.err.println("Running " + runningTime + "BT: " + buildTypeId);
+
+                        int srvId = BuildRefDao.cacheKeyToSrvId(key);
+                        res.add(srvId, buildTypeId, runningTime);
                     }
                 });
             }
         );
 
 
-        if(0!=1)
-        return;
+        if(0!=1) return res;
 
         Ignite ignite = igniteProvider.get();
 
         IgniteCompute serversCompute = ignite.compute(ignite.cluster().forServers());
 
         serversCompute.call(new BuiltTimeIgniteCallable(stateRunning, buildDurationId));
+        return res;
+
     }
 
     public static long getBuildRunningTime(int stateRunning, Integer buildDurationId,
