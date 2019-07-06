@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 /**
  * Detailed status of failures: Test/suite failure summary: contains statistic of failures and total runs for suite or for test.
  */
-public class DsHistoryStatUi {
+@SuppressWarnings("PublicField") public class DsHistoryStatUi {
     /** Registered number of failures from TC helper DB */
     @Nullable public Integer failures;
 

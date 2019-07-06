@@ -26,6 +26,9 @@ public class TcBotConst {
     /** Max days to keep test invocatoin data in run statistics: affects Bot Visa. */
     public static final int HISTORY_MAX_DAYS = 21;
 
+    /** Absulte Max days to keep track about build existence, 42 */
+    public static final int BUILD_MAX_DAYS = HISTORY_MAX_DAYS * 2;
+
     /** History collection process: build id per server ID border days. */
     public static final int HISTORY_BUILD_ID_BORDER_DAYS = HISTORY_MAX_DAYS + 2;
 

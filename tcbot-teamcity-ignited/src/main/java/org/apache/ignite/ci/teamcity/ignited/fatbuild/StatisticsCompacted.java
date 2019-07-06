@@ -29,6 +29,8 @@ import org.apache.ignite.internal.util.GridLongList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+
 /**
  * Statistics values to be saved in compacted form.
  */
@@ -85,10 +87,14 @@ public class StatisticsCompacted {
     public Long buildDuration(IStringCompactor compactor) {
         Integer buildDurationId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION);
 
-        if (buildDurationId == null)
+        return statisticValue(buildDurationId);
+    }
+
+    @Nullable public Long statisticValue(@Nullable Integer propCode) {
+        if (propCode == null)
             return null;
 
-        long val = findPropertyValue(buildDurationId);
+        long val = findPropertyValue(propCode);
 
         return val >= 0 ? val : null;
     }
@@ -100,12 +106,7 @@ public class StatisticsCompacted {
     public Long buildDurationNetTime(IStringCompactor compactor) {
         Integer buildDurationNetId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION_NET_TIME);
 
-        if (buildDurationNetId == null)
-            return null;
-
-        long val = findPropertyValue(buildDurationNetId);
-
-        return val >= 0 ? val : null;
+        return statisticValue(buildDurationNetId);
     }
 
     /**
@@ -115,12 +116,7 @@ public class StatisticsCompacted {
     public Long artifcactPublishingDuration(IStringCompactor compactor) {
         Integer buildDurationNetId = compactor.getStringIdIfPresent(Statistics.ARTIFACTS_PUBLISHING_DURATION);
 
-        if (buildDurationNetId == null)
-            return null;
-
-        long val = findPropertyValue(buildDurationNetId);
-
-        return val >= 0 ? val : null;
+        return statisticValue(buildDurationNetId);
     }
 
     /**
@@ -130,12 +126,7 @@ public class StatisticsCompacted {
     public Long dependeciesResolvingDuration(IStringCompactor compactor) {
         Integer buildDurationNetId = compactor.getStringIdIfPresent(Statistics.DEPENDECIES_RESOLVING_DURATION);
 
-        if (buildDurationNetId == null)
-            return null;
-
-        long val = findPropertyValue(buildDurationNetId);
-
-        return val >= 0 ? val : null;
+        return statisticValue(buildDurationNetId);
     }
 
     /**
@@ -145,15 +136,10 @@ public class StatisticsCompacted {
     public Long sourceUpdateDuration(IStringCompactor compactor) {
         Integer buildDurationNetId = compactor.getStringIdIfPresent(Statistics.SOURCES_UPDATE_DURATION);
 
-        if (buildDurationNetId == null)
-            return null;
-
-        long val = findPropertyValue(buildDurationNetId);
-
-        return val >= 0 ? val : null;
+        return statisticValue(buildDurationNetId);
     }
 
-    private long findPropertyValue(int propCode) {
+    public long findPropertyValue(int propCode) {
         if (keys == null)
             return -1L;
 
