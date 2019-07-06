@@ -76,24 +76,29 @@ public class BuildTimeService {
 
         BuildTimeResultUi resultUi = new BuildTimeResultUi();
 
-        long minDuration = Duration.ofMinutes(60).toMillis();
+        long minDuration = Duration.ofMinutes(90).toMillis();
+        long minDurationTimeout = Duration.ofMinutes(60).toMillis();
         int cntToInclude = 50;
-        BuildTimeResult  res = lastRes1d;
-        List<Map.Entry<Long, BuildTimeRecord>> entries = res.topByBuildTypes(availableServers, minDuration, cntToInclude);
+        BuildTimeResult res = lastRes1d;
 
-        entries.forEach(e -> {
-            BuildTimeRecordUi buildTimeRecordUi = new BuildTimeRecordUi();
-            Long key = e.getKey();
-            int btId = BuildTimeResult.cacheKeyToBuildType(key);
-            buildTimeRecordUi.buildType = compactor.getStringFromId(btId);
+        res.topByBuildTypes(availableServers, minDuration, cntToInclude)
+                .stream().map(this::convertToUi).forEach(e -> resultUi.byBuildType.add(e));
 
-            buildTimeRecordUi.averageDuration = TimeUtil.millisToDurationPrintable(e.getValue().avgDuration());
-            buildTimeRecordUi.totalDuration =  TimeUtil.millisToDurationPrintable(e.getValue().totalDuration());
-
-            resultUi.byBuildType.add(buildTimeRecordUi);
-        });
+        res.topTimeoutsByBuildTypes(availableServers, minDurationTimeout, cntToInclude)
+                .stream().map(this::convertToUi).forEach(e -> resultUi.timedOutByBuildType.add(e));
 
         return resultUi;
+    }
+
+    public BuildTimeRecordUi convertToUi(Map.Entry<Long, BuildTimeRecord> e) {
+        BuildTimeRecordUi buildTimeRecordUi = new BuildTimeRecordUi();
+        Long key = e.getKey();
+        int btId = BuildTimeResult.cacheKeyToBuildType(key);
+        buildTimeRecordUi.buildType = compactor.getStringFromId(btId);
+
+        buildTimeRecordUi.averageDuration = TimeUtil.millisToDurationPrintable(e.getValue().avgDuration());
+        buildTimeRecordUi.totalDuration =  TimeUtil.millisToDurationPrintable(e.getValue().totalDuration());
+        return buildTimeRecordUi;
     }
 
     @SuppressWarnings("WeakerAccess")

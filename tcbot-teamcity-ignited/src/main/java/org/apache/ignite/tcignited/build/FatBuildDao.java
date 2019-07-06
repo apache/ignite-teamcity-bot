@@ -240,6 +240,7 @@ public class FatBuildDao {
     public BuildTimeResult loadBuildTimeResult(int ageDays, List<Long> idsToCheck) {
         int stateRunning = compactor.getStringId(BuildRef.STATE_RUNNING);
         Integer buildDurationId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION);
+        int timeoutProblemCode = compactor.getStringId(ProblemOccurrence.TC_EXECUTION_TIMEOUT);
 
         BuildTimeResult res = new BuildTimeResult();
 
@@ -258,7 +259,9 @@ public class FatBuildDao {
                             System.err.println("Running " + runningTime + " BT: " + buildTypeId);
 
                             int srvId = BuildRefDao.cacheKeyToSrvId(key);
-                            res.add(srvId, buildTypeId, runningTime);
+                            boolean hasTimeout = build.hasBuildProblemType(timeoutProblemCode);
+
+                            res.add(srvId, buildTypeId, runningTime, hasTimeout);
                         }
                     });
                 }

@@ -25,4 +25,5 @@ import java.util.List;
 @SuppressWarnings({"WeakerAccess", "PublicField"})
 public class BuildTimeResultUi {
     public List<BuildTimeRecordUi> byBuildType = new ArrayList<>();
+    public List<BuildTimeRecordUi> timedOutByBuildType = new ArrayList<>();
 }

@@ -50,6 +50,7 @@ function loadAnalytics() {
         methods: {
             setBuildTimeStat(data) {
                 this.byBuildType = data.byBuildType;
+                this.timedOutByBuildType = data.timedOutByBuildType;
 
                 $("#loadStatus").html("");
             },
@@ -85,6 +86,7 @@ function loadData() {
 
 
 <div class="formgroup"  id="app">
+
     <v-app id="readyForReview">
         <!--<v-expansion-panel>-->
             <!--<v-expansion-panel-content-->
@@ -95,6 +97,7 @@ function loadData() {
                     <div>Build types longest avg.duration</div>
                 </template>
                 <v-card>
+                    <div>Longest average duration (more than 90 minutes)</div>
                     <v-data-table
                             :headers="headers"
                             :items="byBuildType"
@@ -106,6 +109,19 @@ function loadData() {
                             <!--<td class="text-xs-right">{{ props.item.b }}</td>-->
                             <!--<td class="text-xs-right">-->
                                 <!--<img :src="props.item.prAuthorAvatarUrl" width='20px' height='20px'> {{ props.item.prAuthor }}</td>-->
+                            <td class="text-xs-right">{{ props.item.buildType }}</td>
+                            <td class="text-xs-right">{{ props.item.averageDuration }}</td>
+                            <td class="text-xs-right">{{ props.item.totalDuration }}</td>
+                        </template>
+                    </v-data-table>
+
+                    <div>Timed out suites average duration (more than 60 minutes)</div>
+                    <v-data-table
+                            :headers="headers"
+                            :items="timedOutByBuildType"
+                            class="elevation-1"
+                    >
+                        <template v-slot:items="props">
                             <td class="text-xs-right">{{ props.item.buildType }}</td>
                             <td class="text-xs-right">{{ props.item.averageDuration }}</td>
                             <td class="text-xs-right">{{ props.item.totalDuration }}</td>
