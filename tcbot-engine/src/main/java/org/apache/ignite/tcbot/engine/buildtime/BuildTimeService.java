@@ -17,11 +17,6 @@
 
 package org.apache.ignite.tcbot.engine.buildtime;
 
-import java.time.Duration;
-import java.util.*;
-import java.util.stream.Collectors;
-import javax.cache.Cache;
-import javax.inject.Inject;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.query.QueryCursor;
@@ -42,6 +37,12 @@ import org.apache.ignite.tcignited.history.HistoryCollector;
 import org.apache.ignite.tcignited.history.RunHistCompactedDao;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
+
+import javax.cache.Cache;
+import javax.inject.Inject;
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class BuildTimeService {
 
@@ -101,9 +102,17 @@ public class BuildTimeService {
     public List<Long> forEachBuildRef(int days, Collection<String> allServers) {
         IgniteCache<Long, BinaryObject> cacheBin = buildRefDao.buildRefsCache().withKeepBinary();
 
-        // Ignite ignite = igniteProvider.get();
+        Set<Integer> availableServers = allServers.stream()
+                .map(ITeamcityIgnited::serverIdToInt)
+                .collect(Collectors.toSet());
 
-        //IgniteCompute serversCompute = ignite.compute(ignite.cluster().forServers());
+        Map<Integer, Integer> preBorder = new HashMap<>();
+
+        availableServers.forEach(srvId -> {
+            Integer borderForAgeForBuildId = runHistCompactedDao.getBorderForAgeForBuildId(srvId, days);
+            if (borderForAgeForBuildId != null)
+                preBorder.put(srvId, borderForAgeForBuildId);
+        });
 
         int stateRunning = compactor.getStringId(BuildRef.STATE_RUNNING);
         final int stateQueued = compactor.getStringId(BuildRef.STATE_QUEUED);
@@ -112,8 +121,14 @@ public class BuildTimeService {
         long minTs = System.currentTimeMillis() - Duration.ofDays(days).toMillis();
         QueryCursor<Cache.Entry<Long, BinaryObject>> query = cacheBin.query(
             new ScanQuery<Long, BinaryObject>()
-                .setFilter((k, v) -> {
-
+                .setFilter((key, v) -> {
+                    int srvId = BuildRefDao.cacheKeyToSrvId(key);
+                    Integer buildIdBorder = preBorder.get(srvId);
+                    if (buildIdBorder != null) {
+                        int id = v.field("id");
+                        if (id < buildIdBorder)
+                            return false;// pre-filtered build out of scope
+                    }
                     int state = v.field("state");
 
                     return stateQueued != state;
