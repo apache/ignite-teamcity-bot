@@ -26,25 +26,20 @@ public class BuildTimeResult {
     }
 
 
-    public List<Map.Entry<Long, BuildTimeRecord>> topBuildTypes(Set<Integer> availableServers, long minAvgDurationMs) {
+    public List<Map.Entry<Long, BuildTimeRecord>> topByBuildTypes(Set<Integer> availableServers,
+                                                                  long minAvgDurationMs,
+                                                                  int maxCnt) {
         return btByBuildType.entrySet().stream()
-                .filter(e->{
+                .filter(e -> {
                     Long key = e.getKey();
                     int srvId = cacheKeyToSrvId(key);
                     return availableServers.contains(srvId);
                 })
-                .filter(e->{
-                    return e.getValue().avgDuration() > minAvgDurationMs;
-                })
-                .sorted(Comparator.comparing(new Function<Map.Entry<Long, BuildTimeRecord>,
-                        Long>() {
-                    @Override
-                    public Long apply(  Map.Entry<Long, BuildTimeRecord> entry) {
-                        return  entry.getValue().avgDuration();
-                    }
-                })
-                .reversed())
-                .limit(5)
+                .filter(e -> e.getValue().avgDuration() > minAvgDurationMs)
+                .sorted(Comparator.comparing(
+                        (Function<Map.Entry<Long, BuildTimeRecord>, Long>) entry -> entry.getValue().avgDuration())
+                        .reversed())
+                .limit(maxCnt)
                 .collect(Collectors.toList());
     }
 }

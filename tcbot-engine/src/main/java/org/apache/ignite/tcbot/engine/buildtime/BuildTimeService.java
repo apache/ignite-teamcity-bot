@@ -17,15 +17,13 @@
 
 package org.apache.ignite.tcbot.engine.buildtime;
 
-import org.apache.ignite.IgniteCache;
-import org.apache.ignite.binary.BinaryObject;
-import org.apache.ignite.cache.query.QueryCursor;
-import org.apache.ignite.cache.query.ScanQuery;
+import org.apache.ignite.tcbot.common.interceptor.MonitoredTask;
 import org.apache.ignite.tcbot.common.util.TimeUtil;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.ui.BuildTimeRecordUi;
 import org.apache.ignite.tcbot.engine.ui.BuildTimeResultUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
 import org.apache.ignite.tcignited.build.FatBuildDao;
@@ -34,18 +32,17 @@ import org.apache.ignite.tcignited.buildtime.BuildTimeRecord;
 import org.apache.ignite.tcignited.buildtime.BuildTimeResult;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
 import org.apache.ignite.tcignited.history.HistoryCollector;
-import org.apache.ignite.tcignited.history.RunHistCompactedDao;
-import org.apache.ignite.tcservice.model.hist.BuildRef;
-import org.apache.ignite.tcservice.model.result.stat.Statistics;
 
-import javax.cache.Cache;
 import javax.inject.Inject;
 import java.time.Duration;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class BuildTimeService {
-
     @Inject ITeamcityIgnitedProvider tcProv;
 
     /** Config. */
@@ -53,27 +50,24 @@ public class BuildTimeService {
 
     @Inject FatBuildDao fatBuildDao;
 
-    @Inject BuildRefDao buildRefDao;
-
-    @Inject RunHistCompactedDao runHistCompactedDao;
-
     @Inject IStringCompactor compactor;
 
     @Inject HistoryCollector historyCollector;
 
+    @Inject IScheduler scheduler;
+
+    private volatile BuildTimeResult lastRes1d = new BuildTimeResult();
+
+    @Inject private BuildRefDao buildRefDao;
+
     public BuildTimeResultUi analytics(ICredentialsProv prov) {
-        String serverCode = cfg.primaryServerCode();
-
-        ITeamcityIgnited server = tcProv.server(serverCode, prov);
-
-        // fatBuildDao.loadBuildTimeResult();
+        if (buildRefDao.buildRefsCache() == null)
+            return new BuildTimeResultUi();
 
         Collection<String> allServers = cfg.getServerIds();
 
-        int days = 1;
-        List<Long> idsToCheck = forEachBuildRef(days, allServers);
-
-        BuildTimeResult res = fatBuildDao.loadBuildTimeResult(days, idsToCheck);
+        scheduler.sheduleNamed("BuildTimeService.loadAnalytics",
+                this::loadAnalytics, 15, TimeUnit.MINUTES);
 
         Set<Integer> availableServers = allServers.stream()
                 .filter(prov::hasAccess)
@@ -83,8 +77,10 @@ public class BuildTimeService {
         BuildTimeResultUi resultUi = new BuildTimeResultUi();
 
         long minDuration = Duration.ofHours(1).toMillis();
-        List<Map.Entry<Long, BuildTimeRecord>> entries = res.topBuildTypes(availableServers, minDuration);
-        entries.forEach(e->{
+        BuildTimeResult  res = lastRes1d;
+        List<Map.Entry<Long, BuildTimeRecord>> entries = res.topByBuildTypes(availableServers, minDuration, 5);
+
+        entries.forEach(e -> {
             BuildTimeRecordUi buildTimeRecordUi = new BuildTimeRecordUi();
             Long key = e.getKey();
             int btId = BuildTimeResult.cacheKeyToBuildType(key);
@@ -94,82 +90,18 @@ public class BuildTimeService {
             resultUi.byBuildType.add(buildTimeRecordUi);
         });
 
-
-
         return resultUi;
     }
 
-    public List<Long> forEachBuildRef(int days, Collection<String> allServers) {
-        IgniteCache<Long, BinaryObject> cacheBin = buildRefDao.buildRefsCache().withKeepBinary();
+    @SuppressWarnings("WeakerAccess")
+    @MonitoredTask(name = "Load Build Time Analytics")
+    protected void loadAnalytics() {
+        int days = 1;
 
-        Set<Integer> availableServers = allServers.stream()
-                .map(ITeamcityIgnited::serverIdToInt)
-                .collect(Collectors.toSet());
+        List<Long> idsToCheck = historyCollector.findAllRecentBuilds(days, cfg.getServerIds());
 
-        Map<Integer, Integer> preBorder = new HashMap<>();
+        BuildTimeResult res = fatBuildDao.loadBuildTimeResult(days, idsToCheck);
 
-        availableServers.forEach(srvId -> {
-            Integer borderForAgeForBuildId = runHistCompactedDao.getBorderForAgeForBuildId(srvId, days);
-            if (borderForAgeForBuildId != null)
-                preBorder.put(srvId, borderForAgeForBuildId);
-        });
-
-        int stateRunning = compactor.getStringId(BuildRef.STATE_RUNNING);
-        final int stateQueued = compactor.getStringId(BuildRef.STATE_QUEUED);
-        Integer buildDurationId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION);
-
-        long minTs = System.currentTimeMillis() - Duration.ofDays(days).toMillis();
-        QueryCursor<Cache.Entry<Long, BinaryObject>> query = cacheBin.query(
-            new ScanQuery<Long, BinaryObject>()
-                .setFilter((key, v) -> {
-                    int srvId = BuildRefDao.cacheKeyToSrvId(key);
-                    Integer buildIdBorder = preBorder.get(srvId);
-                    if (buildIdBorder != null) {
-                        int id = v.field("id");
-                        if (id < buildIdBorder)
-                            return false;// pre-filtered build out of scope
-                    }
-                    int state = v.field("state");
-
-                    return stateQueued != state;
-                }));
-
-        int cnt = 0;
-        List<Long> idsToCheck = new ArrayList<>();
-
-        try (QueryCursor<Cache.Entry<Long, BinaryObject>> cursor = query) {
-            for (Cache.Entry<Long, BinaryObject> next : cursor) {
-                Long key = next.getKey();
-                int srvId = BuildRefDao.cacheKeyToSrvId(key);
-
-                int buildId = BuildRefDao.cacheKeyToBuildId(key);
-
-                Integer borderBuildId = runHistCompactedDao.getBorderForAgeForBuildId(srvId, days);
-
-                boolean passesDate = borderBuildId == null || buildId >= borderBuildId;
-
-                if (!passesDate)
-                    continue;
-
-                Long startTs = historyCollector.getBuildStartTime(srvId, buildId);
-                if (startTs == null || startTs < minTs)
-                    continue; //time not saved in the DB, skip
-
-                BinaryObject buildBinary = next.getValue();
-                long runningTime = 0l;// getBuildRunningTime(stateRunning, buildDurationId, buildBinary);
-
-                System.err.println("Found build at srv [" + srvId + "]: [" + buildId + "] to analyze, ts="+ startTs);
-
-                cnt++;
-
-                idsToCheck.add(key);
-            }
-        }
-
-        System.err.println("Total builds to load " + cnt);
-
-        // serversCompute.call(new BuildTimeIgniteCallable(cacheBin, stateRunning, buildDurationId));
-
-        return idsToCheck;
+        lastRes1d = res;
     }
 }

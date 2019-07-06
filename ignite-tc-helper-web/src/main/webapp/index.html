@@ -40,7 +40,6 @@ function loadData() {
 
     $.ajax({ url: "/rest/buildtime/analytics",
         success: function (data) {
-            $("#buildTime").html("Test");
             $("#loadStatus").html("");
         }, error: showErrInLoadStatus });
 }
@@ -56,8 +55,6 @@ function loadData() {
     <a href="trends.html"><button class="idxpgbutton"><font size="30px">&#x1F4C9;</font><br>See test progress</button></a>
     <a href="index0.html"><button class="idxpgbutton"><font size="30px">&lambda;</font><br>I like old home page</button></a>
 </div>
-
-<div id="buildTime"></div>
 
 <div id="loadStatus"></div>
 <div id="version"></div>
