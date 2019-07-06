@@ -19,34 +19,11 @@ package org.apache.ignite.tcignited.build;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.cache.Cache;
-import javax.cache.processor.EntryProcessorException;
-import javax.cache.processor.EntryProcessorResult;
-import javax.cache.processor.MutableEntry;
-import javax.inject.Inject;
-import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.IgniteCompute;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.CacheEntryProcessor;
-import org.apache.ignite.cache.query.QueryCursor;
-import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.lang.IgniteCallable;
-import org.apache.ignite.resources.IgniteInstanceResource;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.persistence.CacheConfigs;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -61,6 +38,19 @@ import org.apache.ignite.tcservice.model.result.stat.Statistics;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrencesFull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.cache.Cache;
+import javax.cache.processor.EntryProcessorException;
+import javax.cache.processor.EntryProcessorResult;
+import javax.cache.processor.MutableEntry;
+import javax.inject.Inject;
+import javax.inject.Provider;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  *
@@ -248,39 +238,67 @@ public class FatBuildDao {
     }
 
     public BuildTimeResult loadBuildTimeResult(int ageDays, List<Long> idsToCheck) {
-        IgniteCache<Long, BinaryObject> cacheBin = buildsCache.withKeepBinary();
-
         int stateRunning = compactor.getStringId(BuildRef.STATE_RUNNING);
         Integer buildDurationId = compactor.getStringIdIfPresent(Statistics.BUILD_DURATION);
 
-        BuildTimeResult res =new BuildTimeResult();
-        Iterables.partition(idsToCheck, MAX_FAT_BUILD_CHUNK).forEach(
-            chunk -> {
-                HashSet<Long> keys = new HashSet<>(chunk);
-                Map<Long, BinaryObject> all = cacheBin.getAll(keys);
-                all.forEach((key, buildBinary) -> {
-                    long runningTime = getBuildRunningTime(stateRunning, buildDurationId, buildBinary);
-                    if (runningTime > 0) {
-                        int buildTypeId = buildBinary.field("buildTypeId");
-                        System.err.println("Running " + runningTime + "BT: " + buildTypeId);
+        BuildTimeResult res = new BuildTimeResult();
 
-                        int srvId = BuildRefDao.cacheKeyToSrvId(key);
-                        res.add(srvId, buildTypeId, runningTime);
-                    }
-                });
-            }
+        // also may take affinity into account
+        Iterables.partition(idsToCheck, MAX_FAT_BUILD_CHUNK).forEach(
+                chunk -> {
+                    HashSet<Long> keys = new HashSet<>(chunk);
+                    Map<Long, FatBuildCompacted> all = buildsCache.getAll(keys);
+                    all.forEach((key, build) -> {
+                        if (build.isComposite())
+                            return;
+
+                        long runningTime = getBuildRunningTime(stateRunning, buildDurationId, build);
+                        if (runningTime > 0) {
+                            int buildTypeId = build.buildTypeId();
+                            System.err.println("Running " + runningTime + " BT: " + buildTypeId);
+
+                            int srvId = BuildRefDao.cacheKeyToSrvId(key);
+                            res.add(srvId, buildTypeId, runningTime);
+                        }
+                    });
+                }
         );
 
-
-        if(0!=1) return res;
-
-        Ignite ignite = igniteProvider.get();
-
-        IgniteCompute serversCompute = ignite.compute(ignite.cluster().forServers());
-
-        serversCompute.call(new BuiltTimeIgniteCallable(stateRunning, buildDurationId));
         return res;
 
+    }
+
+    public static long getBuildRunningTime(int stateRunning, Integer buildDurationId,
+                                           FatBuildCompacted buildBinary) {
+        long startTs = buildBinary.getStartDateTs();
+
+        if (startTs <= 0)
+            return -1;
+
+        int state = buildBinary.state();
+
+        long runningTime = -1;
+        if (stateRunning == state)
+            runningTime = System.currentTimeMillis() - startTs;
+
+        if (runningTime < 0) {
+            if (buildDurationId != null) {
+                Long val = buildBinary.statisticValue(buildDurationId);
+
+                runningTime = (val != null && val >= 0) ? val : -1;
+            }
+
+
+        }
+
+        if (runningTime < 0) {
+            long finishTs = buildBinary.getFinishDateTs();
+
+            if (finishTs > 0)
+                runningTime = finishTs - startTs;
+        }
+
+        return runningTime;
     }
 
     public static long getBuildRunningTime(int stateRunning, Integer buildDurationId,
@@ -341,78 +359,6 @@ public class FatBuildDao {
                 return null;
 
             return startDate;
-        }
-    }
-
-    public static class BuiltTimeIgniteCallable implements IgniteCallable<Long> {
-        private final int stateRunning;
-        private final Integer buildDurationId;
-        @IgniteInstanceResource
-        Ignite ignite;
-
-        public BuiltTimeIgniteCallable(  int stateRunning,
-            Integer buildDurationId) {
-            this.stateRunning = stateRunning;
-            this.buildDurationId = buildDurationId;
-        }
-
-        @Override public Long call() throws Exception {
-
-            IgniteCache<Long, FatBuildCompacted> cache = ignite.cache(TEAMCITY_FAT_BUILD_CACHE_NAME);
-
-            IgniteCache<Long, BinaryObject> cacheBin = cache.withKeepBinary();
-            QueryCursor<Cache.Entry<Long, BinaryObject>> query = cacheBin.query(
-                new ScanQuery<Long, BinaryObject>()
-                    .setLocal(true));
-
-             /*.query(new SqlQuery<Long, BinaryObject>(
-                FatBuildCompacted.class,
-                " _KEY > ?")
-                .setLocal(true)
-                .setArgs(0L));*/
-
-// Iterate over the result set.
-            try (QueryCursor<Cache.Entry<Long, BinaryObject>> cursor = query) {
-
-                for (Cache.Entry<Long, BinaryObject> next : cursor) {
-
-                    BinaryObject buildBinary = next.getValue();
-                    long runningTime = getBuildRunningTime(stateRunning, buildDurationId, buildBinary);
-
-                    System.err.println("Running " + runningTime);
-                }
-            }
-
-        /*
-        FieldsQueryCursor<List<?>> query = cacheBin.query(new SqlFieldsQuery("" +
-
-            "select startDate, buildTypeId from FatBuildCompacted where _KEY > ?")
-            .setLocal(true)
-            .setArgs(0L));
-
-// Iterate over the result set.
-        try (QueryCursor<List<?>> cursor = query) {
-            for (List<?> row : cursor)
-                System.out.println("startDate=" + row.get(0));
-
-        }
-        */
-
-            if (1 != 2)
-                return null;
-
-            Iterable<Cache.Entry<Long, BinaryObject>> entries = cacheBin.localEntries();
-            for (Cache.Entry<Long, BinaryObject> next : entries) {
-                Long srvAndBuild = next.getKey();
-
-                BinaryObject buildBinary = next.getValue();
-
-                Long val = getBuildRunningTime(stateRunning, buildDurationId, buildBinary);
-                if (val != null)
-                    return val;
-            }
-
-            return null;
         }
     }
 }

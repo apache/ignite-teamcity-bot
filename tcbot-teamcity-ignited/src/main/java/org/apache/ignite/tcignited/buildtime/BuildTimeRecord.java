@@ -31,4 +31,8 @@ public class BuildTimeRecord {
 
         return totaltime / cnt;
     }
+
+    public long totalDuration() {
+        return totaltime;
+    }
 }

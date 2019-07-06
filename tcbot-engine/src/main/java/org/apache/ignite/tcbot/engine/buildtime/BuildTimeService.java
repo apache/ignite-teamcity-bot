@@ -76,9 +76,10 @@ public class BuildTimeService {
 
         BuildTimeResultUi resultUi = new BuildTimeResultUi();
 
-        long minDuration = Duration.ofHours(1).toMillis();
+        long minDuration = Duration.ofMinutes(60).toMillis();
+        int cntToInclude = 50;
         BuildTimeResult  res = lastRes1d;
-        List<Map.Entry<Long, BuildTimeRecord>> entries = res.topByBuildTypes(availableServers, minDuration, 5);
+        List<Map.Entry<Long, BuildTimeRecord>> entries = res.topByBuildTypes(availableServers, minDuration, cntToInclude);
 
         entries.forEach(e -> {
             BuildTimeRecordUi buildTimeRecordUi = new BuildTimeRecordUi();
@@ -87,6 +88,8 @@ public class BuildTimeService {
             buildTimeRecordUi.buildType = compactor.getStringFromId(btId);
 
             buildTimeRecordUi.averageDuration = TimeUtil.millisToDurationPrintable(e.getValue().avgDuration());
+            buildTimeRecordUi.totalDuration =  TimeUtil.millisToDurationPrintable(e.getValue().totalDuration());
+
             resultUi.byBuildType.add(buildTimeRecordUi);
         });
 
