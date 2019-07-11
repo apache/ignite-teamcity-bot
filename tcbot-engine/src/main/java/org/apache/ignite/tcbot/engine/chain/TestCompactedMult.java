@@ -120,10 +120,9 @@ public class TestCompactedMult implements IMultTestOccurrence {
         occurrences.add(next);
     }
 
-
-    public IRunHistory history(ITeamcityIgnited ignited, Integer baseBranchId) {
+    public IRunHistory history(ITeamcityIgnited ignited, @Nullable Integer baseBranchId) {
         Integer name = testName();
-        if (name == null)
+        if (name == null || baseBranchId == null)
             return null;
 
         ISuiteRunHistory suiteRunHist = ctx.suiteHist(ignited, baseBranchId);
