@@ -659,9 +659,13 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     @Nullable
-    ISuiteRunHistory suiteHist(ITeamcityIgnited tcIgn, Integer baseBranchId) {
+    ISuiteRunHistory suiteHist(ITeamcityIgnited tcIgn, @Nullable Integer baseBranchId) {
         Integer buildTypeIdId = buildTypeIdId();
         Preconditions.checkNotNull(buildTypeIdId, "Build type ID should be filled");
+
+        //unknown string for compactor
+        if (baseBranchId == null)
+            return null;
 
         try {
             return historyCacheMap.get(baseBranchId,
