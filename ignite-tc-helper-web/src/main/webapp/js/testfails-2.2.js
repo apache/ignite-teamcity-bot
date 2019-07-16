@@ -591,7 +591,7 @@ function showSuiteData(suite, settings, prNum) {
     var res = "<tr class='suiteBlock'><td colspan='4' style='width: 100%'>" +
               "<table style='width: 100%' border='0px'>"
 
-    res += "<tr bgcolor='#FAFAFF'><td align='right' valign='top' width='15%' colspan='2'>";
+    res += "<tr bgcolor='#FAFAFF'><td align='right' valign='top' width='10%' colspan='2'>";
 
     var failRateText = "";
     if (isDefinedAndFilled(suite.failures) && isDefinedAndFilled(suite.runs) && isDefinedAndFilled(suite.failureRate)) {
@@ -703,7 +703,7 @@ function showSuiteData(suite, settings, prNum) {
 
     res += "</td>";
 
-    res += "<td>"; //fail rate
+    res += "<td width='25%'>"; //fail rate
     if(isDefinedAndFilled(suite.hasCriticalProblem) && suite.hasCriticalProblem
         && isDefinedAndFilled(suite.criticalFails) && isDefinedAndFilled(suite.criticalFails.failures)) {
         res += "<a href='" + suite.webToHistBaseBranch + "'>";
@@ -784,7 +784,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
             return ""; // test is hidder
     }
 
-    var res = "<tr><td align='right' valign='top' colspan='2' width='5%'>";
+    var res = "<tr><td align='right' valign='top' colspan='2' width='10%'>";
 
     var haveIssue = isDefinedAndFilled(testFail.webIssueUrl) && isDefinedAndFilled(testFail.webIssueText);
 
@@ -943,7 +943,7 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
     }
 
-    res += "<td width='15%'>";
+    res += "<td width='25%'>";
 
     var haveBaseBranchWeb = isDefinedAndFilled(testFail.webUrlBaseBranch);
     if (haveBaseBranchWeb)
