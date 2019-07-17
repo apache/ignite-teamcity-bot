@@ -100,7 +100,6 @@ public class NotificationChannel implements INotificationChannel {
             .add("slack", slack)
             .add("subscribed", subscribed)
             .add("tagsFilter", tagsFilter)
-            .add("tagsFilter", tagsFilter)
             .add("subscribedToDigest", subscribedToDigest)
             .toString();
     }

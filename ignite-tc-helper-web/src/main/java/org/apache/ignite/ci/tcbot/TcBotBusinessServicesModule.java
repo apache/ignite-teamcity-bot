@@ -27,7 +27,6 @@ import org.apache.ignite.ci.tcbot.trends.MasterTrendsService;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.tcbot.user.UserAndSessionsStorage;
 import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
-import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 
 /**
  * TC Bot self services mapping (without 3rd party integrations configuration.
