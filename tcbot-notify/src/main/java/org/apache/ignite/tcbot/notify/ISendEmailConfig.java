@@ -14,28 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.di.scheduler;
 
-import org.apache.ignite.tcbot.persistence.scheduler.IScheduler;
+package org.apache.ignite.tcbot.notify;
 
-import java.util.concurrent.TimeUnit;
+import javax.annotation.Nonnull;
 
 /**
- * Scheduler which never waits
+ * Source email configuration. Now only gmail server is supported.
  */
-public class DirectExecNoWaitScheduler implements IScheduler {
-    /** {@inheritDoc} */
-    @Override public void invokeLater(Runnable cmd, long delay, TimeUnit unit) {
-        cmd.run();
-    }
+public interface ISendEmailConfig {
+    /**
+     * @return Email username.
+     */
+    @Nonnull
+    public String emailUsernameMandatory() ;
 
-    /** {@inheritDoc} */
-    @Override public void sheduleNamed(String fullName, Runnable cmd, long queitPeriod, TimeUnit unit) {
-        cmd.run();
-    }
-
-    /** {@inheritDoc} */
-    @Override public void stop() {
-
-    }
+    /**
+     * @return Email password.
+     */
+    @Nonnull
+    public String emailPasswordClearMandatory() ;
 }

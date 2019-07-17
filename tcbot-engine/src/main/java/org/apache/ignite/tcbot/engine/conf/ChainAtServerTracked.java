@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.conf;
+package org.apache.ignite.tcbot.engine.conf;
 
 import com.google.common.base.Strings;
 import java.util.Collections;
@@ -27,9 +27,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
-import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Strings.isNullOrEmpty;

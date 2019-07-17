@@ -223,6 +223,9 @@ public class DbMigrations {
             applyDestroyIgnCacheMigration(Old.LOG_CHECK_RESULT, srvId);
         }
 
+        applyDestroyCacheMigration("issues");
+        applyDestroyCacheMigration("digestHist");
+
         int sizeAfter = doneMigrations.size();
         return (sizeAfter - sizeBefore) + " Migrations done from " + sizeAfter;
 

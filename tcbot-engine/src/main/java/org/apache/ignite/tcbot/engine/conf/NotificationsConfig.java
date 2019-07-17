@@ -32,13 +32,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import javax.annotation.Nonnull;
+import org.apache.ignite.tcbot.notify.ISendEmailConfig;
+import org.apache.ignite.tcbot.notify.ISlackBotConfig;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  * Notifications Config
  */
-public class NotificationsConfig implements INotificationsConfig {
+public class NotificationsConfig implements ISendEmailConfig, ISlackBotConfig {
     /** (Source) Email. */
     private EmailSettings email = new EmailSettings();
 
@@ -117,7 +119,11 @@ public class NotificationsConfig implements INotificationsConfig {
         return email == null ? null : email.username();
     }
 
-    public String emailUsernameMandatory() {
+    /**
+     *
+     */
+    @Nonnull
+    @Override public String emailUsernameMandatory() {
         String username = emailUsername();
 
         Preconditions.checkState(!isNullOrEmpty(username),
@@ -130,7 +136,7 @@ public class NotificationsConfig implements INotificationsConfig {
      * @return Email password.
      */
     @Nonnull
-    public String emailPasswordClearMandatory() {
+    @Override public String emailPasswordClearMandatory() {
         Preconditions.checkNotNull(email,
             "notifications/email/pwd property should be filled in branches.json");
         Preconditions.checkState(!isNullOrEmpty(email.password()),
@@ -143,6 +149,13 @@ public class NotificationsConfig implements INotificationsConfig {
         if (channels == null)
             return Collections.emptyList();
 
-        return channels;
+        return Collections.unmodifiableList(channels);
+    }
+
+    public void addChannel(NotificationChannel ch) {
+        if (channels == null)
+            this.channels = new ArrayList<>();
+
+        channels.add(ch);
     }
 }

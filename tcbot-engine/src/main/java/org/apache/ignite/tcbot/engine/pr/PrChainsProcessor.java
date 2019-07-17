@@ -23,19 +23,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.githubservice.IGitHubConnection;
-import org.apache.ignite.tcbot.engine.chain.*;
 import org.apache.ignite.githubignited.IGitHubConnIgnited;
 import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
+import org.apache.ignite.githubservice.IGitHubConnection;
 import org.apache.ignite.jiraignited.IJiraIgnited;
 import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
+import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
+import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
+import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
+import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
+import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
-import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
-import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
+import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
@@ -50,9 +53,9 @@ import org.apache.ignite.tcservice.ITeamcity;
  */
 public class PrChainsProcessor {
     private static class Action {
-    public static final String HISTORY = "History";
-    public static final String LATEST = "Latest";
-    public static final String CHAIN = "Chain";
+        public static final String HISTORY = "History";
+        public static final String LATEST = "Latest";
+        public static final String CHAIN = "Chain";
     }
 
     /** Build chain processor. */
@@ -235,7 +238,7 @@ public class PrChainsProcessor {
             hist,
             LatestRebuildMode.LATEST,
             ProcessLogsMode.SUITE_NOT_COMPLETE,
-            true,
+            false,
             baseBranch,
             syncMode);
 

@@ -14,7 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcbot.engine.conf;
+package org.apache.ignite.tcbot.persistence.scheduler;
 
-public interface INotificationsConfig {
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Scheduler which never waits. Can be used for tests.
+ */
+public class DirectExecNoWaitScheduler implements IScheduler {
+    /** {@inheritDoc} */
+    @Override public void invokeLater(Runnable cmd, long delay, TimeUnit unit) {
+        cmd.run();
+    }
+
+    /** {@inheritDoc} */
+    @Override public void sheduleNamed(String fullName, Runnable cmd, long queitPeriod, TimeUnit unit) {
+        cmd.run();
+    }
+
+    /** {@inheritDoc} */
+    @Override public void stop() {
+
+    }
 }

@@ -33,28 +33,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  */
 public class HelperConfig {
     public static final String CONFIG_FILE_NAME = "auth.properties";
-    public static final String HOST = "host";
 
-    /** GitHub authorization token property name. */
-    public static final String GITHUB_AUTH_TOKEN = "github.auth_token";
-
-    /** Git branch naming prefix for PRLess contributions. */
-    public static final String GIT_BRANCH_PREFIX = "git.branch_prefix";
-
-    /** JIRA authorization token property name. */
-    public static final String JIRA_AUTH_TOKEN = "jira.auth_token";
-
-    /** Github API url for the project. */
-    public static final String GIT_API_URL = "git.api_url";
-
-    /** JIRA URL to build links to tickets. */
-    public static final String JIRA_URL = "jira.url";
-
-    /** Prefix for JIRA ticket names. */
-    @Deprecated
-    public static final String JIRA_TICKET_TEMPLATE = "jira.ticket_template";
-
-    public static final String LOGS = "logs";
 
     public static Properties loadAuthProperties(File workDir, String cfgFileName) {
         try {

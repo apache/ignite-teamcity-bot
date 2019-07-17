@@ -18,7 +18,6 @@ package org.apache.ignite.tcbot.engine.conf;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
-
 import java.util.Collection;
 import java.util.HashSet;
 import javax.annotation.Nullable;
@@ -89,6 +88,18 @@ public class NotificationChannel implements INotificationChannel {
             .add("email", email)
             .add("slack", slack)
             .add("subscribed", subscribed)
+            .add("tagsFilter", tagsFilter)
             .toString();
+    }
+
+
+    /**
+     * Sets email.
+     * @param email Value.
+     */
+    public NotificationChannel email(String email) {
+        this.email = email;
+
+        return this;
     }
 }

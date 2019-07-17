@@ -15,17 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.tcbot.conf;
+package org.apache.ignite.tcbot.engine.conf;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
-import javax.validation.constraints.NotNull;
-import org.apache.ignite.ci.issue.IssueType;
-import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
-import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
-import org.jetbrains.annotations.Nullable;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * One tracked branch, probably on several servers
@@ -37,7 +34,7 @@ public class BranchTracked implements ITrackedBranch {
     /** */
     public List<ChainAtServerTracked> chains = new ArrayList<>();
 
-    /** Disable notifications for the following issue types. See {@link IssueType#code()}  */
+    /** Disable notifications for the following issue types. See  IssueType#code()   */
     @Nullable private List<String> disableIssueTypes = new ArrayList<>();
 
 
@@ -61,10 +58,18 @@ public class BranchTracked implements ITrackedBranch {
     /**
      * @
      */
-    @NotNull public List<String> disableIssueTypes() {
+    @Nonnull public List<String> disableIssueTypes() {
         return disableIssueTypes == null || disableIssueTypes.isEmpty()
             ? Collections.emptyList()
             : Collections.unmodifiableList(disableIssueTypes);
     }
 
+    /**
+     * @param id Tracked branch ID (TC Bot identification).
+     */
+    public BranchTracked id(String id) {
+        this.id = id;
+
+        return this;
+    }
 }

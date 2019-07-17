@@ -37,8 +37,7 @@ import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.issue.IssueType;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
-import org.apache.ignite.ci.mail.EmailSender;
-import org.apache.ignite.ci.mail.SlackSender;
+import org.apache.ignite.tcbot.notify.ISlackSender;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
@@ -57,6 +56,7 @@ import org.apache.ignite.tcbot.engine.ui.DsChainUi;
 import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
+import org.apache.ignite.tcbot.notify.IEmailSender;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
@@ -99,6 +99,12 @@ public class IssueDetector {
 
     /** Config. */
     @Inject private ITcBotConfig cfg;
+
+    /** Email sender. */
+    @Inject private IEmailSender emailSender;
+
+    /** Email sender. */
+    @Inject private ISlackSender slackSender;
 
     /** Send notification guard. */
     private final AtomicBoolean sndNotificationGuard = new AtomicBoolean();
@@ -277,7 +283,7 @@ public class IssueDetector {
                     List<String> messages = next.toSlackMarkup();
 
                     for (String msg : messages) {
-                        SlackSender.sendMessage(slackUser, msg, notifications);
+                        slackSender.sendMessage(slackUser, msg, notifications);
 
                         sndStat.computeIfAbsent(addr, k -> new AtomicInteger()).incrementAndGet();
                     }
@@ -286,7 +292,7 @@ public class IssueDetector {
                     String builds = next.buildIdToIssue.keySet().toString();
                     String subj = "[MTCGA]: " + next.countIssues() + " new failures in builds " + builds + " needs to be handled";
 
-                    EmailSender.sendEmail(addr, subj, next.toHtml(), next.toPlainText(), notifications);
+                    emailSender.sendEmail(addr, subj, next.toHtml(), next.toPlainText(), notifications);
 
                     sndStat.computeIfAbsent(addr, k -> new AtomicInteger()).incrementAndGet();
                 }
@@ -526,7 +532,6 @@ public class IssueDetector {
                 checkQueueJob.init(backgroundOpsCreds);
 
                 executorService.scheduleAtFixedRate(checkQueueJob, 0, 10, TimeUnit.MINUTES);
-
             }
         }
         catch (Exception e) {

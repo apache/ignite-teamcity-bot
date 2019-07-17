@@ -17,6 +17,7 @@
 package org.apache.ignite.tcbot.engine.conf;
 
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -29,7 +30,7 @@ public interface ITrackedBranchesConfig {
     Collection<String> getServerIds();
 
     public default Optional<ITrackedBranch> get(String branch) {
-        return branchesStream().filter(b -> branch.equals(b.name())).findAny();
+        return branchesStream().filter(b -> Objects.equals(branch, b.name())).findAny();
     }
 
 

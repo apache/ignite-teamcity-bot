@@ -14,27 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.tcbot.common.interceptor;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+package org.apache.ignite.tcbot.engine;
 
-@Retention(RetentionPolicy.RUNTIME) @Target(ElementType.METHOD)
-public @interface MonitoredTask {
-    /**
-     * @return Display name for monitoring page.
-     */
-    String name() default "";
+import com.google.inject.AbstractModule;
+import com.google.inject.internal.SingletonScope;
+import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
+import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
+import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 
-    /**
-     * Argument index (0-based) to be used to extend name.
-     */
-    int nameExtArgIndex() default -1;
-
-    /**
-     * Array of Argument indexes (0-based) to be used to extend name.
-     */
-    int[] nameExtArgsIndexes() default {};
+/**
+ *
+ */
+public class TcBotEngineModule extends AbstractModule {
+    /** {@inheritDoc} */
+    @Override protected void configure() {
+        bind(BuildChainProcessor.class).in(new SingletonScope());
+        bind(IDetailedStatusForTrackedBranch.class).to(TrackedBranchChainsProcessor.class).in(new SingletonScope());
+    }
 }

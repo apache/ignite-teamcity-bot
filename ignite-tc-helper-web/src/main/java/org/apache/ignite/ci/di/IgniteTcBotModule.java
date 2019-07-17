@@ -28,6 +28,8 @@ import javax.inject.Provider;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.ci.db.Ignite1Init;
 import org.apache.ignite.ci.di.cache.GuavaCachedModule;
+import org.apache.ignite.tcbot.engine.TcBotEngineModule;
+import org.apache.ignite.tcbot.notify.TcBotNotificationsModule;
 import org.apache.ignite.tcbot.persistence.scheduler.SchedulerModule;
 import org.apache.ignite.githubignited.GitHubIgnitedModule;
 import org.apache.ignite.jiraignited.JiraIgnitedModule;
@@ -84,6 +86,10 @@ public class IgniteTcBotModule extends AbstractModule {
         install(new JiraIgnitedModule());
         install(new GitHubIgnitedModule());
         install(new SchedulerModule());
+        install(new TcBotNotificationsModule());
+
+        // common services
+        install(new TcBotEngineModule());
         install(new TcBotBusinessServicesModule());
     }
 

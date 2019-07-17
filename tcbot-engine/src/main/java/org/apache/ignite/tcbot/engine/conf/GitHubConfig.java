@@ -14,16 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.ignite.ci.tcbot.conf;
+package org.apache.ignite.tcbot.engine.conf;
 
 import com.google.common.base.Strings;
 import java.util.Properties;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.ignite.ci.HelperConfig;
 import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
 import org.apache.ignite.tcbot.common.conf.PasswordEncoder;
-import org.jetbrains.annotations.NotNull;
-
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
@@ -31,6 +29,15 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  */
 public class GitHubConfig implements IGitHubConfig {
     public static final String DEFAULT_BRANCH_PREFIX = "ignite-";
+
+    /** GitHub authorization token property name. */
+    public static final String GITHUB_AUTH_TOKEN = "github.auth_token";
+
+    /** Git branch naming prefix for PRLess contributions. */
+    public static final String GIT_BRANCH_PREFIX = "git.branch_prefix";
+
+    /** Github API url for the project. */
+    public static final String GIT_API_URL = "git.api_url";
 
     /** Service (server) code. */
     private String code;
@@ -82,13 +89,13 @@ public class GitHubConfig implements IGitHubConfig {
     }
 
     /** {@inheritDoc} */
-    @NotNull
+    @Nonnull
     @Override public String gitBranchPrefix() {
         if (!Strings.isNullOrEmpty(branchPrefix))
             return branchPrefix;
 
         return props != null
-            ? props.getProperty(HelperConfig.GIT_BRANCH_PREFIX, DEFAULT_BRANCH_PREFIX)
+            ? props.getProperty(GIT_BRANCH_PREFIX, DEFAULT_BRANCH_PREFIX)
             : DEFAULT_BRANCH_PREFIX;
     }
 
@@ -133,7 +140,7 @@ public class GitHubConfig implements IGitHubConfig {
             return apiUrl;
 
         return props != null
-            ? props.getProperty(HelperConfig.GIT_API_URL)
+            ? props.getProperty(GIT_API_URL)
             : null;
     }
 
@@ -146,7 +153,7 @@ public class GitHubConfig implements IGitHubConfig {
             return authTok;
 
         return props != null
-            ? props.getProperty(HelperConfig.GITHUB_AUTH_TOKEN)
+            ? props.getProperty(GITHUB_AUTH_TOKEN)
             : null;
     }
 }

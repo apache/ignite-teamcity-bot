@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.ci.mail;
+package org.apache.ignite.tcbot.notify;
 
 import com.google.common.base.Preconditions;
 import com.ullink.slack.simpleslackapi.SlackChannel;
@@ -26,18 +26,17 @@ import com.ullink.slack.simpleslackapi.impl.SlackSessionFactory;
 import com.ullink.slack.simpleslackapi.replies.SlackMessageReply;
 import java.io.IOException;
 
-import org.apache.ignite.tcbot.engine.conf.NotificationsConfig;
-
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  *
  */
-public class SlackSender {
-    public static void sendMessage(String addr, String msg,
-        NotificationsConfig cfg) throws IOException {
+public class SlackSender implements ISlackSender {
+    /** {@inheritDoc} */
+    @Override public void sendMessage(String addr, String msg,
+        ISlackBotConfig cfg) throws IOException {
         String authTok = cfg.slackAuthToken();
-        Preconditions.checkState(!isNullOrEmpty(authTok),  "notifications:\"{}\" property should be filled in branches.json");
+        Preconditions.checkState(!isNullOrEmpty(authTok), "notifications:\"{}\" property should be filled in branches.json");
 
         SlackSession ses = SlackSessionFactory.createWebSocketSlackSession(authTok);
 
