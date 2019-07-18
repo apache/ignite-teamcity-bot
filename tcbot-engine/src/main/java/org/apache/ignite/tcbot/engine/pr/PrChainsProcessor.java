@@ -30,7 +30,6 @@ import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.githubservice.IGitHubConnection;
 import org.apache.ignite.jiraignited.IJiraIgnited;
 import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
@@ -83,13 +82,12 @@ public class PrChainsProcessor {
 
     /**
      * @param creds Credentials.
-     * @param srvCode Server id.
+     * @param srvCodeOrAlias Server code or alias.
      * @param suiteId Suite id.
      * @param branchForTc Branch name in TC identification.
      * @param act Action.
      * @param cnt Count.
-     * @param baseTrackedBranch Branch tracked branch in Bot, has a priority if both TC & Bot branches (baseBranchForTcParm) present.
-     * @param baseBranchForTcParm Base branch name in TC identification.
+    * @param tcBaseBranchParm Base branch name in TC identification.
      * @param checkAllLogs Check all logs
      * @param mode TC Server Sync Mode
      * @return Test failures summary.
@@ -97,23 +95,22 @@ public class PrChainsProcessor {
     @AutoProfiling
     public DsSummaryUi getTestFailuresSummary(
         ICredentialsProv creds,
-        String srvCode,
+        String srvCodeOrAlias,
         String suiteId,
         String branchForTc,
         String act,
         Integer cnt,
-        @Nullable String baseTrackedBranch,
-        @Nullable String baseBranchForTcParm,
+        @Nullable String tcBaseBranchParm,
         @Nullable Boolean checkAllLogs,
         SyncMode mode) {
         final DsSummaryUi res = new DsSummaryUi();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
-        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCode, creds);
+        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCodeOrAlias, creds);
 
-        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCode);
+        IGitHubConnIgnited gitHubConnIgnited = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
 
-        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCode);
+        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCodeOrAlias);
 
         res.setJavaFlags(gitHubConnIgnited.config(), jiraIntegration.config());
 
@@ -142,30 +139,24 @@ public class PrChainsProcessor {
         List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId, branchForTc, buildResMergeCnt);
 
         String baseBranchForTc;
-        if(Strings.isNullOrEmpty(baseTrackedBranch)) {
-            //todo select
-            ITcServerConfig config = tcIgnited.config();
-            String defaultTrackedBranch = config.defaultTrackedBranch();
-
-            baseBranchForTc = Strings.isNullOrEmpty(baseBranchForTcParm) ? ITeamcity.DEFAULT : baseBranchForTcParm;
-        } else {
-            Optional<ITrackedBranch> branch = cfg.getTrackedBranches().get(baseTrackedBranch);
+        if(Strings.isNullOrEmpty(tcBaseBranchParm)) {
+            String dfltTrackedBranch = tcIgnited.config().defaultTrackedBranch();
+            Optional<ITrackedBranch> branch = cfg.getTrackedBranches().get(dfltTrackedBranch);
 
             if(!branch.isPresent())
                 return new DsSummaryUi().addChainOnServer(
-                    new DsChainUi(srvCode, tcIgnited.serverCode(), baseTrackedBranch).setBuildNotFound(true));
+                    new DsChainUi(srvCodeOrAlias, tcIgnited.serverCode(), dfltTrackedBranch).setBuildNotFound(true));
 
-            ITrackedBranch trackedBranch = branch.get();
-
-            Optional<ITrackedChain> chainAtSrv = trackedBranch.chainsStream().filter(chain ->
+            Optional<ITrackedChain> chainAtSrv = branch.get().chainsStream().filter(chain ->
                 Objects.equals(chain.serverCode(), tcIgnited.serverCode())).findAny();
 
-            if(!chainAtSrv.isPresent())
+            if (!chainAtSrv.isPresent())
                 return new DsSummaryUi().addChainOnServer(
-                    new DsChainUi(srvCode, tcIgnited.serverCode(), baseTrackedBranch).setBuildNotFound(true));
+                    new DsChainUi(srvCodeOrAlias, tcIgnited.serverCode(), branch.get().name()).setBuildNotFound(true));
 
             baseBranchForTc = chainAtSrv.get().tcBranch();
-        }
+        } else
+            baseBranchForTc = tcBaseBranchParm;
 
         FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
             tcIgnited,
@@ -176,7 +167,7 @@ public class PrChainsProcessor {
             baseBranchForTc,
             mode);
 
-        DsChainUi chainStatus = new DsChainUi(srvCode, tcIgnited.serverCode(), branchForTc);
+        DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias, tcIgnited.serverCode(), branchForTc);
 
         chainStatus.baseBranchForTc = baseBranchForTc;
 

@@ -40,4 +40,6 @@ public interface IDetailedStatusForTrackedBranch {
         ICredentialsProv creds,
         SyncMode syncMode,
         boolean calcTrustedTests);
+
+    //  * @param baseTrackedBranch Branch tracked branch in Bot, has a priority if both TC & Bot branches (baseBranchForTcParm) present.
 }

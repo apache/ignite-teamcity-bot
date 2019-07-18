@@ -22,26 +22,31 @@
 
     function showQueryForm() {
         gVue = new Vue({
+            name: "prQuery",
             el: '#vueQueryForm',
             data: {
-                baseTrackedBranchSelected: '',
-                trackedBranches: []
+                baseBranchSelected: '',
+                tcBranchesForSrv: []
             },
             methods: {
                 formChanged: function () {
-                    $("#divParameters").html(parmsForRest());
-
                     checkForUpdate();
                 }
             }
         });
 
+        let srvCode = findGetParameter("serverId");
         $.ajax({
-            url: "/rest/branches/getIds",
-            success: function (result) {  
+            url: "/rest/branches/tcBranches?srvCode=" + (srvCode == null ? "" : srvCode),
+            success: function (result) {
                 for (var i = 0; i < result.length; i++) {
                     var id = result[i];
-                    gVue.$data.trackedBranches.push(id);
+                    gVue.$data.tcBranchesForSrv.push(id);
+                }
+
+                var baseBranchForTc = findGetParameter("baseBranchForTc");
+                if (baseBranchForTc != null) {
+                    gVue.$data.baseBranchSelected = baseBranchForTc;
                 }
             },
             error: showErrInLoadStatus
@@ -70,11 +75,6 @@ function parmsForRest() {
         curReqParms += "?branchForTc=" + branchForTc;
     }
 
-    var baseTrackedBranch = gVue.$data.baseTrackedBranchSelected;
-    if (baseTrackedBranch != null) {
-        curReqParms += "&baseTrackedBranch=" + baseTrackedBranch;
-    }
-
     var serverId = findGetParameter("serverId");
     if(serverId!=null) {
         curReqParms += "&serverId=" + serverId;
@@ -95,7 +95,7 @@ function parmsForRest() {
         curReqParms += "&count=" + count;
     }
 
-    var baseBranchForTc = findGetParameter("baseBranchForTc");
+    var baseBranchForTc =  gVue.$data.baseBranchSelected;
     if(baseBranchForTc != null) {
         curReqParms += "&baseBranchForTc=" + baseBranchForTc;
     }
@@ -195,14 +195,13 @@ function showData(result) {
 <div id="vueQueryForm" class="h-25">
     <v-app id="queryForm" class="h-25">
         <span>Base branch: </span>
-        <select v-model="baseTrackedBranchSelected" @change="formChanged">
+        <select v-model="baseBranchSelected" @change="formChanged">
             <option disabled value="">Please select one</option>
 
-            <option v-for="option in trackedBranches" v-bind:value="option">
+            <option v-for="option in tcBranchesForSrv" v-bind:value="option">
                 {{ option }}
             </option>
         </select>
-        <div id="divParameters"></div>
         <div id="divFailures"></div>
     </v-app>
 </div>

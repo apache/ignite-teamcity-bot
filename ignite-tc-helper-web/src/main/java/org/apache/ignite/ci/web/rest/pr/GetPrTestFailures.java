@@ -63,11 +63,10 @@ public class GetPrTestFailures {
         @Nonnull @QueryParam("branchForTc") String branchForTc,
         @Nonnull @QueryParam("action") String act,
         @Nullable @QueryParam("count") Integer cnt,
-        @Nullable @QueryParam("baseTrackedBranch") String baseTrackedBranch,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
-        return new UpdateInfo().copyFrom(getPrFailuresResultsNoSync(srvId, suiteId, branchForTc, act, cnt, baseTrackedBranch, baseBranchForTc, checkAllLogs));
+        return new UpdateInfo().copyFrom(getPrFailuresResultsNoSync(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc, checkAllLogs));
     }
 
     @GET
@@ -78,11 +77,10 @@ public class GetPrTestFailures {
         @Nonnull @QueryParam("branchForTc") String branchForTc,
         @Nonnull @QueryParam("action") String act,
         @Nullable @QueryParam("count") Integer cnt,
-        @Nullable @QueryParam("baseTrackedBranch") String baseTrackedBranch,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
-        return getPrFailsWithSyncMode(srvId, suiteId, branchForTc, act, cnt, baseTrackedBranch, baseBranchForTc, checkAllLogs, SyncMode.NONE);
+        return getPrFailsWithSyncMode(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc, checkAllLogs, SyncMode.NONE);
     }
 
     public DsSummaryUi getPrFailsWithSyncMode(
@@ -91,7 +89,6 @@ public class GetPrTestFailures {
         @QueryParam("branchForTc") @Nonnull String branchForTc,
         @QueryParam("action") @Nonnull String act,
         @QueryParam("count") @Nullable Integer cnt,
-        @Nullable @QueryParam("baseTrackedBranch") String baseTrackedBranch,
         @QueryParam("baseBranchForTc") @Nullable String baseBranchForTc,
         @QueryParam("checkAllLogs") @Nullable Boolean checkAllLogs,
         SyncMode mode) {
@@ -99,7 +96,7 @@ public class GetPrTestFailures {
         final Injector injector = CtxListener.getInjector(ctx);
         final PrChainsProcessor prChainsProcessor = injector.getInstance(PrChainsProcessor.class);
 
-        return prChainsProcessor.getTestFailuresSummary(creds, srvId, suiteId, branchForTc, act, cnt, baseTrackedBranch, baseBranchForTc,
+        return prChainsProcessor.getTestFailuresSummary(creds, srvId, suiteId, branchForTc, act, cnt, baseBranchForTc,
             checkAllLogs,
             mode);
     }
@@ -120,11 +117,10 @@ public class GetPrTestFailures {
         @Nonnull @QueryParam("branchForTc") String branchForTc,
         @Nonnull @QueryParam("action") String act,
         @Nullable @QueryParam("count") Integer cnt,
-        @Nullable @QueryParam("baseTrackedBranch") String baseTrackedBranch,
         @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs) {
 
-        return getPrFailsWithSyncMode(srvId, suiteId, branchForTc, act, cnt, baseTrackedBranch, baseBranchForTc, checkAllLogs, SyncMode.RELOAD_QUEUED);
+        return getPrFailsWithSyncMode(srvId, suiteId, branchForTc, act, cnt, baseBranchForTc, checkAllLogs, SyncMode.RELOAD_QUEUED);
     }
 
     @POST
