@@ -51,5 +51,8 @@ public class VisaStatus {
     @Nullable public String buildTypeName;
 
     /** */
+    @Nullable public String baseBranchForTc;
+
+    /** */
     public int blockers;
 }

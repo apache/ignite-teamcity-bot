@@ -24,12 +24,12 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-import org.apache.ignite.tcservice.model.result.Build;
+import javax.annotation.Nullable;
+import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
+import org.apache.ignite.ci.web.model.ContributionKey;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
-import org.apache.ignite.ci.user.ITcBotUserCreds;
-import org.apache.ignite.ci.web.model.ContributionKey;
+import org.apache.ignite.tcservice.model.result.Build;
 
 /**
  * Represents parameters to determine context of observed builds, list of build IDs which were requested for observing
@@ -65,6 +65,9 @@ public class BuildsInfo {
     /** */
     public final Date date;
 
+    /** Base TC Branch name. */
+    @Nullable public final String baseBranchForTc;
+
     /** Finished builds. */
     private final List<Integer> builds = new ArrayList<>();
 
@@ -76,25 +79,28 @@ public class BuildsInfo {
         this.ticket = strCompactor.getStringFromId(compactBuildsInfo.ticket());
         this.branchForTc = strCompactor.getStringFromId(compactBuildsInfo.branchForTc());
         this.buildTypeId = strCompactor.getStringFromId(compactBuildsInfo.buildTypeId());
+        this.baseBranchForTc = strCompactor.getStringFromId(compactBuildsInfo.baseBranchForTc());
         this.builds.addAll(compactBuildsInfo.getBuilds());
     }
 
     /**
+     * @param userName
      * @param srvId Server id.
-     * @param prov Prov.
      * @param branchForTc Branch for TC.
      * @param ticket Ticket.
      * @param builds Builds.
      */
-    public BuildsInfo(String srvId, ITcBotUserCreds prov, String ticket, String branchForTc, String parentSuiteId,
-                      Build... builds) {
-        this.userName = prov.getUser(srvId);
+    public BuildsInfo(String srvId, String ticket, String branchForTc, String parentSuiteId,
+        @Nullable String baseBranchForTc, String userName,
+        Build... builds) {
+        this.userName = userName;
         this.date = Calendar.getInstance().getTime();
         this.srvId = srvId;
         this.ticket = ticket;
         this.branchForTc = branchForTc;
         this.buildTypeId = Strings.isNullOrEmpty(parentSuiteId) ?
             (builds.length == 1 ? builds[0].buildTypeId : "IgniteTests24Java8_RunAll") : parentSuiteId;
+        this.baseBranchForTc = baseBranchForTc;
 
         for (Build build : builds)
             this.builds.add(build.getId());

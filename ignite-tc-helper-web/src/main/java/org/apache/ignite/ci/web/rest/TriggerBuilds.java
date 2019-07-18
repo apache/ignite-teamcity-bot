@@ -61,26 +61,27 @@ public class TriggerBuilds {
     @GET
     @Path("trigger")
     public TriggerResult triggerBuilds(
-        @Nullable @QueryParam("serverId") String srvCode,
+        @Nullable @QueryParam("srvCode") String srvCodeOrAlias,
         @Nullable @QueryParam("branchName") String branchForTc,
         @Nonnull @QueryParam("parentSuiteId") String parentSuiteId,
         @Nonnull @QueryParam("suiteIdList") String suiteIdList,
         @Nullable @QueryParam("top") Boolean top,
         @Nullable @QueryParam("observe") Boolean observe,
         @Nullable @QueryParam("ticketId") String ticketId,
-        @Nullable @QueryParam("prNum") String prNum
+        @Nullable @QueryParam("prNum") String prNum,
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc
     ) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
         Injector injector = CtxListener.getInjector(ctx);
 
-        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCode, prov);
+        injector.getInstance(ITeamcityIgnitedProvider.class).checkAccess(srvCodeOrAlias, prov);
 
         if (isNullOrEmpty(suiteIdList))
             return new TriggerResult("Error: nothing to run.");
 
         String jiraRes = injector
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .triggerBuildsAndObserve(srvCode, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId, prNum, prov);
+            .triggerBuildsAndObserve(srvCodeOrAlias, branchForTc, parentSuiteId, suiteIdList, top, observe, ticketId, prNum, baseBranchForTc, prov);
 
         return new TriggerResult("Tests started." + (!jiraRes.isEmpty() ? "<br>" + jiraRes : ""));
     }
@@ -97,7 +98,8 @@ public class TriggerBuilds {
         @Nullable @QueryParam("serverId") String srvCode,
         @Nullable @QueryParam("branchName") String branchForTc,
         @Nullable @QueryParam("suiteId") String suiteId,
-        @Nullable @QueryParam("ticketId") String ticketId
+        @Nullable @QueryParam("ticketId") String ticketId,
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc
     ) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
@@ -107,7 +109,7 @@ public class TriggerBuilds {
 
         return injector
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .commentJiraEx(srvCode, branchForTc, suiteId, ticketId, prov);
+            .commentJiraEx(srvCode, branchForTc, suiteId, ticketId, baseBranchForTc, prov);
     }
 
     @GET

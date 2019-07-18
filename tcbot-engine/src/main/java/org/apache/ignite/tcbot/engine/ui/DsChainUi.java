@@ -54,10 +54,13 @@ public class DsChainUi {
     @Deprecated
     public final String serverId;
 
-    /** General server (service) code: JIRA, GH, TC. But if TC aliased {@link #tcServerCode} is used for TC. */
+    /**
+     * General server (service) code: JIRA, GH, TC. But if TC aliased {@link #tcServerCode} is used for TC.
+     * Should be used for triggering, where JIRA is involved.
+     */
     public final String serverCode;
 
-    /** Teamcity connection server (service) code. Same with {@link #serverCode} */
+    /** Teamcity connection server (service) code. Same with {@link #serverCode} in case aliases not used. */
     public final String tcServerCode;
 
     /** Branch name in teamcity identification. */
@@ -307,8 +310,9 @@ public class DsChainUi {
             logConsumers, buildNotFound, baseBranchForTc);
     }
 
-    public void setBuildNotFound(boolean buildNotFound) {
+    public DsChainUi setBuildNotFound(boolean buildNotFound) {
         this.buildNotFound = buildNotFound;
+        return this;
     }
 
     /** {@inheritDoc} */
