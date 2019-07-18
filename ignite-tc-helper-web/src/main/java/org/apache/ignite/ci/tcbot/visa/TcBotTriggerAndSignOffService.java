@@ -142,12 +142,12 @@ public class TcBotTriggerAndSignOffService {
     }
 
     /** */
-    public List<VisaStatus> getVisasStatus(String srvId, ITcBotUserCreds prov) {
+    public List<VisaStatus> getVisasStatus(String srvCode, ITcBotUserCreds prov) {
         List<VisaStatus> visaStatuses = new ArrayList<>();
 
-        ITeamcityIgnited ignited = tcIgnitedProv.server(srvId, prov);
+        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCode, prov);
 
-        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvId);
+        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCode);
 
         for (VisaRequest visaRequest : visasHistStorage.getVisas()) {
             VisaStatus visaStatus = new VisaStatus();
@@ -164,10 +164,11 @@ public class TcBotTriggerAndSignOffService {
             visaStatus.ticket = info.ticket;
             visaStatus.buildTypeId = info.buildTypeId;
 
-            BuildTypeRefCompacted bt = ignited.getBuildTypeRef(info.buildTypeId);
+            BuildTypeRefCompacted bt = tcIgn.getBuildTypeRef(info.buildTypeId);
             visaStatus.buildTypeName = (bt != null ? bt.name(compactor) : visaStatus.buildTypeId);
+            visaStatus.baseBranchForTc = info.baseBranchForTc;
 
-            String buildsStatus = visaStatus.status = info.getStatus(ignited, strCompactor);
+            String buildsStatus = visaStatus.status = info.getStatus(tcIgn, strCompactor);
 
             if (FINISHED_STATUS.equals(buildsStatus)) {
                 if (visa.isSuccess()) {
@@ -187,7 +188,7 @@ public class TcBotTriggerAndSignOffService {
                 visaStatus.status = buildsStatus;
 
             if (isObserving)
-                visaStatus.cancelUrl = "/rest/visa/cancel?server=" + srvId + "&branch=" + info.branchForTc;
+                visaStatus.cancelUrl = "/rest/visa/cancel?server=" + srvCode + "&branch=" + info.branchForTc;
 
             visaStatuses.add(visaStatus);
         }
@@ -247,7 +248,7 @@ public class TcBotTriggerAndSignOffService {
     }
 
     @NotNull public String triggerBuildsAndObserve(
-        @Nullable String srvId,
+        @Nullable String srvCodeOrAlias,
         @Nullable String branchForTc,
         @Nonnull String parentSuiteId,
         @Nonnull String suiteIdList,
@@ -255,12 +256,13 @@ public class TcBotTriggerAndSignOffService {
         @Nullable Boolean observe,
         @Nullable String ticketId,
         @Nullable String prNum,
+        @Nullable String baseBranchForTc,
         @Nullable ITcBotUserCreds prov) {
         String jiraRes = "";
 
-        ITeamcityIgnited teamcity = tcIgnitedProv.server(srvId, prov);
+        ITeamcityIgnited teamcity = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
-        IGitHubConnIgnited ghIgn = gitHubConnIgnitedProvider.server(srvId);
+        IGitHubConnIgnited ghIgn = gitHubConnIgnitedProvider.server(srvCodeOrAlias);
 
         if(!Strings.isNullOrEmpty(prNum)) {
             try {
@@ -287,7 +289,7 @@ public class TcBotTriggerAndSignOffService {
             builds[i] = teamcity.triggerBuild(suiteIds[i], branchForTc, false, top != null && top, new HashMap<String, Object>());
 
         if (observe != null && observe)
-            jiraRes += observeJira(srvId, branchForTc, ticketId, prov, parentSuiteId, builds);
+            jiraRes += observeJira(srvCodeOrAlias, branchForTc, ticketId, prov, parentSuiteId, baseBranchForTc, builds);
 
         return jiraRes;
     }
@@ -297,6 +299,7 @@ public class TcBotTriggerAndSignOffService {
      * @param branchForTc Branch for TeamCity.
      * @param ticketFullName JIRA ticket number.
      * @param prov Credentials.
+     * @param baseBranchForTc Reference branch in TC identification.
      * @param builds Builds.
      * @return Message with result.
      */
@@ -306,6 +309,7 @@ public class TcBotTriggerAndSignOffService {
         @Nullable String ticketFullName,
         ITcBotUserCreds prov,
         String parentSuiteId,
+        String baseBranchForTc,
         Build... builds
     ) {
         try {
@@ -318,7 +322,11 @@ public class TcBotTriggerAndSignOffService {
                 + e.getMessage();
         }
 
-        buildObserverProvider.get().observe(srvId, prov, ticketFullName, branchForTc, parentSuiteId, builds);
+        String user = prov.getUser(srvId);
+        if (user == null)
+            user = prov.getPrincipalId();
+
+        buildObserverProvider.get().observe(srvId, ticketFullName, branchForTc, parentSuiteId, baseBranchForTc, user, builds);
 
         if (!tcBotBgAuth.isServerAuthorized())
             return "Ask server administrator to authorize the Bot to enable JIRA notifications.";
@@ -351,7 +359,11 @@ public class TcBotTriggerAndSignOffService {
             return new SimpleResult("JIRA wasn't commented: TicketNotFoundException: <br>" + e.getMessage());
         }
 
-        BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticketFullName, branchForTc, suiteId);
+        String user = prov.getUser(srvId);
+        if (user == null)
+            user = prov.getPrincipalId();
+
+        BuildsInfo buildsInfo = new BuildsInfo(srvId, ticketFullName, branchForTc, suiteId, baseBranchForTc, user);
 
         VisaRequest lastVisaReq = visasHistStorage.getLastVisaRequest(buildsInfo.getContributionKey());
 

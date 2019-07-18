@@ -19,6 +19,7 @@ package org.apache.ignite.ci.observer;
 
 import java.util.Objects;
 import java.util.Timer;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
 import org.apache.ignite.tcservice.model.result.Build;
@@ -93,13 +94,15 @@ public class BuildObserver {
 
     /**
      * @param srvId Server id.
-     * @param prov Credentials.
-     * @param branchForTc Branch for TC.
      * @param ticket JIRA ticket name.
+     * @param branchForTc Branch for TC.
+     * @param baseBranchForTc Base branch in TC identification.
+     * @param userName
      */
-    public void observe(String srvId, ITcBotUserCreds prov, String ticket, String branchForTc, String parentSuiteId,
-                        Build... builds) {
-        BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticket, branchForTc, parentSuiteId, builds);
+    public void observe(String srvId, String ticket, String branchForTc, String parentSuiteId,
+        @Nullable String baseBranchForTc, String userName,
+        Build... builds) {
+        BuildsInfo buildsInfo = new BuildsInfo(srvId, ticket, branchForTc, parentSuiteId, baseBranchForTc, userName, builds);
 
         observerTask.addInfo(buildsInfo);
     }

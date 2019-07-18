@@ -178,16 +178,19 @@ function showChainCurrentStatusData(chain, settings) {
         cntFailed++;
     }
 
-    if (suitesFailedList.length !== 0 && isDefinedAndFilled(chain.tcServerCode) && isDefinedAndFilled(chain.branchName)) {
+    //chain.tcServerCode can represent reference to a service generated using alias.
+    let srvCodeForTriggering = chain.serverCode;
+
+    if (suitesFailedList.length !== 0 && isDefinedAndFilled(srvCodeForTriggering) && isDefinedAndFilled(chain.branchName)) {
         moreInfoTxt += "Trigger failed " + cntFailed + " builds";
         moreInfoTxt += " <a href='javascript:void(0);' ";
-        moreInfoTxt += " onClick='triggerBuilds(\"" + chain.tcServerCode + "\", \"" + parentSuitId + "\", " +
-            "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", false, false, null, \"" + chain.prNum + "\")' ";
+        moreInfoTxt += " onClick='triggerBuilds(\"" + srvCodeForTriggering + "\", \"" + parentSuitId + "\", " +
+            "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", false, false, null, \"" + chain.prNum + "\", null)' ";
         moreInfoTxt += " title='trigger builds'>in queue</a> ";
 
         moreInfoTxt += " <a href='javascript:void(0);' ";
-        moreInfoTxt += " onClick='triggerBuilds(\"" + chain.tcServerCode + "\", \"" + parentSuitId + "\", " +
-            "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", true, false, null, \"" + chain.prNum + "\")' ";
+        moreInfoTxt += " onClick='triggerBuilds(\"" + srvCodeForTriggering + "\", \"" + parentSuitId + "\", " +
+            "\"" + suitesFailedList + "\", \"" + chain.branchName + "\", true, false, null, \"" + chain.prNum + "\", null)' ";
         moreInfoTxt += " title='trigger builds'>on top</a><br>";
     }
 
@@ -241,13 +244,13 @@ function showChainCurrentStatusData(chain, settings) {
     //     res += "<button onclick='notifyGit()'>Update PR status</button>";
     // }
 
-    if (settings.isJiraAvailable() && isDefinedAndFilled(chain.serverCode)) {
-        let serverCode = chain.serverCode; //chain.tcServerCode can represent reference to a service generated using alias.
-        res += "<button onclick='commentJira(\"" + serverCode + "\", " +
+    let baseBranchForTc = chain.baseBranchForTc;
+    if (settings.isJiraAvailable() && isDefinedAndFilled(srvCodeForTriggering)) {
+        res += "<button onclick='commentJira(\"" + srvCodeForTriggering + "\", " +
             "\"" + chain.branchName + "\", " +
             "\"" + parentSuitId + "\", " +
             "\"\", " + // ticket id
-            "\"" + chain.baseBranchForTc + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
+            "\"" + baseBranchForTc + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
 
         var blockersList = "";
 
@@ -264,16 +267,33 @@ function showChainCurrentStatusData(chain, settings) {
             }
         }
 
-        res += "<button onclick='triggerBuilds(\"" + chain.tcServerCode + "\", \"" + parentSuitId + "\", \"" +
-            blockersList + "\", \"" + chain.branchName + "\", false, false, null,  \"" + + chain.prNum + "\")'> " +
+        res += "<button onclick='triggerBuilds(" +
+            "\"" + srvCodeForTriggering + "\", " +
+            "\"" + parentSuitId + "\", " +
+            "\"" + blockersList + "\", " +
+            "\"" + chain.branchName + "\", " +
+            "false, " + //top
+            "false, " + //observe
+            "null, " + // ticketId
+            "\"" + + chain.prNum + "\", " +
+            "\"" + baseBranchForTc + "\" " +
+            ")'> " +
             "Re-run possible blockers</button><br>";
 
-        res += "<button onclick='triggerBuilds(\"" + chain.tcServerCode + "\", \"" + parentSuitId + "\", \"" +
-            blockersList + "\", \"" + chain.branchName + "\", false, true, null, \"" + + chain.prNum +"\")'> " +
+        res += "<button onclick='triggerBuilds(" +
+            "\"" + srvCodeForTriggering + "\", " +
+            "\"" + parentSuitId + "\", " +
+            "\"" + blockersList + "\", " +
+            "\"" + chain.branchName + "\", " +
+            "false, " + //top
+            "true, " + //observe
+            "null, " + // ticketId
+            "\"" + chain.prNum + "\", " + //prNum
+            "\"" + baseBranchForTc + "\")'> " +
             "Re-run possible blockers & Comment JIRA</button><br>";
     }
 
-    if (isDefinedAndFilled(chain.baseBranchForTc)) {
+    if (isDefinedAndFilled(baseBranchForTc)) {
         // if (settings.isGithubAvailable())
         //     res+="<br>";
 
@@ -281,7 +301,7 @@ function showChainCurrentStatusData(chain, settings) {
             res += "<br>";
 
         res += "Base branch";
-        res += ": " + chain.baseBranchForTc.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        res += ": " + baseBranchForTc.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
     res += "&nbsp;</td></tr>";
@@ -376,7 +396,7 @@ function filterPossibleBlocker(suite) {
     return null;
 }
 
-function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum) {
+function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top, observe, ticketId, prNum, baseBranchForTc) {
     var queueAtTop = isDefinedAndFilled(top) && top;
     var observeJira = isDefinedAndFilled(observe) && observe;
     var suiteIdsNotExists = !isDefinedAndFilled(suiteIdList) || suiteIdList.length === 0;
@@ -433,14 +453,15 @@ function triggerBuilds(tcServerCode, parentSuiteId, suiteIdList, branchName, top
         $.ajax({
             url: 'rest/build/trigger',
             data: {
-                "serverId": tcServerCode,
+                "srvCode": tcServerCode,
                 "branchName": branchName,
                 "parentSuiteId" : parentSuite,
                 "suiteIdList": suiteIdList,
                 "top": queueAtTop,
                 "observe": observeJira,
                 "ticketId": ticketId,
-                "prNum": prNum
+                "prNum": prNum,
+                "baseBranchForTc": baseBranchForTc
             },
             success: successDialog,
             error: showErrInLoadStatus
@@ -660,12 +681,12 @@ function showSuiteData(suite, settings, prNum) {
         mInfo += " Trigger build: ";
         mInfo += "<a href='javascript:void(0);' ";
         mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", null, \"" +
-            suite.suiteId + "\", \"" + suite.branchName + "\", false, false, null, \"" + prNum + "\")' ";
+            suite.suiteId + "\", \"" + suite.branchName + "\", false, false, null, \"" + prNum + "\", null)' ";
         mInfo += " title='trigger build' >queue</a> ";
 
         mInfo += "<a href='javascript:void(0);' ";
         mInfo += " onClick='triggerBuilds(\"" + suite.serverId + "\", null, \"" +
-            suite.suiteId + "\", \"" + suite.branchName + "\", true, false, null, \"" + prNum + "\")' ";
+            suite.suiteId + "\", \"" + suite.branchName + "\", true, false, null, \"" + prNum + "\", null)' ";
         mInfo += " title='trigger build at top of queue'>top</a><br>";
     }
 
