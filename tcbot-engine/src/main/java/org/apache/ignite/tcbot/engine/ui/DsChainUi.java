@@ -307,8 +307,9 @@ public class DsChainUi {
             logConsumers, buildNotFound, baseBranchForTc);
     }
 
-    public void setBuildNotFound(boolean buildNotFound) {
+    public DsChainUi setBuildNotFound(boolean buildNotFound) {
         this.buildNotFound = buildNotFound;
+        return this;
     }
 
     /** {@inheritDoc} */

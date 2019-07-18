@@ -8,30 +8,71 @@
           integrity="sha384-/rXc/GQVaYpyDdyxK+ecHPVYJSN9bmVFBvjA/9eOB+pb3F2w2N6fc5qB9Ew5yIns" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- production version, optimized for size and speed -->
+    <!--<script src="https://cdn.jsdelivr.net/npm/vue"></script>-->
     <script src="js/common-1.6.js"></script>
     <script src="js/testfails-2.2.js"></script>
 </head>
 <body>
 <script>
     var g_shownDataHashCodeHex = "";
+    var gVue;
 
-$(document).ready(function() {
-    $.getScript("js/testfails-2.2.js", function(data, textStatus, jqxhr){ });
+    function showQueryForm() {
+        gVue = new Vue({
+            el: '#vueQueryForm',
+            data: {
+                baseTrackedBranchSelected: '',
+                trackedBranches: []
+            },
+            methods: {
+                formChanged: function () {
+                    $("#divParameters").html(parmsForRest());
 
-    $( document ).tooltip();
-    loadData();
-     //todo fix setInterval(checkForUpdate, 30000);
+                    checkForUpdate();
+                }
+            }
+        });
 
-    var branch = findGetParameter("branch");
+        $.ajax({
+            url: "/rest/branches/getIds",
+            success: function (result) {  
+                for (var i = 0; i < result.length; i++) {
+                    var id = result[i];
+                    gVue.$data.trackedBranches.push(id);
+                }
+            },
+            error: showErrInLoadStatus
+        });
 
-    $.ajax({ url: "rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
-});
+    }
+
+
+    $(document).ready(function () {
+        $.getScript("js/testfails-2.2.js", function (data, textStatus, jqxhr) {});
+
+        $(document).tooltip();
+        showQueryForm();
+        loadData();
+        //todo fix setInterval(checkForUpdate, 30000);
+
+        var branch = findGetParameter("branch");
+
+        $.ajax({url: "rest/branches/version", success: showVersionInfo, error: showErrInLoadStatus});
+    });
 
 function parmsForRest() {
     var curReqParms = "";
     var branchForTc = findGetParameter("branchForTc");
     if(branchForTc!=null) {
         curReqParms += "?branchForTc=" + branchForTc;
+    }
+
+    var baseTrackedBranch = gVue.$data.baseTrackedBranchSelected;
+    if (baseTrackedBranch != null) {
+        curReqParms += "&baseTrackedBranch=" + baseTrackedBranch;
     }
 
     var serverId = findGetParameter("serverId");
@@ -151,10 +192,22 @@ function showData(result) {
 </script>
 
 <div id="loadStatus"></div>
-<div><a href=".">Home</a><br></div>
-<div id="divFailures"></div>
+<div id="vueQueryForm" class="h-25">
+    <v-app id="queryForm" class="h-25">
+        <span>Base branch: </span>
+        <select v-model="baseTrackedBranchSelected" @change="formChanged">
+            <option disabled value="">Please select one</option>
+
+            <option v-for="option in trackedBranches" v-bind:value="option">
+                {{ option }}
+            </option>
+        </select>
+        <div id="divParameters"></div>
+        <div id="divFailures"></div>
+    </v-app>
+</div>
 
 <div id="version"></div>
-<div style="visibility:none"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
+<div style="visibility:hidden"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>
 </body>
 </html>

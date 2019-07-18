@@ -43,7 +43,7 @@ public class DsSummaryUi extends UpdateInfo {
     @Nullable
     private String trackedBranch;
 
-    public void addChainOnServer(DsChainUi chainStatus) {
+    public DsSummaryUi addChainOnServer(DsChainUi chainStatus) {
         servers.add(chainStatus);
 
         if (chainStatus.failedToFinish != null) {
@@ -59,6 +59,8 @@ public class DsSummaryUi extends UpdateInfo {
 
             failedTests += chainStatus.failedTests;
         }
+
+        return this;
     }
 
     public void postProcess(int running) {
