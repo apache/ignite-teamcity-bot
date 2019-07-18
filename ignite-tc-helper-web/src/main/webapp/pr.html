@@ -22,7 +22,6 @@
 
     function showQueryForm() {
         gVue = new Vue({
-            name: "prQuery",
             el: '#vueQueryForm',
             data: {
                 baseBranchSelected: '',
@@ -46,6 +45,7 @@
 
                 var baseBranchForTc = findGetParameter("baseBranchForTc");
                 if (baseBranchForTc != null) {
+                    gVue.$data.tcBranchesForSrv.push(baseBranchForTc);
                     gVue.$data.baseBranchSelected = baseBranchForTc;
                 }
             },
@@ -193,7 +193,7 @@ function showData(result) {
 
 <div id="loadStatus"></div>
 <div id="vueQueryForm" class="h-25">
-    <v-app id="queryForm" class="h-25">
+    <v-app id="prQueryForm" name="prQueryForm" class="h-25">
         <span>Base branch: </span>
         <select v-model="baseBranchSelected" @change="formChanged">
             <option disabled value="">Please select one</option>

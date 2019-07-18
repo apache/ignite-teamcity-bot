@@ -97,7 +97,8 @@ public class TriggerBuilds {
         @Nullable @QueryParam("serverId") String srvCode,
         @Nullable @QueryParam("branchName") String branchForTc,
         @Nullable @QueryParam("suiteId") String suiteId,
-        @Nullable @QueryParam("ticketId") String ticketId
+        @Nullable @QueryParam("ticketId") String ticketId,
+        @Nullable @QueryParam("baseBranchForTc") String baseBranchForTc
     ) {
         ITcBotUserCreds prov = ITcBotUserCreds.get(req);
 
@@ -107,7 +108,7 @@ public class TriggerBuilds {
 
         return injector
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .commentJiraEx(srvCode, branchForTc, suiteId, ticketId, prov);
+            .commentJiraEx(srvCode, branchForTc, suiteId, ticketId, baseBranchForTc, prov);
     }
 
     @GET

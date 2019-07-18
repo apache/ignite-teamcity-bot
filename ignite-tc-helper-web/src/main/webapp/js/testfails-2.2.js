@@ -243,8 +243,11 @@ function showChainCurrentStatusData(chain, settings) {
 
     if (settings.isJiraAvailable() && isDefinedAndFilled(chain.serverCode)) {
         let serverCode = chain.serverCode; //chain.tcServerCode can represent reference to a service generated using alias.
-        res += "<button onclick='commentJira(\"" + serverCode + "\", \"" + chain.branchName + "\", \""
-            + parentSuitId + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
+        res += "<button onclick='commentJira(\"" + serverCode + "\", " +
+            "\"" + chain.branchName + "\", " +
+            "\"" + parentSuitId + "\", " +
+            "\"\", " + // ticket id
+            "\"" + chain.baseBranchForTc + "\")'>Comment JIRA</button>&nbsp;&nbsp;";
 
         var blockersList = "";
 
@@ -479,7 +482,7 @@ function branchForTc(pr) {
     return pr;
 }
 
-function commentJira(serverCode, branchName, parentSuiteId, ticketId) {
+function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc) {
     var branchNotExists = !isDefinedAndFilled(branchName) || branchName.length === 0;
     branchName = branchNotExists ? null : branchForTc(branchName);
     ticketId = (isDefinedAndFilled(ticketId) && ticketId.length > 0) ? ticketId : null;
@@ -509,12 +512,13 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId) {
             "serverId": serverCode, //general Servers code
             "suiteId": parentSuiteId,
             "branchName": branchName,
-            "ticketId": ticketId
+            "ticketId": ticketId,
+            "baseBranchForTc": baseBranchForTc
         },
         success: function(result) {
             $("#notifyJira").html("");
 
-            var needTicketId = result.result.lastIndexOf("enter ticket id") !== -1;
+            var needTicketId = result.result.lastIndexOf("TicketNotFoundException") !== -1;
 
             if (needTicketId) {
                 var buttons = {
@@ -540,7 +544,7 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId) {
 
             var dialog = $("#triggerDialog");
 
-            dialog.html("Trigger builds at server: " + serverCode + "<br>" +
+            dialog.html("Comment ticket for server: " + serverCode + "<br>" +
                 " Suite: " + parentSuiteId + "<br>Branch:" + branchName +
                 "<br><br> Result: " + result.result +
                 (needTicketId ? ("<br><br>Enter JIRA ticket number: <input type='text' id='enterTicketId'>") : ""));

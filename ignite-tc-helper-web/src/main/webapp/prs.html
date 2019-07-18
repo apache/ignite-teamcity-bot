@@ -195,7 +195,7 @@
             var branchName = fields.namedItem("branchForTc").value;
             var ticketId = fields.namedItem("ticketId").value;
 
-            commentJira(srvId, suiteId, branchName, ticketId)
+            commentJira(srvId, branchName, suiteId, ticketId, "");
         }
 
         function showFormAndSuitesForPrCheck(result) {

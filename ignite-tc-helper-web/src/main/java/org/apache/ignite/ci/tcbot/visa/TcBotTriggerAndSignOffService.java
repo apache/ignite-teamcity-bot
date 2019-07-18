@@ -36,33 +36,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
-import javax.ws.rs.QueryParam;
-
-import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
-import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.ci.github.GitHubBranch;
 import org.apache.ignite.ci.github.GitHubUser;
 import org.apache.ignite.ci.github.PullRequest;
-import org.apache.ignite.githubignited.IGitHubConnIgnited;
-import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
-import org.apache.ignite.jiraignited.IJiraIgnited;
-import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
-import org.apache.ignite.jiraservice.Ticket;
 import org.apache.ignite.ci.observer.BuildObserver;
 import org.apache.ignite.ci.observer.BuildsInfo;
 import org.apache.ignite.ci.tcbot.ITcBotBgAuth;
-import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
-import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
-import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
-import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
-import org.apache.ignite.tcservice.model.mute.MuteInfo;
-import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.ci.teamcity.ignited.BuildRefCompacted;
-import org.apache.ignite.tcbot.persistence.IStringCompactor;
-import org.apache.ignite.tcignited.ITeamcityIgnited;
-import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
-import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.buildtype.BuildTypeRefCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.FatBuildCompacted;
@@ -72,11 +52,29 @@ import org.apache.ignite.ci.web.model.JiraCommentResponse;
 import org.apache.ignite.ci.web.model.SimpleResult;
 import org.apache.ignite.ci.web.model.Visa;
 import org.apache.ignite.ci.web.model.VisaRequest;
+import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
+import org.apache.ignite.githubignited.IGitHubConnIgnited;
+import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
+import org.apache.ignite.internal.util.typedef.F;
+import org.apache.ignite.jiraignited.IJiraIgnited;
+import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
+import org.apache.ignite.jiraservice.Ticket;
+import org.apache.ignite.tcbot.common.conf.IGitHubConfig;
+import org.apache.ignite.tcbot.common.conf.IJiraServerConfig;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
+import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
+import org.apache.ignite.tcbot.engine.ui.DsHistoryStatUi;
 import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
-import org.apache.ignite.tcbot.engine.ui.DsHistoryStatUi;
-import org.apache.ignite.ci.web.model.hist.VisasHistoryStorage;
-import org.apache.ignite.internal.util.typedef.F;
+import org.apache.ignite.tcbot.persistence.IStringCompactor;
+import org.apache.ignite.tcignited.ITeamcityIgnited;
+import org.apache.ignite.tcignited.ITeamcityIgnitedProvider;
+import org.apache.ignite.tcignited.SyncMode;
+import org.apache.ignite.tcservice.ITeamcity;
+import org.apache.ignite.tcservice.model.mute.MuteInfo;
+import org.apache.ignite.tcservice.model.result.Build;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -333,14 +331,16 @@ public class TcBotTriggerAndSignOffService {
      * @param branchForTc Branch for tc.
      * @param suiteId Suite id.
      * @param ticketFullName Ticket full name with IGNITE- prefix.
+     * @param baseBranchForTc base branch in TC identification
      * @param prov Prov.
      */
     @NotNull
     public SimpleResult commentJiraEx(
-        @QueryParam("serverId") @Nullable String srvId,
-        @QueryParam("branchName") @Nullable String branchForTc,
-        @QueryParam("suiteId") @Nullable String suiteId,
-        @QueryParam("ticketId") @Nullable String ticketFullName,
+        @Nullable String srvId,
+        @Nullable String branchForTc,
+        @Nullable String suiteId,
+        @Nullable String ticketFullName,
+        @Nullable String baseBranchForTc,
         ITcBotUserCreds prov) {
 
         try {
@@ -348,7 +348,7 @@ public class TcBotTriggerAndSignOffService {
         }
         catch (BranchTicketMatcher.TicketNotFoundException e) {
             logger.info("", e);
-            return new SimpleResult("JIRA wasn't commented.<br>" + e.getMessage());
+            return new SimpleResult("JIRA wasn't commented: TicketNotFoundException: <br>" + e.getMessage());
         }
 
         BuildsInfo buildsInfo = new BuildsInfo(srvId, prov, ticketFullName, branchForTc, suiteId);
