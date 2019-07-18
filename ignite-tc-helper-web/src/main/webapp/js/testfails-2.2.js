@@ -527,7 +527,7 @@ function commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranch
 
                         ticketId = $("#enterTicketId").val();
 
-                        commentJira(serverCode, branchName, parentSuiteId, ticketId)
+                        commentJira(serverCode, branchName, parentSuiteId, ticketId, baseBranchForTc)
                     },
                     "Cancel": function () {
                         $(this).dialog("close");

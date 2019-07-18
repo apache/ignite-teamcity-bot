@@ -360,7 +360,7 @@ public class TcBotTriggerAndSignOffService {
                 " \"Re-run possible blockers & Comment JIRA\" was triggered for current branch." +
                 " Wait for the end or cancel exsiting observing.");
 
-        Visa visa = notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName);
+        Visa visa = notifyJira(srvId, prov, suiteId, branchForTc, ticketFullName, baseBranchForTc);
 
         visasHistStorage.put(new VisaRequest(buildsInfo).setResult(visa));
 
@@ -726,7 +726,7 @@ public class TcBotTriggerAndSignOffService {
         CurrentVisaStatus status = new CurrentVisaStatus();
 
         List<DsSuiteUi> suitesStatuses
-            = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, tcBranch, srvCode, prov, SyncMode.NONE);
+            = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, tcBranch, srvCode, prov, SyncMode.NONE, null);
 
         if (suitesStatuses == null)
             return status;
@@ -745,6 +745,7 @@ public class TcBotTriggerAndSignOffService {
      * @param buildTypeId Build type ID, for which visa was ordered.
      * @param branchForTc Branch for TeamCity.
      * @param ticket JIRA ticket full name. E.g. IGNITE-5555
+     * @param baseBranchForTc Base branch in TC identification
      * @return {@link Visa} instance.
      */
     public Visa notifyJira(
@@ -752,8 +753,8 @@ public class TcBotTriggerAndSignOffService {
         ITcBotUserCreds prov,
         String buildTypeId,
         String branchForTc,
-        String ticket
-    ) {
+        String ticket,
+        @Nullable String baseBranchForTc) {
         ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, prov);
 
         IJiraIgnited jira = jiraIgnProv.server(srvId);
@@ -775,12 +776,15 @@ public class TcBotTriggerAndSignOffService {
         JiraCommentResponse res;
 
         try {
-            List<DsSuiteUi> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, build.branchName, srvId, prov);
+            String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? prChainsProcessor.dfltBaseTcBranch(tcIgnited) : baseBranchForTc;
+
+            List<DsSuiteUi> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, build.branchName, srvId, prov,
+                SyncMode.RELOAD_QUEUED,
+                baseBranch);
 
             if (suitesStatuses == null)
-                return new Visa("JIRA wasn't commented - no finished builds to analyze.");
-
-            String comment = generateJiraComment(suitesStatuses, build.webUrl, buildTypeId, tcIgnited);
+                return new Visa("JIRA wasn't commented - no finished builds to analyze." +
+                    " Check builds availabiliy for branch: " + build.branchName + "/" + baseBranch);
 
             blockers = suitesStatuses.stream()
                 .mapToInt(suite -> {
@@ -790,6 +794,9 @@ public class TcBotTriggerAndSignOffService {
                     return suite.testFailures.size();
                 })
                 .sum();
+
+            String comment = generateJiraComment(suitesStatuses, build.webUrl, buildTypeId, tcIgnited, blockers, build.branchName, baseBranch);
+
 
             res = objMapper.readValue(jira.postJiraComment(ticket, comment), JiraCommentResponse.class);
         }
@@ -810,24 +817,35 @@ public class TcBotTriggerAndSignOffService {
      * @param webUrl Build URL.
      * @param buildTypeId Build type ID, for which visa was ordered.
      * @param tcIgnited TC service.
+     * @param blockers Count of blockers.
+     * @param branchName TC Branch name, which was tested.
+     * @param baseBranch TC Base branch used for comment
      * @return Comment, which should be sent to the JIRA ticket.
      */
     private String generateJiraComment(List<DsSuiteUi> suites, String webUrl, String buildTypeId,
-                                       ITeamcityIgnited tcIgnited) {
+        ITeamcityIgnited tcIgnited, int blockers, String branchName, String baseBranch) {
         BuildTypeRefCompacted bt = tcIgnited.getBuildTypeRef(buildTypeId);
 
         String suiteNameUsedForVisa = (bt != null ? bt.name(compactor) : buildTypeId);
 
         StringBuilder res = new StringBuilder();
 
+        String baseBranchDisp = (Strings.isNullOrEmpty(baseBranch) || ITeamcity.DEFAULT.equals(baseBranch))
+            ? "master" :  baseBranch ;
         for (DsSuiteUi suite : suites) {
-            res.append("{color:#d04437}").append(jiraEscText(suite.name)).append("{color}");
-            res.append(" [[tests ").append(suite.failedTests);
+            res.append("{color:#d04437}");
+
+            res.append(jiraEscText(suite.name)).append("{color}");
+
+            int totalBlockerTests = suite.testFailures.size();
+            res.append(" [[tests ").append(totalBlockerTests);
 
             if (suite.result != null && !suite.result.isEmpty())
                 res.append(' ').append(suite.result);
 
             res.append('|').append(suite.webToBuild).append("]]\\n");
+
+            int cnt = 0;
 
             for (DsTestFailureUi failure : suite.testFailures) {
                 res.append("* ");
@@ -842,31 +860,47 @@ public class TcBotTriggerAndSignOffService {
                 if (recent != null) {
                     if (recent.failureRate != null) {
                         res.append(" - ").append(recent.failureRate).append("% fails in last ")
-                            .append(recent.runs).append(" master runs.");
+                            .append(recent.runs).append(" ").append(jiraEscText(baseBranchDisp)).append(" runs.");
                     }
                     else if (recent.failures != null && recent.runs != null) {
                         res.append(" - ").append(recent.failures).append(" fails / ")
-                            .append(recent.runs).append(" master runs.");
+                            .append(recent.runs).append(" ").append(jiraEscText(baseBranchDisp)).append(" runs.");
                     }
                 }
 
                 res.append("\\n");
+
+                cnt++;
+                if (cnt > 10) {
+                    res.append("... and ").append(totalBlockerTests - cnt).append(" tests blockers\\n");
+
+                    break;
+                }
             }
 
             res.append("\\n");
         }
 
+        String suiteNameForComment = jiraEscText(suiteNameUsedForVisa);
+
+        String branchNameForComment = jiraEscText("Branch: [" + branchName + "] ");
+
+        String baseBranchForComment = jiraEscText("Base: [" + baseBranchDisp + "] ");
+        String branchVsBaseComment = branchNameForComment + baseBranchForComment;
+
         if (res.length() > 0) {
-            res.insert(0, "{panel:title=" + jiraEscText(suiteNameUsedForVisa) + ": Possible Blockers|" +
-                "borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}\\n")
+            String hdrPanel = "{panel:title=" + branchVsBaseComment + ": Possible Blockers (" + blockers + ")|" +
+                "borderStyle=dashed|borderColor=#ccc|titleBGColor=#F7D6C1}\\n";
+
+            res.insert(0, hdrPanel)
                 .append("{panel}");
         }
         else {
-            res.append("{panel:title=").append(jiraEscText(suiteNameUsedForVisa)).append(": No blockers found!|")
+            res.append("{panel:title=").append(branchVsBaseComment).append(": No blockers found!|")
                 .append("borderStyle=dashed|borderColor=#ccc|titleBGColor=#D6F7C1}{panel}");
         }
 
-        res.append("\\n").append("[TeamCity *").append(jiraEscText(suiteNameUsedForVisa)).append("* Results|").append(webUrl).append(']');
+        res.append("\\n").append("[TeamCity *").append(suiteNameForComment).append("* Results|").append(webUrl).append(']');
 
         return xmlEscapeText(res.toString());
     }
