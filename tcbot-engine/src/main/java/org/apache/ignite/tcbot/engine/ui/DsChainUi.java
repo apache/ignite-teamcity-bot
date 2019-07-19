@@ -224,7 +224,10 @@ public class DsChainUi {
         webToHist = buildWebLink(tcIgnited, ctx);
         webToBuild = buildWebLinkToBuild(tcIgnited, ctx);
 
-        Stream<T2<MultBuildRunCtx, TestCompactedMult>> allLongRunning = ctx.suites().flatMap(
+        Stream<T2<MultBuildRunCtx, TestCompactedMult>> allLongRunning = ctx.suites()
+            .filter(suite -> !suite.isComposite())
+            .filter(suiteFilter)
+            .flatMap(
             suite -> suite.getTopLongRunning().map(t -> new T2<>(suite, t))
         );
         Comparator<T2<MultBuildRunCtx, TestCompactedMult>> durationComp
@@ -243,9 +246,11 @@ public class DsChainUi {
             }
         );
 
-        Stream<T2<MultBuildRunCtx, Map.Entry<String, Long>>> allLogConsumers = ctx.suites().flatMap(
-            suite -> suite.getTopLogConsumers().map(t -> new T2<>(suite, t))
-        );
+        Stream<T2<MultBuildRunCtx, Map.Entry<String, Long>>> allLogConsumers = ctx.suites()
+            .filter(suite -> !suite.isComposite())
+            .filter(suiteFilter)
+            .flatMap(suite -> suite.getTopLogConsumers().map(t -> new T2<>(suite, t)));
+
         Comparator<T2<MultBuildRunCtx, Map.Entry<String, Long>>> longConsumingComp
             = Comparator.comparing((pair) -> pair.get2().getValue());
 
