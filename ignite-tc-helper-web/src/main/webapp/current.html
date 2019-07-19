@@ -10,17 +10,55 @@
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
     <script src="js/common-1.6.js"></script>
     <script src="js/testfails-2.2.js"></script>
 </head>
 <body>
 <script>
 var g_shownDataHashCodeHex = "";
+var gVue;
+
+function showQueryForm() {
+    gVue = new Vue({
+        el: '#vueQueryForm',
+        data: {
+            tagSelected: '',
+            tagsPresent: [],
+            displayMode: 'Failures'
+        },
+        methods: {
+            formChanged: function () {
+                checkForUpdate();
+            }
+        }
+    });
+
+   /* let srvCode = findGetParameter("serverId");
+    $.ajax({
+        url: "/rest/branches/tcBranches?srvCode=" + (srvCode == null ? "" : srvCode),
+        success: function (result) {
+            for (var i = 0; i < result.length; i++) {
+                var id = result[i];
+                gVue.$data.tcBranchesForSrv.push(id);
+            }
+
+            var baseBranchForTc = findGetParameter("baseBranchForTc");
+            if (baseBranchForTc != null) {
+                gVue.$data.tcBranchesForSrv.push(baseBranchForTc);
+                gVue.$data.baseBranchSelected = baseBranchForTc;
+            }
+        },
+        error: showErrInLoadStatus
+    });*/
+}
 
 $(document).ready(function() {
     $.getScript("js/testfails-2.2.js", function(data, textStatus, jqxhr){ });
     
     $( document ).tooltip();
+    showQueryForm();
     loadData();
 
     $.ajax({ url: "/rest/branches/version",  success: showVersionInfo, error: showErrInLoadStatus });
@@ -41,6 +79,11 @@ function parmsForRest() {
     var trustedTests = findGetParameter("trustedTests");
     if (trustedTests != null) {
         curReqParms += "&trustedTests=" + trustedTests;
+    }
+
+    var tagSelected = gVue.$data.tagSelected;
+    if (tagSelected != null) {
+        curReqParms += "&tagSelected=" + tagSelected;
     }
 
     return curReqParms;
@@ -126,6 +169,25 @@ function loadPartialData() {
 }
 
 function showData(result) {
+    let setOfTags = new Set(gVue.$data.tagsPresent);
+    for (let i = 0; i < result.servers.length; i++) {
+        let chain = result.servers[i];
+
+        for (let j = 0; j < chain.suites.length; j++) {
+            let suite = chain.suites[j];
+
+            if(isDefinedAndFilled(suite.tags)) {
+                for (let k = 0; k < suite.tags.length; k++) {
+                    const tag = suite.tags[k];
+
+                    setOfTags.add(tag);
+                }
+            }
+        }
+    }
+
+    gVue.$data.tagsPresent = Array.from(setOfTags);
+
     //var txtUrl = "rest/tracked/results/txt" + parmsForRest();
 
     $("#divFailures").html(showChainOnServersResults(result));
@@ -135,7 +197,26 @@ function showData(result) {
 </script>
 
 <div id="loadStatus"></div>
-<div id="divFailures"></div>
+
+<div id="vueQueryForm" class="h-25">
+    <v-app id="prQueryForm" name="prQueryForm" class="h-25">
+        <span>Tag filter: </span>
+        <select v-model="tagSelected" @change="formChanged">
+            <option disabled value="">Please select one</option>
+
+            <option v-for="option in tagsPresent" v-bind:value="option">
+                {{ option }}
+            </option>
+        </select>
+        <span>Display Mode: </span>
+        <select v-model="displayMode" @change="formChanged">
+            <option selected>Failures only</option>
+            <option>Show all suites</option>
+        </select>
+        <div id="divFailures"></div>
+    </v-app>
+</div>
+
 
 <div id="version"></div>
 <div style="visibility:hidden;"><div id="triggerConfirm" title="Trigger Confirmation"></div><div id="triggerDialog" title="Trigger Result"></div></div>

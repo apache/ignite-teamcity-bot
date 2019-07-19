@@ -17,6 +17,7 @@
 
 package org.apache.ignite.tcbot.engine.ui;
 
+import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -37,6 +38,7 @@ import org.apache.ignite.tcservice.model.conf.BuildType;
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.branchForLink;
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOccurForLogConsumer;
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOrrucForLongRun;
+import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 
 /**
  * Detailed status of PR or tracked branch for chain.
@@ -162,42 +164,46 @@ public class DsChainUi {
         FullChainRunCtx ctx,
         @Nullable String baseBranchTc,
         IStringCompactor compactor,
-        boolean calcTrustedTests) {
+        boolean calcTrustedTests,
+        @Nullable String tagSelected) {
         failedTests = 0;
         failedToFinish = 0;
         totalTests = 0;
         trustedTests = 0;
         //todo mode with not failed
-        Stream<MultBuildRunCtx> stream = ctx.failedChildSuites();
 
-        stream.forEach(
-            suite -> {
-                final DsSuiteUi suiteCurStatus = new DsSuiteUi();
+        String failRateNormalizedBranch = normalizeBranch(baseBranchTc);
+        Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
 
-                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
+        ctx.suites()
+            .filter(suite -> {
+                if (Strings.isNullOrEmpty(tagSelected))
+                    return true;
 
-                failedTests += suiteCurStatus.failedTests != null ? suiteCurStatus.failedTests : 0;
-                totalTests += suiteCurStatus.totalTests != null ? suiteCurStatus.totalTests : 0;
-                trustedTests += suiteCurStatus.trustedTests != null ? suiteCurStatus.trustedTests : 0;
-                if (suite.hasAnyBuildProblemExceptTestOrSnapshot() || suite.onlyCancelledBuilds())
-                    failedToFinish++;
+                return suite.tags().contains(tagSelected);
+            })
+            .peek(suite -> {
+                Integer totalTests = suite.totalTests();
+                this.totalTests += totalTests != null ? totalTests : 0;
 
-                suites.add(suiteCurStatus);
-            }
-        );
+                if (calcTrustedTests)
+                    trustedTests += suite.trustedTests(tcIgnited, baseBranchId);
+            })
+            .forEach(suite -> {
+                if (suite.isFailed()) {
+                    final DsSuiteUi suiteCurStatus = new DsSuiteUi();
 
-        if(calcTrustedTests) {
-            //todo odd convertion
-            ctx.suites().filter(s -> !s.isFailed()).forEach(suite -> {
+                    suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
 
-                final DsSuiteUi suiteCurStatus = new DsSuiteUi();
+                    failedTests += suiteCurStatus.failedTests != null ? suiteCurStatus.failedTests : 0;
 
-                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
+                    if (suite.hasAnyBuildProblemExceptTestOrSnapshot() || suite.onlyCancelledBuilds())
+                        failedToFinish++;
 
-                totalTests += suiteCurStatus.totalTests != null ? suiteCurStatus.totalTests : 0;
-                trustedTests += suiteCurStatus.trustedTests != null ? suiteCurStatus.trustedTests : 0;
+                    suites.add(suiteCurStatus);
+                }
             });
-        }
+
 
         totalBlockers = suites.stream().mapToInt(DsSuiteUi::totalBlockers).sum();
         durationPrintable = ctx.getDurationPrintable();

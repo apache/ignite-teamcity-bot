@@ -604,12 +604,12 @@ public class MultBuildRunCtx implements ISuiteResults {
             || hasMetricProblem();
     }
 
-    public Integer totalTests() {
+    public int totalTests() {
         return (int)buildsStream().mapToInt(SingleBuildRunCtx::totalNotMutedTests).average().orElse(0.0);
     }
 
-    public Integer trustedTests(ITeamcityIgnited tcIgnited,
-        String normalizedBaseBranch) {
+    public int trustedTests(ITeamcityIgnited tcIgnited,
+        @Nullable Integer branchName) {
 
         AtomicInteger trustedCnt = new AtomicInteger();
         Map<Integer, TestCompactedMult> res = new HashMap<>();
@@ -619,7 +619,6 @@ public class MultBuildRunCtx implements ISuiteResults {
             saveToMap(res,
                 singleBuildRunCtx.getAllTests().filter(t -> !t.isIgnoredTest() && !t.isMutedTest()));
         });
-        Integer branchName = compactor.getStringIdIfPresent(normalizedBaseBranch);
 
         res.forEach((testNameId, compactedMult) -> {
             IRunHistory stat = compactedMult.history(tcIgnited, branchName);

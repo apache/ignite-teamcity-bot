@@ -120,7 +120,7 @@ public class TrackedBranchProcessorTest {
             false,
             1,
             mock, SyncMode.RELOAD_QUEUED,
-            false);
+            false, null);
 
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         System.out.println(gson.toJson(failures));

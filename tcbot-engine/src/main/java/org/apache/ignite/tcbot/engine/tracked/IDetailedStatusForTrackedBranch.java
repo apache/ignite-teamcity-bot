@@ -31,7 +31,8 @@ public interface IDetailedStatusForTrackedBranch {
      * @param buildResMergeCnt Build results merge count.
      * @param creds Credentials.
      * @param syncMode Sync mode.
-     * @param calcTrustedTests Calc trusted tests.
+     * @param calcTrustedTests Calculate trusted tests count.
+     * @param tagSelected Selected tag based filter. If null or empty all data is returned.
      */
     public DsSummaryUi getTrackedBranchTestFailures(
         @Nullable String branch,
@@ -39,7 +40,8 @@ public interface IDetailedStatusForTrackedBranch {
         int buildResMergeCnt,
         ICredentialsProv creds,
         SyncMode syncMode,
-        boolean calcTrustedTests);
+        boolean calcTrustedTests,
+        @Nullable String tagSelected);
 
     //  * @param baseTrackedBranch Branch tracked branch in Bot, has a priority if both TC & Bot branches (baseBranchForTcParm) present.
 }

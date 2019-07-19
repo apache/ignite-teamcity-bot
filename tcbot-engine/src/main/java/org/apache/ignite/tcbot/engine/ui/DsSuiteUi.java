@@ -240,7 +240,7 @@ public class DsSuiteUi extends DsHistoryStatUi {
             totalTests = suite.totalTests();
 
             if(calcTrustedTests)
-                trustedTests = suite.trustedTests(tcIgnited, failRateNormalizedBranch);
+                trustedTests = suite.trustedTests(tcIgnited, baseBranchId);
         }
 
         suite.getBuildsWithThreadDump().forEach(buildId -> {

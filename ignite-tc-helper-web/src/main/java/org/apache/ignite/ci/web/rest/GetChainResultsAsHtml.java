@@ -89,7 +89,8 @@ public class GetChainResultsAsHtml {
 
         status.chainName = ctx.suiteName();
 
-        status.initFromContext(tcIgn, ctx, failRateBranch, injector.getInstance(IStringCompactor.class), false);
+        IStringCompactor c = injector.getInstance(IStringCompactor.class);
+        status.initFromContext(tcIgn, ctx, failRateBranch, c, false, null);
 
         res.append(showChainAtServerData(status));
 
