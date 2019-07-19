@@ -17,11 +17,13 @@
 
 package org.apache.ignite.tcbot.engine.ui;
 
+import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.ignite.internal.util.typedef.T2;
@@ -30,6 +32,7 @@ import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
+import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcservice.model.conf.BuildType;
@@ -37,6 +40,7 @@ import org.apache.ignite.tcservice.model.conf.BuildType;
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.branchForLink;
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOccurForLogConsumer;
 import static org.apache.ignite.tcbot.engine.ui.DsSuiteUi.createOrrucForLongRun;
+import static org.apache.ignite.tcignited.history.RunHistSync.normalizeBranch;
 
 /**
  * Detailed status of PR or tracked branch for chain.
@@ -155,62 +159,74 @@ public class DsChainUi {
         this.webToPr = webToPr;
     }
 
-
-
-
     public void initFromContext(ITeamcityIgnited tcIgnited,
         FullChainRunCtx ctx,
         @Nullable String baseBranchTc,
         IStringCompactor compactor,
-        boolean calcTrustedTests) {
+        boolean calcTrustedTests,
+        @Nullable String tagSelected,
+        @Nullable DisplayMode displayMode) {
         failedTests = 0;
         failedToFinish = 0;
         totalTests = 0;
         trustedTests = 0;
-        //todo mode with not failed
-        Stream<MultBuildRunCtx> stream = ctx.failedChildSuites();
 
-        stream.forEach(
-            suite -> {
-                final DsSuiteUi suiteCurStatus = new DsSuiteUi();
+        String failRateNormalizedBranch = normalizeBranch(baseBranchTc);
+        Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
 
-                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
+        DisplayMode dModeToUse
+            = displayMode == null ? DisplayMode.OnlyFailures : displayMode;
 
-                failedTests += suiteCurStatus.failedTests != null ? suiteCurStatus.failedTests : 0;
-                totalTests += suiteCurStatus.totalTests != null ? suiteCurStatus.totalTests : 0;
-                trustedTests += suiteCurStatus.trustedTests != null ? suiteCurStatus.trustedTests : 0;
-                if (suite.hasAnyBuildProblemExceptTestOrSnapshot() || suite.onlyCancelledBuilds())
-                    failedToFinish++;
+        Predicate<MultBuildRunCtx> suiteFilter = suite -> {
+            if (Strings.isNullOrEmpty(tagSelected))
+                return true;
 
-                suites.add(suiteCurStatus);
-            }
-        );
+            return suite.tags().contains(tagSelected);
+        };
 
-        if(calcTrustedTests) {
-            //todo odd convertion
-            ctx.suites().filter(s -> !s.isFailed()).forEach(suite -> {
+        ctx.suites()
+            .filter(suite -> !suite.isComposite())
+            .filter(suiteFilter)
+            .peek(suite -> {
+                Integer totalTests = suite.totalTests();
+                this.totalTests += totalTests != null ? totalTests : 0;
 
-                final DsSuiteUi suiteCurStatus = new DsSuiteUi();
+                if (calcTrustedTests)
+                    trustedTests += suite.trustedTests(tcIgnited, baseBranchId);
+            })
+            .forEach(suite -> {
+                if (dModeToUse == DisplayMode.None)
+                    return; //don't convert any suite for UI
 
-                suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
+                if (suite.isFailed() || dModeToUse == DisplayMode.ShowAllSuites) {
+                    final DsSuiteUi suiteCurStatus = new DsSuiteUi();
 
-                totalTests += suiteCurStatus.totalTests != null ? suiteCurStatus.totalTests : 0;
-                trustedTests += suiteCurStatus.trustedTests != null ? suiteCurStatus.trustedTests : 0;
+                    suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
+
+                    failedTests += suiteCurStatus.failedTests != null ? suiteCurStatus.failedTests : 0;
+
+                    if (suite.hasAnyBuildProblemExceptTestOrSnapshot() || suite.onlyCancelledBuilds())
+                        failedToFinish++;
+
+                    suites.add(suiteCurStatus);
+                }
             });
-        }
 
         totalBlockers = suites.stream().mapToInt(DsSuiteUi::totalBlockers).sum();
-        durationPrintable = ctx.getDurationPrintable();
-        testsDurationPrintable = ctx.getTestsDurationPrintable();
-        durationNetTimePrintable = ctx.durationNetTimePrintable();
-        sourceUpdateDurationPrintable = ctx.sourceUpdateDurationPrintable();
-        artifcactPublishingDurationPrintable = ctx.artifcactPublishingDurationPrintable();
-        dependeciesResolvingDurationPrintable = ctx.dependeciesResolvingDurationPrintable();
-        lostInTimeouts = ctx.getLostInTimeoutsPrintable();
+        durationPrintable = ctx.getDurationPrintable(suiteFilter);
+        testsDurationPrintable = ctx.getTestsDurationPrintable(suiteFilter);
+        durationNetTimePrintable = ctx.durationNetTimePrintable(suiteFilter);
+        sourceUpdateDurationPrintable = ctx.sourceUpdateDurationPrintable(suiteFilter);
+        artifcactPublishingDurationPrintable = ctx.artifcactPublishingDurationPrintable(suiteFilter);
+        dependeciesResolvingDurationPrintable = ctx.dependeciesResolvingDurationPrintable(suiteFilter);
+        lostInTimeouts = ctx.getLostInTimeoutsPrintable(suiteFilter);
         webToHist = buildWebLink(tcIgnited, ctx);
         webToBuild = buildWebLinkToBuild(tcIgnited, ctx);
 
-        Stream<T2<MultBuildRunCtx, TestCompactedMult>> allLongRunning = ctx.suites().flatMap(
+        Stream<T2<MultBuildRunCtx, TestCompactedMult>> allLongRunning = ctx.suites()
+            .filter(suite -> !suite.isComposite())
+            .filter(suiteFilter)
+            .flatMap(
             suite -> suite.getTopLongRunning().map(t -> new T2<>(suite, t))
         );
         Comparator<T2<MultBuildRunCtx, TestCompactedMult>> durationComp
@@ -229,9 +245,11 @@ public class DsChainUi {
             }
         );
 
-        Stream<T2<MultBuildRunCtx, Map.Entry<String, Long>>> allLogConsumers = ctx.suites().flatMap(
-            suite -> suite.getTopLogConsumers().map(t -> new T2<>(suite, t))
-        );
+        Stream<T2<MultBuildRunCtx, Map.Entry<String, Long>>> allLogConsumers = ctx.suites()
+            .filter(suite -> !suite.isComposite())
+            .filter(suiteFilter)
+            .flatMap(suite -> suite.getTopLogConsumers().map(t -> new T2<>(suite, t)));
+
         Comparator<T2<MultBuildRunCtx, Map.Entry<String, Long>>> longConsumingComp
             = Comparator.comparing((pair) -> pair.get2().getValue());
 

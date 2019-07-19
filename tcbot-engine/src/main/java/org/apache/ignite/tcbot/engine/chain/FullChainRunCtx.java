@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Future;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcbot.common.util.TimeUtil;
@@ -67,28 +68,34 @@ public class FullChainRunCtx {
 
     /**
      * @return may return less time than actual duration if not all statistic is provided
+     * @param suiteFilter
      */
-    public Long getTotalDuration() {
-        return sumOfNonNulls(getDurations());
+    public Long getTotalDuration(
+        Predicate<MultBuildRunCtx> suiteFilter) {
+        return sumOfNonNulls(getDurations(suiteFilter));
     }
 
-    public boolean hasFullDurationInfo() {
-        return getDurations().noneMatch(Objects::isNull);
+    public boolean hasFullDurationInfo(
+        Predicate<MultBuildRunCtx> suiteFilter) {
+        return getDurations(suiteFilter).noneMatch(Objects::isNull);
     }
 
     /**
      * @return returns durations of all suites (last builds)
+     * @param suiteFilter
      */
-    private Stream<Long> getDurations() {
-        return suitesNonComposite().map(MultBuildRunCtx::buildDuration);
+    private Stream<Long> getDurations(Predicate<MultBuildRunCtx> suiteFilter) {
+        return suitesNonComposite().filter(suiteFilter).map(MultBuildRunCtx::buildDuration);
     }
 
     /**
      * @return sum of durations of all suites printable.
+     * @param suiteFilter
      */
-    @Nonnull public String getDurationPrintable() {
-        return (TimeUtil.millisToDurationPrintable(getTotalDuration()))
-            + (hasFullDurationInfo() ? "" : "+");
+    @Nonnull public String getDurationPrintable(
+        Predicate<MultBuildRunCtx> suiteFilter) {
+        return (TimeUtil.millisToDurationPrintable(getTotalDuration(suiteFilter)))
+            + (hasFullDurationInfo(suiteFilter) ? "" : "+");
     }
 
     public void addAllSuites(List<MultBuildRunCtx> suites) {
@@ -107,8 +114,8 @@ public class FullChainRunCtx {
         return fakeStub;
     }
 
-    public String getTestsDurationPrintable() {
-        long tests = sumOfNonNulls(suitesNonComposite().map(MultBuildRunCtx::getAvgTestsDuration));
+    public String getTestsDurationPrintable(Predicate<MultBuildRunCtx> suiteFilter) {
+        long tests = sumOfNonNulls(suitesNonComposite().filter(suiteFilter).map(MultBuildRunCtx::getAvgTestsDuration));
 
         return (TimeUtil.millisToDurationPrintable(tests));
     }
@@ -117,30 +124,30 @@ public class FullChainRunCtx {
         return suites().filter(ctx -> !ctx.isComposite());
     }
 
-    public String getLostInTimeoutsPrintable() {
-        long timeouts = suitesNonComposite().mapToLong(MultBuildRunCtx::getLostInTimeouts).sum();
+    public String getLostInTimeoutsPrintable(Predicate<MultBuildRunCtx> suiteFilter) {
+        long timeouts = suitesNonComposite().filter(suiteFilter).mapToLong(MultBuildRunCtx::getLostInTimeouts).sum();
 
         return TimeUtil.millisToDurationPrintable(timeouts);
     }
 
-    public String durationNetTimePrintable() {
+    public String durationNetTimePrintable(Predicate<MultBuildRunCtx> suiteFilter) {
         return TimeUtil.millisToDurationPrintable(
-            sumOfNonNulls(suitesNonComposite().map(MultBuildRunCtx::buildDurationNetTime)));
+            sumOfNonNulls(suitesNonComposite().filter(suiteFilter).map(MultBuildRunCtx::buildDurationNetTime)));
     }
 
-    public String sourceUpdateDurationPrintable() {
+    public String sourceUpdateDurationPrintable(Predicate<MultBuildRunCtx> suiteFilter) {
         return TimeUtil.millisToDurationPrintable(
-            sumOfNonNulls(suitesNonComposite().map(MultBuildRunCtx::sourceUpdateDuration)));
+            sumOfNonNulls(suitesNonComposite().filter(suiteFilter).map(MultBuildRunCtx::sourceUpdateDuration)));
     }
 
-    public String artifcactPublishingDurationPrintable() {
+    public String artifcactPublishingDurationPrintable(Predicate<MultBuildRunCtx> suiteFilter) {
         return TimeUtil.millisToDurationPrintable(
-            sumOfNonNulls(suitesNonComposite().map(MultBuildRunCtx::artifcactPublishingDuration)));
+            sumOfNonNulls(suitesNonComposite().filter(suiteFilter).map(MultBuildRunCtx::artifcactPublishingDuration)));
     }
 
-    public String dependeciesResolvingDurationPrintable() {
+    public String dependeciesResolvingDurationPrintable(Predicate<MultBuildRunCtx> suiteFilter) {
         return TimeUtil.millisToDurationPrintable(
-            sumOfNonNulls(suitesNonComposite().map(MultBuildRunCtx::dependeciesResolvingDuration)));
+            sumOfNonNulls(suitesNonComposite().filter(suiteFilter).map(MultBuildRunCtx::dependeciesResolvingDuration)));
     }
 
     public long sumOfNonNulls(Stream<Long> st) {

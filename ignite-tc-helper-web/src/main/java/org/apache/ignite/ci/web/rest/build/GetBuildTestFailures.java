@@ -131,7 +131,8 @@ public class GetBuildTestFailures {
             procLogs,
             false,
             failRateBranch,
-            syncMode);
+            syncMode,
+            null);
 
         DsChainUi chainStatus = new DsChainUi(srvCode, tcIgnited.serverCode(), ctx.branchName());
 
@@ -139,7 +140,7 @@ public class GetBuildTestFailures {
         if (cnt > 0)
             runningUpdates.addAndGet(cnt);
 
-        chainStatus.initFromContext(tcIgnited, ctx, failRateBranch, injector.getInstance(IStringCompactor.class), false);
+        chainStatus.initFromContext(tcIgnited, ctx, failRateBranch, injector.getInstance(IStringCompactor.class), false, null, null);
 
         res.addChainOnServer(chainStatus);
 

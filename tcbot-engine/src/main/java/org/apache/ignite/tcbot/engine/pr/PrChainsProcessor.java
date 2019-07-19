@@ -147,7 +147,8 @@ public class PrChainsProcessor {
             logs,
             buildResMergeCnt == 1,
             baseBranchForTc,
-            mode);
+            mode,
+            null);
 
         DsChainUi chainStatus = new DsChainUi(srvCodeOrAlias, tcIgnited.serverCode(), branchForTc);
 
@@ -162,7 +163,7 @@ public class PrChainsProcessor {
                 runningUpdates.addAndGet(cnt0);
 
             //fail rate reference is always default (master)
-            chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false); // don't need for PR
+            chainStatus.initFromContext(tcIgnited, ctx, baseBranchForTc, compactor, false, null, null); // don't need for PR
 
             initJiraAndGitInfo(chainStatus, jiraIntegration, gitHubConnIgnited);
         }
@@ -265,7 +266,8 @@ public class PrChainsProcessor {
             ProcessLogsMode.SUITE_NOT_COMPLETE,
             false,
             baseBranch,
-            syncMode);
+            syncMode,
+            null);
 
         if (ctx.isFakeStub())
             return null;
@@ -274,14 +276,15 @@ public class PrChainsProcessor {
     }
 
     /**
-     * @return Failures for given server.
+     * @return Blocker failures for given server.
      * @param fullChainRunCtx
      * @param tcIgnited
      * @param baseBranch
      */
     //todo may avoid creation of UI model for simple comment.
-    private List<DsSuiteUi> findBlockerFailures(FullChainRunCtx fullChainRunCtx, ITeamcityIgnited tcIgnited,
-                                                String baseBranch) {
+    private List<DsSuiteUi> findBlockerFailures(FullChainRunCtx fullChainRunCtx,
+        ITeamcityIgnited tcIgnited,
+        String baseBranch) {
         return fullChainRunCtx
             .failedChildSuites()
             .map((ctx) -> {

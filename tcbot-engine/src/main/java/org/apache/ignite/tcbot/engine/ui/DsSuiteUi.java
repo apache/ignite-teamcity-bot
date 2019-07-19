@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -145,6 +146,8 @@ public class DsSuiteUi extends DsHistoryStatUi {
      */
     @Nullable public String blockerComment;
 
+    public boolean success = false;
+
     /**
      * @param tcIgnited Tc ignited.
      * @param suite Suite.
@@ -209,9 +212,11 @@ public class DsSuiteUi extends DsHistoryStatUi {
             });
 
             suite.getTopLongRunning().forEach(occurrence -> {
-                final DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, compactor, suite, occurrence, baseBranch);
+                if (occurrence.getAvgDurationMs() > TimeUnit.SECONDS.toMillis(15)) {
+                    final DsTestFailureUi failure = createOrrucForLongRun(tcIgnited, compactor, suite, occurrence, baseBranch);
 
-                topLongRunning.add(failure);
+                    topLongRunning.add(failure);
+                }
             });
 
             suite.getCriticalFailLastStartedTest().forEach(
@@ -240,7 +245,7 @@ public class DsSuiteUi extends DsHistoryStatUi {
             totalTests = suite.totalTests();
 
             if(calcTrustedTests)
-                trustedTests = suite.trustedTests(tcIgnited, failRateNormalizedBranch);
+                trustedTests = suite.trustedTests(tcIgnited, baseBranchId);
         }
 
         suite.getBuildsWithThreadDump().forEach(buildId -> {
@@ -259,6 +264,8 @@ public class DsSuiteUi extends DsHistoryStatUi {
         tags = suite.tags();
 
         blockerComment = suite.getPossibleBlockerComment(compactor, baseBranchHist, tcIgnited.config());
+
+        success = !suite.isFailed();
 
         return this;
     }
