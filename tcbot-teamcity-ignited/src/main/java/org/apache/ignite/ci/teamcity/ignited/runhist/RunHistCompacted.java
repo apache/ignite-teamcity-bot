@@ -23,8 +23,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.ignite.tcbot.common.TcBotConst;
-import org.apache.ignite.tcbot.persistence.IVersionedEntity;
-import org.apache.ignite.tcbot.persistence.Persisted;
 import org.apache.ignite.tcignited.history.ChangesState;
 import org.apache.ignite.tcignited.history.IEventTemplate;
 import org.apache.ignite.tcignited.history.IRunHistory;
@@ -33,15 +31,7 @@ import org.apache.ignite.tcignited.history.RunStatus;
 /**
  *
  */
-@Persisted
-public class RunHistCompacted implements IVersionedEntity, IRunHistory {
-    /** Latest version. */
-    private static final int LATEST_VERSION = 1;
-
-    /** Entity fields version. */
-    @SuppressWarnings("FieldCanBeLocal")
-    private short _ver = LATEST_VERSION;
-
+public class RunHistCompacted implements  IRunHistory {
     /** Data. */
     private InvocationData data = new InvocationData();
 
@@ -50,16 +40,6 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
 
     public RunHistCompacted(RunHistKey ignored) {
 
-    }
-
-    /** {@inheritDoc} */
-    @Override public int version() {
-        return _ver;
-    }
-
-    /** {@inheritDoc} */
-    @Override public int latestVersion() {
-        return LATEST_VERSION;
     }
 
     /** {@inheritDoc} */
@@ -126,15 +106,6 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
     /** {@inheritDoc} */
     @Override public int getCriticalFailuresCount() {
         return data.criticalFailuresCount();
-    }
-
-    /**
-     * @param inv Invocation.
-     * @return if test run is new and is not expired.
-     */
-    @Deprecated
-    public boolean addInvocation(Invocation inv) {
-        return data.addInvocation(inv);
     }
 
     private static int[] concatArr(int[] arr1, int[] arr2) {
@@ -218,13 +189,12 @@ public class RunHistCompacted implements IVersionedEntity, IRunHistory {
         if (o == null || getClass() != o.getClass())
             return false;
         RunHistCompacted compacted = (RunHistCompacted)o;
-        return _ver == compacted._ver &&
-            Objects.equals(data, compacted.data);
+        return Objects.equals(data, compacted.data);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return Objects.hash(_ver, data);
+        return Objects.hash(data);
     }
 
     /**

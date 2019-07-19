@@ -24,7 +24,6 @@ import org.apache.ignite.tcbot.persistence.Persisted;
 /**
  *
  */
-@Persisted
 public class RunHistKey {
     /** Server ID. */
     @QuerySqlField(orderedGroups = {@QuerySqlField.Group(name = "tstAndSrv", order = 1)})

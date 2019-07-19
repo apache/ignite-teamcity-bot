@@ -101,6 +101,9 @@ public class DbMigrations {
         String BUILD_HIST_FINISHED_OR_FAILED = "buildHistFinishedOrFailed";
         String TEAMCITY_BUILD_CACHE_NAME_OLD = "teamcityBuild";
         String COMPACT_VISAS_HISTORY_CACHE_NAME = "compactVisasHistoryCache";
+
+        public static final String TEST_HIST_CACHE_NAME_V2_0 = "teamcityTestRunHist";
+        public static final String SUITE_HIST_CACHE_NAME_V2_0 = "teamcitySuiteRunHist";
     }
 
     private final Ignite ignite;
@@ -225,6 +228,9 @@ public class DbMigrations {
 
         applyDestroyCacheMigration("issues");
         applyDestroyCacheMigration("digestHist");
+
+        applyDestroyCacheMigration(Old.TEST_HIST_CACHE_NAME_V2_0);
+        applyDestroyCacheMigration(Old.SUITE_HIST_CACHE_NAME_V2_0);
 
         int sizeAfter = doneMigrations.size();
         return (sizeAfter - sizeBefore) + " Migrations done from " + sizeAfter;
