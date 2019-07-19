@@ -19,6 +19,7 @@ package org.apache.ignite.ci.web.rest.tracked;
 
 import com.google.inject.Injector;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -31,6 +32,7 @@ import org.apache.ignite.ci.tcbot.visa.TcBotTriggerAndSignOffService;
 import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.internal.util.typedef.F;
+import org.apache.ignite.tcbot.engine.chain.SortOption;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
@@ -65,8 +67,10 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
-        @Nullable @QueryParam("displayMode") String displayMode) {
-        return new UpdateInfo().copyFrom(getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, displayMode));
+        @Nullable @QueryParam("displayMode") String displayMode,
+        @Nullable @QueryParam("sortOption") String sortOption) {
+        return new UpdateInfo().copyFrom(getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected,
+            displayMode, sortOption));
     }
 
     @GET
@@ -76,8 +80,9 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
-        @Nullable @QueryParam("displayMode") String displayMode) {
-        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, displayMode).toString();
+        @Nullable @QueryParam("displayMode") String displayMode,
+        @Nullable @QueryParam("sortOption") String sortOption) {
+        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, displayMode, sortOption).toString();
     }
 
     @GET
@@ -87,8 +92,9 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
-        @Nullable @QueryParam("displayMode") String displayMode) {
-        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.NONE, displayMode);
+        @Nullable @QueryParam("displayMode") String displayMode,
+        @Nullable @QueryParam("sortOption") String sortOption) {
+        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.NONE, displayMode, sortOption);
     }
 
     @GET
@@ -99,8 +105,9 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
-        @Nullable @QueryParam("displayMode") String displayMode) {
-        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.RELOAD_QUEUED, displayMode);
+        @Nullable @QueryParam("displayMode") String displayMode,
+        @Nullable @QueryParam("sortOption") String sortOption) {
+        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.RELOAD_QUEUED, displayMode, sortOption);
     }
 
     @NotNull private DsSummaryUi latestBuildResults(
@@ -108,8 +115,9 @@ public class GetTrackedBranchTestResults {
         @Nullable Boolean checkAllLogs,
         @Nullable Boolean trustedTests,
         @Nullable String tagSelected,
-        SyncMode mode,
-        @Nullable String displayMode) {
+        @Nonnull SyncMode mode,
+        @Nullable String displayMode,
+        @Nullable String sortOption) {
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
@@ -117,7 +125,8 @@ public class GetTrackedBranchTestResults {
         return injector.getInstance(IDetailedStatusForTrackedBranch.class)
             .getTrackedBranchTestFailures(branch, checkAllLogs, 1, creds, mode,
                 Boolean.TRUE.equals(trustedTests), tagSelected,
-                DisplayMode.parseStringValue(displayMode));
+                DisplayMode.parseStringValue(displayMode),
+                SortOption.parseStringValue(sortOption));
     }
 
     @GET
@@ -155,7 +164,7 @@ public class GetTrackedBranchTestResults {
         Injector injector = CtxListener.getInjector(ctx);
 
         return injector.getInstance(TrackedBranchChainsProcessor.class)
-            .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode, false, null, DisplayMode.OnlyFailures);
+            .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode, false, null, DisplayMode.OnlyFailures, null);
     }
 
     /**

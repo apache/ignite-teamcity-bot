@@ -23,6 +23,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.ignite.internal.util.typedef.T2;
@@ -158,9 +159,6 @@ public class DsChainUi {
         this.webToPr = webToPr;
     }
 
-
-
-
     public void initFromContext(ITeamcityIgnited tcIgnited,
         FullChainRunCtx ctx,
         @Nullable String baseBranchTc,
@@ -180,14 +178,16 @@ public class DsChainUi {
         DisplayMode dModeToUse
             = displayMode == null ? DisplayMode.OnlyFailures : displayMode;
 
+        Predicate<MultBuildRunCtx> suiteFilter = suite -> {
+            if (Strings.isNullOrEmpty(tagSelected))
+                return true;
+
+            return suite.tags().contains(tagSelected);
+        };
+
         ctx.suites()
             .filter(suite -> !suite.isComposite())
-            .filter(suite -> {
-                if (Strings.isNullOrEmpty(tagSelected))
-                    return true;
-
-                return suite.tags().contains(tagSelected);
-            })
+            .filter(suiteFilter)
             .peek(suite -> {
                 Integer totalTests = suite.totalTests();
                 this.totalTests += totalTests != null ? totalTests : 0;
@@ -214,13 +214,13 @@ public class DsChainUi {
             });
 
         totalBlockers = suites.stream().mapToInt(DsSuiteUi::totalBlockers).sum();
-        durationPrintable = ctx.getDurationPrintable();
-        testsDurationPrintable = ctx.getTestsDurationPrintable();
-        durationNetTimePrintable = ctx.durationNetTimePrintable();
-        sourceUpdateDurationPrintable = ctx.sourceUpdateDurationPrintable();
-        artifcactPublishingDurationPrintable = ctx.artifcactPublishingDurationPrintable();
-        dependeciesResolvingDurationPrintable = ctx.dependeciesResolvingDurationPrintable();
-        lostInTimeouts = ctx.getLostInTimeoutsPrintable();
+        durationPrintable = ctx.getDurationPrintable(suiteFilter);
+        testsDurationPrintable = ctx.getTestsDurationPrintable(suiteFilter);
+        durationNetTimePrintable = ctx.durationNetTimePrintable(suiteFilter);
+        sourceUpdateDurationPrintable = ctx.sourceUpdateDurationPrintable(suiteFilter);
+        artifcactPublishingDurationPrintable = ctx.artifcactPublishingDurationPrintable(suiteFilter);
+        dependeciesResolvingDurationPrintable = ctx.dependeciesResolvingDurationPrintable(suiteFilter);
+        lostInTimeouts = ctx.getLostInTimeoutsPrintable(suiteFilter);
         webToHist = buildWebLink(tcIgnited, ctx);
         webToBuild = buildWebLinkToBuild(tcIgnited, ctx);
 

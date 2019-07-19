@@ -87,7 +87,7 @@ public class BuildChainProcessorTest {
 
         FullChainRunCtx ctx = bcp.loadFullChainContext(tcIgnited,
             entry,
-            LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
+            LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE, null);
         List<MultBuildRunCtx> suites = ctx.failedChildSuites().collect(Collectors.toList());
 
         assertTrue(!suites.isEmpty());
@@ -123,7 +123,7 @@ public class BuildChainProcessorTest {
 
         FullChainRunCtx ctx2 = bcp.loadFullChainContext(tcIgnited,
             entry,
-            LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
+            LatestRebuildMode.ALL, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE, null);
         List<MultBuildRunCtx> suites2 = ctx2.failedChildSuites().collect(Collectors.toList());
 
         assertTrue(!suites2.isEmpty());
@@ -153,7 +153,7 @@ public class BuildChainProcessorTest {
 
         FullChainRunCtx ctx = bcp.loadFullChainContext(tcIgnitedMock(builds),
             entry,
-            LatestRebuildMode.LATEST, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE);
+            LatestRebuildMode.LATEST, ProcessLogsMode.SUITE_NOT_COMPLETE, false, ITeamcity.DEFAULT, SyncMode.NONE, null);
         List<MultBuildRunCtx> suites = ctx.failedChildSuites().collect(Collectors.toList());
 
         assertTrue(!suites.isEmpty());

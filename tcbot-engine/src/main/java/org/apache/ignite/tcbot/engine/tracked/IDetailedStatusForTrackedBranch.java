@@ -17,6 +17,7 @@
 package org.apache.ignite.tcbot.engine.tracked;
 
 import javax.annotation.Nullable;
+import org.apache.ignite.tcbot.engine.chain.SortOption;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
 import org.apache.ignite.tcignited.SyncMode;
 import org.apache.ignite.tcignited.creds.ICredentialsProv;
@@ -35,6 +36,7 @@ public interface IDetailedStatusForTrackedBranch {
      * @param calcTrustedTests Calculate trusted tests count.
      * @param tagSelected Selected tag based filter. If null or empty all data is returned.
      * @param displayMode Suites and tests display mode. Default - failures only.
+     * @param sortOption
      */
     public DsSummaryUi getTrackedBranchTestFailures(
         @Nullable String branch,
@@ -44,7 +46,7 @@ public interface IDetailedStatusForTrackedBranch {
         SyncMode syncMode,
         boolean calcTrustedTests,
         @Nullable String tagSelected,
-        DisplayMode displayMode);
+        DisplayMode displayMode, SortOption sortOption);
 
     //  * @param baseTrackedBranch Branch tracked branch in Bot, has a priority if both TC & Bot branches (baseBranchForTcParm) present.
 }

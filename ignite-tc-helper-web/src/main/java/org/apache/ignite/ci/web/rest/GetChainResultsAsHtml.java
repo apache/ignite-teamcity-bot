@@ -81,7 +81,7 @@ public class GetChainResultsAsHtml {
             ProcessLogsMode.SUITE_NOT_COMPLETE,
             false,
             failRateBranch,
-            SyncMode.RELOAD_QUEUED);
+            SyncMode.RELOAD_QUEUED, null);
 
         DsChainUi status = new DsChainUi(srvCode, tcIgn.serverCode(), ctx.branchName());
 

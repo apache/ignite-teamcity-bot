@@ -578,7 +578,7 @@ public class IssueDetector {
             SyncMode.RELOAD_QUEUED,
             false,
             null,
-            DisplayMode.None);
+            DisplayMode.None, null);
 
         DsSummaryUi failures =
             tbProc.getTrackedBranchTestFailures(brachName,
@@ -587,7 +587,7 @@ public class IssueDetector {
                 creds,
                 SyncMode.RELOAD_QUEUED,
                 false, null,
-                DisplayMode.OnlyFailures);
+                DisplayMode.OnlyFailures, null);
 
         String issRes = registerIssuesAndNotifyLater(failures, backgroundOpsCreds);
 

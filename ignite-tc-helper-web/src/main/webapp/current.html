@@ -32,6 +32,9 @@ function genLink() {
     if (gVue.$data.displayMode != null)
         newUrl += "&displayMode=" + gVue.$data.displayMode;
 
+    if (gVue.$data.sortOption != null)
+        newUrl += "&sortOption=" + gVue.$data.sortOption;
+
     let permalink = $("#permalink");
     permalink.attr("href", newUrl);
 
@@ -44,7 +47,8 @@ function showQueryForm() {
         data: {
             tagSelected: '',
             tagsPresent: [""],
-            displayMode: 'Failures'
+            displayMode: 'Failures',
+            sortOption: 'FailureRate'
         },
         methods: {
             formChanged: function () {
@@ -63,6 +67,11 @@ function showQueryForm() {
     let displayMode = findGetParameter("displayMode");
     if (displayMode != null) {
         gVue.$data.displayMode = displayMode;
+    }
+
+    let sortOption = findGetParameter("sortOption");
+    if (sortOption != null) {
+        gVue.$data.sortOption = sortOption;
     }
 
     genLink();
@@ -103,6 +112,11 @@ function parmsForRest() {
     var displayMode = gVue.$data.displayMode;
     if (displayMode != null) {
         curReqParms += "&displayMode=" + displayMode;
+    }
+
+    var sortOption = gVue.$data.sortOption;
+    if (sortOption != null) {
+        curReqParms += "&sortOption=" + sortOption;
     }
 
     return curReqParms;
@@ -231,6 +245,11 @@ function showData(result) {
         <select v-model="displayMode" @change="formChanged">
             <option value="Failures">Show failures only</option>
             <option value="AllSuites">Show all suites</option>
+        </select>
+        <span>Sort: </span>
+        <select v-model="sortOption" @change="formChanged">
+            <option value="FailureRate">Failure Rate</option>
+            <option value="SuiteDuration">Suite Duration</option>
         </select>
         <span> <a id="permalink"></a></span>
         <div id="divFailures"></div>

@@ -138,16 +138,18 @@ public class BuildChainProcessor {
      * @param includeScheduledInfo Include scheduled info.
      * @param failRateBranch Fail rate branch.
      * @param mode background data update mode.
+     * @param sortOption how to sort suites in context, default is by failure rate (most often - first).
      */
     @AutoProfiling
     public FullChainRunCtx loadFullChainContext(
-            ITeamcityIgnited tcIgn,
-            Collection<Integer> entryPoints,
-            LatestRebuildMode includeLatestRebuild,
-            ProcessLogsMode procLog,
-            boolean includeScheduledInfo,
-            @Nullable String failRateBranch,
-            SyncMode mode) {
+        ITeamcityIgnited tcIgn,
+        Collection<Integer> entryPoints,
+        LatestRebuildMode includeLatestRebuild,
+        ProcessLogsMode procLog,
+        boolean includeScheduledInfo,
+        @Nullable String failRateBranch,
+        SyncMode mode,
+        @Nullable SortOption sortOption) {
 
         if (entryPoints.isEmpty())
             return new FullChainRunCtx(Build.createFakeStub());
@@ -199,21 +201,33 @@ public class BuildChainProcessor {
             contexts.add(ctx);
         });
 
-        Function<MultBuildRunCtx, Float> function = ctx -> {
-            IRunHistory runStat = ctx.history(tcIgn, failRateBranchId);
-
-            if (runStat == null)
-                return 0f;
-
-            //some hack to bring timed out suites to top
-            return runStat.getCriticalFailRate() * 3.14f + runStat.getFailRate();
-        };
 
         Integer someEntryPnt = entryPoints.iterator().next();
         Future<FatBuildCompacted> build = getOrLoadBuild(someEntryPnt, mode, builds, tcIgn);
         FullChainRunCtx fullChainRunCtx = new FullChainRunCtx(FutureUtil.getResult(build).toBuild(compactor));
 
-        contexts.sort(Comparator.comparing(function).reversed());
+        Function<MultBuildRunCtx, Double> function = null;
+        if (sortOption == null || sortOption == SortOption.FailureRate) {
+            function = ctx -> {
+                IRunHistory runStat = ctx.history(tcIgn, failRateBranchId);
+
+                if (runStat == null)
+                    return 0d;
+
+                //some hack to bring timed out suites to top
+                return runStat.getCriticalFailRate() * 3.14d + runStat.getFailRate();
+            };
+        }
+        else {
+            function = ctx -> {
+                Long duration = ctx.buildDuration();
+
+                return duration == null ? 0 : (double)duration;
+            };
+        }
+
+        if (function != null)
+            contexts.sort(Comparator.comparing(function).reversed());
 
         fullChainRunCtx.addAllSuites(contexts);
 

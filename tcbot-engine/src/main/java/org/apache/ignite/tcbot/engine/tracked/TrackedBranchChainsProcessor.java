@@ -28,6 +28,7 @@ import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
+import org.apache.ignite.tcbot.engine.chain.SortOption;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.ui.DsChainUi;
@@ -72,7 +73,8 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         SyncMode syncMode,
         boolean calcTrustedTests,
         @Nullable String tagSelected,
-        @Nullable DisplayMode displayMode) {
+        @Nullable DisplayMode displayMode,
+        @Nullable SortOption sortOption) {
         final DsSummaryUi res = new DsSummaryUi();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -120,7 +122,8 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                     logs,
                     includeScheduled,
                     baseBranchTc,
-                    syncMode
+                    syncMode,
+                    sortOption
                 );
 
                 int cnt = (int)ctx.getRunningUpdates().count();
