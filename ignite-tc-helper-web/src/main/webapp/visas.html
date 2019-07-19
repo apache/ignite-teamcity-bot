@@ -175,7 +175,7 @@ function showVisasTable(result) {
 
 function loadData() {
     $.ajax({
-            url: "rest/visa/history?serverId=apache",
+            url: "rest/visa/history",
             success: function (result) {
                 showVisasTable(result);
             },

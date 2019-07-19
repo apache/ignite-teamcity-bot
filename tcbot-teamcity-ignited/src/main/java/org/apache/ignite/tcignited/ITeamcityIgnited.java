@@ -201,12 +201,6 @@ public interface ITeamcityIgnited {
      */
     public BuildTypeCompacted getBuildType(String buildTypeId);
 
-    @Deprecated
-    @Nullable public IRunHistory getTestRunHist(String testName, @Nullable String branch);
-
-    @Deprecated
-    @Nullable public IRunHistory getSuiteRunHist(String suiteId, @Nullable String branch);
-
     @Nullable public ISuiteRunHistory getSuiteRunHist(@Nullable Integer buildTypeId, @Nullable Integer normalizedBaseBranch);
 
     /**
@@ -217,12 +211,6 @@ public interface ITeamcityIgnited {
      * @param normalizedBaseBranch Branch name. This branch name does not support branches equivalence, only exact query will work.
      */
     @Nullable public IRunHistory getTestRunHist(int testName, @Nullable Integer buildTypeId, @Nullable Integer normalizedBaseBranch);
-
-    /**
-     * @param suiteBuildTypeId Suite id.
-     * @return run statistics of recent runls on all branches.
-     */
-    @Nullable public IRunStat getSuiteRunStatAllBranches(String suiteBuildTypeId);
 
     public List<String> getAllProjectsIds();
 

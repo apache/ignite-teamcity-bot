@@ -66,15 +66,6 @@ public class InvocationData {
         return allHistRuns;
     }
 
-    public boolean addInvocation(Invocation inv) {
-        try {
-            return innerAdd(inv);
-        }
-        finally {
-            removeEldiest();
-        }
-    }
-
     public boolean innerAdd(Invocation inv) {
         int build = inv.buildId();
         if (build < 0)
@@ -97,10 +88,6 @@ public class InvocationData {
         }
 
         return newVal;
-    }
-
-    void removeEldiest() {
-        invocationMap.entrySet().removeIf(entries -> isExpired(entries.getValue().startDate()));
     }
 
     /**

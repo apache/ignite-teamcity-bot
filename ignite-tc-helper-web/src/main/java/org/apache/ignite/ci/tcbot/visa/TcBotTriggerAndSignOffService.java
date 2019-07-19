@@ -142,15 +142,21 @@ public class TcBotTriggerAndSignOffService {
     }
 
     /** */
-    public List<VisaStatus> getVisasStatus(String srvCode, ITcBotUserCreds prov) {
+    public List<VisaStatus> getVisasStatus(ITcBotUserCreds prov) {
         List<VisaStatus> visaStatuses = new ArrayList<>();
 
-        ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCode, prov);
-
-        IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCode);
 
         for (VisaRequest visaRequest : visasHistStorage.getVisas()) {
             VisaStatus visaStatus = new VisaStatus();
+
+            String srvCodeOrAlias = visaRequest.getInfo().srvId;
+
+            if(!prov.hasAccess(srvCodeOrAlias))
+                continue;
+
+            ITeamcityIgnited tcIgn = tcIgnitedProv.server(srvCodeOrAlias, prov);
+
+            IJiraIgnited jiraIntegration = jiraIgnProv.server(srvCodeOrAlias);
 
             BuildsInfo info = visaRequest.getInfo();
 
@@ -188,7 +194,7 @@ public class TcBotTriggerAndSignOffService {
                 visaStatus.status = buildsStatus;
 
             if (isObserving)
-                visaStatus.cancelUrl = "/rest/visa/cancel?server=" + srvCode + "&branch=" + info.branchForTc;
+                visaStatus.cancelUrl = "/rest/visa/cancel?server=" + srvCodeOrAlias + "&branch=" + info.branchForTc;
 
             visaStatuses.add(visaStatus);
         }

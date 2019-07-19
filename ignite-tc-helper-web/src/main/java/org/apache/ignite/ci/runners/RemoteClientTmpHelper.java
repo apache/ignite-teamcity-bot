@@ -49,13 +49,13 @@ import org.apache.ignite.tcbot.persistence.IgniteStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcignited.build.FatBuildDao;
 import org.apache.ignite.tcignited.buildref.BuildRefDao;
-import org.apache.ignite.tcignited.history.RunHistCompactedDao;
+import org.apache.ignite.tcignited.history.BuildStartTimeStorage;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.Build;
 import org.apache.ignite.tcservice.util.XmlUtil;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.ignite.tcignited.history.RunHistCompactedDao.BUILD_START_TIME_CACHE_NAME;
+import static org.apache.ignite.tcignited.history.BuildStartTimeStorage.BUILD_START_TIME_CACHE_NAME;
 
 /**
  * Utility class for connecting to a remote server.
@@ -240,16 +240,9 @@ public class RemoteClientTmpHelper {
 
 
     public static void mainDestroyTestHist(String[] args) {
-        int testHist;
         int buildStartTimes;
 
         try (Ignite ignite = tcbotServerConnectedClient()) {
-            IgniteCache<Object, Object> cacheHistEntries = ignite.cache(RunHistCompactedDao.TEST_HIST_CACHE_NAME);
-            testHist = cacheHistEntries.size();
-
-            System.err.println("Start destroy() operation for hist entries");
-            cacheHistEntries.destroy();
-            System.err.println("Finish destroy() operation");
 
             IgniteCache<Object, Object> cacheStartTimes = ignite.cache(BUILD_START_TIME_CACHE_NAME);
 
@@ -260,7 +253,7 @@ public class RemoteClientTmpHelper {
             System.err.println("Finish destroy operation");
         }
 
-        System.err.println("Test hist entries destroyed [" + testHist + "] for [" + buildStartTimes + "] builds");
+        System.err.println("Test build start times destroyed [" + buildStartTimes + "] builds");
     }
 
     /**

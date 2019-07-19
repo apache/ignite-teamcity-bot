@@ -64,14 +64,13 @@ public class TcBotVisaService {
     }
 
     /**
-     * @param srvCode Server id.
      */
     @GET
     @Path("history")
-    public Collection<VisaStatus> history(@Nullable @QueryParam("serverId") String srvCode) {
+    public Collection<VisaStatus> history() {
         return CtxListener.getInjector(ctx)
             .getInstance(TcBotTriggerAndSignOffService.class)
-            .getVisasStatus(srvCode, ITcBotUserCreds.get(req));
+            .getVisasStatus(ITcBotUserCreds.get(req));
     }
 
     /**
