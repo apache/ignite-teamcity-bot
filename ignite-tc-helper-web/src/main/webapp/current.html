@@ -20,38 +20,52 @@
 var g_shownDataHashCodeHex = "";
 var gVue;
 
+function genLink() {
+    let newUrl = "./current.html?";
+
+    var branch = findGetParameter("branch");
+    newUrl += "branch=" + (branch != null ? branch : "master");
+
+    if (isDefinedAndFilled(gVue.$data.tagSelected))
+        newUrl += "&tagSelected=" + gVue.$data.tagSelected;
+
+    if (gVue.$data.displayMode != null)
+        newUrl += "&displayMode=" + gVue.$data.displayMode;
+
+    let permalink = $("#permalink");
+    permalink.attr("href", newUrl);
+
+    permalink.html("Permalink");
+}
+
 function showQueryForm() {
     gVue = new Vue({
         el: '#vueQueryForm',
         data: {
             tagSelected: '',
-            tagsPresent: [],
+            tagsPresent: [""],
             displayMode: 'Failures'
         },
         methods: {
             formChanged: function () {
                 checkForUpdate();
+                genLink();
             }
         }
     });
 
-   /* let srvCode = findGetParameter("serverId");
-    $.ajax({
-        url: "/rest/branches/tcBranches?srvCode=" + (srvCode == null ? "" : srvCode),
-        success: function (result) {
-            for (var i = 0; i < result.length; i++) {
-                var id = result[i];
-                gVue.$data.tcBranchesForSrv.push(id);
-            }
+    let tagSelected = findGetParameter("tagSelected");
+    if (tagSelected != null) {
+        gVue.$data.tagsPresent.push(tagSelected);
+        gVue.$data.tagSelected = tagSelected;
+    }
 
-            var baseBranchForTc = findGetParameter("baseBranchForTc");
-            if (baseBranchForTc != null) {
-                gVue.$data.tcBranchesForSrv.push(baseBranchForTc);
-                gVue.$data.baseBranchSelected = baseBranchForTc;
-            }
-        },
-        error: showErrInLoadStatus
-    });*/
+    let displayMode = findGetParameter("displayMode");
+    if (displayMode != null) {
+        gVue.$data.displayMode = displayMode;
+    }
+
+    genLink();
 }
 
 $(document).ready(function() {
@@ -84,6 +98,11 @@ function parmsForRest() {
     var tagSelected = gVue.$data.tagSelected;
     if (tagSelected != null) {
         curReqParms += "&tagSelected=" + tagSelected;
+    }
+
+    var displayMode = gVue.$data.displayMode;
+    if (displayMode != null) {
+        curReqParms += "&displayMode=" + displayMode;
     }
 
     return curReqParms;
@@ -210,9 +229,10 @@ function showData(result) {
         </select>
         <span>Display Mode: </span>
         <select v-model="displayMode" @change="formChanged">
-            <option selected>Failures only</option>
-            <option>Show all suites</option>
+            <option value="Failures">Show failures only</option>
+            <option value="AllSuites">Show all suites</option>
         </select>
+        <span> <a id="permalink"></a></span>
         <div id="divFailures"></div>
     </v-app>
 </div>

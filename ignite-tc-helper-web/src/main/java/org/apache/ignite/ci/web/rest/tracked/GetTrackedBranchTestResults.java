@@ -32,6 +32,7 @@ import org.apache.ignite.ci.user.ITcBotUserCreds;
 import org.apache.ignite.ci.web.CtxListener;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
+import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.engine.tracked.IDetailedStatusForTrackedBranch;
 import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.tcbot.engine.ui.DsSummaryUi;
@@ -63,8 +64,9 @@ public class GetTrackedBranchTestResults {
     public UpdateInfo getTestFailsUpdates(@Nullable @QueryParam("branch") String branchOrNull,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
-        @Nullable @QueryParam("tagSelected") String tagSelected) {
-        return new UpdateInfo().copyFrom(getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected));
+        @Nullable @QueryParam("tagSelected") String tagSelected,
+        @Nullable @QueryParam("displayMode") String displayMode) {
+        return new UpdateInfo().copyFrom(getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, displayMode));
     }
 
     @GET
@@ -73,8 +75,9 @@ public class GetTrackedBranchTestResults {
     public String getTestFailsText(@Nullable @QueryParam("branch") String branchOrNull,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
-        @Nullable @QueryParam("tagSelected") String tagSelected) {
-        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected).toString();
+        @Nullable @QueryParam("tagSelected") String tagSelected,
+        @Nullable @QueryParam("displayMode") String displayMode) {
+        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, displayMode).toString();
     }
 
     @GET
@@ -83,8 +86,9 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
-        @Nullable @QueryParam("tagSelected") String tagSelected) {
-        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.NONE);
+        @Nullable @QueryParam("tagSelected") String tagSelected,
+        @Nullable @QueryParam("displayMode") String displayMode) {
+        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.NONE, displayMode);
     }
 
     @GET
@@ -94,8 +98,9 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("branch") String branch,
         @Nullable @QueryParam("checkAllLogs") Boolean checkAllLogs,
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
-        @Nullable @QueryParam("tagSelected") String tagSelected) {
-        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.RELOAD_QUEUED);
+        @Nullable @QueryParam("tagSelected") String tagSelected,
+        @Nullable @QueryParam("displayMode") String displayMode) {
+        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.RELOAD_QUEUED, displayMode);
     }
 
     @NotNull private DsSummaryUi latestBuildResults(
@@ -103,14 +108,16 @@ public class GetTrackedBranchTestResults {
         @Nullable Boolean checkAllLogs,
         @Nullable Boolean trustedTests,
         @Nullable String tagSelected,
-        SyncMode mode) {
+        SyncMode mode,
+        @Nullable String displayMode) {
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 
         return injector.getInstance(IDetailedStatusForTrackedBranch.class)
             .getTrackedBranchTestFailures(branch, checkAllLogs, 1, creds, mode,
-                Boolean.TRUE.equals(trustedTests), tagSelected);
+                Boolean.TRUE.equals(trustedTests), tagSelected,
+                DisplayMode.parseStringValue(displayMode));
     }
 
     @GET
@@ -148,7 +155,7 @@ public class GetTrackedBranchTestResults {
         Injector injector = CtxListener.getInjector(ctx);
 
         return injector.getInstance(TrackedBranchChainsProcessor.class)
-            .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode, false, null);
+            .getTrackedBranchTestFailures(branchOpt, checkAllLogs, cntLimit, creds, mode, false, null, DisplayMode.OnlyFailures);
     }
 
     /**

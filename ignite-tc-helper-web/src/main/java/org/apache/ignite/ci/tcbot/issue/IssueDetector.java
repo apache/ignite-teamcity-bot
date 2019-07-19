@@ -37,6 +37,7 @@ import org.apache.ignite.ci.issue.Issue;
 import org.apache.ignite.ci.issue.IssueKey;
 import org.apache.ignite.ci.issue.IssueType;
 import org.apache.ignite.ci.jobs.CheckQueueJob;
+import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.notify.ISlackSender;
 import org.apache.ignite.ci.tcbot.user.IUserStorage;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
@@ -575,7 +576,9 @@ public class IssueDetector {
             buildsToQry,
             creds,
             SyncMode.RELOAD_QUEUED,
-            false, null);
+            false,
+            null,
+            DisplayMode.None);
 
         DsSummaryUi failures =
             tbProc.getTrackedBranchTestFailures(brachName,
@@ -583,7 +586,8 @@ public class IssueDetector {
                 1,
                 creds,
                 SyncMode.RELOAD_QUEUED,
-                false, null);
+                false, null,
+                DisplayMode.OnlyFailures);
 
         String issRes = registerIssuesAndNotifyLater(failures, backgroundOpsCreds);
 

@@ -31,6 +31,7 @@ import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
+import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
 import org.apache.ignite.tcignited.ITeamcityIgnited;
 import org.apache.ignite.tcservice.model.conf.BuildType;
@@ -165,7 +166,8 @@ public class DsChainUi {
         @Nullable String baseBranchTc,
         IStringCompactor compactor,
         boolean calcTrustedTests,
-        @Nullable String tagSelected) {
+        @Nullable String tagSelected,
+        @Nullable DisplayMode displayMode) {
         failedTests = 0;
         failedToFinish = 0;
         totalTests = 0;
@@ -175,7 +177,11 @@ public class DsChainUi {
         String failRateNormalizedBranch = normalizeBranch(baseBranchTc);
         Integer baseBranchId = compactor.getStringIdIfPresent(failRateNormalizedBranch);
 
+        DisplayMode dModeToUse
+            = displayMode == null ? DisplayMode.OnlyFailures : displayMode;
+
         ctx.suites()
+            .filter(suite -> !suite.isComposite())
             .filter(suite -> {
                 if (Strings.isNullOrEmpty(tagSelected))
                     return true;
@@ -190,7 +196,10 @@ public class DsChainUi {
                     trustedTests += suite.trustedTests(tcIgnited, baseBranchId);
             })
             .forEach(suite -> {
-                if (suite.isFailed()) {
+                if (dModeToUse == DisplayMode.None)
+                    return; //don't convert any suite for UI
+
+                if (suite.isFailed() || dModeToUse == DisplayMode.ShowAllSuites) {
                     final DsSuiteUi suiteCurStatus = new DsSuiteUi();
 
                     suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);
@@ -203,7 +212,6 @@ public class DsChainUi {
                     suites.add(suiteCurStatus);
                 }
             });
-
 
         totalBlockers = suites.stream().mapToInt(DsSuiteUi::totalBlockers).sum();
         durationPrintable = ctx.getDurationPrintable();

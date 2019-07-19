@@ -614,7 +614,7 @@ function showSuiteData(suite, settings, prNum) {
     moreInfoTxt += "<br>";
 
     var res = "<tr class='suiteBlock'><td colspan='4' style='width: 100%'>" +
-              "<table style='width: 100%' border='0px'>"
+              "<table style='width: 100%' border='0px'>";
 
     res += "<tr bgcolor='#FAFAFF'><td align='right' valign='top' width='10%' colspan='2'>";
 
@@ -641,7 +641,13 @@ function showSuiteData(suite, settings, prNum) {
         res += "<span title='"+ suite.problemRef.name +"'>&#128030;</span> "
     }
 
-    var color = failureRateToColor(suite.failureRate);
+    var color;
+
+    if(isDefinedAndFilled(suite.success) && suite.success===true) {
+        color = 'green';
+    } else {
+        color = failureRateToColor(suite.failureRate);
+    }
 
     if (isDefinedAndFilled(suite.latestRuns)) {
         res += drawLatestRuns(suite.latestRuns) + " ";

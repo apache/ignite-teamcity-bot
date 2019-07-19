@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.ignite.tcbot.engine.tracked.DisplayMode;
 import org.apache.ignite.tcbot.engine.tracked.TrackedBranchChainsProcessor;
 import org.apache.ignite.tcservice.ITeamcity;
 import org.apache.ignite.tcbot.engine.conf.BranchTracked;
@@ -120,7 +121,7 @@ public class TrackedBranchProcessorTest {
             false,
             1,
             mock, SyncMode.RELOAD_QUEUED,
-            false, null);
+            false, null, DisplayMode.OnlyFailures);
 
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         System.out.println(gson.toJson(failures));

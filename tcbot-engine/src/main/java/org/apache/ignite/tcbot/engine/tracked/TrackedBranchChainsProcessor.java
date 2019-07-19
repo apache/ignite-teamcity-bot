@@ -45,9 +45,8 @@ import static com.google.common.base.Strings.isNullOrEmpty;
  * Process failures for some setup tracked branch, which may be triggered/monitored by TC Bot.
  */
 public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBranch {
-    private static class DisplayMode {
-        public static final String FAILURES = "Failures";
-    }
+
+
 
 
     /** TC ignited server provider. */
@@ -72,7 +71,8 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
         ICredentialsProv creds,
         SyncMode syncMode,
         boolean calcTrustedTests,
-        @Nullable String tagSelected) {
+        @Nullable String tagSelected,
+        @Nullable DisplayMode displayMode) {
         final DsSummaryUi res = new DsSummaryUi();
         final AtomicInteger runningUpdates = new AtomicInteger();
 
@@ -127,7 +127,7 @@ public class TrackedBranchChainsProcessor implements IDetailedStatusForTrackedBr
                 if (cnt > 0)
                     runningUpdates.addAndGet(cnt);
 
-                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected);
+                chainStatus.initFromContext(tcIgnited, ctx, baseBranchTc, compactor, calcTrustedTests, tagSelected, displayMode);
 
                 return chainStatus;
             })
