@@ -68,9 +68,10 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
         @Nullable @QueryParam("displayMode") String displayMode,
-        @Nullable @QueryParam("sortOption") String sortOption) {
+        @Nullable @QueryParam("sortOption") String sortOption,
+        @Nullable @QueryParam("count") Integer mergeCnt) {
         return new UpdateInfo().copyFrom(getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected,
-            displayMode, sortOption));
+            displayMode, sortOption, mergeCnt));
     }
 
     @GET
@@ -81,8 +82,9 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
         @Nullable @QueryParam("displayMode") String displayMode,
-        @Nullable @QueryParam("sortOption") String sortOption) {
-        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, displayMode, sortOption).toString();
+        @Nullable @QueryParam("sortOption") String sortOption,
+        @Nullable @QueryParam("count") Integer mergeCnt) {
+        return getTestFailsResultsNoSync(branchOrNull, checkAllLogs, trustedTests, tagSelected, displayMode, sortOption, mergeCnt).toString();
     }
 
     @GET
@@ -93,8 +95,9 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
         @Nullable @QueryParam("displayMode") String displayMode,
-        @Nullable @QueryParam("sortOption") String sortOption) {
-        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.NONE, displayMode, sortOption);
+        @Nullable @QueryParam("sortOption") String sortOption,
+        @Nullable @QueryParam("count") Integer mergeCnt) {
+        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.NONE, displayMode, sortOption, mergeCnt);
     }
 
     @GET
@@ -106,8 +109,9 @@ public class GetTrackedBranchTestResults {
         @Nullable @QueryParam("trustedTests") Boolean trustedTests,
         @Nullable @QueryParam("tagSelected") String tagSelected,
         @Nullable @QueryParam("displayMode") String displayMode,
-        @Nullable @QueryParam("sortOption") String sortOption) {
-        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.RELOAD_QUEUED, displayMode, sortOption);
+        @Nullable @QueryParam("sortOption") String sortOption,
+        @Nullable @QueryParam("count") Integer mergeCnt) {
+        return latestBuildResults(branch, checkAllLogs, trustedTests, tagSelected, SyncMode.RELOAD_QUEUED, displayMode, sortOption, mergeCnt);
     }
 
     @NotNull private DsSummaryUi latestBuildResults(
@@ -117,13 +121,16 @@ public class GetTrackedBranchTestResults {
         @Nullable String tagSelected,
         @Nonnull SyncMode mode,
         @Nullable String displayMode,
-        @Nullable String sortOption) {
+        @Nullable String sortOption,
+        @Nullable Integer mergeCnt) {
         ITcBotUserCreds creds = ITcBotUserCreds.get(req);
 
         Injector injector = CtxListener.getInjector(ctx);
 
+        int actualMergeBuilds = (mergeCnt == null || mergeCnt < 1) ? 1 : mergeCnt;
+
         return injector.getInstance(IDetailedStatusForTrackedBranch.class)
-            .getTrackedBranchTestFailures(branch, checkAllLogs, 1, creds, mode,
+            .getTrackedBranchTestFailures(branch, checkAllLogs, actualMergeBuilds, creds, mode,
                 Boolean.TRUE.equals(trustedTests), tagSelected,
                 DisplayMode.parseStringValue(displayMode),
                 SortOption.parseStringValue(sortOption));

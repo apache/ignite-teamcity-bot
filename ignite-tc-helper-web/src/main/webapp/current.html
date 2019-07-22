@@ -21,8 +21,8 @@ var g_shownDataHashCodeHex = "";
 var gVue;
 
 function genLink() {
-    let newUrl = "./current.html?";
-
+    let newUrl = "./current.html" + parmsForRest();
+    /*
     var branch = findGetParameter("branch");
     newUrl += "branch=" + (branch != null ? branch : "master");
 
@@ -34,6 +34,10 @@ function genLink() {
 
     if (gVue.$data.sortOption != null)
         newUrl += "&sortOption=" + gVue.$data.sortOption;
+
+    if (gVue.$data.count != null)
+        newUrl += "&count=" + gVue.$data.count;
+        */
 
     let permalink = $("#permalink");
     permalink.attr("href", newUrl);
@@ -48,10 +52,15 @@ function showQueryForm() {
             tagSelected: '',
             tagsPresent: [""],
             displayMode: 'Failures',
-            sortOption: 'FailureRate'
+            sortOption: 'FailureRate',
+            //count of builds to merge
+            count: 1
         },
         methods: {
             formChanged: function () {
+                if (count < 1)
+                    count = 1;
+
                 checkForUpdate();
                 genLink();
             }
@@ -74,6 +83,11 @@ function showQueryForm() {
         gVue.$data.sortOption = sortOption;
     }
 
+    let count = findGetParameter("count");
+    if (count != null) {
+        gVue.$data.count = count;
+    }
+
     genLink();
 }
 
@@ -89,10 +103,9 @@ $(document).ready(function() {
 
 function parmsForRest() {
     var curReqParms = "";
+
     var branch = findGetParameter("branch");
-    if (branch != null) {
-        curReqParms += "?branch=" + branch;
-    }
+    curReqParms += "?branch=" + (branch != null ? branch : "master");
 
     var checkAllLogs = findGetParameter("checkAllLogs");
     if (checkAllLogs != null) {
@@ -118,6 +131,9 @@ function parmsForRest() {
     if (sortOption != null) {
         curReqParms += "&sortOption=" + sortOption;
     }
+
+    if (gVue.$data.count != null)
+        curReqParms += "&count=" + gVue.$data.count;
 
     return curReqParms;
 }
@@ -232,6 +248,7 @@ function showData(result) {
 
 <div id="vueQueryForm" class="h-25">
     <v-app id="prQueryForm" name="prQueryForm" class="h-25">
+        <br>
         <span class="formgroup">
         <span>Tag filter: </span>
         <select v-model="tagSelected" @change="formChanged">
@@ -251,10 +268,13 @@ function showData(result) {
             <option value="FailureRate">Failure Rate</option>
             <option value="SuiteDuration">Suite Duration</option>
         </select>
+        <span>Merge Builds: </span> <input v-model.number="count" type="number" @change="formChanged">
         <span> <a id="permalink"></a> </span>
         </span>
         &nbsp;&nbsp;
         <span id="loadStatus"></span>
+        <br>
+        <br>
         <div id="divFailures"></div>
     </v-app>
 </div>
