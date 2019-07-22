@@ -85,7 +85,7 @@ table.stat tr:nth-child(odd) { background-color: #fafaff; }
     display: block;
     //color: #f2f2f2;
     text-align: center;
-    padding: 14px 16px;
+    padding: 7px 8px;
     text-decoration: none;
 }
 

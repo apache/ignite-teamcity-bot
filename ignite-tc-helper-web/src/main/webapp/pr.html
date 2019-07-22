@@ -189,9 +189,9 @@ function showData(result) {
 }
 </script>
 
-<div id="loadStatus"></div>
 <div id="vueQueryForm" class="h-25">
     <v-app id="prQueryForm" name="prQueryForm" class="h-25">
+        <span class="formgroup">
         <span>Base branch: </span>
         <select v-model="baseBranchSelected" @change="formChanged">
             <option disabled value="">Please select one</option>
@@ -200,6 +200,9 @@ function showData(result) {
                 {{ option }}
             </option>
         </select>
+        </span>
+        &nbsp;&nbsp;
+        <span id="loadStatus"></span>
         <div id="divFailures"></div>
     </v-app>
 </div>
