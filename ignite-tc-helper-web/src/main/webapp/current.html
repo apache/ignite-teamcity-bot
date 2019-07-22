@@ -54,14 +54,16 @@ function showQueryForm() {
             displayMode: 'Failures',
             sortOption: 'FailureRate',
             //count of builds to merge
-            count: 1
+            count: 1,
+            trustedTests: true,
+            checkAllLogs: false
         },
         methods: {
             formChanged: function () {
                 if (count < 1)
                     count = 1;
 
-                checkForUpdate();
+                loadData();
                 genLink();
             }
         }
@@ -88,6 +90,16 @@ function showQueryForm() {
         gVue.$data.count = count;
     }
 
+    let trustedTests = findGetParameter("trustedTests");
+    if (trustedTests != null) {
+        gVue.$data.trustedTests = trustedTests==="true";
+    }
+
+    let checkAllLogs = findGetParameter("checkAllLogs");
+    if (checkAllLogs != null) {
+        gVue.$data.checkAllLogs = checkAllLogs==="true";
+    }
+
     genLink();
 }
 
@@ -107,14 +119,12 @@ function parmsForRest() {
     var branch = findGetParameter("branch");
     curReqParms += "?branch=" + (branch != null ? branch : "master");
 
-    var checkAllLogs = findGetParameter("checkAllLogs");
-    if (checkAllLogs != null) {
-        curReqParms += "&checkAllLogs=" + checkAllLogs;
+    if (gVue.$data.checkAllLogs != null) {
+        curReqParms += "&checkAllLogs=" + gVue.$data.checkAllLogs;
     }
 
-    var trustedTests = findGetParameter("trustedTests");
-    if (trustedTests != null) {
-        curReqParms += "&trustedTests=" + trustedTests;
+    if (gVue.$data.trustedTests != null) {
+        curReqParms += "&trustedTests=" + gVue.$data.trustedTests;
     }
 
     var tagSelected = gVue.$data.tagSelected;
@@ -246,10 +256,9 @@ function showData(result) {
 </script>
 
 
-<div id="vueQueryForm" class="h-25">
-    <v-app id="prQueryForm" name="prQueryForm" class="h-25">
-        <br>
-        <span class="formgroup">
+<div id="vueQueryForm">
+    <v-app id="prQueryForm" name="prQueryForm">
+        <div class="formgroup">
         <span>Tag filter: </span>
         <select v-model="tagSelected" @change="formChanged">
             <option disabled value="">Please select one</option>
@@ -268,12 +277,16 @@ function showData(result) {
             <option value="FailureRate">Failure Rate</option>
             <option value="SuiteDuration">Suite Duration</option>
         </select>
-        <span>Merge Builds: </span> <input v-model.number="count" type="number" @change="formChanged">
-        <span> <a id="permalink"></a> </span>
-        </span>
-        &nbsp;&nbsp;
-        <span id="loadStatus"></span>
-        <br>
+            <br>
+            <span>Merge Builds: </span> <input v-model.number="count" type="number" @change="formChanged">
+            &nbsp;&nbsp;<span title="Show trusted tests count">Trusted tests: </span> <input type="checkbox" v-model="trustedTests" @change="formChanged">
+            &nbsp;&nbsp;<span title="Download and parse all logs">Check logs: </span> <input type="checkbox" v-model="checkAllLogs" @change="formChanged">
+
+            &nbsp;&nbsp; <span> <a id="permalink"></a> </span>
+
+            &nbsp;&nbsp;
+            <span id="loadStatus"></span>
+        </div>
         <br>
         <div id="divFailures"></div>
     </v-app>
