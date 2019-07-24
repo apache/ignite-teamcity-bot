@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -34,8 +35,8 @@ import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
 import org.apache.ignite.tcbot.engine.chain.LatestRebuildMode;
+import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.ProcessLogsMode;
-import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.conf.ITrackedBranch;
 import org.apache.ignite.tcbot.engine.conf.ITrackedChain;
@@ -252,7 +253,6 @@ public class PrChainsProcessor {
         ICredentialsProv prov,
         SyncMode syncMode,
         @Nullable String baseBranchForTc) {
-        //using here non persistent TC allows to skip update statistic
         ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvId, prov);
 
         List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
@@ -285,28 +285,33 @@ public class PrChainsProcessor {
     private List<DsSuiteUi> findBlockerFailures(FullChainRunCtx fullChainRunCtx,
         ITeamcityIgnited tcIgnited,
         String baseBranch) {
+        String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
+        Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
+
+        Predicate<MultBuildRunCtx> filter = suite -> suite.hasTestToReport(tcIgnited, baseBranchId);
+
         return fullChainRunCtx
-            .failedChildSuites()
+            .filteredChildSuites(filter)
             .map((ctx) -> {
-                String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
-                Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
                 IRunHistory statInBaseBranch = ctx.history(tcIgnited, baseBranchId);
 
                 String suiteComment = ctx.getPossibleBlockerComment(compactor, statInBaseBranch, tcIgnited.config());
 
-                List<DsTestFailureUi> failures = ctx.getFailedTests().stream().map(occurrence -> {
-                    IRunHistory stat = occurrence.history(tcIgnited, baseBranchId);
-                    String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
+                List<DsTestFailureUi> failures = ctx.getFilteredTests(test -> test.includeIntoReport(tcIgnited, baseBranchId))
+                    .stream()
+                    .map(occurrence -> {
+                        IRunHistory stat = occurrence.history(tcIgnited, baseBranchId);
+                        String testBlockerComment = occurrence.getPossibleBlockerComment(stat);
 
-                    if (!Strings.isNullOrEmpty(testBlockerComment)) {
-                        final DsTestFailureUi failure = new DsTestFailureUi();
+                        if (!Strings.isNullOrEmpty(testBlockerComment)) {
+                            final DsTestFailureUi failure = new DsTestFailureUi();
 
-                        failure.initFromOccurrence(occurrence, tcIgnited, ctx.projectId(), ctx.branchName(), baseBranch, baseBranchId);
+                            failure.initFromOccurrence(occurrence, tcIgnited, ctx.projectId(), ctx.branchName(), baseBranch, baseBranchId);
 
-                        return failure;
-                    }
-                    return null;
-                }).filter(Objects::nonNull).collect(Collectors.toList());
+                            return failure;
+                        }
+                        return null;
+                    }).filter(Objects::nonNull).collect(Collectors.toList());
 
 
                 // test failure based blockers and/or blocker found by suite results
@@ -325,4 +330,5 @@ public class PrChainsProcessor {
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
     }
+
 }

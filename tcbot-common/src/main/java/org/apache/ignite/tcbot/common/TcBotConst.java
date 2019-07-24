@@ -17,6 +17,8 @@
 
 package org.apache.ignite.tcbot.common;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * TC Bot constants: contains magic numbers for project.
  *
@@ -46,4 +48,7 @@ public class TcBotConst {
 
     /** Non flaky test failure rate: less that this failure rate in base branch is still blocker border, percents. */
     public static final double NON_FLAKY_TEST_FAIL_RATE_BLOCKER_BORDER_PERCENTS = 4.;
+
+    /** Max test duration for runall. If duration is greater, (new) test considered as blocker. */
+    public static final long MAX_NEW_TEST_DURATION_FOR_RUNALL_MS = TimeUnit.MINUTES.toMillis(1);
 }

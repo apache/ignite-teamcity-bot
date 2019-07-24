@@ -198,7 +198,8 @@ public class DsChainUi {
                 if (dModeToUse == DisplayMode.None)
                     return; //don't convert any suite for UI
 
-                if (suite.isFailed() || dModeToUse == DisplayMode.ShowAllSuites) {
+                if (suite.isFailed() || dModeToUse == DisplayMode.ShowAllSuites
+                    || suite.hasTestToReport(tcIgnited, baseBranchId)) {
                     final DsSuiteUi suiteCurStatus = new DsSuiteUi();
 
                     suiteCurStatus.initFromContext(tcIgnited, suite, baseBranchTc, compactor, true, calcTrustedTests);

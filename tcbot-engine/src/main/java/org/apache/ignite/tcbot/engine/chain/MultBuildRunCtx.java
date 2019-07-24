@@ -20,7 +20,6 @@ package org.apache.ignite.tcbot.engine.chain;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.cache.CacheBuilder;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +32,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
@@ -40,6 +40,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
+import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.util.CollectionUtil;
@@ -71,8 +72,12 @@ public class MultBuildRunCtx implements ISuiteResults {
     /** Builds: Single execution. */
     private List<SingleBuildRunCtx> builds = new CopyOnWriteArrayList<>();
 
-    private final com.google.common.cache.Cache<Integer, Optional<ISuiteRunHistory>> historyCacheMap
+    /** History cache map. */
+    private final com.google.common.cache.Cache<Integer, Optional<ISuiteRunHistory>> histCacheMap
         = CacheBuilder.newBuilder().build();
+
+    /** Tests merged: test name ID -> test compacted */
+    private volatile Map<Integer, TestCompactedMult> testsMerged = null;
 
     public void addBuild(SingleBuildRunCtx ctx) {
         builds.add(ctx);
@@ -315,23 +320,18 @@ public class MultBuildRunCtx implements ISuiteResults {
     public Stream<TestCompactedMult> getTopLongRunning() {
         Comparator<TestCompactedMult> comparing = Comparator.comparing(TestCompactedMult::getAvgDurationMs);
 
-        Map<Integer, TestCompactedMult> res = new HashMap<>();
-
-        builds.forEach(singleBuildRunCtx -> {
-            saveToMap(res, singleBuildRunCtx.getAllTests());
-        });
-
-        return CollectionUtil.top(res.values().stream(), 3, comparing).stream();
+        return CollectionUtil.top(getTestsMerged().values().stream(), 3, comparing).stream();
     }
 
     public List<TestCompactedMult> getFailedTests() {
-        Map<Integer, TestCompactedMult> res = new HashMap<>();
+        return getFilteredTests(TestCompactedMult::isFailedButNotMuted);
+    }
 
-        builds.forEach(singleBuildRunCtx -> {
-            saveToMap(res, singleBuildRunCtx.getFailedNotMutedTests());
-        });
-
-        return new ArrayList<>(res.values());
+    public List<TestCompactedMult> getFilteredTests(Predicate<TestCompactedMult> filter) {
+        return getTestsMerged().values()
+            .stream()
+            .filter(filter)
+            .collect(Collectors.toList());
     }
 
     public void saveToMap(Map<Integer, TestCompactedMult> res, Stream<TestCompacted> tests) {
@@ -608,23 +608,48 @@ public class MultBuildRunCtx implements ISuiteResults {
         return (int)buildsStream().mapToInt(SingleBuildRunCtx::totalNotMutedTests).average().orElse(0.0);
     }
 
-    public int trustedTests(ITeamcityIgnited tcIgnited,
-        @Nullable Integer branchName) {
+    /**
+     * @return all tests grouped by its name
+     */
+    private Map<Integer, TestCompactedMult> getTestsMerged() {
+        if (testsMerged == null) {
+            synchronized (this) {
+                if (testsMerged == null) {
+                    HashMap<Integer, TestCompactedMult> res = new HashMap<>();
 
+                    builds.forEach(singleBuildRunCtx -> {
+                        saveToMap(res, singleBuildRunCtx.getAllTests());
+                    });
+
+                    testsMerged = res;
+                }
+            }
+        }
+        return testsMerged;
+    }
+
+    /**
+     * @param tcIgnited Tc ignited.
+     * @param branchName Branch name.
+     */
+    public int trustedTests(ITeamcityIgnited tcIgnited, @Nullable Integer branchName) {
         AtomicInteger trustedCnt = new AtomicInteger();
-        Map<Integer, TestCompactedMult> res = new HashMap<>();
 
-        //todo can cache mult occurrences in ctx
-        builds.forEach(singleBuildRunCtx -> {
-            saveToMap(res,
-                singleBuildRunCtx.getAllTests().filter(t -> !t.isIgnoredTest() && !t.isMutedTest()));
-        });
+        getFilteredTests(t -> !t.isMutedOrIgored()).forEach((testMult) -> {
+            IRunHistory baseBranchStat = testMult.history(tcIgnited, branchName);
 
-        res.forEach((testNameId, compactedMult) -> {
-            IRunHistory stat = compactedMult.history(tcIgnited, branchName);
-            String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
-            boolean b = testBlockerComment != null;
-            if (b) // this test will be considered as blocker if will fail
+            boolean testWillBeBlockerIfFailed = false;
+
+            if (baseBranchStat == null)
+                testWillBeBlockerIfFailed = true;
+
+            float failRate = baseBranchStat.getFailRate();
+            boolean lowFailureRate = failRate * 100.0f < TcBotConst.NON_FLAKY_TEST_FAIL_RATE_BLOCKER_BORDER_PERCENTS;
+
+            if (lowFailureRate && !baseBranchStat.isFlaky())
+                testWillBeBlockerIfFailed = true;
+
+            if (testWillBeBlockerIfFailed) // this test will be considered as blocker if will fail
                 trustedCnt.addAndGet(1);
         });
 
@@ -667,7 +692,7 @@ public class MultBuildRunCtx implements ISuiteResults {
             return null;
 
         try {
-            return historyCacheMap.get(baseBranchId,
+            return histCacheMap.get(baseBranchId,
                 () -> {
                     return Optional.ofNullable(tcIgn.getSuiteRunHist(buildTypeIdId, baseBranchId));
                 })
@@ -676,5 +701,9 @@ public class MultBuildRunCtx implements ISuiteResults {
         catch (ExecutionException e) {
             throw  ExceptionUtil.propagateException(e);
         }
+    }
+
+    public boolean hasTestToReport(ITeamcityIgnited tcIgnited, Integer baseBranchId) {
+        return !getFilteredTests(test -> test.includeIntoReport(tcIgnited, baseBranchId)).isEmpty();
     }
 }

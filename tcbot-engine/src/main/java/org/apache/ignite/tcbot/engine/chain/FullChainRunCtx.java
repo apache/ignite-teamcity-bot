@@ -63,7 +63,13 @@ public class FullChainRunCtx {
     }
 
     public Stream<MultBuildRunCtx> failedChildSuites() {
-        return suites().filter(MultBuildRunCtx::isFailed);
+        Predicate<MultBuildRunCtx> filter = MultBuildRunCtx::isFailed;
+
+        return filteredChildSuites(filter);
+    }
+
+    public Stream<MultBuildRunCtx> filteredChildSuites(Predicate<MultBuildRunCtx> filter) {
+        return suites().filter(filter);
     }
 
     /**

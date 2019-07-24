@@ -30,6 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.common.util.UrlUtil;
 import org.apache.ignite.tcbot.engine.chain.MultBuildRunCtx;
 import org.apache.ignite.tcbot.engine.chain.TestCompactedMult;
@@ -193,7 +194,8 @@ public class DsSuiteUi extends DsHistoryStatUi {
 
         Integer buildTypeIdId = suite.buildTypeIdId();
         if (includeTests) {
-            List<TestCompactedMult> tests = suite.getFailedTests();
+            List<TestCompactedMult> tests = suite.getFilteredTests(test -> test.includeIntoReport(tcIgnited, baseBranchId));
+
             Function<TestCompactedMult, Float> function = testCompactedMult -> {
                 IRunHistory res = testCompactedMult.history(tcIgnited, baseBranchId);
 

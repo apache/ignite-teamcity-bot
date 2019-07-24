@@ -29,7 +29,7 @@
             },
             methods: {
                 formChanged: function () {
-                    checkForUpdate();
+                    loadData();
                 }
             }
         });
@@ -191,7 +191,7 @@ function showData(result) {
 
 <div id="vueQueryForm">
     <v-app id="prQueryForm" name="prQueryForm">
-        <span class="formgroup" style="margin: 14px">
+        <div class="formgroup">
             <span>Base branch: </span>
             <select v-model="baseBranchSelected" @change="formChanged">
                 <option disabled value="">Please select one</option>
@@ -200,9 +200,9 @@ function showData(result) {
                     {{ option }}
                 </option>
             </select>
-        </span>
-        &nbsp;&nbsp;
-        <span id="loadStatus"></span>
+            &nbsp;&nbsp;
+            <span id="loadStatus"></span>
+        </div>
         <div id="divFailures"></div>
     </v-app>
 </div>
