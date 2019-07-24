@@ -189,17 +189,17 @@ function showData(result) {
 }
 </script>
 
-<div id="vueQueryForm" class="h-25">
-    <v-app id="prQueryForm" name="prQueryForm" class="h-25">
-        <span class="formgroup">
-        <span>Base branch: </span>
-        <select v-model="baseBranchSelected" @change="formChanged">
-            <option disabled value="">Please select one</option>
+<div id="vueQueryForm">
+    <v-app id="prQueryForm" name="prQueryForm">
+        <span class="formgroup" style="margin: 14px">
+            <span>Base branch: </span>
+            <select v-model="baseBranchSelected" @change="formChanged">
+                <option disabled value="">Please select one</option>
 
-            <option v-for="option in tcBranchesForSrv" v-bind:value="option">
-                {{ option }}
-            </option>
-        </select>
+                <option v-for="option in tcBranchesForSrv" v-bind:value="option">
+                    {{ option }}
+                </option>
+            </select>
         </span>
         &nbsp;&nbsp;
         <span id="loadStatus"></span>
