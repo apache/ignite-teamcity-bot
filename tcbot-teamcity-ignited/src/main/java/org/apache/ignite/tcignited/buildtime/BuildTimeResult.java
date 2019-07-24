@@ -16,7 +16,11 @@
  */
 package org.apache.ignite.tcignited.buildtime;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -48,34 +52,41 @@ public class BuildTimeResult {
 
 
     public List<Map.Entry<Long, BuildTimeRecord>> topByBuildTypes(Set<Integer> availableServers,
-                                                                  long minAvgDurationMs,
-                                                                  int maxCnt) {
-        return filtered(btByBuildType, availableServers, minAvgDurationMs)
+        long minAvgDurationMs,
+        int maxCnt,
+        long totalDurationMs) {
+        return filtered(btByBuildType, availableServers, minAvgDurationMs, totalDurationMs)
                 .sorted(Comparator.comparing(
-                        (Function<Map.Entry<Long, BuildTimeRecord>, Long>) entry -> entry.getValue().avgDuration())
+                        (Function<Map.Entry<Long, BuildTimeRecord>, Long>) entry -> entry.getValue().totalDuration())
                         .reversed())
                 .limit(maxCnt)
                 .collect(Collectors.toList());
     }
 
     public List<Map.Entry<Long, BuildTimeRecord>> topTimeoutsByBuildTypes(Set<Integer> availableServers,
-                                                                  long minAvgDurationMs,
-                                                                  int maxCnt) {
-        return filtered(timedOutByBuildType, availableServers, minAvgDurationMs)
+        long minAvgDurationMs,
+        int maxCnt,
+        long totalDurationMs) {
+        return filtered(timedOutByBuildType, availableServers, minAvgDurationMs, totalDurationMs)
                 .sorted(Comparator.comparing(
-                        (Function<Map.Entry<Long, BuildTimeRecord>, Long>) entry -> entry.getValue().avgDuration())
+                        (Function<Map.Entry<Long, BuildTimeRecord>, Long>) entry -> entry.getValue().totalDuration())
                         .reversed())
                 .limit(maxCnt)
                 .collect(Collectors.toList());
     }
 
-    private Stream<Map.Entry<Long, BuildTimeRecord>> filtered(Map<Long, BuildTimeRecord> map, Set<Integer> availableServers, long minAvgDurationMs) {
+    private Stream<Map.Entry<Long, BuildTimeRecord>> filtered(
+        Map<Long, BuildTimeRecord> map,
+        Set<Integer> availableServers,
+        long minAvgDurationMs,
+        long totalDurationMs) {
         return map.entrySet().stream()
                 .filter(e -> {
                     Long key = e.getKey();
                     int srvId = cacheKeyToSrvId(key);
                     return availableServers.contains(srvId);
                 })
-                .filter(e -> e.getValue().avgDuration() > minAvgDurationMs);
+            .filter(e -> e.getValue().avgDuration() > minAvgDurationMs)
+            .filter(e -> e.getValue().totalDuration() > totalDurationMs);
     }
 }
