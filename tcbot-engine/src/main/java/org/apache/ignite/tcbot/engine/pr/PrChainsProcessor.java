@@ -296,7 +296,7 @@ public class PrChainsProcessor {
 
                 List<DsTestFailureUi> failures = ctx.getFailedTests().stream().map(occurrence -> {
                     IRunHistory stat = occurrence.history(tcIgnited, baseBranchId);
-                    String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
+                    String testBlockerComment = occurrence.getPossibleBlockerComment(stat);
 
                     if (!Strings.isNullOrEmpty(testBlockerComment)) {
                         final DsTestFailureUi failure = new DsTestFailureUi();

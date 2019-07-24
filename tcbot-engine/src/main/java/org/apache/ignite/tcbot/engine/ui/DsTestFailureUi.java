@@ -145,7 +145,7 @@ public class DsTestFailureUi {
         });
 
         final IRunHistory stat = failure.history(tcIgn, baseBranchId);
-        blockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
+        blockerComment = failure.getPossibleBlockerComment(stat);
     }
 
     /**

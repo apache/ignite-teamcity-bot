@@ -35,7 +35,7 @@ import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 /**
  * Test occurrence merged from several runs.
  */
-public class TestCompactedMult implements IMultTestOccurrence {
+public class TestCompactedMult {
     private final List<TestCompacted> occurrences = new ArrayList<>();
     private IStringCompactor compactor;
     private MultBuildRunCtx ctx;
@@ -49,13 +49,12 @@ public class TestCompactedMult implements IMultTestOccurrence {
     @Nullable public Integer testName() {
         return occurrences.isEmpty() ? null : occurrences.iterator().next().testName();
     }
-    /** {@inheritDoc} */
-    @Override public String getName() {
+    
+    public String getName() {
         return occurrences.isEmpty() ? "" : occurrences.iterator().next().testName(compactor);
     }
-
-    /** {@inheritDoc} */
-    @Override public boolean isInvestigated() {
+ 
+    public boolean isInvestigated() {
         return occurrences.stream().anyMatch(TestCompacted::isInvestigated);
     }
 
@@ -66,13 +65,11 @@ public class TestCompactedMult implements IMultTestOccurrence {
             .filter(t -> t.isFailedButNotMuted(compactor)).count();
     }
 
-    /** {@inheritDoc} */
-    @Override public int failuresCount() {
+    public int failuresCount() {
         return getFailedButNotMutedCount();
     }
 
-    /** {@inheritDoc} */
-    @Override public long getAvgDurationMs() {
+    public long getAvgDurationMs() {
         if (avgDuration < 0) {
             avgDuration = (long)occurrences.stream()
                 .map(TestCompacted::getDuration)
@@ -85,8 +82,8 @@ public class TestCompactedMult implements IMultTestOccurrence {
         return avgDuration;
     }
 
-    /** {@inheritDoc} */
-    @Override public Iterable<TestOccurrenceFull> getOccurrences() {
+
+    public Iterable<TestOccurrenceFull> getOccurrences() {
         return occurrences.stream()
             .map(testCompacted -> testCompacted.toTestOccurrence(compactor, 0))
             .collect(Collectors.toList());
@@ -96,7 +93,16 @@ public class TestCompactedMult implements IMultTestOccurrence {
       * @param baseBranchStat Base branch statistics.
       * @return non null comment in case test failure is a blocker for merge into base branch.
       */
-     public static String getPossibleBlockerComment(IRunHistSummary baseBranchStat) {
+     public String getPossibleBlockerComment(IRunHistSummary baseBranchStat) {
+         if (failuresCount() == 0) {
+             if (baseBranchStat == null) {
+                 if (getAvgDurationMs() > TcBotConst.MAX_NEW_TEST_DURATION_FOR_RUNALL)
+                     return "Newly contributed test duration is more that 1 minute";
+             }
+
+             return null;
+         }
+
          if (baseBranchStat == null)
              return "History for base branch is absent.";
 
@@ -131,5 +137,12 @@ public class TestCompactedMult implements IMultTestOccurrence {
             return null;
 
         return suiteRunHist.getTestRunHist(name);
+    }
+
+    /**
+     * @param statusSuccess Status success.
+     */
+    public boolean isFailedButNotMuted(int statusSuccess) {
+        return occurrences.stream().anyMatch(o -> o.isFailedButNotMuted(statusSuccess));
     }
 }

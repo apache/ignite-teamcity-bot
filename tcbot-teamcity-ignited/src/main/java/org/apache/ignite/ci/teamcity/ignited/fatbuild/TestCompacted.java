@@ -346,6 +346,14 @@ public class TestCompacted {
         return isFailedTest(compactor) && !(isMutedTest() || isIgnoredTest());
     }
 
+    /**
+     * @param successStatus Success status code.
+     */
+    public boolean isFailedButNotMuted(int successStatus) {
+        return successStatus != status() && !(isMutedTest() || isIgnoredTest());
+    }
+
+
     public boolean isIgnoredTest() {
         Boolean flag = getIgnoredFlag();
 
@@ -359,7 +367,7 @@ public class TestCompacted {
     }
 
     public boolean isFailedTest(IStringCompactor compactor) {
-        return compactor.getStringId(TestOccurrence.STATUS_SUCCESS) != status;
+        return compactor.getStringId(TestOccurrence.STATUS_SUCCESS) != status();
     }
 
     public String testName(IStringCompactor compactor) {

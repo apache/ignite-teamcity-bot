@@ -52,6 +52,7 @@ import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 
 /**
  * Run configuration execution results loaded from different API URLs. Includes tests and problem occurrences; if logs
@@ -73,6 +74,9 @@ public class MultBuildRunCtx implements ISuiteResults {
 
     private final com.google.common.cache.Cache<Integer, Optional<ISuiteRunHistory>> historyCacheMap
         = CacheBuilder.newBuilder().build();
+
+    /** Tests merged: test name ID -> test compacted */
+    private volatile Map<Integer, TestCompactedMult> testsMerged = null;
 
     public void addBuild(SingleBuildRunCtx ctx) {
         builds.add(ctx);
@@ -315,23 +319,16 @@ public class MultBuildRunCtx implements ISuiteResults {
     public Stream<TestCompactedMult> getTopLongRunning() {
         Comparator<TestCompactedMult> comparing = Comparator.comparing(TestCompactedMult::getAvgDurationMs);
 
-        Map<Integer, TestCompactedMult> res = new HashMap<>();
-
-        builds.forEach(singleBuildRunCtx -> {
-            saveToMap(res, singleBuildRunCtx.getAllTests());
-        });
-
-        return CollectionUtil.top(res.values().stream(), 3, comparing).stream();
+        return CollectionUtil.top(getTestsMerged().values().stream(), 3, comparing).stream();
     }
 
     public List<TestCompactedMult> getFailedTests() {
-        Map<Integer, TestCompactedMult> res = new HashMap<>();
+        int statusSuccess = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
 
-        builds.forEach(singleBuildRunCtx -> {
-            saveToMap(res, singleBuildRunCtx.getFailedNotMutedTests());
-        });
-
-        return new ArrayList<>(res.values());
+        return getTestsMerged().values()
+            .stream()
+            .filter(tmult-> tmult.isFailedButNotMuted(statusSuccess))
+            .collect(Collectors.toList());
     }
 
     public void saveToMap(Map<Integer, TestCompactedMult> res, Stream<TestCompacted> tests) {
@@ -608,6 +605,26 @@ public class MultBuildRunCtx implements ISuiteResults {
         return (int)buildsStream().mapToInt(SingleBuildRunCtx::totalNotMutedTests).average().orElse(0.0);
     }
 
+    /**
+     * @return all tests grouped by its name
+     */
+    private Map<Integer, TestCompactedMult> getTestsMerged() {
+        if (testsMerged == null) {
+            synchronized (this) {
+                if (testsMerged == null) {
+                    HashMap<Integer, TestCompactedMult> res = new HashMap<>();
+
+                    builds.forEach(singleBuildRunCtx -> {
+                        saveToMap(res, singleBuildRunCtx.getAllTests());
+                    });
+
+                    testsMerged = res;
+                }
+            }
+        }
+        return testsMerged;
+    }
+
     public int trustedTests(ITeamcityIgnited tcIgnited,
         @Nullable Integer branchName) {
 
@@ -622,7 +639,7 @@ public class MultBuildRunCtx implements ISuiteResults {
 
         res.forEach((testNameId, compactedMult) -> {
             IRunHistory stat = compactedMult.history(tcIgnited, branchName);
-            String testBlockerComment = TestCompactedMult.getPossibleBlockerComment(stat);
+            String testBlockerComment = compactedMult.getPossibleBlockerComment(stat);
             boolean b = testBlockerComment != null;
             if (b) // this test will be considered as blocker if will fail
                 trustedCnt.addAndGet(1);
