@@ -288,7 +288,8 @@ public class PrChainsProcessor {
         String normalizedBaseBranch = RunHistSync.normalizeBranch(baseBranch);
         Integer baseBranchId = compactor.getStringIdIfPresent(normalizedBaseBranch);
 
-        Predicate<MultBuildRunCtx> filter = suite -> suite.hasTestToReport(tcIgnited, baseBranchId);
+        Predicate<MultBuildRunCtx> filter = suite ->
+            suite.isFailed() || suite.hasTestToReport(tcIgnited, baseBranchId);
 
         return fullChainRunCtx
             .filteredChildSuites(filter)
