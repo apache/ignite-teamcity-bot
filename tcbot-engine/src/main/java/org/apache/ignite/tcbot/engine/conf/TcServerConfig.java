@@ -54,11 +54,20 @@ public class TcServerConfig implements ITcServerConfig {
     /** Default tracked branch name in internal identification of TC bot. */
     @Nullable private String defaultTrackedBranch;
 
+    /**
+     * TC suite (build type) id for generating VISAs. If not specified, some value is found from default tracked branch
+     * suites having 'default' branch specified
+     */
+    @Nullable private String defaultVisaSuiteId;
+
     /** Build parameters which may be used for filtering. */
     @Nullable private List<BuildParameterSpec> filteringParameters = new ArrayList<>();
 
     /** Trusted suites. */
     @Nullable private List<String> trustedSuites = new ArrayList<>();
+
+    /** Additional service code to check access before allowing accessing this service. */
+    private String additionalServiceToCheckAccess;
 
     public TcServerConfig() {
 
@@ -69,8 +78,13 @@ public class TcServerConfig implements ITcServerConfig {
     }
 
     /** {@inheritDoc} */
-    @Override public String reference() {
+    @Nullable @Override public String reference() {
         return reference;
+    }
+
+    /** {@inheritDoc} */
+    @Nullable @Override public String additionalServiceToCheckAccess() {
+        return additionalServiceToCheckAccess;
     }
 
     /** {@inheritDoc} */
@@ -113,6 +127,11 @@ public class TcServerConfig implements ITcServerConfig {
             return defaultTrackedBranch;
 
         return DEFAULT_TRACKED_BRANCH_NAME;
+    }
+
+    /** {@inheritDoc} */
+    @Override @Nullable public String defaultVisaSuiteId() {
+        return defaultVisaSuiteId;
     }
 
     /** {@inheritDoc} */

@@ -637,6 +637,7 @@ public class TcBotTriggerAndSignOffService {
             if (!Strings.isNullOrEmpty(defBtForMaster))
                 compositeBuildTypeIds.add(defBtForMaster);
         }
+
         return compositeBuildTypeIds;
     }
 
@@ -649,6 +650,11 @@ public class TcBotTriggerAndSignOffService {
         StringBuilder buildTypeId = new StringBuilder();
 
         ITcServerConfig tcCfg = cfg.getTeamcityConfig(srvIdOrAlias);
+        String visaBuildType = tcCfg.defaultVisaSuiteId();
+
+        if(!Strings.isNullOrEmpty(visaBuildType))
+            return visaBuildType;
+
         String trBranch = tcCfg.defaultTrackedBranch();
 
         String realTcId = Strings.isNullOrEmpty(tcCfg.reference()) ? srvIdOrAlias : tcCfg.reference();

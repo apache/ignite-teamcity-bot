@@ -19,17 +19,16 @@ package org.apache.ignite.tcignited;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
-import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
-import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
-import org.apache.ignite.tcignited.creds.ICredentialsProv;
-import org.apache.ignite.tcservice.TeamcityServiceConnection;
-
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Provider;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
+import org.apache.ignite.tcbot.common.conf.IDataSourcesConfigSupplier;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
+import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
+import org.apache.ignite.tcignited.creds.ICredentialsProv;
+import org.apache.ignite.tcservice.TeamcityServiceConnection;
 
 /**
  *
@@ -55,7 +54,14 @@ class TcIgnitedCachingProvider implements ITeamcityIgnitedProvider {
         if (prov == null)
             return false;
 
-        String ref = cfg.getTeamcityConfig(srvCode).reference();
+        ITcServerConfig tcSrvCfg = cfg.getTeamcityConfig(srvCode);
+
+        if (!Strings.isNullOrEmpty(tcSrvCfg.additionalServiceToCheckAccess())) {
+            if (!prov.hasAccess(tcSrvCfg.additionalServiceToCheckAccess()))
+                return false;
+        }
+
+        String ref = tcSrvCfg.reference();
 
         if (!Strings.isNullOrEmpty(ref))
             return prov.hasAccess(ref);

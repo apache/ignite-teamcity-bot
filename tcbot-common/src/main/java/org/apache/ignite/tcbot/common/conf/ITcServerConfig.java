@@ -37,6 +37,11 @@ public interface ITcServerConfig {
     public String reference();
 
     /**
+     * @return ID of additional server (service code), that user should have access to.
+     */
+    @Nullable public String additionalServiceToCheckAccess();
+
+    /**
      * @return Normalized Host address, ends with '/'.
      */
     @NonNull public String host();
@@ -50,6 +55,11 @@ public interface ITcServerConfig {
      * @return internal naming of default tracked branch for this server.
      */
     @NonNull public String defaultTrackedBranch();
+
+    /**
+     * Suite id to be used for VISAs (to avoid search using defaultTrackedBranch())
+     */
+    @Nullable public String defaultVisaSuiteId();
 
     /**
      * Provides build parameters, whichi could be used for filtering builds in RunHist/Invocations and tagging in UI.
