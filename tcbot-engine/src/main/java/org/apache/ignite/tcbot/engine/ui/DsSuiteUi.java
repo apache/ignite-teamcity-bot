@@ -194,16 +194,7 @@ public class DsSuiteUi extends DsHistoryStatUi {
 
         Integer buildTypeIdId = suite.buildTypeIdId();
         if (includeTests) {
-            List<TestCompactedMult> tests = suite.getFilteredTests(test -> {
-                if (test.isFailedButNotMuted())
-                    return true;
-
-                boolean longRun = test.getAvgDurationMs() > TcBotConst.MAX_NEW_TEST_DURATION_FOR_RUNALL_MS;
-                if (longRun)
-                    return test.history(tcIgnited, baseBranchId) == null;
-
-                return false;
-            });
+            List<TestCompactedMult> tests = suite.getFilteredTests(test -> test.includeIntoReport(tcIgnited, baseBranchId));
 
             Function<TestCompactedMult, Float> function = testCompactedMult -> {
                 IRunHistory res = testCompactedMult.history(tcIgnited, baseBranchId);

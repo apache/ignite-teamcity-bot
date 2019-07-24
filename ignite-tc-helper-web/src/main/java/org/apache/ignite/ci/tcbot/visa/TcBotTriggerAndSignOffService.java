@@ -810,14 +810,7 @@ public class TcBotTriggerAndSignOffService {
                 return new Visa("JIRA wasn't commented - no finished builds to analyze." +
                     " Check builds availabiliy for branch: " + build.branchName + "/" + baseBranch);
 
-            blockers = suitesStatuses.stream()
-                .mapToInt(suite -> {
-                    if (suite.testFailures.isEmpty())
-                        return 1;
-
-                    return suite.testFailures.size();
-                })
-                .sum();
+            blockers = suitesStatuses.stream().mapToInt(DsSuiteUi::totalBlockers).sum();
 
             String comment = generateJiraComment(suitesStatuses, build.webUrl, buildTypeId, tcIgnited, blockers, build.branchName, baseBranch);
 
@@ -879,18 +872,7 @@ public class TcBotTriggerAndSignOffService {
                 else
                     res.append(jiraEscText(failure.name));
 
-                DsHistoryStatUi recent = failure.histBaseBranch.recent;
-
-                if (recent != null) {
-                    if (recent.failureRate != null) {
-                        res.append(" - ").append(recent.failureRate).append("% fails in last ")
-                            .append(recent.runs).append(" ").append(jiraEscText(baseBranchDisp)).append(" runs.");
-                    }
-                    else if (recent.failures != null && recent.runs != null) {
-                        res.append(" - ").append(recent.failures).append(" fails / ")
-                            .append(recent.runs).append(" ").append(jiraEscText(baseBranchDisp)).append(" runs.");
-                    }
-                }
+                res.append(" - ").append(jiraEscText(failure.blockerComment));
 
                 res.append("\\n");
 

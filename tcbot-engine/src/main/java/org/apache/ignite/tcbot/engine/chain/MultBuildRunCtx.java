@@ -40,6 +40,7 @@ import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.change.ChangeCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.ProblemCompacted;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
+import org.apache.ignite.tcbot.common.TcBotConst;
 import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.exeption.ExceptionUtil;
 import org.apache.ignite.tcbot.common.util.CollectionUtil;
@@ -323,9 +324,7 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public List<TestCompactedMult> getFailedTests() {
-        Predicate<TestCompactedMult> filter = TestCompactedMult::isFailedButNotMuted;
-
-        return getFilteredTests(filter);
+        return getFilteredTests(TestCompactedMult::isFailedButNotMuted);
     }
 
     public List<TestCompactedMult> getFilteredTests(Predicate<TestCompactedMult> filter) {
@@ -629,27 +628,28 @@ public class MultBuildRunCtx implements ISuiteResults {
         return testsMerged;
     }
 
-    public int trustedTests(ITeamcityIgnited tcIgnited,
-        @Nullable Integer branchName) {
-
+    /**
+     * @param tcIgnited Tc ignited.
+     * @param branchName Branch name.
+     */
+    public int trustedTests(ITeamcityIgnited tcIgnited, @Nullable Integer branchName) {
         AtomicInteger trustedCnt = new AtomicInteger();
-        Map<Integer, TestCompactedMult> res = new HashMap<>();
 
-        //todo can cache mult occurrences in ctx
-        builds.forEach(singleBuildRunCtx -> {
-            saveToMap(res,
-                singleBuildRunCtx.getAllTests().filter(t -> !t.isIgnoredTest() && !t.isMutedTest()));
-        });
+        getFilteredTests(t -> !t.isMutedOrIgored()).forEach((testMult) -> {
+            IRunHistory baseBranchStat = testMult.history(tcIgnited, branchName);
 
-        Stream<TestCompactedMult> stream = getTestsMerged().values().stream();
+            boolean testWillBeBlockerIfFailed = false;
 
-        stream.filter(mtest-> mtest.isFailedButNotMuted());
+            if (baseBranchStat == null)
+                testWillBeBlockerIfFailed = true;
 
-        res.forEach((testNameId, compactedMult) -> {
-            IRunHistory stat = compactedMult.history(tcIgnited, branchName);
-            String testBlockerComment = compactedMult.getPossibleBlockerComment(stat);
-            boolean b = testBlockerComment != null;
-            if (b) // this test will be considered as blocker if will fail
+            float failRate = baseBranchStat.getFailRate();
+            boolean lowFailureRate = failRate * 100.0f < TcBotConst.NON_FLAKY_TEST_FAIL_RATE_BLOCKER_BORDER_PERCENTS;
+
+            if (lowFailureRate && !baseBranchStat.isFlaky())
+                testWillBeBlockerIfFailed = true;
+
+            if (testWillBeBlockerIfFailed) // this test will be considered as blocker if will fail
                 trustedCnt.addAndGet(1);
         });
 
@@ -701,5 +701,9 @@ public class MultBuildRunCtx implements ISuiteResults {
         catch (ExecutionException e) {
             throw  ExceptionUtil.propagateException(e);
         }
+    }
+
+    public boolean hasTestToReport(ITeamcityIgnited tcIgnited, Integer baseBranchId) {
+        return !getFilteredTests(test -> test.includeIntoReport(tcIgnited, baseBranchId)).isEmpty();
     }
 }

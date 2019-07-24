@@ -107,7 +107,9 @@ public class TestCompactedMult {
              if (baseBranchStat == null) {
                  long durationMs = getAvgDurationMs();
                  if (durationMs > TcBotConst.MAX_NEW_TEST_DURATION_FOR_RUNALL_MS)
-                     return "Newly contributed test " + TimeUnit.MILLISECONDS.toSeconds(durationMs) + "s duration is more that 1 minute";
+                     return "New test duration " +
+                         TimeUnit.MILLISECONDS.toSeconds(durationMs) + "s" +
+                         " is more that 1 minute";
              }
 
              return null;
@@ -153,5 +155,30 @@ public class TestCompactedMult {
      */
     public boolean isFailedButNotMuted() {
         return occurrences.stream().anyMatch(o -> o.isFailedButNotMuted(STATUS_SUCCESS));
+    }
+
+    /**
+     *
+     */
+    public boolean isMutedOrIgored() {
+        return occurrences.stream().anyMatch(TestCompacted::isMutedOrIgnored);
+    }
+
+    /**
+     * Filter to determine if this test execution should be shown in the report of failures.
+     *
+     * @param tcIgnited Tc ignited.
+     * @param baseBranchId Base branch id.
+     */
+    public boolean includeIntoReport(ITeamcityIgnited tcIgnited, Integer baseBranchId) {
+        if (isFailedButNotMuted())
+            return true;
+
+        boolean longRun = getAvgDurationMs() > TcBotConst.MAX_NEW_TEST_DURATION_FOR_RUNALL_MS;
+
+        if (longRun)
+            return history(tcIgnited, baseBranchId) == null;
+
+        return false;
     }
 }
