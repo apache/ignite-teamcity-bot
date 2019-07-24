@@ -88,6 +88,8 @@ public class DsTestFailureUi {
     /** Blocker comment: indicates test seems to be introduced failure. */
     @Nullable public String blockerComment;
 
+    public boolean success = false;
+
     /**
      * @param failure test ocurrence (probably multiple)
      * @param tcIgn Teamcity.
@@ -102,6 +104,7 @@ public class DsTestFailureUi {
         @Nullable final String branchName,
         @Nullable final String baseBranchName,
         Integer baseBranchId) {
+        success = !failure.isFailedButNotMuted();
         name = failure.getName();
         investigated = failure.isInvestigated();
         curFailures = failure.failuresCount();

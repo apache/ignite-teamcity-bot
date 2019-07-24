@@ -343,16 +343,19 @@ public class TestCompacted {
     }
 
     public boolean isFailedButNotMuted(IStringCompactor compactor) {
-        return isFailedTest(compactor) && !(isMutedTest() || isIgnoredTest());
+        return isFailedTest(compactor) && !(isMutedOrIgnored());
     }
 
     /**
      * @param successStatus Success status code.
      */
     public boolean isFailedButNotMuted(int successStatus) {
-        return successStatus != status() && !(isMutedTest() || isIgnoredTest());
+        return successStatus != status() && !isMutedOrIgnored();
     }
 
+    public boolean isMutedOrIgnored() {
+        return isMutedTest() || isIgnoredTest();
+    }
 
     public boolean isIgnoredTest() {
         Boolean flag = getIgnoredFlag();

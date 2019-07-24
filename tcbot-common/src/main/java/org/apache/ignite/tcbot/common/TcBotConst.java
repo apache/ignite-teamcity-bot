@@ -50,5 +50,5 @@ public class TcBotConst {
     public static final double NON_FLAKY_TEST_FAIL_RATE_BLOCKER_BORDER_PERCENTS = 4.;
 
     /** Max test duration for runall. If duration is greater, (new) test considered as blocker. */
-    public static final long MAX_NEW_TEST_DURATION_FOR_RUNALL = TimeUnit.MINUTES.toMillis(1);
+    public static final long MAX_NEW_TEST_DURATION_FOR_RUNALL_MS = TimeUnit.MINUTES.toMillis(1);
 }

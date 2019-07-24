@@ -20,6 +20,7 @@ package org.apache.ignite.tcbot.engine.chain;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.ignite.ci.teamcity.ignited.fatbuild.TestCompacted;
@@ -30,6 +31,7 @@ import org.apache.ignite.tcignited.history.IRunHistSummary;
 import org.apache.ignite.tcignited.history.IRunHistory;
 import org.apache.ignite.tcignited.history.IRunStat;
 import org.apache.ignite.tcignited.history.ISuiteRunHistory;
+import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 import org.apache.ignite.tcservice.model.result.tests.TestOccurrenceFull;
 
 /**
@@ -41,9 +43,16 @@ public class TestCompactedMult {
     private MultBuildRunCtx ctx;
     private long avgDuration = -1;
 
+    /** Status success. */
+    private static volatile int STATUS_SUCCESS = -1;
+
     public TestCompactedMult(IStringCompactor compactor, MultBuildRunCtx ctx) {
         this.compactor = compactor;
         this.ctx = ctx;
+
+        //Each time compactor should give same result
+        if (STATUS_SUCCESS == -1)
+            STATUS_SUCCESS = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
     }
 
     @Nullable public Integer testName() {
@@ -62,7 +71,7 @@ public class TestCompactedMult {
     private int getFailedButNotMutedCount() {
         return (int)occurrences.stream()
             .filter(Objects::nonNull)
-            .filter(t -> t.isFailedButNotMuted(compactor)).count();
+            .filter(t -> t.isFailedButNotMuted(STATUS_SUCCESS)).count();
     }
 
     public int failuresCount() {
@@ -96,8 +105,9 @@ public class TestCompactedMult {
      public String getPossibleBlockerComment(IRunHistSummary baseBranchStat) {
          if (failuresCount() == 0) {
              if (baseBranchStat == null) {
-                 if (getAvgDurationMs() > TcBotConst.MAX_NEW_TEST_DURATION_FOR_RUNALL)
-                     return "Newly contributed test duration is more that 1 minute";
+                 long durationMs = getAvgDurationMs();
+                 if (durationMs > TcBotConst.MAX_NEW_TEST_DURATION_FOR_RUNALL_MS)
+                     return "Newly contributed test " + TimeUnit.MILLISECONDS.toSeconds(durationMs) + "s duration is more that 1 minute";
              }
 
              return null;
@@ -140,9 +150,8 @@ public class TestCompactedMult {
     }
 
     /**
-     * @param statusSuccess Status success.
      */
-    public boolean isFailedButNotMuted(int statusSuccess) {
-        return occurrences.stream().anyMatch(o -> o.isFailedButNotMuted(statusSuccess));
+    public boolean isFailedButNotMuted() {
+        return occurrences.stream().anyMatch(o -> o.isFailedButNotMuted(STATUS_SUCCESS));
     }
 }

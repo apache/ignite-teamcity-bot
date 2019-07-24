@@ -819,9 +819,14 @@ function showTestFailData(testFail, isFailureShown, settings) {
 
     var haveIssue = isDefinedAndFilled(testFail.webIssueUrl) && isDefinedAndFilled(testFail.webIssueText);
 
-    var color = (isFailureShown && failRateDefined)
-        ? failureRateToColor(failRate)
-        : "white";
+    var color;
+    if (testFail.success === true) {
+        color = "green";
+    } else {
+        color = (isFailureShown && failRateDefined)
+            ? failureRateToColor(failRate)
+            : "white";
+    }
 
     var investigated = isDefinedAndFilled(testFail.investigated) && testFail.investigated;
     if (investigated) {

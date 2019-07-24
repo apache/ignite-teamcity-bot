@@ -20,7 +20,6 @@ package org.apache.ignite.tcbot.engine.chain;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.cache.CacheBuilder;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +32,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
@@ -52,7 +52,6 @@ import org.apache.ignite.tcignited.history.ISuiteRunHistory;
 import org.apache.ignite.tcservice.model.hist.BuildRef;
 import org.apache.ignite.tcservice.model.result.problems.ProblemOccurrence;
 import org.apache.ignite.tcservice.model.result.stat.Statistics;
-import org.apache.ignite.tcservice.model.result.tests.TestOccurrence;
 
 /**
  * Run configuration execution results loaded from different API URLs. Includes tests and problem occurrences; if logs
@@ -72,7 +71,8 @@ public class MultBuildRunCtx implements ISuiteResults {
     /** Builds: Single execution. */
     private List<SingleBuildRunCtx> builds = new CopyOnWriteArrayList<>();
 
-    private final com.google.common.cache.Cache<Integer, Optional<ISuiteRunHistory>> historyCacheMap
+    /** History cache map. */
+    private final com.google.common.cache.Cache<Integer, Optional<ISuiteRunHistory>> histCacheMap
         = CacheBuilder.newBuilder().build();
 
     /** Tests merged: test name ID -> test compacted */
@@ -323,11 +323,15 @@ public class MultBuildRunCtx implements ISuiteResults {
     }
 
     public List<TestCompactedMult> getFailedTests() {
-        int statusSuccess = compactor.getStringId(TestOccurrence.STATUS_SUCCESS);
+        Predicate<TestCompactedMult> filter = TestCompactedMult::isFailedButNotMuted;
 
+        return getFilteredTests(filter);
+    }
+
+    public List<TestCompactedMult> getFilteredTests(Predicate<TestCompactedMult> filter) {
         return getTestsMerged().values()
             .stream()
-            .filter(tmult-> tmult.isFailedButNotMuted(statusSuccess))
+            .filter(filter)
             .collect(Collectors.toList());
     }
 
@@ -637,6 +641,10 @@ public class MultBuildRunCtx implements ISuiteResults {
                 singleBuildRunCtx.getAllTests().filter(t -> !t.isIgnoredTest() && !t.isMutedTest()));
         });
 
+        Stream<TestCompactedMult> stream = getTestsMerged().values().stream();
+
+        stream.filter(mtest-> mtest.isFailedButNotMuted());
+
         res.forEach((testNameId, compactedMult) -> {
             IRunHistory stat = compactedMult.history(tcIgnited, branchName);
             String testBlockerComment = compactedMult.getPossibleBlockerComment(stat);
@@ -684,7 +692,7 @@ public class MultBuildRunCtx implements ISuiteResults {
             return null;
 
         try {
-            return historyCacheMap.get(baseBranchId,
+            return histCacheMap.get(baseBranchId,
                 () -> {
                     return Optional.ofNullable(tcIgn.getSuiteRunHist(buildTypeIdId, baseBranchId));
                 })
