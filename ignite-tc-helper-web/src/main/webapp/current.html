@@ -2,8 +2,7 @@
 <head>
     <title>Apache Ignite Teamcity Bot - Current Failures</title>
     <link rel="icon" href="img/leaf-icon-png-7066.png">
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    <link rel="stylesheet" href="css/style-1.5.css">
+
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.2/css/all.css"
           integrity="sha384-/rXc/GQVaYpyDdyxK+ecHPVYJSN9bmVFBvjA/9eOB+pb3F2w2N6fc5qB9Ew5yIns" crossorigin="anonymous">
 
@@ -11,6 +10,15 @@
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+    <!--<link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet">-->
+
+    <link rel="stylesheet" href="css/vue-slider-1.0.css">
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="css/style-1.5.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.js"></script>
 
     <script src="js/common-1.6.js"></script>
     <script src="js/testfails-2.2.js"></script>
@@ -22,22 +30,6 @@ var gVue;
 
 function genLink() {
     let newUrl = "./current.html" + parmsForRest();
-    /*
-    var branch = findGetParameter("branch");
-    newUrl += "branch=" + (branch != null ? branch : "master");
-
-    if (isDefinedAndFilled(gVue.$data.tagSelected))
-        newUrl += "&tagSelected=" + gVue.$data.tagSelected;
-
-    if (gVue.$data.displayMode != null)
-        newUrl += "&displayMode=" + gVue.$data.displayMode;
-
-    if (gVue.$data.sortOption != null)
-        newUrl += "&sortOption=" + gVue.$data.sortOption;
-
-    if (gVue.$data.count != null)
-        newUrl += "&count=" + gVue.$data.count;
-        */
 
     let permalink = $("#permalink");
     permalink.attr("href", newUrl);
@@ -46,8 +38,26 @@ function genLink() {
 }
 
 function showQueryForm() {
+    let min,max;
+
+    let minFailRate = findGetParameter("minFailRate");
+    if (minFailRate != null) {
+        min = parseInt(minFailRate) ;
+    } else {
+        min = 0;
+    }
+
+    let maxFailRate = findGetParameter("maxFailRate");
+    if (maxFailRate != null) {
+        max = parseInt(maxFailRate);
+    } else {
+        max=100;
+    }
+
+
     gVue = new Vue({
         el: '#vueQueryForm',
+        vuetify: new Vuetify(),
         data: {
             tagSelected: '',
             tagsPresent: [""],
@@ -56,7 +66,12 @@ function showQueryForm() {
             //count of builds to merge
             count: 1,
             trustedTests: true,
-            checkAllLogs: false
+            checkAllLogs: false,
+            hideFlakyFailures: false,
+
+            absMinFailRate: 0,
+            absMaxFailRate: 100,
+            failRateRange: [min, max],
         },
         methods: {
             formChanged: function () {
@@ -98,6 +113,11 @@ function showQueryForm() {
     let checkAllLogs = findGetParameter("checkAllLogs");
     if (checkAllLogs != null) {
         gVue.$data.checkAllLogs = checkAllLogs==="true";
+    }
+
+    var hideFlakyFailuresP = findGetParameter("hideFlakyFailures");
+    if (hideFlakyFailuresP != null) {
+        gVue.$data.hideFlakyFailures = hideFlakyFailuresP==="true";
     }
 
     genLink();
@@ -144,6 +164,14 @@ function parmsForRest() {
 
     if (gVue.$data.count != null)
         curReqParms += "&count=" + gVue.$data.count;
+
+    if (gVue.$data.failRateRange[0] != null)
+        curReqParms += "&minFailRate=" + gVue.$data.failRateRange[0];
+
+    if (gVue.$data.failRateRange[1] != null)
+        curReqParms += "&maxFailRate=" + gVue.$data.failRateRange[1];
+
+    curReqParms += "&hideFlakyFailures=" + gVue.$data.hideFlakyFailures;
 
     return curReqParms;
 }
@@ -249,7 +277,15 @@ function showData(result) {
 
     //var txtUrl = "rest/tracked/results/txt" + parmsForRest();
 
-    $("#divFailures").html(showChainOnServersResults(result));
+    var minFailRate = gVue.$data.failRateRange[0];
+
+    var maxFailRate = gVue.$data.failRateRange[1];
+
+    var hideFlakyFailures = gVue.$data.hideFlakyFailures === true;
+
+    let resHtml = showChainResultsWithSettings(result, new Settings(minFailRate, maxFailRate, result.javaFlags, hideFlakyFailures));
+
+    $("#divFailures").html(resHtml);
     //        + " <a href='"+ txtUrl + "'>txt</a>");
 }
 
@@ -259,30 +295,87 @@ function showData(result) {
 <div id="vueQueryForm">
     <v-app id="prQueryForm" name="prQueryForm">
         <div class="formgroup">
-        <span>Tag filter: </span>
-        <select v-model="tagSelected" @change="formChanged">
-            <option disabled value="">Please select one</option>
+            <table>
+                <tr>
+                    <td>
+                        <span>Tag filter: </span>
+                        <select v-model="tagSelected" @change="formChanged">
+                            <option disabled value="">Please select one</option>
 
-            <option v-for="option in tagsPresent" v-bind:value="option">
-                {{ option }}
-            </option>
-        </select>
-        <span>Display Mode: </span>
-        <select v-model="displayMode" @change="formChanged">
-            <option value="Failures">Show failures only</option>
-            <option value="AllSuites">Show all suites</option>
-        </select>
-        <span>Sort: </span>
-        <select v-model="sortOption" @change="formChanged">
-            <option value="FailureRate">Failure Rate</option>
-            <option value="SuiteDuration">Suite Duration</option>
-        </select>
-            <br>
-            <span>Merge Builds: </span> <input v-model.number="count" type="number" @change="formChanged">
-            &nbsp;&nbsp;<span title="Show trusted tests count">Trusted tests: </span> <input type="checkbox" v-model="trustedTests" @change="formChanged">
-            &nbsp;&nbsp;<span title="Download and parse all logs">Check logs: </span> <input type="checkbox" v-model="checkAllLogs" @change="formChanged">
+                            <option v-for="option in tagsPresent" v-bind:value="option">
+                                {{ option }}
+                            </option>
+                        </select>
+                        <span>Display Mode: </span>
+                        <select v-model="displayMode" @change="formChanged">
+                            <option value="Failures">Show failures only</option>
+                            <option value="AllSuites">Show all suites</option>
+                        </select>
+                        <span>Sort: </span>
+                        <select v-model="sortOption" @change="formChanged">
+                            <option value="FailureRate">Failure Rate</option>
+                            <option value="SuiteDuration">Suite Duration</option>
+                        </select>
+                        <br>
+                        <span>Merge Builds: </span> <input v-model.number="count" type="number" @change="formChanged">
+                        &nbsp;&nbsp;<span title="Show trusted tests count">Trusted tests: </span>
+                        <input type="checkbox" v-model="trustedTests" @change="formChanged">
+                        &nbsp;&nbsp;<span title="Download and parse all logs">Check logs: </span>
+                        <input type="checkbox" v-model="checkAllLogs" @change="formChanged">
+
+                    </td>
+
+                    <td style="width: 50%">
+                        <v-expansion-panels>
+                            <v-expansion-panel>
+                                <v-expansion-panel-header>More options</v-expansion-panel-header>
+                                <v-expansion-panel-content>
+
+                                    &nbsp;&nbsp;<span title="Hide flaky failures">Hide flaky: </span>
+                                    <input type="checkbox" v-model="hideFlakyFailures" @change="formChanged">
+
+                                    <v-range-slider
+                                            v-model="failRateRange"
+                                            :max="absMaxFailRate"
+                                            :min="absMinFailRate"
+                                            hide-details
+                                            class="align-center"
+                                            @change="formChanged"
+                                    >
+                                        <template v-slot:prepend>
+                                            <span>Min failure rate: </span>
+                                            <v-text-field
+                                                    v-model="failRateRange[0]"
+                                                    class="mt-0 pt-0"
+                                                    hide-details
+                                                    single-line
+                                                    type="number"
+                                                    style="width: 60px"></v-text-field>
+
+                                            <span>Max failure rate: </span>
+                                            <v-text-field
+                                                    v-model="failRateRange[1]"
+                                                    class="mt-0 pt-0"
+                                                    hide-details
+                                                    single-line
+                                                    type="number"
+                                                    style="width: 60px"></v-text-field>
+                                        </template>
+                                        <template v-slot:append>
+
+                                        </template>
+                                    </v-range-slider>
+
+                                </v-expansion-panel-content>
+                            </v-expansion-panel>
+                        </v-expansion-panels>
+                    </td>
+                </tr>
+            </table>
 
             &nbsp;&nbsp; <span> <a id="permalink"></a> </span>
+
+
 
             &nbsp;&nbsp;
             <span id="loadStatus"></span>
