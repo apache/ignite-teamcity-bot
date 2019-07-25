@@ -642,12 +642,13 @@ public class MultBuildRunCtx implements ISuiteResults {
 
             if (baseBranchStat == null)
                 testWillBeBlockerIfFailed = true;
+            else {
+                float failRate = baseBranchStat.getFailRate();
+                boolean lowFailureRate = failRate * 100.0f < TcBotConst.NON_FLAKY_TEST_FAIL_RATE_BLOCKER_BORDER_PERCENTS;
 
-            float failRate = baseBranchStat.getFailRate();
-            boolean lowFailureRate = failRate * 100.0f < TcBotConst.NON_FLAKY_TEST_FAIL_RATE_BLOCKER_BORDER_PERCENTS;
-
-            if (lowFailureRate && !baseBranchStat.isFlaky())
-                testWillBeBlockerIfFailed = true;
+                if (lowFailureRate && !baseBranchStat.isFlaky())
+                    testWillBeBlockerIfFailed = true;
+            }
 
             if (testWillBeBlockerIfFailed) // this test will be considered as blocker if will fail
                 trustedCnt.addAndGet(1);
