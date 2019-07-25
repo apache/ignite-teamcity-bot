@@ -31,6 +31,7 @@ import org.apache.ignite.githubignited.IGitHubConnIgnitedProvider;
 import org.apache.ignite.githubservice.IGitHubConnection;
 import org.apache.ignite.jiraignited.IJiraIgnited;
 import org.apache.ignite.jiraignited.IJiraIgnitedProvider;
+import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.common.interceptor.AutoProfiling;
 import org.apache.ignite.tcbot.engine.chain.BuildChainProcessor;
 import org.apache.ignite.tcbot.engine.chain.FullChainRunCtx;
@@ -139,7 +140,7 @@ public class PrChainsProcessor {
 
         List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(suiteId, branchForTc, buildResMergeCnt);
 
-        String baseBranchForTc = Strings.isNullOrEmpty(tcBaseBranchParm) ? dfltBaseTcBranch(tcIgnited) : tcBaseBranchParm;
+        String baseBranchForTc = Strings.isNullOrEmpty(tcBaseBranchParm) ? dfltBaseTcBranch(srvCodeOrAlias) : tcBaseBranchParm;
 
         FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
             tcIgnited,
@@ -178,17 +179,24 @@ public class PrChainsProcessor {
 
     /**
      * Gets deafault TC identified base (reference) branch
-     * @param tcIgnited Tc ignited.
+     * @param srvCodeOrAlias TC service code or aliad
      */
-    public String dfltBaseTcBranch(ITeamcityIgnited tcIgnited) {
-        String dfltTrackedBranch = tcIgnited.config().defaultTrackedBranch();
+    public String dfltBaseTcBranch(String srvCodeOrAlias) {
+        ITcServerConfig tcCfg = cfg.getTeamcityConfig(srvCodeOrAlias);
+        String dfltTrackedBranch = tcCfg.defaultTrackedBranch();
+
+        String tcRealSvc = tcCfg.reference();
+
         Optional<ITrackedBranch> branch = cfg.getTrackedBranches().get(dfltTrackedBranch);
 
-        if(!branch.isPresent())
+        if (!branch.isPresent())
             return ITeamcity.DEFAULT;
 
-        Optional<ITrackedChain> chainAtSrv = branch.get().chainsStream().filter(chain ->
-            Objects.equals(chain.serverCode(), tcIgnited.serverCode())).findAny();
+        Predicate<ITrackedChain> relatedToTcFilter = chain ->
+            Objects.equals(chain.serverCode(), srvCodeOrAlias)
+                || (!Strings.isNullOrEmpty(tcRealSvc) && Objects.equals(chain.serverCode(), tcRealSvc));
+
+        Optional<ITrackedChain> chainAtSrv = branch.get().chainsStream().filter(relatedToTcFilter).findAny();
 
         if (!chainAtSrv.isPresent())
             return ITeamcity.DEFAULT;
@@ -239,7 +247,7 @@ public class PrChainsProcessor {
     /**
      * @param buildTypeId  Build type ID, for which visa was ordered.
      * @param branchForTc Branch for TeamCity.
-     * @param srvId Server id.
+     * @param srvCodeOrAlias Server id.
      * @param prov Credentials.
      * @param syncMode
      * @param baseBranchForTc
@@ -249,15 +257,15 @@ public class PrChainsProcessor {
     public List<DsSuiteUi> getBlockersSuitesStatuses(
         String buildTypeId,
         String branchForTc,
-        String srvId,
+        String srvCodeOrAlias,
         ICredentialsProv prov,
         SyncMode syncMode,
         @Nullable String baseBranchForTc) {
-        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvId, prov);
+        ITeamcityIgnited tcIgnited = tcIgnitedProvider.server(srvCodeOrAlias, prov);
 
         List<Integer> hist = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
-        String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? dfltBaseTcBranch(tcIgnited) : baseBranchForTc;
+        String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? dfltBaseTcBranch(srvCodeOrAlias) : baseBranchForTc;
 
         FullChainRunCtx ctx = buildChainProcessor.loadFullChainContext(
             tcIgnited,

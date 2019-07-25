@@ -65,7 +65,6 @@ import org.apache.ignite.tcbot.common.conf.ITcServerConfig;
 import org.apache.ignite.tcbot.engine.conf.ITcBotConfig;
 import org.apache.ignite.tcbot.engine.pr.BranchTicketMatcher;
 import org.apache.ignite.tcbot.engine.pr.PrChainsProcessor;
-import org.apache.ignite.tcbot.engine.ui.DsHistoryStatUi;
 import org.apache.ignite.tcbot.engine.ui.DsSuiteUi;
 import org.apache.ignite.tcbot.engine.ui.DsTestFailureUi;
 import org.apache.ignite.tcbot.persistence.IStringCompactor;
@@ -764,7 +763,7 @@ public class TcBotTriggerAndSignOffService {
      * Produce visa message(see {@link Visa}) based on passed parameters and publish it as a comment for specified
      * ticket on Jira server.
      *
-     * @param srvId TC Server ID to take information about token from.
+     * @param srvCodeOrAlias TC Server ID to take information about token from.
      * @param prov Credentials.
      * @param buildTypeId Build type ID, for which visa was ordered.
      * @param branchForTc Branch for TeamCity.
@@ -773,15 +772,15 @@ public class TcBotTriggerAndSignOffService {
      * @return {@link Visa} instance.
      */
     public Visa notifyJira(
-        String srvId,
+        String srvCodeOrAlias,
         ITcBotUserCreds prov,
         String buildTypeId,
         String branchForTc,
         String ticket,
         @Nullable String baseBranchForTc) {
-        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvId, prov);
+        ITeamcityIgnited tcIgnited = tcIgnitedProv.server(srvCodeOrAlias, prov);
 
-        IJiraIgnited jira = jiraIgnProv.server(srvId);
+        IJiraIgnited jira = jiraIgnProv.server(srvCodeOrAlias);
 
         List<Integer> builds = tcIgnited.getLastNBuildsFromHistory(buildTypeId, branchForTc, 1);
 
@@ -800,9 +799,9 @@ public class TcBotTriggerAndSignOffService {
         JiraCommentResponse res;
 
         try {
-            String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? prChainsProcessor.dfltBaseTcBranch(tcIgnited) : baseBranchForTc;
+            String baseBranch = Strings.isNullOrEmpty(baseBranchForTc) ? prChainsProcessor.dfltBaseTcBranch(srvCodeOrAlias) : baseBranchForTc;
 
-            List<DsSuiteUi> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, build.branchName, srvId, prov,
+            List<DsSuiteUi> suitesStatuses = prChainsProcessor.getBlockersSuitesStatuses(buildTypeId, build.branchName, srvCodeOrAlias, prov,
                 SyncMode.RELOAD_QUEUED,
                 baseBranch);
 
